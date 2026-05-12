@@ -22,8 +22,7 @@ export default function Home() {
 
   return (
     <>
-      {/* Hidden grain filter — must be in DOM for url(#grain) to resolve */}
-      <svg aria-hidden style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+      <svg aria-hidden focusable="false" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
         <defs>
           <filter id="grain">
             <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves={4} stitchTiles="stitch" result="noise" />
@@ -62,7 +61,13 @@ export default function Home() {
           <p id="academy">ACADEMY · GLOBAL</p>
           <p id="covenant">Built around the teacher.</p>
 
-          <span id="enter" role="button" tabIndex={0} onClick={handleEnter} onKeyDown={handleKeyDown}>
+          <span
+            id="enter"
+            role="button"
+            tabIndex={0}
+            onClick={handleEnter}
+            onKeyDown={handleKeyDown}
+          >
             ENTER
           </span>
           <span id="arrow" aria-hidden onClick={handleEnter}>↓</span>
