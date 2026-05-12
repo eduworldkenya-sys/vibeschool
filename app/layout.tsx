@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Jost, DM_Mono, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 
@@ -27,12 +27,49 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: 'VibeSchool',
   description: 'Built around the teacher.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'VibeSchool',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = {
+  themeColor: '#05050F',
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: 'cover',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" className={`${jost.variable} ${dmMono.variable} ${cormorant.variable}`}>
-      <body>{children}</body>
+    <html
+      lang="en"
+      className={`${jost.variable} ${dmMono.variable} ${cormorant.variable}`}
+    >
+      <body>
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                })
+              }
+            `,
+          }}
+        />
+      </body>
     </html>
   )
 }
