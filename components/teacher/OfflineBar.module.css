@@ -1,0 +1,15 @@
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: transparent;
+  z-index: 9999;
+  pointer-events: none;
+  transition: background-color 300ms ease;
+}
+
+.offline {
+  background-color: #F59E0B;
+}
