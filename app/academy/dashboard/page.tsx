@@ -11,10 +11,14 @@ export default function AcademyDashboard() {
 
   useEffect(() => {
     async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { router.replace('/academy/signin'); return }
-      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single()
-      setUserName(profile?.full_name ?? session.user.email ?? null)
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) { router.replace('/academy/select-role'); return }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single()
+      setUserName(profile?.full_name ?? user.email ?? null)
       setLoading(false)
     }
     checkSession()
@@ -22,7 +26,7 @@ export default function AcademyDashboard() {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    router.replace('/academy/signin')
+    router.replace('/academy/select-role')
   }
 
   if (loading) {
