@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import styles from './signin.module.css'
@@ -13,9 +13,15 @@ const COUNTRIES = [
   { code: 'KR', name: 'South Korea' },
 ]
 
+const MIN_DOB = new Date()
+MIN_DOB.setFullYear(MIN_DOB.getFullYear() - 120)
+const MAX_DOB = new Date()
+MAX_DOB.setFullYear(MAX_DOB.getFullYear() - 5)
+
 export default function GlobalSignIn() {
   const router     = useRouter()
   const contentRef = useRef<HTMLDivElement>(null)
+  const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [mode,     setMode]     = useState<'signin' | 'signup'>('signin')
   const [fullName, setFullName] = useState('')
@@ -26,11 +32,15 @@ export default function GlobalSignIn() {
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
 
+  useEffect(() => {
+    return () => { if (navTimer.current) clearTimeout(navTimer.current) }
+  }, [])
+
   function fadeOut(destination: string) {
     if (!contentRef.current) return
     contentRef.current.style.transition = 'opacity 280ms ease-in'
     contentRef.current.style.opacity    = '0'
-    setTimeout(() => router.push(destination), 280)
+    navTimer.current = setTimeout(() => router.push(destination), 280)
   }
 
   function switchMode(next: 'signin' | 'signup') { setError(''); setMode(next) }
@@ -50,23 +60,42 @@ export default function GlobalSignIn() {
 
     if (!fullName.trim())    { setError('Full name is required.'); return }
     if (!dob)                { setError('Date of birth is required.'); return }
+
+    const dobDate = new Date(dob)
+    if (isNaN(dobDate.getTime()) || dobDate < MIN_DOB || dobDate > MAX_DOB) {
+      setError('Please enter a valid date of birth.'); return
+    }
+
     if (!country)            { setError('Country is required.'); return }
     if (!email.trim())       { setError('Email is required.'); return }
     if (!password)           { setError('Password is required.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
 
     setLoading(true)
+
     const { data: authData, error: authError } = await supabase.auth.signUp({ email: email.trim(), password })
+
     if (authError || !authData.user) {
       setLoading(false)
       setError(authError?.message || 'Sign up failed. Please try again.')
       return
     }
+
     const { error: profileError } = await supabase.from('profiles').insert({
-      id: authData.user.id, full_name: fullName.trim(), date_of_birth: dob, country_code: country,
+      id:            authData.user.id,
+      full_name:     fullName.trim(),
+      date_of_birth: dob,
+      country_code:  country,
     })
+
+    if (profileError) {
+      await supabase.auth.signOut()
+      setLoading(false)
+      setError('Account setup failed. Please try again.')
+      return
+    }
+
     setLoading(false)
-    if (profileError) { setError(profileError.message); return }
     fadeOut('/global/dashboard')
   }
 
@@ -97,8 +126,10 @@ export default function GlobalSignIn() {
           <p className={styles.sub}>For international networks and independent learners.</p>
 
           <div className={styles.toggle}>
-            <button className={`${styles.toggleBtn} ${mode === 'signin' ? styles.toggleActive : ''}`} onClick={() => switchMode('signin')} disabled={loading}>SIGN IN</button>
-            <button className={`${styles.toggleBtn} ${mode === 'signup' ? styles.toggleActive : ''}`} onClick={() => switchMode('signup')} disabled={loading}>SIGN UP</button>
+            <button className={`${styles.toggleBtn} ${mode === 'signin' ? styles.toggleActive : ''}`}
+              onClick={() => switchMode('signin')} disabled={loading}>SIGN IN</button>
+            <button className={`${styles.toggleBtn} ${mode === 'signup' ? styles.toggleActive : ''}`}
+              onClick={() => switchMode('signup')} disabled={loading}>SIGN UP</button>
           </div>
 
           <div className={styles.form}>
@@ -106,15 +137,20 @@ export default function GlobalSignIn() {
               <>
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="fullName">FULL NAME</label>
-                  <input id="fullName" className={styles.input} type="text" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
+                  <input id="fullName" className={styles.input} type="text" autoComplete="name"
+                    value={fullName} onChange={e => setFullName(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
                 </div>
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="dob">DATE OF BIRTH</label>
-                  <input id="dob" className={styles.input} type="date" value={dob} onChange={e => setDob(e.target.value)} disabled={loading} />
+                  <input id="dob" className={styles.input} type="date"
+                    min={MIN_DOB.toISOString().split('T')[0]}
+                    max={MAX_DOB.toISOString().split('T')[0]}
+                    value={dob} onChange={e => setDob(e.target.value)} disabled={loading} />
                 </div>
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="country">COUNTRY</label>
-                  <select id="country" className={styles.input} value={country} onChange={e => setCountry(e.target.value)} disabled={loading}>
+                  <select id="country" className={styles.input} value={country}
+                    onChange={e => setCountry(e.target.value)} disabled={loading}>
                     <option value="" disabled>Select country</option>
                     {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                   </select>
@@ -124,17 +160,22 @@ export default function GlobalSignIn() {
 
             <div className={styles.field}>
               <label className={styles.label} htmlFor="email">EMAIL</label>
-              <input id="email" className={styles.input} type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
+              <input id="email" className={styles.input} type="email" autoComplete="email"
+                value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="password">PASSWORD</label>
-              <input id="password" className={styles.input} type="password" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
+              <input id="password" className={styles.input} type="password"
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
             </div>
 
             {error && <p className={styles.error} role="alert">{error}</p>}
 
             <button className={styles.submit} onClick={handleSubmit} disabled={loading}>
-              {loading ? (mode === 'signin' ? 'SIGNING IN…' : 'CREATING ACCOUNT…') : (mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT')}
+              {loading
+                ? (mode === 'signin' ? 'SIGNING IN…' : 'CREATING ACCOUNT…')
+                : (mode === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT')}
             </button>
 
             <div className={styles.divider}>
@@ -143,7 +184,7 @@ export default function GlobalSignIn() {
               <span className={styles.dividerLine} />
             </div>
 
-            <button className={styles.google} disabled aria-disabled="true">
+            <button className={styles.google} disabled aria-disabled="true" tabIndex={-1}>
               <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
                 <path fill="rgba(255,255,255,0.3)" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="rgba(255,255,255,0.3)" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
