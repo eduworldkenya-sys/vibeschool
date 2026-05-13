@@ -13,11 +13,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(
-    ellipse 72% 48% at 50% -4%,
-    rgba(200, 168, 75, 0.09) 0%,
-    transparent 72%
-  );
+  background: radial-gradient(ellipse 72% 48% at 50% -4%, rgba(200, 168, 75, 0.09) 0%, transparent 72%);
 }
 
 #academy-signin-root::after {
@@ -32,14 +28,7 @@
   height: 100%;
 }
 
-.root {
-  position: relative;
-  isolation: isolate;
-  height: 100dvh;
-  width: 100vw;
-  background: #05050F;
-  overflow: hidden;
-}
+.root { position: relative; isolation: isolate; height: 100dvh; width: 100vw; background: #05050F; overflow: hidden; }
 
 .content {
   position: relative;
@@ -57,150 +46,65 @@
 
 .back {
   position: absolute;
-  top: 24px;
-  left: 24px;
-  background: none;
-  border: none;
+  top: 24px; left: 24px;
+  background: none; border: none;
   color: rgba(200, 168, 75, 0.62);
   font-family: var(--font-display), sans-serif;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 8px;
-  line-height: 1;
-  z-index: 10;
+  font-size: 20px; cursor: pointer; padding: 8px; line-height: 1; z-index: 10;
   transition: color 180ms ease-out;
 }
+.back:hover { color: rgba(200, 168, 75, 1); }
 
-.back:hover {
-  color: rgba(200, 168, 75, 1);
-}
+.world { font-family: var(--font-mono), monospace; font-size: 9px; color: rgba(200, 168, 75, 0.62); letter-spacing: 0.46em; text-transform: uppercase; margin: 0 0 12px 0; }
+.heading { font-family: var(--font-display), sans-serif; font-weight: 800; font-size: clamp(28px, 5vw, 40px); color: #ffffff; letter-spacing: 0.28em; margin: 0 0 8px 0; }
+.sub { font-family: var(--font-serif), serif; font-style: italic; font-size: clamp(12px, 1.4vw, 14px); color: rgba(255, 255, 255, 0.36); letter-spacing: 0.02em; margin: 0 0 40px 0; }
 
-.world {
-  font-family: var(--font-mono), monospace;
-  font-size: 9px;
-  color: rgba(200, 168, 75, 0.62);
-  letter-spacing: 0.46em;
-  text-transform: uppercase;
-  margin: 0 0 12px 0;
-}
-
-.heading {
-  font-family: var(--font-display), sans-serif;
-  font-weight: 800;
-  font-size: clamp(28px, 5vw, 40px);
-  color: #ffffff;
-  letter-spacing: 0.28em;
-  margin: 0 0 8px 0;
-}
-
-.sub {
-  font-family: var(--font-serif), serif;
-  font-style: italic;
-  font-size: clamp(12px, 1.4vw, 14px);
-  color: rgba(255, 255, 255, 0.36);
-  letter-spacing: 0.02em;
-  margin: 0 0 40px 0;
-}
-
-.form {
-  width: 100%;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.form { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
 
 .label {
   font-family: var(--font-mono), monospace;
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.36);
-  letter-spacing: 0.38em;
-  text-transform: uppercase;
+  font-size: 8px; color: rgba(255, 255, 255, 0.36);
+  letter-spacing: 0.38em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.optional {
+  font-family: var(--font-mono), monospace;
+  font-size: 8px; color: rgba(255, 255, 255, 0.22);
+  letter-spacing: 0.02em; text-transform: none;
 }
 
 .input {
-  width: 100%;
-  background: #0D0D1A;
-  border: 1px solid rgba(200, 168, 75, 0.28);
-  border-radius: 6px;
+  width: 100%; background: #0D0D1A;
+  border: 1px solid rgba(200, 168, 75, 0.28); border-radius: 6px;
   padding: 12px 14px;
-  font-family: var(--font-display), sans-serif;
-  font-size: 14px;
-  color: #ffffff;
-  outline: none;
-  box-sizing: border-box;
+  font-family: var(--font-display), sans-serif; font-size: 14px; color: #ffffff;
+  outline: none; box-sizing: border-box;
   transition: border-color 180ms ease-out;
-  -webkit-appearance: none;
+  -webkit-appearance: none; appearance: none;
 }
+.input:focus { border-color: rgba(200, 168, 75, 0.72); }
+.input:disabled { opacity: 0.5; cursor: not-allowed; }
+.input::placeholder { color: rgba(255, 255, 255, 0.18); }
 
-.input:focus {
-  border-color: rgba(200, 168, 75, 0.72);
-}
-
-.input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.error {
-  font-family: var(--font-mono), monospace;
-  font-size: 10px;
-  color: rgba(220, 80, 80, 0.82);
-  letter-spacing: 0.04em;
-  margin: 0;
-}
+.error { font-family: var(--font-mono), monospace; font-size: 10px; color: rgba(220, 80, 80, 0.82); letter-spacing: 0.04em; margin: 0; }
 
 .submit {
-  width: 100%;
-  background: transparent;
-  border: 1px solid rgba(200, 168, 75, 0.55);
-  border-radius: 6px;
+  width: 100%; background: transparent;
+  border: 1px solid rgba(200, 168, 75, 0.55); border-radius: 6px;
   padding: 13px 0;
-  font-family: var(--font-display), sans-serif;
-  font-weight: 600;
-  font-size: 11px;
-  color: rgba(200, 168, 75, 0.9);
-  letter-spacing: 0.38em;
-  text-transform: uppercase;
-  cursor: pointer;
-  margin-top: 8px;
+  font-family: var(--font-display), sans-serif; font-weight: 600; font-size: 11px;
+  color: rgba(200, 168, 75, 0.9); letter-spacing: 0.38em; text-transform: uppercase;
+  cursor: pointer; margin-top: 8px;
   transition: border-color 180ms ease-out, color 180ms ease-out;
 }
+.submit:hover:not(:disabled) { border-color: rgba(200, 168, 75, 0.9); color: #C8A84B; }
+.submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.submit:hover:not(:disabled) {
-  border-color: rgba(200, 168, 75, 0.9);
-  color: #C8A84B;
-}
-
-.submit:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.switch {
-  font-family: var(--font-mono), monospace;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.28);
-  letter-spacing: 0.04em;
-  margin-top: 24px;
-}
-
-.switchLink {
-  color: rgba(200, 168, 75, 0.72);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.switchLink:hover {
-  color: #C8A84B;
-}
+.switch { font-family: var(--font-mono), monospace; font-size: 10px; color: rgba(255, 255, 255, 0.28); letter-spacing: 0.04em; margin-top: 24px; }
+.switchLink { color: rgba(200, 168, 75, 0.72); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.switchLink:hover { color: #C8A84B; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
