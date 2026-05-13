@@ -19,13 +19,15 @@ import type { Insight }      from '@/components/teacher/IntelligenceCard'
 import type { ActivityItem } from '@/components/teacher/RecentActivity'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type DarkMode = 'sun' | 'light' | 'dark'
-type TabKey   = 'home' | 'attendance' | 'twin' | 'classes' | 'profile'
-type ModeKey  = 'lesson_plan' | 'parent_message' | 'attendance' | 'advisory'
-type ToolKey  = 'attendance' | 'timetable' | 'lessonplan' | 'gradebook' | 'connecthub' | 'twin'
+type DarkMode   = 'sun' | 'light' | 'dark'
+type SyncStatus = 'synced' | 'offline' | 'failed'
+type TabKey     = 'home' | 'classhub' | 'twin' | 'connecthub' | 'profile'
+type ModeKey    = 'lesson_plan' | 'parent_message' | 'attendance' | 'advisory'
+type ToolKey    = 'attendance' | 'timetable' | 'lessonplan' | 'gradebook' | 'connecthub' | 'twin'
 
 interface ClassData {
   id:               string
+  classId:          string
   name:             string
   subject:          string
   time:             string
@@ -34,7 +36,14 @@ interface ClassData {
   attendanceMarked: boolean
   presentCount:     number
   absentCount:      number
+  lateCount:        number
   markedAt:         string
+}
+
+interface NextClass {
+  subject:         string
+  room:            string
+  startsInMinutes: number
 }
 
 interface TeacherProfile {
@@ -53,65 +62,155 @@ function getInitials(fullName: string): string {
 }
 
 function startOfCurrentWeek(): string {
-  const d = new Date()
+  const d   = new Date()
   const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
   d.setDate(diff)
   return d.toISOString().split('T')[0]
 }
 
 function formatTime(time: string): string {
-  // Converts '08:00:00' → '8:00 AM'
   const [h, m] = time.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  const hour = h % 12 || 12
+  const ampm   = h >= 12 ? 'PM' : 'AM'
+  const hour   = h % 12 || 12
   return `${hour}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
 function formatActivityTime(isoString: string): string {
-  const date  = new Date(isoString)
-  const now   = new Date()
-  const today = now.toDateString()
+  const date      = new Date(isoString)
+  const now       = new Date()
   const yesterday = new Date(now)
   yesterday.setDate(now.getDate() - 1)
 
-  if (date.toDateString() === today) {
+  if (date.toDateString() === now.toDateString()) {
     return 'Today, ' + date.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit' })
   }
   if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
   return date.toLocaleDateString('en-KE', { weekday: 'short' })
 }
 
+function minutesUntil(timeStr: string): number {
+  const now       = new Date()
+  const [h, m]    = timeStr.split(':').map(Number)
+  const target    = new Date(now)
+  target.setHours(h, m, 0, 0)
+  return Math.max(0, Math.round((target.getTime() - now.getTime()) / 60000))
+}
+
+const VALID_TASK_TYPES = ['lesson_plan', 'parent_message', 'attendance', 'advisory'] as const
+type ValidTaskType = typeof VALID_TASK_TYPES[number]
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function TeacherHomePage() {
   const supabase = createClientComponentClient()
 
-  const [darkMode,  setDarkMode]  = useState<DarkMode>('sun')
-  const [activeTab, setActiveTab] = useState<TabKey>('home')
-
-  // Data state
-  const [teacher,   setTeacher]   = useState<TeacherProfile | null>(null)
-  const [classData, setClassData] = useState<ClassData | null>(null)
-  const [sessions,  setSessions]  = useState<{ task_type: string; minutes: number }[]>([])
-  const [insights,  setInsights]  = useState<Insight[]>([])
-  const [activity,  setActivity]  = useState<ActivityItem[]>([])
-  const [classesTotal, setClassesTotal] = useState(0)
-  const [loading,   setLoading]   = useState(true)
+  const [darkMode,        setDarkMode]        = useState<DarkMode>('sun')
+  const [syncStatus,      setSyncStatus]      = useState<SyncStatus>('synced')
+  const [activeTab,       setActiveTab]       = useState<TabKey>('home')
+  const [teacher,         setTeacher]         = useState<TeacherProfile | null>(null)
+  const [classData,       setClassData]       = useState<ClassData | null>(null)
+  const [nextClass,       setNextClass]       = useState<NextClass | null>(null)
+  const [sessions,        setSessions]        = useState<{ task_type: ValidTaskType; minutes: number }[]>([])
+  const [insights,        setInsights]        = useState<Insight[]>([])
+  const [activity,        setActivity]        = useState<ActivityItem[]>([])
+  const [classesTotal,    setClassesTotal]    = useState(0)
+  const [notifCount,      setNotifCount]      = useState(0)
+  const [connecthubBadge, setConnecthubBadge] = useState(0)
+  const [loading,         setLoading]         = useState(true)
 
   const isDark =
     darkMode === 'dark' ||
     (darkMode === 'sun' && new Date().getHours() >= 18)
 
-  // ── Load all data on mount ─────────────────────────────────────────────────
+  // ── Handlers (defined before useEffect) ───────────────────────────────────
+  function handleTwinOpen(mode: ModeKey) {
+    setActiveTab('twin')
+    // TODO: open Twin with mode pre-loaded
+  }
+
+  function handleToolOpen(tool: ToolKey) {
+    // TODO: navigate to tool page
+    console.log('Tool opened:', tool)
+  }
+
+  function handleNotifPress() {
+    // TODO: open notifications panel
+  }
+
+  function handleOpenGradebook() {
+    setActiveTab('classhub')
+    // TODO: navigate to gradebook
+  }
+
+  function handleMessageParents() {
+    handleTwinOpen('parent_message')
+  }
+
+  async function handleMarkAttendance() {
+    if (!classData) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data: studentList } = await supabase
+      .from('students')
+      .select('id')
+      .eq('class_id', classData.classId)
+
+    if (!studentList) return
+
+    const rows = studentList.map(s => ({
+      timetable_slot_id: classData.id,
+      class_id:          classData.classId,
+      student_id:        s.id,
+      teacher_id:        user.id,
+      date:              today,
+      status:            'present',
+    }))
+
+    const { error } = await supabase.from('attendance').upsert(rows, {
+      onConflict: 'timetable_slot_id,student_id,date',
+    })
+
+    if (error) {
+      setSyncStatus('failed')
+      return
+    }
+
+    setClassData(prev =>
+      prev ? {
+        ...prev,
+        attendanceMarked: true,
+        presentCount:     studentList.length,
+        absentCount:      0,
+        lateCount:        0,
+        markedAt:         'just now',
+      } : prev
+    )
+    setSyncStatus('synced')
+    // TODO: write to IndexedDB for offline sync
+  }
+
+  // ── Load all data ──────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      // 1. Auth user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const uid = user.id
+      const uid      = user.id
+      const now      = new Date()
+      const todayDow = now.getDay()
+      const today    = now.toISOString().split('T')[0]
+      const nowTime  = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`
 
-      // 2. Teacher profile
+      // Sunday — no classes
+      if (todayDow === 0) {
+        setLoading(false)
+        return
+      }
+
+      // 1. Teacher profile
       const { data: userData } = await supabase
         .from('users')
         .select('full_name')
@@ -125,27 +224,15 @@ export default function TeacherHomePage() {
         })
       }
 
-      // 3. Today's first timetable slot (current class)
-      const todayDow = new Date().getDay() // 0=Sun … 6=Sat
-      const dowMapped = todayDow === 0 ? 5 : todayDow // treat Sun as Fri fallback
-
-      const now = new Date()
-      const nowTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`
-
+      // 2. Current timetable slot
       const { data: slots } = await supabase
         .from('timetable_slots')
         .select(`
-          id,
-          subject,
-          start_time,
-          end_time,
-          room,
-          day_of_week,
-          class_id,
+          id, subject, start_time, end_time, room, day_of_week, class_id,
           classes ( grade_name, stream )
         `)
         .eq('teacher_id', uid)
-        .eq('day_of_week', dowMapped)
+        .eq('day_of_week', todayDow)
         .lte('start_time', nowTime)
         .order('start_time', { ascending: false })
         .limit(1)
@@ -154,14 +241,11 @@ export default function TeacherHomePage() {
         const slot = slots[0]
         const cls  = slot.classes as { grade_name: string; stream: string | null }
 
-        // Count students in this class
         const { count: studentCount } = await supabase
           .from('students')
           .select('id', { count: 'exact', head: true })
           .eq('class_id', slot.class_id)
 
-        // Check if attendance already marked for this slot today
-        const today = now.toISOString().split('T')[0]
         const { data: marked } = await supabase
           .from('attendance')
           .select('status')
@@ -170,13 +254,13 @@ export default function TeacherHomePage() {
 
         const presentCount = marked?.filter(r => r.status === 'present').length ?? 0
         const absentCount  = marked?.filter(r => r.status === 'absent').length  ?? 0
+        const lateCount    = marked?.filter(r => r.status === 'late').length    ?? 0
         const wasMarked    = (marked?.length ?? 0) > 0
-
-        const className = cls.grade_name + (cls.stream ? ` ${cls.stream}` : '')
 
         setClassData({
           id:               slot.id,
-          name:             className,
+          classId:          slot.class_id,
+          name:             cls.grade_name + (cls.stream ? ` ${cls.stream}` : ''),
           subject:          slot.subject,
           time:             `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`,
           room:             slot.room ?? 'TBA',
@@ -184,7 +268,27 @@ export default function TeacherHomePage() {
           attendanceMarked: wasMarked,
           presentCount,
           absentCount,
+          lateCount,
           markedAt:         wasMarked ? 'earlier today' : '',
+        })
+      }
+
+      // 3. Next timetable slot
+      const { data: nextSlots } = await supabase
+        .from('timetable_slots')
+        .select('subject, start_time, room')
+        .eq('teacher_id', uid)
+        .eq('day_of_week', todayDow)
+        .gt('start_time', nowTime)
+        .order('start_time', { ascending: true })
+        .limit(1)
+
+      if (nextSlots && nextSlots.length > 0) {
+        const ns = nextSlots[0]
+        setNextClass({
+          subject:         ns.subject,
+          room:            ns.room ?? 'TBA',
+          startsInMinutes: minutesUntil(ns.start_time),
         })
       }
 
@@ -193,11 +297,11 @@ export default function TeacherHomePage() {
         .from('timetable_slots')
         .select('id', { count: 'exact', head: true })
         .eq('teacher_id', uid)
-        .eq('day_of_week', dowMapped)
+        .eq('day_of_week', todayDow)
 
       setClassesTotal(totalToday ?? 0)
 
-      // 5. Twin sessions this week (for time saved)
+      // 5. Twin sessions this week
       const weekStart = startOfCurrentWeek()
       const { data: sessionData } = await supabase
         .from('twin_sessions')
@@ -205,9 +309,13 @@ export default function TeacherHomePage() {
         .eq('teacher_id', uid)
         .gte('created_at', weekStart)
 
-      setSessions(sessionData ?? [])
+      setSessions(
+        (sessionData ?? []).filter(s =>
+          VALID_TASK_TYPES.includes(s.task_type as ValidTaskType)
+        ) as { task_type: ValidTaskType; minutes: number }[]
+      )
 
-      // 6. Intelligence insights
+      // 6. Insights
       const { data: insightRows } = await supabase
         .from('teacher_insights')
         .select('*')
@@ -222,8 +330,8 @@ export default function TeacherHomePage() {
             message:   row.message,
             ctaLabel:  row.cta_label,
             ctaAction: () => {
-              if (row.type === 'lesson_plan')  handleTwinOpen('lesson_plan')
-              if (row.type === 'attendance')   handleTwinOpen('parent_message')
+              if (row.type === 'lesson_plan') handleTwinOpen('lesson_plan')
+              if (row.type === 'attendance')  handleTwinOpen('parent_message')
             },
             updatedAt: formatActivityTime(row.created_at),
           }))
@@ -249,120 +357,35 @@ export default function TeacherHomePage() {
         )
       }
 
+      // 8. Notification count
+      const { count: notifs } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', uid)
+        .eq('read', false)
+
+      setNotifCount(notifs ?? 0)
+
+      // 9. ConnectHub unread count
+      const { count: chUnread } = await supabase
+        .from('connecthub_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', uid)
+        .eq('read', false)
+
+      setConnecthubBadge(chUnread ?? 0)
+
       setLoading(false)
     }
 
     load()
   }, [])
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-  function handleTwinOpen(mode: ModeKey) {
-    setActiveTab('twin')
-    // TODO: open Twin with mode pre-loaded
-  }
-
-  function handleToolOpen(tool: ToolKey) {
-    // TODO: navigate to tool page
-    console.log('Tool opened:', tool)
-  }
-
-  async function handleMarkAttendance() {
-    if (!classData) return
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const today = new Date().toISOString().split('T')[0]
-
-    // Fetch all students in this class
-    const { data: studentList } = await supabase
-      .from('students')
-      .select('id')
-      .eq('class_id', classData.id) // classData.id is timetable_slot_id here
-    // NOTE: For a real mark-attendance flow you'd open a screen to
-    // tick each student. This sets everyone present as a placeholder.
-    if (!studentList) return
-
-    const rows = studentList.map(s => ({
-      timetable_slot_id: classData.id,
-      class_id:          classData.id, // replace with real class_id from slot
-      student_id:        s.id,
-      teacher_id:        user.id,
-      date:              today,
-      status:            'present',
-    }))
-
-    await supabase.from('attendance').upsert(rows, {
-      onConflict: 'timetable_slot_id,student_id,date',
-    })
-
-    setClassData(prev =>
-      prev ? {
-        ...prev,
-        attendanceMarked: true,
-        presentCount:     studentList.length,
-        absentCount:      0,
-        markedAt:         'just now',
-      } : prev
-    )
-    // TODO: also write to IndexedDB for offline sync
-  }
-
-  function handleViewTimetable() {
-    setActiveTab('attendance')
-    // TODO: navigate to timetable view
-  }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
-  if (loading || !teacher || !classData) {
-    return (
-      <div className={`${styles.root} ${isDark ? styles.rootDark : ''}`}>
-        <div className={styles.loadingState}>Loading…</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className={`${styles.root} ${isDark ? styles.rootDark : ''}`}>
-      <OfflineBar />
-
-      <Header
-        isOnline={true}
-        teacherInitials={teacher.initials}
-        darkMode={darkMode}
-        onDarkModeChange={setDarkMode}
-      />
-
-      <main className={styles.scroll}>
-
-        {/* Zone 1 — Intelligence Strip */}
-        <IntelligenceStrip
-          teacherName={teacher.name}
-          studentCount={classData.students}
-          classesTotal={classesTotal}
-          sessions={sessions as any}
-        />
-
-        {/* Zone 2 — Pulse Card + Twin Shortcut */}
-        <PulseCard
-          currentClass={classData}
-          onMarkAttendance={handleMarkAttendance}
-          onViewTimetable={handleViewTimetable}
-        />
-        <TwinShortcut onOpen={handleTwinOpen} />
-
-        {/* Zone 3 — Your Tools */}
-        <ToolsGrid onOpen={handleToolOpen} />
-
-        {/* Zone 4 — Intelligence */}
-        <IntelligenceCard insights={insights} />
-
-        {/* Zone 5 — Recent Activity */}
-        <RecentActivity items={activity} />
-
-      </main>
-
-      <BottomNav active={activeTab} onChange={setActiveTab} />
-    </div>
-  )
-}
+  // ── Offline detection ──────────────────────────────────────────────────────
+  useEffect(() => {
+    function goOnline()  { setSyncStatus('synced')  }
+    function goOffline() { setSyncStatus('offline') }
+    window.addEventListener('online',  goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEven
