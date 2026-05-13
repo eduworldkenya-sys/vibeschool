@@ -1,0 +1,42 @@
+.nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-around;
+  padding: 8px 0 12px;
+  z-index: 100;
+}
+
+.tab {
+  background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  flex: 1; padding: 4px 0;
+}
+
+.icon {
+  font-size: 16px; color: var(--text-subtle);
+  display: block;
+}
+
+.twinIcon { font-size: 20px; }
+
+.tabActive .icon {
+  color: #10B981;
+}
+
+.tabActive .twinIcon {
+  filter: drop-shadow(0 0 6px #10B981);
+}
+
+.tabLabel {
+  font-size: 9px; font-weight: 500;
+  color: var(--text-subtle);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+.tabActive .tabLabel {
+  font-weight: 700;
+  color: #10B981;
+}
