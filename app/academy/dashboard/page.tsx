@@ -1,0 +1,46 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import styles from './dashboard.module.css'
+
+export default function AcademyDashboard() {
+  const router = useRouter()
+  const [userName, setUserName] = useState<string | null>(null)
+  const [loading,  setLoading]  = useState(true)
+
+  useEffect(() => {
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { router.replace('/academy/signin'); return }
+      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single()
+      setUserName(profile?.full_name ?? session.user.email ?? null)
+      setLoading(false)
+    }
+    checkSession()
+  }, [router])
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.replace('/academy/signin')
+  }
+
+  if (loading) {
+    return (
+      <div id="academy-dashboard-root" className={styles.root}>
+        <div className={styles.loader} aria-label="Loading" />
+      </div>
+    )
+  }
+
+  return (
+    <div id="academy-dashboard-root" className={styles.root}>
+      <div className={styles.content}>
+        <p className={styles.world}>ACADEMY</p>
+        <p className={styles.welcome}>Welcome,</p>
+        <p className={styles.name}>{userName}</p>
+        <button className={styles.signOut} onClick={handleSignOut}>SIGN OUT</button>
+      </div>
+    </div>
+  )
+}
