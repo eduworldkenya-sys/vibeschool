@@ -19,7 +19,14 @@ export async function middleware(req: NextRequest) {
         getAll() {
           return req.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+
+        setAll(
+          cookiesToSet: {
+            name: string
+            value: string
+            options?: Record<string, unknown>
+          }[]
+        ) {
           cookiesToSet.forEach(({ name, value, options }) => {
             req.cookies.set(name, value)
             res.cookies.set(name, value, options)
@@ -29,12 +36,16 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
 
   if (error || !user) {
     const signinPath = pathname.startsWith('/academy')
       ? '/academy/signin'
       : '/global/signin'
+
     return NextResponse.redirect(new URL(signinPath, req.url))
   }
 
