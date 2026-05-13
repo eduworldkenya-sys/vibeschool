@@ -33,12 +33,11 @@ export async function middleware(req: NextRequest) {
 
   if (error || !user) {
     const signinPath = pathname.startsWith('/academy')
-      ? '/academy/select-role'
+      ? '/academy/signin'
       : '/global/signin'
     return NextResponse.redirect(new URL(signinPath, req.url))
   }
 
-  // Role-gate: fetch profile using Database Identity Law (profiles.id = auth.uid())
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
@@ -47,14 +46,12 @@ export async function middleware(req: NextRequest) {
 
   const role = profile?.role
 
-  // /global/dashboard → admin only
   if (pathname.startsWith('/global/dashboard') && role !== 'admin') {
     return NextResponse.redirect(new URL('/global/signin', req.url))
   }
 
-  // /academy/dashboard → teacher only
   if (pathname.startsWith('/academy/dashboard') && role !== 'teacher') {
-    return NextResponse.redirect(new URL('/academy/select-role', req.url))
+    return NextResponse.redirect(new URL('/academy/signin', req.url))
   }
 
   return res
