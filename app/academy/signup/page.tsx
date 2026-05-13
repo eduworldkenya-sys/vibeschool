@@ -1,8 +1,11 @@
 'use client'
-import { useState, useRef, Suspense } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import styles from './signup.module.css'
+
+const VALID_ROLES = ['teacher', 'parent', 'admin'] as const
+type Role = typeof VALID_ROLES[number]
 
 const COUNTRIES = [
   { code: 'KE', name: 'Kenya' },
@@ -13,11 +16,21 @@ const COUNTRIES = [
   { code: 'KR', name: 'South Korea' },
 ]
 
+const MIN_DOB = new Date()
+MIN_DOB.setFullYear(MIN_DOB.getFullYear() - 120)
+const MAX_DOB = new Date()
+MAX_DOB.setFullYear(MAX_DOB.getFullYear() - 5)
+
 function AcademySignUpInner() {
   const router       = useRouter()
   const searchParams = useSearchParams()
-  const role         = searchParams.get('role') || 'teacher'
-  const contentRef   = useRef<HTMLDivElement>(null)
+  const rawRole      = searchParams.get('role') ?? 'teacher'
+  const role: Role   = (VALID_ROLES as readonly string[]).includes(rawRole)
+    ? (rawRole as Role)
+    : 'teacher'
+
+  const contentRef = useRef<HTMLDivElement>(null)
+  const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [fullName, setFullName] = useState('')
   const [dob,      setDob]      = useState('')
@@ -28,42 +41,43 @@ function AcademySignUpInner() {
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
 
+  useEffect(() => {
+    return () => { if (navTimer.current) clearTimeout(navTimer.current) }
+  }, [])
+
   function fadeOut(destination: string) {
     if (!contentRef.current) return
     contentRef.current.style.transition = 'opacity 280ms ease-in'
     contentRef.current.style.opacity    = '0'
-    setTimeout(() => router.push(destination), 280)
+    navTimer.current = setTimeout(() => router.push(destination), 280)
   }
 
   async function handleSubmit() {
     setError('')
+
     if (!fullName.trim())    { setError('Full name is required.'); return }
     if (!dob)                { setError('Date of birth is required.'); return }
+
+    const dobDate = new Date(dob)
+    if (isNaN(dobDate.getTime()) || dobDate < MIN_DOB || dobDate > MAX_DOB) {
+      setError('Please enter a valid date of birth.'); return
+    }
+
     if (!country)            { setError('Country is required.'); return }
     if (!email.trim())       { setError('Email is required.'); return }
     if (!password)           { setError('Password is required.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
-    if (code.trim() && !/^\d{6}$/.test(code.trim())) { setError('Invitation code must be exactly 6 digits.'); return }
+    if (code.trim() && !/^\d{6}$/.test(code.trim())) {
+      setError('Invitation code must be exactly 6 digits.'); return
+    }
 
     setLoading(true)
 
-    if (code.trim()) {
-      const checkRes  = await fetch('/api/validate-invitation', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code.trim(), commit: false }),
-      })
-      const checkData = await checkRes.json()
-      if (!checkRes.ok || checkData.result !== 'accepted') {
-        setLoading(false)
-        if (checkData.result === 'expired')   { setError('This invitation code has expired.'); return }
-        if (checkData.result === 'exhausted') { setError('This invitation code has reached its maximum uses.'); return }
-        if (checkData.result === 'locked')    { setError('Too many failed attempts. Try again later.'); return }
-        setError('Invalid invitation code.')
-        return
-      }
-    }
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+    })
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email: email.trim(), password })
     if (authError || !authData.user) {
       setLoading(false)
       setError(authError?.message || 'Sign up failed. Please try again.')
@@ -71,14 +85,24 @@ function AcademySignUpInner() {
     }
 
     const { error: profileError } = await supabase.from('profiles').insert({
-      id: authData.user.id, full_name: fullName.trim(), date_of_birth: dob, country_code: country,
+      id:            authData.user.id,
+      full_name:     fullName.trim(),
+      date_of_birth: dob,
+      country_code:  country,
     })
-    if (profileError) { setLoading(false); setError(profileError.message); return }
+
+    if (profileError) {
+      await supabase.auth.signOut()
+      setLoading(false)
+      setError('Account setup failed. Please try again.')
+      return
+    }
 
     if (code.trim()) {
       await fetch('/api/validate-invitation', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code.trim(), commit: true }),
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ code: code.trim(), commit: true }),
       })
     }
 
@@ -111,33 +135,41 @@ function AcademySignUpInner() {
           <div className={styles.form}>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="fullName">FULL NAME</label>
-              <input id="fullName" className={styles.input} type="text" autoComplete="name" value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
+              <input id="fullName" className={styles.input} type="text" autoComplete="name"
+                value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="dob">DATE OF BIRTH</label>
-              <input id="dob" className={styles.input} type="date" value={dob} onChange={e => setDob(e.target.value)} disabled={loading} />
+              <input id="dob" className={styles.input} type="date"
+                min={MIN_DOB.toISOString().split('T')[0]}
+                max={MAX_DOB.toISOString().split('T')[0]}
+                value={dob} onChange={e => setDob(e.target.value)} disabled={loading} />
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="country">COUNTRY</label>
-              <select id="country" className={styles.input} value={country} onChange={e => setCountry(e.target.value)} disabled={loading}>
+              <select id="country" className={styles.input} value={country}
+                onChange={e => setCountry(e.target.value)} disabled={loading}>
                 <option value="" disabled>Select country</option>
                 {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select>
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="email">EMAIL</label>
-              <input id="email" className={styles.input} type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
+              <input id="email" className={styles.input} type="email" autoComplete="email"
+                value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="password">PASSWORD</label>
-              <input id="password" className={styles.input} type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+              <input id="password" className={styles.input} type="password" autoComplete="new-password"
+                value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="code">
                 INVITATION CODE <span className={styles.optional}>(optional)</span>
               </label>
               <input id="code" className={styles.input} type="text" inputMode="numeric" maxLength={6}
-                placeholder="6-digit code" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={loading} />
+                placeholder="6-digit code" value={code}
+                onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={loading} />
             </div>
 
             {error && <p className={styles.error} role="alert">{error}</p>}
