@@ -3,6 +3,7 @@
   border-radius: 16px;
   margin: 16px 16px 0;
   border: 1px solid var(--border);
+  border-left: 3px solid #10B981;
   box-shadow: var(--card-shadow);
   overflow: hidden;
 }
@@ -53,6 +54,7 @@
 
 .body { padding: 16px 16px 14px; }
 
+/* Class row */
 .classRow {
   display: flex; justify-content: space-between;
   align-items: flex-start; margin-bottom: 14px;
@@ -82,49 +84,122 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-/* State A */
-.stateA { display: flex; gap: 8px; }
+/* Attendance counts */
+.countRow {
+  display: flex; gap: 16px;
+  margin-bottom: 12px;
+}
 
-.btnMark {
-  flex: 1;
-  background: #10B981; color: #000000;
-  border: none; border-radius: 10px;
-  padding: 11px 0;
-  font-size: 13px; font-weight: 700; cursor: pointer;
+.countItem {
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.countValue {
+  font-size: 28px; font-weight: 800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  line-height: 1;
+}
+
+.countLabel {
+  font-size: 9px; font-weight: 700;
+  color: var(--text-muted);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: 0.08em;
+}
+
+/* Next class preview inline */
+.nextPreview {
+  display: flex; align-items: center; gap: 4px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+
+.nextLabel {
+  font-size: 12px; color: var(--text-muted);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.btnTimetable {
-  flex: 1;
-  background: var(--surface-alt); color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px; padding: 11px 0;
-  font-size: 13px; font-weight: 600; cursor: pointer;
+.nextSubject {
+  font-size: 12px; font-weight: 700;
+  color: var(--text);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-/* State B */
-.stateB {
-  background: rgba(16,185,129,0.08);
-  border: 1px solid rgba(16,185,129,0.2);
-  border-radius: 10px; padding: 10px 14px;
-  display: flex; align-items: center; gap: 10px;
+.nextDot {
+  font-size: 12px; color: var(--text-subtle);
 }
 
-.stateBCheck {
-  width: 24px; height: 24px; border-radius: 50%;
-  background: #10B981;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; color: #000; flex-shrink: 0;
+.nextRoom {
+  font-size: 12px; color: var(--text-muted);
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.stateBTitle {
+.nextTime {
   font-size: 12px; font-weight: 700;
   color: #10B981;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.stateBSub {
-  font-size: 10px; color: var(--text-muted);
+/* State A */
+.stateA { display: flex; gap: 8px; }
+
+.btnMark {
+  flex: 1;
+  background: #10B981; color: #000;
+  border: none; border-radius: 10px;
+  padding: 12px 0;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* State B */
+.stateB { display: flex; gap: 8px; }
+
+.btnGradebook {
+  flex: 1;
+  background: #10B981; color: #000;
+  border: none; border-radius: 10px;
+  padding: 12px 0;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.btnParents {
+  flex: 1;
+  background: var(--surface-alt); color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 0;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Next tab — full view */
+.nextFull {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 0 16px; gap: 6px;
+}
+
+.nextFullSubject {
+  font-size: 22px; font-weight: 800;
+  color: var(--text);
+  font-family: 'DM Serif Display', serif;
+}
+
+.nextFullMeta {
+  font-size: 13px; color: var(--text-muted);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.nextFullCountdown {
+  font-size: 18px; font-weight: 700;
+  color: #10B981;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  margin-top: 4px;
+}
+
+.noNext {
+  text-align: center;
+  padding: 28px 0;
+  font-size: 13px; color: var(--text-subtle);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
