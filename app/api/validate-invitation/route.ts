@@ -6,8 +6,25 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_SITE_URL,
+  'http://localhost:3000',
+].filter(Boolean) as string[]
+
 export async function POST(req: NextRequest) {
-  const { code, commit } = await req.json()
+  const origin = req.headers.get('origin') ?? ''
+  if (!ALLOWED_ORIGINS.includes(origin)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const { code, commit } = body as Record<string, unknown>
 
   if (!code || typeof code !== 'string') {
     return NextResponse.json({ error: 'Missing code' }, { status: 400 })
