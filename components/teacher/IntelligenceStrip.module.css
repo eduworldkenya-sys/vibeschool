@@ -1,0 +1,50 @@
+.strip {
+  background: linear-gradient(135deg, #0F2027 0%, #1A3A2E 50%, #0D1F1A 100%);
+  padding: 20px 16px 18px;
+  border-bottom: 1px solid #1E3A2E;
+}
+
+.greeting {
+  font-size: 12px; font-weight: 600;
+  color: #6EDBB5;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.name {
+  font-size: 22px; font-weight: 800;
+  color: #F0EDE8;
+  font-family: 'DM Serif Display', serif;
+  line-height: 1.2; margin-bottom: 14px;
+}
+
+.stats { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.stat {
+  background: rgba(240,237,232,0.06);
+  border: 1px solid rgba(240,237,232,0.1);
+  border-radius: 8px; padding: 8px 12px;
+  flex: 1; min-width: 80px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.statAmber {
+  background: rgba(245,158,11,0.12);
+  border-color: rgba(245,158,11,0.25);
+}
+
+.statValue {
+  font-size: 18px; font-weight: 700;
+  color: #F0EDE8;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  line-height: 1;
+}
+
+.amberValue { color: #F59E0B; }
+
+.statLabel {
+  font-size: 10px; color: #6B6560;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
