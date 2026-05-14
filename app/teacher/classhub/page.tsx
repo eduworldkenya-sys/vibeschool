@@ -25,11 +25,9 @@ export interface ClassItem {
 
 type SyncStatus = 'synced' | 'offline' | 'failed'
 type DarkMode   = 'sun' | 'light' | 'dark'
-type TabKey     = 'home' | 'classhub' | 'twin' | 'connecthub' | 'profile'
+type TabKey     = 'home' | 'lessonplan' | 'vibeconnect' | 'more' | 'profile'
 
 // ── Join helpers ───────────────────────────────────────────────────────────────
-// Supabase returns joined tables as arrays even for FK (many-to-one) joins.
-// This helper safely unwraps array | object | null into T | null.
 function resolveJoin<T>(raw: unknown): T | null {
   if (raw == null) return null
   return (Array.isArray(raw) ? raw[0] ?? null : raw) as T | null
@@ -54,7 +52,7 @@ export default function ClassHubPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced')
   const [darkMode,   setDarkMode]   = useState<DarkMode>('sun')
   const [initials,   setInitials]   = useState('')
-  const [activeTab,  setActiveTab]  = useState<TabKey>('classhub')
+  const [activeTab,  setActiveTab]  = useState<TabKey>('home')
 
   const isDark =
     darkMode === 'dark' ||
@@ -116,7 +114,6 @@ export default function ClassHubPage() {
 
       const items: ClassItem[] = await Promise.all(
         slots.map(async (slot) => {
-          // ✅ Fix: resolveJoin handles array | object | null from Supabase
           const cls     = resolveJoin<ClassJoin>(slot.classes)
           const subject = resolveJoin<SubjectJoin>(slot.subjects)?.name ?? 'Unknown'
 
@@ -301,9 +298,11 @@ export default function ClassHubPage() {
         active={activeTab}
         onChange={(tab) => {
           setActiveTab(tab)
-          if (tab === 'home')    router.push('/teacher')
-          if (tab === 'twin')    router.push('/teacher/twin')
-          if (tab === 'profile') router.push('/teacher/profile')
+          if (tab === 'home')        router.push('/teacher')
+          if (tab === 'lessonplan')  router.push('/teacher/lessonplan')
+          if (tab === 'vibeconnect') router.push('/teacher/vibeconnect')
+          if (tab === 'more')        router.push('/teacher/more')
+          if (tab === 'profile')     router.push('/teacher/profile')
         }}
       />
     </div>
