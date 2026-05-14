@@ -1,87 +1,64 @@
 'use client'
 
-import styles from './BottomNav.module.css'
-
-const TABS = [
-  { key: 'home',        icon: '⌂',  label: 'Home'       },
-  { key: 'classhub',   icon: '▦',  label: 'ClassHub'   },
-  { key: 'twin',        icon: '◎',  label: 'Twin'       },
-  { key: 'connecthub', icon: '⬡',  label: 'ConnectHub' },
-  { key: 'profile',    icon: null,  label: 'Profile'    },
-] as const
-
-type TabKey = typeof TABS[number]['key']
+type TabKey = 'home' | 'lessonplan' | 'vibeconnect' | 'more' | 'profile'
 
 interface Props {
-  active:          TabKey
-  onChange:        (key: TabKey) => void
-  connecthubBadge?: number
-  profileInitials?: string
-  profileColor?:   string
+  active:   TabKey
+  onChange: (tab: TabKey) => void
+  unreadConnect?: number
 }
 
-export default function BottomNav({
-  active,
-  onChange,
-  connecthubBadge = 0,
-  profileInitials = '??',
-  profileColor    = '#10B981',
-}: Props) {
+const TABS = [
+  { id: 'home',        icon: '🏠', label: 'Home'        },
+  { id: 'lessonplan',  icon: '📖', label: 'Plans'        },
+  { id: 'vibeconnect', icon: '💬', label: 'VibeConnect'  },
+  { id: 'more',        icon: '⋯',  label: 'More'         },
+  { id: 'profile',     icon: '👤', label: 'Profile'      },
+] as const
+
+export default function BottomNav({ active, onChange, unreadConnect = 0 }: Props) {
   return (
-    <nav className={styles.nav}>
-      {TABS.map(tab => {
-        const isActive = active === tab.key
-
-        return (
-          <button
-            key={tab.key}
-            onClick={() => onChange(tab.key)}
-            className={`${styles.tab} ${isActive ? styles.tabActive : ''}`}
-          >
-            {/* Twin — oversized centered button */}
-            {tab.key === 'twin' && (
-              <span className={`${styles.twinWrap} ${isActive ? styles.twinWrapActive : ''}`}>
-                <span className={styles.twinIcon}>{tab.icon}</span>
-              </span>
-            )}
-
-            {/* Profile — avatar initials */}
-            {tab.key === 'profile' && (
-              <span
-                className={styles.avatar}
-                style={{ background: profileColor }}
-              >
-                {profileInitials}
-              </span>
-            )}
-
-            {/* ConnectHub — icon with optional badge */}
-            {tab.key === 'connecthub' && (
-              <span className={styles.badgeWrap}>
-                <span className={`${styles.icon} ${isActive ? styles.iconActive : ''}`}>
-                  {tab.icon}
-                </span>
-                {connecthubBadge > 0 && (
-                  <span className={styles.badge}>
-                    {connecthubBadge > 9 ? '9+' : connecthubBadge}
-                  </span>
-                )}
-              </span>
-            )}
-
-            {/* All other tabs */}
-            {tab.key !== 'twin' && tab.key !== 'profile' && tab.key !== 'connecthub' && (
-              <span className={`${styles.icon} ${isActive ? styles.iconActive : ''}`}>
-                {tab.icon}
-              </span>
-            )}
-
-            <span className={`${styles.tabLabel} ${isActive ? styles.tabLabelActive : ''}`}>
-              {tab.label}
-            </span>
-          </button>
-        )
-      })}
-    </nav>
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 700,
+      background: '#ffffff', borderTop: '1px solid #e5e7eb',
+      display: 'flex', height: 64,
+      boxShadow: '0 -2px 12px rgba(0,0,0,0.06)',
+    }}>
+      {TABS.map(t => (
+        <button
+          key={t.id}
+          onClick={() => onChange(t.id as TabKey)}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            gap: 3, border: 'none', background: 'none',
+            cursor: 'pointer', padding: '8px 0',
+            color: active === t.id ? '#10b981' : '#6b7280',
+            transition: 'color 0.15s', position: 'relative',
+          }}
+        >
+          {t.id === 'vibeconnect' && unreadConnect > 0 && (
+            <span style={{
+              position: 'absolute', top: 6, right: 'calc(50% - 14px)',
+              width: 16, height: 16, borderRadius: '50%',
+              background: '#ef4444', color: '#fff',
+              fontSize: 9, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>{unreadConnect}</span>
+          )}
+          <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
+          <span style={{
+            fontSize: 10, fontWeight: active === t.id ? 800 : 600,
+            letterSpacing: 0.2, fontFamily: 'Plus Jakarta Sans, sans-serif',
+          }}>{t.label}</span>
+          {active === t.id && (
+            <div style={{
+              position: 'absolute', top: 0, width: 28, height: 2.5,
+              background: '#10b981', borderRadius: '0 0 3px 3px',
+            }} />
+          )}
+        </button>
+      ))}
+    </div>
   )
 }
