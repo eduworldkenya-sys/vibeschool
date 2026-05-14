@@ -58,8 +58,6 @@ const TWIN_OBSERVATIONS = {
 const TWIN_SUMMARY =
   "Mrs. Chebet is a consistent planner who prepares 91% of lessons before delivery. She favors group work and realia-based activities, which her reflections consistently rate highly. Her timing runs slightly long in development phases. Twin recommends a short PD input on Number strand pedagogy and has adjusted future lesson plan suggestions to front-load visual resources for Number topics.";
 
-// ── Styles ──────────────────────────────────────────────────────────────────
-
 const s = {
   page: {
     minHeight: "100vh",
@@ -73,10 +71,12 @@ const s = {
     background: "rgba(240,242,245,0.95)",
     backdropFilter: "blur(8px)",
     borderBottom: "1px solid #E2E5EB",
-    padding: "16px 32px",
+    padding: "12px 16px",
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    flexWrap: "wrap" as const,
+    gap: "8px",
   } as React.CSSProperties,
 
   heading: {
@@ -126,10 +126,10 @@ const s = {
   } as React.CSSProperties,
 
   body: {
-    padding: "32px",
+    padding: "16px",
     display: "flex",
     flexDirection: "column" as const,
-    gap: "32px",
+    gap: "24px",
   } as React.CSSProperties,
 
   sectionLabel: {
@@ -149,7 +149,7 @@ const s = {
 
   mainGrid: {
     display: "grid",
-    gridTemplateColumns: "1fr 340px",
+    gridTemplateColumns: "1fr",
     gap: "24px",
     alignItems: "start",
   } as React.CSSProperties,
@@ -244,11 +244,11 @@ const s = {
 
   actionsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(2, 1fr)",
     gap: "12px",
   } as React.CSSProperties,
 
-  actionBtn: (color: string): React.CSSProperties => ({
+  actionBtn: (): React.CSSProperties => ({
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
@@ -276,7 +276,6 @@ const s = {
     color: "#3D4452",
   } as React.CSSProperties,
 
-  // Profile card
   avatar: {
     width: "64px",
     height: "64px",
@@ -356,7 +355,6 @@ const s = {
     boxSizing: "border-box" as const,
   } as React.CSSProperties,
 
-  // PD
   pdNumbers: {
     display: "flex",
     alignItems: "flex-end",
@@ -398,7 +396,6 @@ const s = {
     color: "#9BA3AF",
   } as React.CSSProperties,
 
-  // Appraisal
   appraisalCard: {
     background: "#FFFBF0",
     borderRadius: "16px",
@@ -430,8 +427,6 @@ const s = {
     boxSizing: "border-box" as const,
   } as React.CSSProperties,
 };
-
-// ── Component ────────────────────────────────────────────────────────────────
 
 export default function TeacherDashboard() {
   const now = new Date();
@@ -470,9 +465,8 @@ export default function TeacherDashboard() {
         </div>
       </header>
 
-      <div style={s.body}>
+      <div style={s.body} id="teacher-body">
 
-        {/* Alerts */}
         {ALERTS.length > 0 && <AlertBanner alerts={ALERTS} />}
 
         {/* Stats */}
@@ -495,7 +489,7 @@ export default function TeacherDashboard() {
         </section>
 
         {/* Main grid */}
-        <div style={s.mainGrid}>
+        <div style={s.mainGrid} id="teacher-main-grid">
 
           {/* Left */}
           <div style={s.leftCol}>
@@ -527,7 +521,7 @@ export default function TeacherDashboard() {
             {/* Quick Actions */}
             <div style={s.card}>
               <p style={{ ...s.cardTitle, marginBottom: "16px" }}>Quick Actions</p>
-              <div style={s.actionsGrid}>
+              <div style={s.actionsGrid} id="teacher-actions-grid">
                 {[
                   { label: "New Lesson Plan", href: "/teacher/lesson-plans/new", color: "#00C07A" },
                   { label: "Mark Attendance", href: "/teacher/attendance", color: "#0078D4" },
@@ -536,7 +530,7 @@ export default function TeacherDashboard() {
                   { label: "Request Leave", href: "/teacher/leave/new", color: "#F97316" },
                   { label: "Message Parent", href: "/teacher/messages", color: "#EF4444" },
                 ].map((action) => (
-                  <a key={action.href} href={action.href} style={s.actionBtn(action.color)}>
+                  <a key={action.href} href={action.href} style={s.actionBtn()}>
                     <div style={s.actionDot(action.color)} />
                     <span style={s.actionLabel}>{action.label}</span>
                   </a>
@@ -615,6 +609,14 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (min-width: 769px) {
+          #teacher-main-grid { grid-template-columns: 1fr 340px !important; }
+          #teacher-body { padding: 32px !important; gap: 32px !important; }
+          #teacher-actions-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+      `}</style>
     </div>
   );
 }
