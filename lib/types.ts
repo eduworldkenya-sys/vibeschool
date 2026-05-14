@@ -71,3 +71,16 @@ export interface Teacher {
   subject: string;
   initials: string;
 }
+export interface TeacherAlert {
+  id: string
+  type: 'urgent' | 'warning' | 'info' | 'success'
+  message: string
+  action?: string
+  actionHref?: string
+}
+
+export interface TeacherDocument {
+  name: string
+  status: 'valid' | 'expiring' | 'missing' | 'expired'
+  expiryDate?: string
+}

@@ -17,7 +17,7 @@ const TOPICS = [
   { id: 12, strand: "Data",      topic: "Grouped Data & Frequency",       weeks: "9–10", status: "upcoming"},
 ];
 
-const STATUS_MAP = {
+const STATUS_MAP: Record<string, { bg: string; color: string; label: string }> = {
   done:     { bg: "#d1fae5", color: "#065f46", label: "Done"     },
   current:  { bg: "#fef3c7", color: "#92400e", label: "Current"  },
   upcoming: { bg: "#f3f4f6", color: "#6b7280", label: "Upcoming" },

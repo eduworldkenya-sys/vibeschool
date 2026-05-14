@@ -1,13 +1,13 @@
 import { TeacherAlert } from "@/lib/types";
 
-const typeStyles = {
+const typeStyles: Record<string, string> = {
   urgent: "bg-[#FF4D6A]/10 border-[#FF4D6A]/30 text-[#FF4D6A]",
   warning: "bg-[#FFB800]/10 border-[#FFB800]/30 text-[#FFB800]",
   info: "bg-[#00B8FF]/10 border-[#00B8FF]/30 text-[#00B8FF]",
   success: "bg-[#00E5A0]/10 border-[#00E5A0]/30 text-[#00E5A0]",
 };
 
-const typeIcons = {
+const typeIcons: Record<string, string> = {
   urgent: "⚠",
   warning: "◈",
   info: "◎",

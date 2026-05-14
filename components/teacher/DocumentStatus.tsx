@@ -1,6 +1,6 @@
 import { TeacherDocument } from "@/lib/types";
 
-const statusConfig = {
+const statusConfig: Record<string, { dot: string; color: string; label: string }> = {
   valid:    { dot: "#00C07A", color: "#00875A", label: "Valid" },
   expiring: { dot: "#F59E0B", color: "#996600", label: "Expiring" },
   missing:  { dot: "#EF4444", color: "#C0002A", label: "Missing" },
