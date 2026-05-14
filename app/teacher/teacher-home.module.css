@@ -1,0 +1,223 @@
+.container {
+  min-height: 100vh;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  padding-bottom: 145px;
+}
+
+.inner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px 0;
+  animation: slideIn 0.22s ease;
+}
+
+.hero {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  border-radius: 20px;
+  padding: 22px 22px 20px;
+  margin-bottom: 14px;
+  color: #fff;
+}
+
+.heroDate {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.heroGreeting {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  margin-bottom: 4px;
+}
+
+.heroSchool {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.heroStats {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.heroStat {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.heroStatValue {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.heroStatLabel {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+}
+
+.nextUp {
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nextUpLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.nextUpTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 2px;
+}
+
+.nextUpTime {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.nextUpActions {
+  display: flex;
+  gap: 6px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+.sectionLabel {
+  font-size: 10px;
+  font-weight: 800;
+  color: #6b7280;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.quickBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s;
+}
+
+.quickBtn:hover {
+  transform: scale(1.05);
+}
+
+.quickBtnLabel {
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.flagItem {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.flagMessage {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.progressBar {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 10px;
+  background: #10b981;
+  transition: width 0.6s ease;
+}
+
+.announcementItem {
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pinnedLabel {
+  font-size: 9px;
+  font-weight: 800;
+  color: #10b981;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.announcementTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.announcementBody {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.loadingScreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
