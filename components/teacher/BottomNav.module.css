@@ -3,117 +3,71 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  z-index: 700;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
   display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  padding: 8px 0 16px;
-  z-index: 100;
+  height: 64px;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .tab {
-  background: none;
-  border: none;
-  cursor: pointer;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  flex: 1;
-  padding: 0;
-}
-
-/* Generic icon */
-.icon {
-  font-size: 18px;
-  color: var(--text-subtle);
-  display: block;
-  line-height: 1;
-}
-
-.iconActive {
-  color: #10B981;
-}
-
-/* Twin button */
-.twinWrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--surface-alt);
-  border: 2px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 2px;
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-}
-
-.twinWrapActive {
-  border-color: #10B981;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
-}
-
-.twinIcon {
-  font-size: 22px;
-  color: var(--text);
-  line-height: 1;
-}
-
-.twinWrapActive .twinIcon {
-  color: #10B981;
-}
-
-/* Profile avatar */
-.avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: #000;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  flex-shrink: 0;
-}
-
-/* ConnectHub badge */
-.badgeWrap {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 8px 0;
+  color: #6b7280;
+  transition: color 0.15s;
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-family: inherit;
+}
+
+.tab.active {
+  color: #10b981;
+}
+
+.tabIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tabLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.tab.active .tabLabel {
+  font-weight: 800;
+}
+
+.activeLine {
+  position: absolute;
+  top: 0;
+  width: 28px;
+  height: 2.5px;
+  background: #10b981;
+  border-radius: 0 0 3px 3px;
 }
 
 .badge {
   position: absolute;
-  top: -4px;
-  right: -6px;
-  background: #EF4444;
+  top: 6px;
+  right: calc(50% - 14px);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ef4444;
   color: #fff;
   font-size: 9px;
-  font-weight: 700;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  border-radius: 20px;
-  padding: 1px 4px;
-  min-width: 16px;
-  text-align: center;
-  line-height: 1.4;
-}
-
-/* Labels */
-.tabLabel {
-  font-size: 9px;
-  font-weight: 500;
-  color: var(--text-subtle);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  letter-spacing: 0.04em;
-}
-
-.tabLabelActive {
-  font-weight: 700;
-  color: #10B981;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
