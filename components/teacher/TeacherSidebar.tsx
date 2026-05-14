@@ -20,7 +20,7 @@ export default function TeacherSidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const sidebarContent = (
+  const sidebarContent = (isMobileDrawer = false) => (
     <>
       {/* Logo */}
       <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E5EB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -37,15 +37,16 @@ export default function TeacherSidebar() {
             <p style={{ fontSize: "11px", color: "#9BA3AF", margin: 0 }}>MwalimuSmart</p>
           </div>
         </div>
-        {/* Close button — mobile only */}
-        <button
-          onClick={() => setOpen(false)}
-          style={{
-            display: "block",
-            background: "none", border: "none", cursor: "pointer",
-            color: "#9BA3AF", fontSize: "20px", lineHeight: 1, padding: "4px",
-          }}
-        >✕</button>
+        {/* Close button — mobile drawer only */}
+        {isMobileDrawer && (
+          <button
+            onClick={() => setOpen(false)}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: "#9BA3AF", fontSize: "20px", lineHeight: 1, padding: "4px",
+            }}
+          >✕</button>
+        )}
       </div>
 
       {/* Teacher strip */}
@@ -116,18 +117,20 @@ export default function TeacherSidebar() {
 
   return (
     <>
-      {/* ── MOBILE TOPBAR ── */}
-      <div style={{
-        display: "none",
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-        height: "56px",
-        background: "#FFFFFF",
-        borderBottom: "1px solid #E2E5EB",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 16px",
-        // show on mobile via media query workaround below
-      }} id="mobile-topbar">
+      {/* MOBILE TOPBAR */}
+      <div
+        id="mobile-topbar"
+        style={{
+          display: "none",
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+          height: "56px",
+          background: "#FFFFFF",
+          borderBottom: "1px solid #E2E5EB",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 16px",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <div style={{
             width: "28px", height: "28px", borderRadius: "7px",
@@ -150,7 +153,7 @@ export default function TeacherSidebar() {
         </button>
       </div>
 
-      {/* ── DESKTOP SIDEBAR ── */}
+      {/* DESKTOP SIDEBAR */}
       <aside id="desktop-sidebar" style={{
         position: "fixed",
         top: 0, left: 0,
@@ -163,13 +166,12 @@ export default function TeacherSidebar() {
         zIndex: 40,
         boxShadow: "2px 0 8px rgba(0,0,0,0.04)",
       }}>
-        {sidebarContent}
+        {sidebarContent(false)}
       </aside>
 
-      {/* ── MOBILE DRAWER ── */}
+      {/* MOBILE DRAWER */}
       {open && (
         <>
-          {/* Backdrop */}
           <div
             onClick={() => setOpen(false)}
             style={{
@@ -177,7 +179,6 @@ export default function TeacherSidebar() {
               background: "rgba(0,0,0,0.4)",
             }}
           />
-          {/* Drawer */}
           <aside style={{
             position: "fixed",
             top: 0, left: 0,
@@ -189,12 +190,11 @@ export default function TeacherSidebar() {
             zIndex: 70,
             boxShadow: "4px 0 24px rgba(0,0,0,0.12)",
           }}>
-            {sidebarContent}
+            {sidebarContent(true)}
           </aside>
         </>
       )}
 
-      {/* ── RESPONSIVE STYLES ── */}
       <style>{`
         @media (max-width: 768px) {
           #desktop-sidebar { display: none !important; }
