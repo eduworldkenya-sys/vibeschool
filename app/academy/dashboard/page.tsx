@@ -7,7 +7,7 @@ import styles from './dashboard.module.css'
 type Tab = 'overview' | 'classes' | 'students' | 'lessons'
 
 export default function AcademyDashboard() {
-  const router   = useRouter()
+  const router     = useRouter()
   const [userName, setUserName] = useState<string | null>(null)
   const [loading,  setLoading]  = useState(true)
   const [tab,      setTab]      = useState<Tab>('overview')
@@ -18,10 +18,13 @@ export default function AcademyDashboard() {
       if (error || !user) { router.replace('/academy/select-role'); return }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, role')
         .eq('id', user.id)
         .single()
-      setUserName(profile?.full_name ?? user.email ?? null)
+      if (!profile || profile.role !== 'teacher') {
+        router.replace('/academy/select-role'); return
+      }
+      setUserName(profile.full_name ?? user.email ?? null)
       setLoading(false)
     }
     checkSession()
@@ -43,7 +46,6 @@ export default function AcademyDashboard() {
   return (
     <div className={styles.root}>
 
-      {/* TOP BAR */}
       <header className={styles.topBar}>
         <div className={styles.topBarLeft}>
           <svg width="22" height="26" viewBox="0 0 72 84" aria-hidden>
@@ -60,24 +62,22 @@ export default function AcademyDashboard() {
         <button className={styles.signOutBtn} onClick={handleSignOut}>SIGN OUT</button>
       </header>
 
-      {/* WELCOME */}
       <section className={styles.hero}>
         <p className={styles.heroLabel}>ACADEMY · TEACHER</p>
         <p className={styles.heroName}>{userName}</p>
         <p className={styles.heroSub}>{"What are we building today?"}</p>
       </section>
 
-      {/* NAV TABS */}
       <nav className={styles.tabs}>
         {(['overview', 'classes', 'students', 'lessons'] as Tab[]).map(t => (
-          <button key={t} className={`${styles.tab} ${tab === t ? styles.tabActive : ''}`}
+          <button key={t}
+            className={`${styles.tab} ${tab === t ? styles.tabActive : ''}`}
             onClick={() => setTab(t)}>
             {t.toUpperCase()}
           </button>
         ))}
       </nav>
 
-      {/* CONTENT */}
       <main className={styles.main}>
 
         {tab === 'overview' && (
