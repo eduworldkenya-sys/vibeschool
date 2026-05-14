@@ -9,22 +9,28 @@ export default function TeacherLayout({
 }) {
   return (
     <div style={{
-      display: "flex",
       minHeight: "100vh",
       background: "#F0F2F5",
       color: "#1A1D23",
       fontFamily: "var(--font-display, sans-serif)",
     }}>
       <TeacherSidebar />
-      <main style={{
-        flex: 1,
-        marginLeft: "240px",
-        minHeight: "100vh",
-        overflowY: "auto",
-        background: "#F0F2F5",
-      }}>
-        {children}
+
+      {/* Desktop: offset for sidebar. Mobile: offset for topbar */}
+      <main style={{ minHeight: "100vh", background: "#F0F2F5" }}>
+        <div id="main-inner" style={{ padding: "0" }}>
+          {children}
+        </div>
       </main>
+
+      <style>{`
+        @media (min-width: 769px) {
+          main { margin-left: 240px; }
+        }
+        @media (max-width: 768px) {
+          main { margin-left: 0; padding-top: 56px; }
+        }
+      `}</style>
     </div>
   );
 }
