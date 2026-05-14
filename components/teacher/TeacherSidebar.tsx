@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/teacher", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
@@ -17,23 +18,12 @@ const NAV_ITEMS = [
 
 export default function TeacherSidebar() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
-  return (
-    <aside style={{
-      position: "fixed",
-      top: 0, left: 0,
-      height: "100vh",
-      width: "240px",
-      background: "#FFFFFF",
-      borderRight: "1px solid #E2E5EB",
-      display: "flex",
-      flexDirection: "column",
-      zIndex: 40,
-      boxShadow: "2px 0 8px rgba(0,0,0,0.04)",
-    }}>
-
+  const sidebarContent = (
+    <>
       {/* Logo */}
-      <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E5EB" }}>
+      <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E5EB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{
             width: "32px", height: "32px", borderRadius: "8px",
@@ -47,6 +37,15 @@ export default function TeacherSidebar() {
             <p style={{ fontSize: "11px", color: "#9BA3AF", margin: 0 }}>MwalimuSmart</p>
           </div>
         </div>
+        {/* Close button — mobile only */}
+        <button
+          onClick={() => setOpen(false)}
+          style={{
+            display: "block",
+            background: "none", border: "none", cursor: "pointer",
+            color: "#9BA3AF", fontSize: "20px", lineHeight: 1, padding: "4px",
+          }}
+        >✕</button>
       </div>
 
       {/* Teacher strip */}
@@ -76,6 +75,7 @@ export default function TeacherSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setOpen(false)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -89,7 +89,6 @@ export default function TeacherSidebar() {
                 background: isActive ? "#E6FAF4" : "transparent",
                 border: isActive ? "1px solid #A7EDD4" : "1px solid transparent",
                 textDecoration: "none",
-                transition: "all 0.15s",
               }}
             >
               <span style={{ color: isActive ? "#00875A" : "#9BA3AF", flexShrink: 0 }}>
@@ -108,13 +107,104 @@ export default function TeacherSidebar() {
           padding: "10px 12px", borderRadius: "10px",
           background: "#E6FAF4", border: "1px solid #A7EDD4",
         }}>
-          <span style={{
-            width: "8px", height: "8px", borderRadius: "50%",
-            background: "#00C07A", flexShrink: 0,
-          }} />
+          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#00C07A", flexShrink: 0 }} />
           <span style={{ fontSize: "12px", color: "#00875A" }}>Twin Active</span>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* ── MOBILE TOPBAR ── */}
+      <div style={{
+        display: "none",
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+        height: "56px",
+        background: "#FFFFFF",
+        borderBottom: "1px solid #E2E5EB",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 16px",
+        // show on mobile via media query workaround below
+      }} id="mobile-topbar">
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{
+            width: "28px", height: "28px", borderRadius: "7px",
+            background: "linear-gradient(135deg, #00C07A, #0078D4)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{ color: "#fff", fontWeight: 700, fontSize: "10px" }}>VS</span>
+          </div>
+          <span style={{ fontSize: "14px", fontWeight: 600, color: "#1A1D23" }}>VibeSchool</span>
+        </div>
+        <button
+          onClick={() => setOpen(true)}
+          style={{ background: "none", border: "none", cursor: "pointer", padding: "8px", color: "#1A1D23" }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* ── DESKTOP SIDEBAR ── */}
+      <aside id="desktop-sidebar" style={{
+        position: "fixed",
+        top: 0, left: 0,
+        height: "100vh",
+        width: "240px",
+        background: "#FFFFFF",
+        borderRight: "1px solid #E2E5EB",
+        display: "flex",
+        flexDirection: "column",
+        zIndex: 40,
+        boxShadow: "2px 0 8px rgba(0,0,0,0.04)",
+      }}>
+        {sidebarContent}
+      </aside>
+
+      {/* ── MOBILE DRAWER ── */}
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setOpen(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 60,
+              background: "rgba(0,0,0,0.4)",
+            }}
+          />
+          {/* Drawer */}
+          <aside style={{
+            position: "fixed",
+            top: 0, left: 0,
+            height: "100vh",
+            width: "280px",
+            background: "#FFFFFF",
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 70,
+            boxShadow: "4px 0 24px rgba(0,0,0,0.12)",
+          }}>
+            {sidebarContent}
+          </aside>
+        </>
+      )}
+
+      {/* ── RESPONSIVE STYLES ── */}
+      <style>{`
+        @media (max-width: 768px) {
+          #desktop-sidebar { display: none !important; }
+          #mobile-topbar { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+          #mobile-topbar { display: none !important; }
+          #desktop-sidebar { display: flex !important; }
+        }
+      `}</style>
+    </>
   );
 }
