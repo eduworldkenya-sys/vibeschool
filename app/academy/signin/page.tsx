@@ -18,10 +18,11 @@ function AcademySignInInner() {
   const contentRef = useRef<HTMLDivElement>(null)
   const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [email,        setEmail]        = useState('')
+  const [password,     setPassword]     = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error,        setError]        = useState('')
+  const [loading,      setLoading]      = useState(false)
 
   useEffect(() => {
     return () => { if (navTimer.current) clearTimeout(navTimer.current) }
@@ -46,11 +47,25 @@ function AcademySignInInner() {
     setLoading(false)
     if (authError) { setError(authError.message); return }
 
-    fadeOut(`/${role}`)
+    fadeOut(`/academy/dashboard`)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') { e.preventDefault(); handleSubmit() }
+  }
+
+  const eyeBtn: React.CSSProperties = {
+    position:   'absolute',
+    right:      12,
+    top:        '50%',
+    transform:  'translateY(-50%)',
+    background: 'none',
+    border:     'none',
+    cursor:     'pointer',
+    color:      '#C8A84B',
+    fontSize:   14,
+    padding:    4,
+    lineHeight: 1,
   }
 
   return (
@@ -84,8 +99,18 @@ function AcademySignInInner() {
 
             <div className={styles.field}>
               <label className={styles.label} htmlFor="password">PASSWORD</label>
-              <input id="password" className={styles.input} type="password" autoComplete="current-password"
-                value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} disabled={loading} />
+              <div style={{ position: 'relative' }}>
+                <input id="password" className={styles.input} autoComplete="current-password"
+                  type={showPassword ? 'text' : 'password'}
+                  style={{ paddingRight: 40 }}
+                  value={password} onChange={e => setPassword(e.target.value)}
+                  onKeyDown={handleKeyDown} disabled={loading} />
+                <button type="button" style={eyeBtn} tabIndex={-1}
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? '🙈' : '👁'}
+                </button>
+              </div>
             </div>
 
             {error && <p className={styles.error} role="alert">{error}</p>}
