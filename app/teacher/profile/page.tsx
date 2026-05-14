@@ -435,4 +435,140 @@ function AppraisalSection() {
             { label: "Self-Appraisal", status: "pending", note: "Due in 7 days" },
             { label: "HOD Review", status: "waiting", note: "Awaiting your submission" },
             { label: "Principal Moderation", status: "waiting", note: "" },
-            { 
+            { label: "Submitted to TSC", status: "waiting", note: "" },
+          ].map((step) => (
+            <div key={step.label} className="flex items-center gap-4 p-3 rounded-xl bg-white/4 border border-white/8">
+              <span className={`w-3 h-3 rounded-full flex-shrink-0 ${step.status === "done" ? "bg-[#00E5A0]" : step.status === "pending" ? "bg-[#FFB800] animate-pulse" : "bg-white/15"}`} />
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${step.status === "pending" ? "text-[#FFB800]" : step.status === "done" ? "text-[#00E5A0]" : "text-white/40"}`}>{step.label}</p>
+                {step.note && <p className="text-white/30 text-xs mt-0.5">{step.note}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button className="w-full py-3 rounded-xl bg-[#00E5A0]/10 border border-[#00E5A0]/20 text-[#00E5A0] font-medium hover:bg-[#00E5A0]/20 transition-colors">
+          Start Self-Appraisal
+        </button>
+      </SubSection>
+      <SubSection title="Performance Signals (Internal)">
+        <FieldGrid>
+          <Field label="Lesson Plan Prep Rate" value="91%" />
+          <Field label="Assessment Completion Rate" value="88%" />
+          <Field label="Last Appraisal Score" value="78 / 100 (Good)" />
+          <Field label="Last Appraisal Date" value="December 2024" />
+        </FieldGrid>
+      </SubSection>
+    </div>
+  );
+}
+
+function MessagesSection() {
+  return (
+    <div>
+      <SectionHeader title="Messages & Communication" sub="Internal messages, parent comms, and notification settings" />
+      <div className="flex items-center justify-center h-40 rounded-2xl bg-white/3 border border-white/8 border-dashed">
+        <div className="text-center">
+          <p className="text-white/30 text-sm">Messages module</p>
+          <p className="text-white/20 text-xs mt-1">Linked to FamilyLayer and school messaging</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DocumentsSection() {
+  const docs = [
+    { name: "National ID Copy", status: "valid", expiry: null, uploaded: true },
+    { name: "TSC Certificate of Registration", status: "valid", expiry: "Dec 2027", uploaded: true },
+    { name: "TSC Practicing Certificate", status: "expiring", expiry: "Jun 2026", uploaded: true },
+    { name: "Academic Certificates", status: "valid", expiry: null, uploaded: true },
+    { name: "KRA PIN Certificate", status: "valid", expiry: null, uploaded: true },
+    { name: "Good Conduct Certificate", status: "expiring", expiry: "Jul 2026", uploaded: true },
+    { name: "Medical Fitness Certificate", status: "valid", expiry: "Jan 2027", uploaded: true },
+    { name: "CBC Orientation Certificate", status: "missing", expiry: null, uploaded: false },
+    { name: "Child Protection Acknowledgement", status: "valid", expiry: null, uploaded: true },
+    { name: "Signed Code of Conduct", status: "valid", expiry: null, uploaded: true },
+    { name: "Letter of Appointment", status: "valid", expiry: null, uploaded: true },
+    { name: "NSSF Card", status: "valid", expiry: null, uploaded: true },
+    { name: "NHIF Card", status: "valid", expiry: null, uploaded: true },
+  ];
+
+  const statusStyle: Record<string, { dot: string; text: string; label: string }> = {
+    valid: { dot: "bg-[#00E5A0]", text: "text-[#00E5A0]", label: "Valid" },
+    expiring: { dot: "bg-[#FFB800]", text: "text-[#FFB800]", label: "Expiring" },
+    missing: { dot: "bg-[#FF4D6A]", text: "text-[#FF4D6A]", label: "Missing" },
+    expired: { dot: "bg-[#FF4D6A]", text: "text-[#FF4D6A]", label: "Expired" },
+  };
+
+  return (
+    <div>
+      <SectionHeader title="Documents & Compliance" sub="All required documents — upload, track expiry, stay compliant" />
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="text-center p-4 rounded-xl bg-[#00E5A0]/10 border border-[#00E5A0]/20">
+          <p className="text-[#00E5A0] text-2xl font-bold">{docs.filter(d => d.status === "valid").length}</p>
+          <p className="text-white/40 text-xs mt-1">Valid</p>
+        </div>
+        <div className="text-center p-4 rounded-xl bg-[#FFB800]/10 border border-[#FFB800]/20">
+          <p className="text-[#FFB800] text-2xl font-bold">{docs.filter(d => d.status === "expiring").length}</p>
+          <p className="text-white/40 text-xs mt-1">Expiring</p>
+        </div>
+        <div className="text-center p-4 rounded-xl bg-[#FF4D6A]/10 border border-[#FF4D6A]/20">
+          <p className="text-[#FF4D6A] text-2xl font-bold">{docs.filter(d => d.status === "missing" || d.status === "expired").length}</p>
+          <p className="text-white/40 text-xs mt-1">Action Needed</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {docs.map((doc) => {
+          const s = statusStyle[doc.status];
+          return (
+            <div key={doc.name} className="flex items-center justify-between p-3.5 rounded-xl bg-white/3 border border-white/8 hover:border-white/15 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dot}`} />
+                <span className="text-white/70 text-sm">{doc.name}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {doc.expiry && <span className="text-white/25 text-xs">Exp: {doc.expiry}</span>}
+                <span className={`text-xs font-semibold ${s.text}`}>{s.label}</span>
+                <button className="text-xs text-[#00B8FF] hover:underline">
+                  {doc.uploaded ? "Replace" : "Upload"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FinanceSection() {
+  return (
+    <div>
+      <SectionHeader title="Finance Reference" sub="Payroll reference — managed in Finance module" />
+      <SubSection title="Payroll Details">
+        <FieldGrid>
+          <Field label="Payroll Number" value="PR-2021-047" />
+          <Field label="Payroll Category" value="School Payroll" />
+          <Field label="Bank Name" value="Equity Bank Kenya" />
+          <Field label="Branch" value="Westlands Branch" />
+          <Field label="Account Number" value="**** **** 4821" />
+          <Field label="Pay Date" value="25th of every month" />
+        </FieldGrid>
+      </SubSection>
+      <SubSection title="Statutory Deductions">
+        <FieldGrid>
+          <Field label="PAYE" value="KES 4,200 / month" />
+          <Field label="NSSF" value="KES 200 / month" />
+          <Field label="NHIF" value="KES 500 / month" />
+          <Field label="SACCO" value="KES 3,000 / month" />
+        </FieldGrid>
+      </SubSection>
+      <div className="mt-4 p-4 rounded-xl bg-white/4 border border-white/8 text-center">
+        <p className="text-white/40 text-sm">Payslip history is managed in the Finance module</p>
+        <a href="/finance/payslips" className="text-[#00B8FF] text-sm hover:underline mt-1 block">
+          View payslip history →
+        </a>
+      </div>
+    </div>
+  );
+}
