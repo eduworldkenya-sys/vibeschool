@@ -7,7 +7,7 @@ import LessonPlanModal from "@/components/teacher/LessonPlanModal";
 
 export default function LessonPlanPage() {
   const router = useRouter();
-  const [lessonModal, setLessonModal] = useState(null);
+  const [lessonModal, setLessonModal] = useState<import("@/lib/types").TimetableSlot | null>(null);
 
   return (
     <div>
