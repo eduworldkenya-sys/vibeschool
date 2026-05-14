@@ -1,22 +1,33 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import styles from './OfflineBar.module.css'
 
 export default function OfflineBar() {
-  const [isOnline, setIsOnline] = useState(true)
+  const [offline, setOffline] = useState(false)
 
   useEffect(() => {
-    setIsOnline(navigator.onLine)
-    const goOnline  = () => setIsOnline(true)
-    const goOffline = () => setIsOnline(false)
-    window.addEventListener('online',  goOnline)
-    window.addEventListener('offline', goOffline)
+    setOffline(!navigator.onLine)
+    const on  = () => setOffline(false)
+    const off = () => setOffline(true)
+    window.addEventListener('online',  on)
+    window.addEventListener('offline', off)
     return () => {
-      window.removeEventListener('online',  goOnline)
-      window.removeEventListener('offline', goOffline)
+      window.removeEventListener('online',  on)
+      window.removeEventListener('offline', off)
     }
   }, [])
 
-  return <div className={`${styles.bar} ${!isOnline ? styles.offline : ''}`} />
+  if (!offline) return null
+
+  return (
+    <div style={{
+      background: '#ef4444', color: '#fff',
+      textAlign: 'center', padding: '8px 16px',
+      fontSize: 12, fontWeight: 700,
+      fontFamily: 'Plus Jakarta Sans, sans-serif',
+      position: 'sticky', top: 56, zIndex: 599,
+    }}>
+      ⚠ You are offline. Data may not be current.
+    </div>
+  )
 }
