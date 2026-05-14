@@ -4,8 +4,6 @@ import TwinSummary from "@/components/teacher/TwinSummary";
 import DocumentStatus from "@/components/teacher/DocumentStatus";
 import { TeacherAlert, TeacherDocument, TimetablePeriod } from "@/lib/types";
 
-// ─── MOCK DATA (replace with real fetch) ─────────────────────────────────────
-
 const ALERTS: TeacherAlert[] = [
   {
     id: "1",
@@ -60,7 +58,380 @@ const TWIN_OBSERVATIONS = {
 const TWIN_SUMMARY =
   "Mrs. Chebet is a consistent planner who prepares 91% of lessons before delivery. She favors group work and realia-based activities, which her reflections consistently rate highly. Her timing runs slightly long in development phases. Twin recommends a short PD input on Number strand pedagogy and has adjusted future lesson plan suggestions to front-load visual resources for Number topics.";
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Styles ──────────────────────────────────────────────────────────────────
+
+const s = {
+  page: {
+    minHeight: "100vh",
+    background: "#F0F2F5",
+  } as React.CSSProperties,
+
+  header: {
+    position: "sticky" as const,
+    top: 0,
+    zIndex: 30,
+    background: "rgba(240,242,245,0.95)",
+    backdropFilter: "blur(8px)",
+    borderBottom: "1px solid #E2E5EB",
+    padding: "16px 32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  } as React.CSSProperties,
+
+  heading: {
+    fontSize: "20px",
+    fontWeight: 700,
+    color: "#1A1D23",
+    margin: 0,
+  } as React.CSSProperties,
+
+  subtext: {
+    fontSize: "13px",
+    color: "#7C8493",
+    marginTop: "2px",
+  } as React.CSSProperties,
+
+  activePeriodBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 16px",
+    borderRadius: "12px",
+    background: "#E6FAF4",
+    border: "1px solid #A7EDD4",
+  } as React.CSSProperties,
+
+  activeDot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    background: "#00C07A",
+    flexShrink: 0,
+  } as React.CSSProperties,
+
+  activePeriodText: {
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "#00875A",
+  } as React.CSSProperties,
+
+  noPeriodBadge: {
+    padding: "8px 16px",
+    borderRadius: "12px",
+    background: "#F5F6F8",
+    border: "1px solid #E2E5EB",
+    fontSize: "13px",
+    color: "#9BA3AF",
+  } as React.CSSProperties,
+
+  body: {
+    padding: "32px",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "32px",
+  } as React.CSSProperties,
+
+  sectionLabel: {
+    fontSize: "11px",
+    fontWeight: 600,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase" as const,
+    color: "#9BA3AF",
+    marginBottom: "16px",
+  } as React.CSSProperties,
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: "16px",
+  } as React.CSSProperties,
+
+  mainGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 340px",
+    gap: "24px",
+    alignItems: "start",
+  } as React.CSSProperties,
+
+  leftCol: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "24px",
+  } as React.CSSProperties,
+
+  rightCol: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "24px",
+  } as React.CSSProperties,
+
+  card: {
+    background: "#FFFFFF",
+    borderRadius: "16px",
+    border: "1px solid #E2E5EB",
+    padding: "20px",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+  } as React.CSSProperties,
+
+  cardHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "16px",
+  } as React.CSSProperties,
+
+  cardTitle: {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#1A1D23",
+    margin: 0,
+  } as React.CSSProperties,
+
+  cardLink: {
+    fontSize: "12px",
+    color: "#0078D4",
+    textDecoration: "none",
+  } as React.CSSProperties,
+
+  periodRow: (isNow: boolean): React.CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    padding: "12px",
+    borderRadius: "12px",
+    marginBottom: "8px",
+    background: isNow ? "#E6FAF4" : "#F8F9FB",
+    border: isNow ? "1px solid #A7EDD4" : "1px solid transparent",
+    transition: "all 0.2s",
+  }),
+
+  periodNum: (isNow: boolean): React.CSSProperties => ({
+    width: "32px",
+    textAlign: "center",
+    fontSize: "12px",
+    fontWeight: 700,
+    color: isNow ? "#00875A" : "#9BA3AF",
+  }),
+
+  periodSubject: (isNow: boolean): React.CSSProperties => ({
+    fontSize: "14px",
+    fontWeight: 500,
+    color: isNow ? "#1A1D23" : "#3D4452",
+    margin: 0,
+  }),
+
+  periodMeta: {
+    fontSize: "12px",
+    color: "#9BA3AF",
+    margin: 0,
+  } as React.CSSProperties,
+
+  periodTime: (isNow: boolean): React.CSSProperties => ({
+    fontSize: "12px",
+    color: isNow ? "#00875A" : "#9BA3AF",
+    textAlign: "right",
+  }),
+
+  nowTag: {
+    fontSize: "10px",
+    fontWeight: 700,
+    color: "#00875A",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.05em",
+    display: "block",
+  } as React.CSSProperties,
+
+  actionsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "12px",
+  } as React.CSSProperties,
+
+  actionBtn: (color: string): React.CSSProperties => ({
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: "8px",
+    padding: "14px",
+    borderRadius: "12px",
+    background: "#F8F9FB",
+    border: "1px solid #E2E5EB",
+    textDecoration: "none",
+    transition: "border-color 0.2s, background 0.2s",
+    cursor: "pointer",
+  }),
+
+  actionDot: (color: string): React.CSSProperties => ({
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    background: color,
+    flexShrink: 0,
+  }),
+
+  actionLabel: {
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "#3D4452",
+  } as React.CSSProperties,
+
+  // Profile card
+  avatar: {
+    width: "64px",
+    height: "64px",
+    borderRadius: "50%",
+    background: "linear-gradient(135deg, #E6FAF4 0%, #E0F2FF 100%)",
+    border: "2px solid #E2E5EB",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "20px",
+    fontWeight: 700,
+    color: "#00875A",
+    margin: "0 auto 12px",
+  } as React.CSSProperties,
+
+  profileName: {
+    fontSize: "15px",
+    fontWeight: 600,
+    color: "#1A1D23",
+    textAlign: "center" as const,
+    margin: 0,
+  } as React.CSSProperties,
+
+  profileRole: {
+    fontSize: "12px",
+    color: "#7C8493",
+    textAlign: "center" as const,
+    marginTop: "4px",
+  } as React.CSSProperties,
+
+  profileStaff: {
+    fontSize: "11px",
+    color: "#9BA3AF",
+    textAlign: "center" as const,
+    marginTop: "2px",
+  } as React.CSSProperties,
+
+  profileMeta: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "8px",
+    marginTop: "16px",
+  } as React.CSSProperties,
+
+  profileMetaBox: {
+    background: "#F8F9FB",
+    borderRadius: "10px",
+    padding: "8px 12px",
+  } as React.CSSProperties,
+
+  profileMetaLabel: {
+    fontSize: "11px",
+    color: "#9BA3AF",
+    margin: 0,
+  } as React.CSSProperties,
+
+  profileMetaValue: {
+    fontSize: "12px",
+    fontWeight: 500,
+    color: "#1A1D23",
+    marginTop: "2px",
+  } as React.CSSProperties,
+
+  editProfileBtn: {
+    marginTop: "16px",
+    display: "block",
+    width: "100%",
+    padding: "10px",
+    borderRadius: "12px",
+    background: "#E6FAF4",
+    border: "1px solid #A7EDD4",
+    color: "#00875A",
+    fontSize: "14px",
+    fontWeight: 500,
+    textAlign: "center" as const,
+    textDecoration: "none",
+    boxSizing: "border-box" as const,
+  } as React.CSSProperties,
+
+  // PD
+  pdNumbers: {
+    display: "flex",
+    alignItems: "flex-end",
+    gap: "8px",
+    marginBottom: "12px",
+  } as React.CSSProperties,
+
+  pdBig: {
+    fontSize: "32px",
+    fontWeight: 700,
+    color: "#1A1D23",
+    lineHeight: 1,
+  } as React.CSSProperties,
+
+  pdSub: {
+    fontSize: "13px",
+    color: "#9BA3AF",
+    marginBottom: "4px",
+  } as React.CSSProperties,
+
+  pdTrack: {
+    width: "100%",
+    height: "8px",
+    background: "#F0F2F5",
+    borderRadius: "99px",
+    marginBottom: "8px",
+    overflow: "hidden",
+  } as React.CSSProperties,
+
+  pdFill: {
+    height: "8px",
+    width: "55%",
+    borderRadius: "99px",
+    background: "linear-gradient(90deg, #00C07A, #0078D4)",
+  } as React.CSSProperties,
+
+  pdNote: {
+    fontSize: "12px",
+    color: "#9BA3AF",
+  } as React.CSSProperties,
+
+  // Appraisal
+  appraisalCard: {
+    background: "#FFFBF0",
+    borderRadius: "16px",
+    border: "1px solid #FFE4A0",
+    padding: "20px",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+  } as React.CSSProperties,
+
+  appraisalRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "8px",
+  } as React.CSSProperties,
+
+  appraisalBtn: {
+    marginTop: "16px",
+    display: "block",
+    width: "100%",
+    padding: "10px",
+    borderRadius: "12px",
+    background: "#FFF3CC",
+    border: "1px solid #FFD966",
+    color: "#996600",
+    fontSize: "14px",
+    fontWeight: 500,
+    textAlign: "center" as const,
+    textDecoration: "none",
+    boxSizing: "border-box" as const,
+  } as React.CSSProperties,
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export default function TeacherDashboard() {
   const now = new Date();
@@ -75,282 +446,172 @@ export default function TeacherDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0D0F14]">
-      {/* Top header */}
-      <header className="sticky top-0 z-30 bg-[#0D0F14]/90 backdrop-blur border-b border-white/5 px-8 py-4 flex items-center justify-between">
+    <div style={s.page}>
+
+      {/* Header */}
+      <header style={s.header}>
         <div>
-          <h1 className="text-white text-xl font-bold">
-            {greeting}, Mrs. Chebet
-          </h1>
-          <p className="text-white/40 text-sm mt-0.5">
+          <h1 style={s.heading}>{greeting}, Mrs. Chebet</h1>
+          <p style={s.subtext}>
             {now.toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div>
           {currentPeriod ? (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5A0]/10 border border-[#00E5A0]/20">
-              <span className="w-2 h-2 rounded-full bg-[#00E5A0] animate-pulse" />
-              <span className="text-[#00E5A0] text-sm font-medium">
+            <div style={s.activePeriodBadge}>
+              <span style={s.activeDot} />
+              <span style={s.activePeriodText}>
                 Now: P{currentPeriod.periodNumber} — {currentPeriod.subject} · {currentPeriod.class}
               </span>
             </div>
           ) : (
-            <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/40 text-sm">
-              No active period
-            </div>
+            <div style={s.noPeriodBadge}>No active period</div>
           )}
         </div>
       </header>
 
-      <div className="px-8 py-8 space-y-8">
+      <div style={s.body}>
 
         {/* Alerts */}
-        {ALERTS.length > 0 && (
-          <section>
-            <AlertBanner alerts={ALERTS} />
-          </section>
-        )}
+        {ALERTS.length > 0 && <AlertBanner alerts={ALERTS} />}
 
-        {/* Stats strip */}
+        {/* Stats */}
         <section>
-          <h2 className="text-white/50 text-xs uppercase tracking-widest font-semibold mb-4">This Term</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              label="Classes Assigned"
-              value="6"
-              sub="Grade 5–7"
-              accent="blue"
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-                </svg>
-              }
+          <p style={s.sectionLabel}>This Term</p>
+          <div style={s.statsGrid}>
+            <StatCard label="Classes Assigned" value="6" sub="Grade 5–7" accent="blue"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>}
             />
-            <StatCard
-              label="Lessons Taught"
-              value="84"
-              sub="of 96 scheduled"
-              accent="green"
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2" />
-                  <path d="M8 21h8M12 17v4" />
-                </svg>
-              }
+            <StatCard label="Lessons Taught" value="84" sub="of 96 scheduled" accent="green"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>}
             />
-            <StatCard
-              label="Plan Prep Rate"
-              value="91%"
-              sub="School avg: 78%"
-              accent="green"
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 11l3 3L22 4" />
-                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-                </svg>
-              }
+            <StatCard label="Plan Prep Rate" value="91%" sub="School avg: 78%" accent="green"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>}
             />
-            <StatCard
-              label="Assessment Turnaround"
-              value="2.3 days"
-              sub="avg per assessment"
-              accent="default"
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-              }
+            <StatCard label="Assessment Turnaround" value="2.3 days" sub="avg per assessment" accent="default"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>}
             />
           </div>
         </section>
 
-        {/* Main 2-col grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main grid */}
+        <div style={s.mainGrid}>
 
-          {/* Left col — Today's timetable + quick actions */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Left */}
+          <div style={s.leftCol}>
 
-            {/* Today's Schedule */}
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-white font-semibold text-sm">Today's Schedule</p>
-                <a href="/teacher/timetable" className="text-xs text-[#00B8FF] hover:underline">Full timetable</a>
+            {/* Schedule */}
+            <div style={s.card}>
+              <div style={s.cardHeader}>
+                <p style={s.cardTitle}>{"Today's Schedule"}</p>
+                <a href="/teacher/timetable" style={s.cardLink}>Full timetable</a>
               </div>
-              {TODAY_SCHEDULE.length === 0 ? (
-                <p className="text-white/30 text-sm py-4 text-center">No periods scheduled today</p>
-              ) : (
-                <div className="space-y-2">
-                  {TODAY_SCHEDULE.map((period) => {
-                    const isNow = currentPeriod?.periodNumber === period.periodNumber;
-                    return (
-                      <div
-                        key={period.periodNumber}
-                        className={`flex items-center gap-4 p-3 rounded-xl transition-all ${
-                          isNow
-                            ? "bg-[#00E5A0]/10 border border-[#00E5A0]/20"
-                            : "bg-white/3 border border-transparent hover:border-white/10"
-                        }`}
-                      >
-                        <div className="w-10 text-center">
-                          <span className={`text-xs font-bold ${isNow ? "text-[#00E5A0]" : "text-white/30"}`}>
-                            P{period.periodNumber}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${isNow ? "text-white" : "text-white/70"}`}>
-                            {period.subject}
-                          </p>
-                          <p className="text-white/40 text-xs">
-                            {period.class} · {period.room}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-xs ${isNow ? "text-[#00E5A0]" : "text-white/30"}`}>
-                            {period.startTime}–{period.endTime}
-                          </p>
-                          {isNow && (
-                            <span className="text-[10px] text-[#00E5A0] font-semibold uppercase tracking-wide">
-                              Now
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {TODAY_SCHEDULE.map((period) => {
+                const isNow = currentPeriod?.periodNumber === period.periodNumber;
+                return (
+                  <div key={period.periodNumber} style={s.periodRow(isNow)}>
+                    <div style={s.periodNum(isNow)}>P{period.periodNumber}</div>
+                    <div style={{ flex: 1 }}>
+                      <p style={s.periodSubject(isNow)}>{period.subject}</p>
+                      <p style={s.periodMeta}>{period.class} · {period.room}</p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p style={s.periodTime(isNow)}>{period.startTime}–{period.endTime}</p>
+                      {isNow && <span style={s.nowTag}>Now</span>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Quick Actions */}
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
-              <p className="text-white font-semibold text-sm mb-4">Quick Actions</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div style={s.card}>
+              <p style={{ ...s.cardTitle, marginBottom: "16px" }}>Quick Actions</p>
+              <div style={s.actionsGrid}>
                 {[
-                  { label: "New Lesson Plan", href: "/teacher/lesson-plans/new", color: "#00E5A0" },
-                  { label: "Mark Attendance", href: "/teacher/attendance", color: "#00B8FF" },
-                  { label: "Submit Assessment", href: "/teacher/assessments/new", color: "#A78BFA" },
-                  { label: "Upload Document", href: "/teacher/documents", color: "#FFB800" },
-                  { label: "Request Leave", href: "/teacher/leave/new", color: "#FF8C42" },
-                  { label: "Message Parent", href: "/teacher/messages", color: "#FF4D6A" },
+                  { label: "New Lesson Plan", href: "/teacher/lesson-plans/new", color: "#00C07A" },
+                  { label: "Mark Attendance", href: "/teacher/attendance", color: "#0078D4" },
+                  { label: "Submit Assessment", href: "/teacher/assessments/new", color: "#7C5CFC" },
+                  { label: "Upload Document", href: "/teacher/documents", color: "#F59E0B" },
+                  { label: "Request Leave", href: "/teacher/leave/new", color: "#F97316" },
+                  { label: "Message Parent", href: "/teacher/messages", color: "#EF4444" },
                 ].map((action) => (
-                  <a
-                    key={action.href}
-                    href={action.href}
-                    className="flex flex-col items-start gap-2 p-3.5 rounded-xl bg-white/4 border border-white/8 hover:border-white/20 transition-all group"
-                  >
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: action.color }}
-                    />
-                    <span
-                      className="text-sm font-medium text-white/70 group-hover:text-white transition-colors"
-                    >
-                      {action.label}
-                    </span>
+                  <a key={action.href} href={action.href} style={s.actionBtn(action.color)}>
+                    <div style={s.actionDot(action.color)} />
+                    <span style={s.actionLabel}>{action.label}</span>
                   </a>
                 ))}
               </div>
             </div>
 
-            {/* Twin Summary */}
             <TwinSummary summary={TWIN_SUMMARY} observations={TWIN_OBSERVATIONS} />
           </div>
 
-          {/* Right col — Profile card + documents + PD */}
-          <div className="space-y-6">
+          {/* Right */}
+          <div style={s.rightCol}>
 
-            {/* Profile card */}
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-5 text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#00E5A0]/30 to-[#00B8FF]/30 border-2 border-white/10 flex items-center justify-center text-xl font-bold text-white mx-auto mb-3">
-                JC
-              </div>
-              <p className="text-white font-semibold">Mrs. Janet Chebet</p>
-              <p className="text-white/40 text-xs mt-1">HOD Mathematics · Grade 5–7</p>
-              <p className="text-white/30 text-xs mt-0.5">Staff No: VS-2021-047</p>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="bg-white/5 rounded-lg py-2 px-3">
-                  <p className="text-white/40 text-xs">TSC No.</p>
-                  <p className="text-white font-medium text-xs mt-0.5">TSC-0041-8821</p>
+            {/* Profile */}
+            <div style={{ ...s.card, textAlign: "center" }}>
+              <div style={s.avatar}>JC</div>
+              <p style={s.profileName}>Mrs. Janet Chebet</p>
+              <p style={s.profileRole}>HOD Mathematics · Grade 5–7</p>
+              <p style={s.profileStaff}>Staff No: VS-2021-047</p>
+              <div style={s.profileMeta}>
+                <div style={s.profileMetaBox}>
+                  <p style={s.profileMetaLabel}>TSC No.</p>
+                  <p style={s.profileMetaValue}>TSC-0041-8821</p>
                 </div>
-                <div className="bg-white/5 rounded-lg py-2 px-3">
-                  <p className="text-white/40 text-xs">School</p>
-                  <p className="text-white font-medium text-xs mt-0.5">Nairobi Primary</p>
+                <div style={s.profileMetaBox}>
+                  <p style={s.profileMetaLabel}>School</p>
+                  <p style={s.profileMetaValue}>Nairobi Primary</p>
                 </div>
               </div>
-              <a
-                href="/teacher/profile"
-                className="mt-4 block w-full py-2.5 rounded-xl bg-[#00E5A0]/10 border border-[#00E5A0]/20 text-[#00E5A0] text-sm font-medium hover:bg-[#00E5A0]/20 transition-colors"
-              >
-                Edit Profile
-              </a>
+              <a href="/teacher/profile" style={s.editProfileBtn}>Edit Profile</a>
             </div>
 
-            {/* Document Compliance */}
             <DocumentStatus documents={DOCUMENTS} />
 
             {/* PD Progress */}
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-white font-semibold text-sm">PD Hours Progress</p>
-                <a href="/teacher/pd" className="text-xs text-[#00B8FF] hover:underline">View all</a>
+            <div style={s.card}>
+              <div style={s.cardHeader}>
+                <p style={s.cardTitle}>PD Hours Progress</p>
+                <a href="/teacher/pd" style={s.cardLink}>View all</a>
               </div>
-              <div className="flex items-end gap-2 mb-3">
-                <span className="text-3xl font-bold text-white">22</span>
-                <span className="text-white/40 text-sm mb-1">/ 40 hrs</span>
+              <div style={s.pdNumbers}>
+                <span style={s.pdBig}>22</span>
+                <span style={s.pdSub}>/ 40 hrs</span>
               </div>
-              <div className="w-full bg-white/8 rounded-full h-2 mb-2">
-                <div
-                  className="h-2 rounded-full bg-gradient-to-r from-[#00E5A0] to-[#00B8FF] transition-all"
-                  style={{ width: "55%" }}
-                />
+              <div style={s.pdTrack}>
+                <div style={s.pdFill} />
               </div>
-              <p className="text-white/40 text-xs">18 hours remaining · 8 weeks left in year</p>
+              <p style={s.pdNote}>18 hours remaining · 8 weeks left in year</p>
             </div>
 
-            {/* Appraisal status */}
-            <div className="rounded-2xl border border-[#FFB800]/20 bg-[#FFB800]/5 p-5">
-              <p className="text-white font-semibold text-sm mb-3">Appraisal Cycle</p>
-              <div className="space-y-2">
-                {[
-                  { step: "Self-appraisal", status: "pending" },
-                  { step: "HOD review", status: "waiting" },
-                  { step: "Principal moderation", status: "waiting" },
-                  { step: "Submitted to TSC", status: "waiting" },
-                ].map((item) => (
-                  <div key={item.step} className="flex items-center gap-3">
-                    <span
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        item.status === "done"
-                          ? "bg-[#00E5A0]"
-                          : item.status === "pending"
-                          ? "bg-[#FFB800] animate-pulse"
-                          : "bg-white/15"
-                      }`}
-                    />
-                    <span
-                      className={`text-sm ${
-                        item.status === "done"
-                          ? "text-[#00E5A0]"
-                          : item.status === "pending"
-                          ? "text-[#FFB800]"
-                          : "text-white/30"
-                      }`}
-                    >
-                      {item.step}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <a
-                href="/teacher/appraisal"
-                className="mt-4 block w-full py-2 rounded-xl bg-[#FFB800]/10 border border-[#FFB800]/20 text-[#FFB800] text-sm font-medium text-center hover:bg-[#FFB800]/20 transition-colors"
-              >
-                Start Self-Appraisal
-              </a>
+            {/* Appraisal */}
+            <div style={s.appraisalCard}>
+              <p style={{ ...s.cardTitle, marginBottom: "12px" }}>Appraisal Cycle</p>
+              {[
+                { step: "Self-appraisal", status: "pending" },
+                { step: "HOD review", status: "waiting" },
+                { step: "Principal moderation", status: "waiting" },
+                { step: "Submitted to TSC", status: "waiting" },
+              ].map((item) => (
+                <div key={item.step} style={s.appraisalRow}>
+                  <span style={{
+                    width: "8px", height: "8px", borderRadius: "50%", flexShrink: 0,
+                    background: item.status === "done" ? "#00C07A" : item.status === "pending" ? "#F59E0B" : "#D1D5DB",
+                  }} />
+                  <span style={{
+                    fontSize: "14px",
+                    color: item.status === "done" ? "#00875A" : item.status === "pending" ? "#996600" : "#9BA3AF",
+                  }}>
+                    {item.step}
+                  </span>
+                </div>
+              ))}
+              <a href="/teacher/appraisal" style={s.appraisalBtn}>Start Self-Appraisal</a>
             </div>
+
           </div>
         </div>
       </div>
