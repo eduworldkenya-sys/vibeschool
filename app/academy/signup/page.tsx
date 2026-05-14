@@ -180,7 +180,11 @@ function AcademySignUpInner() {
 
     setLoading(false)
 
-    fadeOut(`/${role}`)
+    fadeOut(
+      role === 'teacher'
+        ? '/academy/dashboard'
+        : `/${role}`
+    )
   }
 
   const eyeBtn: React.CSSProperties = {
