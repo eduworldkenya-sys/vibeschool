@@ -1,5 +1,6 @@
-"use client";
-import { Modal, Btn, C } from "./ui";
+'use client'
+
+import { Modal, Btn, C } from "@/components/teacher/ui";
 import type { TimetableSlot } from "@/lib/types";
 
 const PLAN = {
@@ -7,11 +8,11 @@ const PLAN = {
     "Solve linear equations with one variable",
     "Apply equations to real-world contexts",
   ],
-  introduction:   "Begin with a real-world problem: 'If a matatu carries 14 passengers and 3 get off at each stop, how many stops before it is empty?' Students model this as an equation.",
-  development:    "Introduce the balance method. Students work in pairs on differentiated worksheets. Higher: multi-step. On-track: single-step with negatives. Support: pictorial balance with guided steps.",
-  consolidation:  "Exit card: solve 3x + 7 = 22. Students write one real-world equation of their own.",
-  assessmentHook: "Moment 3 exit check — auto-marked. Results feed progressive record.",
-  homework:       "Textbook p.84 Exercise 3B — Questions 1–10.",
+  introduction:    "Begin with a real-world problem: 'If a matatu carries 14 passengers and 3 get off at each stop, how many stops before it is empty?' Students model this as an equation.",
+  development:     "Introduce the balance method. Students work in pairs on differentiated worksheets. Higher: multi-step. On-track: single-step with negatives. Support: pictorial balance with guided steps.",
+  consolidation:   "Exit card: solve 3x + 7 = 22. Students write one real-world equation of their own.",
+  assessmentHook:  "Moment 3 exit check — auto-marked. Results feed progressive record.",
+  homework:        "Textbook p.84 Exercise 3B — Questions 1–10.",
   differentiation: {
     higher:   "Multi-step equations with brackets and fractions.",
     on_track: "Single-step equations with negative numbers.",
@@ -20,13 +21,13 @@ const PLAN = {
 };
 
 interface Props {
-  slot: TimetableSlot;
+  slot:    TimetableSlot;
   onClose: () => void;
 }
 
 export default function LessonPlanModal({ slot, onClose }: Props) {
   const sections = [
-    { label: "Learning Objectives",   content: PLAN.objectives.map((o, i) => `${i + 1}. ${o}`).join("\n") },
+    { label: "Learning Objectives",    content: PLAN.objectives.map((o, i) => `${i + 1}. ${o}`).join("\n") },
     { label: "Introduction (5–7 min)", content: PLAN.introduction },
     { label: "Development (20–25 min)", content: PLAN.development },
     { label: "Consolidation (10 min)", content: PLAN.consolidation },
