@@ -8,9 +8,21 @@ export default function TeacherLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-[#0D0F14] text-white font-sans">
+    <div style={{
+      display: "flex",
+      minHeight: "100vh",
+      background: "#F0F2F5",
+      color: "#1A1D23",
+      fontFamily: "var(--font-display, sans-serif)",
+    }}>
       <TeacherSidebar />
-      <main className="flex-1 ml-64 min-h-screen overflow-y-auto">
+      <main style={{
+        flex: 1,
+        marginLeft: "240px",
+        minHeight: "100vh",
+        overflowY: "auto",
+        background: "#F0F2F5",
+      }}>
         {children}
       </main>
     </div>
