@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import styles from './signup.module.css'
 
 const VALID_ROLES = ['teacher', 'parent', 'admin'] as const
+
 type Role = typeof VALID_ROLES[number]
 
 const COUNTRIES = [
@@ -21,6 +22,20 @@ MIN_DOB.setFullYear(MIN_DOB.getFullYear() - 120)
 
 const MAX_DOB = new Date()
 MAX_DOB.setFullYear(MAX_DOB.getFullYear() - 5)
+
+const ROLE_CONTENT = {
+  teacher: {
+    descriptor: 'Manage classes, lessons and student engagement.',
+  },
+
+  parent: {
+    descriptor: "Track your child's progress and communications.",
+  },
+
+  admin: {
+    descriptor: 'Manage institution-wide operations and analytics.',
+  },
+} satisfies Record<Role, { descriptor: string }>
 
 function AcademySignUpInner() {
   const router = useRouter()
@@ -164,6 +179,7 @@ function AcademySignUpInner() {
     }
 
     setLoading(false)
+
     fadeOut(`/${role}`)
   }
 
@@ -202,12 +218,14 @@ function AcademySignUpInner() {
               stitchTiles="stitch"
               result="noise"
             />
+
             <feColorMatrix
               type="saturate"
               values="0"
               in="noise"
               result="grayNoise"
             />
+
             <feBlend
               in="SourceGraphic"
               in2="grayNoise"
@@ -236,7 +254,7 @@ function AcademySignUpInner() {
           <p className={styles.heading}>CREATE ACCOUNT</p>
 
           <p className={styles.sub}>
-            For schools, teachers and institutions.
+            {ROLE_CONTENT[role].descriptor}
           </p>
 
           <div className={styles.form}>
@@ -298,9 +316,12 @@ function AcademySignUpInner() {
                   Select country
                 </option>
 
-                {COUNTRIES.map(c => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
+                {COUNTRIES.map(country => (
+                  <option
+                    key={country.code}
+                    value={country.code}
+                  >
+                    {country.name}
                   </option>
                 ))}
               </select>
@@ -349,7 +370,7 @@ function AcademySignUpInner() {
                   type="button"
                   style={eyeBtn}
                   tabIndex={-1}
-                  onClick={() => setShowPassword(p => !p)}
+                  onClick={() => setShowPassword(value => !value)}
                   aria-label={
                     showPassword
                       ? 'Hide password'
@@ -387,7 +408,7 @@ function AcademySignUpInner() {
                   type="button"
                   style={eyeBtn}
                   tabIndex={-1}
-                  onClick={() => setShowConfirm(p => !p)}
+                  onClick={() => setShowConfirm(value => !value)}
                   aria-label={
                     showConfirm
                       ? 'Hide password'
