@@ -1,167 +1,184 @@
-'use client'
-import { useState, useRef, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import styles from './signin.module.css'
-
-function AcademySignInInner() {
-  const router       = useRouter()
-  const searchParams = useSearchParams()
-  const role         = searchParams.get('role') ?? 'teacher'
-
-  const contentRef = useRef<HTMLDivElement>(null)
-  const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const [email,        setEmail]        = useState('')
-  const [password,     setPassword]     = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error,        setError]        = useState('')
-  const [loading,      setLoading]      = useState(false)
-
-  useEffect(() => {
-    return () => { if (navTimer.current) clearTimeout(navTimer.current) }
-  }, [])
-
-  function fadeOut(destination: string) {
-    if (!contentRef.current) return
-    contentRef.current.style.transition = 'opacity 280ms ease-in'
-    contentRef.current.style.opacity    = '0'
-    navTimer.current = setTimeout(() => router.push(destination), 280)
-  }
-
-  async function handleSubmit() {
-    setError('')
-    if (!email.trim() || !password) {
-      setError('Email and password are required.')
-      return
-    }
-
-    setLoading(true)
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
-
-    if (authError) {
-      setLoading(false)
-      setError(authError.message)
-      return
-    }
-
-    await supabase.auth.getSession()
-
-    setLoading(false)
-    fadeOut('/teacher')
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') { e.preventDefault(); handleSubmit() }
-  }
-
-  const eyeBtn: React.CSSProperties = {
-    position:   'absolute',
-    right:      12,
-    top:        '50%',
-    transform:  'translateY(-50%)',
-    background: 'none',
-    border:     'none',
-    cursor:     'pointer',
-    color:      '#C8A84B',
-    fontSize:   14,
-    padding:    4,
-    lineHeight: 1,
-  }
-
-  return (
-    <>
-      <svg aria-hidden focusable="false" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
-        <defs>
-          <filter id="grain-academy-signin">
-            <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves={4} stitchTiles="stitch" result="noise" />
-            <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
-            <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" />
-          </filter>
-        </defs>
-      </svg>
-
-      <div id="academy-signin-root" className={styles.root}>
-        <div id="scan-line" aria-hidden />
-        <div className={styles.content} ref={contentRef}>
-
-          <button className={styles.back} onClick={() => fadeOut('/academy/select-role')} aria-label="Back to role select">←</button>
-
-          <p className={styles.world}>ACADEMY · {role.toUpperCase()}</p>
-          <p className={styles.heading}>SIGN IN</p>
-          <p className={styles.sub}>For schools, teachers and institutions.</p>
-
-          <div className={styles.form}>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="email">EMAIL</label>
-              <input
-                id="email"
-                className={styles.input}
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-              />
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="password">PASSWORD</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="password"
-                  className={styles.input}
-                  autoComplete="current-password"
-                  type={showPassword ? 'text' : 'password'}
-                  style={{ paddingRight: 40 }}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  style={eyeBtn}
-                  tabIndex={-1}
-                  onClick={() => setShowPassword(v => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? '🙈' : '👁'}
-                </button>
-              </div>
-            </div>
-
-            {error && <p className={styles.error} role="alert">{error}</p>}
-
-            <button className={styles.submit} onClick={handleSubmit} disabled={loading}>
-              {loading ? 'SIGNING IN…' : 'SIGN IN'}
-            </button>
-          </div>
-
-          <p className={styles.switch}>
-            No account?{' '}
-            <span
-              className={styles.switchLink}
-              role="button"
-              tabIndex={0}
-              onClick={() => fadeOut(`/academy/signup?role=${role}`)}
-              onKeyDown={e => { if (e.key === 'Enter') fadeOut(`/academy/signup?role=${role}`) }}
-            >
-              Create account
-            </span>
-          </p>
-
-        </div>
-      </div>
-    </>
-  )
+.root {
+  position: relative;
+  isolation: isolate;
+  height: 100dvh;
+  width: 100vw;
+  background: #05050F;
+  overflow: hidden;
 }
 
-export default function AcademySignIn() {
-  return <Suspense><AcademySignInInner /></Suspense>
+.root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 72% 48% at 50% -4%,
+    rgba(196, 149, 48, 0.09) 0%,
+    transparent 72%
+  );
+}
+
+.content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100dvh;
+  width: 100%;
+  padding: 72px 24px 48px 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  animation: fadeUp 260ms ease-out both;
+}
+
+.back {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  background: none;
+  border: none;
+  color: rgba(196, 149, 48, 0.62);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+  z-index: 10;
+  transition: color 180ms ease-out;
+}
+
+.back:hover {
+  color: rgba(196, 149, 48, 1);
+}
+
+.world {
+  font-size: 9px;
+  color: rgba(196, 149, 48, 0.62);
+  letter-spacing: 0.46em;
+  text-transform: uppercase;
+  margin: 0 0 12px 0;
+  font-family: monospace;
+}
+
+.heading {
+  font-weight: 800;
+  font-size: clamp(24px, 4.5vw, 36px);
+  color: #ffffff;
+  letter-spacing: 0.22em;
+  margin: 0 0 8px 0;
+}
+
+.sub {
+  font-style: italic;
+  font-size: clamp(12px, 1.4vw, 14px);
+  color: rgba(255, 255, 255, 0.36);
+  letter-spacing: 0.02em;
+  margin: 0 0 32px 0;
+}
+
+.form {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.36);
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  font-family: monospace;
+}
+
+.input {
+  width: 100%;
+  background: #0A0A1E;
+  border: 1px solid rgba(196, 149, 48, 0.28);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 180ms ease-out;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.input:focus {
+  border-color: rgba(196, 149, 48, 0.72);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 10px;
+  color: rgba(220, 80, 80, 0.82);
+  letter-spacing: 0.04em;
+  margin: 0;
+  font-family: monospace;
+}
+
+.submit {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(196, 149, 48, 0.55);
+  border-radius: 6px;
+  padding: 13px 0;
+  font-weight: 600;
+  font-size: 11px;
+  color: rgba(196, 149, 48, 0.9);
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: border-color 180ms ease-out, color 180ms ease-out;
+}
+
+.submit:hover:not(:disabled) {
+  border-color: rgba(196, 149, 48, 0.9);
+  color: #C49530;
+}
+
+.submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.switch {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.04em;
+  margin-top: 24px;
+  font-family: monospace;
+}
+
+.switchLink {
+  color: rgba(196, 149, 48, 0.72);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.switchLink:hover {
+  color: #C49530;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
