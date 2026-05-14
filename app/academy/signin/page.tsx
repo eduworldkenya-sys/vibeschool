@@ -69,7 +69,7 @@ function AcademySignInInner() {
 
     fadeOut(
       role === 'teacher'
-        ? '/academy/dashboard'
+        ? '/teacher'
         : `/${role}`
     )
   }
