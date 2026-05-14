@@ -1,3 +1,5 @@
+"use client";
+
 import TeacherSidebar from "@/components/teacher/TeacherSidebar";
 
 export default function TeacherLayout({
