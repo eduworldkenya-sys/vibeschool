@@ -32,14 +32,17 @@ function AcademySignUpInner() {
   const contentRef = useRef<HTMLDivElement>(null)
   const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [fullName, setFullName] = useState('')
-  const [dob,      setDob]      = useState('')
-  const [country,  setCountry]  = useState('')
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [code,     setCode]     = useState('')
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [fullName,         setFullName]         = useState('')
+  const [dob,              setDob]              = useState('')
+  const [country,          setCountry]          = useState('')
+  const [email,            setEmail]            = useState('')
+  const [password,         setPassword]         = useState('')
+  const [confirmPassword,  setConfirmPassword]  = useState('')
+  const [showPassword,     setShowPassword]     = useState(false)
+  const [showConfirm,      setShowConfirm]      = useState(false)
+  const [code,             setCode]             = useState('')
+  const [error,            setError]            = useState('')
+  const [loading,          setLoading]          = useState(false)
 
   useEffect(() => {
     return () => { if (navTimer.current) clearTimeout(navTimer.current) }
@@ -67,6 +70,7 @@ function AcademySignUpInner() {
     if (!email.trim())       { setError('Email is required.'); return }
     if (!password)           { setError('Password is required.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return }
     if (code.trim() && !/^\d{6}$/.test(code.trim())) {
       setError('Invitation code must be exactly 6 digits.'); return
     }
@@ -107,7 +111,21 @@ function AcademySignUpInner() {
     }
 
     setLoading(false)
-    fadeOut('/academy/dashboard')
+    fadeOut(`/${role}`)
+  }
+
+  const eyeBtn: React.CSSProperties = {
+    position:        'absolute',
+    right:           12,
+    top:             '50%',
+    transform:       'translateY(-50%)',
+    background:      'none',
+    border:          'none',
+    cursor:          'pointer',
+    color:           '#C8A84B',
+    fontSize:        14,
+    padding:         4,
+    lineHeight:      1,
   }
 
   return (
@@ -133,11 +151,13 @@ function AcademySignUpInner() {
           <p className={styles.sub}>For schools, teachers and institutions.</p>
 
           <div className={styles.form}>
+
             <div className={styles.field}>
               <label className={styles.label} htmlFor="fullName">FULL NAME</label>
               <input id="fullName" className={styles.input} type="text" autoComplete="name"
                 value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
             </div>
+
             <div className={styles.field}>
               <label className={styles.label} htmlFor="dob">DATE OF BIRTH</label>
               <input id="dob" className={styles.input} type="date"
@@ -145,6 +165,7 @@ function AcademySignUpInner() {
                 max={MAX_DOB.toISOString().split('T')[0]}
                 value={dob} onChange={e => setDob(e.target.value)} disabled={loading} />
             </div>
+
             <div className={styles.field}>
               <label className={styles.label} htmlFor="country">COUNTRY</label>
               <select id="country" className={styles.input} value={country}
@@ -153,16 +174,43 @@ function AcademySignUpInner() {
                 {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select>
             </div>
+
             <div className={styles.field}>
               <label className={styles.label} htmlFor="email">EMAIL</label>
               <input id="email" className={styles.input} type="email" autoComplete="email"
                 value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
             </div>
+
             <div className={styles.field}>
               <label className={styles.label} htmlFor="password">PASSWORD</label>
-              <input id="password" className={styles.input} type="password" autoComplete="new-password"
-                value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+              <div style={{ position: 'relative' }}>
+                <input id="password" className={styles.input} autoComplete="new-password"
+                  type={showPassword ? 'text' : 'password'}
+                  style={{ paddingRight: 40 }}
+                  value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+                <button type="button" style={eyeBtn} tabIndex={-1}
+                  onClick={() => setShowPassword(p => !p)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? '🙈' : '👁'}
+                </button>
+              </div>
             </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="confirmPassword">CONFIRM PASSWORD</label>
+              <div style={{ position: 'relative' }}>
+                <input id="confirmPassword" className={styles.input} autoComplete="new-password"
+                  type={showConfirm ? 'text' : 'password'}
+                  style={{ paddingRight: 40 }}
+                  value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={loading} />
+                <button type="button" style={eyeBtn} tabIndex={-1}
+                  onClick={() => setShowConfirm(p => !p)}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}>
+                  {showConfirm ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+
             <div className={styles.field}>
               <label className={styles.label} htmlFor="code">
                 INVITATION CODE <span className={styles.optional}>(optional)</span>
@@ -177,6 +225,7 @@ function AcademySignUpInner() {
             <button className={styles.submit} onClick={handleSubmit} disabled={loading}>
               {loading ? 'CREATING ACCOUNT…' : 'CREATE ACCOUNT'}
             </button>
+
           </div>
 
           <p className={styles.switch}>
