@@ -7,22 +7,33 @@ interface StatCardProps {
 }
 
 const accentMap = {
-  green: "text-[#00E5A0] bg-[#00E5A0]/10 border-[#00E5A0]/20",
-  blue: "text-[#00B8FF] bg-[#00B8FF]/10 border-[#00B8FF]/20",
-  amber: "text-[#FFB800] bg-[#FFB800]/10 border-[#FFB800]/20",
-  red: "text-[#FF4D6A] bg-[#FF4D6A]/10 border-[#FF4D6A]/20",
-  default: "text-white/80 bg-white/5 border-white/10",
+  green:   { bg: "#F0FBF7", border: "#A7EDD4", color: "#00875A", iconColor: "#00C07A" },
+  blue:    { bg: "#F0F8FF", border: "#A0D4FF", color: "#005FA3", iconColor: "#0078D4" },
+  amber:   { bg: "#FFFBF0", border: "#FFD966", color: "#996600", iconColor: "#F59E0B" },
+  red:     { bg: "#FFF0F3", border: "#FFAAB8", color: "#C0002A", iconColor: "#EF4444" },
+  default: { bg: "#F8F9FB", border: "#E2E5EB", color: "#3D4452", iconColor: "#9BA3AF" },
 };
 
 export default function StatCard({ label, value, sub, accent = "default", icon }: StatCardProps) {
+  const a = accentMap[accent];
   return (
-    <div className={`rounded-xl border p-4 flex flex-col gap-2 ${accentMap[accent]}`}>
-      <div className="flex items-start justify-between">
-        <span className="text-xs font-medium opacity-70 uppercase tracking-wider">{label}</span>
-        {icon && <span className="opacity-60">{icon}</span>}
+    <div style={{
+      background: a.bg,
+      border: `1px solid ${a.border}`,
+      borderRadius: "14px",
+      padding: "16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "8px",
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <span style={{ fontSize: "11px", fontWeight: 600, color: "#9BA3AF", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          {label}
+        </span>
+        {icon && <span style={{ color: a.iconColor, opacity: 0.8 }}>{icon}</span>}
       </div>
-      <span className="text-2xl font-bold leading-none">{value}</span>
-      {sub && <span className="text-xs opacity-60">{sub}</span>}
+      <span style={{ fontSize: "26px", fontWeight: 700, color: a.color, lineHeight: 1 }}>{value}</span>
+      {sub && <span style={{ fontSize: "12px", color: "#9BA3AF" }}>{sub}</span>}
     </div>
   );
 }
