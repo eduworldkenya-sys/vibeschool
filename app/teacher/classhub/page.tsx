@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 import styles from './classhub.module.css'
-import ClassCard  from '@/components/teacher/classhub/ClassCard'
 import BottomNav  from '@/components/teacher/BottomNav'
 import Header     from '@/components/teacher/Header'
 import OfflineBar from '@/components/teacher/OfflineBar'
@@ -26,6 +25,7 @@ export interface ClassItem {
 
 type SyncStatus = 'synced' | 'offline' | 'failed'
 type DarkMode   = 'sun' | 'light' | 'dark'
+type TabKey     = 'home' | 'classhub' | 'twin' | 'connecthub' | 'profile'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatTime(t: string): string {
@@ -34,24 +34,16 @@ function formatTime(t: string): string {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-function todayRange() {
-  const now   = new Date()
-  const start = new Date(now); start.setHours(0, 0, 0, 0)
-  const end   = new Date(now); end.setHours(23, 59, 59, 999)
-  return { start: start.toISOString(), end: end.toISOString() }
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ClassHubPage() {
-  const supabase = createClientComponentClient()
-  const router   = useRouter()
+  const router = useRouter()
 
-  const [classes,     setClasses]     = useState<ClassItem[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [syncStatus,  setSyncStatus]  = useState<SyncStatus>('synced')
-  const [darkMode,    setDarkMode]    = useState<DarkMode>('sun')
-  const [teacherName, setTeacherName] = useState('')
-  const [notifCount,  setNotifCount]  = useState(0)
+  const [classes,    setClasses]    = useState<ClassItem[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced')
+  const [darkMode,   setDarkMode]   = useState<DarkMode>('sun')
+  const [initials,   setInitials]   = useState('')
+  const [activeTab,  setActiveTab]  = useState<TabKey>('classhub')
 
   const isDark =
     darkMode === 'dark' ||
@@ -71,67 +63,63 @@ export default function ClassHubPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/academy/signin'); return }
+      if (!user) { router.push('/academy/signin?role=teacher'); return }
 
-      const uid = user.id
+      const uid      = user.id
+      const todayDow = new Date().getDay()
 
-      // Database Identity Law: profiles.id = auth.uid()
+      // 1. Profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('name, school_id')
+        .select('full_name')
         .eq('id', uid)
         .single()
 
-      if (!profile) return
-      setTeacherName(profile.name ?? '')
-
-      const sid      = profile.school_id
-      const todayDow = new Date().getDay()
+      if (profile?.full_name) {
+        const parts = profile.full_name.trim().split(' ').filter(Boolean)
+        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(''))
+      }
 
       // Sunday — no classes
       if (todayDow === 0) { setLoading(false); return }
 
-      // School Scope Law: every query includes school_id
+      // 2. Timetable slots with subject join
       const { data: slots } = await supabase
         .from('timetable_slots')
         .select(`
           id,
-          subject,
+          subject_id,
           start_time,
           end_time,
           class_id,
+          subjects ( name ),
           classes ( id, grade_name, stream )
         `)
         .eq('teacher_id', uid)
-        .eq('school_id', sid)
         .eq('day_of_week', todayDow)
         .order('start_time', { ascending: true })
 
       if (!slots || slots.length === 0) { setLoading(false); return }
 
-      const { start: dayStart, end: dayEnd } = todayRange()
+      const today    = new Date().toISOString().split('T')[0]
 
       const items: ClassItem[] = await Promise.all(
         slots.map(async (slot) => {
-          const cls = slot.classes as {
-            id: string; grade_name: string; stream: string | null
-          }
+          const cls     = slot.classes as { id: string; grade_name: string; stream: string | null }
+          const subject = (slot.subjects as { name: string } | null)?.name ?? 'Unknown'
 
-          // Student count — School Scope Law
+          // Student count
           const { count: studentCount } = await supabase
             .from('students')
             .select('id', { count: 'exact', head: true })
             .eq('class_id', slot.class_id)
-            .eq('school_id', sid)
 
-          // Attendance — Bible Law: timestamp range NOT .eq('date', today)
+          // Attendance
           const { data: att } = await supabase
             .from('attendance')
             .select('status')
-            .eq('class_id', slot.class_id)
-            .eq('school_id', sid)
-            .gte('timestamp', dayStart)
-            .lte('timestamp', dayEnd)
+            .eq('timetable_slot_id', slot.id)
+            .eq('date', today)
 
           const total        = studentCount ?? 0
           const presentCount = att?.filter(r => r.status === 'present').length ?? 0
@@ -142,53 +130,25 @@ export default function ClassHubPage() {
           const { count: alerts } = await supabase
             .from('notifications')
             .select('id', { count: 'exact', head: true })
-            .eq('class_id', slot.class_id)
-            .eq('school_id', sid)
+            .eq('user_id', uid)
             .eq('read', false)
-
-          // Next assessment
-          const { data: assessments } = await supabase
-            .from('assessments')
-            .select('title, date')
-            .eq('class_id', slot.class_id)
-            .eq('school_id', sid)
-            .gte('date', new Date().toISOString())
-            .order('date', { ascending: true })
-            .limit(1)
-
-          let nextAssessment: string | null = null
-          if (assessments?.length) {
-            const a   = assessments[0]
-            const day = new Date(a.date).toLocaleDateString('en-KE', { weekday: 'short' })
-            nextAssessment = `${a.title} — ${day}`
-          }
 
           return {
             id:               cls.id,
             name:             cls.grade_name + (cls.stream ? ` ${cls.stream}` : ''),
             stream:           cls.stream,
-            subject:          slot.subject,
+            subject,
             lessonTime:       `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`,
             studentCount:     total,
             attendancePct:    pct,
             attendanceMarked: marked,
             unreadAlerts:     alerts ?? 0,
-            nextAssessment,
+            nextAssessment:   null,
           }
         })
       )
 
       setClasses(items)
-
-      // Header notif count
-      const { count: notifs } = await supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', uid)
-        .eq('school_id', sid)
-        .eq('read', false)
-
-      setNotifCount(notifs ?? 0)
       setLoading(false)
     }
 
@@ -200,62 +160,138 @@ export default function ClassHubPage() {
   if (loading) {
     return (
       <div className={rootClass}>
-        <div className={styles.loadingState}>Loading your classes…</div>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: '100vh', fontFamily: 'Plus Jakarta Sans, sans-serif',
+          fontSize: 13, color: '#6b7280'
+        }}>
+          Loading your classes…
+        </div>
       </div>
     )
   }
 
   return (
     <div className={rootClass}>
-      <OfflineBar status={syncStatus} isDark={isDark} />
+      <OfflineBar />
 
       <Header
-        teacherInitials={teacherName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-        notifCount={notifCount}
-        isDark={isDark}
+        isOnline={syncStatus === 'synced'}
+        teacherInitials={initials || '??'}
         darkMode={darkMode}
-        onDarkModeToggle={() =>
-          setDarkMode(d => d === 'sun' ? 'light' : d === 'light' ? 'dark' : 'sun')
-        }
-        onNotifPress={() => {}}
+        onDarkModeChange={setDarkMode}
       />
 
-      <div className={styles.scroll}>
-        <div className={styles.pageHeader}>
-          <h1 className={styles.pageTitle}>ClassHub</h1>
-          <p className={styles.pageSubtitle}>
+      <div className={styles.scroll} style={{ paddingBottom: 80 }}>
+        <div style={{ padding: '20px 16px 8px' }}>
+          <div style={{
+            fontFamily: 'Bricolage Grotesque, sans-serif',
+            fontSize: 22, fontWeight: 800, color: isDark ? '#F0EDE8' : '#111827'
+          }}>
+            ClassHub
+          </div>
+          <div style={{
+            fontFamily: 'Plus Jakarta Sans, sans-serif',
+            fontSize: 13, color: '#6b7280', marginTop: 4
+          }}>
             {classes.length} {classes.length === 1 ? 'class' : 'classes'} today
-          </p>
+          </div>
         </div>
 
         {classes.length === 0 ? (
-          <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>📚</span>
-            <p className={styles.emptyText}>No classes scheduled today</p>
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '60px 16px', gap: 12
+          }}>
+            <span style={{ fontSize: 32 }}>📚</span>
+            <p style={{
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontSize: 14, color: '#6b7280', textAlign: 'center'
+            }}>
+              No classes scheduled today
+            </p>
           </div>
         ) : (
-          <div className={styles.cardList}>
+          <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {classes.map(cls => (
-              <ClassCard
+              <div
                 key={cls.id}
-                data={cls}
-                isDark={isDark}
-                onTap={() => router.push(`/teacher/classhub/${cls.id}`)}
-              />
+                onClick={() => router.push(`/teacher/classhub/${cls.id}`)}
+                style={{
+                  background: isDark ? '#1A1D22' : '#ffffff',
+                  border: `1px solid ${isDark ? '#2A2D31' : '#E5E7EB'}`,
+                  borderRadius: 16, padding: '16px',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.07)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div>
+                    <div style={{
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontSize: 16, fontWeight: 700,
+                      color: isDark ? '#F0EDE8' : '#111827'
+                    }}>
+                      {cls.name}
+                    </div>
+                    <div style={{
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontSize: 12, color: '#6b7280', marginTop: 2
+                    }}>
+                      {cls.subject}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontSize: 12, fontWeight: 600,
+                      color: isDark ? '#F0EDE8' : '#111827'
+                    }}>
+                      {cls.lessonTime}
+                    </div>
+                    <div style={{
+                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontSize: 11, color: '#6b7280', marginTop: 2
+                    }}>
+                      {cls.studentCount} students
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, marginTop: 10
+                }}>
+                  <div style={{
+                    flex: 1, height: 4, borderRadius: 4,
+                    background: isDark ? '#2A2D31' : '#F3F4F6', overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${cls.attendancePct}%`, height: '100%',
+                      background: cls.attendanceMarked ? '#10B981' : '#E5E7EB',
+                      borderRadius: 4, transition: 'width 400ms ease'
+                    }} />
+                  </div>
+                  <span style={{
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontSize: 11, fontWeight: 600,
+                    color: cls.attendanceMarked ? '#10B981' : '#6b7280'
+                  }}>
+                    {cls.attendanceMarked ? `${cls.attendancePct}%` : 'Not marked'}
+                  </span>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </div>
 
       <BottomNav
-        activeTab="classhub"
-        isDark={isDark}
-        connecthubBadge={0}
-        onTabChange={(tab) => {
-          if (tab === 'home')       router.push('/teacher')
-          if (tab === 'twin')       router.push('/teacher/twin')
-          if (tab === 'connecthub') router.push('/teacher/connecthub')
-          if (tab === 'profile')    router.push('/teacher/profile')
+        active={activeTab}
+        onChange={(tab) => {
+          setActiveTab(tab)
+          if (tab === 'home')   router.push('/teacher')
+          if (tab === 'twin')   router.push('/teacher/twin')
+          if (tab === 'profile') router.push('/teacher/profile')
         }}
       />
     </div>
