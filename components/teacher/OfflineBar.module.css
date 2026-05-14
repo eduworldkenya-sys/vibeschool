@@ -1,15 +1,22 @@
 .bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background-color: transparent;
-  z-index: 9999;
-  pointer-events: none;
-  transition: background-color 300ms ease;
+  position: sticky;
+  top: 56px;
+  z-index: 590;
+  background: #ef4444;
+  color: #fff;
+  text-align: center;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  animation: fadeIn 0.2s ease;
 }
 
-.offline {
-  background-color: #F59E0B;
+.icon {
+  margin-right: 6px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
