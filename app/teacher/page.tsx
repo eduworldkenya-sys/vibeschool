@@ -1,391 +1,248 @@
 'use client'
+import { useState, useRef, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import styles from './signup.module.css'
 
-import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+const VALID_ROLES = ['teacher', 'parent', 'admin'] as const
+type Role = typeof VALID_ROLES[number]
 
-import styles from './teacher-home.module.css'
+const COUNTRIES = [
+  { code: 'KE', name: 'Kenya' },
+  { code: 'US', name: 'United States' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'KR', name: 'South Korea' },
+]
 
-import OfflineBar        from '@/components/teacher/OfflineBar'
-import Header            from '@/components/teacher/Header'
-import IntelligenceStrip from '@/components/teacher/IntelligenceStrip'
-import PulseCard         from '@/components/teacher/PulseCard'
-import TwinShortcut      from '@/components/teacher/TwinShortcut'
-import ToolsGrid         from '@/components/teacher/ToolsGrid'
-import IntelligenceCard  from '@/components/teacher/IntelligenceCard'
-import RecentActivity    from '@/components/teacher/RecentActivity'
-import BottomNav         from '@/components/teacher/BottomNav'
+const MIN_DOB = new Date()
+MIN_DOB.setFullYear(MIN_DOB.getFullYear() - 120)
+const MAX_DOB = new Date()
+MAX_DOB.setFullYear(MAX_DOB.getFullYear() - 5)
 
-import type { Insight }      from '@/components/teacher/IntelligenceCard'
-import type { ActivityItem } from '@/components/teacher/RecentActivity'
+function AcademySignUpInner() {
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const rawRole      = searchParams.get('role') ?? 'teacher'
+  const role: Role   = (VALID_ROLES as readonly string[]).includes(rawRole)
+    ? (rawRole as Role)
+    : 'teacher'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-type DarkMode   = 'sun' | 'light' | 'dark'
-type SyncStatus = 'synced' | 'offline' | 'failed'
-type TabKey     = 'home' | 'classhub' | 'twin' | 'connecthub' | 'profile'
-type ModeKey    = 'lesson_plan' | 'parent_message' | 'attendance' | 'advisory'
-type ToolKey    = 'attendance' | 'timetable' | 'lessonplan' | 'gradebook' | 'connecthub' | 'twin'
+  const contentRef = useRef<HTMLDivElement>(null)
+  const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-interface ClassData {
-  id:               string
-  classId:          string
-  name:             string
-  subject:          string
-  time:             string
-  room:             string
-  students:         number
-  attendanceMarked: boolean
-  presentCount:     number
-  absentCount:      number
-  lateCount:        number
-  markedAt:         string
-}
+  const [fullName,         setFullName]         = useState('')
+  const [dob,              setDob]              = useState('')
+  const [country,          setCountry]          = useState('')
+  const [email,            setEmail]            = useState('')
+  const [password,         setPassword]         = useState('')
+  const [confirmPassword,  setConfirmPassword]  = useState('')
+  const [showPassword,     setShowPassword]     = useState(false)
+  const [showConfirm,      setShowConfirm]      = useState(false)
+  const [code,             setCode]             = useState('')
+  const [error,            setError]            = useState('')
+  const [loading,          setLoading]          = useState(false)
 
-interface NextClass {
-  subject:         string
-  room:            string
-  startsInMinutes: number
-}
+  useEffect(() => {
+    return () => { if (navTimer.current) clearTimeout(navTimer.current) }
+  }, [])
 
-interface TeacherProfile {
-  name:     string
-  initials: string
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function getInitials(fullName: string): string {
-  return fullName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(w => w[0].toUpperCase())
-    .join('')
-}
-
-function startOfCurrentWeek(): string {
-  const d   = new Date()
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  return d.toISOString().split('T')[0]
-}
-
-function formatTime(time: string): string {
-  const [h, m] = time.split(':').map(Number)
-  const ampm   = h >= 12 ? 'PM' : 'AM'
-  const hour   = h % 12 || 12
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`
-}
-
-function formatActivityTime(isoString: string): string {
-  const date      = new Date(isoString)
-  const now       = new Date()
-  const yesterday = new Date(now)
-  yesterday.setDate(now.getDate() - 1)
-
-  if (date.toDateString() === now.toDateString()) {
-    return 'Today, ' + date.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit' })
-  }
-  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
-  return date.toLocaleDateString('en-KE', { weekday: 'short' })
-}
-
-function minutesUntil(timeStr: string): number {
-  const now       = new Date()
-  const [h, m]    = timeStr.split(':').map(Number)
-  const target    = new Date(now)
-  target.setHours(h, m, 0, 0)
-  return Math.max(0, Math.round((target.getTime() - now.getTime()) / 60000))
-}
-
-const VALID_TASK_TYPES = ['lesson_plan', 'parent_message', 'attendance', 'advisory'] as const
-type ValidTaskType = typeof VALID_TASK_TYPES[number]
-
-// ── Page ──────────────────────────────────────────────────────────────────────
-export default function TeacherHomePage() {
-  const supabase = createClientComponentClient()
-
-  const [darkMode,        setDarkMode]        = useState<DarkMode>('sun')
-  const [syncStatus,      setSyncStatus]      = useState<SyncStatus>('synced')
-  const [activeTab,       setActiveTab]       = useState<TabKey>('home')
-  const [teacher,         setTeacher]         = useState<TeacherProfile | null>(null)
-  const [classData,       setClassData]       = useState<ClassData | null>(null)
-  const [nextClass,       setNextClass]       = useState<NextClass | null>(null)
-  const [sessions,        setSessions]        = useState<{ task_type: ValidTaskType; minutes: number }[]>([])
-  const [insights,        setInsights]        = useState<Insight[]>([])
-  const [activity,        setActivity]        = useState<ActivityItem[]>([])
-  const [classesTotal,    setClassesTotal]    = useState(0)
-  const [notifCount,      setNotifCount]      = useState(0)
-  const [connecthubBadge, setConnecthubBadge] = useState(0)
-  const [loading,         setLoading]         = useState(true)
-
-  const isDark =
-    darkMode === 'dark' ||
-    (darkMode === 'sun' && new Date().getHours() >= 18)
-
-  // ── Handlers (defined before useEffect) ───────────────────────────────────
-  function handleTwinOpen(mode: ModeKey) {
-    setActiveTab('twin')
-    // TODO: open Twin with mode pre-loaded
+  function fadeOut(destination: string) {
+    if (!contentRef.current) return
+    contentRef.current.style.transition = 'opacity 280ms ease-in'
+    contentRef.current.style.opacity    = '0'
+    navTimer.current = setTimeout(() => router.push(destination), 280)
   }
 
-  function handleToolOpen(tool: ToolKey) {
-    // TODO: navigate to tool page
-    console.log('Tool opened:', tool)
-  }
+  async function handleSubmit() {
+    setError('')
 
-  function handleNotifPress() {
-    // TODO: open notifications panel
-  }
+    if (!fullName.trim())    { setError('Full name is required.'); return }
+    if (!dob)                { setError('Date of birth is required.'); return }
 
-  function handleOpenGradebook() {
-    setActiveTab('classhub')
-    // TODO: navigate to gradebook
-  }
+    const dobDate = new Date(dob)
+    if (isNaN(dobDate.getTime()) || dobDate < MIN_DOB || dobDate > MAX_DOB) {
+      setError('Please enter a valid date of birth.'); return
+    }
 
-  function handleMessageParents() {
-    handleTwinOpen('parent_message')
-  }
+    if (!country)            { setError('Country is required.'); return }
+    if (!email.trim())       { setError('Email is required.'); return }
+    if (!password)           { setError('Password is required.'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return }
+    if (code.trim() && !/^\d{6}$/.test(code.trim())) {
+      setError('Invitation code must be exactly 6 digits.'); return
+    }
 
-  async function handleMarkAttendance() {
-    if (!classData) return
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    setLoading(true)
 
-    const today = new Date().toISOString().split('T')[0]
-
-    const { data: studentList } = await supabase
-      .from('students')
-      .select('id')
-      .eq('class_id', classData.classId)
-
-    if (!studentList) return
-
-    const rows = studentList.map(s => ({
-      timetable_slot_id: classData.id,
-      class_id:          classData.classId,
-      student_id:        s.id,
-      teacher_id:        user.id,
-      date:              today,
-      status:            'present',
-    }))
-
-    const { error } = await supabase.from('attendance').upsert(rows, {
-      onConflict: 'timetable_slot_id,student_id,date',
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
     })
 
-    if (error) {
-      setSyncStatus('failed')
+    if (authError || !authData.user) {
+      setLoading(false)
+      setError(authError?.message || 'Sign up failed. Please try again.')
       return
     }
 
-    setClassData(prev =>
-      prev ? {
-        ...prev,
-        attendanceMarked: true,
-        presentCount:     studentList.length,
-        absentCount:      0,
-        lateCount:        0,
-        markedAt:         'just now',
-      } : prev
-    )
-    setSyncStatus('synced')
-    // TODO: write to IndexedDB for offline sync
-  }
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id:            authData.user.id,
+      full_name:     fullName.trim(),
+      date_of_birth: dob,
+      country_code:  country,
+    })
 
-  // ── Load all data ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const uid      = user.id
-      const now      = new Date()
-      const todayDow = now.getDay()
-      const today    = now.toISOString().split('T')[0]
-      const nowTime  = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`
-
-      // Sunday — no classes
-      if (todayDow === 0) {
-        setLoading(false)
-        return
-      }
-
-      // 1. Teacher profile
-      const { data: userData } = await supabase
-        .from('users')
-        .select('full_name')
-        .eq('id', uid)
-        .single()
-
-      if (userData) {
-        setTeacher({
-          name:     userData.full_name,
-          initials: getInitials(userData.full_name),
-        })
-      }
-
-      // 2. Current timetable slot
-      const { data: slots } = await supabase
-        .from('timetable_slots')
-        .select(`
-          id, subject, start_time, end_time, room, day_of_week, class_id,
-          classes ( grade_name, stream )
-        `)
-        .eq('teacher_id', uid)
-        .eq('day_of_week', todayDow)
-        .lte('start_time', nowTime)
-        .order('start_time', { ascending: false })
-        .limit(1)
-
-      if (slots && slots.length > 0) {
-        const slot = slots[0]
-        const cls  = slot.classes as { grade_name: string; stream: string | null }
-
-        const { count: studentCount } = await supabase
-          .from('students')
-          .select('id', { count: 'exact', head: true })
-          .eq('class_id', slot.class_id)
-
-        const { data: marked } = await supabase
-          .from('attendance')
-          .select('status')
-          .eq('timetable_slot_id', slot.id)
-          .eq('date', today)
-
-        const presentCount = marked?.filter(r => r.status === 'present').length ?? 0
-        const absentCount  = marked?.filter(r => r.status === 'absent').length  ?? 0
-        const lateCount    = marked?.filter(r => r.status === 'late').length    ?? 0
-        const wasMarked    = (marked?.length ?? 0) > 0
-
-        setClassData({
-          id:               slot.id,
-          classId:          slot.class_id,
-          name:             cls.grade_name + (cls.stream ? ` ${cls.stream}` : ''),
-          subject:          slot.subject,
-          time:             `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`,
-          room:             slot.room ?? 'TBA',
-          students:         studentCount ?? 0,
-          attendanceMarked: wasMarked,
-          presentCount,
-          absentCount,
-          lateCount,
-          markedAt:         wasMarked ? 'earlier today' : '',
-        })
-      }
-
-      // 3. Next timetable slot
-      const { data: nextSlots } = await supabase
-        .from('timetable_slots')
-        .select('subject, start_time, room')
-        .eq('teacher_id', uid)
-        .eq('day_of_week', todayDow)
-        .gt('start_time', nowTime)
-        .order('start_time', { ascending: true })
-        .limit(1)
-
-      if (nextSlots && nextSlots.length > 0) {
-        const ns = nextSlots[0]
-        setNextClass({
-          subject:         ns.subject,
-          room:            ns.room ?? 'TBA',
-          startsInMinutes: minutesUntil(ns.start_time),
-        })
-      }
-
-      // 4. Total classes today
-      const { count: totalToday } = await supabase
-        .from('timetable_slots')
-        .select('id', { count: 'exact', head: true })
-        .eq('teacher_id', uid)
-        .eq('day_of_week', todayDow)
-
-      setClassesTotal(totalToday ?? 0)
-
-      // 5. Twin sessions this week
-      const weekStart = startOfCurrentWeek()
-      const { data: sessionData } = await supabase
-        .from('twin_sessions')
-        .select('task_type, minutes')
-        .eq('teacher_id', uid)
-        .gte('created_at', weekStart)
-
-      setSessions(
-        (sessionData ?? []).filter(s =>
-          VALID_TASK_TYPES.includes(s.task_type as ValidTaskType)
-        ) as { task_type: ValidTaskType; minutes: number }[]
-      )
-
-      // 6. Insights
-      const { data: insightRows } = await supabase
-        .from('teacher_insights')
-        .select('*')
-        .eq('teacher_id', uid)
-        .limit(5)
-
-      if (insightRows) {
-        setInsights(
-          insightRows.map((row, i) => ({
-            id:        `ins_${i}`,
-            type:      row.type as Insight['type'],
-            message:   row.message,
-            ctaLabel:  row.cta_label,
-            ctaAction: () => {
-              if (row.type === 'lesson_plan') handleTwinOpen('lesson_plan')
-              if (row.type === 'attendance')  handleTwinOpen('parent_message')
-            },
-            updatedAt: formatActivityTime(row.created_at),
-          }))
-        )
-      }
-
-      // 7. Recent activity
-      const { data: activityRows } = await supabase
-        .from('teacher_recent_activity')
-        .select('*')
-        .eq('teacher_id', uid)
-        .limit(5)
-
-      if (activityRows) {
-        setActivity(
-          activityRows.map((row, i) => ({
-            id:        `act_${i}`,
-            type:      row.type as ActivityItem['type'],
-            title:     row.title,
-            subtitle:  row.subtitle,
-            timestamp: formatActivityTime(row.created_at),
-          }))
-        )
-      }
-
-      // 8. Notification count
-      const { count: notifs } = await supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', uid)
-        .eq('read', false)
-
-      setNotifCount(notifs ?? 0)
-
-      // 9. ConnectHub unread count
-      const { count: chUnread } = await supabase
-        .from('connecthub_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('recipient_id', uid)
-        .eq('read', false)
-
-      setConnecthubBadge(chUnread ?? 0)
-
+    if (profileError) {
+      await supabase.auth.signOut()
       setLoading(false)
+      setError('Account setup failed. Please try again.')
+      return
     }
 
-    load()
-  }, [])
+    if (code.trim()) {
+      await fetch('/api/validate-invitation', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ code: code.trim(), commit: true }),
+      })
+    }
 
-  // ── Offline detection ──────────────────────────────────────────────────────
-  useEffect(() => {
-    function goOnline()  { setSyncStatus('synced')  }
-    function goOffline() { setSyncStatus('offline') }
-    window.addEventListener('online',  goOnline)
-    window.addEventListener('offline', goOffline)
-    return () => {
-      window.removeEven
+    setLoading(false)
+    fadeOut(`/${role}`)
+  }
+
+  const eyeBtn: React.CSSProperties = {
+    position:        'absolute',
+    right:           12,
+    top:             '50%',
+    transform:       'translateY(-50%)',
+    background:      'none',
+    border:          'none',
+    cursor:          'pointer',
+    color:           '#C8A84B',
+    fontSize:        14,
+    padding:         4,
+    lineHeight:      1,
+  }
+
+  return (
+    <>
+      <svg aria-hidden focusable="false" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+        <defs>
+          <filter id="grain-academy-signup">
+            <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves={4} stitchTiles="stitch" result="noise" />
+            <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+            <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" />
+          </filter>
+        </defs>
+      </svg>
+
+      <div id="academy-signup-root" className={styles.root}>
+        <div id="scan-line" aria-hidden />
+        <div className={styles.content} ref={contentRef}>
+
+          <button className={styles.back} onClick={() => fadeOut(`/academy/signin?role=${role}`)} aria-label="Back to sign in">←</button>
+
+          <p className={styles.world}>ACADEMY · {role.toUpperCase()}</p>
+          <p className={styles.heading}>CREATE ACCOUNT</p>
+          <p className={styles.sub}>For schools, teachers and institutions.</p>
+
+          <div className={styles.form}>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="fullName">FULL NAME</label>
+              <input id="fullName" className={styles.input} type="text" autoComplete="name"
+                value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="dob">DATE OF BIRTH</label>
+              <input id="dob" className={styles.input} type="date"
+                min={MIN_DOB.toISOString().split('T')[0]}
+                max={MAX_DOB.toISOString().split('T')[0]}
+                value={dob} onChange={e => setDob(e.target.value)} disabled={loading} />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="country">COUNTRY</label>
+              <select id="country" className={styles.input} value={country}
+                onChange={e => setCountry(e.target.value)} disabled={loading}>
+                <option value="" disabled>Select country</option>
+                {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="email">EMAIL</label>
+              <input id="email" className={styles.input} type="email" autoComplete="email"
+                value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="password">PASSWORD</label>
+              <div style={{ position: 'relative' }}>
+                <input id="password" className={styles.input} autoComplete="new-password"
+                  type={showPassword ? 'text' : 'password'}
+                  style={{ paddingRight: 40 }}
+                  value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+                <button type="button" style={eyeBtn} tabIndex={-1}
+                  onClick={() => setShowPassword(p => !p)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="confirmPassword">CONFIRM PASSWORD</label>
+              <div style={{ position: 'relative' }}>
+                <input id="confirmPassword" className={styles.input} autoComplete="new-password"
+                  type={showConfirm ? 'text' : 'password'}
+                  style={{ paddingRight: 40 }}
+                  value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={loading} />
+                <button type="button" style={eyeBtn} tabIndex={-1}
+                  onClick={() => setShowConfirm(p => !p)}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}>
+                  {showConfirm ? '🙈' : '👁'}
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="code">
+                INVITATION CODE <span className={styles.optional}>(optional)</span>
+              </label>
+              <input id="code" className={styles.input} type="text" inputMode="numeric" maxLength={6}
+                placeholder="6-digit code" value={code}
+                onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={loading} />
+            </div>
+
+            {error && <p className={styles.error} role="alert">{error}</p>}
+
+            <button className={styles.submit} onClick={handleSubmit} disabled={loading}>
+              {loading ? 'CREATING ACCOUNT…' : 'CREATE ACCOUNT'}
+            </button>
+
+          </div>
+
+          <p className={styles.switch}>
+            Already have an account?{' '}
+            <span className={styles.switchLink} role="button" tabIndex={0}
+              onClick={() => fadeOut(`/academy/signin?role=${role}`)}
+              onKeyDown={e => { if (e.key === 'Enter') fadeOut(`/academy/signin?role=${role}`) }}>
+              Sign in
+            </span>
+          </p>
+
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default function AcademySignUp() {
+  return <Suspense><AcademySignUpInner /></Suspense>
+}
