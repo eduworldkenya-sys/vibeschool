@@ -45,7 +45,8 @@ function AcademySignInInner() {
     })
     setLoading(false)
     if (authError) { setError(authError.message); return }
-    fadeOut('/academy/dashboard')
+
+    fadeOut(`/${role}`)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
