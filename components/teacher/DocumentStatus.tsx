@@ -1,10 +1,10 @@
 import { TeacherDocument } from "@/lib/types";
 
 const statusConfig = {
-  valid: { dot: "bg-[#00E5A0]", text: "text-[#00E5A0]", label: "Valid" },
-  expiring: { dot: "bg-[#FFB800]", text: "text-[#FFB800]", label: "Expiring" },
-  missing: { dot: "bg-[#FF4D6A]", text: "text-[#FF4D6A]", label: "Missing" },
-  expired: { dot: "bg-[#FF4D6A] opacity-60", text: "text-[#FF4D6A]", label: "Expired" },
+  valid:    { dot: "#00C07A", color: "#00875A", label: "Valid" },
+  expiring: { dot: "#F59E0B", color: "#996600", label: "Expiring" },
+  missing:  { dot: "#EF4444", color: "#C0002A", label: "Missing" },
+  expired:  { dot: "#EF4444", color: "#C0002A", label: "Expired" },
 };
 
 interface Props {
@@ -13,49 +13,62 @@ interface Props {
 
 export default function DocumentStatus({ documents }: Props) {
   const counts = {
-    valid: documents.filter((d) => d.status === "valid").length,
+    valid:    documents.filter((d) => d.status === "valid").length,
     expiring: documents.filter((d) => d.status === "expiring").length,
-    missing: documents.filter((d) => d.status === "missing" || d.status === "expired").length,
+    missing:  documents.filter((d) => d.status === "missing" || d.status === "expired").length,
   };
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-white font-semibold text-sm">Document Compliance</p>
-        <a href="/teacher/documents" className="text-xs text-[#00B8FF] hover:underline">View all</a>
+    <div style={{
+      background: "#FFFFFF",
+      borderRadius: "16px",
+      border: "1px solid #E2E5EB",
+      padding: "20px",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+        <p style={{ fontSize: "14px", fontWeight: 600, color: "#1A1D23", margin: 0 }}>Document Compliance</p>
+        <a href="/teacher/documents" style={{ fontSize: "12px", color: "#0078D4", textDecoration: "none" }}>View all</a>
       </div>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <div className="text-center">
-          <p className="text-[#00E5A0] text-xl font-bold">{counts.valid}</p>
-          <p className="text-white/40 text-xs mt-0.5">Valid</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[#FFB800] text-xl font-bold">{counts.expiring}</p>
-          <p className="text-white/40 text-xs mt-0.5">Expiring</p>
-        </div>
-        <div className="text-center">
-          <p className="text-[#FF4D6A] text-xl font-bold">{counts.missing}</p>
-          <p className="text-white/40 text-xs mt-0.5">Missing</p>
-        </div>
+      {/* Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "20px" }}>
+        {[
+          { count: counts.valid, color: "#00875A", label: "Valid" },
+          { count: counts.expiring, color: "#996600", label: "Expiring" },
+          { count: counts.missing, color: "#C0002A", label: "Missing" },
+        ].map(({ count, color, label }) => (
+          <div key={label} style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "22px", fontWeight: 700, color, margin: 0 }}>{count}</p>
+            <p style={{ fontSize: "11px", color: "#9BA3AF", marginTop: "2px" }}>{label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Document list */}
-      <div className="space-y-2">
-        {documents.map((doc) => {
+      {/* List */}
+      <div>
+        {documents.map((doc, i) => {
           const cfg = statusConfig[doc.status];
           return (
-            <div key={doc.name} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
-                <span className="text-white/70 text-sm">{doc.name}</span>
+            <div
+              key={doc.name}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 0",
+                borderBottom: i < documents.length - 1 ? "1px solid #F0F2F5" : "none",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: cfg.dot, flexShrink: 0, display: "inline-block" }} />
+                <span style={{ fontSize: "13px", color: "#3D4452" }}>{doc.name}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 {doc.expiryDate && (
-                  <span className="text-white/30 text-xs">{doc.expiryDate}</span>
+                  <span style={{ fontSize: "11px", color: "#9BA3AF" }}>{doc.expiryDate}</span>
                 )}
-                <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: cfg.color }}>{cfg.label}</span>
               </div>
             </div>
           );
