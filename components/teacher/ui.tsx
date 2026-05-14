@@ -1,3 +1,5 @@
+'use client'
+
 import { CSSProperties } from "react";
 
 export const C = {
@@ -14,7 +16,6 @@ export const C = {
   shadow:      "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
 };
 
-// ─── Card ───────────────────────────────────────────────────────────────────
 interface CardProps {
   children: React.ReactNode;
   style?: CSSProperties;
@@ -37,7 +38,6 @@ export function Card({ children, style = {}, onClick }: CardProps) {
   );
 }
 
-// ─── SectionLabel ───────────────────────────────────────────────────────────
 export function SectionLabel({ children, style = {} }: { children: React.ReactNode; style?: CSSProperties }) {
   return (
     <div style={{
@@ -49,7 +49,6 @@ export function SectionLabel({ children, style = {} }: { children: React.ReactNo
   );
 }
 
-// ─── Btn ────────────────────────────────────────────────────────────────────
 type BtnVariant = "primary" | "ghost" | "muted" | "danger" | "dark";
 interface BtnProps {
   children: React.ReactNode;
@@ -72,11 +71,11 @@ export function Btn({ children, variant = "primary", onClick, small, style = {},
     ...style,
   };
   const variants: Record<BtnVariant, CSSProperties> = {
-    primary: { background: C.accent,   color: "#fff" },
+    primary: { background: C.accent,      color: "#fff" },
     ghost:   { background: "transparent", color: C.accent, border: `1.5px solid ${C.accent}` },
-    muted:   { background: C.surface,  color: C.textPrimary },
-    danger:  { background: "#fee2e2",  color: "#991b1b" },
-    dark:    { background: C.dark,     color: "#fff" },
+    muted:   { background: C.surface,     color: C.textPrimary },
+    danger:  { background: "#fee2e2",     color: "#991b1b" },
+    dark:    { background: C.dark,        color: "#fff" },
   };
   return (
     <button
@@ -90,7 +89,6 @@ export function Btn({ children, variant = "primary", onClick, small, style = {},
   );
 }
 
-// ─── Avatar ─────────────────────────────────────────────────────────────────
 interface AvatarProps {
   initials: string;
   size?: number;
@@ -115,7 +113,6 @@ export function Avatar({ initials, size = 36, bg = C.accent, color = "#fff", sty
   );
 }
 
-// ─── ReadinessChip ──────────────────────────────────────────────────────────
 export function ReadinessChip({ status }: { status: string }) {
   const map: Record<string, { bg: string; color: string; label: string }> = {
     green: { bg: "#d1fae5", color: "#065f46", label: "Ready"     },
@@ -131,7 +128,6 @@ export function ReadinessChip({ status }: { status: string }) {
   );
 }
 
-// ─── SeverityBadge ──────────────────────────────────────────────────────────
 export function SeverityBadge({ sev }: { sev: string }) {
   const map: Record<string, { bg: string; color: string }> = {
     critical: { bg: "#fee2e2", color: "#991b1b" },
@@ -150,7 +146,6 @@ export function SeverityBadge({ sev }: { sev: string }) {
   );
 }
 
-// ─── Modal ──────────────────────────────────────────────────────────────────
 interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -178,7 +173,6 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   );
 }
 
-// ─── TwinDot (shared animation dot) ─────────────────────────────────────────
 export function TwinDot({ delay = 0 }: { delay?: number }) {
   return (
     <span style={{
