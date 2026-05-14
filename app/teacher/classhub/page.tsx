@@ -27,6 +27,17 @@ type SyncStatus = 'synced' | 'offline' | 'failed'
 type DarkMode   = 'sun' | 'light' | 'dark'
 type TabKey     = 'home' | 'classhub' | 'twin' | 'connecthub' | 'profile'
 
+// ── Join helpers ───────────────────────────────────────────────────────────────
+// Supabase returns joined tables as arrays even for FK (many-to-one) joins.
+// This helper safely unwraps array | object | null into T | null.
+function resolveJoin<T>(raw: unknown): T | null {
+  if (raw == null) return null
+  return (Array.isArray(raw) ? raw[0] ?? null : raw) as T | null
+}
+
+type ClassJoin   = { id: string; grade_name: string; stream: string | null }
+type SubjectJoin = { name: string }
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatTime(t: string): string {
   const [h, m] = t.split(':').map(Number)
@@ -76,14 +87,14 @@ export default function ClassHubPage() {
         .single()
 
       if (profile?.full_name) {
-        const parts = profile.full_name.trim().split(' ').filter(Boolean)
+        const parts = (profile.full_name as string).trim().split(' ').filter(Boolean)
         setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(''))
       }
 
       // Sunday — no classes
       if (todayDow === 0) { setLoading(false); return }
 
-      // 2. Timetable slots with subject join
+      // 2. Timetable slots
       const { data: slots } = await supabase
         .from('timetable_slots')
         .select(`
@@ -101,12 +112,13 @@ export default function ClassHubPage() {
 
       if (!slots || slots.length === 0) { setLoading(false); return }
 
-      const today    = new Date().toISOString().split('T')[0]
+      const today = new Date().toISOString().split('T')[0]
 
       const items: ClassItem[] = await Promise.all(
         slots.map(async (slot) => {
-          const cls     = slot.classes as { id: string; grade_name: string; stream: string | null }
-          const subject = (slot.subjects as { name: string } | null)?.name ?? 'Unknown'
+          // ✅ Fix: resolveJoin handles array | object | null from Supabase
+          const cls     = resolveJoin<ClassJoin>(slot.classes)
+          const subject = resolveJoin<SubjectJoin>(slot.subjects)?.name ?? 'Unknown'
 
           // Student count
           const { count: studentCount } = await supabase
@@ -134,9 +146,9 @@ export default function ClassHubPage() {
             .eq('read', false)
 
           return {
-            id:               cls.id,
-            name:             cls.grade_name + (cls.stream ? ` ${cls.stream}` : ''),
-            stream:           cls.stream,
+            id:               cls?.id ?? slot.class_id,
+            name:             cls ? cls.grade_name + (cls.stream ? ` ${cls.stream}` : '') : 'Unknown Class',
+            stream:           cls?.stream ?? null,
             subject,
             lessonTime:       `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`,
             studentCount:     total,
@@ -153,7 +165,7 @@ export default function ClassHubPage() {
     }
 
     load()
-  }, [])
+  }, [router])
 
   const rootClass = [styles.root, isDark ? styles.rootDark : ''].filter(Boolean).join(' ')
 
@@ -289,8 +301,8 @@ export default function ClassHubPage() {
         active={activeTab}
         onChange={(tab) => {
           setActiveTab(tab)
-          if (tab === 'home')   router.push('/teacher')
-          if (tab === 'twin')   router.push('/teacher/twin')
+          if (tab === 'home')    router.push('/teacher')
+          if (tab === 'twin')    router.push('/teacher/twin')
           if (tab === 'profile') router.push('/teacher/profile')
         }}
       />
