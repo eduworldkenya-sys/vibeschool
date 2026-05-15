@@ -1,24 +1,28 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { VIBECONNECT_THREADS } from "@/lib/data";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
-import { createContext, useContext } from "react";
 
 // ─── Toast context ─────────────────────────────────────────────────────────────
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
 export const useToast = () => useContext(ToastContext);
 
+// ─── User context ──────────────────────────────────────────────────────────────
+interface UserCtx { fullName: string; initials: string; school: string }
+const UserContext = createContext<UserCtx>({ fullName: '', initials: '', school: '' });
+export const useUser = () => useContext(UserContext);
+
 // ─── Nav config ────────────────────────────────────────────────────────────────
 const NAV_TABS = [
-  { id: "home",        label: "Home",        icon: "🏠", href: "/teacher"             },
-  { id: "lessonplan",  label: "Plans",        icon: "📖", href: "/teacher/lessonplan"  },
-  { id: "vibeconnect", label: "VibeConnect",  icon: "💬", href: "/teacher/vibeconnect" },
-  { id: "more",        label: "More",         icon: "⋯",  href: "/teacher/more"        },
-  { id: "profile",     label: "Profile",      icon: "👤", href: "/teacher/profile"     },
+  { id: "home",        label: "Home",       icon: "🏠", href: "/teacher"             },
+  { id: "lessonplan",  label: "Plans",      icon: "📖", href: "/teacher/lessonplan"  },
+  { id: "vibeconnect", label: "VibeConnect",icon: "💬", href: "/teacher/vibeconnect" },
+  { id: "more",        label: "More",       icon: "⋯",  href: "/teacher/more"        },
+  { id: "profile",     label: "Profile",    icon: "👤", href: "/teacher/profile"     },
 ];
 
 function tabIdFromPath(path: string): string {
@@ -229,14 +233,8 @@ function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnec
         const isActive = t.id === activeId;
         const badge    = t.id === "vibeconnect" ? unreadConnect : 0;
         return (
-          <button
-            key={t.id}
-            onClick={() => router.push(t.href)}
-            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? C.accent : C.textMuted, transition: "color 0.15s", position: "relative" }}
-          >
-            {badge > 0 && (
-              <span style={{ position: "absolute", top: 6, right: "calc(50% - 14px)", width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{badge}</span>
-            )}
+          <button key={t.id} onClick={() => router.push(t.href)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? C.accent : C.textMuted, transition: "color 0.15s", position: "relative" }}>
+            {badge > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 14px)", width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{badge}</span>}
             <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
             <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600, letterSpacing: 0.2 }}>{t.label}</span>
             {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 2.5, background: C.accent, borderRadius: "0 0 3px 3px" }} />}
@@ -261,9 +259,7 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
         <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>
-            {school || "Loading…"}
-          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>{school || "Loading…"}</div>
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -273,12 +269,7 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
             <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadConnect}</span>
           </div>
         )}
-        <Avatar
-          initials={initials || "…"}
-          size={34}
-          onClick={() => router.push("/teacher/profile")}
-          style={{ cursor: "pointer" }}
-        />
+        <Avatar initials={initials || "…"} size={34} onClick={() => router.push("/teacher/profile")} style={{ cursor: "pointer" }} />
       </div>
     </div>
   );
@@ -286,11 +277,7 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg }: { msg: string }) {
-  return (
-    <div style={{ position: "fixed", bottom: 140, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "11px 22px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, animation: "fadeIn 0.2s ease", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}>
-      {msg}
-    </div>
-  );
+  return <div style={{ position: "fixed", bottom: 140, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "11px 22px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, animation: "fadeIn 0.2s ease", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}>{msg}</div>;
 }
 
 // ─── Layout ────────────────────────────────────────────────────────────────────
@@ -304,75 +291,77 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [school,   setSchool]   = useState("");
   const [initials, setInitials] = useState("");
 
-  useEffect(() => {
-    async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const [profileRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, school_id")
-          .eq("id", user.id)
-          .single(),
-      ]);
-
-      const fullName = profileRes.data?.full_name ?? "";
-      const parts    = fullName.trim().split(" ").filter(Boolean);
-      const derived  = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
-      setInitials(derived);
-
-      const schoolId = profileRes.data?.school_id;
-      if (schoolId) {
-        const schoolRes = await supabase
-          .from("schools")
-          .select("name")
-          .eq("id", schoolId)
-          .single();
-        setSchool(schoolRes.data?.name ?? "");
-      }
-    }
-    fetchProfile();
-  }, []);
-
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   }, []);
 
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, school_id")
+        .eq("id", user.id)
+        .single();
+
+      const fullName = profileData?.full_name ?? "";
+      const parts    = fullName.trim().split(" ").filter(Boolean);
+      const derived  = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
+      setInitials(derived);
+
+      const schoolId = profileData?.school_id;
+      if (schoolId) {
+        const { data: schoolData } = await supabase
+          .from("schools")
+          .select("name")
+          .eq("id", schoolId)
+          .single();
+        setSchool(schoolData?.name ?? "");
+      }
+    }
+    fetchProfile();
+  }, []);
+
+  const userCtx: UserCtx = { fullName: '', initials, school };
+
   return (
     <ToastContext.Provider value={{ showToast }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f2f5; }
-        @keyframes twinPulse { 0%,80%,100%{ transform:scale(0.7); opacity:0.5 } 40%{ transform:scale(1); opacity:1 } }
-        @keyframes slideIn   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
-        @keyframes fadeIn    { from{ opacity:0 } to{ opacity:1 } }
-        @keyframes shimmer   { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
-      `}</style>
+      <UserContext.Provider value={userCtx}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+          body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f2f5; }
+          @keyframes twinPulse { 0%,80%,100%{ transform:scale(0.7); opacity:0.5 } 40%{ transform:scale(1); opacity:1 } }
+          @keyframes slideIn   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
+          @keyframes fadeIn    { from{ opacity:0 } to{ opacity:1 } }
+          @keyframes shimmer   { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
+          ::-webkit-scrollbar { width: 5px; }
+          ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+        `}</style>
 
-      <div style={{ minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch" as const, background: "#f0f2f5" }}>
-        <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
+        <div style={{ minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch" as const, background: "#f0f2f5" }}>
+          <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
 
-        <main style={{
-          maxWidth: 768,
-          margin: "0 auto",
-          padding: "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
-          paddingBottom: 160,
-          minHeight: "calc(100vh - 120px)",
-        }}>
-          {children}
-        </main>
+          <main style={{
+            maxWidth: 768,
+            margin: "0 auto",
+            padding: "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
+            paddingBottom: 160,
+            minHeight: "calc(100vh - 120px)",
+          }}>
+            {children}
+          </main>
 
-        <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
-        <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
-        <BottomNav activeId={activeId} unreadConnect={unreadConnect} />
+          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
+          <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+          <BottomNav activeId={activeId} unreadConnect={unreadConnect} />
 
-        {toast && <Toast msg={toast} />}
-      </div>
+          {toast && <Toast msg={toast} />}
+        </div>
+      </UserContext.Provider>
     </ToastContext.Provider>
   );
 }
