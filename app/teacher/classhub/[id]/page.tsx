@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
@@ -41,26 +40,62 @@ function Skeleton({ h = 56 }: { h?: number }) {
   )
 }
 
-function ComingSoon({ label, icon }: { label: string; icon: string }) {
+function FeatureCard({
+  label, icon, subtitle, iconBg, onClick,
+}: {
+  label: string
+  icon: string
+  subtitle: string
+  color: string
+  iconBg: string
+  onClick: () => void
+}) {
   return (
-    <div style={{ margin: '0 16px', padding: '28px 20px', background: cardBg, border: `1px solid ${border}`, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-      <span style={{ fontSize: 32 }}>{icon}</span>
-      <p style={{ fontSize: 14, fontWeight: 700, color: textMain, margin: 0 }}>{label}</p>
-      <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 20, padding: '4px 14px' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>Coming Soon</span>
+    <button
+      onClick={onClick}
+      style={{
+        margin: '0 16px',
+        padding: '18px 20px',
+        background: '#ffffff',
+        border: '1px solid #e5e7eb',
+        borderRadius: 16,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        width: 'calc(100% - 32px)',
+        textAlign: 'left',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+      }}
+    >
+      <div style={{
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        background: iconBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 24,
+        flexShrink: 0,
+      }}>
+        {icon}
       </div>
-      <p style={{ fontSize: 12, color: textMuted, textAlign: 'center', margin: 0 }}>
-        {"This section will be available in the next update."}
-      </p>
-    </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0 }}>{label}</p>
+        <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>{subtitle}</p>
+      </div>
+      <span style={{ fontSize: 18, color: '#6b7280', flexShrink: 0 }}>›</span>
+    </button>
   )
 }
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div style={{ padding: '24px 16px 10px' }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: textMuted, textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>{title}</p>
-      {subtitle && <p style={{ fontSize: 12, color: textMuted, marginTop: 2 }}>{subtitle}</p>}
+      <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>{title}</p>
+      {subtitle && <p style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{subtitle}</p>}
     </div>
   )
 }
@@ -123,9 +158,9 @@ export default function ClassPage() {
     width: '100%',
     padding: '11px 14px',
     borderRadius: 10,
-    border: `1px solid ${border}`,
+    border: '1px solid #e5e7eb',
     fontSize: 14,
-    color: textMain,
+    color: '#111827',
     outline: 'none',
     fontFamily: 'inherit',
     background: '#f9fafb',
@@ -135,7 +170,7 @@ export default function ClassPage() {
   const labelStyle: React.CSSProperties = {
     fontSize: 11,
     fontWeight: 700,
-    color: textMuted,
+    color: '#6b7280',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 6,
@@ -143,14 +178,13 @@ export default function ClassPage() {
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: textMuted, paddingBottom: 48 }}>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#6b7280', paddingBottom: 48 }}>
       <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
-      {/* Class Header */}
       <div style={{ padding: '20px 16px 12px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         <button
           onClick={() => router.push('/teacher/classhub')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, padding: '2px 0', lineHeight: 1, color: textMain }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, padding: '2px 0', lineHeight: 1, color: '#111827' }}
         >
           ←
         </button>
@@ -161,10 +195,10 @@ export default function ClassPage() {
             </div>
           ) : (
             <>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: textMain, margin: 0 }}>
-                {classInfo?.name}{classInfo?.stream ? ` · ${classInfo.stream}` : ''}
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: 0 }}>
+                {classInfo?.name}{classInfo?.stream ? ' · ' + classInfo.stream : ''}
               </h1>
-              <p style={{ fontSize: 13, color: textMuted, marginTop: 4 }}>
+              <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
                 {classInfo?.subject} · {students.length} {students.length === 1 ? 'student' : 'students'}
               </p>
             </>
@@ -172,26 +206,25 @@ export default function ClassPage() {
         </div>
       </div>
 
-      {/* ── STUDENTS ── */}
-      <div style={{ margin: '0 16px', background: cardBg, border: `1px solid ${border}`, borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-        <div style={{ padding: '16px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${border}` }}>
+      <div style={{ margin: '0 16px', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ padding: '16px 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 18 }}>👥</span>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: textMain, margin: 0 }}>Students</p>
-              {!loading && <p style={{ fontSize: 11, color: textMuted, marginTop: 1 }}>{students.length} enrolled</p>}
+              <p style={{ fontSize: 14, fontWeight: 800, color: '#111827', margin: 0 }}>Students</p>
+              {!loading && <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{students.length} enrolled</p>}
             </div>
           </div>
           <button
             onClick={() => { setShowForm(v => !v); setError('') }}
-            style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : dark, color: showForm ? textMain : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : '#1e1b4b', color: showForm ? '#111827' : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {showForm ? 'Cancel' : '+ Add'}
           </button>
         </div>
 
         {showForm && (
-          <div style={{ padding: '16px', borderBottom: `1px solid ${border}` }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Full Name *</label>
@@ -206,7 +239,7 @@ export default function ClassPage() {
             <button
               onClick={handleAdd}
               disabled={saving}
-              style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? '#d1fae5' : accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+              style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? '#d1fae5' : '#10b981', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
             >
               {saving ? 'Saving…' : 'Add Student'}
             </button>
@@ -222,7 +255,7 @@ export default function ClassPage() {
         {!loading && students.length === 0 && !showForm && (
           <div style={{ padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 32 }}>🎒</span>
-            <p style={{ fontSize: 13, color: textMuted, textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center' }}>
               No students yet. Tap <strong>+ Add</strong> to enrol the first student.
             </p>
           </div>
@@ -231,14 +264,14 @@ export default function ClassPage() {
         {!loading && students.length > 0 && (
           <div>
             {students.map((s, i) => (
-              <div key={s.id} style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i === 0 ? 'none' : `1px solid ${border}` }}>
+              <div key={s.id} style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i === 0 ? 'none' : '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: dark, flexShrink: 0 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: '#1e1b4b', flexShrink: 0 }}>
                     {i + 1}
                   </div>
                   <div>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: textMain, margin: 0 }}>{s.name}</p>
-                    {s.admission_number && <p style={{ fontSize: 11, color: textMuted, marginTop: 1 }}>{s.admission_number}</p>}
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{s.name}</p>
+                    {s.admission_number && <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{s.admission_number}</p>}
                   </div>
                 </div>
                 <button
@@ -254,21 +287,45 @@ export default function ClassPage() {
         )}
       </div>
 
-      {/* ── ATTENDANCE ── */}
       <SectionHeader title="Attendance" subtitle="Track daily student attendance" />
-      <ComingSoon label="Attendance" icon="✅" />
+      <FeatureCard
+        label="Attendance"
+        icon="✅"
+        subtitle="Mark and review attendance"
+        color="#dcfce7"
+        iconBg="#bbf7d0"
+        onClick={() => router.push('/teacher/attendance?classId=' + classId)}
+      />
 
-      {/* ── LESSON PLANS ── */}
       <SectionHeader title="Lesson Plans" subtitle="Weekly plans for this class" />
-      <ComingSoon label="Lesson Plans" icon="📖" />
+      <FeatureCard
+        label="Lesson Plans"
+        icon="📖"
+        subtitle="View and create lesson plans"
+        color="#ede9fe"
+        iconBg="#ddd6fe"
+        onClick={() => router.push('/teacher/lessonplan?classId=' + classId)}
+      />
 
-      {/* ── ASSESSMENT ── */}
       <SectionHeader title="Assessment" subtitle="Marks and performance" />
-      <ComingSoon label="Assessment" icon="📊" />
+      <FeatureCard
+        label="Assessment"
+        icon="📊"
+        subtitle="Scores and CBC strands"
+        color="#fef3c7"
+        iconBg="#fde68a"
+        onClick={() => router.push('/teacher/assessment?classId=' + classId)}
+      />
 
-      {/* ── TIMETABLE ── */}
       <SectionHeader title="Timetable" subtitle="Scheduled slots for this class" />
-      <ComingSoon label="Timetable" icon="📅" />
+      <FeatureCard
+        label="Timetable"
+        icon="📅"
+        subtitle="View class schedule"
+        color="#dbeafe"
+        iconBg="#bfdbfe"
+        onClick={() => router.push('/teacher/timetable?classId=' + classId)}
+      />
 
     </div>
   )
