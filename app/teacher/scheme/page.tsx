@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, C } from '@/components/teacher/ui'
 
-// ─── Local types ──────────────────────────────────────────────────────────────
-
 interface Strand {
   id: string
   name: string
@@ -23,8 +21,6 @@ interface SubjectGroup {
   strands: Strand[]
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
 function Skeleton({ h = 56 }: { h?: number }) {
   return (
     <div style={{
@@ -37,8 +33,6 @@ function Skeleton({ h = 56 }: { h?: number }) {
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function SchemePage() {
   const [groups, setGroups]   = useState<SubjectGroup[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,11 +43,9 @@ export default function SchemePage() {
       setLoading(true)
       setError(null)
 
-      // 1. Get current teacher profile
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); setError('Not signed in.'); return }
 
-      // 2. Parallel — teacher_classes rows + all subjects for this school
       const [tcRes, profileRes] = await Promise.all([
         supabase
           .from('teacher_classes')
@@ -70,7 +62,7 @@ export default function SchemePage() {
       if (profileRes.error) { setError(profileRes.error.message); setLoading(false); return }
 
       const schoolId   = profileRes.data?.school_id ?? null
-      const subjectIds = [...new Set((tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id))]
+      const subjectIds = Array.from(new Set((tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id)))
 
       if (subjectIds.length === 0) {
         setGroups([])
@@ -78,7 +70,6 @@ export default function SchemePage() {
         return
       }
 
-      // 3. Parallel — fetch subjects + strands for those subject IDs
       const [subjectsRes, strandsRes] = await Promise.all([
         supabase
           .from('subjects')
@@ -97,7 +88,6 @@ export default function SchemePage() {
       const subjects: SubjectRow[] = subjectsRes.data ?? []
       const strands:  Strand[]     = strandsRes.data  ?? []
 
-      // 4. Group strands by subject
       const grouped: SubjectGroup[] = subjects.map(s => ({
         subjectId:   s.id,
         subjectName: s.name,
@@ -111,8 +101,6 @@ export default function SchemePage() {
     load()
   }, [])
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-
   return (
     <>
       <style>{`
@@ -124,7 +112,6 @@ export default function SchemePage() {
 
       <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-        {/* Header */}
         <div>
           <div style={{ fontSize: 20, fontWeight: 700, color: C.textPrimary }}>Scheme of Work</div>
           <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>
@@ -132,7 +119,6 @@ export default function SchemePage() {
           </div>
         </div>
 
-        {/* Error */}
         {error && (
           <div style={{
             padding: '12px 14px',
@@ -145,14 +131,12 @@ export default function SchemePage() {
           </div>
         )}
 
-        {/* Loading skeletons */}
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[1, 2, 3].map(i => <Skeleton key={i} h={120} />)}
           </div>
         )}
 
-        {/* No subjects assigned */}
         {!loading && !error && groups.length === 0 && (
           <Card>
             <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
@@ -161,11 +145,9 @@ export default function SchemePage() {
           </Card>
         )}
 
-        {/* Subject groups */}
         {!loading && !error && groups.map(group => (
           <div key={group.subjectId}>
             <SectionLabel>{group.subjectName}</SectionLabel>
-
             <Card>
               {group.strands.length === 0 ? (
                 <div style={{
@@ -191,7 +173,6 @@ export default function SchemePage() {
                           : 'none',
                       }}
                     >
-                      {/* Strand colour dot */}
                       <div style={{
                         width: 8,
                         height: 8,
@@ -199,14 +180,11 @@ export default function SchemePage() {
                         background: C.accent,
                         flexShrink: 0,
                       }} />
-
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>
                           {strand.name}
                         </div>
                       </div>
-
-                      {/* Placeholder chip — assessment integration comes later */}
                       <div style={{
                         fontSize: 11,
                         fontWeight: 600,
