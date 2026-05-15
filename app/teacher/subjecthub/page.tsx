@@ -2,35 +2,28 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { useRouter } from 'next/navigation'
 
 interface SubjectOption {
-  id: string
+  id:   string
   name: string
+}
+
+interface ClassForSubject {
+  id:         string
+  name:       string
+  stream:     string
+  studentCount: number
 }
 
 interface Teammate {
   profileId: string
-  fullName: string
-  initials: string
-  isYou: boolean
+  fullName:  string
+  initials:  string
+  isYou:     boolean
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
-}
-
-const AVATAR_PALETTES = [
+const PALETTES = [
   { bg: '#ede9fe', color: '#6d28d9' },
   { bg: '#d1fae5', color: '#065f46' },
   { bg: '#dbeafe', color: '#1d4ed8' },
@@ -39,283 +32,373 @@ const AVATAR_PALETTES = [
   { bg: '#e0f2fe', color: '#0369a1' },
 ]
 
-function Avatar({ initials, idx }: { initials: string; idx: number }) {
-  const p = AVATAR_PALETTES[idx % AVATAR_PALETTES.length]
-  return (
-    <div style={{
-      width: 40, height: 40, borderRadius: '50%',
-      background: p.bg, color: p.color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 13, fontWeight: 700, flexShrink: 0,
-    }}>
-      {initials}
-    </div>
-  )
+function getInitials(name: string) {
+  return name.trim().split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
-function Skeleton({ h = 56 }: { h?: number }) {
+function Skeleton({ h = 56, w = '100%' }: { h?: number; w?: string }) {
   return (
     <div style={{
-      height: h, borderRadius: 12,
+      height: h, width: w, borderRadius: 12,
       background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.4s infinite',
+      flexShrink: 0,
     }} />
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function HeroSkeleton() {
+  return (
+    <div style={{
+      background: 'linear-gradient(90deg,rgba(255,255,255,0.12) 25%,rgba(255,255,255,0.22) 50%,rgba(255,255,255,0.12) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s infinite',
+      height: 16, borderRadius: 8,
+    }} />
+  )
+}
 
 export default function SubjectHubPage() {
-  const [subjects, setSubjects]       = useState<SubjectOption[]>([])
-  const [activeIdx, setActiveIdx]     = useState(0)
-  const [teammates, setTeammates]     = useState<Teammate[]>([])
-  const [currentId, setCurrentId]     = useState<string | null>(null)
-  const [schoolId, setSchoolId]       = useState<string | null>(null)
-  const [loading, setLoading]         = useState(true)
-  const [teamLoading, setTeamLoading] = useState(false)
-  const [error, setError]             = useState<string | null>(null)
+  const router = useRouter()
 
-  // ── Initial load: get teacher's subjects ──────────────────────────────────
+  const [subjects,     setSubjects]     = useState<SubjectOption[]>([])
+  const [activeIdx,    setActiveIdx]    = useState(0)
+  const [classes,      setClasses]      = useState<ClassForSubject[]>([])
+  const [teammates,    setTeammates]    = useState<Teammate[]>([])
+  const [schoolId,     setSchoolId]     = useState<string | null>(null)
+  const [currentId,    setCurrentId]    = useState<string | null>(null)
+  const [loading,      setLoading]      = useState(true)
+  const [classLoading, setClassLoading] = useState(false)
+  const [teamLoading,  setTeamLoading]  = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
+
+  useEffect(() => { init() }, [])
+
+  async function init() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/academy/signin?role=teacher'); return }
+    setCurrentId(user.id)
+
+    const [tcRes, memberRes] = await Promise.all([
+      supabase.from('teacher_classes').select('subject_id').eq('teacher_id', user.id),
+      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+    ])
+
+    const sid = memberRes.data?.school_id ?? null
+    setSchoolId(sid)
+
+    const subjectIds = Array.from(new Set(
+      (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
+    ))
+
+    if (subjectIds.length === 0) { setLoading(false); return }
+
+    const { data: subData } = await supabase
+      .from('subjects').select('id, name').in('id', subjectIds).order('name')
+
+    setSubjects(subData ?? [])
+    setLoading(false)
+  }
+
   useEffect(() => {
-    async function load() {
-      setLoading(true)
-      setError(null)
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setError('Not signed in.'); setLoading(false); return }
-
-      setCurrentId(user.id)
-
-      const [tcRes, memberRes] = await Promise.all([
-        supabase
-          .from('teacher_classes')
-          .select('subject_id')
-          .eq('teacher_id', user.id),
-        supabase
-          .from('school_members')
-          .select('school_id')
-          .eq('profile_id', user.id)
-          .maybeSingle(),
-      ])
-
-      if (tcRes.error)     { setError(tcRes.error.message);     setLoading(false); return }
-      if (memberRes.error) { setError(memberRes.error.message); setLoading(false); return }
-
-      const sid = memberRes.data?.school_id ?? null
-      setSchoolId(sid)
-
-      const subjectIds = Array.from(new Set(
-        (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id)
-      ))
-
-      if (subjectIds.length === 0) {
-        setSubjects([])
-        setLoading(false)
-        return
-      }
-
-      const { data: subData, error: subErr } = await supabase
-        .from('subjects')
-        .select('id, name')
-        .in('id', subjectIds)
-
-      if (subErr) { setError(subErr.message); setLoading(false); return }
-
-      setSubjects(subData ?? [])
-      setLoading(false)
-    }
-
-    load()
-  }, [])
-
-  // ── Load teammates when active subject changes ────────────────────────────
-  useEffect(() => {
-    if (subjects.length === 0 || !schoolId) return
-
-    async function loadTeam() {
-      setTeamLoading(true)
-      const subjectId = subjects[activeIdx]?.id
-      if (!subjectId) { setTeamLoading(false); return }
-
-      // Get all teacher_ids for this subject in this school
-      const { data: tcData, error: tcErr } = await supabase
-        .from('teacher_classes')
-        .select('teacher_id')
-        .eq('subject_id', subjectId)
-        .eq('school_id', schoolId ?? '')
-
-      if (tcErr || !tcData || tcData.length === 0) {
-        setTeammates([])
-        setTeamLoading(false)
-        return
-      }
-
-      const teacherIds = Array.from(new Set(
-        tcData.map((r: { teacher_id: string }) => r.teacher_id)
-      ))
-
-      const { data: profileData, error: profErr } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', teacherIds)
-
-      if (profErr) {
-        setTeammates([])
-        setTeamLoading(false)
-        return
-      }
-
-      const team: Teammate[] = (profileData ?? []).map((p: { id: string; full_name: string }) => ({
-        profileId: p.id,
-        fullName:  p.full_name ?? 'Unknown',
-        initials:  getInitials(p.full_name ?? '?'),
-        isYou:     p.id === currentId,
-      }))
-
-      // Put "you" first
-      team.sort((a, b) => (a.isYou ? -1 : b.isYou ? 1 : 0))
-
-      setTeammates(team)
-      setTeamLoading(false)
-    }
-
-    loadTeam()
+    if (subjects.length === 0) return
+    loadClassesForSubject(subjects[activeIdx]?.id)
+    loadTeamForSubject(subjects[activeIdx]?.id)
   }, [subjects, activeIdx, schoolId, currentId])
+
+  async function loadClassesForSubject(subjectId: string) {
+    if (!subjectId || !currentId) return
+    setClassLoading(true)
+
+    const { data: tcData } = await supabase
+      .from('teacher_classes')
+      .select('class_id')
+      .eq('teacher_id', currentId)
+      .eq('subject_id', subjectId)
+
+    const classIds = (tcData ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
+
+    if (classIds.length === 0) { setClasses([]); setClassLoading(false); return }
+
+    const [classRes, studentRes] = await Promise.all([
+      supabase.from('classes').select('id, name, stream').in('id', classIds),
+      supabase.from('students').select('class_id').in('class_id', classIds),
+    ])
+
+    const counts: Record<string, number> = {}
+    for (const s of studentRes.data ?? []) {
+      counts[s.class_id] = (counts[s.class_id] ?? 0) + 1
+    }
+
+    const mapped: ClassForSubject[] = (classRes.data ?? []).map((c: { id: string; name: string; stream: string }) => ({
+      id:           c.id,
+      name:         c.name,
+      stream:       c.stream,
+      studentCount: counts[c.id] ?? 0,
+    }))
+
+    setClasses(mapped)
+    setClassLoading(false)
+  }
+
+  async function loadTeamForSubject(subjectId: string) {
+    if (!subjectId || !schoolId) { setTeammates([]); return }
+    setTeamLoading(true)
+
+    const { data: tcData } = await supabase
+      .from('teacher_classes')
+      .select('teacher_id')
+      .eq('subject_id', subjectId)
+      .eq('school_id', schoolId)
+
+    const teacherIds = Array.from(new Set(
+      (tcData ?? []).map((r: { teacher_id: string }) => r.teacher_id)
+    ))
+
+    if (teacherIds.length === 0) { setTeammates([]); setTeamLoading(false); return }
+
+    const { data: profileData } = await supabase
+      .from('profiles').select('id, full_name').in('id', teacherIds)
+
+    const team: Teammate[] = (profileData ?? []).map((p: { id: string; full_name: string }, idx: number) => ({
+      profileId: p.id,
+      fullName:  p.full_name ?? 'Unknown',
+      initials:  getInitials(p.full_name ?? '?'),
+      isYou:     p.id === currentId,
+    }))
+    team.sort((a, b) => (a.isYou ? -1 : b.isYou ? 1 : 0))
+    setTeammates(team)
+    setTeamLoading(false)
+  }
 
   const activeSubject = subjects[activeIdx] ?? null
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  const SUBJECT_ACTIONS = [
+    { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
+    { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
+    { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
+    { id: 'scheme',     label: 'Scheme',       icon: '📋', bg: '#075985', route: '/teacher/scheme'     },
+    { id: 'resources',  label: 'Resources',    icon: '📁', bg: '#7e22ce', route: '/teacher/resources'  },
+    { id: 'timetable',  label: 'Timetable',    icon: '📅', bg: '#0f766e', route: '/teacher/timetable'  },
+  ]
+
   return (
-    <>
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position:  200% 0 }
-          100% { background-position: -200% 0 }
-        }
-      `}</style>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#6b7280', paddingBottom: 60, background: '#f8f9fa', minHeight: '100%' }}>
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
-      <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* ── HERO ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #075985 0%, #0ea5e9 80%, #10b981 150%)',
+        padding: '20px 16px 28px',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(16,185,129,0.1)' }} />
 
-        {/* Header banner */}
-        <div style={{
-          background: 'linear-gradient(135deg, #075985 0%, #0ea5e9 100%)',
-          borderRadius: 20,
-          padding: '20px',
-          color: '#fff',
-        }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-            SubjectHub
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
-            {loading ? 'Loading…' : activeSubject ? `${activeSubject.name} Department` : 'No subjects assigned'}
-          </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-            Shared resources, team, and curriculum alignment.
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.2, textTransform: 'uppercase' }}>SubjectHub</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>🔔</button>
           </div>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', color: C.error, fontSize: 13 }}>
-            {error}
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <HeroSkeleton />
+            <div style={{ marginTop: 4 }}><HeroSkeleton /></div>
           </div>
-        )}
-
-        {/* Loading skeletons */}
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Skeleton h={48} />
-            <Skeleton h={180} />
-          </div>
-        )}
-
-        {/* No subjects */}
-        {!loading && !error && subjects.length === 0 && (
-          <Card>
-            <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
-              No subjects assigned yet. Contact your school admin to get set up.
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🔬</div>
+              <div>
+                <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                  {activeSubject ? activeSubject.name : 'No Subjects'}
+                </h1>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '3px 0 0' }}>
+                  {subjects.length > 1 ? `${subjects.length} subjects assigned` : 'Subject Teacher'}
+                </p>
+              </div>
             </div>
-          </Card>
-        )}
 
-        {/* Subject tabs */}
-        {!loading && subjects.length > 1 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {subjects.map((s, i) => (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { label: 'My Classes',  value: classes.length },
+                { label: 'Teammates',   value: teammates.length },
+                { label: 'Subjects',    value: subjects.length },
+              ].map(s => (
+                <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.value}</div>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: 600, marginTop: 2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── SUBJECT TABS (if multiple) ── */}
+      {!loading && subjects.length > 1 && (
+        <div style={{ padding: '14px 16px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
+          {subjects.map((s, i) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveIdx(i)}
+              style={{
+                padding: '7px 16px', borderRadius: 20, border: 'none',
+                cursor: 'pointer', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                background: i === activeIdx ? '#075985' : '#fff',
+                color:      i === activeIdx ? '#fff'    : '#6b7280',
+                boxShadow: i === activeIdx ? '0 2px 8px rgba(7,89,133,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+                fontFamily: 'inherit',
+              }}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── QUICK ACTIONS ── */}
+      {!loading && activeSubject && (
+        <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>Subject Tools</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {SUBJECT_ACTIONS.map(a => (
               <button
-                key={s.id}
-                onClick={() => setActiveIdx(i)}
+                key={a.id}
+                onClick={() => router.push(a.route + '?subjectId=' + activeSubject.id)}
                 style={{
-                  padding: '7px 16px',
-                  borderRadius: 20,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  background: i === activeIdx ? C.accent : C.surface,
-                  color:      i === activeIdx ? '#fff'    : C.textMuted,
-                  transition: 'background 0.15s',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  padding: '14px 4px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                  background: a.bg, fontFamily: 'inherit',
                 }}
               >
-                {s.name}
+                <span style={{ fontSize: 22 }}>{a.icon}</span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>{a.label}</span>
               </button>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Department team */}
-        {!loading && activeSubject && (
-          <Card>
-            <SectionLabel>Department Team</SectionLabel>
+      {/* ── MY CLASSES FOR THIS SUBJECT ── */}
+      {!loading && activeSubject && (
+        <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
+            <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>My Classes</p>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '3px 0 0' }}>Classes you teach {activeSubject.name} in</p>
+          </div>
 
-            {teamLoading && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[1, 2, 3].map(i => <Skeleton key={i} h={52} />)}
-              </div>
-            )}
+          {classLoading && (
+            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[1, 2].map(i => <Skeleton key={i} h={64} />)}
+            </div>
+          )}
 
-            {!teamLoading && teammates.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
-                No teammates found for this subject.
-              </div>
-            )}
+          {!classLoading && classes.length === 0 && (
+            <div style={{ padding: '28px 16px', textAlign: 'center' }}>
+              <span style={{ fontSize: 28 }}>📚</span>
+              <p style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}>No classes assigned for this subject yet.</p>
+            </div>
+          )}
 
-            {!teamLoading && teammates.map((t, idx) => (
-              <div
-                key={t.profileId}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '11px 0',
-                  borderBottom: idx < teammates.length - 1 ? `1px solid ${C.border}` : 'none',
-                }}
-              >
-                <Avatar initials={t.initials} idx={idx} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>
-                    {t.fullName}{t.isYou ? ' (You)' : ''}
-                  </div>
-                  <div style={{ fontSize: 12, color: C.textMuted }}>{activeSubject.name}</div>
+          {!classLoading && classes.map((cls, i) => (
+            <button
+              key={cls.id}
+              onClick={() => router.push('/teacher/classhub/' + cls.id + '?mode=subject&subjectId=' + activeSubject.id)}
+              style={{
+                width: '100%', padding: '14px 16px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                borderTop: i === 0 ? 'none' : '1px solid #f3f4f6',
+                background: 'transparent', border: 'none',
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: PALETTES[i % PALETTES.length].bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏫</div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: '#111827', margin: 0 }}>
+                    {cls.name}{cls.stream ? ' · ' + cls.stream : ''}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>{cls.studentCount} students</p>
                 </div>
               </div>
-            ))}
-          </Card>
-        )}
+              <span style={{ fontSize: 18, color: '#9ca3af' }}>›</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-        {/* Shared resources — table doesn't exist yet, UI placeholder only */}
-        {!loading && activeSubject && (
-          <Card>
-            <SectionLabel>Shared Resources</SectionLabel>
-            <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: C.textMuted }}>
-              Resource sharing coming soon.
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <Btn variant="ghost">+ Upload Resource</Btn>
-            </div>
-          </Card>
-        )}
+      {/* ── DEPARTMENT TEAM ── */}
+      {!loading && activeSubject && (
+        <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
+            <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Department Team</p>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '3px 0 0' }}>Teachers in {activeSubject.name}</p>
+          </div>
 
-      </div>
-    </>
+          {teamLoading && (
+            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[1, 2].map(i => <Skeleton key={i} h={52} />)}
+            </div>
+          )}
+
+          {!teamLoading && teammates.length === 0 && (
+            <div style={{ padding: '20px 16px', textAlign: 'center', fontSize: 13, color: '#6b7280' }}>
+              No teammates found for this subject.
+            </div>
+          )}
+
+          {!teamLoading && teammates.map((t, idx) => (
+            <div
+              key={t.profileId}
+              style={{
+                padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                borderTop: idx === 0 ? 'none' : '1px solid #f3f4f6',
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                background: PALETTES[idx % PALETTES.length].bg,
+                color: PALETTES[idx % PALETTES.length].color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 700,
+              }}>
+                {t.initials}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>
+                  {t.fullName}{t.isYou ? ' (You)' : ''}
+                </p>
+                <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0 0' }}>{activeSubject.name}</p>
+              </div>
+              {t.isYou && (
+                <div style={{ background: '#d1fae5', borderRadius: 20, padding: '3px 10px' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#065f46' }}>You</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── EMPTY STATE (no subjects) ── */}
+      {!loading && subjects.length === 0 && (
+        <div style={{ padding: '60px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 40 }}>🔬</span>
+          <p style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0, textAlign: 'center' }}>No subjects assigned yet</p>
+          <p style={{ fontSize: 13, color: '#6b7280', margin: 0, textAlign: 'center' }}>Contact your school admin to get assigned to subjects and classes.</p>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ margin: '14px 16px', padding: '12px 14px', borderRadius: 12, background: '#fef2f2', color: '#ef4444', fontSize: 13 }}>
+          {error}
+        </div>
+      )}
+
+    </div>
   )
 }
