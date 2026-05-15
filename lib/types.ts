@@ -86,9 +86,15 @@ export interface TeacherDocument {
 }
 
 export interface ClassItem {
-  id:         string
-  name:       string
-  stream:     string
-  subject:    string
-  created_at: string
+  id:               string
+  name:             string
+  stream:           string
+  subject:          string
+  created_at:       string
+  unreadAlerts:     number
+  lessonTime:       string
+  studentCount:     number
+  attendancePct:    number
+  attendanceMarked: boolean
+  nextAssessment:   string | null
 }
