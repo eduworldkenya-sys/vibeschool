@@ -98,9 +98,19 @@ function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnec
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 function TopBar({ unreadConnect }: { unreadConnect: number }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isHome = pathname === "/teacher" || pathname === "/teacher/";
   return (
     <div style={{ background: C.dark, color: "#fff", padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 600, boxShadow: "0 2px 12px rgba(0,0,0,0.18)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {!isHome && (
+          <div
+            onClick={() => router.back()}
+            style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}
+          >
+            ‹
+          </div>
+        )}
         <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
@@ -156,11 +166,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
       `}</style>
 
-      <div style={{ minHeight: "100vh", background: "#f0f2f5", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div style={{ minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch", background: "#f0f2f5", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
         <TopBar unreadConnect={unreadConnect} />
 
-        <main style={{ maxWidth: 640, margin: "0 auto", padding: "20px 16px 0", paddingBottom: 160 }}>
+        <main style={{ maxWidth: 640, margin: "0 auto", padding: "20px 16px 0", paddingBottom: 160, minHeight: "calc(100vh - 120px)" }}>
           {children}
         </main>
 
