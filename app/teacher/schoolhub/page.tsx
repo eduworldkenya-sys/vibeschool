@@ -1,62 +1,303 @@
-"use client";
-import { ANNOUNCEMENTS, TEACHER } from "@/lib/data";
-import { Card, SectionLabel, Btn } from "@/components/teacher/ui";
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface SchoolInfo {
+  name: string
+  timezone: string
+  country_code: string
+  status: string
+  subdomain: string
+}
+
+interface StaffMember {
+  profileId: string
+  fullName: string
+  role: string
+  joinedAt: string
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function initials(name: string): string {
+  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+}
+
+const PALETTES = [
+  { bg: '#ede9fe', color: '#6d28d9' },
+  { bg: '#dbeafe', color: '#1d4ed8' },
+  { bg: '#fef3c7', color: '#92400e' },
+  { bg: '#d1fae5', color: '#065f46' },
+  { bg: '#fce7f3', color: '#9d174d' },
+]
+
+function Avatar({ name, idx }: { name: string; idx: number }) {
+  const p = PALETTES[idx % PALETTES.length]
+  return (
+    <div style={{
+      width: 38, height: 38, borderRadius: '50%',
+      background: p.bg, color: p.color,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 12, fontWeight: 700, flexShrink: 0,
+    }}>
+      {initials(name)}
+    </div>
+  )
+}
+
+function Skeleton({ h = 56 }: { h?: number }) {
+  return (
+    <div style={{
+      height: h, borderRadius: 12,
+      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s infinite',
+    }} />
+  )
+}
+
+// ─── Static content ───────────────────────────────────────────────────────────
 
 const POLICIES = [
-  { title: "Child Safeguarding Policy",   updated: "Jan 2025" },
-  { title: "Assessment & Grading Policy", updated: "Aug 2024" },
-  { title: "Attendance Policy",           updated: "Jan 2025" },
-  { title: "Code of Conduct",             updated: "Jan 2025" },
-];
+  { title: 'Child Safeguarding Policy',   updated: 'Jan 2025' },
+  { title: 'Assessment & Grading Policy', updated: 'Aug 2024' },
+  { title: 'Attendance Policy',           updated: 'Jan 2025' },
+  { title: 'Code of Conduct',             updated: 'Jan 2025' },
+]
+
+const CALENDAR = [
+  { event: 'Term 2 Ends',           date: 'Friday, 6 June 2025' },
+  { event: 'Report Cards Released', date: 'Tuesday, 10 June 2025' },
+  { event: 'Term 3 Begins',         date: 'Monday, 7 July 2025' },
+  { event: 'National Examinations', date: 'October 2025' },
+]
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SchoolHubPage() {
+  const [school, setSchool]   = useState<SchoolInfo | null>(null)
+  const [staff, setStaff]     = useState<StaffMember[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState<string | null>(null)
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      setError(null)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setError('Not signed in.'); setLoading(false); return }
+
+      const { data: memberData, error: memberErr } = await supabase
+        .from('school_members')
+        .select('school_id')
+        .eq('profile_id', user.id)
+        .maybeSingle()
+
+      if (memberErr) { setError(memberErr.message); setLoading(false); return }
+
+      const schoolId = memberData?.school_id ?? null
+      if (!schoolId) { setLoading(false); return }
+
+      // Parallel — school info + all school members
+      const [schoolRes, membersRes] = await Promise.all([
+        supabase
+          .from('schools')
+          .select('name, timezone, country_code, status, subdomain')
+          .eq('id', schoolId)
+          .maybeSingle(),
+        supabase
+          .from('school_members')
+          .select('profile_id, role, joined_at')
+          .eq('school_id', schoolId),
+      ])
+
+      if (schoolRes.error)  { setError(schoolRes.error.message);  setLoading(false); return }
+      if (membersRes.error) { setError(membersRes.error.message); setLoading(false); return }
+
+      setSchool(schoolRes.data ?? null)
+
+      const memberRows = membersRes.data ?? []
+      const profileIds = Array.from(new Set(memberRows.map((r: { profile_id: string }) => r.profile_id)))
+
+      if (profileIds.length === 0) { setLoading(false); return }
+
+      const { data: profileData, error: profileErr } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('id', profileIds)
+
+      if (profileErr) { setError(profileErr.message); setLoading(false); return }
+
+      const nameMap = new Map<string, { fullName: string; role: string }>(
+        (profileData ?? []).map((p: { id: string; full_name: string; role: string }) => [
+          p.id,
+          { fullName: p.full_name ?? 'Unknown', role: p.role ?? 'staff' },
+        ])
+      )
+
+      const staffList: StaffMember[] = memberRows.map((m: { profile_id: string; role: string; joined_at: string }) => ({
+        profileId: m.profile_id,
+        fullName:  nameMap.get(m.profile_id)?.fullName ?? 'Unknown',
+        role:      m.role,
+        joinedAt:  m.joined_at,
+      }))
+
+      setStaff(staffList)
+      setLoading(false)
+    }
+
+    load()
+  }, [])
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div>
-      <div style={{ background: "linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)", borderRadius: 20, padding: "20px", marginBottom: 14, color: "#fff" }}>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>SchoolHub</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{TEACHER.school}</div>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 6 }}>School-wide admin, governance, and notices.</div>
-      </div>
+    <>
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position:  200% 0 }
+          100% { background-position: -200% 0 }
+        }
+      `}</style>
 
-      <Card>
-        <SectionLabel>Pinned Notices</SectionLabel>
-        {ANNOUNCEMENTS.map(a => (
-          <div key={a.id} style={{ padding: "12px 0", borderBottom: "1px solid #e5e7eb" }}>
-            {a.pinned && <div style={{ fontSize: 9, fontWeight: 800, color: "#10b981", textTransform: "uppercase", marginBottom: 4 }}>📌 Pinned</div>}
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{a.title}</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>{a.body}</div>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{a.date}</div>
+      <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)',
+          borderRadius: 20, padding: '20px', color: '#fff',
+        }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+            SchoolHub
           </div>
-        ))}
-      </Card>
-
-      <Card>
-        <SectionLabel>School Policies</SectionLabel>
-        {POLICIES.map(p => (
-          <div key={p.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid #e5e7eb" }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{p.title}</div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>Updated {p.updated}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
+            {loading ? 'Loading…' : school?.name ?? 'Your School'}
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
+            School-wide admin, governance, and notices.
+          </div>
+          {school && (
+            <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+              {school.timezone && (
+                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                  {school.timezone}
+                </div>
+              )}
+              {school.country_code && (
+                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                  {school.country_code}
+                </div>
+              )}
+              <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                {staff.length} {staff.length === 1 ? 'member' : 'members'}
+              </div>
             </div>
-            <Btn small variant="muted">PDF</Btn>
-          </div>
-        ))}
-      </Card>
+          )}
+        </div>
 
-      <Card>
-        <SectionLabel>School Calendar</SectionLabel>
-        {[
-          { event: "Term 2 Ends",           date: "Friday, 6 June 2025" },
-          { event: "Report Cards Released",  date: "Tuesday, 10 June 2025" },
-          { event: "Term 3 Begins",          date: "Monday, 7 July 2025" },
-          { event: "National Examinations",  date: "October 2025" },
-        ].map(e => (
-          <div key={e.event} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #e5e7eb" }}>
-            <span style={{ fontSize: 13, color: "#111827", fontWeight: 600 }}>{e.event}</span>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>{e.date}</span>
+        {/* Error */}
+        {error && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', color: C.error, fontSize: 13 }}>
+            {error}
           </div>
-        ))}
-      </Card>
-    </div>
-  );
+        )}
+
+        {/* Loading skeletons */}
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Skeleton h={80} />
+            <Skeleton h={160} />
+            <Skeleton h={140} />
+          </div>
+        )}
+
+        {/* Notices — announcements table does not exist, show placeholder */}
+        {!loading && (
+          <Card>
+            <SectionLabel>Pinned Notices</SectionLabel>
+            <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
+              School notices coming soon.
+            </div>
+          </Card>
+        )}
+
+        {/* Staff directory */}
+        {!loading && (
+          <Card>
+            <SectionLabel>Staff Directory</SectionLabel>
+            {staff.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
+                No staff members found.
+              </div>
+            ) : (
+              staff.map((s, idx) => (
+                <div
+                  key={s.profileId}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 0',
+                    borderBottom: idx < staff.length - 1 ? `1px solid ${C.border}` : 'none',
+                  }}
+                >
+                  <Avatar name={s.fullName} idx={idx} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{s.fullName}</div>
+                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'capitalize' }}>{s.role}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </Card>
+        )}
+
+        {/* School policies — static */}
+        {!loading && (
+          <Card>
+            <SectionLabel>School Policies</SectionLabel>
+            {POLICIES.map((p, idx) => (
+              <div
+                key={p.title}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '11px 0',
+                  borderBottom: idx < POLICIES.length - 1 ? `1px solid ${C.border}` : 'none',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{p.title}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted }}>Updated {p.updated}</div>
+                </div>
+                <Btn small variant="muted">PDF</Btn>
+              </div>
+            ))}
+          </Card>
+        )}
+
+        {/* Calendar — static */}
+        {!loading && (
+          <Card>
+            <SectionLabel>School Calendar</SectionLabel>
+            {CALENDAR.map((e, idx) => (
+              <div
+                key={e.event}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '10px 0',
+                  borderBottom: idx < CALENDAR.length - 1 ? `1px solid ${C.border}` : 'none',
+                }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>{e.event}</span>
+                <span style={{ fontSize: 12, color: C.textMuted }}>{e.date}</span>
+              </div>
+            ))}
+          </Card>
+        )}
+
+      </div>
+    </>
+  )
 }
