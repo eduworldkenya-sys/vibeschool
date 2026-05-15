@@ -1,66 +1,278 @@
-"use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { LESSON_PLANS, TODAY_SLOTS } from "@/lib/data";
-import { ReadinessChip, Btn, Card, SectionLabel } from "@/components/teacher/ui";
-import LessonPlanModal from "@/components/teacher/LessonPlanModal";
+'use client'
 
-export default function LessonPlanPage() {
-  const router = useRouter();
-  const [lessonModal, setLessonModal] = useState<import("@/lib/types").TimetableSlot | null>(null);
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
+import LessonPlanModal from '@/components/teacher/LessonPlanModal'
+import type { TimetableSlot, PlanStatus } from '@/lib/types'
 
+// ── Types ──────────────────────────────────────────────────────────────────
+interface PlanRow {
+  id:         string
+  classId:    string
+  subjectId:  string
+  title:      string
+  body:       string
+  dayOfWeek:  number
+  weekStart:  string
+}
+
+interface SlotWithPlan {
+  slot:    TimetableSlot
+  plan:    PlanRow | null
+  status:  PlanStatus
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function formatTime(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
+function getWeekStart() {
+  const d    = new Date()
+  const day  = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  const mon  = new Date(d.setDate(diff))
+  return mon.toISOString().split('T')[0]
+}
+
+function Skeleton({ h = 72 }: { h?: number }) {
   return (
-    <div>
-      <div style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", borderRadius: 20, padding: "20px", marginBottom: 14, color: "#fff" }}>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Lesson Plan Generator</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>Built by the Pedagogical Chain</div>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 6 }}>Auto-generated 12 hours before each lesson. Always differentiated.</div>
+    <div style={{
+      height: h, borderRadius: 12,
+      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s infinite',
+    }} />
+  )
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
+export default function LessonPlanPage() {
+  const dow       = new Date().getDay()
+  const weekStart = getWeekStart()
+
+  const [items,       setItems]       = useState<SlotWithPlan[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
+
+  // ── Load ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const [slotsRes, plansRes] = await Promise.all([
+        supabase
+          .from('timetable_slots')
+          .select(`
+            id, start_time, end_time, room, class_id, subject_id, day_of_week,
+            subjects ( name ),
+            classes  ( name, stream )
+          `)
+          .eq('teacher_id', user.id)
+          .eq('day_of_week', dow)
+          .order('start_time', { ascending: true }),
+
+        supabase
+          .from('lesson_plans')
+          .select('id, class_id, subject_id, title, body, day_of_week, week_start')
+          .eq('teacher_id', user.id)
+          .eq('week_start', weekStart),
+      ])
+
+      // Index plans by class_id+day_of_week for O(1) lookup
+      const planMap = new Map<string, PlanRow>()
+      ;(plansRes.data ?? []).forEach(p => {
+        const key = `${p.class_id}:${p.day_of_week}`
+        planMap.set(key, {
+          id:        p.id,
+          classId:   p.class_id,
+          subjectId: p.subject_id,
+          title:     p.title ?? '',
+          body:      p.body  ?? '',
+          dayOfWeek: p.day_of_week,
+          weekStart: p.week_start,
+        })
+      })
+
+      const mapped: SlotWithPlan[] = (slotsRes.data ?? []).map(s => {
+        const sub = (s.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
+        const cls = s.classes as unknown as { name: string; stream: string | null } | null
+        const className = cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : ''
+
+        const slot: TimetableSlot = {
+          id:               s.id,
+          subject:          sub,
+          class:            className,
+          room:             s.room ?? '',
+          start:            s.start_time,
+          end:              s.end_time,
+          period:           0,
+          status:           'scheduled',
+          planStatus:       'green',
+          attendanceMarked: false,
+        }
+
+        const plan   = planMap.get(`${s.class_id}:${s.day_of_week}`) ?? null
+        const status: PlanStatus = plan ? 'green' : 'red'
+
+        return { slot, plan, status }
+      })
+
+      setItems(mapped)
+      setLoading(false)
+    }
+
+    load()
+  }, [])
+
+  const readyCount   = items.filter(i => i.status === 'green').length
+  const missingCount = items.filter(i => i.status === 'red').length
+
+  // ── Render ────────────────────────────────────────────────────────────
+  return (
+    <>
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position:  200% 0 }
+          100% { background-position: -200% 0 }
+        }
+      `}</style>
+
+      {/* Hero */}
+      <div style={{
+        background:   'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+        borderRadius: 20,
+        padding:      '20px',
+        marginBottom: 14,
+        color:        '#fff',
+      }}>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+          Lesson Plans
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
+          "Today's Plans"
+        </div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
+          Week of {weekStart} · Linked to your timetable.
+        </div>
+
+        {/* Summary strip */}
+        {!loading && items.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+            {[
+              { label: 'Ready',   value: readyCount,   bg: 'rgba(16,185,129,0.25)'  },
+              { label: 'Missing', value: missingCount, bg: 'rgba(239,68,68,0.25)'   },
+              { label: 'Total',   value: items.length, bg: 'rgba(255,255,255,0.12)' },
+            ].map(s => (
+              <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{s.value}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Today's slots */}
       <Card>
         <SectionLabel>Today & Upcoming</SectionLabel>
-        {LESSON_PLANS.map(p => (
-          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{p.title}</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>{p.class} · {p.date}</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{p.topic}</div>
-            </div>
-            <ReadinessChip status={p.status} />
-            <Btn small variant="ghost" onClick={() => setLessonModal(TODAY_SLOTS.find(s => s.class === p.class) || TODAY_SLOTS[0])}>View</Btn>
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[1, 2, 3].map(i => <Skeleton key={i} />)}
           </div>
-        ))}
+        ) : items.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>
+            No classes scheduled today
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {items.map(({ slot, plan, status }) => (
+              <div
+                key={slot.id}
+                style={{
+                  display:       'flex',
+                  alignItems:    'center',
+                  gap:           12,
+                  padding:       '13px 0',
+                  borderBottom:  `1px solid ${C.border}`,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>
+                    {plan?.title || `${slot.subject} — No plan yet`}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+                    {slot.class} · {formatTime(slot.start)}–{formatTime(slot.end)}
+                    {slot.room ? ` · ${slot.room}` : ''}
+                  </div>
+                  {plan?.body ? (
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {plan.body}
+                    </div>
+                  ) : null}
+                </div>
+                <ReadinessChip status={status} />
+                <Btn
+                  small
+                  variant="ghost"
+                  onClick={() => setActiveSlot(slot)}
+                >
+                  View
+                </Btn>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
-      <Card>
-        <SectionLabel>Generate New Plan</SectionLabel>
-        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 14 }}>
-          The Pedagogical Chain auto-generates plans 12 hours before each lesson. Trigger manually if needed.
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn>Generate for Next Lesson</Btn>
-          <Btn variant="ghost">Browse All Plans</Btn>
-        </div>
-      </Card>
-
+      {/* Differentiation summary */}
       <Card>
         <SectionLabel>Differentiation Summary</SectionLabel>
         {[
-          { level: "Higher", color: "#7c3aed", bg: "#ede9fe", count: 2, desc: "Multi-step and extension tasks" },
-          { level: "On Track", color: "#10b981", bg: "#d1fae5", count: 4, desc: "Core curriculum delivery" },
-          { level: "Support", color: "#f59e0b", bg: "#fef3c7", count: 2, desc: "Scaffolded and visual methods" },
+          { level: 'Higher',   color: '#7c3aed', bg: '#ede9fe', desc: "Multi-step and extension tasks"     },
+          { level: 'On Track', color: C.accent,  bg: '#d1fae5', desc: "Core curriculum delivery"           },
+          { level: 'Support',  color: '#f59e0b', bg: '#fef3c7', desc: "Scaffolded and visual methods"      },
         ].map(d => (
-          <div key={d.level} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: d.bg, marginBottom: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: d.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 800 }}>{d.count}</div>
+          <div
+            key={d.level}
+            style={{
+              display:      'flex',
+              alignItems:   'center',
+              gap:          12,
+              padding:      '10px 12px',
+              borderRadius: 10,
+              background:   d.bg,
+              marginBottom: 8,
+            }}
+          >
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: d.color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0,
+            }}>
+              {items.filter(i => i.status === 'green').length}
+            </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, color: d.color }}>{d.level}</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>{d.desc}</div>
+              <div style={{ fontSize: 12, color: C.textMuted }}>{d.desc}</div>
             </div>
           </div>
         ))}
       </Card>
 
-      {lessonModal && <LessonPlanModal slot={lessonModal} onClose={() => setLessonModal(null)} />}
-    </div>
-  );
+      {/* Lesson plan modal */}
+      {activeSlot && (
+        <LessonPlanModal
+          slot={activeSlot}
+          onClose={() => setActiveSlot(null)}
+        />
+      )}
+    </>
+  )
 }
