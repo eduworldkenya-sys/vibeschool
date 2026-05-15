@@ -140,7 +140,7 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
         onPointerUp={onPointerUp}
         style={{
           position:       'fixed',
-          left:           pos.x,
+          left:           expanded && pos.x + 56 > window.innerWidth / 2 ? pos.x - (180 - 56) : pos.x,
           top:            pos.y,
           zIndex:         750,
           width:          expanded ? 180 : SIZE,
@@ -155,9 +155,10 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           transition:     'width 0.28s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.28s ease',
           display:        'flex',
           alignItems:     'center',
-          justifyContent: expanded ? 'flex-start' : 'center',
+          justifyContent: expanded ? (pos.x + 56 > window.innerWidth / 2 ? 'flex-end' : 'flex-start') : 'center',
           overflow:       'hidden',
-          paddingLeft:    expanded ? 8 : 0,
+          paddingLeft:    expanded && pos.x + 56 <= window.innerWidth / 2 ? 8 : 0,
+          paddingRight:   expanded && pos.x + 56 > window.innerWidth / 2 ? 8 : 0,
           gap:            expanded ? 8 : 0,
         }}
       >
@@ -333,7 +334,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f2f5; }
+          body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f2f5; overflow-y: auto; -webkit-overflow-scrolling: touch; }
           @keyframes twinPulse { 0%,80%,100%{ transform:scale(0.7); opacity:0.5 } 40%{ transform:scale(1); opacity:1 } }
           @keyframes slideIn   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
           @keyframes fadeIn    { from{ opacity:0 } to{ opacity:1 } }
@@ -342,7 +343,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
         `}</style>
 
-        <div style={{ minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch" as const, background: "#f0f2f5" }}>
+        <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
 
           <main style={{
