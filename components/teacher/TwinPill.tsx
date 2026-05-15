@@ -1,17 +1,36 @@
-function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+
+interface TwinPillProps {
+  onOpen: () => void
+  unread: number
+}
+
+export default function TwinPill({ onOpen, unread }: TwinPillProps) {
   const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const dragging     = useRef(false)
-  const startPointer = useRef({ x: 0, y: 0 })
-  const startPos     = useRef({ x: 0, y: 0 })
-  const pillRef      = useRef<HTMLDivElement>(null)
-  const moved        = useRef(false)
+  const dragging      = useRef(false)
+  const startPointer  = useRef({ x: 0, y: 0 })
+  const startPos      = useRef({ x: 0, y: 0 })
+  const pillRef       = useRef<HTMLDivElement>(null)
+  const moved         = useRef(false)
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const w = window.innerWidth
     const h = window.innerHeight
     setPos({ x: w / 2 - 28, y: h - 136 })
   }, [])
+
+  useEffect(() => {
+    if (expanded) {
+      collapseTimer.current = setTimeout(() => setExpanded(false), 3000)
+    }
+    return () => {
+      if (collapseTimer.current) clearTimeout(collapseTimer.current)
+    }
+  }, [expanded])
 
   function onPointerDown(e: React.PointerEvent) {
     dragging.current     = true
@@ -39,9 +58,13 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
 
   function onPointerUp() {
     dragging.current = false
-    if (!moved.current) {
-      if (expanded) { onOpen(); setExpanded(false) }
-      else setExpanded(true)
+    if (moved.current) return
+    if (expanded) {
+      if (collapseTimer.current) clearTimeout(collapseTimer.current)
+      setExpanded(false)
+      onOpen()
+    } else {
+      setExpanded(true)
     }
   }
 
@@ -70,19 +93,20 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
         }
       `}</style>
 
-      {/* Pulsing ring behind the circle */}
-      <div style={{
-        position:      'fixed',
-        left:          pos.x - 8,
-        top:           pos.y - 8,
-        width:         SIZE + 16,
-        height:        SIZE + 16,
-        borderRadius:  '50%',
-        border:        '2px solid rgba(16,185,129,0.45)',
-        animation:     'twinRingPulse 2s ease-in-out infinite',
-        zIndex:        748,
-        pointerEvents: 'none',
-      }} />
+      {!expanded && (
+        <div style={{
+          position:      'fixed',
+          left:          pos.x - 8,
+          top:           pos.y - 8,
+          width:         SIZE + 16,
+          height:        SIZE + 16,
+          borderRadius:  '50%',
+          border:        '2px solid rgba(16,185,129,0.45)',
+          animation:     'twinRingPulse 2s ease-in-out infinite',
+          zIndex:        748,
+          pointerEvents: 'none',
+        }} />
+      )}
 
       <div
         ref={pillRef}
@@ -90,29 +114,28 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         style={{
-          position:      'fixed',
-          left:          pos.x,
-          top:           pos.y,
-          zIndex:        750,
-          width:         expanded ? 180 : SIZE,
-          height:        SIZE,
-          borderRadius:  expanded ? 32 : '50%',
-          background:    'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #064e3b 100%)',
-          border:        '1.5px solid rgba(16,185,129,0.5)',
-          animation:     'twinGlow 2.4s ease-in-out infinite',
-          cursor:        'grab',
-          userSelect:    'none',
-          touchAction:   'none',
-          transition:    'width 0.28s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.28s ease',
-          display:       'flex',
-          alignItems:    'center',
+          position:       'fixed',
+          left:           pos.x,
+          top:            pos.y,
+          zIndex:         750,
+          width:          expanded ? 180 : SIZE,
+          height:         SIZE,
+          borderRadius:   expanded ? 32 : '50%',
+          background:     'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #064e3b 100%)',
+          border:         '1.5px solid rgba(16,185,129,0.5)',
+          animation:      'twinGlow 2.4s ease-in-out infinite',
+          cursor:         'grab',
+          userSelect:     'none',
+          touchAction:    'none',
+          transition:     'width 0.28s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.28s ease',
+          display:        'flex',
+          alignItems:     'center',
           justifyContent: expanded ? 'flex-start' : 'center',
-          overflow:      'hidden',
-          paddingLeft:   expanded ? 8 : 0,
-          gap:           expanded ? 8 : 0,
+          overflow:       'hidden',
+          paddingLeft:    expanded ? 8 : 0,
+          gap:            expanded ? 8 : 0,
         }}
       >
-        {/* Core icon circle */}
         <div style={{
           flexShrink:     0,
           width:          40,
@@ -130,32 +153,26 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           ✦
         </div>
 
-        {/* Expanded label */}
         {expanded && (
-          <div style={{
-            animation:    'twinExpand 0.22s ease',
-            pointerEvents: 'none',
-            minWidth:      0,
-          }}>
+          <div style={{ animation: 'twinExpand 0.22s ease', pointerEvents: 'none', minWidth: 0 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap' }}>
               Your Twin
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 3 }}>
               {[0, 0.2, 0.4].map(delay => (
                 <span key={delay} style={{
-                  display:    'inline-block',
-                  width:      5,
-                  height:     5,
+                  display:      'inline-block',
+                  width:        5,
+                  height:       5,
                   borderRadius: '50%',
-                  background: '#10b981',
-                  animation:  `twinDotPulse 1.4s ease-in-out ${delay}s infinite`,
+                  background:   '#10b981',
+                  animation:    `twinDotPulse 1.4s ease-in-out ${delay}s infinite`,
                 }} />
               ))}
             </div>
           </div>
         )}
 
-        {/* Unread badge */}
         {unread > 0 && (
           <div style={{
             position:       'absolute',
