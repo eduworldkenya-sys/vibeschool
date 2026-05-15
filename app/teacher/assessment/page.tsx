@@ -279,4 +279,159 @@ export default function AssessmentPage() {
 
         {/* Class tabs */}
         {!loading && classes.length > 0 && (
-          <div style={{ display: '
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {classes.map((cl, i) => (
+              <button
+                key={cl.id}
+                onClick={() => setActiveClassIdx(i)}
+                style={{
+                  padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 600,
+                  background: i === activeClassIdx ? '#f59e0b' : C.surface,
+                  color:      i === activeClassIdx ? '#fff'    : C.textMuted,
+                }}
+              >
+                {cl.name} {cl.stream}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Subject tabs */}
+        {!loading && subjects.length > 1 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {subjects.map((s, i) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSubjectIdx(i)}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, border: `1px solid ${C.border}`, cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600,
+                  background: i === activeSubjectIdx ? C.dark : C.bg,
+                  color:      i === activeSubjectIdx ? '#fff' : C.textMuted,
+                }}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Data loading skeletons */}
+        {dataLoading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} h={48} />)}
+          </div>
+        )}
+
+        {/* Traditional grades */}
+        {!loading && !dataLoading && activeClass && (
+          <Card>
+            <SectionLabel>
+              {activeClass.name} {activeClass.stream} · {activeSubject?.name ?? ''} — Grades
+            </SectionLabel>
+
+            {grades.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
+                No grades recorded yet for this class and subject.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {grades.map((g, idx) => {
+                  const p = pct(g.marks, g.out_of)
+                  return (
+                    <div
+                      key={g.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 0',
+                        borderBottom: idx < grades.length - 1 ? `1px solid ${C.border}` : 'none',
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>
+                          {g.studentName}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.textMuted }}>
+                          {g.assessment} · Term {g.term} · {g.academic_year}
+                        </div>
+                      </div>
+                      <div style={{ width: 100, height: 6, background: C.border, borderRadius: 10, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: 10, background: scoreColor(p), width: `${p}%` }} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, width: 40, textAlign: 'right' }}>
+                        {g.marks}/{g.out_of}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div style={{ marginTop: 14 }}>
+              <Btn onClick={() => setShowAddGrade(true)}>+ New Assessment</Btn>
+            </div>
+          </Card>
+        )}
+
+        {/* CBC assessments */}
+        {!loading && !dataLoading && activeClass && (
+          <Card>
+            <SectionLabel>CBC — Strand Performance</SectionLabel>
+
+            {cbcRows.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
+                No CBC assessments recorded yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {cbcRows.map((c, idx) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 0',
+                      borderBottom: idx < cbcRows.length - 1 ? `1px solid ${C.border}` : 'none',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>
+                        {c.studentName}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.textMuted }}>
+                        {c.sub_strand} · {c.assessment_type} · Term {c.term}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700,
+                      padding: '3px 10px', borderRadius: 20,
+                      background: C.accentLight, color: C.accent,
+                    }}>
+                      {c.performance}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
+
+      </div>
+
+      {showAddGrade && teacherId && schoolId && activeClass && activeSubject && (
+        <AddGradeModal
+          teacherId={teacherId}
+          schoolId={schoolId}
+          classId={activeClass.id}
+          subjectId={activeSubject.id}
+          onClose={() => setShowAddGrade(false)}
+          onSaved={() => {
+            setShowAddGrade(false)
+            // Re-trigger data load by bumping the active index
+            setActiveClassIdx(i => i)
+          }}
+        />
+      )}
+    </>
+  )
+}
