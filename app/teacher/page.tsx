@@ -65,14 +65,14 @@ function formatCountdown(mins: number) {
 }
 
 const QUICK_ACTIONS = [
-  { id: 'classhub',    label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', route: '/teacher/classhub'   },
-  { id: 'timetable',   label: 'Timetable',    icon: '🗓️', color: '#d1fae5', iconColor: '#065f46', route: '/teacher/timetable'  },
-  { id: 'lessonplan',  label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', route: '/teacher/lessonplan' },
-  { id: 'attendance',  label: 'Attendance',   icon: '✅', color: '#dcfce7', iconColor: '#166534', route: '/teacher/attendance' },
-  { id: 'subjecthub',  label: 'SubjectHub',   icon: '🔬', color: '#e0f2fe', iconColor: '#075985', route: '/teacher/subjecthub' },
-  { id: 'vibelearn',   label: 'VibeLearn',    icon: '🎓', color: '#fef9c3', iconColor: '#854d0e', route: '/teacher/vibelearn'  },
-  { id: 'assessment',  label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', route: '/teacher/assessment' },
-  { id: 'schoolhub',   label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', route: '/teacher/schoolhub'  },
+  { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', route: '/teacher/classhub'   },
+  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: '#d1fae5', iconColor: '#065f46', route: '/teacher/timetable'  },
+  { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', route: '/teacher/lessonplan' },
+  { id: 'attendance', label: 'Attendance',   icon: '✅', color: '#dcfce7', iconColor: '#166534', route: '/teacher/attendance' },
+  { id: 'subjecthub', label: 'SubjectHub',   icon: '🔬', color: '#e0f2fe', iconColor: '#075985', route: '/teacher/subjecthub' },
+  { id: 'vibelearn',  label: 'VibeLearn',    icon: '🎓', color: '#fef9c3', iconColor: '#854d0e', route: '/teacher/vibelearn'  },
+  { id: 'assessment', label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', route: '/teacher/assessment' },
+  { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', route: '/teacher/schoolhub'  },
 ]
 
 function Skeleton({ w = '100%', h = 16, radius = 8 }: { w?: string | number; h?: number; radius?: number }) {
@@ -130,12 +130,12 @@ export default function TeacherHomePage() {
           .maybeSingle(),
       ])
 
-      const fullName = profileRes.data?.full_name ?? ''
-      const parts    = fullName.trim().split(' ').filter(Boolean)
-      const initials = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join('')
-      const schoolId = profileRes.data?.school_id ?? null
+      const fullName       = profileRes.data?.full_name ?? ''
+      const parts          = fullName.trim().split(' ').filter(Boolean)
+      const initials       = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join('')
+      const schoolId       = profileRes.data?.school_id ?? null
       const classTeacherId = homeClassRes.data?.class_id ?? null
-      const slotIds = (slotsRes.data ?? []).map(s => s.id)
+      const slotIds        = (slotsRes.data ?? []).map(s => s.id)
 
       const [schoolRes, attBatchRes, studentCountRes, attTodayRes] = await Promise.all([
         schoolId
@@ -160,8 +160,8 @@ export default function TeacherHomePage() {
       )
 
       const mappedSlots: Slot[] = (slotsRes.data ?? []).map((slot) => {
-        const cls     = slot.classes as unknown as { grade_name: string; stream: string | null } | null
-        const subject = (slot.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
+        const cls       = slot.classes as unknown as { grade_name: string; stream: string | null } | null
+        const subject   = (slot.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
         const className = cls ? cls.grade_name + (cls.stream ? ` ${cls.stream}` : '') : ''
         return {
           id:               slot.id,
@@ -175,8 +175,8 @@ export default function TeacherHomePage() {
         }
       })
 
-      const total   = studentCountRes.count ?? 0
-      const present = (attTodayRes.data ?? []).filter((r: { status: string }) => r.status === 'present').length
+      const total         = studentCountRes.count ?? 0
+      const present       = (attTodayRes.data ?? []).filter((r: { status: string }) => r.status === 'present').length
       const attendancePct = total > 0 ? Math.round((present / total) * 100) : 0
 
       const cur           = currentTimeMin()
@@ -202,15 +202,15 @@ export default function TeacherHomePage() {
   if (loading) {
     return (
       <div style={{ animation: 'fadeIn 0.2s ease' }}>
-        <div style={{ background: `linear-gradient(135deg, ${dark} 0%, #312e81 100%)`, borderRadius: 20, padding: '14px 16px 14px', marginBottom: 14 }}>
-          <Skeleton w={120} h={11} />
-          <div style={{ marginTop: 8 }}><Skeleton w={180} h={18} /></div>
-          <div style={{ marginTop: 6 }}><Skeleton w={140} h={11} /></div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+        <div style={{ background: `linear-gradient(135deg, ${dark} 0%, #312e81 100%)`, borderRadius: 20, padding: '10px 14px', marginBottom: 12 }}>
+          <Skeleton w={120} h={10} />
+          <div style={{ marginTop: 6 }}><Skeleton w={160} h={15} /></div>
+          <div style={{ marginTop: 4 }}><Skeleton w={120} h={10} /></div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {[1,2,3].map(i => (
-              <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '8px 10px', textAlign: 'center' }}>
-                <Skeleton w="60%" h={16} />
-                <div style={{ marginTop: 5 }}><Skeleton w="80%" h={9} /></div>
+              <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '5px 8px', textAlign: 'center' }}>
+                <Skeleton w="60%" h={14} />
+                <div style={{ marginTop: 4 }}><Skeleton w="80%" h={8} /></div>
               </div>
             ))}
           </div>
@@ -238,29 +238,29 @@ export default function TeacherHomePage() {
   return (
     <div style={{ animation: 'slideIn 0.22s ease' }}>
 
-      {/* ── Hero — compact ─────────────────────────────────────────────── */}
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
       <div style={{
         background: `linear-gradient(135deg, ${dark} 0%, #312e81 100%)`,
         borderRadius: 20,
-        padding: '14px 16px 14px',
-        marginBottom: 14,
+        padding: '10px 14px',
+        marginBottom: 12,
         color: '#fff',
       }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 2 }}>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 1 }}>
           {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}
         </div>
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 1 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 1 }}>
           {greeting()}, {firstName} 👋
         </div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{data.school}</div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{data.school}</div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           {[
             { label: 'Lessons Today', value: data.lessonsToday },
             { label: 'Flags',         value: data.unreadFlags  },
             { label: 'Attendance',    value: `${data.attendancePct}%` },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '7px 10px', textAlign: 'center' }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{s.value}</div>
+            <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '5px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{s.value}</div>
               <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{s.label}</div>
             </div>
           ))}
@@ -313,7 +313,7 @@ export default function TeacherHomePage() {
       {/* ── Today's Timetable ─────────────────────────────────────────── */}
       <div style={{ background: cardBg, borderRadius: 16, border: `1px solid ${cardBorder}`, padding: '14px 14px', marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: textMuted, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 10 }}>
-          Today's Timetable
+          "Today's Timetable"
         </div>
         {data.slots.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: textMuted }}>No classes scheduled today</div>
