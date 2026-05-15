@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, upsertTeacherProfile } from '@/lib/supabase'
 import styles from './signin.module.css'
 
 const VALID_ROLES = ['teacher', 'parent', 'admin'] as const
@@ -35,10 +35,8 @@ function AcademySignInInner() {
 
   function fadeOut(destination: string) {
     if (!contentRef.current) return
-
     contentRef.current.style.transition = 'opacity 280ms ease-in'
     contentRef.current.style.opacity = '0'
-
     navTimer.current = setTimeout(() => {
       router.push(destination)
     }, 280)
@@ -54,7 +52,7 @@ function AcademySignInInner() {
 
     setLoading(true)
 
-    const { error: authError } =
+    const { data: authData, error: authError } =
       await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -65,6 +63,10 @@ function AcademySignInInner() {
     if (authError) {
       setError(authError.message)
       return
+    }
+
+    if (role === 'teacher' && authData.user) {
+      await upsertTeacherProfile(authData.user.id, authData.user.email ?? '')
     }
 
     fadeOut(
@@ -116,14 +118,12 @@ function AcademySignInInner() {
               stitchTiles="stitch"
               result="noise"
             />
-
             <feColorMatrix
               type="saturate"
               values="0"
               in="noise"
               result="grayNoise"
             />
-
             <feBlend
               in="SourceGraphic"
               in2="grayNoise"
@@ -157,13 +157,9 @@ function AcademySignInInner() {
 
           <div className={styles.form}>
             <div className={styles.field}>
-              <label
-                className={styles.label}
-                htmlFor="email"
-              >
+              <label className={styles.label} htmlFor="email">
                 EMAIL
               </label>
-
               <input
                 id="email"
                 className={styles.input}
@@ -177,13 +173,9 @@ function AcademySignInInner() {
             </div>
 
             <div className={styles.field}>
-              <label
-                className={styles.label}
-                htmlFor="password"
-              >
+              <label className={styles.label} htmlFor="password">
                 PASSWORD
               </label>
-
               <div style={{ position: 'relative' }}>
                 <input
                   id="password"
@@ -196,17 +188,12 @@ function AcademySignInInner() {
                   onKeyDown={handleKeyDown}
                   disabled={loading}
                 />
-
                 <button
                   type="button"
                   style={eyeBtn}
                   tabIndex={-1}
                   onClick={() => setShowPassword(v => !v)}
-                  aria-label={
-                    showPassword
-                      ? 'Hide password'
-                      : 'Show password'
-                  }
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? '🙈' : '👁'}
                 </button>
@@ -234,9 +221,7 @@ function AcademySignInInner() {
               className={styles.switchLink}
               role="button"
               tabIndex={0}
-              onClick={() =>
-                fadeOut(`/academy/signup?role=${role}`)
-              }
+              onClick={() => fadeOut(`/academy/signup?role=${role}`)}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
                   fadeOut(`/academy/signup?role=${role}`)
