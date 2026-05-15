@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
+import AddSlotModal from '@/components/teacher/AddSlotModal'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Slot {
@@ -244,42 +245,58 @@ export default function TimetablePage() {
   const [allSlots,   setAllSlots]   = useState<Slot[]>([])
   const [loading,    setLoading]    = useState(true)
   const [selected,   setSelected]   = useState<Slot | null>(null)
+  const [showAddSlot, setShowAddSlot] = useState(false)
+  const [teacherSchoolId, setTeacherSchoolId] = useState<string | null>(null)
+  const [teacherId, setTeacherId] = useState<string | null>(null)
 
   // ── Load all week slots once ─────────────────────────────────────────
+  async function load() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    setTeacherId(user.id)
+
+    const { data } = await supabase
+      .from('timetable_slots')
+      .select(`
+        id, day_of_week, start_time, end_time, room,
+        subjects ( name ),
+        classes  ( name, stream )
+      `)
+      .eq('teacher_id', user.id)
+      .order('day_of_week', { ascending: true })
+      .order('start_time',  { ascending: true })
+
+    const mapped: Slot[] = (data ?? []).map((s) => {
+      const sub = (s.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
+      const cls = s.classes as unknown as { name: string; stream: string | null } | null
+      const className = cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : ''
+      return {
+        id:        s.id,
+        subject:   sub,
+        className,
+        room:      s.room ?? '',
+        start:     s.start_time,
+        end:       s.end_time,
+        dayOfWeek: s.day_of_week,
+      }
+    })
+
+    setAllSlots(mapped)
+
+    // Get school_id for the modal
+    const { data: memberData } = await supabase
+      .from('school_members')
+      .select('school_id')
+      .eq('profile_id', user.id)
+      .maybeSingle()
+
+    setTeacherSchoolId(memberData?.school_id ?? null)
+
+    setLoading(false)
+  }
+
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await supabase
-        .from('timetable_slots')
-        .select(`
-          id, day_of_week, start_time, end_time, room,
-          subjects ( name ),
-          classes  ( name, stream )
-        `)
-        .eq('teacher_id', user.id)
-        .order('day_of_week', { ascending: true })
-        .order('start_time',  { ascending: true })
-
-      const mapped: Slot[] = (data ?? []).map((s) => {
-        const sub = (s.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
-        const cls = s.classes as unknown as { name: string; stream: string | null } | null
-        const className = cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : ''
-        return {
-          id:        s.id,
-          subject:   sub,
-          className,
-          room:      s.room ?? '',
-          start:     s.start_time,
-          end:       s.end_time,
-          dayOfWeek: s.day_of_week,
-        }
-      })
-
-      setAllSlots(mapped)
-      setLoading(false)
-    }
     load()
   }, [])
 
@@ -317,6 +334,19 @@ export default function TimetablePage() {
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
           {loading ? 'Loading…' : `${totalLessons} lessons · ${uniqueClasses} classes this week`}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <button
+            onClick={() => setShowAddSlot(true)}
+            style={{
+              padding: '8px 18px', borderRadius: 20, border: 'none',
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+              background: 'rgba(255,255,255,0.2)', color: '#fff',
+            }}
+          >
+            + Add Slot
+          </button>
         </div>
 
         {/* Today next-up strip */}
@@ -431,6 +461,15 @@ export default function TimetablePage() {
 
       {/* Slot detail drawer */}
       <SlotDrawer slot={selected} onClose={() => setSelected(null)} />
+
+      {showAddSlot && teacherId && teacherSchoolId && (
+        <AddSlotModal
+          teacherId={teacherId}
+          schoolId={teacherSchoolId}
+          onClose={() => setShowAddSlot(false)}
+          onSaved={() => { setShowAddSlot(false); load() }}
+        />
+      )}
     </>
   )
 }
