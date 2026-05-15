@@ -1,22 +1,26 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+
 type TabKey = 'home' | 'lessonplan' | 'vibeconnect' | 'more' | 'profile'
 
 interface Props {
-  active:   TabKey
-  onChange: (tab: TabKey) => void
+  active:         TabKey
+  onChange?:      (tab: TabKey) => void
   unreadConnect?: number
 }
 
 const TABS = [
-  { id: 'home',        icon: '🏠', label: 'Home'        },
-  { id: 'lessonplan',  icon: '📖', label: 'Plans'        },
-  { id: 'vibeconnect', icon: '💬', label: 'VibeConnect'  },
-  { id: 'more',        icon: '⋯',  label: 'More'         },
-  { id: 'profile',     icon: '👤', label: 'Profile'      },
+  { id: 'home',        icon: '🏠', label: 'Home',        href: '/teacher'             },
+  { id: 'lessonplan',  icon: '📖', label: 'Plans',        href: '/teacher/lessonplan'  },
+  { id: 'vibeconnect', icon: '💬', label: 'VibeConnect',  href: '/teacher/vibeconnect' },
+  { id: 'more',        icon: '⋯',  label: 'More',         href: '/teacher/more'        },
+  { id: 'profile',     icon: '👤', label: 'Profile',      href: '/teacher/profile'     },
 ] as const
 
-export default function BottomNav({ active, onChange, unreadConnect = 0 }: Props) {
+export default function BottomNav({ active, unreadConnect = 0 }: Props) {
+  const router = useRouter()
+
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 700,
@@ -27,7 +31,7 @@ export default function BottomNav({ active, onChange, unreadConnect = 0 }: Props
       {TABS.map(t => (
         <button
           key={t.id}
-          onClick={() => onChange(t.id as TabKey)}
+          onClick={() => router.push(t.href)}
           style={{
             flex: 1, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
