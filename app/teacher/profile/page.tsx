@@ -1,271 +1,370 @@
-"use client";
-import { useState, useEffect } from "react";
-import { supabase, getTeacherProfile, updateTeacherProfile } from "@/lib/supabase";
+'use client'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
 
 const SECTIONS = [
-  "Personal Information",
-  "Professional Information",
-  "Qualifications",
-  "Professional Development",
-  "Teaching Style & Twin",
-  "Attendance & Leave",
-  "Performance & Appraisal",
-  "Documents",
-];
+  'Personal Information',
+  'Professional Info',
+  'Qualifications',
+  'Professional Development',
+  'Teaching Style & Twin',
+  'Attendance & Leave',
+  'Performance & Appraisal',
+  'Messages',
+  'Documents',
+  'Finance Reference',
+]
+
+const C = {
+  accent:      '#10b981',
+  accentLight: '#d1fae5',
+  textPrimary: '#111827',
+  textMuted:   '#6b7280',
+  surface:     '#f8f9fa',
+  border:      '#e5e7eb',
+  bg:          '#ffffff',
+  error:       '#ef4444',
+}
+
+// ─── SKELETON ────────────────────────────────────────────────────────────────
+
+function Skeleton({ h = 44 }: { h?: number }) {
+  return (
+    <>
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position:  200% 0 }
+          100% { background-position: -200% 0 }
+        }
+      `}</style>
+      <div style={{
+        height: h, borderRadius: 10,
+        background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.4s infinite',
+      }} />
+    </>
+  )
+}
+
+// ─── COMING SOON ─────────────────────────────────────────────────────────────
+
+function ComingSoon({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{title}</h2>
+        <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{sub}</p>
+        <div style={{ marginTop: 16, height: 1, background: `linear-gradient(to right, ${C.accentLight}, ${C.border})` }} />
+      </div>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '48px 24px', borderRadius: 16,
+        border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center',
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 12, background: C.accentLight,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, marginBottom: 16,
+        }}>🔒</div>
+        <p style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Coming soon</p>
+        <p style={{ fontSize: 13, color: C.textMuted, marginTop: 6, maxWidth: 260 }}>
+          This section will be available when the {title} module is built.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export default function TeacherProfilePage() {
-  const [activeSection, setActiveSection] = useState(0);
-  return (
-    <div style={{ minHeight: '100vh', background: '#0D0F14' }}>
-      <header style={{ position: 'sticky', top: 0, zIndex: 30, background: 'rgba(13,15,20,0.9)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '16px' }}>
-        <h1 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: 0 }}>My Profile</h1>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 2 }}>Edit your personal details below</p>
-      </header>
+  const [activeSection, setActiveSection] = useState(0)
 
-      <div style={{ display: 'flex', overflowX: 'auto', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', gap: 8, WebkitOverflowScrolling: 'touch' }}>
+  return (
+    <div style={{ background: C.bg, minHeight: '100%' }}>
+
+      {/* Mobile horizontal tabs */}
+      <div style={{
+        overflowX: 'auto', display: 'flex', gap: 8,
+        padding: '12px 16px', borderBottom: `1px solid ${C.border}`,
+        WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
+        scrollbarWidth: 'none' as React.CSSProperties['scrollbarWidth'],
+      }}>
         {SECTIONS.map((s, i) => (
-          <button key={s} onClick={() => setActiveSection(i)} style={{ flexShrink: 0, padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: activeSection === i ? 600 : 400, color: activeSection === i ? '#00E5A0' : 'rgba(255,255,255,0.4)', background: activeSection === i ? 'rgba(0,229,160,0.1)' : 'transparent', border: activeSection === i ? '1px solid rgba(0,229,160,0.2)' : '1px solid transparent', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+          <button key={s} onClick={() => setActiveSection(i)} style={{
+            flexShrink: 0, padding: '6px 14px', borderRadius: 99,
+            fontSize: 12, fontWeight: activeSection === i ? 600 : 400,
+            color: activeSection === i ? C.accent : C.textMuted,
+            background: activeSection === i ? C.accentLight : 'transparent',
+            border: `1px solid ${activeSection === i ? C.accent : C.border}`,
+            whiteSpace: 'nowrap', cursor: 'pointer',
+          }}>
             {s}
           </button>
         ))}
       </div>
 
-      <div style={{ padding: 20 }}>
-        <ProfileSection index={activeSection} />
+      <div style={{ display: 'flex' }}>
+
+        {/* Desktop sidebar */}
+        <aside style={{
+          width: 220, flexShrink: 0, borderRight: `1px solid ${C.border}`,
+          padding: 16, position: 'sticky', top: 0,
+          height: 'calc(100vh - 57px)', overflowY: 'auto',
+          display: 'none',
+        }} id="profile-sidebar">
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {SECTIONS.map((s, i) => (
+              <button key={s} onClick={() => setActiveSection(i)} style={{
+                width: '100%', textAlign: 'left', padding: '10px 12px',
+                borderRadius: 8, fontSize: 13,
+                fontWeight: activeSection === i ? 600 : 400,
+                color: activeSection === i ? C.accent : C.textMuted,
+                background: activeSection === i ? C.accentLight : 'transparent',
+                border: `1px solid ${activeSection === i ? C.accent : 'transparent'}`,
+                cursor: 'pointer',
+              }}>
+                <span style={{ color: C.border, fontSize: 11, marginRight: 8 }}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                {s}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Content */}
+        <div style={{ flex: 1, padding: 20, minWidth: 0, maxWidth: 720 }}>
+          <ProfileSection index={activeSection} />
+        </div>
       </div>
+
+      <style>{`
+        @media (min-width: 768px) {
+          #profile-sidebar { display: block !important; }
+        }
+      `}</style>
     </div>
-  );
+  )
 }
+
+// ─── SECTION ROUTER ───────────────────────────────────────────────────────────
 
 function ProfileSection({ index }: { index: number }) {
   const sections = [
     <PersonalInfoSection key="1" />,
-    <ProfessionalInfoSection key="2" />,
-    <QualificationsSection key="3" />,
-    <PDSection key="4" />,
-    <TeachingStyleSection key="5" />,
-    <AttendanceSection key="6" />,
-    <AppraisalSection key="7" />,
-    <DocumentsSection key="8" />,
-  ];
-  return sections[index] ?? null;
+    <ComingSoon key="2" title="Professional Information" sub="Employment type, designation, and roles" />,
+    <ComingSoon key="3" title="Qualifications" sub="Academic qualifications and certificates" />,
+    <ComingSoon key="4" title="Professional Development" sub="Training history and PD hours" />,
+    <ComingSoon key="5" title="Teaching Style & Twin" sub="Your preferences and Twin observations" />,
+    <ComingSoon key="6" title="Attendance & Leave" sub="Daily attendance and leave balances" />,
+    <ComingSoon key="7" title="Performance & Appraisal" sub="TSC appraisal cycle and performance signals" />,
+    <ComingSoon key="8" title="Messages" sub="Linked to VibeConnect module" />,
+    <ComingSoon key="9" title="Documents" sub="Upload and track required documents" />,
+    <ComingSoon key="10" title="Finance Reference" sub="Payroll reference — managed in Finance module" />,
+  ]
+  return sections[index] ?? null
 }
 
-function SectionHeader({ title, sub }: { title: string; sub?: string }) {
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, margin: 0 }}>{title}</h2>
-      {sub && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 4 }}>{sub}</p>}
-      <div style={{ marginTop: 12, height: 1, background: 'linear-gradient(to right, rgba(0,229,160,0.3), rgba(255,255,255,0.1), transparent)' }} />
-    </div>
-  );
+// ─── SECTION 1 — PERSONAL INFORMATION ────────────────────────────────────────
+
+interface ProfileForm {
+  full_name: string
+  phone: string
+  date_of_birth: string
+  country_code: string
+  gender: string
+  bio: string
+  tsc_number: string
+  employment_type: string
+  subjects_taught: string
 }
 
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{label}</p>
-      <p style={{ color: '#fff', fontSize: 14, fontWeight: 500 }}>{value || '—'}</p>
-    </div>
-  );
-}
-
-// ─── SECTION 1 — Personal Info ────────────────────────────────────────────────
 function PersonalInfoSection() {
-  const [userId, setUserId]     = useState<string | null>(null);
-  const [form, setForm]         = useState({ name: '', phone: '' });
-  const [school, setSchool]     = useState('');
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [loading, setLoading]   = useState(true);
+  const [userId, setUserId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [form, setForm] = useState<ProfileForm>({
+    full_name: '', phone: '', date_of_birth: '', country_code: '',
+    gender: '', bio: '', tsc_number: '', employment_type: '', subjects_taught: '',
+  })
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { setLoading(false); return; }
-      setUserId(data.user.id);
-      const profile = await getTeacherProfile(data.user.id);
-      if (profile) {
-        setForm({ name: profile.name ?? '', phone: profile.phone ?? '' });
-        setSchool(profile.school ?? '');
-      }
-      setLoading(false);
-    });
-  }, []);
+      if (!data.user) { setLoading(false); return }
+      setUserId(data.user.id)
+
+      const [profileRes, teacherRes] = await Promise.all([
+        supabase.from('profiles').select('full_name,phone,date_of_birth,country_code,gender,bio').eq('id', data.user.id).single(),
+        supabase.from('teacher_profiles').select('tsc_number,employment_type,subjects_taught').eq('profile_id', data.user.id).single(),
+      ])
+
+      const p = profileRes.data
+      const t = teacherRes.data
+      setForm({
+        full_name:       p?.full_name       ?? '',
+        phone:           p?.phone           ?? '',
+        date_of_birth:   p?.date_of_birth   ?? '',
+        country_code:    p?.country_code    ?? '',
+        gender:          p?.gender          ?? '',
+        bio:             p?.bio             ?? '',
+        tsc_number:      t?.tsc_number      ?? '',
+        employment_type: t?.employment_type ?? '',
+        subjects_taught: Array.isArray(t?.subjects_taught) ? t.subjects_taught.join(', ') : '',
+      })
+      setLoading(false)
+    })
+  }, [])
 
   async function handleSave() {
-    if (!userId) return;
-    setSaving(true);
-    await updateTeacherProfile(userId, { name: form.name, phone: form.phone });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    if (!userId) return
+    setSaving(true)
+    setError(null)
+
+    const subjectsArray = form.subjects_taught
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+
+    const [pRes, tRes] = await Promise.all([
+      supabase.from('profiles').update({
+        full_name:     form.full_name     || null,
+        phone:         form.phone         || null,
+        date_of_birth: form.date_of_birth || null,
+        country_code:  form.country_code  || null,
+        gender:        form.gender        || null,
+        bio:           form.bio           || null,
+      }).eq('id', userId),
+      supabase.from('teacher_profiles').update({
+        tsc_number:      form.tsc_number      || null,
+        employment_type: form.employment_type || null,
+        subjects_taught: subjectsArray.length ? subjectsArray : null,
+      }).eq('profile_id', userId),
+    ])
+
+    setSaving(false)
+    if (pRes.error || tRes.error) {
+      setError('Save failed. Please try again.')
+    } else {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
-    padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none',
-    boxSizing: 'border-box',
-  };
-  const labelStyle: React.CSSProperties = {
-    color: 'rgba(255,255,255,0.4)', fontSize: 11,
-    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'block',
-  };
+  const inp: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    background: C.bg, border: `1px solid ${C.border}`,
+    borderRadius: 10, padding: '10px 14px',
+    color: C.textPrimary, fontSize: 14, outline: 'none',
+  }
 
-  if (loading) return <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Loading profile...</p>;
+  const lbl: React.CSSProperties = {
+    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
+    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[1,2,3,4,5,6].map(i => <Skeleton key={i} />)}
+      </div>
+    )
+  }
 
   return (
     <div>
-      <SectionHeader title="Personal Information" sub="Your basic details — visible across VibeSchool" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: 0 }}>Personal Information</h2>
+        <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Your basic details — visible across VibeSchool</p>
+        <div style={{ marginTop: 16, height: 1, background: `linear-gradient(to right, ${C.accentLight}, ${C.border})` }} />
+      </div>
+
+      {error && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, background: '#fef2f2',
+          border: `1px solid #fecaca`, color: C.error, fontSize: 13, marginBottom: 20,
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} id="profile-grid">
         <div>
-          <label style={labelStyle}>Full Name</label>
-          <input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Janet Chebet" />
+          <label style={lbl}>Full Name</label>
+          <input style={inp} value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="e.g. Janet Chebet" />
         </div>
         <div>
-          <label style={labelStyle}>Phone</label>
-          <input style={inputStyle} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="e.g. +254 712 345 678" />
+          <label style={lbl}>Phone</label>
+          <input style={inp} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="e.g. +254 712 345 678" />
         </div>
         <div>
-          <label style={labelStyle}>School</label>
-          <div style={{ ...inputStyle, color: 'rgba(255,255,255,0.4)', cursor: 'not-allowed' }}>{school || 'Set by school admin'}</div>
+          <label style={lbl}>Date of Birth</label>
+          <input style={inp} type="date" value={form.date_of_birth} onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))} />
         </div>
-        <button onClick={handleSave} disabled={saving} style={{ padding: '12px 28px', borderRadius: 12, background: saved ? 'rgba(0,229,160,0.15)' : '#00E5A0', color: saved ? '#00E5A0' : '#0D0F14', fontWeight: 700, fontSize: 14, border: saved ? '1px solid rgba(0,229,160,0.3)' : 'none', cursor: saving ? 'not-allowed' : 'pointer', alignSelf: 'flex-start' }}>
-          {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Profile'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── SECTION 2 ────────────────────────────────────────────────────────────────
-function ProfessionalInfoSection() {
-  return (
-    <div>
-      <SectionHeader title="Professional Information" sub="Employment, designation, and teaching assignment" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 32px' }}>
-        <Field label="Staff Number" value="VS-2021-047" />
-        <Field label="Employment Type" value="Permanent" />
-        <Field label="Start Date" value="01 January 2021" />
-        <Field label="Job Group / Grade" value="C4" />
-        <Field label="Primary Designation" value="HOD — Mathematics" />
-        <Field label="Department" value="Mathematics & Sciences" />
-      </div>
-    </div>
-  );
-}
-
-// ─── SECTION 3 ────────────────────────────────────────────────────────────────
-function QualificationsSection() {
-  const quals = [
-    { name: "Bachelor of Education (Science)", institution: "University of Nairobi", years: "2005–2009", grade: "Second Upper" },
-    { name: "PGDE — Mathematics", institution: "Kenyatta University", years: "2010–2011", grade: "Distinction" },
-    { name: "CBC Curriculum Orientation", institution: "KICD", years: "2020", grade: "Pass" },
-  ];
-  return (
-    <div>
-      <SectionHeader title="Academic Qualifications" sub="Formal education and professional certificates" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {quals.map(q => (
-          <div key={q.name} style={{ padding: 16, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <p style={{ color: '#fff', fontSize: 14, fontWeight: 600, margin: 0 }}>{q.name}</p>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>{q.institution} · {q.years} · {q.grade}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── SECTION 4 ────────────────────────────────────────────────────────────────
-function PDSection() {
-  return (
-    <div>
-      <SectionHeader title="Professional Development" sub="Training history and PD progress" />
-      <div style={{ padding: 20, borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: 36, fontWeight: 700, color: '#fff' }}>22</span>
-          <span style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>/ 40 hrs this year</span>
+        <div>
+          <label style={lbl}>Country Code</label>
+          <input style={inp} value={form.country_code} onChange={e => setForm(f => ({ ...f, country_code: e.target.value }))} placeholder="e.g. KE" maxLength={2} />
         </div>
-        <div style={{ width: '100%', background: 'rgba(255,255,255,0.1)', borderRadius: 99, height: 10 }}>
-          <div style={{ height: 10, borderRadius: 99, background: 'linear-gradient(to right, #00E5A0, #00B8FF)', width: '55%' }} />
+        <div>
+          <label style={lbl}>Gender</label>
+          <select style={inp} value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}>
+            <option value="">Select gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 8 }}>18 hours remaining</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── SECTION 5 ────────────────────────────────────────────────────────────────
-function TeachingStyleSection() {
-  return (
-    <div>
-      <SectionHeader title="Teaching Style & Twin Profile" sub="Your preferences and what Twin has observed" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 32px' }}>
-        <Field label="Preferred Lesson Structure" value="3-Phase CBC" />
-        <Field label="Preferred Assessment" value="Written + Practical" />
-        <Field label="Preferred Grouping" value="Small groups + Mixed" />
-        <Field label="Easiest to Teach" value="Science Practicals" />
-      </div>
-    </div>
-  );
-}
-
-// ─── SECTION 6 ────────────────────────────────────────────────────────────────
-function AttendanceSection() {
-  return (
-    <div>
-      <SectionHeader title="Attendance & Leave" sub="Daily attendance record and leave management" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
-        {[{ label: 'Attendance Rate', value: '96%' }, { label: 'Days Absent', value: '2' }, { label: 'Late Arrivals', value: '1' }].map(s => (
-          <div key={s.label} style={{ textAlign: 'center', padding: 16, borderRadius: 12, background: 'rgba(0,229,160,0.08)', border: '1px solid rgba(0,229,160,0.15)' }}>
-            <p style={{ color: '#00E5A0', fontSize: 22, fontWeight: 700, margin: 0 }}>{s.value}</p>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 4 }}>{s.label}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── SECTION 7 ────────────────────────────────────────────────────────────────
-function AppraisalSection() {
-  return (
-    <div>
-      <SectionHeader title="Performance & Appraisal" sub="TSC appraisal cycle and performance signals" />
-      {[
-        { label: 'Self-Appraisal', status: 'pending', note: 'Due in 7 days' },
-        { label: 'HOD Review', status: 'waiting', note: 'Awaiting your submission' },
-        { label: 'Principal Moderation', status: 'waiting', note: '' },
-        { label: 'Submitted to TSC', status: 'waiting', note: '' },
-      ].map(step => (
-        <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 12, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 8 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: step.status === 'done' ? '#00E5A0' : step.status === 'pending' ? '#FFB800' : 'rgba(255,255,255,0.15)' }} />
-          <div>
-            <p style={{ color: step.status === 'pending' ? '#FFB800' : step.status === 'done' ? '#00E5A0' : 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: 500, margin: 0 }}>{step.label}</p>
-            {step.note && <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 2 }}>{step.note}</p>}
-          </div>
+        <div>
+          <label style={lbl}>Bio</label>
+          <textarea style={{ ...inp, minHeight: 80, resize: 'vertical' }} value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))} placeholder="A short bio about yourself..." />
         </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── SECTION 8 ────────────────────────────────────────────────────────────────
-function DocumentsSection() {
-  return (
-    <div>
-      <SectionHeader title="Documents" sub="Certificates and official records" />
-      {[
-        { name: 'TSC Certificate of Registration', expiry: 'Dec 2027', status: 'valid' },
-        { name: 'TSC Practicing Certificate', expiry: 'Jun 2026', status: 'expiring' },
-        { name: 'First Aid Certificate', expiry: 'Sep 2025', status: 'expiring' },
-      ].map(doc => (
-        <div key={doc.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 8 }}>
-          <p style={{ color: '#fff', fontSize: 14, margin: 0 }}>{doc.name}</p>
-          <span style={{ fontSize: 11, fontWeight: 700, color: doc.status === 'valid' ? '#00E5A0' : '#FFB800' }}>{doc.status === 'valid' ? 'Valid' : 'Expiring'} · {doc.expiry}</span>
+        <div>
+          <label style={lbl}>TSC Number</label>
+          <input style={inp} value={form.tsc_number} onChange={e => setForm(f => ({ ...f, tsc_number: e.target.value }))} placeholder="e.g. TSC-0041-8821" />
         </div>
-      ))}
+        <div>
+          <label style={lbl}>Employment Type</label>
+          <select style={inp} value={form.employment_type} onChange={e => setForm(f => ({ ...f, employment_type: e.target.value }))}>
+            <option value="">Select type</option>
+            <option value="government">Government</option>
+            <option value="private">Private</option>
+            <option value="volunteer">Volunteer</option>
+            <option value="trainee">Trainee</option>
+          </select>
+        </div>
+        <div>
+          <label style={lbl}>Subjects Taught</label>
+          <input style={inp} value={form.subjects_taught} onChange={e => setForm(f => ({ ...f, subjects_taught: e.target.value }))} placeholder="e.g. Mathematics, Science" />
+          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Separate multiple subjects with commas</p>
+        </div>
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          marginTop: 28, padding: '12px 28px', borderRadius: 12,
+          background: saved ? C.accentLight : C.accent,
+          color: saved ? C.accent : '#ffffff',
+          fontWeight: 700, fontSize: 14,
+          border: `1px solid ${saved ? C.accent : 'transparent'}`,
+          cursor: saving ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s', width: '100%',
+        }}
+      >
+        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Profile'}
+      </button>
+
+      <style>{`
+        @media (min-width: 540px) {
+          #profile-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
     </div>
-  );
+  )
 }
