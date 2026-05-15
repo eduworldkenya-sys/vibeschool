@@ -1,0 +1,229 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import { Btn, C } from '@/components/teacher/ui'
+
+interface ClassOption   { id: string; name: string; stream: string }
+interface SubjectOption { id: string; name: string }
+
+interface Props {
+  teacherId: string
+  schoolId:  string
+  onClose:   () => void
+  onSaved:   () => void
+}
+
+const DAYS = [
+  { label: 'Monday',    value: 1 },
+  { label: 'Tuesday',   value: 2 },
+  { label: 'Wednesday', value: 3 },
+  { label: 'Thursday',  value: 4 },
+  { label: 'Friday',    value: 5 },
+]
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '11px 14px',
+  borderRadius: 10,
+  border: `1.5px solid ${C.border}`,
+  fontSize: 13,
+  fontFamily: 'inherit',
+  outline: 'none',
+  background: C.surface,
+  color: C.textPrimary,
+  boxSizing: 'border-box',
+}
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: C.textMuted,
+  textTransform: 'uppercase',
+  letterSpacing: 0.8,
+  marginBottom: 6,
+  display: 'block',
+}
+
+export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: Props) {
+  const [classes,  setClasses]  = useState<ClassOption[]>([])
+  const [subjects, setSubjects] = useState<SubjectOption[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
+
+  const [classId,   setClassId]   = useState('')
+  const [subjectId, setSubjectId] = useState('')
+  const [dayOfWeek, setDayOfWeek] = useState('1')
+  const [startTime, setStartTime] = useState('08:00')
+  const [endTime,   setEndTime]   = useState('09:00')
+  const [room,      setRoom]      = useState('')
+  const [effectiveFrom, setEffectiveFrom] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      const [tcRes, subjRes] = await Promise.all([
+        supabase
+          .from('teacher_classes')
+          .select('class_id, subject_id')
+          .eq('teacher_id', teacherId),
+        supabase
+          .from('subjects')
+          .select('id, name')
+          .eq('school_id', schoolId),
+      ])
+
+      const classIds   = Array.from(new Set((tcRes.data ?? []).map((r: { class_id: string }) => r.class_id)))
+      const subjectIds = Array.from(new Set((tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id)))
+
+      const [classRes] = await Promise.all([
+        classIds.length > 0
+          ? supabase.from('classes').select('id, name, stream').in('id', classIds)
+          : Promise.resolve({ data: [] }),
+      ])
+
+      const cls  = (classRes.data ?? []) as ClassOption[]
+      const subs = ((subjRes.data ?? []) as SubjectOption[]).filter(s => subjectIds.includes(s.id))
+
+      setClasses(cls)
+      setSubjects(subs)
+      setClassId(cls[0]?.id   ?? '')
+      setSubjectId(subs[0]?.id ?? '')
+      setLoading(false)
+    }
+    load()
+  }, [teacherId, schoolId])
+
+  async function save() {
+    setError(null)
+    if (!classId)    { setError('Select a class.');   return }
+    if (!subjectId)  { setError('Select a subject.'); return }
+    if (!startTime)  { setError('Enter start time.'); return }
+    if (!endTime)    { setError('Enter end time.');   return }
+    if (startTime >= endTime) { setError('End time must be after start time.'); return }
+
+    setSaving(true)
+
+    const { error: err } = await supabase
+      .from('timetable_slots')
+      .insert({
+        school_id:      schoolId,
+        teacher_id:     teacherId,
+        class_id:       classId,
+        subject_id:     subjectId,
+        day_of_week:    parseInt(dayOfWeek),
+        start_time:     startTime,
+        end_time:       endTime,
+        room:           room.trim() || null,
+        effective_from: effectiveFrom || null,
+      })
+
+    setSaving(false)
+    if (err) { setError(err.message); return }
+    onSaved()
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(0,0,0,0.45)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: C.bg,
+        borderRadius: '20px 20px 0 0',
+        padding: '24px 20px 40px',
+        width: '100%', maxWidth: 480,
+        display: 'flex', flexDirection: 'column', gap: 16,
+        maxHeight: '90vh', overflowY: 'auto',
+      }}>
+        {/* Handle + title */}
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>Add Timetable Slot</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.textMuted }}>✕</button>
+        </div>
+
+        {error && (
+          <div style={{ fontSize: 12, color: C.error, background: '#fef2f2', padding: '8px 12px', borderRadius: 8 }}>
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: C.textMuted, fontSize: 13 }}>Loading…</div>
+        ) : (
+          <>
+            {/* Class */}
+            <div>
+              <label style={labelStyle}>Class *</label>
+              <select value={classId} onChange={e => setClassId(e.target.value)} style={inputStyle}>
+                {classes.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ''}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Subject */}
+            <div>
+              <label style={labelStyle}>Subject *</label>
+              <select value={subjectId} onChange={e => setSubjectId(e.target.value)} style={inputStyle}>
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Day */}
+            <div>
+              <label style={labelStyle}>Day *</label>
+              <select value={dayOfWeek} onChange={e => setDayOfWeek(e.target.value)} style={inputStyle}>
+                {DAYS.map(d => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Start / end time */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Start Time *</label>
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>End Time *</label>
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
+              </div>
+            </div>
+
+            {/* Room */}
+            <div>
+              <label style={labelStyle}>Room (optional)</label>
+              <input
+                value={room}
+                onChange={e => setRoom(e.target.value)}
+                placeholder="e.g. Room 4B"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Effective from */}
+            <div>
+              <label style={labelStyle}>Effective From (optional)</label>
+              <input
+                type="date"
+                value={effectiveFrom}
+                onChange={e => setEffectiveFrom(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+
+            <Btn onClick={save} disabled={saving}>
+              {saving ? 'Saving…' : 'Add Slot'}
+            </Btn>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
