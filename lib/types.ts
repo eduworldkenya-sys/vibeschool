@@ -84,3 +84,11 @@ export interface TeacherDocument {
   status: 'valid' | 'expiring' | 'missing' | 'expired'
   expiryDate?: string
 }
+
+export interface ClassItem {
+  id:         string
+  name:       string
+  stream:     string
+  subject:    string
+  created_at: string
+}

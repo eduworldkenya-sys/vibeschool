@@ -1,7 +1,7 @@
 'use client'
 
 import styles from './ClassCard.module.css'
-import type { ClassItem } from '@/app/teacher/classhub/page'
+import type { ClassItem } from '@/lib/types'
 
 interface Props {
   data:    ClassItem
