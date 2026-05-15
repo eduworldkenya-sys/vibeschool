@@ -238,11 +238,12 @@ function PersonalInfoSection() {
         gender:        form.gender        || null,
         bio:           form.bio           || null,
       }).eq('id', userId),
-      supabase.from('teacher_profiles').update({
+      supabase.from('teacher_profiles').upsert({
         tsc_number:      form.tsc_number      || null,
         employment_type: form.employment_type || null,
         subjects_taught: subjectsArray.length ? subjectsArray : null,
-      }).eq('profile_id', userId),
+        profile_id: userId,
+      }, { onConflict: 'profile_id' }),
     ])
 
     setSaving(false)
