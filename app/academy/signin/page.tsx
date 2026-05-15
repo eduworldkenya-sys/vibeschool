@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, upsertTeacherProfile } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import styles from './signin.module.css'
 
 const VALID_ROLES = ['teacher', 'parent', 'admin'] as const
@@ -21,11 +21,11 @@ function AcademySignInInner() {
   const contentRef = useRef<HTMLDivElement>(null)
   const navTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail]             = useState('')
+  const [password, setPassword]       = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [error, setError]             = useState('')
+  const [loading, setLoading]         = useState(false)
 
   useEffect(() => {
     return () => {
@@ -66,7 +66,10 @@ function AcademySignInInner() {
     }
 
     if (role === 'teacher' && authData.user) {
-      await upsertTeacherProfile(authData.user.id, authData.user.email ?? '')
+      await supabase.from('profiles').upsert({
+        id:   authData.user.id,
+        role: 'teacher',
+      }, { onConflict: 'id' })
     }
 
     fadeOut(

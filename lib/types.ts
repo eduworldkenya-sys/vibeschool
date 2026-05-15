@@ -98,3 +98,13 @@ export interface ClassItem {
   attendanceMarked: boolean
   nextAssessment:   string | null
 }
+
+export async function upsertTeacherProfile(userId: string, email: string) {
+  const { error } = await supabase
+    .from('teacher_profiles')
+    .upsert(
+      { profile_id: userId },
+      { onConflict: 'profile_id', ignoreDuplicates: true }
+    )
+  if (error) console.error('upsertTeacherProfile error:', error)
+}
