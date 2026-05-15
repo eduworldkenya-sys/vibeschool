@@ -9,42 +9,43 @@ export function createSupabaseClient() {
 
 export const supabase = createSupabaseClient()
 
-export async function upsertTeacherProfile(userId: string, email: string) {
-  const initials = email.slice(0, 2).toUpperCase()
-  const { data, error } = await supabase
-    .from('teachers')
-    .upsert(
-      { user_id: userId, initials, name: '', school: '', subject: '', class: '' },
-      { onConflict: 'user_id', ignoreDuplicates: true }
-    )
-    .select()
-    .single()
-  if (error) console.error('upsertTeacherProfile error:', error)
-  return data
-}
-
 export async function getTeacherProfile(userId: string) {
-  const { data, error } = await supabase
-    .from('teachers')
-    .select('*')
-    .eq('user_id', userId)
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('full_name, phone, school_id')
+    .eq('id', userId)
     .single()
-  if (error) console.error('getTeacherProfile error:', error)
-  return data
+  if (profileErr) { console.error('getTeacherProfile error:', profileErr); return null }
+
+  const schoolId = profile?.school_id ?? null
+  let schoolName = ''
+  if (schoolId) {
+    const { data: school } = await supabase
+      .from('schools')
+      .select('name')
+      .eq('id', schoolId)
+      .single()
+    schoolName = school?.name ?? ''
+  }
+
+  return {
+    name:   profile?.full_name ?? '',
+    school: schoolName,
+    phone:  profile?.phone ?? '',
+  }
 }
 
 export async function updateTeacherProfile(userId: string, updates: {
   name?: string
-  school?: string
-  subject?: string
-  class?: string
   phone?: string
-  initials?: string
 }) {
   const { data, error } = await supabase
-    .from('teachers')
-    .update(updates)
-    .eq('user_id', userId)
+    .from('profiles')
+    .update({
+      full_name: updates.name,
+      phone:     updates.phone,
+    })
+    .eq('id', userId)
     .select()
     .single()
   if (error) console.error('updateTeacherProfile error:', error)
