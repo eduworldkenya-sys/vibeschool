@@ -1,150 +1,182 @@
-'use client'
+function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
+  const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  const dragging     = useRef(false)
+  const startPointer = useRef({ x: 0, y: 0 })
+  const startPos     = useRef({ x: 0, y: 0 })
+  const pillRef      = useRef<HTMLDivElement>(null)
+  const moved        = useRef(false)
 
-import { RefObject } from 'react'
+  useEffect(() => {
+    const w = window.innerWidth
+    const h = window.innerHeight
+    setPos({ x: w / 2 - 28, y: h - 136 })
+  }, [])
 
-interface Message { role: 'twin' | 'user'; text: string }
+  function onPointerDown(e: React.PointerEvent) {
+    dragging.current     = true
+    moved.current        = false
+    startPointer.current = { x: e.clientX, y: e.clientY }
+    startPos.current     = pos ?? { x: window.innerWidth / 2 - 28, y: window.innerHeight - 136 }
+    pillRef.current?.setPointerCapture(e.pointerId)
+    e.preventDefault()
+  }
 
-interface TwinPillProps {
-  open:          boolean
-  onOpen:        () => void
-  onClose:       () => void
-  messages:      Message[]
-  thinking:      boolean
-  input:         string
-  onInputChange: (v: string) => void
-  onSend:        () => void
-  bottomRef:     RefObject<HTMLDivElement>
-  isDark:        boolean
-}
+  function onPointerMove(e: React.PointerEvent) {
+    if (!dragging.current) return
+    const dx = e.clientX - startPointer.current.x
+    const dy = e.clientY - startPointer.current.y
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved.current = true
+    const w  = window.innerWidth
+    const h  = window.innerHeight
+    const pw = pillRef.current?.offsetWidth  ?? 56
+    const ph = pillRef.current?.offsetHeight ?? 56
+    setPos({
+      x: Math.min(Math.max(startPos.current.x + dx, 8), w - pw - 8),
+      y: Math.min(Math.max(startPos.current.y + dy, 8), h - ph - 8),
+    })
+  }
 
-function TwinDot({ delay = 0 }: { delay?: number }) {
-  return (
-    <span style={{
-      display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
-      background: '#10b981', margin: '0 2px',
-      animation: `twinPulse 1.4s ease-in-out ${delay}s infinite`,
-    }} />
-  )
-}
+  function onPointerUp() {
+    dragging.current = false
+    if (!moved.current) {
+      if (expanded) { onOpen(); setExpanded(false) }
+      else setExpanded(true)
+    }
+  }
 
-export default function TwinPill({
-  open, onOpen, onClose, messages, thinking,
-  input, onInputChange, onSend, bottomRef, isDark,
-}: TwinPillProps) {
-  const cardBg = isDark ? '#1a1d22' : '#ffffff'
-  const border  = isDark ? '#2a2d31' : '#e5e7eb'
-  const muted   = '#6b7280'
+  if (!pos) return null
+
+  const SIZE = 56
 
   return (
     <>
-      {/* Pill */}
+      <style>{`
+        @keyframes twinGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.0), 0 0 16px 4px rgba(16,185,129,0.35), 0 4px 24px rgba(30,27,75,0.4); }
+          50%       { box-shadow: 0 0 0 8px rgba(16,185,129,0.0), 0 0 28px 8px rgba(16,185,129,0.55), 0 4px 24px rgba(30,27,75,0.4); }
+        }
+        @keyframes twinRingPulse {
+          0%, 100% { transform: scale(1);    opacity: 0.6; }
+          50%       { transform: scale(1.18); opacity: 0;   }
+        }
+        @keyframes twinExpand {
+          from { opacity: 0; transform: scaleX(0.7) translateX(-10px); }
+          to   { opacity: 1; transform: scaleX(1)   translateX(0);     }
+        }
+        @keyframes twinDotPulse {
+          0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+          40%            { transform: scale(1);   opacity: 1;   }
+        }
+      `}</style>
+
+      {/* Pulsing ring behind the circle */}
+      <div style={{
+        position:      'fixed',
+        left:          pos.x - 8,
+        top:           pos.y - 8,
+        width:         SIZE + 16,
+        height:        SIZE + 16,
+        borderRadius:  '50%',
+        border:        '2px solid rgba(16,185,129,0.45)',
+        animation:     'twinRingPulse 2s ease-in-out infinite',
+        zIndex:        748,
+        pointerEvents: 'none',
+      }} />
+
       <div
-        onClick={onOpen}
+        ref={pillRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
         style={{
-          position: 'fixed', bottom: 72, left: '50%',
-          transform: 'translateX(-50%)', zIndex: 750,
-          background: '#1e1b4b', borderRadius: 40,
-          padding: '10px 20px',
-          display: 'flex', alignItems: 'center', gap: 14,
-          boxShadow: '0 4px 24px rgba(30,27,75,0.32)',
-          cursor: 'pointer',
-          border: '1.5px solid rgba(16,185,129,0.3)',
-          minWidth: 230, justifyContent: 'space-between',
-          userSelect: 'none',
-          transition: 'box-shadow 0.2s, transform 0.2s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(30,27,75,0.45)'
-          e.currentTarget.style.transform = 'translateX(-50%) translateY(-2px)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.boxShadow = '0 4px 24px rgba(30,27,75,0.32)'
-          e.currentTarget.style.transform = 'translateX(-50%) translateY(0)'
+          position:      'fixed',
+          left:          pos.x,
+          top:           pos.y,
+          zIndex:        750,
+          width:         expanded ? 180 : SIZE,
+          height:        SIZE,
+          borderRadius:  expanded ? 32 : '50%',
+          background:    'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #064e3b 100%)',
+          border:        '1.5px solid rgba(16,185,129,0.5)',
+          animation:     'twinGlow 2.4s ease-in-out infinite',
+          cursor:        'grab',
+          userSelect:    'none',
+          touchAction:   'none',
+          transition:    'width 0.28s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.28s ease',
+          display:       'flex',
+          alignItems:    'center',
+          justifyContent: expanded ? 'flex-start' : 'center',
+          overflow:      'hidden',
+          paddingLeft:   expanded ? 8 : 0,
+          gap:           expanded ? 8 : 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(16,185,129,0.18)', border: '1.5px solid rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#10b981' }}>✦</div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: 'Bricolage Grotesque, sans-serif', lineHeight: 1 }}>Your Twin</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>Tap to open</div>
-          </div>
+        {/* Core icon circle */}
+        <div style={{
+          flexShrink:     0,
+          width:          40,
+          height:         40,
+          borderRadius:   '50%',
+          background:     'radial-gradient(circle at 35% 35%, rgba(16,185,129,0.35), rgba(16,185,129,0.08))',
+          border:         '1.5px solid rgba(16,185,129,0.6)',
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'center',
+          fontSize:       18,
+          color:          '#10b981',
+          pointerEvents:  'none',
+        }}>
+          ✦
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} />
-        </div>
-      </div>
 
-      {/* Backdrop */}
-      {open && (
-        <div
-          onClick={onClose}
-          style={{ position: 'fixed', inset: 0, zIndex: 780, background: 'rgba(0,0,0,0.25)' }}
-        />
-      )}
-
-      {/* Drawer */}
-      <div style={{
-        position: 'fixed', left: '50%', transform: 'translateX(-50%)',
-        bottom: open ? 138 : -500,
-        zIndex: 790,
-        width: 'calc(100% - 32px)', maxWidth: 600,
-        background: cardBg, borderRadius: 20,
-        boxShadow: '0 -4px 40px rgba(0,0,0,0.18)',
-        display: 'flex', flexDirection: 'column', height: 440,
-        transition: 'bottom 0.34s cubic-bezier(0.34,1.56,0.64,1)',
-        overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{ background: '#1e1b4b', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(16,185,129,0.2)', border: '1.5px solid rgba(16,185,129,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#10b981' }}>✦</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', fontFamily: 'Bricolage Grotesque, sans-serif' }}>Your Twin</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Never resets · Always here</div>
+        {/* Expanded label */}
+        {expanded && (
+          <div style={{
+            animation:    'twinExpand 0.22s ease',
+            pointerEvents: 'none',
+            minWidth:      0,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap' }}>
+              Your Twin
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 3 }}>
+              {[0, 0.2, 0.4].map(delay => (
+                <span key={delay} style={{
+                  display:    'inline-block',
+                  width:      5,
+                  height:     5,
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  animation:  `twinDotPulse 1.4s ease-in-out ${delay}s infinite`,
+                }} />
+              ))}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>
-        </div>
+        )}
 
-        {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {messages.map((m, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
-              {m.role === 'twin' && (
-                <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0, color: '#10b981' }}>✦</div>
-              )}
-              <div style={{
-                maxWidth: '78%', padding: '10px 14px',
-                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
-                background: m.role === 'user' ? '#10b981' : (isDark ? '#12151a' : '#f8f9fa'),
-                color: m.role === 'user' ? '#fff' : (isDark ? '#f0ede8' : '#111827'),
-                fontSize: 13, lineHeight: 1.6,
-              }}>{m.text}</div>
-            </div>
-          ))}
-          {thinking && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#10b981' }}>✦</div>
-              <TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} />
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input */}
-        <div style={{ padding: '10px 14px', borderTop: `1px solid ${border}`, display: 'flex', gap: 8, flexShrink: 0 }}>
-          <input
-            value={input}
-            onChange={e => onInputChange(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && onSend()}
-            placeholder="Ask your Twin anything…"
-            style={{ flex: 1, padding: '9px 13px', borderRadius: 10, border: `1.5px solid ${border}`, outline: 'none', fontSize: 13, fontFamily: 'inherit', color: isDark ? '#f0ede8' : '#111827', background: isDark ? '#12151a' : '#fff' }}
-          />
-          <button
-            onClick={onSend}
-            style={{ padding: '9px 18px', borderRadius: 10, border: 'none', background: '#10b981', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-          >Send</button>
-        </div>
+        {/* Unread badge */}
+        {unread > 0 && (
+          <div style={{
+            position:       'absolute',
+            top:            2,
+            right:          2,
+            width:          18,
+            height:         18,
+            borderRadius:   '50%',
+            background:     '#ef4444',
+            border:         '2px solid #0f172a',
+            color:          '#fff',
+            fontSize:       9,
+            fontWeight:     800,
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            pointerEvents:  'none',
+          }}>
+            {unread}
+          </div>
+        )}
       </div>
     </>
   )
