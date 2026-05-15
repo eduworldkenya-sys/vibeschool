@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, upsertTeacherProfile } from '@/lib/supabase'
+import { supabase, getTeacherProfile } from '@/lib/supabase'
 import styles from './signin.module.css'
 
 const VALID_ROLES = ['teacher', 'parent', 'admin'] as const
