@@ -1,11 +1,41 @@
+"use client";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { VIBECONNECT_THREADS } from "@/lib/data";
+import { C, Avatar } from "@/components/teacher/ui";
+import TwinDrawer from "@/components/teacher/TwinDrawer";
+import { createContext, useContext } from "react";
+
+// ─── Toast context ─────────────────────────────────────────────────────────────
+interface ToastCtx { showToast: (msg: string) => void }
+const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
+export const useToast = () => useContext(ToastContext);
+
+// ─── Nav config ────────────────────────────────────────────────────────────────
+const NAV_TABS = [
+  { id: "home",        label: "Home",        icon: "🏠", href: "/teacher"             },
+  { id: "lessonplan",  label: "Plans",        icon: "📖", href: "/teacher/lessonplan"  },
+  { id: "vibeconnect", label: "VibeConnect",  icon: "💬", href: "/teacher/vibeconnect" },
+  { id: "more",        label: "More",         icon: "⋯",  href: "/teacher/more"        },
+  { id: "profile",     label: "Profile",      icon: "👤", href: "/teacher/profile"     },
+];
+
+function tabIdFromPath(path: string): string {
+  if (path === "/teacher" || path === "/teacher/") return "home";
+  const match = NAV_TABS.find(t => t.href !== "/teacher" && path.startsWith(t.href));
+  return match?.id ?? "home";
+}
+
+// ─── Draggable Twin Pill ───────────────────────────────────────────────────────
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const dragging     = useRef(false)
-  const startPointer = useRef({ x: 0, y: 0 })
-  const startPos     = useRef({ x: 0, y: 0 })
-  const pillRef      = useRef<HTMLDivElement>(null)
-  const moved        = useRef(false)
+  const dragging      = useRef(false)
+  const startPointer  = useRef({ x: 0, y: 0 })
+  const startPos      = useRef({ x: 0, y: 0 })
+  const pillRef       = useRef<HTMLDivElement>(null)
+  const moved         = useRef(false)
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -14,7 +44,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
     setPos({ x: w / 2 - 28, y: h - 136 })
   }, [])
 
-  // Auto-collapse after 3 s of no second tap
   useEffect(() => {
     if (expanded) {
       collapseTimer.current = setTimeout(() => setExpanded(false), 3000)
@@ -52,12 +81,10 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
     dragging.current = false
     if (moved.current) return
     if (expanded) {
-      // Second tap — open drawer, collapse
       if (collapseTimer.current) clearTimeout(collapseTimer.current)
       setExpanded(false)
       onOpen()
     } else {
-      // First tap — expand
       setExpanded(true)
     }
   }
@@ -87,7 +114,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
         }
       `}</style>
 
-      {/* Pulsing ring — only when collapsed */}
       {!expanded && (
         <div style={{
           position:      'fixed',
@@ -131,7 +157,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           gap:            expanded ? 8 : 0,
         }}
       >
-        {/* Core icon */}
         <div style={{
           flexShrink:     0,
           width:          40,
@@ -149,7 +174,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           ✦
         </div>
 
-        {/* Expanded label + dots */}
         {expanded && (
           <div style={{ animation: 'twinExpand 0.22s ease', pointerEvents: 'none', minWidth: 0 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap' }}>
@@ -170,7 +194,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           </div>
         )}
 
-        {/* Unread badge */}
         {unread > 0 && (
           <div style={{
             position:       'absolute',
@@ -195,4 +218,161 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
       </div>
     </>
   )
+}
+
+// ─── Bottom nav ────────────────────────────────────────────────────────────────
+function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnect: number }) {
+  const router = useRouter();
+  return (
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700, background: "#fff", borderTop: `1px solid ${C.border}`, display: "flex", height: 64, boxShadow: "0 -2px 12px rgba(0,0,0,0.06)" }}>
+      {NAV_TABS.map(t => {
+        const isActive = t.id === activeId;
+        const badge    = t.id === "vibeconnect" ? unreadConnect : 0;
+        return (
+          <button
+            key={t.id}
+            onClick={() => router.push(t.href)}
+            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? C.accent : C.textMuted, transition: "color 0.15s", position: "relative" }}
+          >
+            {badge > 0 && (
+              <span style={{ position: "absolute", top: 6, right: "calc(50% - 14px)", width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{badge}</span>
+            )}
+            <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
+            <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600, letterSpacing: 0.2 }}>{t.label}</span>
+            {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 2.5, background: C.accent, borderRadius: "0 0 3px 3px" }} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Top bar ───────────────────────────────────────────────────────────────────
+function TopBar({ school, initials, unreadConnect }: { school: string; initials: string; unreadConnect: number }) {
+  const router   = useRouter();
+  const pathname = usePathname();
+  const isHome   = pathname === "/teacher" || pathname === "/teacher/";
+  return (
+    <div style={{ background: C.dark, color: "#fff", padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 600, boxShadow: "0 2px 12px rgba(0,0,0,0.18)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {!isHome && (
+          <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}>‹</div>
+        )}
+        <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>
+            {school || "Loading…"}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {unreadConnect > 0 && (
+          <div style={{ position: "relative", cursor: "pointer" }} onClick={() => router.push("/teacher/vibeconnect")}>
+            <span style={{ fontSize: 20 }}>💬</span>
+            <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadConnect}</span>
+          </div>
+        )}
+        <Avatar
+          initials={initials || "…"}
+          size={34}
+          onClick={() => router.push("/teacher/profile")}
+          style={{ cursor: "pointer" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({ msg }: { msg: string }) {
+  return (
+    <div style={{ position: "fixed", bottom: 140, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "11px 22px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, animation: "fadeIn 0.2s ease", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}>
+      {msg}
+    </div>
+  );
+}
+
+// ─── Layout ────────────────────────────────────────────────────────────────────
+export default function TeacherLayout({ children }: { children: React.ReactNode }) {
+  const pathname      = usePathname();
+  const activeId      = tabIdFromPath(pathname);
+  const unreadConnect = VIBECONNECT_THREADS.reduce((a, t) => a + t.unread, 0);
+
+  const [twinOpen, setTwinOpen] = useState(false);
+  const [toast,    setToast]    = useState<string | null>(null);
+  const [school,   setSchool]   = useState("");
+  const [initials, setInitials] = useState("");
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [profileRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, school_id")
+          .eq("id", user.id)
+          .single(),
+      ]);
+
+      const fullName = profileRes.data?.full_name ?? "";
+      const parts    = fullName.trim().split(" ").filter(Boolean);
+      const derived  = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
+      setInitials(derived);
+
+      const schoolId = profileRes.data?.school_id;
+      if (schoolId) {
+        const schoolRes = await supabase
+          .from("schools")
+          .select("name")
+          .eq("id", schoolId)
+          .single();
+        setSchool(schoolRes.data?.name ?? "");
+      }
+    }
+    fetchProfile();
+  }, []);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2800);
+  }, []);
+
+  return (
+    <ToastContext.Provider value={{ showToast }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f2f5; }
+        @keyframes twinPulse { 0%,80%,100%{ transform:scale(0.7); opacity:0.5 } 40%{ transform:scale(1); opacity:1 } }
+        @keyframes slideIn   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
+        @keyframes fadeIn    { from{ opacity:0 } to{ opacity:1 } }
+        @keyframes shimmer   { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+      `}</style>
+
+      <div style={{ minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch" as const, background: "#f0f2f5" }}>
+        <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
+
+        <main style={{
+          maxWidth: 768,
+          margin: "0 auto",
+          padding: "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
+          paddingBottom: 160,
+          minHeight: "calc(100vh - 120px)",
+        }}>
+          {children}
+        </main>
+
+        <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
+        <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+        <BottomNav activeId={activeId} unreadConnect={unreadConnect} />
+
+        {toast && <Toast msg={toast} />}
+      </div>
+    </ToastContext.Provider>
+  );
 }
