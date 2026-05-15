@@ -4,307 +4,232 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
-import styles from './classhub.module.css'
-import BottomNav  from '@/components/teacher/BottomNav'
-import Header     from '@/components/teacher/Header'
-import OfflineBar from '@/components/teacher/OfflineBar'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-export interface ClassItem {
-  id:               string
-  name:             string
-  stream:           string | null
-  subject:          string
-  lessonTime:       string
-  studentCount:     number
-  attendancePct:    number
-  attendanceMarked: boolean
-  unreadAlerts:     number
-  nextAssessment:   string | null
+interface ClassItem {
+  id:        string
+  name:      string
+  stream:    string
+  subject:   string
+  created_at: string
 }
 
-type SyncStatus = 'synced' | 'offline' | 'failed'
-type DarkMode   = 'sun' | 'light' | 'dark'
-type TabKey     = 'home' | 'lessonplan' | 'vibeconnect' | 'more' | 'profile'
-
-// ── Join helpers ───────────────────────────────────────────────────────────────
-function resolveJoin<T>(raw: unknown): T | null {
-  if (raw == null) return null
-  return (Array.isArray(raw) ? raw[0] ?? null : raw) as T | null
+interface FormState {
+  name:    string
+  stream:  string
+  subject: string
 }
 
-type ClassJoin   = { id: string; grade_name: string; stream: string | null }
-type SubjectJoin = { name: string }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function formatTime(t: string): string {
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function ClassHubPage() {
   const router = useRouter()
 
-  const [classes,    setClasses]    = useState<ClassItem[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced')
-  const [darkMode,   setDarkMode]   = useState<DarkMode>('sun')
-  const [initials,   setInitials]   = useState('')
-  const [activeTab,  setActiveTab]  = useState<TabKey>('home')
+  const [classes,     setClasses]     = useState<ClassItem[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [showForm,    setShowForm]    = useState(false)
+  const [saving,      setSaving]      = useState(false)
+  const [deleting,    setDeleting]    = useState<string | null>(null)
+  const [error,       setError]       = useState('')
+  const [form,        setForm]        = useState<FormState>({ name: '', stream: '', subject: '' })
 
-  const isDark =
-    darkMode === 'dark' ||
-    (darkMode === 'sun' && new Date().getHours() >= 18)
+  const accent    = '#10b981'
+  const dark      = '#1e1b4b'
+  const cardBg    = '#ffffff'
+  const border    = '#e5e7eb'
+  const textMuted = '#6b7280'
+  const textMain  = '#111827'
 
-  useEffect(() => {
-    const goOnline  = () => setSyncStatus('synced')
-    const goOffline = () => setSyncStatus('offline')
-    window.addEventListener('online',  goOnline)
-    window.addEventListener('offline', goOffline)
-    return () => {
-      window.removeEventListener('online',  goOnline)
-      window.removeEventListener('offline', goOffline)
-    }
-  }, [])
+  async function loadClasses() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/academy/signin?role=teacher'); return }
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/academy/signin?role=teacher'); return }
+    const { data } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('teacher_id', user.id)
+      .order('created_at', { ascending: true })
 
-      const uid      = user.id
-      const todayDow = new Date().getDay()
+    setClasses(data ?? [])
+    setLoading(false)
+  }
 
-      // 1. Profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', uid)
-        .single()
+  useEffect(() => { loadClasses() }, [])
 
-      if (profile?.full_name) {
-        const parts = (profile.full_name as string).trim().split(' ').filter(Boolean)
-        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(''))
-      }
+  async function handleCreate() {
+    setError('')
+    if (!form.name.trim())    { setError('Class name is required.'); return }
+    if (!form.subject.trim()) { setError('Subject is required.'); return }
 
-      // Sunday — no classes
-      if (todayDow === 0) { setLoading(false); return }
+    setSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
 
-      // 2. Timetable slots
-      const { data: slots } = await supabase
-        .from('timetable_slots')
-        .select(`
-          id,
-          subject_id,
-          start_time,
-          end_time,
-          class_id,
-          subjects ( name ),
-          classes ( id, grade_name, stream )
-        `)
-        .eq('teacher_id', uid)
-        .eq('day_of_week', todayDow)
-        .order('start_time', { ascending: true })
+    const { error: err } = await supabase
+      .from('classes')
+      .insert({
+        teacher_id: user.id,
+        name:       form.name.trim(),
+        stream:     form.stream.trim(),
+        subject:    form.subject.trim(),
+      })
 
-      if (!slots || slots.length === 0) { setLoading(false); return }
+    setSaving(false)
 
-      const today = new Date().toISOString().split('T')[0]
+    if (err) { setError(err.message); return }
 
-      const items: ClassItem[] = await Promise.all(
-        slots.map(async (slot) => {
-          const cls     = resolveJoin<ClassJoin>(slot.classes)
-          const subject = resolveJoin<SubjectJoin>(slot.subjects)?.name ?? 'Unknown'
+    setForm({ name: '', stream: '', subject: '' })
+    setShowForm(false)
+    loadClasses()
+  }
 
-          // Student count
-          const { count: studentCount } = await supabase
-            .from('students')
-            .select('id', { count: 'exact', head: true })
-            .eq('class_id', slot.class_id)
+  async function handleDelete(id: string) {
+    setDeleting(id)
+    await supabase.from('classes').delete().eq('id', id)
+    setDeleting(null)
+    loadClasses()
+  }
 
-          // Attendance
-          const { data: att } = await supabase
-            .from('attendance')
-            .select('status')
-            .eq('timetable_slot_id', slot.id)
-            .eq('date', today)
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '11px 14px',
+    borderRadius: 10,
+    border: `1px solid ${border}`,
+    fontSize: 14,
+    color: textMain,
+    outline: 'none',
+    fontFamily: 'inherit',
+    background: '#f9fafb',
+  }
 
-          const total        = studentCount ?? 0
-          const presentCount = att?.filter(r => r.status === 'present').length ?? 0
-          const pct          = total > 0 ? Math.round((presentCount / total) * 100) : 0
-          const marked       = (att?.length ?? 0) > 0
-
-          // Unread alerts
-          const { count: alerts } = await supabase
-            .from('notifications')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', uid)
-            .eq('read', false)
-
-          return {
-            id:               cls?.id ?? slot.class_id,
-            name:             cls ? cls.grade_name + (cls.stream ? ` ${cls.stream}` : '') : 'Unknown Class',
-            stream:           cls?.stream ?? null,
-            subject,
-            lessonTime:       `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`,
-            studentCount:     total,
-            attendancePct:    pct,
-            attendanceMarked: marked,
-            unreadAlerts:     alerts ?? 0,
-            nextAssessment:   null,
-          }
-        })
-      )
-
-      setClasses(items)
-      setLoading(false)
-    }
-
-    load()
-  }, [router])
-
-  const rootClass = [styles.root, isDark ? styles.rootDark : ''].filter(Boolean).join(' ')
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+    display: 'block',
+  }
 
   if (loading) {
     return (
-      <div className={rootClass}>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          height: '100vh', fontFamily: 'Plus Jakarta Sans, sans-serif',
-          fontSize: 13, color: '#6b7280'
-        }}>
-          Loading your classes…
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 12 }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', border: `3px solid ${accent}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ color: textMuted, fontSize: 13 }}>Loading classes…</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
   }
 
   return (
-    <div className={rootClass}>
-      <OfflineBar />
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: textMuted, paddingBottom: 32 }}>
 
-      <Header
-        isOnline={syncStatus === 'synced'}
-        teacherInitials={initials || '??'}
-        darkMode={darkMode}
-        onDarkModeChange={setDarkMode}
-      />
-
-      <div className={styles.scroll} style={{ paddingBottom: 80 }}>
-        <div style={{ padding: '20px 16px 8px' }}>
-          <div style={{
-            fontFamily: 'Bricolage Grotesque, sans-serif',
-            fontSize: 22, fontWeight: 800, color: isDark ? '#F0EDE8' : '#111827'
-          }}>
-            ClassHub
-          </div>
-          <div style={{
-            fontFamily: 'Plus Jakarta Sans, sans-serif',
-            fontSize: 13, color: '#6b7280', marginTop: 4
-          }}>
-            {classes.length} {classes.length === 1 ? 'class' : 'classes'} today
-          </div>
+      {/* Header */}
+      <div style={{ padding: '20px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: textMain, margin: 0 }}>ClassHub</h1>
+          <p style={{ fontSize: 13, color: textMuted, marginTop: 4 }}>
+            {classes.length} {classes.length === 1 ? 'class' : 'classes'}
+          </p>
         </div>
-
-        {classes.length === 0 ? (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            padding: '60px 16px', gap: 12
-          }}>
-            <span style={{ fontSize: 32 }}>📚</span>
-            <p style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
-              fontSize: 14, color: '#6b7280', textAlign: 'center'
-            }}>
-              No classes scheduled today
-            </p>
-          </div>
-        ) : (
-          <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {classes.map(cls => (
-              <div
-                key={cls.id}
-                onClick={() => router.push(`/teacher/classhub/${cls.id}`)}
-                style={{
-                  background: isDark ? '#1A1D22' : '#ffffff',
-                  border: `1px solid ${isDark ? '#2A2D31' : '#E5E7EB'}`,
-                  borderRadius: 16, padding: '16px',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.07)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div>
-                    <div style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
-                      fontSize: 16, fontWeight: 700,
-                      color: isDark ? '#F0EDE8' : '#111827'
-                    }}>
-                      {cls.name}
-                    </div>
-                    <div style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
-                      fontSize: 12, color: '#6b7280', marginTop: 2
-                    }}>
-                      {cls.subject}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
-                      fontSize: 12, fontWeight: 600,
-                      color: isDark ? '#F0EDE8' : '#111827'
-                    }}>
-                      {cls.lessonTime}
-                    </div>
-                    <div style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
-                      fontSize: 11, color: '#6b7280', marginTop: 2
-                    }}>
-                      {cls.studentCount} students
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, marginTop: 10
-                }}>
-                  <div style={{
-                    flex: 1, height: 4, borderRadius: 4,
-                    background: isDark ? '#2A2D31' : '#F3F4F6', overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${cls.attendancePct}%`, height: '100%',
-                      background: cls.attendanceMarked ? '#10B981' : '#E5E7EB',
-                      borderRadius: 4, transition: 'width 400ms ease'
-                    }} />
-                  </div>
-                  <span style={{
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
-                    fontSize: 11, fontWeight: 600,
-                    color: cls.attendanceMarked ? '#10B981' : '#6b7280'
-                  }}>
-                    {cls.attendanceMarked ? `${cls.attendancePct}%` : 'Not marked'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <button
+          onClick={() => { setShowForm(v => !v); setError('') }}
+          style={{ padding: '10px 18px', borderRadius: 12, background: showForm ? '#f3f4f6' : dark, color: showForm ? textMain : '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          {showForm ? 'Cancel' : '+ Add Class'}
+        </button>
       </div>
 
-      <BottomNav
-        active={activeTab}
-        onChange={(tab) => {
-          setActiveTab(tab)
-          if (tab === 'home')        router.push('/teacher')
-          if (tab === 'lessonplan')  router.push('/teacher/lessonplan')
-          if (tab === 'vibeconnect') router.push('/teacher/vibeconnect')
-          if (tab === 'more')        router.push('/teacher/more')
-          if (tab === 'profile')     router.push('/teacher/profile')
-        }}
-      />
+      {/* Add class form */}
+      {showForm && (
+        <div style={{ margin: '0 16px 16px', padding: 20, background: cardBg, borderRadius: 16, border: `1px solid ${border}`, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <p style={{ fontSize: 15, fontWeight: 800, color: textMain, marginBottom: 16 }}>New Class</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>Class Name *</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. Grade 6B"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Subject *</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. Mathematics"
+                value={form.subject}
+                onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Stream (optional)</label>
+              <input
+                style={inputStyle}
+                placeholder="e.g. East"
+                value={form.stream}
+                onChange={e => setForm(f => ({ ...f, stream: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10 }}>{error}</p>
+          )}
+
+          <button
+            onClick={handleCreate}
+            disabled={saving}
+            style={{ marginTop: 18, width: '100%', padding: '12px', borderRadius: 12, background: saving ? '#d1fae5' : accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+          >
+            {saving ? 'Saving…' : 'Create Class'}
+          </button>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {classes.length === 0 && !showForm && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 16px', gap: 12 }}>
+          <span style={{ fontSize: 40 }}>🏫</span>
+          <p style={{ fontSize: 14, color: textMuted, textAlign: 'center' }}>No classes yet. Tap <strong>+ Add Class</strong> to get started.</p>
+        </div>
+      )}
+
+      {/* Class list */}
+      {classes.length > 0 && (
+        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {classes.map(cls => (
+            <div
+              key={cls.id}
+              style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: textMain, margin: 0 }}>
+                    {cls.name}{cls.stream ? ` · ${cls.stream}` : ''}
+                  </p>
+                  <p style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{cls.subject}</p>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => router.push(`/teacher/classhub/${cls.id}`)}
+                    style={{ padding: '7px 14px', borderRadius: 10, border: `1.5px solid ${accent}`, background: 'transparent', color: accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Open
+                  </button>
+                  <button
+                    onClick={() => handleDelete(cls.id)}
+                    disabled={deleting === cls.id}
+                    style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {deleting === cls.id ? '…' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
     </div>
   )
 }
