@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { supabase } from "@/lib/supabase";
 import { Card, SectionLabel, Btn, C } from "@/components/teacher/ui";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -93,20 +93,18 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
-  const supabase = createClientComponentClient();
-
   const [profile, setProfile] = useState<{
     full_name: string;
     phone: string;
     role: string;
   } | null>(null);
 
-  const [notifs, setNotifs] = useState<NotifPrefs>(DEFAULT_PREFS);
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
+  const [notifs, setNotifs]       = useState<NotifPrefs>(DEFAULT_PREFS);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
 
-  // ── Load ────────────────────────────────────────────────────────────────
+  // ── Load ──────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
       const {
@@ -124,9 +122,9 @@ export default function SettingsPage() {
       if (error) { setLoading(false); return; }
 
       setProfile({
-        full_name: data.full_name  ?? "—",
-        phone:     data.phone      ?? "—",
-        role:      data.role       ?? "—",
+        full_name: data.full_name ?? "—",
+        phone:     data.phone     ?? "—",
+        role:      data.role      ?? "—",
       });
 
       if (data.notification_prefs) {
@@ -137,9 +135,9 @@ export default function SettingsPage() {
     }
 
     load();
-  }, [supabase]);
+  }, []);
 
-  // ── Save ────────────────────────────────────────────────────────────────
+  // ── Save ──────────────────────────────────────────────────────────────
   async function save() {
     setSaving(true);
     setSaveState("idle");
@@ -160,7 +158,7 @@ export default function SettingsPage() {
     if (!error) setTimeout(() => setSaveState("idle"), 2500);
   }
 
-  // ── Loading state ────────────────────────────────────────────────────────
+  // ── Loading state ─────────────────────────────────────────────────────
   if (loading) {
     return (
       <div
@@ -178,7 +176,7 @@ export default function SettingsPage() {
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────
   return (
     <div>
       {/* Hero */}
@@ -221,11 +219,11 @@ export default function SettingsPage() {
         <SectionLabel>Account</SectionLabel>
         {profile ? (
           <>
-            <InfoRow label="Name"   value={profile.full_name} />
-            <InfoRow label="Phone"  value={profile.phone} />
-            <InfoRow label="Role"   value={profile.role} />
-            <InfoRow label="Language"   value="English (Kenya)" />
-            <InfoRow label="Time Zone"  value="Africa/Nairobi (EAT)" />
+            <InfoRow label="Name"        value={profile.full_name} />
+            <InfoRow label="Phone"       value={profile.phone} />
+            <InfoRow label="Role"        value={profile.role} />
+            <InfoRow label="Language"    value="English (Kenya)" />
+            <InfoRow label="Time Zone"   value="Africa/Nairobi (EAT)" />
             <InfoRow label="Date Format" value="DD/MM/YYYY" />
           </>
         ) : (
@@ -249,13 +247,7 @@ export default function SettingsPage() {
               borderBottom: `1px solid ${C.border}`,
             }}
           >
-            <span
-              style={{
-                fontSize: 13,
-                color: C.textPrimary,
-                fontWeight: 600,
-              }}
-            >
+            <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 600 }}>
               {NOTIF_LABELS[key]}
             </span>
             <Toggle
@@ -293,9 +285,7 @@ export default function SettingsPage() {
       {/* Danger Zone */}
       <Card>
         <SectionLabel>Danger Zone</SectionLabel>
-        <div
-          style={{ fontSize: 13, color: C.textMuted, marginBottom: 12 }}
-        >
+        <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 12 }}>
           These actions are permanent and cannot be undone.
         </div>
         <div style={{ display: "flex", gap: 10 }}>
