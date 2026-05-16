@@ -17,6 +17,8 @@ const NAV_TABS: ParentNavTab[] = [
   { id: "students",  label: "Students",  icon: "🎒", href: "/parent/students"   },
 ];
 
+const PRIMARY_HREFS = NAV_TABS.map(t => t.href);
+
 function tabIdFromPath(path: string): ParentNavTab["id"] {
   if (path === "/parent" || path === "/parent/") return "home";
   const match = NAV_TABS.find(t => t.href !== "/parent" && path.startsWith(t.href));
@@ -25,6 +27,7 @@ function tabIdFromPath(path: string): ParentNavTab["id"] {
 
 function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
   const router = useRouter();
+
   return (
     <div style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700,
@@ -34,8 +37,8 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
       alignItems: "flex-end",
     }}>
       {NAV_TABS.map(t => {
-        const isActive  = t.id === activeId;
-        const isCenter  = t.id === "vibelearn";
+        const isActive = t.id === activeId;
+        const isCenter = t.id === "vibelearn";
 
         if (isCenter) {
           return (
@@ -43,20 +46,31 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
               key={t.id}
               onClick={() => router.push(t.href)}
               style={{
-                flex: 1, display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "flex-end",
-                gap: 3, border: "none", background: "none",
-                cursor: "pointer", padding: "0 0 10px",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+                padding: "0 0 6px",
                 position: "relative",
+                height: "100%",
               }}
             >
               <div style={{
-                position: "absolute", bottom: 14,
-                width: 54, height: 54, borderRadius: "50%",
+                position: "absolute",
+                bottom: 20,
+                width: 54,
+                height: 54,
+                borderRadius: "50%",
                 background: isActive
                   ? "linear-gradient(135deg, #059669 0%, #10b981 100%)"
                   : "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-                display: "flex", alignItems: "center", justifyContent: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 boxShadow: isActive
                   ? "0 4px 18px rgba(16,185,129,0.55)"
                   : "0 4px 18px rgba(30,27,75,0.35)",
@@ -67,10 +81,12 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
                 {t.icon}
               </div>
               <span style={{
-                fontSize: 10, fontWeight: isActive ? 800 : 600,
+                fontSize: 10,
+                fontWeight: isActive ? 800 : 600,
                 color: isActive ? "#10b981" : "#6b7280",
-                marginTop: 2,
-                paddingTop: 40,
+                lineHeight: 1,
+                marginBottom: 0,
+                zIndex: 1,
               }}>
                 {t.label}
               </span>
@@ -83,10 +99,16 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
             key={t.id}
             onClick={() => router.push(t.href)}
             style={{
-              flex: 1, display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              gap: 3, border: "none", background: "none",
-              cursor: "pointer", padding: "8px 0",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              padding: "8px 0",
               color: isActive ? "#10b981" : "#6b7280",
               position: "relative",
             }}
@@ -97,8 +119,10 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
             </span>
             {isActive && (
               <div style={{
-                position: "absolute", top: 0,
-                width: 28, height: 2.5,
+                position: "absolute",
+                top: 0,
+                width: 28,
+                height: 2.5,
                 background: "#10b981",
                 borderRadius: "0 0 3px 3px",
               }} />
@@ -113,22 +137,29 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
 function TopBar({ initials }: { initials: string }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const isHome   = pathname === "/parent" || pathname === "/parent/";
+  const isPrimaryTab = PRIMARY_HREFS.includes(pathname.replace(/\/$/, "")) || pathname === "/parent";
+
   return (
     <div style={{
-      background: "#1e1b4b", color: "#fff",
-      padding: "0 20px", height: 56,
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      position: "sticky", top: 0, zIndex: 600,
+      background: "#1e1b4b",
+      color: "#fff",
+      padding: "0 20px",
+      height: 56,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      position: "sticky",
+      top: 0,
+      zIndex: 600,
       boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {!isHome && (
+        {!isPrimaryTab && (
           <div
             onClick={() => router.back()}
             style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}
           >
-            &lsaquo;
+            &#8249;
           </div>
         )}
         <div
@@ -137,8 +168,8 @@ function TopBar({ initials }: { initials: string }) {
         >
           <div style={{
             width: 30, height: 30, borderRadius: 9,
-            background: "#10b981", display: "flex",
-            alignItems: "center", justifyContent: "center",
+            background: "#10b981",
+            display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 15, fontWeight: 900, color: "#fff",
           }}>
             V
@@ -153,8 +184,8 @@ function TopBar({ initials }: { initials: string }) {
         onClick={() => router.push("/parent/profile")}
         style={{
           width: 34, height: 34, borderRadius: "50%",
-          background: "#10b981", display: "flex",
-          alignItems: "center", justifyContent: "center",
+          background: "#10b981",
+          display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
         }}
       >
@@ -205,7 +236,8 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
       <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
         <TopBar initials={initials} />
         <main style={{
-          maxWidth: 768, margin: "0 auto",
+          maxWidth: 768,
+          margin: "0 auto",
           padding: "16px 16px 0",
           paddingBottom: 160,
           minHeight: "calc(100vh - 120px)",
