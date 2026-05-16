@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { C } from '@/components/teacher/ui'
@@ -76,8 +77,9 @@ function Skeleton({ h = 56 }: { h?: number }) {
   )
 }
 
-export default function SchemePage() {
+function SchemePageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [ctx,         setCtx]         = useState<TeacherContext | null>(null)
   const [term,        setTerm]        = useState<number>(1)
@@ -111,20 +113,30 @@ export default function SchemePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/academy/signin?role=teacher'); return }
 
-      const [memberRes, tcRes] = await Promise.all([
+      const urlClassId   = searchParams.get('classId')
+      const urlSubjectId = searchParams.get('subjectId')
+
+      const [memberRes, tcAllRes] = await Promise.all([
         supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('teacher_classes').select('class_id,subject_id').eq('teacher_id', user.id).limit(1).maybeSingle(),
+        supabase.from('teacher_classes').select('class_id,subject_id').eq('teacher_id', user.id),
       ])
 
-      if (!tcRes.data) {
+      const tcRows = tcAllRes.data ?? []
+      if (tcRows.length === 0) {
         setError('No class assigned. Ask your admin to assign you a class.')
         setLoading(false)
         return
       }
 
+      // Use URL params if present, else fall back to first row
+      const matched = tcRows.find((r: { class_id: string; subject_id: string }) =>
+        (!urlClassId   || r.class_id   === urlClassId) &&
+        (!urlSubjectId || r.subject_id === urlSubjectId)
+      ) ?? tcRows[0]
+
       const schoolId  = memberRes.data?.school_id ?? ''
-      const classId   = tcRes.data.class_id
-      const subjectId = tcRes.data.subject_id
+      const classId   = matched.class_id
+      const subjectId = matched.subject_id
 
       const [classRes, subjRes] = await Promise.all([
         supabase.from('classes').select('name,stream,subject').eq('id', classId).single(),
@@ -495,5 +507,13 @@ Each object must have exactly these fields:
         )}
       </div>
     </div>
+  )
+}
+
+export default function SchemePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+      <SchemePageInner />
+    </Suspense>
   )
 }

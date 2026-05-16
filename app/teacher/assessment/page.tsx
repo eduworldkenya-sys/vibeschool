@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddGradeModal from '@/components/teacher/AddGradeModal'
@@ -66,7 +67,7 @@ function Skeleton({ h = 56 }: { h?: number }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AssessmentPage() {
+function AssessmentInner() {
   const [classes, setClasses]         = useState<ClassOption[]>([])
   const [subjects, setSubjects]       = useState<SubjectOption[]>([])
   const [activeClassIdx, setActiveClassIdx] = useState(0)
@@ -79,6 +80,7 @@ export default function AssessmentPage() {
   const [dataLoading, setDataLoading] = useState(false)
   const [error, setError]             = useState<string | null>(null)
   const [showAddGrade, setShowAddGrade] = useState(false)
+  const searchParams = useSearchParams()
 
   // ── Bootstrap: get teacher, school, classes, subjects ────────────────────
   useEffect(() => {
@@ -131,8 +133,20 @@ export default function AssessmentPage() {
       if (classesRes.error)  { setError(classesRes.error.message);  setLoading(false); return }
       if (subjectsRes.error) { setError(subjectsRes.error.message); setLoading(false); return }
 
-      setClasses(classesRes.data  ?? [])
-      setSubjects(subjectsRes.data ?? [])
+      const loadedClasses  = classesRes.data  ?? []
+      const loadedSubjects = subjectsRes.data ?? []
+      setClasses(loadedClasses)
+      setSubjects(loadedSubjects)
+      const urlClassId   = searchParams.get('classId')
+      const urlSubjectId = searchParams.get('subjectId')
+      if (urlClassId) {
+        const idx = loadedClasses.findIndex((c: { id: string }) => c.id === urlClassId)
+        if (idx !== -1) setActiveClassIdx(idx)
+      }
+      if (urlSubjectId) {
+        const idx = loadedSubjects.findIndex((s: { id: string }) => s.id === urlSubjectId)
+        if (idx !== -1) setActiveSubjectIdx(idx)
+      }
       setLoading(false)
     }
 
@@ -433,5 +447,12 @@ export default function AssessmentPage() {
         />
       )}
     </>
+  )
+}
+export default function AssessmentPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+      <AssessmentInner />
+    </Suspense>
   )
 }
