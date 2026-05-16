@@ -1,63 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ALLOWED_ORIGINS = [
-  process.env.NEXT_PUBLIC_SITE_URL,
-  'http://localhost:3000',
-].filter(Boolean) as string[]
-
 export async function POST(req: NextRequest) {
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const { prompt } = body as Record<string, unknown>
-
-  if (!prompt || typeof prompt !== 'string') {
-    return NextResponse.json({ error: 'Missing prompt' }, { status: 400 })
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     return NextResponse.json({ error: 'AI not configured' }, { status: 500 })
   }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type':         'application/json',
-        'x-api-key':            apiKey,
-        'anthropic-version':    '2023-06-01',
-      },
-      body: JSON.stringify({
-        model:      'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        messages:   [{ role: 'user', content: prompt }],
-      }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data?.error?.message ?? 'Anthropic error' },
-        { status: response.status }
-      )
+    const { prompt } = await req.json()
+    if (!prompt) {
+      return NextResponse.json({ error: 'No prompt provided' }, { status: 400 })
     }
 
-    const text = (data.content ?? [])
-      .map((b: { type: string; text?: string }) => b.type === 'text' ? b.text : '')
-      .join('')
-
-    return NextResponse.json({ text })
-
-  } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Request failed' },
-      { status: 500 }
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 8000, temperature: 0.3 },
+        }),
+      }
     )
+
+    if (!res.ok) {
+      const err = await res.json()
+      return NextResponse.json({ error: err.error?.message ?? 'Gemini error' }, { status: 500 })
+    }
+
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    return NextResponse.json({ text })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Unknown error'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
