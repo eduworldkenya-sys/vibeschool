@@ -142,7 +142,7 @@ export default function TeacherHomePage() {
 
         supabase
           .from('timetable_slots')
-          .select(`id, start_time, end_time, room, subjects ( name ), classes ( grade_name, stream )`)
+          .select(`id, start_time, end_time, room, subjects ( name ), classes ( name, stream )`)
           .eq('teacher_id', uid)
           .eq('day_of_week', dow)
           .order('start_time', { ascending: true }),
@@ -185,9 +185,9 @@ export default function TeacherHomePage() {
       )
 
       const mappedSlots: Slot[] = (slotsRes.data ?? []).map((slot) => {
-        const cls       = slot.classes as unknown as { grade_name: string; stream: string | null } | null
+        const cls       = slot.classes as unknown as { name: string; stream: string | null } | null
         const subject   = (slot.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
-        const className = cls ? cls.grade_name + (cls.stream ? ` ${cls.stream}` : '') : ''
+        const className = cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : ''
         return {
           id:               slot.id,
           subject,
