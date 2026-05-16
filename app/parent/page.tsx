@@ -150,7 +150,7 @@ export default function ParentHomePage() {
         <div style={{ background: '#fff', borderRadius: 16, padding: 24, textAlign: 'center', border: '1px solid #e5e7eb' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>👨‍👩‍👧</div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 6 }}>No child linked yet</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Ask your child's teacher for a claim code to link your child's profile.</div>
+          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Ask your childs teacher for a claim code to link your childs profile.</div>
           <button
             onClick={() => router.push('/parent/link-child')}
             style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
