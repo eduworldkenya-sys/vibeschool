@@ -1,10 +1,18 @@
-export type TrendDirection = "improving" | "stable" | "declining";
-export type PlanStatus     = "green" | "amber" | "red" | "grey";
-export type SlotStatus     = "taught" | "scheduled" | "cancelled";
+// lib/types.ts
+
+// ─── Union Types ─────────────────────────────────────────────────────────────
+
+export type TrendDirection   = "improving" | "stable" | "declining";
+export type PlanStatus       = "green" | "amber" | "red" | "grey";
+export type SlotStatus       = "taught" | "scheduled" | "cancelled";
 export type AttendanceStatus = "present" | "absent" | "late" | "excused";
-export type ThreadRole     = "parent" | "teacher" | "admin";
-export type FlagType       = "attendance" | "resource_gap" | "performance";
-export type FlagSeverity   = "critical" | "high" | "medium" | "low";
+export type ThreadRole       = "parent" | "teacher" | "admin";
+export type FlagType         = "attendance" | "resource_gap" | "performance";
+export type FlagSeverity     = "critical" | "high" | "medium" | "low";
+export type UserRole         = "teacher" | "parent" | "student" | "admin";
+export type RequestStatus    = "pending" | "approved" | "rejected";
+
+// ─── UI / Mockup Types ───────────────────────────────────────────────────────
 
 export interface Student {
   id: number;
@@ -73,29 +81,135 @@ export interface Teacher {
 }
 
 export interface TeacherAlert {
-  id: string
-  type: 'urgent' | 'warning' | 'info' | 'success'
-  message: string
-  action?: string
-  actionHref?: string
+  id: string;
+  type: "urgent" | "warning" | "info" | "success";
+  message: string;
+  action?: string;
+  actionHref?: string;
 }
 
 export interface TeacherDocument {
-  name: string
-  status: 'valid' | 'expiring' | 'missing' | 'expired'
-  expiryDate?: string
+  name: string;
+  status: "valid" | "expiring" | "missing" | "expired";
+  expiryDate?: string;
 }
 
 export interface ClassItem {
-  id:               string
-  name:             string
-  stream:           string
-  subject:          string
-  created_at:       string
-  unreadAlerts:     number
-  lessonTime:       string
-  studentCount:     number
-  attendancePct:    number
-  attendanceMarked: boolean
-  nextAssessment:   string | null
+  id:               string;
+  name:             string;
+  stream:           string;
+  subject:          string;
+  created_at:       string;
+  unreadAlerts:     number;
+  lessonTime:       string;
+  studentCount:     number;
+  attendancePct:    number;
+  attendanceMarked: boolean;
+  nextAssessment:   string | null;
+}
+
+// ─── Supabase DB Row Types ───────────────────────────────────────────────────
+
+export interface Profile {
+  id:            string;
+  full_name:     string;
+  role:          UserRole;
+  school_id:     string | null;
+  country_code:  string | null;
+  date_of_birth: string | null;
+}
+
+export interface School {
+  id:           string;
+  name:         string;
+  subdomain:    string;
+  status:       string;
+  created_by:   string;
+  country_code: string | null;
+}
+
+export interface StudentRow {
+  id:               string;
+  class_id:         string;
+  name:             string;
+  admission_number: string;
+  profile_id:       string | null;
+}
+
+export interface StudentClaimCode {
+  id:         string;
+  student_id: string;
+  code:       string;
+  claimed:    boolean;
+  created_at: string;
+  expires_at: string | null;
+}
+
+export interface StudentProfile {
+  profile_id:   string;
+  school_id:    string;
+  admission_no: string;
+  gender:       string | null;
+}
+
+export interface ParentProfile {
+  profile_id:   string;
+  relationship: string;
+  occupation:   string | null;
+}
+
+export interface ParentStudentLink {
+  id:              string;
+  parent_id:       string;
+  student_id:      string;
+  school_id:       string;
+  relationship:    string;
+  is_primary:      boolean;
+  can_pickup:      boolean;
+  receives_alerts: boolean;
+}
+
+export interface ClassJoinRequest {
+  id:         string;
+  student_id: string;
+  class_id:   string;
+  parent_id:  string;
+  status:     RequestStatus;
+}
+
+export interface StudentClass {
+  id:         string;
+  school_id:  string;
+  student_id: string;
+  class_id:   string;
+  joined_at:  string;
+  is_current: boolean;
+}
+
+export interface AttendanceRow {
+  id:               string;
+  class_id:         string;
+  student_id:       string;
+  date:             string;
+  status:           AttendanceStatus;
+  timetable_slot_id: string | null;
+}
+
+export interface Message {
+  id:           string;
+  recipient_id: string;
+  sender_id:    string;
+  body:         string;
+  is_read:      boolean;
+  created_at:   string;
+}
+
+// ─── Derived / UI Types ──────────────────────────────────────────────────────
+
+export interface LinkedChild {
+  student_id:     string;
+  name:           string;
+  class_name:     string;
+  attendance_pct: number;
+  school_name:    string;
 }
