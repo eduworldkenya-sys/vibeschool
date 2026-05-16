@@ -182,21 +182,15 @@ Each object must have exactly these fields:
 Base this strictly on the official KIE CBC curriculum design for ${ctx.grade} ${ctx.subject} Kenya.
 Cover all weeks across all 3 terms. Return all rows in one array.`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/generate-scheme', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+      body: JSON.stringify({ prompt }),
     })
 
     const data = await response.json()
-    const text = (data.content ?? [])
-      .map((b: { type: string; text?: string }) => b.type === 'text' ? b.text : '')
-      .join('')
-    const clean = text.replace(/```json|```/g, '').trim()
+    if (!response.ok) throw new Error(data.error ?? 'Generation failed')
+    const clean = (data.text ?? '').replace(/```json|```/g, '').trim()
 
     const rows: Array<{
       term: number; week: number; strand: string; sub_strand: string
@@ -260,21 +254,15 @@ Each object must have exactly these fields:
 - resources (string: comma separated, 4 to 6 specific teaching materials realistic for Kenyan primary schools)
 - reference (string: KIE textbook page reference)`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/generate-scheme', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+      body: JSON.stringify({ prompt }),
     })
 
     const data = await response.json()
-    const text = (data.content ?? [])
-      .map((b: { type: string; text?: string }) => b.type === 'text' ? b.text : '')
-      .join('')
-    const clean = text.replace(/```json|```/g, '').trim()
+    if (!response.ok) throw new Error(data.error ?? 'Generation failed')
+    const clean = (data.text ?? '').replace(/```json|```/g, '').trim()
 
     const rows: Array<{
       curriculum_id: string; week: number; strand: string; sub_strand: string
