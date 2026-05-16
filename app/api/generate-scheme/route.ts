@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) {
     return NextResponse.json({ error: 'AI not configured' }, { status: 500 })
   }
@@ -12,25 +12,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No prompt provided' }, { status: 400 })
     }
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 8000, temperature: 0.3 },
-        }),
-      }
-    )
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 8000,
+        temperature: 0.3,
+      }),
+    })
 
     if (!res.ok) {
       const err = await res.json()
-      return NextResponse.json({ error: err.error?.message ?? 'Gemini error' }, { status: 500 })
+      return NextResponse.json({ error: err.error?.message ?? 'Groq error' }, { status: 500 })
     }
 
     const data = await res.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    const text = data.choices?.[0]?.message?.content ?? ''
     return NextResponse.json({ text })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
