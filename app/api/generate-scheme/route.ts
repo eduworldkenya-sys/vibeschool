@@ -6,11 +6,6 @@ const ALLOWED_ORIGINS = [
 ].filter(Boolean) as string[]
 
 export async function POST(req: NextRequest) {
-  const origin = req.headers.get('origin') ?? ''
-  if (!ALLOWED_ORIGINS.includes(origin)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
   let body: unknown
   try {
     body = await req.json()
