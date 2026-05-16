@@ -116,7 +116,7 @@ export default function ClassHubPage() {
       : supabase.from('subjects').select('id, name').order('name')
 
     const [classRes, subjectRes] = await Promise.all([
-      supabase.from('classes').select('*').eq('teacher_id', uid).order('created_at', { ascending: true }),
+      supabase.from('classes').select('*').eq('teacher_id', uid).eq('school_id', sid ?? '').order('created_at', { ascending: true }),
       subjectQuery,
     ])
 
@@ -149,6 +149,7 @@ export default function ClassHubPage() {
     setSaving(true)
     const { error: err } = await supabase.from('classes').insert({
       teacher_id: userId,
+      school_id:  schoolId,
       name:       form.name.trim(),
       stream:     form.stream.trim(),
       subject:    subject.name,

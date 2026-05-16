@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
-import AddGradeModal from '@/components/teacher/AddGradeModal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,17 +18,6 @@ interface SubjectOption {
   name: string
 }
 
-interface GradeRow {
-  id: string
-  student_id: string
-  studentName: string
-  marks: number
-  out_of: number
-  assessment: string
-  term: number
-  academic_year: number
-}
-
 interface CbcRow {
   id: string
   student_id: string
@@ -42,17 +30,6 @@ interface CbcRow {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function pct(marks: number, out_of: number): number {
-  if (!out_of) return 0
-  return Math.round((marks / out_of) * 100)
-}
-
-function scoreColor(p: number): string {
-  if (p >= 70) return C.accent
-  if (p >= 55) return C.warning
-  return C.error
-}
 
 function Skeleton({ h = 56 }: { h?: number }) {
   return (
@@ -72,14 +49,12 @@ function AssessmentInner() {
   const [subjects, setSubjects]       = useState<SubjectOption[]>([])
   const [activeClassIdx, setActiveClassIdx] = useState(0)
   const [activeSubjectIdx, setActiveSubjectIdx] = useState(0)
-  const [grades, setGrades]           = useState<GradeRow[]>([])
   const [cbcRows, setCbcRows]         = useState<CbcRow[]>([])
   const [schoolId, setSchoolId]       = useState<string | null>(null)
   const [teacherId, setTeacherId]     = useState<string | null>(null)
   const [loading, setLoading]         = useState(true)
   const [dataLoading, setDataLoading] = useState(false)
   const [error, setError]             = useState<string | null>(null)
-  const [showAddGrade, setShowAddGrade] = useState(false)
   const searchParams = useSearchParams()
 
   // ── Bootstrap: get teacher, school, classes, subjects ────────────────────
@@ -153,7 +128,7 @@ function AssessmentInner() {
     boot()
   }, [])
 
-  // ── Load grades + CBC when class/subject selection changes ────────────────
+  // ── Load CBC when class/subject selection changes ────────────────────────
   useEffect(() => {
     if (!schoolId || !teacherId || classes.length === 0 || subjects.length === 0) return
 
@@ -172,7 +147,6 @@ function AssessmentInner() {
         .eq('is_current', true)
 
       if (scErr || !scData || scData.length === 0) {
-        setGrades([])
         setCbcRows([])
         setDataLoading(false)
         return
@@ -180,15 +154,8 @@ function AssessmentInner() {
 
       const studentIds = Array.from(new Set(scData.map((r: { student_id: string }) => r.student_id)))
 
-      // Parallel: traditional grades + CBC assessments + student names
-      const [gradesRes, cbcRes, studentsRes] = await Promise.all([
-        supabase
-          .from('traditional_grades')
-          .select('id, student_id, marks, out_of, assessment, term, academic_year')
-          .eq('class_id', classId)
-          .eq('subject_id', subjectId)
-          .eq('school_id', schoolId ?? '')
-          .in('student_id', studentIds),
+      // Parallel: CBC assessments + student names (traditional_grades table does not exist)
+      const [cbcRes, studentsRes] = await Promise.all([
         supabase
           .from('cbc_assessments')
           .select('id, student_id, sub_strand, assessment_type, performance, term, academic_year')
@@ -202,7 +169,6 @@ function AssessmentInner() {
           .in('id', studentIds),
       ])
 
-      if (gradesRes.error)  { setError(gradesRes.error.message);  setDataLoading(false); return }
       if (cbcRes.error)     { setError(cbcRes.error.message);     setDataLoading(false); return }
       if (studentsRes.error){ setError(studentsRes.error.message); setDataLoading(false); return }
 
@@ -210,15 +176,6 @@ function AssessmentInner() {
         (studentsRes.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name])
       )
 
-      setGrades(
-        (gradesRes.data ?? []).map((g: {
-          id: string; student_id: string; marks: number;
-          out_of: number; assessment: string; term: number; academic_year: number
-        }) => ({
-          ...g,
-          studentName: nameMap.get(g.student_id) ?? 'Unknown',
-        }))
-      )
 
       setCbcRows(
         (cbcRes.data ?? []).map((c: {
@@ -338,56 +295,6 @@ function AssessmentInner() {
           </div>
         )}
 
-        {/* Traditional grades */}
-        {!loading && !dataLoading && activeClass && (
-          <Card>
-            <SectionLabel>
-              {activeClass.name} {activeClass.stream} · {activeSubject?.name ?? ''} — Grades
-            </SectionLabel>
-
-            {grades.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
-                No grades recorded yet for this class and subject.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {grades.map((g, idx) => {
-                  const p = pct(g.marks, g.out_of)
-                  return (
-                    <div
-                      key={g.id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 0',
-                        borderBottom: idx < grades.length - 1 ? `1px solid ${C.border}` : 'none',
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>
-                          {g.studentName}
-                        </div>
-                        <div style={{ fontSize: 11, color: C.textMuted }}>
-                          {g.assessment} · Term {g.term} · {g.academic_year}
-                        </div>
-                      </div>
-                      <div style={{ width: 100, height: 6, background: C.border, borderRadius: 10, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', borderRadius: 10, background: scoreColor(p), width: `${p}%` }} />
-                      </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, width: 40, textAlign: 'right' }}>
-                        {g.marks}/{g.out_of}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            <div style={{ marginTop: 14 }}>
-              <Btn onClick={() => setShowAddGrade(true)}>+ New Assessment</Btn>
-            </div>
-          </Card>
-        )}
-
         {/* CBC assessments */}
         {!loading && !dataLoading && activeClass && (
           <Card>
@@ -432,20 +339,6 @@ function AssessmentInner() {
 
       </div>
 
-      {showAddGrade && teacherId && schoolId && activeClass && activeSubject && (
-        <AddGradeModal
-          teacherId={teacherId}
-          schoolId={schoolId}
-          classId={activeClass.id}
-          subjectId={activeSubject.id}
-          onClose={() => setShowAddGrade(false)}
-          onSaved={() => {
-            setShowAddGrade(false)
-            // Re-trigger data load by bumping the active index
-            setActiveClassIdx(i => i)
-          }}
-        />
-      )}
     </>
   )
 }
