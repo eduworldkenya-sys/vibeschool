@@ -403,7 +403,7 @@ export default function ChildDetailPage() {
         boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
       }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: dark, marginBottom: 16 }}>
-          Today"s Timeline
+          {"Today's Timeline"}
         </div>
 
         {timelineItems.map((item, i) => (
