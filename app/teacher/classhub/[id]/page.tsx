@@ -9,6 +9,7 @@ interface Student {
   name:             string
   admission_number: string
   created_at:       string
+  profile_id:       string | null
 }
 
 interface ClassInfo {
@@ -20,6 +21,11 @@ interface ClassInfo {
 interface FormState {
   name:             string
   admission_number: string
+}
+
+interface ClaimCode {
+  studentId: string
+  code:      string
 }
 
 function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
@@ -57,6 +63,10 @@ const NOTICES = [
   { id: '1', icon: '📋', text: 'No recent activity', sub: 'Class updates will appear here' },
 ]
 
+function generateCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase()
+}
+
 function ClassPageInner() {
   const router       = useRouter()
   const params       = useParams()
@@ -66,15 +76,19 @@ function ClassPageInner() {
   const subjectId    = searchParams.get('subjectId') ?? ''
   const isSubject    = mode === 'subject'
 
-  const [classInfo,  setClassInfo]  = useState<ClassInfo | null>(null)
-  const [students,   setStudents]   = useState<Student[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [showRoster, setShowRoster] = useState(false)
-  const [showForm,   setShowForm]   = useState(false)
-  const [saving,     setSaving]     = useState(false)
-  const [deleting,   setDeleting]   = useState<string | null>(null)
-  const [error,      setError]      = useState('')
-  const [form,       setForm]       = useState<FormState>({ name: '', admission_number: '' })
+  const [classInfo,    setClassInfo]    = useState<ClassInfo | null>(null)
+  const [students,     setStudents]     = useState<Student[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [showRoster,   setShowRoster]   = useState(false)
+  const [showForm,     setShowForm]     = useState(false)
+  const [saving,       setSaving]       = useState(false)
+  const [deleting,     setDeleting]     = useState<string | null>(null)
+  const [error,        setError]        = useState('')
+  const [form,         setForm]         = useState<FormState>({ name: '', admission_number: '' })
+  const [claimCodes,   setClaimCodes]   = useState<Record<string, string>>({})
+  const [generating,   setGenerating]   = useState<string | null>(null)
+  const [copiedId,     setCopiedId]     = useState<string | null>(null)
+  const [joinRequests, setJoinRequests] = useState<number>(0)
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -84,14 +98,23 @@ function ClassPageInner() {
       ? supabase.from('classes').select('name, stream, subject').eq('id', classId).single()
       : supabase.from('classes').select('name, stream, subject').eq('id', classId).eq('teacher_id', user.id).single()
 
-    const [clsRes, studsRes] = await Promise.all([
+    const [clsRes, studsRes, codesRes, requestsRes] = await Promise.all([
       classQuery,
       supabase.from('students').select('*').eq('class_id', classId).order('created_at', { ascending: true }),
+      supabase.from('student_claim_codes').select('student_id, code').eq('claimed', false),
+      supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
     ])
 
     if (!clsRes.data) { router.push(isSubject ? '/teacher/subjecthub' : '/teacher/classhub'); return }
     setClassInfo(clsRes.data)
     setStudents(studsRes.data ?? [])
+    setJoinRequests(requestsRes.data?.length ?? 0)
+
+    const codes: Record<string, string> = {}
+    for (const c of codesRes.data ?? []) {
+      codes[c.student_id] = c.code
+    }
+    setClaimCodes(codes)
     setLoading(false)
   }
 
@@ -101,20 +124,60 @@ function ClassPageInner() {
     setError('')
     if (!form.name.trim()) { setError('Student name is required.'); return }
     setSaving(true)
-    const { error: err } = await supabase.from('students').insert({
-      class_id:         classId,
-      name:             form.name.trim(),
-      admission_number: form.admission_number.trim(),
+
+    const { data: student, error: err } = await supabase
+      .from('students')
+      .insert({
+        class_id:         classId,
+        name:             form.name.trim(),
+        admission_number: form.admission_number.trim() || null,
+      })
+      .select('id')
+      .single()
+
+    if (err || !student) { setSaving(false); setError(err?.message ?? 'Failed to add student'); return }
+
+    // Auto-generate claim code for new student
+    const code = generateCode()
+    await supabase.from('student_claim_codes').insert({
+      student_id: student.id,
+      code,
+      claimed:    false,
     })
+
     setSaving(false)
-    if (err) { setError(err.message); return }
     setForm({ name: '', admission_number: '' })
     setShowForm(false)
     loadData()
   }
 
+  async function handleGenerateCode(studentId: string) {
+    setGenerating(studentId)
+    const code = generateCode()
+
+    // Delete old unclaimed code if exists
+    await supabase.from('student_claim_codes').delete()
+      .eq('student_id', studentId).eq('claimed', false)
+
+    await supabase.from('student_claim_codes').insert({
+      student_id: studentId,
+      code,
+      claimed:    false,
+    })
+
+    setClaimCodes(prev => ({ ...prev, [studentId]: code }))
+    setGenerating(null)
+  }
+
+  async function handleCopyCode(studentId: string, code: string) {
+    await navigator.clipboard.writeText(code)
+    setCopiedId(studentId)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
   async function handleDelete(id: string) {
     setDeleting(id)
+    await supabase.from('student_claim_codes').delete().eq('student_id', id)
     await supabase.from('students').delete().eq('id', id)
     setDeleting(null)
     loadData()
@@ -133,12 +196,12 @@ function ClassPageInner() {
     if (r) router.push(r)
   }
 
-  const actions        = isSubject ? SUBJECT_ACTIONS : CLASS_ACTIONS
-  const heroGradient   = isSubject
+  const actions      = isSubject ? SUBJECT_ACTIONS : CLASS_ACTIONS
+  const heroGradient = isSubject
     ? 'linear-gradient(135deg, #075985 0%, #0369a1 60%, #0ea5e9 150%)'
     : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #10b981 150%)'
-  const backRoute      = isSubject ? '/teacher/subjecthub' : '/teacher/classhub'
-  const gridCols       = isSubject ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)'
+  const backRoute    = isSubject ? '/teacher/subjecthub' : '/teacher/classhub'
+  const gridCols     = isSubject ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)'
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '11px 14px', borderRadius: 10,
@@ -156,7 +219,7 @@ function ClassPageInner() {
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#6b7280', paddingBottom: 60, background: '#f8f9fa', minHeight: '100%' }}>
       <style>{`
-        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
@@ -176,10 +239,18 @@ function ClassPageInner() {
                 Subject View
               </div>
             ) : (
-              <>
-                <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>🔔</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {joinRequests > 0 && (
+                  <button
+                    onClick={() => router.push('/teacher/classhub/' + classId + '/requests')}
+                    style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}
+                  >
+                    🔔
+                    <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
+                  </button>
+                )}
                 <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>⚙️</button>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -216,7 +287,7 @@ function ClassPageInner() {
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               {[
                 { label: 'Students',                              value: students.length },
-                { label: 'Present',                               value: '—' },
+                { label: 'Claimed',                               value: students.filter(s => s.profile_id).length },
                 { label: isSubject ? 'Subject Avg' : 'Avg Score', value: '—' },
               ].map(s => (
                 <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
@@ -306,28 +377,79 @@ function ClassPageInner() {
             </div>
           ) : (
             <div>
-              {students.map((s, i) => (
-                <div key={s.id} style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: isSubject ? '#e0f2fe' : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: isSubject ? '#075985' : '#1e1b4b', flexShrink: 0 }}>
-                      {i + 1}
+              {students.map((s, i) => {
+                const code    = claimCodes[s.id]
+                const claimed = !!s.profile_id
+                return (
+                  <div key={s.id} style={{ padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: claimed ? '#d1fae5' : isSubject ? '#e0f2fe' : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: claimed ? '#065f46' : isSubject ? '#075985' : '#1e1b4b', flexShrink: 0 }}>
+                          {claimed ? '✓' : i + 1}
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{s.name}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            {s.admission_number && <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>{s.admission_number}</p>}
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: claimed ? '#d1fae5' : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>
+                              {claimed ? 'Claimed ✓' : 'Unclaimed'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {!isSubject && !claimed && (
+                        <button
+                          onClick={() => handleDelete(s.id)}
+                          disabled={deleting === s.id}
+                          style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #fca5a5', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          {deleting === s.id ? '…' : 'Delete'}
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{s.name}</p>
-                      {s.admission_number && <p style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{s.admission_number}</p>}
-                    </div>
+
+                    {/* Claim code section */}
+                    {!isSubject && !claimed && (
+                      <div style={{ marginTop: 10, padding: '10px 12px', background: '#f8f9fa', borderRadius: 10, border: '1px solid #e5e7eb' }}>
+                        {code ? (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <div>
+                              <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Claim Code</p>
+                              <p style={{ fontSize: 18, fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: 3, fontFamily: 'monospace' }}>{code}</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                onClick={() => handleCopyCode(s.id, code)}
+                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? '#d1fae5' : 'transparent', color: '#10b981', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+                              >
+                                {copiedId === s.id ? 'Copied!' : 'Copy'}
+                              </button>
+                              <button
+                                onClick={() => handleGenerateCode(s.id)}
+                                disabled={generating === s.id}
+                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+                              >
+                                {generating === s.id ? '…' : 'New'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>No claim code yet</p>
+                            <button
+                              onClick={() => handleGenerateCode(s.id)}
+                              disabled={generating === s.id}
+                              style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: '#1e1b4b', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                            >
+                              {generating === s.id ? 'Generating…' : 'Generate Code'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {!isSubject && (
-                    <button
-                      onClick={() => handleDelete(s.id)}
-                      disabled={deleting === s.id}
-                      style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #fca5a5', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                      {deleting === s.id ? '…' : 'Delete'}
-                    </button>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -368,9 +490,9 @@ function ClassPageInner() {
         </p>
         <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { label: 'Attendance Rate',                           value: '—%', icon: '📊' },
-            { label: isSubject ? 'Subject Avg' : 'Avg Score',    value: '—',  icon: '🏆' },
-            { label: 'Homework Done',                             value: '—%', icon: '📝' },
+            { label: 'Attendance Rate',                        value: '—%', icon: '📊' },
+            { label: isSubject ? 'Subject Avg' : 'Avg Score', value: '—',  icon: '🏆' },
+            { label: 'Homework Done',                          value: '—%', icon: '📝' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: 16 }}>{s.icon}</div>
