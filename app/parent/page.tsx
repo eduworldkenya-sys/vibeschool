@@ -96,7 +96,8 @@ export default function ParentHomePage() {
         const { data: att } = await supabase
           .from('attendance')
           .select('status')
-          .eq('class_id', s.class_id)
+          .eq('student_id', s.id)
+        .eq('class_id', s.class_id)
 
         const total     = att?.length ?? 0
         const present   = att?.filter(a => a.status === 'present').length ?? 0
