@@ -103,33 +103,13 @@ function AcademySignInInner() {
       <svg
         aria-hidden
         focusable="false"
-        style={{
-          position: 'absolute',
-          width: 0,
-          height: 0,
-          overflow: 'hidden',
-        }}
+        style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
       >
         <defs>
           <filter id="grain-academy-signin">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.68"
-              numOctaves={4}
-              stitchTiles="stitch"
-              result="noise"
-            />
-            <feColorMatrix
-              type="saturate"
-              values="0"
-              in="noise"
-              result="grayNoise"
-            />
-            <feBlend
-              in="SourceGraphic"
-              in2="grayNoise"
-              mode="overlay"
-            />
+            <feTurbulence type="fractalNoise" baseFrequency="0.68" numOctaves={4} stitchTiles="stitch" result="noise" />
+            <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+            <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" />
           </filter>
         </defs>
       </svg>
@@ -146,21 +126,13 @@ function AcademySignInInner() {
             ←
           </button>
 
-          <p className={styles.world}>
-            ACADEMY · {role.toUpperCase()}
-          </p>
-
+          <p className={styles.world}>ACADEMY · {role.toUpperCase()}</p>
           <p className={styles.heading}>SIGN IN</p>
-
-          <p className={styles.sub}>
-            For schools, teachers and institutions.
-          </p>
+          <p className={styles.sub}>For schools, teachers and institutions.</p>
 
           <div className={styles.form}>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="email">
-                EMAIL
-              </label>
+              <label className={styles.label} htmlFor="email">EMAIL</label>
               <input
                 id="email"
                 className={styles.input}
@@ -174,9 +146,7 @@ function AcademySignInInner() {
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="password">
-                PASSWORD
-              </label>
+              <label className={styles.label} htmlFor="password">PASSWORD</label>
               <div style={{ position: 'relative' }}>
                 <input
                   id="password"
@@ -202,9 +172,7 @@ function AcademySignInInner() {
             </div>
 
             {error && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
+              <p className={styles.error} role="alert">{error}</p>
             )}
 
             <button
@@ -223,11 +191,7 @@ function AcademySignInInner() {
               role="button"
               tabIndex={0}
               onClick={() => fadeOut(`/academy/signup?role=${role}`)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  fadeOut(`/academy/signup?role=${role}`)
-                }
-              }}
+              onKeyDown={e => { if (e.key === 'Enter') fadeOut(`/academy/signup?role=${role}`) }}
             >
               Create account
             </span>
