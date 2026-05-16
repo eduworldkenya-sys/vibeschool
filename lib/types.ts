@@ -221,3 +221,47 @@ export interface ParentNavTab {
   icon:  string;
   href:  string;
 }
+
+// ─── Homework ─────────────────────────────────────────────────────────────────
+
+export type HomeworkType     = "smart" | "book";
+export type SubmissionStatus = "pending" | "submitted" | "marked";
+
+export interface Homework {
+  id:           string;
+  class_id:     string;
+  teacher_id:   string;
+  title:        string;
+  subject:      string;
+  instructions: string | null;
+  type:         HomeworkType;
+  due_date:     string;
+  created_at:   string;
+}
+
+export interface HomeworkQuestion {
+  id:          string;
+  homework_id: string;
+  question:    string;
+  order_num:   number;
+}
+
+export interface HomeworkSubmission {
+  id:           string;
+  homework_id:  string;
+  student_id:   string;
+  submitted_at: string | null;
+  status:       SubmissionStatus;
+  photo_url:    string | null;
+  mark:         number | null;
+  feedback:     string | null;
+  created_at:   string;
+}
+
+export interface HomeworkAnswer {
+  id:            string;
+  submission_id: string;
+  question_id:   string;
+  answer_text:   string | null;
+  created_at:    string;
+}
