@@ -1,4 +1,3 @@
-// app/parent/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -147,16 +146,24 @@ export default function ParentHomePage() {
 
       {/* No child linked */}
       {noChild && (
-        <div style={{ background: '#fff', borderRadius: 16, padding: 24, textAlign: 'center', border: '1px solid #e5e7eb' }}>
+        <div style={{ background: '#fff', borderRadius: 16, padding: 24, textAlign: 'center', border: '1px solid #e5e7eb', marginBottom: 12 }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>👨‍👩‍👧</div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 6 }}>No child linked yet</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Ask your childs teacher for a claim code to link your childs profile.</div>
-          <button
-            onClick={() => router.push('/parent/link-child')}
-            style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            + Link Child with Code
-          </button>
+          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Link an existing student with a claim code, or add your child to a class directly.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              onClick={() => router.push('/parent/link-child')}
+              style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              🔗 Link with Claim Code
+            </button>
+            <button
+              onClick={() => router.push('/parent/create-child')}
+              style={{ padding: '12px 24px', borderRadius: 12, border: `1.5px solid ${dark}`, background: 'transparent', color: dark, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              + Add Child to Class
+            </button>
+          </div>
         </div>
       )}
 
@@ -202,6 +209,16 @@ export default function ParentHomePage() {
           </div>
         </div>
       ))}
+
+      {/* Add another child button — shown when children exist */}
+      {children.length > 0 && (
+        <button
+          onClick={() => router.push('/parent/create-child')}
+          style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
+        >
+          + Add Another Child
+        </button>
+      )}
 
     </div>
   )
