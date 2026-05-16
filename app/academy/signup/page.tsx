@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import styles from './signup.module.css'
 
-const VALID_ROLES = ['teacher', 'parent', 'admin'] as const
+const VALID_ROLES = ['teacher', 'parent', 'student', 'admin'] as const
 type Role = typeof VALID_ROLES[number]
 
 const COUNTRIES = [
@@ -18,19 +18,20 @@ const COUNTRIES = [
 
 const MIN_DOB = new Date()
 MIN_DOB.setFullYear(MIN_DOB.getFullYear() - 120)
-
 const MAX_DOB = new Date()
 MAX_DOB.setFullYear(MAX_DOB.getFullYear() - 5)
 
 const ROLE_CONTENT: Record<Role, { descriptor: string }> = {
   teacher: { descriptor: 'Manage classes, lessons and student engagement.' },
   parent:  { descriptor: "Track your child's progress and communications." },
+  student: { descriptor: 'View your timetable, marks, attendance and homework.' },
   admin:   { descriptor: 'Manage institution-wide operations and analytics.' },
 }
 
 const ROLE_DESTINATIONS: Record<Role, string> = {
   teacher: '/teacher',
   parent:  '/parent',
+  student: '/student',
   admin:   '/admin',
 }
 
@@ -45,17 +46,18 @@ function AcademySignUpInner() {
   const contentRef = useRef<HTMLDivElement>(null)
   const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [fullName,         setFullName]         = useState('')
-  const [dob,              setDob]              = useState('')
-  const [country,          setCountry]          = useState('')
-  const [email,            setEmail]            = useState('')
-  const [password,         setPassword]         = useState('')
-  const [confirmPassword,  setConfirmPassword]  = useState('')
-  const [showPassword,     setShowPassword]     = useState(false)
-  const [showConfirm,      setShowConfirm]      = useState(false)
-  const [code,             setCode]             = useState('')
-  const [error,            setError]            = useState('')
-  const [loading,          setLoading]          = useState(false)
+  const [fullName,        setFullName]        = useState('')
+  const [dob,             setDob]             = useState('')
+  const [country,         setCountry]         = useState('')
+  const [email,           setEmail]           = useState('')
+  const [password,        setPassword]        = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword,    setShowPassword]    = useState(false)
+  const [showConfirm,     setShowConfirm]     = useState(false)
+  const [claimCode,       setClaimCode]       = useState('')
+  const [inviteCode,      setInviteCode]      = useState('')
+  const [error,           setError]           = useState('')
+  const [loading,         setLoading]         = useState(false)
 
   useEffect(() => {
     return () => { if (navTimer.current) clearTimeout(navTimer.current) }
@@ -71,8 +73,8 @@ function AcademySignUpInner() {
   async function handleSubmit() {
     setError('')
 
-    if (!fullName.trim())  { setError('Full name is required.'); return }
-    if (!dob)              { setError('Date of birth is required.'); return }
+    if (!fullName.trim())    { setError('Full name is required.'); return }
+    if (!dob)                { setError('Date of birth is required.'); return }
 
     const dobDate = new Date(dob)
     if (isNaN(dobDate.getTime()) || dobDate < MIN_DOB || dobDate > MAX_DOB) {
@@ -80,18 +82,24 @@ function AcademySignUpInner() {
       return
     }
 
-    if (!country)          { setError('Country is required.'); return }
-    if (!email.trim())     { setError('Email is required.'); return }
-    if (!password)         { setError('Password is required.'); return }
+    if (!country)            { setError('Country is required.'); return }
+    if (!email.trim())       { setError('Email is required.'); return }
+    if (!password)           { setError('Password is required.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return }
-    if (code.trim() && !/^\d{6}$/.test(code.trim())) {
-      setError('Invitation code must be exactly 6 digits.')
-      return
+
+    if (role === 'student') {
+      if (!claimCode.trim()) { setError('Claim code is required to create a student account.'); return }
+    } else {
+      if (inviteCode.trim() && !/^\d{6}$/.test(inviteCode.trim())) {
+        setError('Invitation code must be exactly 6 digits.')
+        return
+      }
     }
 
     setLoading(true)
 
+    // 1. Create auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -103,10 +111,13 @@ function AcademySignUpInner() {
       return
     }
 
+    const userId = authData.user.id
+
+    // 2. Insert profile
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
-        id:            authData.user.id,
+        id:            userId,
         full_name:     fullName.trim(),
         date_of_birth: dob,
         country_code:  country,
@@ -120,12 +131,104 @@ function AcademySignUpInner() {
       return
     }
 
-    if (code.trim()) {
-      await fetch('/api/validate-invitation', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ code: code.trim(), commit: true }),
-      })
+    // 3. Student claim flow
+    if (role === 'student') {
+      const code = claimCode.trim().toUpperCase()
+
+      // Find the claim code row
+      const { data: codeRow, error: codeErr } = await supabase
+        .from('student_claim_codes')
+        .select('id, student_id, claimed, expires_at')
+        .eq('code', code)
+        .single()
+
+      if (codeErr || !codeRow) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setError('Claim code not found. Please check with your teacher.')
+        return
+      }
+
+      if (codeRow.claimed) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setError('This claim code has already been used.')
+        return
+      }
+
+      if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setError('This claim code has expired. Ask your teacher to regenerate it.')
+        return
+      }
+
+      // Get student row to find school_id via class
+      const { data: student } = await supabase
+        .from('students')
+        .select('id, class_id, admission_number')
+        .eq('id', codeRow.student_id)
+        .single()
+
+      if (!student) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setError('Student record not found. Please contact your teacher.')
+        return
+      }
+
+      const { data: cls } = await supabase
+        .from('classes')
+        .select('school_id')
+        .eq('id', student.class_id)
+        .single()
+
+      // Link profile_id on students row
+      const { error: linkErr } = await supabase
+        .from('students')
+        .update({ profile_id: userId })
+        .eq('id', student.id)
+
+      if (linkErr) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setError('Failed to link your account. Please try again.')
+        return
+      }
+
+      // Create student_profiles row
+      await supabase
+        .from('student_profiles')
+        .insert({
+          profile_id:   userId,
+          school_id:    cls?.school_id ?? null,
+          admission_no: student.admission_number ?? '',
+          gender:       null,
+        })
+
+      // Mark claim code as used
+      await supabase
+        .from('student_claim_codes')
+        .update({ claimed: true })
+        .eq('id', codeRow.id)
+
+      // Update school_id on profile
+      if (cls?.school_id) {
+        await supabase
+          .from('profiles')
+          .update({ school_id: cls.school_id })
+          .eq('id', userId)
+      }
+
+    } else {
+      // Non-student invitation code (optional)
+      if (inviteCode.trim()) {
+        await fetch('/api/validate-invitation', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ code: inviteCode.trim(), commit: true }),
+        })
+      }
     }
 
     setLoading(false)
@@ -133,17 +236,9 @@ function AcademySignUpInner() {
   }
 
   const eyeBtn: React.CSSProperties = {
-    position:   'absolute',
-    right:      12,
-    top:        '50%',
-    transform:  'translateY(-50%)',
-    background: 'none',
-    border:     'none',
-    cursor:     'pointer',
-    color:      '#C8A84B',
-    fontSize:   14,
-    padding:    4,
-    lineHeight: 1,
+    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: '#C8A84B', fontSize: 14, padding: 4, lineHeight: 1,
   }
 
   return (
@@ -231,14 +326,25 @@ function AcademySignUpInner() {
               </div>
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="code">
-                INVITATION CODE <span className={styles.optional}>(optional)</span>
-              </label>
-              <input id="code" className={styles.input} type="text" inputMode="numeric"
-                maxLength={6} placeholder="6-digit code"
-                value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={loading} />
-            </div>
+            {role === 'student' ? (
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="claimCode">CLAIM CODE</label>
+                <input id="claimCode" className={styles.input} type="text"
+                  placeholder="Enter code from your teacher"
+                  value={claimCode}
+                  onChange={e => setClaimCode(e.target.value.toUpperCase())}
+                  disabled={loading} />
+              </div>
+            ) : (
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="inviteCode">
+                  INVITATION CODE <span className={styles.optional}>(optional)</span>
+                </label>
+                <input id="inviteCode" className={styles.input} type="text" inputMode="numeric"
+                  maxLength={6} placeholder="6-digit code"
+                  value={inviteCode} onChange={e => setInviteCode(e.target.value.replace(/\D/g, ''))} disabled={loading} />
+              </div>
+            )}
 
             {error && <p className={styles.error} role="alert">{error}</p>}
 
