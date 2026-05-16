@@ -130,9 +130,9 @@ export interface School {
 
 export interface StudentRow {
   id:               string;
-  class_id:         string;
+  class_id:         string | null;
   name:             string;
-  admission_number: string;
+  admission_number: string | null;
   profile_id:       string | null;
 }
 
