@@ -213,3 +213,11 @@ export interface LinkedChild {
   attendance_pct: number;
   school_name:    string;
 }
+
+// ─── Parent Nav ───────────────────────────────────────────────────────────────
+export interface ParentNavTab {
+  id:    "home" | "learn" | "vibelearn" | "connect" | "students";
+  label: string;
+  icon:  string;
+  href:  string;
+}
