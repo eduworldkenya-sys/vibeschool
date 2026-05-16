@@ -24,35 +24,56 @@ export default function ClassOnboardingPage() {
 
   async function handleCreate() {
     setError('')
-    if (!grade)         { setError('Select a grade.'); return }
+    if (!grade)          { setError('Select a grade.'); return }
     if (!subject.trim()) { setError('Subject is required.'); return }
 
     setLoading(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=teacher'); return }
+    const { data: { user }, error: userErr } = await supabase.auth.getUser()
+    if (userErr || !user) {
+      setLoading(false)
+      router.push('/academy/signin?role=teacher')
+      return
+    }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from('profiles')
       .select('school_id')
       .eq('id', user.id)
       .single()
 
-    if (!profile?.school_id) {
+    if (profileErr || !profile?.school_id) {
+      setLoading(false)
       router.push('/teacher/onboarding/school')
       return
     }
 
-    // Insert subject
+    const schoolId = profile.school_id
+
+    // Ensure teacher is owner in school_members (permanent fix for RLS)
+    const { error: memberErr } = await supabase
+      .from('school_members')
+      .upsert(
+        { school_id: schoolId, profile_id: user.id, role: 'owner' },
+        { onConflict: 'school_id,profile_id' }
+      )
+
+    if (memberErr) {
+      setLoading(false)
+      setError('Failed to verify school membership. Error: ' + memberErr.message)
+      return
+    }
+
+    // Insert subject with school_id (fixes RLS)
     const { data: subjectData, error: subjectErr } = await supabase
       .from('subjects')
-      .insert({ name: subject.trim() })
+      .insert({ name: subject.trim(), school_id: schoolId })
       .select('id')
       .single()
 
     if (subjectErr) {
       setLoading(false)
-      setError(subjectErr.message)
+      setError('Failed to create subject. Error: ' + subjectErr.message)
       return
     }
 
@@ -61,7 +82,7 @@ export default function ClassOnboardingPage() {
       .from('classes')
       .insert({
         teacher_id: user.id,
-        school_id:  profile.school_id,
+        school_id:  schoolId,
         name:       grade,
         stream:     stream.trim() || null,
         subject:    subject.trim(),
@@ -71,7 +92,7 @@ export default function ClassOnboardingPage() {
 
     if (classErr) {
       setLoading(false)
-      setError(classErr.message)
+      setError('Failed to create class. Error: ' + classErr.message)
       return
     }
 
@@ -79,7 +100,7 @@ export default function ClassOnboardingPage() {
     const { error: tcErr } = await supabase
       .from('teacher_classes')
       .insert({
-        school_id:        profile.school_id,
+        school_id:        schoolId,
         teacher_id:       user.id,
         class_id:         classData.id,
         subject_id:       subjectData.id,
@@ -88,7 +109,7 @@ export default function ClassOnboardingPage() {
 
     if (tcErr) {
       setLoading(false)
-      setError(tcErr.message)
+      setError('Failed to link teacher to class. Error: ' + tcErr.message)
       return
     }
 
@@ -140,9 +161,10 @@ export default function ClassOnboardingPage() {
           {error && <p style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>{error}</p>}
 
           <button onClick={handleCreate} disabled={loading}
-            style={{ padding: '13px 20px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
+            style={{ padding: '13px 20px', borderRadius: 12, border: 'none', background: loading ? '#9ca3af' : accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
             {loading ? 'Creating…' : 'Create Class →'}
           </button>
+
         </div>
       </div>
     </div>
