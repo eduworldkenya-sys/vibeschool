@@ -26,17 +26,10 @@ const C = {
   error:       '#ef4444',
 }
 
-// ─── SKELETON ────────────────────────────────────────────────────────────────
-
 function Skeleton({ h = 44 }: { h?: number }) {
   return (
     <>
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position:  200% 0 }
-          100% { background-position: -200% 0 }
-        }
-      `}</style>
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
       <div style={{
         height: h, borderRadius: 10,
         background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
@@ -46,8 +39,6 @@ function Skeleton({ h = 44 }: { h?: number }) {
     </>
   )
 }
-
-// ─── COMING SOON ─────────────────────────────────────────────────────────────
 
 function ComingSoon({ title, sub }: { title: string; sub: string }) {
   return (
@@ -62,29 +53,18 @@ function ComingSoon({ title, sub }: { title: string; sub: string }) {
         justifyContent: 'center', padding: '48px 24px', borderRadius: 16,
         border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center',
       }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: 12, background: C.accentLight,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, marginBottom: 16,
-        }}>🔒</div>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, marginBottom: 16 }}>🔒</div>
         <p style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Coming soon</p>
-        <p style={{ fontSize: 13, color: C.textMuted, marginTop: 6, maxWidth: 260 }}>
-          This section will be available when the {title} module is built.
-        </p>
+        <p style={{ fontSize: 13, color: C.textMuted, marginTop: 6, maxWidth: 260 }}>This section will be available when the {title} module is built.</p>
       </div>
     </div>
   )
 }
 
-// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-
 export default function TeacherProfilePage() {
   const [activeSection, setActiveSection] = useState(0)
-
   return (
     <div style={{ background: C.bg, minHeight: '100%' }}>
-
-      {/* Mobile horizontal tabs */}
       <div style={{
         overflowX: 'auto', display: 'flex', gap: 8,
         padding: '12px 16px', borderBottom: `1px solid ${C.border}`,
@@ -104,10 +84,7 @@ export default function TeacherProfilePage() {
           </button>
         ))}
       </div>
-
       <div style={{ display: 'flex' }}>
-
-        {/* Desktop sidebar */}
         <aside style={{
           width: 220, flexShrink: 0, borderRight: `1px solid ${C.border}`,
           padding: 16, position: 'sticky', top: 0,
@@ -125,31 +102,20 @@ export default function TeacherProfilePage() {
                 border: `1px solid ${activeSection === i ? C.accent : 'transparent'}`,
                 cursor: 'pointer',
               }}>
-                <span style={{ color: C.border, fontSize: 11, marginRight: 8 }}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
+                <span style={{ color: C.border, fontSize: 11, marginRight: 8 }}>{String(i + 1).padStart(2, '0')}</span>
                 {s}
               </button>
             ))}
           </nav>
         </aside>
-
-        {/* Content */}
         <div style={{ flex: 1, padding: 20, minWidth: 0, maxWidth: 720 }}>
           <ProfileSection index={activeSection} />
         </div>
       </div>
-
-      <style>{`
-        @media (min-width: 768px) {
-          #profile-sidebar { display: block !important; }
-        }
-      `}</style>
+      <style>{`@media (min-width: 768px) { #profile-sidebar { display: block !important; } }`}</style>
     </div>
   )
 }
-
-// ─── SECTION ROUTER ───────────────────────────────────────────────────────────
 
 function ProfileSection({ index }: { index: number }) {
   const sections = [
@@ -167,40 +133,69 @@ function ProfileSection({ index }: { index: number }) {
   return sections[index] ?? null
 }
 
-// ─── SECTION 1 — PERSONAL INFORMATION ────────────────────────────────────────
-
 interface ProfileForm {
-  full_name: string
-  phone: string
-  date_of_birth: string
-  country_code: string
-  gender: string
-  bio: string
-  tsc_number: string
+  full_name:       string
+  phone:           string
+  date_of_birth:   string
+  country_code:    string
+  gender:          string
+  bio:             string
+  tsc_number:      string
   employment_type: string
-  subjects_taught: string
 }
 
+interface SubjectOption { id: string; name: string }
+interface ClassOption   { id: string; name: string; stream: string }
+
 function PersonalInfoSection() {
-  const [userId, setUserId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [userId,             setUserId]             = useState<string | null>(null)
+  const [schoolId,           setSchoolId]           = useState<string | null>(null)
+  const [loading,            setLoading]            = useState(true)
+  const [saving,             setSaving]             = useState(false)
+  const [saved,              setSaved]              = useState(false)
+  const [error,              setError]              = useState<string | null>(null)
+  const [subjects,           setSubjects]           = useState<SubjectOption[]>([])
+  const [classes,            setClasses]            = useState<ClassOption[]>([])
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([])
+  const [selectedClassId,    setSelectedClassId]    = useState<string>('')
   const [form, setForm] = useState<ProfileForm>({
     full_name: '', phone: '', date_of_birth: '', country_code: '',
-    gender: '', bio: '', tsc_number: '', employment_type: '', subjects_taught: '',
+    gender: '', bio: '', tsc_number: '', employment_type: '',
   })
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { setLoading(false); return }
-      setUserId(data.user.id)
+      const uid = data.user.id
+      setUserId(uid)
 
-      const [profileRes, teacherRes] = await Promise.all([
-        supabase.from('profiles').select('full_name,phone,date_of_birth,country_code,gender,bio').eq('id', data.user.id).single(),
-        supabase.from('teacher_profiles').select('tsc_number,employment_type,subjects_taught').eq('profile_id', data.user.id).single(),
+      const [profileRes, memberRes, teacherRes] = await Promise.all([
+        supabase.from('profiles').select('full_name,phone,date_of_birth,country_code,gender,bio').eq('id', uid).single(),
+        supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
+        supabase.from('teacher_profiles').select('tsc_number,employment_type').eq('profile_id', uid).maybeSingle(),
       ])
+
+      const sid = memberRes.data?.school_id ?? null
+      setSchoolId(sid)
+
+      const [subjectsRes, classesRes, tcRes] = await Promise.all([
+        sid
+          ? supabase.from('subjects').select('id,name').eq('school_id', sid).order('name')
+          : supabase.from('subjects').select('id,name').order('name'),
+        supabase.from('classes').select('id,name,stream').eq('teacher_id', uid).order('name'),
+        supabase.from('teacher_classes').select('class_id,subject_id').eq('teacher_id', uid),
+      ])
+
+      setSubjects(subjectsRes.data ?? [])
+      setClasses(classesRes.data ?? [])
+
+      const tcRows = tcRes.data ?? []
+      const subIds = Array.from(new Set(
+        tcRows.map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
+      ))
+      const clsId = tcRows[0]?.class_id ?? ''
+      setSelectedSubjectIds(subIds)
+      setSelectedClassId(clsId)
 
       const p = profileRes.data
       const t = teacherRes.data
@@ -213,7 +208,6 @@ function PersonalInfoSection() {
         bio:             p?.bio             ?? '',
         tsc_number:      t?.tsc_number      ?? '',
         employment_type: t?.employment_type ?? '',
-        subjects_taught: Array.isArray(t?.subjects_taught) ? t.subjects_taught.join(', ') : '',
       })
       setLoading(false)
     })
@@ -223,11 +217,6 @@ function PersonalInfoSection() {
     if (!userId) return
     setSaving(true)
     setError(null)
-
-    const subjectsArray = form.subjects_taught
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean)
 
     const [pRes, tRes] = await Promise.all([
       supabase.from('profiles').update({
@@ -241,18 +230,36 @@ function PersonalInfoSection() {
       supabase.from('teacher_profiles').upsert({
         tsc_number:      form.tsc_number      || null,
         employment_type: form.employment_type || null,
-        subjects_taught: subjectsArray.length ? subjectsArray : null,
-        profile_id: userId,
+        profile_id:      userId,
       }, { onConflict: 'profile_id' }),
     ])
 
-    setSaving(false)
     if (pRes.error || tRes.error) {
+      setSaving(false)
       setError('Save failed. Please try again.')
-    } else {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+      return
     }
+
+    if (selectedSubjectIds.length > 0 && selectedClassId) {
+      await supabase.from('teacher_classes').delete().eq('teacher_id', userId)
+      const rows = selectedSubjectIds.map((subId: string) => ({
+        teacher_id:       userId,
+        class_id:         selectedClassId,
+        subject_id:       subId,
+        school_id:        schoolId,
+        is_class_teacher: false,
+      }))
+      const tcRes = await supabase.from('teacher_classes').insert(rows)
+      if (tcRes.error) {
+        setSaving(false)
+        setError('Saved profile but failed to update class assignment.')
+        return
+      }
+    }
+
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
   }
 
   const inp: React.CSSProperties = {
@@ -277,7 +284,6 @@ function PersonalInfoSection() {
 
   return (
     <div>
-      {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: 0 }}>Personal Information</h2>
         <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Your basic details — visible across VibeSchool</p>
@@ -285,15 +291,11 @@ function PersonalInfoSection() {
       </div>
 
       {error && (
-        <div style={{
-          padding: '10px 14px', borderRadius: 10, background: '#fef2f2',
-          border: `1px solid #fecaca`, color: C.error, fontSize: 13, marginBottom: 20,
-        }}>
+        <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: C.error, fontSize: 13, marginBottom: 20 }}>
           {error}
         </div>
       )}
 
-      {/* Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} id="profile-grid">
         <div>
           <label style={lbl}>Full Name</label>
@@ -308,7 +310,7 @@ function PersonalInfoSection() {
           <input style={inp} type="date" value={form.date_of_birth} onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))} />
         </div>
         <div>
-          <label style={lbl}>Country Code</label>
+          <label style={lbl}>Country</label>
           <input style={inp} value={form.country_code} onChange={e => setForm(f => ({ ...f, country_code: e.target.value }))} placeholder="e.g. KE" maxLength={2} />
         </div>
         <div>
@@ -339,9 +341,44 @@ function PersonalInfoSection() {
           </select>
         </div>
         <div>
+          <label style={lbl}>My Class</label>
+          <select style={inp} value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
+            <option value="">Select your class</option>
+            {classes.map((cl: ClassOption) => (
+              <option key={cl.id} value={cl.id}>
+                {cl.name}{cl.stream ? ' · ' + cl.stream : ''}
+              </option>
+            ))}
+          </select>
+          {classes.length === 0 && (
+            <p style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>No classes found. Create a class in ClassHub first.</p>
+          )}
+        </div>
+        <div>
           <label style={lbl}>Subjects Taught</label>
-          <input style={inp} value={form.subjects_taught} onChange={e => setForm(f => ({ ...f, subjects_taught: e.target.value }))} placeholder="e.g. Mathematics, Science" />
-          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Separate multiple subjects with commas</p>
+          {subjects.length === 0 ? (
+            <p style={{ fontSize: 12, color: '#f59e0b' }}>No subjects found. Ask your admin to add subjects.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 14px', border: `1px solid ${C.border}`, borderRadius: 10, background: C.bg }}>
+              {subjects.map((s: SubjectOption) => {
+                const checked = selectedSubjectIds.includes(s.id)
+                return (
+                  <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: C.textPrimary, fontWeight: checked ? 600 : 400 }}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setSelectedSubjectIds(prev =>
+                        checked ? prev.filter((id: string) => id !== s.id) : [...prev, s.id]
+                      )}
+                      style={{ width: 16, height: 16, accentColor: C.accent, cursor: 'pointer' }}
+                    />
+                    {s.name}
+                  </label>
+                )
+              })}
+            </div>
+          )}
+          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Select all subjects you teach</p>
         </div>
       </div>
 
