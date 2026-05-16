@@ -1,3 +1,4 @@
+// app/parent/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -51,7 +52,6 @@ export default function ParentHomePage() {
       const name = profile?.full_name ?? ''
       setFirstName(name.split(' ')[0] || 'Parent')
 
-      // Get linked students
       const { data: links } = await supabase
         .from('parent_student_links')
         .select('student_id')
@@ -83,14 +83,12 @@ export default function ParentHomePage() {
         .select('id, name, stream, school_id')
         .in('id', classIds)
 
-      const schoolIds = [...new Set((classes ?? []).map(c => c.school_id).filter(Boolean))]
+      const schoolIds = Array.from(new Set((classes ?? []).map(c => c.school_id).filter(Boolean))) as string[]
 
       const { data: schools } = await supabase
         .from('schools')
         .select('id, name')
         .in('id', schoolIds)
-
-      const today = new Date().toISOString().split('T')[0]
 
       const childData: ChildData[] = await Promise.all(students.map(async s => {
         const cls    = classes?.find(c => c.id === s.class_id)
@@ -101,10 +99,10 @@ export default function ParentHomePage() {
           .select('status')
           .eq('class_id', s.class_id)
 
-        const total      = att?.length ?? 0
-        const present    = att?.filter(a => a.status === 'present').length ?? 0
-        const attPct     = total > 0 ? Math.round((present / total) * 100) : 0
-        const className  = cls ? cls.name + (cls.stream ? ' ' + cls.stream : '') : '—'
+        const total     = att?.length ?? 0
+        const present   = att?.filter(a => a.status === 'present').length ?? 0
+        const attPct    = total > 0 ? Math.round((present / total) * 100) : 0
+        const className = cls ? cls.name + (cls.stream ? ' ' + cls.stream : '') : '—'
 
         return {
           id:               s.id,
