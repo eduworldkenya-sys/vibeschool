@@ -31,12 +31,12 @@ const OPTIONS: AttStatus[] = ['present', 'absent', 'late', 'excused']
 
 const STATUS_COLOR: Record<AttStatus, { bg: string; color: string }> = {
   present: { bg: C.accent,   color: '#fff'     },
-  absent:  { bg: '#ef4444',  color: '#fff'     },
-  late:    { bg: '#f59e0b',  color: '#fff'     },
+  absent:  { bg: C.error,  color: '#fff'     },
+  late:    { bg: C.warning,  color: '#fff'     },
   excused: { bg: '#6366f1',  color: '#fff'     },
 }
 
-const STATUS_IDLE = { bg: '#f3f4f6', color: '#6b7280' }
+const STATUS_IDLE = { bg: '#f3f4f6', color: C.textMuted }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatTime(t: string) {
@@ -292,7 +292,7 @@ function AttendanceInner() {
                   cursor:         'pointer',
                   fontFamily:     'inherit',
                   textAlign:      'left',
-                  background:     activeSlot?.id === slot.id ? '#d1fae5' : '#f8f9fa',
+                  background:     activeSlot?.id === slot.id ? C.accentLight : C.surface,
                   outline:        activeSlot?.id === slot.id ? `2px solid ${C.accent}` : 'none',
                   transition:     'background 0.15s',
                 }}
@@ -306,7 +306,7 @@ function AttendanceInner() {
                   </div>
                 </div>
                 {slot.marked && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#065f46', background: '#d1fae5', padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#065f46', background: C.accentLight, padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>
                     ✓ Done
                   </span>
                 )}
@@ -327,7 +327,7 @@ function AttendanceInner() {
           {!studentsLoading && students.length > 0 && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
               {[
-                { label: 'Present', value: presentCount, bg: '#d1fae5', color: '#065f46' },
+                { label: 'Present', value: presentCount, bg: C.accentLight, color: '#065f46' },
                 { label: 'Absent',  value: absentCount,  bg: '#fee2e2', color: '#991b1b' },
                 { label: 'Late',    value: lateCount,    bg: '#fef3c7', color: '#92400e' },
               ].map(s => (
@@ -406,7 +406,7 @@ function AttendanceInner() {
                   <span style={{ fontSize: 13, color: C.accent, fontWeight: 700 }}>✓ Saved</span>
                 )}
                 {saveState === 'error' && (
-                  <span style={{ fontSize: 13, color: '#ef4444', fontWeight: 700 }}>Error — try again</span>
+                  <span style={{ fontSize: 13, color: C.error, fontWeight: 700 }}>Error — try again</span>
                 )}
                 <Btn onClick={save} disabled={saving}>
                   {saving ? 'Saving…' : 'Save Attendance'}
@@ -421,7 +421,7 @@ function AttendanceInner() {
 }
 export default function AttendancePage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: C.textMuted }}>Loading…</div>}>
       <AttendanceInner />
     </Suspense>
   )

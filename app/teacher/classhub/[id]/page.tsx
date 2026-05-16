@@ -1,4 +1,5 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
 import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -40,7 +41,7 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 }
 
 const CLASS_ACTIONS = [
-  { id: 'students',   label: 'Students',     icon: '👥', bg: '#1e1b4b', route: '' },
+  { id: 'students',   label: 'Students',     icon: '👥', bg: C.dark, route: '' },
   { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
@@ -203,19 +204,19 @@ function ClassPageInner() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '11px 14px', borderRadius: 10,
-    border: '1px solid #e5e7eb', fontSize: 14, color: '#111827',
+    border: '1px solid #e5e7eb', fontSize: 14, color: C.textPrimary,
     outline: 'none', fontFamily: 'inherit', background: '#f9fafb',
     boxSizing: 'border-box',
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: '#6b7280',
+    fontSize: 11, fontWeight: 700, color: C.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.8,
     marginBottom: 6, display: 'block',
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#6b7280', paddingBottom: 60, background: '#f8f9fa', minHeight: '100%' }}>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 60, background: C.surface, minHeight: '100%' }}>
       <style>{`
         @keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
@@ -244,7 +245,7 @@ function ClassPageInner() {
                     style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}
                   >
                     🔔
-                    <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
+                    <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.error, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
                   </button>
                 )}
                 <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>⚙️</button>
@@ -300,7 +301,7 @@ function ClassPageInner() {
 
       {/* QUICK ACTIONS */}
       <div style={{ margin: '16px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>
+        <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>
           {isSubject ? 'Subject Tools' : 'Class Tools'}
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 10 }}>
@@ -322,15 +323,15 @@ function ClassPageInner() {
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease' }}>
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: '#111827', margin: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>
                 {isSubject ? 'Class Students' : 'Student Roster'}
               </p>
-              <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0 0' }}>{students.length} enrolled</p>
+              <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{students.length} enrolled</p>
             </div>
             {!isSubject && (
               <button
                 onClick={() => setShowForm(v => !v)}
-                style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : '#1e1b4b', color: showForm ? '#111827' : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : C.dark, color: showForm ? C.textPrimary : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
                 {showForm ? 'Cancel' : '+ Add'}
               </button>
@@ -349,11 +350,11 @@ function ClassPageInner() {
                   <input style={inputStyle} placeholder="e.g. ADM/2024/001" value={form.admission_number} onChange={e => setForm(f => ({ ...f, admission_number: e.target.value }))} />
                 </div>
               </div>
-              {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 8 }}>{error}</p>}
+              {error && <p style={{ color: C.error, fontSize: 12, marginTop: 8 }}>{error}</p>}
               <button
                 onClick={handleAdd}
                 disabled={saving}
-                style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? '#d1fae5' : '#10b981', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? C.accentLight : C.accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
               >
                 {saving ? 'Saving…' : 'Add Student'}
               </button>
@@ -369,7 +370,7 @@ function ClassPageInner() {
           ) : students.length === 0 ? (
             <div style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 28 }}>🎒</span>
-              <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', margin: 0 }}>
+              <p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>
                 {isSubject ? 'No students enrolled in this class.' : 'No students yet. Tap + Add to enrol.'}
               </p>
             </div>
@@ -382,14 +383,14 @@ function ClassPageInner() {
                   <div key={s.id} style={{ padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: claimed ? '#d1fae5' : isSubject ? '#e0f2fe' : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: claimed ? '#065f46' : isSubject ? '#075985' : '#1e1b4b', flexShrink: 0 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: claimed ? C.accentLight : isSubject ? '#e0f2fe' : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: claimed ? '#065f46' : isSubject ? '#075985' : C.dark, flexShrink: 0 }}>
                           {claimed ? '✓' : i + 1}
                         </div>
                         <div>
-                          <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>{s.name}</p>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{s.name}</p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                            {s.admission_number && <p style={{ fontSize: 11, color: '#6b7280', margin: 0 }}>{s.admission_number}</p>}
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: claimed ? '#d1fae5' : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>
+                            {s.admission_number && <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>{s.admission_number}</p>}
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>
                               {claimed ? 'Claimed ✓' : 'Unclaimed'}
                             </span>
                           </div>
@@ -399,7 +400,7 @@ function ClassPageInner() {
                         <button
                           onClick={() => handleDelete(s.id)}
                           disabled={deleting === s.id}
-                          style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #fca5a5', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                          style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #fca5a5', background: 'transparent', color: C.error, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                         >
                           {deleting === s.id ? '…' : 'Delete'}
                         </button>
@@ -408,24 +409,24 @@ function ClassPageInner() {
 
                     {/* Claim code section */}
                     {!isSubject && !claimed && (
-                      <div style={{ marginTop: 10, padding: '10px 12px', background: '#f8f9fa', borderRadius: 10, border: '1px solid #e5e7eb' }}>
+                      <div style={{ marginTop: 10, padding: '10px 12px', background: C.surface, borderRadius: 10, border: '1px solid #e5e7eb' }}>
                         {code ? (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                             <div>
-                              <p style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Claim Code</p>
-                              <p style={{ fontSize: 18, fontWeight: 900, color: '#1e1b4b', margin: 0, letterSpacing: 3, fontFamily: 'monospace' }}>{code}</p>
+                              <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Claim Code</p>
+                              <p style={{ fontSize: 18, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 3, fontFamily: 'monospace' }}>{code}</p>
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button
                                 onClick={() => handleCopyCode(s.id, code)}
-                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? '#d1fae5' : 'transparent', color: '#10b981', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? C.accentLight : 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
                               >
                                 {copiedId === s.id ? 'Copied!' : 'Copy'}
                               </button>
                               <button
                                 onClick={() => handleGenerateCode(s.id)}
                                 disabled={generating === s.id}
-                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
                               >
                                 {generating === s.id ? '…' : 'New'}
                               </button>
@@ -433,11 +434,11 @@ function ClassPageInner() {
                           </div>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>No claim code yet</p>
+                            <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>No claim code yet</p>
                             <button
                               onClick={() => handleGenerateCode(s.id)}
                               disabled={generating === s.id}
-                              style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: '#1e1b4b', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                              style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                             >
                               {generating === s.id ? 'Generating…' : 'Generate Code'}
                             </button>
@@ -457,7 +458,7 @@ function ClassPageInner() {
         <div style={{ margin: '14px 16px 0' }}>
           <button
             onClick={() => setShowRoster(true)}
-            style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             👥 View Student Roster ({students.length})
           </button>
@@ -467,15 +468,15 @@ function ClassPageInner() {
       {/* CLASS ACTIVITY */}
       <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Class Activity</p>
-          <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>View all</span>
+          <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Class Activity</p>
+          <span style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>View all</span>
         </div>
         {NOTICES.map(n => (
           <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
             <div style={{ width: 38, height: 38, borderRadius: 12, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{n.icon}</div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', margin: 0 }}>{n.text}</p>
-              <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0 0' }}>{n.sub}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{n.text}</p>
+              <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{n.sub}</p>
             </div>
           </div>
         ))}

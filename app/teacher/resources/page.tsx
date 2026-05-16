@@ -18,7 +18,7 @@ const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
   PDF:  { bg: '#fee2e2', color: '#991b1b' },
   DOCX: { bg: '#dbeafe', color: '#1d4ed8' },
   ZIP:  { bg: '#fef3c7', color: '#92400e' },
-  PNG:  { bg: '#d1fae5', color: '#065f46' },
+  PNG:  { bg: C.accentLight, color: '#065f46' },
   MP4:  { bg: '#ede9fe', color: '#6d28d9' },
 }
 

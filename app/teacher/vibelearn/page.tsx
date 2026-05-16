@@ -1,6 +1,5 @@
 "use client";
-import { STUDENTS } from "@/lib/data";
-import { Card, SectionLabel, Btn } from "@/components/teacher/ui";
+import { Card, SectionLabel, Btn, C, ReadinessChip } from "@/components/teacher/ui";
 
 const ASSIGNMENTS = [
   { title: "Linear Equations — Practice Set",  class: "6B", due: "Today",     submissions: 6, total: 8 },
@@ -24,16 +23,16 @@ export default function VibeLearnPage() {
           <div key={a.title} style={{ padding: "12px 0", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{a.title}</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>{a.class} · Due {a.due}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>{a.title}</div>
+                <div style={{ fontSize: 12, color: C.textMuted }}>{a.class} · Due {a.due}</div>
               </div>
               <Btn small variant="ghost">View</Btn>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ flex: 1, height: 6, background: "#e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 10, background: "#10b981", width: `${(a.submissions / a.total) * 100}%` }} />
+              <div style={{ flex: 1, height: 6, background: C.border, borderRadius: 10, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 10, background: C.accent, width: `${(a.submissions / a.total) * 100}%` }} />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", flexShrink: 0 }}>{a.submissions}/{a.total} submitted</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, flexShrink: 0 }}>{a.submissions}/{a.total} submitted</span>
             </div>
           </div>
         ))}
@@ -43,14 +42,10 @@ export default function VibeLearnPage() {
       </Card>
 
       <Card>
-        <SectionLabel>Learner Activity — 6B</SectionLabel>
-        {STUDENTS.map(s => (
-          <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid #e5e7eb" }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: s.score >= 80 ? "#10b981" : s.score >= 60 ? "#f59e0b" : "#ef4444" }} />
-            <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{s.name}</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>Score avg: {s.score}%</div>
-          </div>
-        ))}
+        <SectionLabel>Learner Activity</SectionLabel>
+        <div style={{ textAlign: "center", padding: "20px 0", fontSize: 13, color: C.textMuted }}>
+          Learner activity will appear here once VibeLearn is fully activated.
+        </div>
       </Card>
     </div>
   );

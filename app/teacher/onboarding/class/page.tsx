@@ -1,10 +1,11 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const dark   = '#1e1b4b'
-const accent = '#10b981'
+const dark   = C.dark
+const accent = C.accent
 
 const GRADES = [
   'PP1','PP2',
@@ -49,7 +50,7 @@ export default function ClassOnboardingPage() {
   }
 
   const inp: React.CSSProperties = { width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' }
-  const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: 1, textTransform: 'uppercase' as const }
+  const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' as const }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -57,10 +58,10 @@ export default function ClassOnboardingPage() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: dark, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>📚</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: dark }}>Your Class</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Step 2 of 3</div>
+          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Step 2 of 3</div>
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
-          {[1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i <= 2 ? accent : '#e5e7eb' }} />)}
+          {[1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i <= 2 ? accent : C.border }} />)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
@@ -81,7 +82,7 @@ export default function ClassOnboardingPage() {
               {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          {error && <p style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>{error}</p>}
+          {error && <p style={{ color: C.error, fontSize: 13, fontWeight: 600 }}>{error}</p>}
           <button onClick={handleCreate} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: 'none', background: loading ? '#9ca3af' : accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
             {loading ? 'Creating…' : 'Create Class →'}
           </button>

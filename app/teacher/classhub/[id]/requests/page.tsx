@@ -1,11 +1,12 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const dark   = '#1e1b4b'
-const accent = '#10b981'
+const dark   = C.dark
+const accent = C.accent
 
 interface JoinRequest {
   id:          string
@@ -148,7 +149,7 @@ export default function JoinRequestsPage() {
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", minHeight: '100vh', background: '#f8f9fa' }}>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", minHeight: '100vh', background: C.surface }}>
       <style>{`
         @keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideIn  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
@@ -194,8 +195,8 @@ export default function JoinRequestsPage() {
         ) : requests.length === 0 ? (
           <div style={{ background: '#fff', borderRadius: 16, padding: 32, textAlign: 'center', border: '1px solid #e5e7eb' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 6 }}>All caught up</div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>No pending join requests for this class.</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, marginBottom: 6 }}>All caught up</div>
+            <div style={{ fontSize: 13, color: C.textMuted }}>No pending join requests for this class.</div>
           </div>
         ) : (
           requests.map(req => (
@@ -207,8 +208,8 @@ export default function JoinRequestsPage() {
                   {req.studentName[0].toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{req.studentName}</div>
-                  <div style={{ fontSize: 11, color: '#6b7280' }}>Student</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{req.studentName}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted }}>Student</div>
                 </div>
                 <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 20, background: '#fef3c7', fontSize: 10, fontWeight: 800, color: '#92400e' }}>
                   PENDING
@@ -216,11 +217,11 @@ export default function JoinRequestsPage() {
               </div>
 
               {/* Parent */}
-              <div style={{ background: '#f8f9fa', borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ background: C.surface, borderRadius: 10, padding: '10px 12px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 16 }}>👤</span>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{req.parentName}</div>
-                  <div style={{ fontSize: 11, color: '#6b7280' }}>Parent requesting access</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.textPrimary }}>{req.parentName}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted }}>Parent requesting access</div>
                 </div>
               </div>
 
@@ -229,14 +230,14 @@ export default function JoinRequestsPage() {
                 <button
                   onClick={() => handleApprove(req)}
                   disabled={acting === req.id}
-                  style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: acting === req.id ? '#d1fae5' : accent, color: '#fff', fontWeight: 700, fontSize: 13, cursor: acting === req.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                  style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: acting === req.id ? C.accentLight : accent, color: '#fff', fontWeight: 700, fontSize: 13, cursor: acting === req.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
                 >
                   {acting === req.id ? 'Approving…' : '✓ Approve'}
                 </button>
                 <button
                   onClick={() => handleReject(req.id)}
                   disabled={acting === req.id}
-                  style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 13, cursor: acting === req.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                  style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: C.error, fontWeight: 700, fontSize: 13, cursor: acting === req.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
                 >
                   {acting === req.id ? '…' : '✕ Reject'}
                 </button>

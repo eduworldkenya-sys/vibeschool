@@ -258,7 +258,7 @@ function AssessmentInner() {
                 style={{
                   padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
                   fontSize: 13, fontWeight: 600,
-                  background: i === activeClassIdx ? '#f59e0b' : C.surface,
+                  background: i === activeClassIdx ? C.warning : C.surface,
                   color:      i === activeClassIdx ? '#fff'    : C.textMuted,
                 }}
               >
@@ -344,7 +344,7 @@ function AssessmentInner() {
 }
 export default function AssessmentPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: C.textMuted }}>Loading…</div>}>
       <AssessmentInner />
     </Suspense>
   )

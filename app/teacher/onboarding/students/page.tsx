@@ -1,10 +1,11 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const dark   = '#1e1b4b'
-const accent = '#10b981'
+const dark   = C.dark
+const accent = C.accent
 
 interface StudentRow {
   name:             string
@@ -82,7 +83,7 @@ export default function StudentsOnboardingPage() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: dark, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>👥</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: dark }}>Add Students</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Step 3 of 3 — you can add more later</div>
+          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Step 3 of 3 — you can add more later</div>
         </div>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
@@ -112,7 +113,7 @@ export default function StudentsOnboardingPage() {
               />
               {students.length > 1 && (
                 <button onClick={() => removeRow(i)} disabled={loading}
-                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
+                  style={{ background: 'none', border: 'none', color: C.error, fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
               )}
             </div>
           ))}
@@ -123,11 +124,11 @@ export default function StudentsOnboardingPage() {
           + Add Another Student
         </button>
 
-        {error && <p style={{ color: '#ef4444', fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{error}</p>}
+        {error && <p style={{ color: C.error, fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{error}</p>}
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => router.push('/teacher')} disabled={loading}
-            style={{ flex: 1, padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+            style={{ flex: 1, padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
             Skip for now
           </button>
           <button onClick={handleSave} disabled={loading}

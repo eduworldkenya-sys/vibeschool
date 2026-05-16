@@ -1,4 +1,5 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -25,7 +26,7 @@ interface Teammate {
 
 const PALETTES = [
   { bg: '#ede9fe', color: '#6d28d9' },
-  { bg: '#d1fae5', color: '#065f46' },
+  { bg: C.accentLight, color: '#065f46' },
   { bg: '#dbeafe', color: '#1d4ed8' },
   { bg: '#fef3c7', color: '#92400e' },
   { bg: '#fce7f3', color: '#9d174d' },
@@ -183,7 +184,7 @@ export default function SubjectHubPage() {
   ]
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: '#6b7280', paddingBottom: 60, background: '#f8f9fa', minHeight: '100%' }}>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 60, background: C.surface, minHeight: '100%' }}>
       <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
       {/* ── HERO ── */}
@@ -248,7 +249,7 @@ export default function SubjectHubPage() {
                 padding: '7px 16px', borderRadius: 20, border: 'none',
                 cursor: 'pointer', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                 background: i === activeIdx ? '#075985' : '#fff',
-                color:      i === activeIdx ? '#fff'    : '#6b7280',
+                color:      i === activeIdx ? '#fff'    : C.textMuted,
                 boxShadow: i === activeIdx ? '0 2px 8px rgba(7,89,133,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
                 fontFamily: 'inherit',
               }}
@@ -262,7 +263,7 @@ export default function SubjectHubPage() {
       {/* ── QUICK ACTIONS ── */}
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>Subject Tools</p>
+          <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>Subject Tools</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {SUBJECT_ACTIONS.map(a => (
               <button
@@ -286,8 +287,8 @@ export default function SubjectHubPage() {
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
-            <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>My Classes</p>
-            <p style={{ fontSize: 12, color: '#6b7280', margin: '3px 0 0' }}>Classes you teach {activeSubject.name} in</p>
+            <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>My Classes</p>
+            <p style={{ fontSize: 12, color: C.textMuted, margin: '3px 0 0' }}>Classes you teach {activeSubject.name} in</p>
           </div>
 
           {classLoading && (
@@ -299,7 +300,7 @@ export default function SubjectHubPage() {
           {!classLoading && classes.length === 0 && (
             <div style={{ padding: '28px 16px', textAlign: 'center' }}>
               <span style={{ fontSize: 28 }}>📚</span>
-              <p style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}>No classes assigned for this subject yet.</p>
+              <p style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>No classes assigned for this subject yet.</p>
             </div>
           )}
 
@@ -318,10 +319,10 @@ export default function SubjectHubPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 42, height: 42, borderRadius: 12, background: PALETTES[i % PALETTES.length].bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏫</div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 800, color: '#111827', margin: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>
                     {cls.name}{cls.stream ? ' · ' + cls.stream : ''}
                   </p>
-                  <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>{cls.studentCount} students</p>
+                  <p style={{ fontSize: 12, color: C.textMuted, margin: '2px 0 0' }}>{cls.studentCount} students</p>
                 </div>
               </div>
               <span style={{ fontSize: 18, color: '#9ca3af' }}>›</span>
@@ -334,8 +335,8 @@ export default function SubjectHubPage() {
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
-            <p style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Department Team</p>
-            <p style={{ fontSize: 12, color: '#6b7280', margin: '3px 0 0' }}>Teachers in {activeSubject.name}</p>
+            <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Department Team</p>
+            <p style={{ fontSize: 12, color: C.textMuted, margin: '3px 0 0' }}>Teachers in {activeSubject.name}</p>
           </div>
 
           {teamLoading && (
@@ -345,7 +346,7 @@ export default function SubjectHubPage() {
           )}
 
           {!teamLoading && teammates.length === 0 && (
-            <div style={{ padding: '20px 16px', textAlign: 'center', fontSize: 13, color: '#6b7280' }}>
+            <div style={{ padding: '20px 16px', textAlign: 'center', fontSize: 13, color: C.textMuted }}>
               No teammates found for this subject.
             </div>
           )}
@@ -368,13 +369,13 @@ export default function SubjectHubPage() {
                 {t.initials}
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: 0 }}>
                   {t.fullName}{t.isYou ? ' (You)' : ''}
                 </p>
-                <p style={{ fontSize: 11, color: '#6b7280', margin: '2px 0 0' }}>{activeSubject.name}</p>
+                <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{activeSubject.name}</p>
               </div>
               {t.isYou && (
-                <div style={{ background: '#d1fae5', borderRadius: 20, padding: '3px 10px' }}>
+                <div style={{ background: C.accentLight, borderRadius: 20, padding: '3px 10px' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#065f46' }}>You</span>
                 </div>
               )}
@@ -387,13 +388,13 @@ export default function SubjectHubPage() {
       {!loading && subjects.length === 0 && (
         <div style={{ padding: '60px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 40 }}>🔬</span>
-          <p style={{ fontSize: 15, fontWeight: 700, color: '#111827', margin: 0, textAlign: 'center' }}>No subjects assigned yet</p>
-          <p style={{ fontSize: 13, color: '#6b7280', margin: 0, textAlign: 'center' }}>Contact your school admin to get assigned to subjects and classes.</p>
+          <p style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, margin: 0, textAlign: 'center' }}>No subjects assigned yet</p>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: 0, textAlign: 'center' }}>Contact your school admin to get assigned to subjects and classes.</p>
         </div>
       )}
 
       {error && (
-        <div style={{ margin: '14px 16px', padding: '12px 14px', borderRadius: 12, background: '#fef2f2', color: '#ef4444', fontSize: 13 }}>
+        <div style={{ margin: '14px 16px', padding: '12px 14px', borderRadius: 12, background: '#fef2f2', color: C.error, fontSize: 13 }}>
           {error}
         </div>
       )}

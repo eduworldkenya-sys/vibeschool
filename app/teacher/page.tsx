@@ -1,4 +1,5 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -66,7 +67,7 @@ function formatCountdown(mins: number) {
 
 const QUICK_ACTIONS = [
   { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', route: '/teacher/classhub'   },
-  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: '#d1fae5', iconColor: '#065f46', route: '/teacher/timetable'  },
+  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: C.accentLight, iconColor: '#065f46', route: '/teacher/timetable'  },
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'attendance', label: 'Attendance',   icon: '✅', color: '#dcfce7', iconColor: '#166534', route: '/teacher/attendance' },
   { id: 'subjecthub', label: 'SubjectHub',   icon: '🔬', color: '#e0f2fe', iconColor: '#075985', route: '/teacher/subjecthub' },
@@ -92,12 +93,12 @@ export default function TeacherHomePage() {
   const [data,    setData]    = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const cardBg     = '#ffffff'
-  const cardBorder = '#e5e7eb'
-  const textMuted  = '#6b7280'
-  const textMain   = '#111827'
-  const accent     = '#10b981'
-  const dark       = '#1e1b4b'
+  const cardBg     = C.bg
+  const cardBorder = C.border
+  const textMuted  = C.textMuted
+  const textMain   = C.textPrimary
+  const accent     = C.accent
+  const dark       = C.dark
 
   useEffect(() => {
     async function load() {
@@ -168,7 +169,7 @@ export default function TeacherHomePage() {
           : Promise.resolve({ data: null }),
 
         slotIds.length > 0
-          ? supabase.from('attendance').select('timetable_slot_id').in('timetable_slot_id', slotIds).eq('date', today)
+          ? supabase.from('attendance').select('timetable_slot_id').in('timetable_slot_id', slotIds).gte('timestamp', today + 'T00:00:00').lt('timestamp', today + 'T23:59:59')
           : Promise.resolve({ data: [] }),
 
         classTeacherId
@@ -176,7 +177,7 @@ export default function TeacherHomePage() {
           : Promise.resolve({ count: 0, data: null }),
 
         classTeacherId
-          ? supabase.from('attendance').select('status').eq('class_id', classTeacherId).eq('date', today)
+          ? supabase.from('attendance').select('status').eq('class_id', classTeacherId).gte('timestamp', today + 'T00:00:00').lt('timestamp', today + 'T23:59:59')
           : Promise.resolve({ data: [] }),
       ])
 
@@ -297,7 +298,7 @@ export default function TeacherHomePage() {
         const slot  = data.currentLesson || data.nextLesson!
         const isNow = !!data.currentLesson
         return (
-          <div style={{ background: isNow ? '#d1fae5' : '#fef3c7', borderRadius: 14, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px solid ${isNow ? '#a7f3d0' : '#fde68a'}` }}>
+          <div style={{ background: isNow ? C.accentLight : '#fef3c7', borderRadius: 14, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: `1px solid ${isNow ? '#a7f3d0' : '#fde68a'}` }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 800, color: isNow ? '#065f46' : '#92400e', letterSpacing: 1, textTransform: 'uppercase' }}>
                 {isNow ? '● Now' : 'Next Up'}
@@ -345,7 +346,7 @@ export default function TeacherHomePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.slots.map(s => (
-              <div key={s.id} style={{ padding: '11px 13px', borderRadius: 12, background: '#f8f9fa', border: `1px solid ${cardBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div key={s.id} style={{ padding: '11px 13px', borderRadius: 12, background: C.surface, border: `1px solid ${cardBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: textMain }}>{s.subject} · <span style={{ color: textMuted }}>{s.class}</span></div>
                   <div style={{ fontSize: 11, color: textMuted }}>{formatTime(s.start)}–{formatTime(s.end)} · {s.room}</div>

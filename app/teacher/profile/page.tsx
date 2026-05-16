@@ -1,4 +1,5 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -15,16 +16,6 @@ const SECTIONS = [
   'Finance Reference',
 ]
 
-const C = {
-  accent:      '#10b981',
-  accentLight: '#d1fae5',
-  textPrimary: '#111827',
-  textMuted:   '#6b7280',
-  surface:     '#f8f9fa',
-  border:      '#e5e7eb',
-  bg:          '#ffffff',
-  error:       '#ef4444',
-}
 
 function Skeleton({ h = 44 }: { h?: number }) {
   return (
@@ -351,13 +342,13 @@ function PersonalInfoSection() {
             ))}
           </select>
           {classes.length === 0 && (
-            <p style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>No classes found. Create a class in ClassHub first.</p>
+            <p style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>No classes found. Create a class in ClassHub first.</p>
           )}
         </div>
         <div>
           <label style={lbl}>Subjects Taught</label>
           {subjects.length === 0 ? (
-            <p style={{ fontSize: 12, color: '#f59e0b' }}>No subjects found. Ask your admin to add subjects.</p>
+            <p style={{ fontSize: 12, color: C.warning }}>No subjects found. Ask your admin to add subjects.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 14px', border: `1px solid ${C.border}`, borderRadius: 10, background: C.bg }}>
               {subjects.map((s: SubjectOption) => {
@@ -388,7 +379,7 @@ function PersonalInfoSection() {
         style={{
           marginTop: 28, padding: '12px 28px', borderRadius: 12,
           background: saved ? C.accentLight : C.accent,
-          color: saved ? C.accent : '#ffffff',
+          color: saved ? C.accent : C.bg,
           fontWeight: 700, fontSize: 14,
           border: `1px solid ${saved ? C.accent : 'transparent'}`,
           cursor: saving ? 'not-allowed' : 'pointer',

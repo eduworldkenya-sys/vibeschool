@@ -47,8 +47,8 @@ interface SchemeRow {
 }
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pending', color: '#6b7280', bg: '#f3f4f6' },
-  taught:  { label: 'Taught',  color: '#065f46', bg: '#d1fae5' },
+  pending: { label: 'Pending', color: C.textMuted, bg: '#f3f4f6' },
+  taught:  { label: 'Taught',  color: '#065f46', bg: C.accentLight },
   skipped: { label: 'Skipped', color: '#92400e', bg: '#fef3c7' },
 } as const
 
@@ -512,7 +512,7 @@ Each object must have exactly these fields:
 
 export default function SchemePage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: C.textMuted }}>Loading…</div>}>
       <SchemePageInner />
     </Suspense>
   )

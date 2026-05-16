@@ -76,7 +76,7 @@ function SlotCard({ slot, isNow, isNext, onTap }: {
         gap:           12,
         padding:       '13px 14px',
         borderRadius:  14,
-        background:    isNow ? '#f0fdf4' : '#f8f9fa',
+        background:    isNow ? '#f0fdf4' : C.surface,
         border:        isNow
           ? `2px solid ${C.accent}`
           : isNext
@@ -171,7 +171,7 @@ function SlotDrawer({ slot, onClose }: { slot: Slot | null; onClose: () => void 
 
         {/* Status badge */}
         {isNow && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: '#d1fae5', marginBottom: 14 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: C.accentLight, marginBottom: 14 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.accent, animation: 'pulse 1.5s infinite' }} />
             <span style={{ fontSize: 11, fontWeight: 800, color: '#065f46' }}>In progress</span>
           </div>
@@ -201,7 +201,7 @@ function SlotDrawer({ slot, onClose }: { slot: Slot | null; onClose: () => void 
               return `${mins} min`
             })() },
           ].map(r => (
-            <div key={r.label} style={{ flex: 1, background: '#f8f9fa', borderRadius: 12, padding: '12px 14px', textAlign: 'center' }}>
+            <div key={r.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '12px 14px', textAlign: 'center' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary }}>{r.value}</div>
               <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{r.label}</div>
             </div>
@@ -386,7 +386,7 @@ export default function TimetablePage() {
                 fontSize:     13,
                 fontWeight:   700,
                 flexShrink:   0,
-                background:   isActive ? C.accent : '#f8f9fa',
+                background:   isActive ? C.accent : C.surface,
                 color:        isActive ? '#fff' : isTdy ? C.accent : C.textMuted,
                 position:     'relative',
               }}

@@ -248,8 +248,8 @@ function LessonPlanInner() {
         <SectionLabel>Differentiation Summary</SectionLabel>
         {[
           { level: 'Higher',   color: '#7c3aed', bg: '#ede9fe', desc: "Multi-step and extension tasks"     },
-          { level: 'On Track', color: C.accent,  bg: '#d1fae5', desc: "Core curriculum delivery"           },
-          { level: 'Support',  color: '#f59e0b', bg: '#fef3c7', desc: "Scaffolded and visual methods"      },
+          { level: 'On Track', color: C.accent,  bg: C.accentLight, desc: "Core curriculum delivery"           },
+          { level: 'Support',  color: C.warning, bg: '#fef3c7', desc: "Scaffolded and visual methods"      },
         ].map(d => (
           <div
             key={d.level}
@@ -291,7 +291,7 @@ function LessonPlanInner() {
 }
 export default function LessonPlanPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: C.textMuted }}>Loading…</div>}>
       <LessonPlanInner />
     </Suspense>
   )

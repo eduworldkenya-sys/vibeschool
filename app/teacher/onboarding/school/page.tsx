@@ -1,10 +1,11 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-const dark   = '#1e1b4b'
-const accent = '#10b981'
+const dark   = C.dark
+const accent = C.accent
 
 const COUNTIES = [
   'Baringo','Bomet','Bungoma','Busia','Elgeyo Marakwet','Embu','Garissa',
@@ -119,7 +120,7 @@ export default function SchoolOnboardingPage() {
   }
 
   const inp: React.CSSProperties = { width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' }
-  const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: 1, textTransform: 'uppercase' as const }
+  const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' as const }
   const btn = (bg: string, color = '#fff'): React.CSSProperties => ({ padding: '13px 20px', borderRadius: 12, border: 'none', background: bg, color, fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', width: '100%' })
 
   return (
@@ -128,22 +129,22 @@ export default function SchoolOnboardingPage() {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: dark, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>🏫</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: dark }}>Your School</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Step 1 of 3</div>
+          <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Step 1 of 3</div>
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
-          {[1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i === 1 ? accent : '#e5e7eb' }} />)}
+          {[1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i === 1 ? accent : C.border }} />)}
         </div>
         {mode === 'choose' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ fontSize: 14, color: '#374151', textAlign: 'center', marginBottom: 8 }}>How do you want to find your school?</p>
             <button onClick={() => setMode('search')} style={btn(dark)}>🔍 Find My School</button>
             <button onClick={() => setMode('join')} style={{ ...btn('transparent', accent), border: '2px solid ' + accent }}>🔗 Join with a Code</button>
-            <button onClick={() => setMode('manual')} style={{ ...btn('transparent', '#6b7280'), border: '1.5px solid #e5e7eb', fontSize: 13 }}>✏️ Type school name manually</button>
+            <button onClick={() => setMode('manual')} style={{ ...btn('transparent', C.textMuted), border: '1.5px solid #e5e7eb', fontSize: 13 }}>✏️ Type school name manually</button>
           </div>
         )}
         {mode === 'search' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
+            <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
             <div>
               <label style={lbl}>County</label>
               <select value={county} onChange={e => setCounty(e.target.value)} style={inp}>
@@ -170,11 +171,11 @@ export default function SchoolOnboardingPage() {
               </div>
             )}
             {selectedId && (
-              <p style={{ fontSize: 13, color: '#6b7280', background: '#f0fdf4', padding: '8px 12px', borderRadius: 8 }}>
+              <p style={{ fontSize: 13, color: C.textMuted, background: '#f0fdf4', padding: '8px 12px', borderRadius: 8 }}>
                 Not your school? <span onClick={() => setMode('manual')} style={{ color: accent, cursor: 'pointer', fontWeight: 600 }}>Type it manually</span>
               </p>
             )}
-            {error && <p style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>{error}</p>}
+            {error && <p style={{ color: C.error, fontSize: 13, fontWeight: 600 }}>{error}</p>}
             <button onClick={handleSelectSchool} disabled={loading || !selectedId} style={btn(loading || !selectedId ? '#9ca3af' : accent)}>
               {loading ? 'Saving…' : 'Continue →'}
             </button>
@@ -182,13 +183,13 @@ export default function SchoolOnboardingPage() {
         )}
         {mode === 'join' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
+            <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
             <p style={{ fontSize: 14, color: '#374151' }}>Ask your school admin for the school code.</p>
             <div>
               <label style={lbl}>School Code</label>
               <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="st-marys-nairobi-1234" disabled={loading} style={inp} />
             </div>
-            {error && <p style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>{error}</p>}
+            {error && <p style={{ color: C.error, fontSize: 13, fontWeight: 600 }}>{error}</p>}
             <button onClick={handleJoin} disabled={loading} style={btn(loading ? '#9ca3af' : accent)}>
               {loading ? 'Joining…' : 'Join School →'}
             </button>
@@ -196,13 +197,13 @@ export default function SchoolOnboardingPage() {
         )}
         {mode === 'manual' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
+            <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
             <p style={{ fontSize: 14, color: '#374151' }}>Type your school name exactly as it appears on the gate.</p>
             <div>
               <label style={lbl}>School Name</label>
               <input type="text" value={manualName} onChange={e => setManualName(e.target.value)} placeholder="St. Mary's Academy" disabled={loading} style={inp} />
             </div>
-            {error && <p style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>{error}</p>}
+            {error && <p style={{ color: C.error, fontSize: 13, fontWeight: 600 }}>{error}</p>}
             <button onClick={handleManual} disabled={loading} style={btn(loading ? '#9ca3af' : accent)}>
               {loading ? 'Saving…' : 'Continue →'}
             </button>

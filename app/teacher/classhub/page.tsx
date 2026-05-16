@@ -1,4 +1,5 @@
 'use client'
+import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -23,12 +24,12 @@ interface FormState {
   subject_id: string
 }
 
-const accent    = '#10b981'
-const dark      = '#1e1b4b'
-const cardBg    = '#ffffff'
-const border    = '#e5e7eb'
-const textMuted = '#6b7280'
-const textMain  = '#111827'
+const accent    = C.accent
+const dark      = C.dark
+const cardBg    = C.bg
+const border    = C.border
+const textMuted = C.textMuted
+const textMain  = C.textPrimary
 
 function Skeleton({ h = 72 }: { h?: number }) {
   return (
@@ -290,7 +291,7 @@ export default function ClassHubPage() {
                 ))}
               </select>
               {subjects.length === 0 && (
-                <p style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>No subjects found. Ask your admin to add subjects first.</p>
+                <p style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>No subjects found. Ask your admin to add subjects first.</p>
               )}
             </div>
 
@@ -300,11 +301,11 @@ export default function ClassHubPage() {
             </div>
 
           </div>
-          {error && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 10 }}>{error}</p>}
+          {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
           <button
             onClick={handleCreate}
             disabled={saving}
-            style={{ marginTop: 18, width: '100%', padding: '12px', borderRadius: 12, background: saving ? '#d1fae5' : accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+            style={{ marginTop: 18, width: '100%', padding: '12px', borderRadius: 12, background: saving ? C.accentLight : accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
           >
             {saving ? 'Saving…' : 'Create Class'}
           </button>
@@ -351,7 +352,7 @@ export default function ClassHubPage() {
                     <button
                       onClick={() => handleDelete(cls.id)}
                       disabled={deleting === cls.id}
-                      style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                      style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: C.error, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                     >
                       {deleting === cls.id ? '…' : 'Delete'}
                     </button>
