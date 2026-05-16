@@ -21,11 +21,11 @@ function AcademySignInInner() {
   const contentRef = useRef<HTMLDivElement>(null)
   const navTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const [email, setEmail]             = useState('')
-  const [password, setPassword]       = useState('')
+  const [email, setEmail]               = useState('')
+  const [password, setPassword]         = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError]             = useState('')
-  const [loading, setLoading]         = useState(false)
+  const [error, setError]               = useState('')
+  const [loading, setLoading]           = useState(false)
 
   useEffect(() => {
     return () => {
@@ -58,25 +58,23 @@ function AcademySignInInner() {
         password,
       })
 
-    setLoading(false)
-
-    if (authError) {
-      setError(authError.message)
+    if (authError || !authData.user) {
+      setLoading(false)
+      setError(authError?.message || 'Sign in failed. Please try again.')
       return
     }
 
-    if (role === 'teacher' && authData.user) {
-      await supabase.from('profiles').upsert({
-        id:   authData.user.id,
-        role: 'teacher',
-      }, { onConflict: 'id' })
-    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authData.user.id)
+      .single()
 
-    fadeOut(
-      role === 'teacher'
-        ? '/teacher'
-        : `/${role}`
-    )
+    setLoading(false)
+
+    const actualRole = (profile?.role as Role) ?? role
+
+    fadeOut(actualRole === 'teacher' ? '/teacher' : `/${actualRole}`)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
