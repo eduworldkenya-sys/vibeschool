@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { VIBECONNECT_THREADS } from "@/lib/data";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
 
@@ -257,10 +256,15 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
         {!isHome && (
           <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}>‹</div>
         )}
-        <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>{school || "Loading…"}</div>
+        <div
+          onClick={() => router.push("/teacher")}
+          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+        >
+          <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>{school || "Loading…"}</div>
+          </div>
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -283,14 +287,15 @@ function Toast({ msg }: { msg: string }) {
 
 // ─── Layout ────────────────────────────────────────────────────────────────────
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
-  const pathname      = usePathname();
-  const activeId      = tabIdFromPath(pathname);
-  const unreadConnect = VIBECONNECT_THREADS.reduce((a, t) => a + t.unread, 0);
+  const pathname = usePathname();
+  const activeId = tabIdFromPath(pathname);
 
-  const [twinOpen, setTwinOpen] = useState(false);
-  const [toast,    setToast]    = useState<string | null>(null);
-  const [school,   setSchool]   = useState("");
-  const [initials, setInitials] = useState("");
+  const [twinOpen,      setTwinOpen]      = useState(false);
+  const [toast,         setToast]         = useState<string | null>(null);
+  const [school,        setSchool]        = useState("");
+  const [initials,      setInitials]      = useState("");
+  const [fullName,      setFullName]      = useState("");
+  const [unreadConnect, setUnreadConnect] = useState(0);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -308,9 +313,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         .eq("id", user.id)
         .single();
 
-      const fullName = profileData?.full_name ?? "";
-      const parts    = fullName.trim().split(" ").filter(Boolean);
-      const derived  = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
+      const name  = profileData?.full_name ?? "";
+      setFullName(name);
+      const parts   = name.trim().split(" ").filter(Boolean);
+      const derived = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
       setInitials(derived);
 
       const schoolId = profileData?.school_id;
@@ -322,11 +328,18 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           .single();
         setSchool(schoolData?.name ?? "");
       }
+
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("recipient_id", user.id)
+        .eq("is_read", false);
+      setUnreadConnect(count ?? 0);
     }
     fetchProfile();
   }, []);
 
-  const userCtx: UserCtx = { fullName: '', initials, school };
+  const userCtx: UserCtx = { fullName, initials, school };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -347,11 +360,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
 
           <main style={{
-            maxWidth: 768,
-            margin: "0 auto",
-            padding: "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
+            maxWidth:      768,
+            margin:        "0 auto",
+            padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
             paddingBottom: 160,
-            minHeight: "calc(100vh - 120px)",
+            minHeight:     "calc(100vh - 120px)",
           }}>
             {children}
           </main>
