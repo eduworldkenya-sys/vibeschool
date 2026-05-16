@@ -5,17 +5,14 @@ import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
 
-// ─── Toast context ─────────────────────────────────────────────────────────────
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
 export const useToast = () => useContext(ToastContext);
 
-// ─── User context ──────────────────────────────────────────────────────────────
 interface UserCtx { fullName: string; initials: string; school: string }
 const UserContext = createContext<UserCtx>({ fullName: '', initials: '', school: '' });
 export const useUser = () => useContext(UserContext);
 
-// ─── Nav config ────────────────────────────────────────────────────────────────
 const NAV_TABS = [
   { id: "home",        label: "Home",        icon: "🏠", href: "/teacher"             },
   { id: "lessonplan",  label: "Plans",       icon: "📖", href: "/teacher/lessonplan"  },
@@ -30,7 +27,6 @@ function tabIdFromPath(path: string): string {
   return match?.id ?? "home";
 }
 
-// ─── Draggable Twin Pill ───────────────────────────────────────────────────────
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -93,7 +89,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   }
 
   if (!pos) return null
-
   const SIZE = 56
 
   return (
@@ -116,7 +111,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           40%            { transform: scale(1);   opacity: 1;   }
         }
       `}</style>
-
       {!expanded && (
         <div style={{
           position:      'fixed',
@@ -131,7 +125,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           pointerEvents: 'none',
         }} />
       )}
-
       <div
         ref={pillRef}
         onPointerDown={onPointerDown}
@@ -177,12 +170,9 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
         }}>
           ✦
         </div>
-
         {expanded && (
           <div style={{ animation: 'twinExpand 0.22s ease', pointerEvents: 'none', minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap' }}>
-              Your Twin
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap' }}>Your Twin</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 3 }}>
               {[0, 0.2, 0.4].map(delay => (
                 <span key={delay} style={{
@@ -197,7 +187,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
             </div>
           </div>
         )}
-
         {unread > 0 && (
           <div style={{
             position:       'absolute',
@@ -224,7 +213,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   )
 }
 
-// ─── Bottom nav ────────────────────────────────────────────────────────────────
 function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnect: number }) {
   const router = useRouter();
   return (
@@ -245,7 +233,6 @@ function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnec
   );
 }
 
-// ─── Top bar ───────────────────────────────────────────────────────────────────
 function TopBar({ school, initials, unreadConnect }: { school: string; initials: string; unreadConnect: number }) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -256,10 +243,7 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
         {!isHome && (
           <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}>‹</div>
         )}
-        <div
-          onClick={() => router.push("/teacher")}
-          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-        >
+        <div onClick={() => router.push("/teacher")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
           <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
@@ -280,12 +264,10 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
   );
 }
 
-// ─── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg }: { msg: string }) {
   return <div style={{ position: "fixed", bottom: 140, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "11px 22px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, animation: "fadeIn 0.2s ease", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}>{msg}</div>;
 }
 
-// ─── Layout ────────────────────────────────────────────────────────────────────
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const activeId = tabIdFromPath(pathname);
@@ -304,22 +286,20 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profileData } = await supabase
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) return;
+      const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
         .select("full_name, school_id")
         .eq("id", user.id)
         .single();
-
-      const name  = profileData?.full_name ?? "";
+      if (profileErr || !profileData) return;
+      const name  = profileData.full_name ?? "";
       setFullName(name);
       const parts   = name.trim().split(" ").filter(Boolean);
       const derived = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
       setInitials(derived);
-
-      const schoolId = profileData?.school_id;
+      const schoolId = profileData.school_id;
       if (schoolId) {
         const { data: schoolData } = await supabase
           .from("schools")
@@ -328,7 +308,6 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           .single();
         setSchool(schoolData?.name ?? "");
       }
-
       const { count } = await supabase
         .from("messages")
         .select("id", { count: "exact", head: true })
@@ -337,7 +316,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       setUnreadConnect(count ?? 0);
     }
     fetchProfile();
-  }, []);
+  }, [pathname]);
 
   const userCtx: UserCtx = { fullName, initials, school };
 
@@ -355,10 +334,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           ::-webkit-scrollbar { width: 5px; }
           ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
         `}</style>
-
         <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
-
           <main style={{
             maxWidth:      768,
             margin:        "0 auto",
@@ -368,11 +345,9 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           }}>
             {children}
           </main>
-
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
           <BottomNav activeId={activeId} unreadConnect={unreadConnect} />
-
           {toast && <Toast msg={toast} />}
         </div>
       </UserContext.Provider>
