@@ -48,55 +48,17 @@ export default function ClassOnboardingPage() {
       return
     }
 
-    const schoolId = profile.school_id
+    const { data, error: fnErr } = await supabase.rpc('onboard_teacher_class', {
+      p_school_id:  profile.school_id,
+      p_teacher_id: user.id,
+      p_grade:      grade,
+      p_stream:     stream.trim(),
+      p_subject:    subject.trim(),
+    })
 
-
-    // Insert subject with school_id (fixes RLS)
-    const { data: subjectData, error: subjectErr } = await supabase
-      .from('subjects')
-      .insert({ name: subject.trim(), school_id: schoolId })
-      .select('id')
-      .single()
-
-    if (subjectErr) {
+    if (fnErr) {
       setLoading(false)
-      setError('Failed to create subject. Error: ' + subjectErr.message)
-      return
-    }
-
-    // Insert class
-    const { data: classData, error: classErr } = await supabase
-      .from('classes')
-      .insert({
-        teacher_id: user.id,
-        school_id:  schoolId,
-        name:       grade,
-        stream:     stream.trim() || null,
-        subject:    subject.trim(),
-      })
-      .select('id')
-      .single()
-
-    if (classErr) {
-      setLoading(false)
-      setError('Failed to create class. Error: ' + classErr.message)
-      return
-    }
-
-    // Link teacher to class
-    const { error: tcErr } = await supabase
-      .from('teacher_classes')
-      .insert({
-        school_id:        schoolId,
-        teacher_id:       user.id,
-        class_id:         classData.id,
-        subject_id:       subjectData.id,
-        is_class_teacher: true,
-      })
-
-    if (tcErr) {
-      setLoading(false)
-      setError('Failed to link teacher to class. Error: ' + tcErr.message)
+      setError('Failed to create class. Error: ' + fnErr.message)
       return
     }
 
@@ -107,7 +69,6 @@ export default function ClassOnboardingPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 420, background: '#fff', borderRadius: 20, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: dark, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>📚</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: dark }}>Your Class</div>
@@ -121,7 +82,6 @@ export default function ClassOnboardingPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: 1, textTransform: 'uppercase' }}>Grade / Class</label>
             <select value={grade} onChange={e => setGrade(e.target.value)} disabled={loading}
@@ -151,7 +111,6 @@ export default function ClassOnboardingPage() {
             style={{ padding: '13px 20px', borderRadius: 12, border: 'none', background: loading ? '#9ca3af' : accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
             {loading ? 'Creating…' : 'Create Class →'}
           </button>
-
         </div>
       </div>
     </div>
