@@ -50,19 +50,6 @@ export default function ClassOnboardingPage() {
 
     const schoolId = profile.school_id
 
-    // Ensure teacher is owner in school_members (permanent fix for RLS)
-    const { error: memberErr } = await supabase
-      .from('school_members')
-      .upsert(
-        { school_id: schoolId, profile_id: user.id, role: 'owner' },
-        { onConflict: 'school_id,profile_id' }
-      )
-
-    if (memberErr) {
-      setLoading(false)
-      setError('Failed to verify school membership. Error: ' + memberErr.message)
-      return
-    }
 
     // Insert subject with school_id (fixes RLS)
     const { data: subjectData, error: subjectErr } = await supabase
