@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 
@@ -55,9 +57,12 @@ function Skeleton({ h = 56 }: { h?: number }) {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
-export default function AttendancePage() {
+function AttendanceInner() {
   const today = new Date().toISOString().split('T')[0]
   const dow   = new Date().getDay()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const urlClassId   = searchParams.get('classId')
 
   const [uid,        setUid]        = useState<string | null>(null)
   const [schoolId,   setSchoolId]   = useState<string | null>(null)
@@ -249,6 +254,14 @@ export default function AttendancePage() {
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
           {today} · Synced to ClassHub and progressive record.
         </div>
+        {urlClassId && (
+          <button
+            onClick={() => router.push('/teacher/classhub/' + urlClassId)}
+            style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            ← View Class
+          </button>
+        )}
       </div>
 
       {/* Slot selector */}
@@ -403,5 +416,12 @@ export default function AttendancePage() {
         </Card>
       )}
     </>
+  )
+}
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+      <AttendanceInner />
+    </Suspense>
   )
 }

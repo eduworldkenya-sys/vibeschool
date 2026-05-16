@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 import LessonPlanModal from '@/components/teacher/LessonPlanModal'
@@ -50,9 +52,12 @@ function Skeleton({ h = 72 }: { h?: number }) {
 }
 
 // ── Page ───────────────────────────────────────────────────────────────────
-export default function LessonPlanPage() {
-  const dow       = new Date().getDay()
-  const weekStart = getWeekStart()
+function LessonPlanInner() {
+  const dow        = new Date().getDay()
+  const weekStart  = getWeekStart()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const urlClassId   = searchParams.get('classId')
 
   const [items,       setItems]       = useState<SlotWithPlan[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -159,6 +164,14 @@ export default function LessonPlanPage() {
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
           Week of {weekStart} · Linked to your timetable.
         </div>
+        {urlClassId && (
+          <button
+            onClick={() => router.push('/teacher/classhub/' + urlClassId)}
+            style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            ← View Class
+          </button>
+        )}
 
         {/* Summary strip */}
         {!loading && items.length > 0 && (
@@ -274,5 +287,12 @@ export default function LessonPlanPage() {
         />
       )}
     </>
+  )
+}
+export default function LessonPlanPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: '#6b7280' }}>Loading…</div>}>
+      <LessonPlanInner />
+    </Suspense>
   )
 }
