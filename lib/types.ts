@@ -265,3 +265,11 @@ export interface HomeworkAnswer {
   answer_text:   string | null;
   created_at:    string;
 }
+
+export interface MessageThread {
+  teacherId:   string;
+  teacherName: string;
+  lastMessage: string;
+  lastTime:    string;
+  unreadCount: number;
+}
