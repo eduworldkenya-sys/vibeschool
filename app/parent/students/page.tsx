@@ -45,13 +45,13 @@ function ChildCard({ child, onTap }: { child: LinkedChild; onTap: () => void }) 
         width: 46,
         height: 46,
         borderRadius: "50%",
-        background: "#ede9fe",
+        background: "linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         fontSize: 20,
         fontWeight: 800,
-        color: dark,
+        color: "#fff",
         flexShrink: 0,
       }}>
         {initial}
@@ -116,7 +116,7 @@ function EmptyState() {
             borderRadius: 12,
             border: `1.5px solid ${dark}`,
             background: "transparent",
-            color: dark,
+            color: "#fff",
             fontWeight: 700,
             fontSize: 14,
             cursor: "pointer",
@@ -245,7 +245,7 @@ export default function ParentStudentsPage() {
             <ChildCard
               key={child.student_id}
               child={child}
-              onTap={() => router.push("/parent/child/" + child.student_id)}
+              onTap={() => router.push("/parent/child/" + child.student_id + "/profile")}
             />
           ))}
         </div>
