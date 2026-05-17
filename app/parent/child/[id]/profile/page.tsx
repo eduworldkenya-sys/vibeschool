@@ -535,6 +535,32 @@ export default function ChildProfilePage() {
 
       <div style={{ paddingBottom: 140, animation: "fadeIn 0.25s ease", maxWidth: 720, margin: "0 auto" }}>
 
+        {/* ── CHILD HUB TABS ── */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
+          {[
+            { label: "👤 Profile", href: "profile" },
+            { label: "🌱 Life",    href: "life" },
+            { label: "📈 Growth", href: "growth" },
+            { label: "💰 Finance", href: "finance" },
+            { label: "📸 Memories", href: "memories" },
+            { label: "❤️ Health",  href: "health" },
+          ].map(t => (
+            <button
+              key={t.href}
+              onClick={() => router.push(`/parent/child/${id}/${t.href}`)}
+              style={{
+                flexShrink: 0, padding: "8px 16px", borderRadius: 20,
+                border: "1.5px solid",
+                borderColor: typeof window !== "undefined" && window.location.pathname.endsWith(t.href) ? dark : "#e5e7eb",
+                background: typeof window !== "undefined" && window.location.pathname.endsWith(t.href) ? dark : "#fff",
+                color: typeof window !== "undefined" && window.location.pathname.endsWith(t.href) ? "#fff" : "#6b7280",
+                fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         {offline && <OfflineBanner />}
 
         {/* ── HERO ── */}
