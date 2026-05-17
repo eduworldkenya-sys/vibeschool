@@ -629,7 +629,7 @@ export default function HealthPage() {
               }}>
                 <div style={{ fontSize: 52, marginBottom: 16 }}>🏥</div>
                 <p style={{ fontSize: 16, fontWeight: 700, color: dark, margin: "0 0 8px" }}>
-                  {name}"s health journey starts here
+                  {name}'s health journey starts here
                 </p>
                 <p style={{ fontSize: 13, color: "#9ca3af", margin: "0 0 24px", lineHeight: 1.6 }}>
                   Log visits, illnesses, and injuries to keep a full picture.
@@ -659,7 +659,7 @@ export default function HealthPage() {
               }}>
                 <div style={{ fontSize: 52, marginBottom: 16 }}>💉</div>
                 <p style={{ fontSize: 16, fontWeight: 700, color: dark, margin: "0 0 8px" }}>
-                  Log {name}"s first vaccination
+                  Log {name}'s first vaccination
                 </p>
                 <p style={{ fontSize: 13, color: "#9ca3af", margin: "0 0 24px", lineHeight: 1.6 }}>
                   Keep track of every dose and never miss a due date.
