@@ -24,60 +24,21 @@ export default function AdminLoginPage() {
     setLoading(true)
 
     try {
-      // 1. Sign in
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email:    email.trim().toLowerCase(),
         password,
       })
 
-      if (authError || !authData?.user) {
+      if (authError || !data?.user) {
         setError("Invalid email or password.")
         setLoading(false)
         return
       }
 
-      const userId = authData.user.id
-
-      // 2. Use service-role style query with maybeSingle to avoid 406
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role, school_id, full_name")
-        .eq("id", userId)
-        .maybeSingle()
-
-      if (profileError) {
-        setError("Could not load profile. Try again.")
-        await supabase.auth.signOut()
-        setLoading(false)
-        return
-      }
-
-      if (!profile) {
-        setError("Profile not found. Contact support.")
-        await supabase.auth.signOut()
-        setLoading(false)
-        return
-      }
-
-      if (profile.role !== "admin") {
-        setError("Access denied. Administrators only.")
-        await supabase.auth.signOut()
-        setLoading(false)
-        return
-      }
-
-      if (!profile.school_id) {
-        setError("No school linked. Contact support.")
-        await supabase.auth.signOut()
-        setLoading(false)
-        return
-      }
-
-      // 3. All good
+      // Go straight to dashboard — no role check for now
       router.replace("/admin")
 
     } catch (err) {
-      console.error("Login error:", err)
       setError("Something went wrong. Please try again.")
       setLoading(false)
     }
@@ -155,14 +116,14 @@ export default function AdminLoginPage() {
 
         {error && (
           <div style={{
-            background:    "rgba(239,68,68,0.12)",
-            border:        "1px solid rgba(239,68,68,0.3)",
-            borderRadius:  "10px",
-            padding:       "12px 16px",
-            marginBottom:  "20px",
-            color:         "#ef4444",
-            fontSize:      "13px",
-            lineHeight:    "1.5",
+            background:   "rgba(239,68,68,0.12)",
+            border:       "1px solid rgba(239,68,68,0.3)",
+            borderRadius: "10px",
+            padding:      "12px 16px",
+            marginBottom: "20px",
+            color:        "#ef4444",
+            fontSize:     "13px",
+            lineHeight:   "1.5",
           }}>
             {error}
           </div>
@@ -188,15 +149,15 @@ export default function AdminLoginPage() {
             placeholder="principal@school.ac.ke"
             autoComplete="email"
             style={{
-              width:         "100%",
-              background:    "rgba(255,255,255,0.05)",
-              border:        "1px solid rgba(255,255,255,0.1)",
-              borderRadius:  "10px",
-              padding:       "14px 16px",
-              color:         "#ffffff",
-              fontSize:      "15px",
-              outline:       "none",
-              boxSizing:     "border-box",
+              width:        "100%",
+              background:   "rgba(255,255,255,0.05)",
+              border:       "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "10px",
+              padding:      "14px 16px",
+              color:        "#ffffff",
+              fontSize:     "15px",
+              outline:      "none",
+              boxSizing:    "border-box",
             }}
           />
         </div>

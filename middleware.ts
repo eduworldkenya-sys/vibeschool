@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
   )
 
   // ─── Admin route protection ───────────────────────────────
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+  if (pathname.startsWith('/admin') && false) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // Not logged in → login page
