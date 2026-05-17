@@ -238,8 +238,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         <main style={{
           maxWidth: 768,
           margin: "0 auto",
-          padding: "16px 16px 0",
-          paddingBottom: 160,
+          padding: "16px 16px 160px",
         }}>
           {children}
         </main>

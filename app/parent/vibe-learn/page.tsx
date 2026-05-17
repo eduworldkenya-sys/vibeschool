@@ -259,7 +259,7 @@ export default function VibeLearnPage() {
         .cat-scroll { -ms-overflow-style: none; scrollbar-width: none }
       `}</style>
 
-      <div style={{ background: bg, minHeight: '100vh', paddingBottom: 80 }}>
+      <div style={{ background: bg, paddingBottom: 80 }}>
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <div style={{

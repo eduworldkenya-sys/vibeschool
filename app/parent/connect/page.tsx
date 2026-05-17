@@ -193,7 +193,7 @@ export default function ConnectPage() {
 
   if (view === "conversation" && activeThread) {
     return (
-      <div id="parent-conversation-page" style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "#f0f2f5" }}>
+      <div id="parent-conversation-page" style={{ display: "flex", flexDirection: "column", background: "#f0f2f5" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
           <button
             onClick={() => { setView("threads"); setActiveThread(null); setConversation([]); }}
@@ -257,7 +257,7 @@ export default function ConnectPage() {
   }
 
   return (
-    <div id="parent-connect-page" style={{ minHeight: "100dvh", background: "#f0f2f5", paddingBottom: 80 }}>
+    <div id="parent-connect-page" style={{ background: "#f0f2f5", paddingBottom: 80 }}>
       <div style={{ padding: "20px 16px 12px", display: "flex", alignItems: "center", gap: 10 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111827", margin: 0 }}>Messages</h1>
         {totalUnread > 0 && (

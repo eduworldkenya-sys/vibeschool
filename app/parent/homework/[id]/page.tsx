@@ -243,11 +243,11 @@ export default function HomeworkDetailPage() {
   }, [activeChild, homework]);
 
   if (loading) return (
-    <div style={{ background: "#f0f2f5", minHeight: "100dvh" }}><Skeleton /></div>
+    <div style={{ background: "#f0f2f5" }}><Skeleton /></div>
   );
 
   if (error) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", background: "#f0f2f5", gap: 16, padding: 32, textAlign: "center" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#f0f2f5", gap: 16, padding: 32, textAlign: "center" }}>
       <span style={{ fontSize: 40 }}>📭</span>
       <p style={{ fontSize: 16, fontWeight: 600, color: "#111827", margin: 0 }}>{error}</p>
     </div>
@@ -264,7 +264,7 @@ export default function HomeworkDetailPage() {
   const longInstructions = instructions.length > 120;
 
   return (
-    <div id="parent-homework-detail" style={{ minHeight: "100dvh", background: "#f0f2f5", paddingBottom: 48 }}>
+    <div id="parent-homework-detail" style={{ background: "#f0f2f5", paddingBottom: 48 }}>
 
       <div style={{ background: "#fff", padding: "20px 16px 16px", borderBottom: "1px solid #e5e7eb" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>

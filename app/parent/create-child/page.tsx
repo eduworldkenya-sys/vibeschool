@@ -229,7 +229,7 @@ export default function CreateChildPage() {
   const stepIndex = stepsWithIndicator.indexOf(step);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f2f5", paddingBottom: 40 }}>
+    <div style={{ background: "#f0f2f5", paddingBottom: 40 }}>
       <style>{`
         @keyframes slideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
