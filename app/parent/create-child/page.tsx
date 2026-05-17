@@ -68,57 +68,35 @@ export default function CreateChildPage() {
     return true;
   }
 
-  async function handleSkip() {
+    async function handleSkip() {
     if (!validateDetails()) return;
     setLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/academy/signin?role=parent"); return; }
 
-    // Step 1 — create profile for child
-    const { data: profile, error: profErr } = await supabase
-      .from("profiles")
+    const { data: student, error: stuErr } = await supabase
+      .from("students")
       .insert({
-        id:            crypto.randomUUID(),
-        full_name:    childName.trim(),
-        role:         "student",
-        date_of_birth: childDob,
-        country_code: null,
-        school_id:    null,
+        name:             childName.trim(),
+        profile_id:       null,
+        class_id:         null,
+        admission_number: null,
       })
       .select("id")
       .single();
 
-    if (profErr || !profile) {
+    if (stuErr || !student) {
       setLoading(false);
-      setError("Failed to create child profile. Please try again.");
+      setError("Failed to create child. Please try again.");
       return;
     }
 
-    const profileId = profile.id;
-
-    // Step 2 — create student row using profile id
-    const { error: stuErr } = await supabase
-      .from("students")
-      .insert({
-        name:             childName.trim(),
-        profile_id:       profileId,
-        class_id:         null,
-        admission_number: null,
-      });
-
-    if (stuErr) {
-      setLoading(false);
-      setError("Failed to save child details. Please try again.");
-      return;
-    }
-
-    // Step 3 — link parent to child using profile id
     const { error: linkErr } = await supabase
       .from("parent_student_links")
       .insert({
         parent_id:       user.id,
-        student_id:      profileId,
+        student_id:      student.id,
         school_id:       null,
         relationship:    "parent",
         is_primary:      true,
@@ -128,7 +106,7 @@ export default function CreateChildPage() {
 
     if (linkErr) {
       setLoading(false);
-      setError("Failed to link child to your account. Please try again.");
+      setError("Failed to link child. Please try again.");
       return;
     }
 
@@ -136,6 +114,7 @@ export default function CreateChildPage() {
     setDoneMsg(`${childName.trim()} has been added to your account. You can link them to a school later.`);
     setStep("done");
   }
+
 
   function handleAddToSchool() {
     if (!validateDetails()) return;
@@ -172,7 +151,7 @@ export default function CreateChildPage() {
     setStep("class");
   }
 
-  async function handleSubmit() {
+    async function handleSubmit() {
     setError("");
     if (!classId) { setError("Please select a class."); return; }
     setLoading(true);
@@ -180,50 +159,28 @@ export default function CreateChildPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/academy/signin?role=parent"); return; }
 
-    // Step 1 — create profile for child
-    const { data: profile, error: profErr } = await supabase
-      .from("profiles")
+    const { data: student, error: stuErr } = await supabase
+      .from("students")
       .insert({
-        id:            crypto.randomUUID(),
-        full_name:     childName.trim(),
-        role:          "student",
-        date_of_birth: childDob,
-        country_code:  null,
-        school_id:     schoolId,
+        name:             childName.trim(),
+        profile_id:       null,
+        class_id:         classId,
+        admission_number: null,
       })
       .select("id")
       .single();
 
-    if (profErr || !profile) {
+    if (stuErr || !student) {
       setLoading(false);
-      setError("Failed to create child profile. Please try again.");
+      setError("Failed to create child. Please try again.");
       return;
     }
 
-    const profileId = profile.id;
-
-    // Step 2 — create student row using profile id
-    const { error: stuErr } = await supabase
-      .from("students")
-      .insert({
-        name:             childName.trim(),
-        profile_id:       profileId,
-        class_id:         classId,
-        admission_number: null,
-      });
-
-    if (stuErr) {
-      setLoading(false);
-      setError("Failed to save child details. Please try again.");
-      return;
-    }
-
-    // Step 3 — link parent to child using profile id
     const { error: linkErr } = await supabase
       .from("parent_student_links")
       .insert({
         parent_id:       user.id,
-        student_id:      profileId,
+        student_id:      student.id,
         school_id:       schoolId,
         relationship:    "parent",
         is_primary:      true,
@@ -233,15 +190,14 @@ export default function CreateChildPage() {
 
     if (linkErr) {
       setLoading(false);
-      setError("Failed to link child to your account. Please try again.");
+      setError("Failed to link child. Please try again.");
       return;
     }
 
-    // Step 4 — send class join request using profile id
     const { error: reqErr } = await supabase
       .from("class_join_requests")
       .insert({
-        student_id: profileId,
+        student_id: student.id,
         class_id:   classId,
         parent_id:  user.id,
         status:     "pending",
@@ -257,6 +213,7 @@ export default function CreateChildPage() {
     setDoneMsg(`Join request sent. Once the teacher approves, ${childName.trim()} will appear on your dashboard.`);
     setStep("done");
   }
+
 
   function handleBack() {
     if (step === "details" || step === "done") { router.push("/parent"); return; }
