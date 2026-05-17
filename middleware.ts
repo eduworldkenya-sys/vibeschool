@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const { pathname } = req.nextUrl
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,32 +22,6 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // ─── Admin route protection ───────────────────────────────
-  if (pathname.startsWith('/admin') && false) {
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // Not logged in → login page
-    if (!user) {
-      const url = req.nextUrl.clone()
-      url.pathname = '/admin/login'
-      return NextResponse.redirect(url)
-    }
-
-    // Logged in — check role is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, school_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || profile.role !== 'admin' || !profile.school_id) {
-      const url = req.nextUrl.clone()
-      url.pathname = '/admin/login'
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // ─── Existing routes ──────────────────────────────────────
   await supabase.auth.getUser()
 
   return res
