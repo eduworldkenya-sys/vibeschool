@@ -233,7 +233,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         @keyframes fadeIn  { from{ opacity:0 } to{ opacity:1 } }
         @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
       `}</style>
-      <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+      <div style={{ minHeight: "100vh", background: "#f0f2f5", overflowY: "auto" }}>
         <TopBar initials={initials} />
         <main style={{
           maxWidth: 768,
