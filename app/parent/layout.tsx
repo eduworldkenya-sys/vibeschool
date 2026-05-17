@@ -240,7 +240,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
           margin: "0 auto",
           padding: "16px 16px 0",
           paddingBottom: 160,
-          minHeight: "calc(100vh - 120px)",
+          minHeight: "calc(100vh - 120px)", overflowY: "auto",
         }}>
           {children}
         </main>
