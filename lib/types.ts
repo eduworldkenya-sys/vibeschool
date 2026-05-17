@@ -273,3 +273,54 @@ export interface MessageThread {
   lastTime:    string;
   unreadCount: number;
 }
+
+// ─── Child Profile ────────────────────────────────────────────────────────────
+
+export interface ChildProfile {
+  id:                      string;
+  student_id:              string;
+  parent_id:               string;
+  nickname:                string | null;
+  favourite_color:         string | null;
+  favourite_food:          string | null;
+  favourite_animal:        string | null;
+  favourite_book:          string | null;
+  favourite_sport:         string | null;
+  blood_group:             string | null;
+  allergies:               string | null;
+  medical_notes:           string | null;
+  special_needs:           string | null;
+  emergency_contact_name:  string | null;
+  emergency_contact_phone: string | null;
+  photo_url:               string | null;
+  bio:                     string | null;
+  owner:                   string;
+  visibility:              string;
+  created_at:              string;
+  updated_at:              string;
+  deleted_at:              string | null;
+}
+
+export interface ChildBadge {
+  id:         string;
+  student_id: string;
+  badge_id:   string;
+  earned_at:  string;
+  awarded_by: string;
+  badges: {
+    code:        string;
+    name:        string;
+    icon:        string;
+    description: string;
+  };
+}
+
+export interface StudentFull {
+  id:               string;
+  name:             string;
+  class_id:         string | null;
+  admission_number: string | null;
+  date_of_birth:    string | null;
+  gender:           string | null;
+  autonomy_level:   number;
+}
