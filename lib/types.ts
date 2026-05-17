@@ -339,3 +339,36 @@ export interface ChildMedia {
   created_at:    string;
   deleted_at:    string | null;
 }
+
+// ─── Health Records ────────────────────────────────────────────────────────────
+export interface HealthRecord {
+  id:          string;
+  student_id:  string;
+  parent_id:   string;
+  record_type: "visit" | "illness" | "injury" | "other" | string;
+  title:       string;
+  description: string | null;
+  provider:    string | null;
+  location:    string | null;
+  severity:    "mild" | "moderate" | "severe" | null;
+  outcome:     string | null;
+  recorded_at: string | null;
+  created_at:  string;
+  deleted_at:  string | null;
+}
+
+// ─── Health Vaccinations ───────────────────────────────────────────────────────
+export interface HealthVaccination {
+  id:              string;
+  student_id:      string;
+  parent_id:       string;
+  vaccine_name:    string;
+  dose:            string | null;
+  administered_at: string | null;
+  next_due_date:   string | null;
+  provider:        string | null;
+  location:        string | null;
+  notes:           string | null;
+  created_at:      string;
+  deleted_at:      string | null;
+}
