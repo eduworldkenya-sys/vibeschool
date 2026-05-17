@@ -108,7 +108,7 @@ export default function CreateChildPage() {
 
     if (linkErr) {
       setLoading(false);
-      setError("Failed to link child. Please try again.");
+      setError("Link error: LINKFAIL");
       return;
     }
 
@@ -194,7 +194,7 @@ export default function CreateChildPage() {
 
     if (linkErr) {
       setLoading(false);
-      setError("Failed to link child. Please try again.");
+      setError("Link error: LINKFAIL");
       return;
     }
 
