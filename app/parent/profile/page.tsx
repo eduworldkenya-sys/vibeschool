@@ -272,7 +272,7 @@ export default function ParentProfilePage() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', paddingBottom: 100 }}>
+    <div style={{ background: C.bg }}>
 
       <style>{`
         @keyframes shimmer {
@@ -308,7 +308,6 @@ export default function ParentProfilePage() {
         </div>
       )}
 
-      <div style={{ maxWidth: 480, margin: '0 auto', padding: '0 16px' }}>
 
         {/* ── HERO ── */}
         <div style={{
@@ -603,6 +602,5 @@ export default function ParentProfilePage() {
         </button>
 
       </div>
-    </div>
   )
 }
