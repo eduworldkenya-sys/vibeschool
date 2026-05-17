@@ -79,6 +79,7 @@ export default function CreateChildPage() {
     const { data: profile, error: profErr } = await supabase
       .from("profiles")
       .insert({
+        id:            crypto.randomUUID(),
         full_name:    childName.trim(),
         role:         "student",
         date_of_birth: childDob,
@@ -183,6 +184,7 @@ export default function CreateChildPage() {
     const { data: profile, error: profErr } = await supabase
       .from("profiles")
       .insert({
+        id:            crypto.randomUUID(),
         full_name:     childName.trim(),
         role:          "student",
         date_of_birth: childDob,
