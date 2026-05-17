@@ -41,9 +41,9 @@ function Toast({ msg }: { msg: string }) {
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 function Lightbox({ item, onClose }: { item: ChildMedia; onClose: () => void }) {
-  const isPhoto    = item.media_type === "photo";
-  const isVideo    = item.media_type === "video";
-  const isDocument = item.media_type === "document";
+  const isPhoto    = item.type === "photo";
+  const isVideo    = item.type === "video";
+  const isDocument = item.type === "document";
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -121,8 +121,8 @@ function Lightbox({ item, onClose }: { item: ChildMedia; onClose: () => void }) 
           {item.title && (
             <p style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700, color: "#fff" }}>{item.title}</p>
           )}
-          {item.caption && (
-            <p style={{ margin: "0 0 8px", fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>{item.caption}</p>
+          {item.description && (
+            <p style={{ margin: "0 0 8px", fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>{item.description}</p>
           )}
           {item.recorded_at && (
             <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
@@ -137,10 +137,10 @@ function Lightbox({ item, onClose }: { item: ChildMedia; onClose: () => void }) 
 
 // ─── Media Card ───────────────────────────────────────────────────────────────
 function MediaCard({ item, onClick }: { item: ChildMedia; onClick: () => void }) {
-  const isPhoto    = item.media_type === "photo";
-  const isVideo    = item.media_type === "video";
-  const isDocument = item.media_type === "document";
-  const thumb      = item.thumbnail_url ?? (isPhoto ? item.url : null);
+  const isPhoto    = item.type === "photo";
+  const isVideo    = item.type === "video";
+  const isDocument = item.type === "document";
+  const thumb = isPhoto ? item.url : null;
 
   return (
     <div
@@ -224,7 +224,7 @@ function MediaCard({ item, onClick }: { item: ChildMedia; onClick: () => void })
         padding: "2px 8px", fontSize: 9, fontWeight: 700,
         color: "#fff", textTransform: "uppercase", letterSpacing: 0.5,
       }}>
-        {item.media_type}
+        {item.type}
       </div>
     </div>
   );
@@ -333,14 +333,14 @@ export default function MemoriesPage() {
   useEffect(() => { if (id) fetchMedia(); }, [id, fetchMedia]);
 
   // ── Filtered list ───────────────────────────────────────────────────────────
-  const filtered = filter === "all" ? media : media.filter(m => m.media_type === filter);
+  const filtered = filter === "all" ? media : media.filter(m => m.type === filter);
 
   // ── Counts ──────────────────────────────────────────────────────────────────
   const counts = {
     all:      media.length,
-    photo:    media.filter(m => m.media_type === "photo").length,
-    video:    media.filter(m => m.media_type === "video").length,
-    document: media.filter(m => m.media_type === "document").length,
+    photo:    media.filter(m => m.type === "photo").length,
+    video:    media.filter(m => m.type === "video").length,
+    document: media.filter(m => m.type === "document").length,
   };
 
   const FILTERS: { id: FilterType; label: string; emoji: string }[] = [

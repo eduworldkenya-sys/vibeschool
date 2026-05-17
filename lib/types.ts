@@ -331,10 +331,13 @@ export interface ChildMedia {
   student_id:    string;
   parent_id:     string;
   title:         string | null;
-  caption:       string | null;
-  media_type:    "photo" | "video" | "document" | string;
+  description:   string | null;
+  type:          "photo" | "video" | "document" | string;
   url:           string;
   thumbnail_url: string | null;
+  related_to:    string | null;
+  owner:         string | null;
+  visibility:    string | null;
   recorded_at:   string | null;
   created_at:    string;
   deleted_at:    string | null;
