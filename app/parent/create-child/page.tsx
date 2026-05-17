@@ -61,7 +61,6 @@ export default function CreateChildPage() {
     cursor: "pointer", fontFamily: "inherit",
   };
 
-  // ── Step 1 validation ──────────────────────────────────────────────────────
   function validateDetails(): boolean {
     if (!childName.trim()) { setError("Child name is required."); return false; }
     if (!childDob)         { setError("Date of birth is required."); return false; }
@@ -69,7 +68,6 @@ export default function CreateChildPage() {
     return true;
   }
 
-  // ── Skip school — create student with no class ─────────────────────────────
   async function handleSkip() {
     if (!validateDetails()) return;
     setLoading(true);
@@ -77,28 +75,49 @@ export default function CreateChildPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/academy/signin?role=parent"); return; }
 
-    const { data: student, error: stuErr } = await supabase
-      .from("students")
+    // Step 1 — create profile for child
+    const { data: profile, error: profErr } = await supabase
+      .from("profiles")
       .insert({
-        name:             childName.trim(),
-        class_id:         null,
-        admission_number: null,
-        profile_id:       null,
+        full_name:    childName.trim(),
+        role:         "student",
+        date_of_birth: childDob,
+        country_code: null,
+        school_id:    null,
       })
       .select("id")
       .single();
 
-    if (stuErr || !student) {
+    if (profErr || !profile) {
       setLoading(false);
       setError("Failed to create child profile. Please try again.");
       return;
     }
 
+    const profileId = profile.id;
+
+    // Step 2 — create student row using profile id
+    const { error: stuErr } = await supabase
+      .from("students")
+      .insert({
+        name:             childName.trim(),
+        profile_id:       profileId,
+        class_id:         null,
+        admission_number: null,
+      });
+
+    if (stuErr) {
+      setLoading(false);
+      setError("Failed to save child details. Please try again.");
+      return;
+    }
+
+    // Step 3 — link parent to child using profile id
     const { error: linkErr } = await supabase
       .from("parent_student_links")
       .insert({
         parent_id:       user.id,
-        student_id:      student.id,
+        student_id:      profileId,
         school_id:       null,
         relationship:    "parent",
         is_primary:      true,
@@ -108,7 +127,7 @@ export default function CreateChildPage() {
 
     if (linkErr) {
       setLoading(false);
-      setError("Link error: LINKFAIL");
+      setError("Failed to link child to your account. Please try again.");
       return;
     }
 
@@ -117,13 +136,11 @@ export default function CreateChildPage() {
     setStep("done");
   }
 
-  // ── Go to school step ──────────────────────────────────────────────────────
   function handleAddToSchool() {
     if (!validateDetails()) return;
     setStep("school");
   }
 
-  // ── Find school by subdomain ───────────────────────────────────────────────
   async function handleFindSchool() {
     setError("");
     if (!subdomain.trim()) { setError("Enter the school code."); return; }
@@ -154,7 +171,6 @@ export default function CreateChildPage() {
     setStep("class");
   }
 
-  // ── Submit with class ──────────────────────────────────────────────────────
   async function handleSubmit() {
     setError("");
     if (!classId) { setError("Please select a class."); return; }
@@ -163,28 +179,49 @@ export default function CreateChildPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/academy/signin?role=parent"); return; }
 
-    const { data: student, error: stuErr } = await supabase
-      .from("students")
+    // Step 1 — create profile for child
+    const { data: profile, error: profErr } = await supabase
+      .from("profiles")
       .insert({
-        name:             childName.trim(),
-        class_id:         classId,
-        admission_number: null,
-        profile_id:       null,
+        full_name:     childName.trim(),
+        role:          "student",
+        date_of_birth: childDob,
+        country_code:  null,
+        school_id:     schoolId,
       })
       .select("id")
       .single();
 
-    if (stuErr || !student) {
+    if (profErr || !profile) {
       setLoading(false);
       setError("Failed to create child profile. Please try again.");
       return;
     }
 
+    const profileId = profile.id;
+
+    // Step 2 — create student row using profile id
+    const { error: stuErr } = await supabase
+      .from("students")
+      .insert({
+        name:             childName.trim(),
+        profile_id:       profileId,
+        class_id:         classId,
+        admission_number: null,
+      });
+
+    if (stuErr) {
+      setLoading(false);
+      setError("Failed to save child details. Please try again.");
+      return;
+    }
+
+    // Step 3 — link parent to child using profile id
     const { error: linkErr } = await supabase
       .from("parent_student_links")
       .insert({
         parent_id:       user.id,
-        student_id:      student.id,
+        student_id:      profileId,
         school_id:       schoolId,
         relationship:    "parent",
         is_primary:      true,
@@ -194,14 +231,15 @@ export default function CreateChildPage() {
 
     if (linkErr) {
       setLoading(false);
-      setError("Link error: LINKFAIL");
+      setError("Failed to link child to your account. Please try again.");
       return;
     }
 
+    // Step 4 — send class join request using profile id
     const { error: reqErr } = await supabase
       .from("class_join_requests")
       .insert({
-        student_id: student.id,
+        student_id: profileId,
         class_id:   classId,
         parent_id:  user.id,
         status:     "pending",
@@ -218,7 +256,6 @@ export default function CreateChildPage() {
     setStep("done");
   }
 
-  // ── Back button logic ──────────────────────────────────────────────────────
   function handleBack() {
     if (step === "details" || step === "done") { router.push("/parent"); return; }
     if (step === "school") { setStep("details"); return; }
@@ -274,7 +311,7 @@ export default function CreateChildPage() {
 
       <div style={{ padding: 16, animation: "slideIn 0.22s ease" }}>
 
-        {/* ── STEP: details ── */}
+        {/* STEP: details */}
         {step === "details" && (
           <div style={{ background: "#fff", borderRadius: 20, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: dark, marginBottom: 4 }}>
@@ -324,7 +361,7 @@ export default function CreateChildPage() {
           </div>
         )}
 
-        {/* ── STEP: school ── */}
+        {/* STEP: school */}
         {step === "school" && (
           <div style={{ background: "#fff", borderRadius: 20, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: dark, marginBottom: 4 }}>Find School</div>
@@ -359,7 +396,7 @@ export default function CreateChildPage() {
           </div>
         )}
 
-        {/* ── STEP: class ── */}
+        {/* STEP: class */}
         {step === "class" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
@@ -438,7 +475,7 @@ export default function CreateChildPage() {
           </div>
         )}
 
-        {/* ── STEP: done ── */}
+        {/* STEP: done */}
         {step === "done" && (
           <div style={{
             background: "#fff", borderRadius: 20, padding: 32,
