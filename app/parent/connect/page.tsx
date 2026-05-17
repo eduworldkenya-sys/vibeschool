@@ -321,7 +321,7 @@ export default function ConnectPage() {
       {composeOpen && (
         <>
           <div onClick={closeCompose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 40 }} />
-          <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 16px 36px", zIndex: 50, display: "flex", flexDirection: "column", gap: 14, maxHeight: "70dvh", overflowY: "scroll", paddingBottom: "max(36px, env(safe-area-inset-bottom))" }}>
+          <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 16px 36px", zIndex: 50, display: "flex", flexDirection: "column", gap: 14, maxHeight: "55dvh", overflowY: "auto", paddingBottom: "max(36px, env(safe-area-inset-bottom))" }}>
             <div style={{ width: 36, height: 4, background: "#e5e7eb", borderRadius: 2, margin: "0 auto 4px" }} />
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#111827" }}>New Message</h2>
 
