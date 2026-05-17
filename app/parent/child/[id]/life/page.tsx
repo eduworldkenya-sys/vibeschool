@@ -479,6 +479,19 @@ export default function LifePage() {
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
         @keyframes slideUp { from{transform:translateY(40px);opacity:0} to{transform:translateY(0);opacity:1} }
       `}</style>
+      {/* ── CHILD HUB TABS ── */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, overflowX: "auto", paddingBottom: 2, WebkitOverflowScrolling: "touch" }}>
+        {[
+          { label: "👤 Profile", href: "profile", active: false },
+          { label: "🌱 Life",     href: "life",    active: true },
+          { label: "📈 Growth",  href: "growth",  active: false },
+          { label: "💰 Finance", href: "finance", active: false },
+          { label: "📸 Memories",href: "memories",active: false },
+          { label: "❤️ Health",  href: "health",  active: false },
+        ].map(t => (
+          <button key={t.href} onClick={() => router.push(`/parent/child/${id}/${t.href}`)} style={{ flexShrink: 0, padding: "8px 16px", borderRadius: 20, border: "1.5px solid", borderColor: t.active ? dark : "#e5e7eb", background: t.active ? dark : "#fff", color: t.active ? "#fff" : "#6b7280", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{t.label}</button>
+        ))}
+      </div>
 
       {/* ── Header ── */}
       <div style={{
