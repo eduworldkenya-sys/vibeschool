@@ -55,7 +55,6 @@ function AcademySignUpInner() {
   const [showPassword,    setShowPassword]    = useState(false)
   const [showConfirm,     setShowConfirm]     = useState(false)
   const [claimCode,       setClaimCode]       = useState('')
-  const [inviteCode,      setInviteCode]      = useState('')
   const [error,           setError]           = useState('')
   const [loading,         setLoading]         = useState(false)
 
@@ -90,11 +89,6 @@ function AcademySignUpInner() {
 
     if (role === 'student') {
       if (!claimCode.trim()) { setError('Claim code is required to create a student account.'); return }
-    } else {
-      if (inviteCode.trim() && !/^\d{6}$/.test(inviteCode.trim())) {
-        setError('Invitation code must be exactly 6 digits.')
-        return
-      }
     }
 
     setLoading(true)
@@ -135,7 +129,6 @@ function AcademySignUpInner() {
     if (role === 'student') {
       const code = claimCode.trim().toUpperCase()
 
-      // Find the claim code row
       const { data: codeRow, error: codeErr } = await supabase
         .from('student_claim_codes')
         .select('id, student_id, claimed, expires_at')
@@ -163,7 +156,6 @@ function AcademySignUpInner() {
         return
       }
 
-      // Get student row to find school_id via class
       const { data: student } = await supabase
         .from('students')
         .select('id, class_id, admission_number')
@@ -183,7 +175,6 @@ function AcademySignUpInner() {
         .eq('id', student.class_id)
         .single()
 
-      // Link profile_id on students row
       const { error: linkErr } = await supabase
         .from('students')
         .update({ profile_id: userId })
@@ -196,7 +187,6 @@ function AcademySignUpInner() {
         return
       }
 
-      // Create student_profiles row
       await supabase
         .from('student_profiles')
         .insert({
@@ -206,28 +196,16 @@ function AcademySignUpInner() {
           gender:       null,
         })
 
-      // Mark claim code as used
       await supabase
         .from('student_claim_codes')
         .update({ claimed: true })
         .eq('id', codeRow.id)
 
-      // Update school_id on profile
       if (cls?.school_id) {
         await supabase
           .from('profiles')
           .update({ school_id: cls.school_id })
           .eq('id', userId)
-      }
-
-    } else {
-      // Non-student invitation code (optional)
-      if (inviteCode.trim()) {
-        await fetch('/api/validate-invitation', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ code: inviteCode.trim(), commit: true }),
-        })
       }
     }
 
@@ -326,7 +304,7 @@ function AcademySignUpInner() {
               </div>
             </div>
 
-            {role === 'student' ? (
+            {role === 'student' && (
               <div className={styles.field}>
                 <label className={styles.label} htmlFor="claimCode">CLAIM CODE</label>
                 <input id="claimCode" className={styles.input} type="text"
@@ -334,15 +312,6 @@ function AcademySignUpInner() {
                   value={claimCode}
                   onChange={e => setClaimCode(e.target.value.toUpperCase())}
                   disabled={loading} />
-              </div>
-            ) : (
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="inviteCode">
-                  INVITATION CODE <span className={styles.optional}>(optional)</span>
-                </label>
-                <input id="inviteCode" className={styles.input} type="text" inputMode="numeric"
-                  maxLength={6} placeholder="6-digit code"
-                  value={inviteCode} onChange={e => setInviteCode(e.target.value.replace(/\D/g, ''))} disabled={loading} />
               </div>
             )}
 
