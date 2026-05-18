@@ -505,7 +505,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function BriefingRow({ item, router }: { item: any; router: any }) {
+function BriefingRow({ item, router }: { item: Briefing; router: any }) {
   const cfg = {
     critical: { dot: "🔴", bg: "rgba(239,68,68,0.07)",  border: "rgba(239,68,68,0.2)",  color: "#ef4444", tag: "URGENT"  },
     decide:   { dot: "🟡", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.2)", color: "#f59e0b", tag: "DECIDE"  },
