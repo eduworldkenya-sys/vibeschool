@@ -45,33 +45,32 @@ interface Briefing {
 }
 
 interface DashData {
-  adminName:        string
-  schoolName:       string
-  logoUrl:          string | null
-  students:         number
-  staff:            number
-  classes:          number
-  parents:          number
-  presentToday:     number
-  absentToday:      number
-  staffPresentToday:number
-  staffTotal:       number
-  visitorsToday:    number
-  meetingsToday:    number
-  pendingLeave:     number
-  activeProjects:   number
-  feesCollected:    number
-  feesExpected:     number
-  announcements:    number
+  adminName:         string
+  schoolName:        string
+  logoUrl:           string | null
+  students:          number
+  staff:             number
+  classes:           number
+  parents:           number
+  presentToday:      number
+  absentToday:       number
+  staffPresentToday: number
+  staffTotal:        number
+  visitorsToday:     number
+  meetingsToday:     number
+  pendingLeave:      number
+  activeProjects:    number
+  feesCollected:     number
+  feesExpected:      number
+  announcements:     number
 }
 
 export default function AdminHub() {
   const router = useRouter()
-  const [data,         setData]         = useState<DashData | null>(null)
-  const [loading,      setLoading]      = useState(true)
-  const [balHidden,    setBalHidden]    = useState(true)
-  const [now,          setNow]          = useState(new Date())
-  const [schoolId,     setSchoolId]     = useState("")
+  const [data,      setData]      = useState<DashData | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [balHidden, setBalHidden] = useState(true)
+  const [now,       setNow]       = useState(new Date())
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60000)
@@ -92,8 +91,6 @@ export default function AdminHub() {
         .single()
 
       if (!p?.school_id) { router.push("/admin/login"); return }
-
-      setSchoolId(p.school_id)
 
       const { data: school } = await supabase
         .from("schools")
@@ -159,7 +156,7 @@ export default function AdminHub() {
     })
   }
 
-  // ─── Derived ─────────────────────────────────────────────────────────────
+  // ─── Derived ──────────────────────────────────────────────────────────────
   const greeting = () => {
     const h = now.getHours()
     return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"
@@ -213,7 +210,7 @@ export default function AdminHub() {
         total: data.students,
         color: studentAtt >= 90 ? C.emerald : studentAtt >= 75 ? C.amber : C.red,
         href:  "/admin/attendance",
-        alert: studentAtt < 75 ? "Below threshold" : undefined,
+        alert: data.students > 0 && studentAtt < 75 ? "Below threshold" : undefined,
       },
       {
         key:   "staff",
@@ -222,7 +219,7 @@ export default function AdminHub() {
         total: data.staffTotal,
         color: staffAtt === 100 ? C.emerald : staffAtt >= 85 ? C.amber : C.red,
         href:  "/admin/staff",
-        alert: staffAtt < 85 ? "Needs cover" : undefined,
+        alert: data.staffTotal > 0 && staffAtt < 85 ? "Needs cover" : undefined,
       },
       {
         key:    "fees",
@@ -232,34 +229,38 @@ export default function AdminHub() {
         color:  feesPct >= 80 ? C.emerald : feesPct >= 60 ? C.amber : C.red,
         href:   "/admin/finance",
         prefix: "KES ",
-        alert:  feesPct < 60 ? "Below target" : undefined,
+        alert:  data.feesExpected > 0 && feesPct < 60 ? "Below target" : undefined,
       },
     ]
   }
 
-  // ─── Loading ──────────────────────────────────────────────────────────────
+  // ─── Loading skeletons ────────────────────────────────────────────────────
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      {[1, 2, 3].map(i => (
-        <div key={i} style={{ height: "80px", background: "#e2e8f0", borderRadius: "16px", animation: "pulse 1.5s ease-in-out infinite", opacity: 0.6 }} />
-      ))}
-      <style>{`@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.8}}`}</style>
+      {/* Hero skeleton */}
+      <div style={{ height: "200px", background: "#d1d9e6", borderRadius: "24px", animation: "pulse 1.5s ease-in-out infinite" }} />
+      {/* Briefing skeletons */}
+      <div style={{ height: "52px", background: "#e2e8f0", borderRadius: "14px", animation: "pulse 1.5s ease-in-out infinite", animationDelay: "0.1s" }} />
+      <div style={{ height: "52px", background: "#e2e8f0", borderRadius: "14px", animation: "pulse 1.5s ease-in-out infinite", animationDelay: "0.2s" }} />
+      {/* Vital skeletons */}
+      <div style={{ height: "90px", background: "#e2e8f0", borderRadius: "18px", animation: "pulse 1.5s ease-in-out infinite", animationDelay: "0.3s" }} />
+      <div style={{ height: "90px", background: "#e2e8f0", borderRadius: "18px", animation: "pulse 1.5s ease-in-out infinite", animationDelay: "0.4s" }} />
+      <style>{`@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}`}</style>
     </div>
   )
 
-  const b = briefings()
-  const v = vitals()
+  const b        = briefings()
+  const v        = vitals()
   const criticals = b.filter(x => x.level === "critical")
   const decides   = b.filter(x => x.level === "decide")
   const fyis      = b.filter(x => x.level === "fyi")
-
-  const feesPct = pct(data?.feesCollected ?? 0, data?.feesExpected ?? 0)
+  const feesPct   = pct(data?.feesCollected ?? 0, data?.feesExpected ?? 0)
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
-      {/* ── MORNING BRIEFING HERO ─────────────────────────────────────────── */}
+      {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <div style={{
         background:   `linear-gradient(160deg, ${C.hero} 0%, ${C.heroMid} 60%, ${C.heroDeep} 100%)`,
         borderRadius: "24px",
@@ -272,27 +273,31 @@ export default function AdminHub() {
         <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", bottom: -30, right: 60, width: 100, height: 100, borderRadius: "50%", background: "rgba(16,185,129,0.06)", pointerEvents: "none" }} />
 
-        {/* Top row — greeting + show/hide */}
+        {/* Top row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
           <div>
-            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px", margin: "0 0 3px", letterSpacing: "0.3px" }}>{greeting()},</p>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", margin: "0 0 1px", letterSpacing: "0.8px", textTransform: "uppercase", fontWeight: "600" }}>
+              {data?.schoolName}
+            </p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", margin: "0 0 4px", letterSpacing: "0.3px" }}>{greeting()},</p>
             <h1 style={{ color: "#fff", fontSize: "22px", fontWeight: "800", margin: "0 0 3px", letterSpacing: "-0.5px" }}>
-              {data?.adminName?.split(" ")[0]} 👋
+              {data?.adminName} 👋
             </h1>
             <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px", margin: 0 }}>{dateStr()}</p>
           </div>
           <button
             onClick={() => setBalHidden(h => !h)}
             style={{
-              background:   "rgba(255,255,255,0.08)",
-              border:       "1px solid rgba(255,255,255,0.15)",
-              borderRadius: "10px",
-              padding:      "7px 14px",
-              color:        "rgba(255,255,255,0.8)",
-              fontSize:     "11px",
-              fontWeight:   "600",
-              cursor:       "pointer",
-              letterSpacing:"0.3px",
+              background:    "rgba(255,255,255,0.08)",
+              border:        "1px solid rgba(255,255,255,0.15)",
+              borderRadius:  "10px",
+              padding:       "7px 14px",
+              color:         "rgba(255,255,255,0.8)",
+              fontSize:      "11px",
+              fontWeight:    "600",
+              cursor:        "pointer",
+              letterSpacing: "0.3px",
+              flexShrink:    0,
             }}
           >
             {balHidden ? "👁 Show" : "🙈 Hide"}
@@ -301,23 +306,23 @@ export default function AdminHub() {
 
         {/* Finance strip */}
         <div style={{
-          background:   "rgba(255,255,255,0.06)",
-          border:       "1px solid rgba(255,255,255,0.1)",
-          borderRadius: "16px",
-          padding:      "16px",
-          display:      "flex",
+          background:     "rgba(255,255,255,0.06)",
+          border:         "1px solid rgba(255,255,255,0.1)",
+          borderRadius:   "16px",
+          padding:        "16px",
+          display:        "flex",
           justifyContent: "space-around",
-          alignItems:   "center",
-          marginBottom: "20px",
+          alignItems:     "center",
+          marginBottom:   "20px",
         }}>
           {[
-            { label: "Collected",    value: balHidden ? "••••••" : `KES ${(data?.feesCollected ?? 0).toLocaleString()}`, color: C.emerald },
-            { label: "Outstanding",  value: balHidden ? "••••••" : `KES ${Math.max(0, (data?.feesExpected ?? 0) - (data?.feesCollected ?? 0)).toLocaleString()}`, color: C.red },
-            { label: "Students",     value: String(data?.students ?? 0), color: C.amber },
-          ].map((chip, i) => (
-            <div key={chip.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
+            { label: "Collected",   value: balHidden ? "••••••" : `KES ${(data?.feesCollected ?? 0).toLocaleString()}`,                                                         color: C.emerald },
+            { label: "Outstanding", value: balHidden ? "••••••" : `KES ${Math.max(0, (data?.feesExpected ?? 0) - (data?.feesCollected ?? 0)).toLocaleString()}`,                color: C.red     },
+            { label: "Students",    value: String(data?.students ?? 0),                                                                                                          color: C.amber   },
+          ].map(chip => (
+            <div key={chip.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
               <span style={{ color: chip.color, fontSize: "15px", fontWeight: "800", letterSpacing: "-0.3px" }}>{chip.value}</span>
-              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px", letterSpacing: "0.5px" }}>{chip.label}</span>
+              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "10px", letterSpacing: "0.5px" }}>{chip.label}</span>
             </div>
           ))}
         </div>
@@ -342,48 +347,60 @@ export default function AdminHub() {
         )}
       </div>
 
-      {/* ── COMMAND CENTRE BRIEFING ───────────────────────────────────────── */}
-      {b.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-            <span style={{ color: C.textMuted, fontSize: "10px", fontWeight: "700", letterSpacing: "1.2px", textTransform: "uppercase" }}>Command Centre</span>
-            <div style={{ flex: 1, height: "1px", background: C.border }} />
-            <span style={{ background: C.hero, color: "#fff", fontSize: "10px", fontWeight: "700", borderRadius: "99px", padding: "2px 8px" }}>{b.length}</span>
-          </div>
-
-          {criticals.map(item => (
-            <BriefingRow key={item.id} item={item} router={router} />
-          ))}
-          {decides.map(item => (
-            <BriefingRow key={item.id} item={item} router={router} />
-          ))}
-          {fyis.map(item => (
-            <BriefingRow key={item.id} item={item} router={router} />
-          ))}
+      {/* ── COMMAND CENTRE ───────────────────────────────────────────────── */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+          <span style={{ color: C.textMuted, fontSize: "10px", fontWeight: "700", letterSpacing: "1.2px", textTransform: "uppercase" }}>Command Centre</span>
+          <div style={{ flex: 1, height: "1px", background: C.border }} />
+          <span style={{ background: C.hero, color: "#fff", fontSize: "10px", fontWeight: "700", borderRadius: "99px", padding: "2px 8px" }}>{b.length}</span>
         </div>
-      )}
 
-      {/* ── SCHOOL VITAL SIGNS ────────────────────────────────────────────── */}
+        {b.length === 0 ? (
+          <div style={{
+            background:   "rgba(16,185,129,0.07)",
+            border:       "1px solid rgba(16,185,129,0.2)",
+            borderRadius: "14px",
+            padding:      "14px 16px",
+            display:      "flex",
+            alignItems:   "center",
+            gap:          "10px",
+          }}>
+            <span style={{ fontSize: "18px" }}>✅</span>
+            <div>
+              <p style={{ color: C.emerald, fontSize: "12px", fontWeight: "700", margin: 0 }}>All clear</p>
+              <p style={{ color: "#475569", fontSize: "12px", margin: "2px 0 0" }}>No actions needed right now</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {criticals.map(item => <BriefingRow key={item.id} item={item} router={router} />)}
+            {decides.map(item =>   <BriefingRow key={item.id} item={item} router={router} />)}
+            {fyis.map(item =>      <BriefingRow key={item.id} item={item} router={router} />)}
+          </>
+        )}
+      </div>
+
+      {/* ── SCHOOL VITAL SIGNS ───────────────────────────────────────────── */}
       <div>
         <SectionLabel>School Vital Signs</SectionLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {v.map(vital => (
-            <VitalCard key={vital.key} vital={vital} router={router} />
+            <VitalCard key={vital.key} vital={vital} router={router} balHidden={balHidden} />
           ))}
         </div>
       </div>
 
-      {/* ── QUICK ACTIONS ─────────────────────────────────────────────────── */}
+      {/* ── QUICK ACTIONS ────────────────────────────────────────────────── */}
       <div>
         <SectionLabel>Quick Actions</SectionLabel>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
           {[
-            { label: "Log Visitor",  icon: "🚪", href: "/admin/visitors",      color: C.sky     },
-            { label: "Add Student",  icon: "🎓", href: "/admin/students",       color: C.emerald },
-            { label: "Payment",      icon: "💳", href: "/admin/finance",        color: C.amber   },
-            { label: "Attendance",   icon: "📋", href: "/admin/attendance",     color: C.violet  },
-            { label: "Meeting",      icon: "🗓️", href: "/admin/meetings",       color: C.sky     },
-            { label: "Announce",     icon: "📢", href: "/admin/communication",  color: C.red     },
+            { label: "Log Visitor", icon: "🚪", href: "/admin/visitors",     color: C.sky    },
+            { label: "Add Student", icon: "🎓", href: "/admin/students",      color: C.emerald},
+            { label: "Payment",     icon: "💳", href: "/admin/finance",       color: C.amber  },
+            { label: "Attendance",  icon: "📋", href: "/admin/attendance",    color: C.violet },
+            { label: "Meeting",     icon: "🗓️", href: "/admin/meetings",      color: C.sky    },
+            { label: "Announce",    icon: "📢", href: "/admin/communication", color: C.violet },
           ].map(item => (
             <button
               key={item.label}
@@ -406,8 +423,8 @@ export default function AdminHub() {
                 width:          "42px",
                 height:         "42px",
                 borderRadius:   "12px",
-                background:     `${item.color}18`,
-                border:         `1px solid ${item.color}30`,
+                background:     `${item.color}22`,
+                border:         `1px solid ${item.color}40`,
                 display:        "flex",
                 alignItems:     "center",
                 justifyContent: "center",
@@ -421,31 +438,26 @@ export default function AdminHub() {
         </div>
       </div>
 
-      {/* ── SCHOOL OVERVIEW ───────────────────────────────────────────────── */}
+      {/* ── SCHOOL OVERVIEW ──────────────────────────────────────────────── */}
       {[
         {
           title: "School",
           rows: [
-            { label: "Students",  value: data?.students ?? 0,  color: C.emerald, href: "/admin/students"  },
-            { label: "Staff",     value: data?.staff ?? 0,     color: C.sky,     href: "/admin/staff"     },
-            { label: "Classes",   value: data?.classes ?? 0,   color: C.amber,   href: "/admin/academics" },
-            { label: "Parents",   value: data?.parents ?? 0,   color: C.violet,  href: "/admin/students"  },
+            { label: "Students", value: data?.students ?? 0, color: C.emerald, href: "/admin/students"  },
+            { label: "Staff",    value: data?.staff    ?? 0, color: C.sky,     href: "/admin/staff"     },
+            { label: "Classes",  value: data?.classes  ?? 0, color: C.amber,   href: "/admin/academics" },
+            { label: "Parents",  value: data?.parents  ?? 0, color: C.violet,  href: "/admin/students"  },
           ],
         },
         {
           title: "Today",
           rows: [
-            { label: "Present",   value: data?.presentToday   ?? 0, color: C.emerald, href: "/admin/attendance" },
-            { label: "Absent",    value: data?.absentToday    ?? 0, color: C.red,     href: "/admin/attendance" },
-            { label: "Visitors",  value: data?.visitorsToday  ?? 0, color: C.amber,   href: "/admin/visitors"   },
-            { label: "Meetings",  value: data?.meetingsToday  ?? 0, color: C.sky,     href: "/admin/meetings"   },
-          ],
-        },
-        {
-          title: "Operations",
-          rows: [
-            { label: "Leave Pending", value: data?.pendingLeave   ?? 0, color: C.amber,  href: "/admin/staff"    },
-            { label: "Projects",      value: data?.activeProjects ?? 0, color: C.violet, href: "/admin/projects" },
+            { label: "Present",       value: data?.presentToday   ?? 0, color: C.emerald, href: "/admin/attendance" },
+            { label: "Absent",        value: data?.absentToday    ?? 0, color: C.red,     href: "/admin/attendance" },
+            { label: "Visitors",      value: data?.visitorsToday  ?? 0, color: C.amber,   href: "/admin/visitors"   },
+            { label: "Meetings",      value: data?.meetingsToday  ?? 0, color: C.sky,     href: "/admin/meetings"   },
+            { label: "Leave Pending", value: data?.pendingLeave   ?? 0, color: C.amber,   href: "/admin/staff"      },
+            { label: "Projects",      value: data?.activeProjects ?? 0, color: C.violet,  href: "/admin/projects"   },
           ],
         },
       ].map(section => (
@@ -476,7 +488,7 @@ export default function AdminHub() {
                   <span style={{ color: row.color, fontSize: "16px", fontWeight: "800", fontFamily: "monospace" }}>
                     {row.value.toLocaleString()}
                   </span>
-                  <span style={{ color: "#cbd5e1", fontSize: "16px" }}>›</span>
+                  <span style={{ color: "#94a3b8", fontSize: "16px" }}>›</span>
                 </div>
               </button>
             ))}
@@ -488,7 +500,7 @@ export default function AdminHub() {
   )
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -507,9 +519,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function BriefingRow({ item, router }: { item: Briefing; router: any }) {
   const cfg = {
-    critical: { dot: "🔴", bg: "rgba(239,68,68,0.07)",  border: "rgba(239,68,68,0.2)",  color: "#ef4444", tag: "URGENT"  },
-    decide:   { dot: "🟡", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.2)", color: "#f59e0b", tag: "DECIDE"  },
-    fyi:      { dot: "🟢", bg: "rgba(16,185,129,0.07)", border: "rgba(16,185,129,0.2)", color: "#10b981", tag: "FYI"     },
+    critical: { dot: "🔴", bg: "rgba(239,68,68,0.07)",  border: "rgba(239,68,68,0.2)",  color: "#ef4444", tag: "URGENT" },
+    decide:   { dot: "🟡", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.2)", color: "#f59e0b", tag: "DECIDE" },
+    fyi:      { dot: "🟢", bg: "rgba(16,185,129,0.07)", border: "rgba(16,185,129,0.2)", color: "#10b981", tag: "FYI"    },
   }[item.level]
 
   return (
@@ -530,16 +542,16 @@ function BriefingRow({ item, router }: { item: Briefing; router: any }) {
       <button
         onClick={() => router.push(item.href)}
         style={{
-          background:   "#0a1628",
-          border:       "none",
-          borderRadius: "8px",
-          padding:      "6px 12px",
-          color:        "#fff",
-          fontSize:     "11px",
-          fontWeight:   "700",
-          cursor:       "pointer",
-          whiteSpace:   "nowrap",
-          flexShrink:   0,
+          background:  "#0a1628",
+          border:      "none",
+          borderRadius:"8px",
+          padding:     "6px 12px",
+          color:       "#fff",
+          fontSize:    "11px",
+          fontWeight:  "700",
+          cursor:      "pointer",
+          whiteSpace:  "nowrap",
+          flexShrink:  0,
         }}
       >
         {item.action} →
@@ -548,9 +560,16 @@ function BriefingRow({ item, router }: { item: Briefing; router: any }) {
   )
 }
 
-function VitalCard({ vital, router }: { vital: VitalSign; router: any }) {
-  const pct = vital.total > 0 ? Math.min(100, Math.round((vital.value / vital.total) * 100)) : 0
-  const isKES = !!vital.prefix
+function VitalCard({ vital, router, balHidden }: { vital: VitalSign; router: any; balHidden: boolean }) {
+  const pct    = vital.total > 0 ? Math.min(100, Math.round((vital.value / vital.total) * 100)) : 0
+  const isKES  = !!vital.prefix
+  const masked = isKES && balHidden
+
+  const displayValue = masked
+    ? "••••••"
+    : isKES
+      ? `KES ${vital.value.toLocaleString()} of KES ${vital.total.toLocaleString()}`
+      : `${vital.value.toLocaleString()} / ${vital.total.toLocaleString()}`
 
   return (
     <button
@@ -567,13 +586,10 @@ function VitalCard({ vital, router }: { vital: VitalSign; router: any }) {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
-        <div>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: "12px" }}>
           <p style={{ color: "#64748b", fontSize: "11px", fontWeight: "600", margin: "0 0 3px", letterSpacing: "0.5px" }}>{vital.label}</p>
-          <p style={{ color: "#0f172a", fontSize: "18px", fontWeight: "800", margin: 0, fontFamily: "monospace" }}>
-            {isKES
-              ? `KES ${vital.value.toLocaleString()}`
-              : `${vital.value.toLocaleString()} / ${vital.total.toLocaleString()}`
-            }
+          <p style={{ color: "#0f172a", fontSize: "16px", fontWeight: "800", margin: 0, fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {displayValue}
           </p>
         </div>
         <div style={{
@@ -584,23 +600,23 @@ function VitalCard({ vital, router }: { vital: VitalSign; router: any }) {
           color:        vital.color,
           fontSize:     "13px",
           fontWeight:   "800",
+          flexShrink:   0,
         }}>
-          {pct}%
+          {masked ? "–" : `${pct}%`}
         </div>
       </div>
 
-      {/* Progress bar */}
       <div style={{ background: "#f1f5f9", borderRadius: "99px", height: "6px", overflow: "hidden" }}>
         <div style={{
           height:       "100%",
-          width:        `${pct}%`,
+          width:        masked ? "0%" : `${pct}%`,
           background:   vital.color,
           borderRadius: "99px",
           transition:   "width 1s ease",
         }} />
       </div>
 
-      {vital.alert && (
+      {vital.alert && !masked && (
         <p style={{ color: vital.color, fontSize: "11px", fontWeight: "600", margin: "8px 0 0" }}>
           ⚠ {vital.alert}
         </p>
