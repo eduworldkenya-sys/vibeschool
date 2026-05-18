@@ -171,7 +171,7 @@ function PersonalInfoSection() {
 
       const [subjectsRes, classesRes, tcRes] = await Promise.all([
         sid
-          ? supabase.from('subjects').select('id,name').eq('school_id', sid).order('name')
+          ? supabase.from('subjects').select('id,name').or(`school_id.eq.${sid},school_id.is.null`).order('name')
           : supabase.from('subjects').select('id,name').order('name'),
         supabase.from('classes').select('id,name,stream').eq('teacher_id', uid).order('name'),
         supabase.from('teacher_classes').select('class_id,subject_id').eq('teacher_id', uid),

@@ -113,7 +113,7 @@ export default function ClassHubPage() {
     setLoading(true)
 
     const subjectQuery = sid
-      ? supabase.from('subjects').select('id, name').eq('school_id', sid).order('name')
+      ? supabase.from('subjects').select('id, name').or(`school_id.eq.${sid},school_id.is.null`).order('name')
       : supabase.from('subjects').select('id, name').order('name')
 
     const [classRes, subjectRes] = await Promise.all([
@@ -154,6 +154,7 @@ export default function ClassHubPage() {
       name:       form.name.trim(),
       stream:     form.stream.trim(),
       subject:    subject.name,
+      subject_id: form.subject_id,
     })
     setSaving(false)
     if (err) { setError(err.message); return }
