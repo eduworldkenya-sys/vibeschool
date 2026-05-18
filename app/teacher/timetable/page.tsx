@@ -1,10 +1,6 @@
 'use client'
 
-<<<<<<< HEAD
-import React, { useEffect, useState, useRef } from 'react'
-=======
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
->>>>>>> b7ce9a1ea59916af37f7a3a06e1a2ad1785af10a
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
