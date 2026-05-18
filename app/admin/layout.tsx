@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const dark      = "#1e1b4b"
-const deepspace = "#0a0a14"
+const dark      = "#f8fafc"
+const deepspace = "#f1f5f9"
 const accent    = "#10b981"
 const amber     = "#f59e0b"
 const violet    = "#8b5cf6"
@@ -138,7 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           style={{
             position:   "fixed",
             inset:      0,
-            background: "rgba(0,0,0,0.6)",
+            background: "rgba(0,0,0,0.3)",
             zIndex:     40,
             backdropFilter: "blur(2px)",
           }}
@@ -152,8 +152,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         left:           sidebarOpen ? 0 : "-280px",
         width:          "260px",
         height:         "100vh",
-        background:     "rgba(255,255,255,0.02)",
-        borderRight:    "1px solid rgba(255,255,255,0.06)",
+        background:     "#ffffff",
+        borderRight:    "1px solid #e2e8f0",
         backdropFilter: "blur(12px)",
         zIndex:         50,
         display:        "flex",
@@ -225,11 +225,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   borderRadius:  "10px",
                   border:        "none",
                   background:    active
-                    ? `rgba(16,185,129,0.12)`
+                    ? `rgba(16,185,129,0.1)`
                     : "transparent",
                   color:         active
                     ? accent
-                    : "rgba(255,255,255,0.5)",
+                    : "#64748b",
                   fontSize:      "13px",
                   fontWeight:    active ? "600" : "400",
                   cursor:        "pointer",
@@ -253,7 +253,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Sign out */}
         <div style={{
           padding:    "16px 10px",
-          borderTop:  "1px solid rgba(255,255,255,0.06)",
+          borderTop:  "1px solid #e2e8f0",
         }}>
           <button
             onClick={handleSignOut}
@@ -291,9 +291,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           position:       "sticky",
           top:            0,
           zIndex:         30,
-          background:     "rgba(10,10,20,0.9)",
-          backdropFilter: "blur(12px)",
-          borderBottom:   "1px solid rgba(255,255,255,0.06)",
+          background:     "#ffffff",
+          backdropFilter: "none",
+          borderBottom:   "1px solid #e2e8f0",
           padding:        "0 20px",
           height:         "60px",
           display:        "flex",
@@ -306,8 +306,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             onClick={() => setSidebar(s => !s)}
             style={{
-              background:   "rgba(255,255,255,0.05)",
-              border:       "1px solid rgba(255,255,255,0.08)",
+              background:   "#f1f5f9",
+              border:       "1px solid #e2e8f0",
               borderRadius: "8px",
               width:        "38px",
               height:       "38px",
@@ -316,7 +316,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               justifyContent:"center",
               cursor:       "pointer",
               fontSize:     "16px",
-              color:        "#ffffff",
+              color:        "#0f172a",
               flexShrink:   0,
             }}
           >
@@ -326,7 +326,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Page title */}
           <div style={{ flex: 1 }}>
             <span style={{
-              color:      "#ffffff",
+              color:      "#0f172a",
               fontSize:   "15px",
               fontWeight: "600",
             }}>
@@ -336,7 +336,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* School name chip */}
           <div style={{
-            background:   "rgba(16,185,129,0.1)",
+            background:   "rgba(16,185,129,0.08)",
             border:       "1px solid rgba(16,185,129,0.2)",
             borderRadius: "20px",
             padding:      "6px 14px",
@@ -369,8 +369,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         * { box-sizing: border-box; margin: 0; } html, body { overflow-x: hidden; max-width: 100vw; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-        input::placeholder { color: rgba(255,255,255,0.2); }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        input::placeholder { color: #94a3b8; }
       `}</style>
     </div>
   )
