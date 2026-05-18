@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const deepspace = "#0a0a14"
+const deepspace = "#0a1628"
 const accent    = "#10b981"
 const amber     = "#f59e0b"
 const violet    = "#8b5cf6"
@@ -378,7 +378,7 @@ export default function StudentDetailPage() {
             width:          "64px",
             height:         "64px",
             borderRadius:   "50%",
-            background:     `linear-gradient(135deg, #1e1b4b, #312e81)`,
+            background:     `linear-gradient(135deg, #0a1628, #312e81)`,
             display:        "flex",
             alignItems:     "center",
             justifyContent: "center",
@@ -913,7 +913,7 @@ export default function StudentDetailPage() {
                     width:          "48px",
                     height:         "48px",
                     borderRadius:   "50%",
-                    background:     "linear-gradient(135deg, #1e1b4b, #312e81)",
+                    background:     "linear-gradient(135deg, #0a1628, #312e81)",
                     display:        "flex",
                     alignItems:     "center",
                     justifyContent: "center",
@@ -971,7 +971,7 @@ export default function StudentDetailPage() {
           zIndex:         100,
         }}>
           <div style={{
-            background:   "#111827",
+            background:   "#0a1628",
             borderRadius: "24px 24px 0 0",
             padding:      "28px 24px 40px",
             width:        "100%",
@@ -1094,7 +1094,7 @@ export default function StudentDetailPage() {
           zIndex:         100,
         }}>
           <div style={{
-            background:   "#111827",
+            background:   "#0a1628",
             borderRadius: "24px 24px 0 0",
             padding:      "28px 24px 40px",
             width:        "100%",

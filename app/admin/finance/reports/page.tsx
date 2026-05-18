@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const dark    = "#0a0a14"
+const dark    = "#0a1628"
 const accent  = "#10b981"
 const amber   = "#f59e0b"
 const red     = "#ef4444"
@@ -350,7 +350,7 @@ export default function ReportsPage() {
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
-        select option { background:#0d0d1a; color:#fff }
+        select option { background:#0a1628; color:#fff }
         * { box-sizing:border-box }
       `}</style>
 

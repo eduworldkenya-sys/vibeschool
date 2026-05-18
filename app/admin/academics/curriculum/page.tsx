@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const dark   = "#1e1b4b"
+const dark   = "#0a1628"
 const accent = "#10b981"
 const bg     = "#f0f2f5"
 const red    = "#ef4444"
@@ -175,7 +175,7 @@ export default function CurriculumPage() {
 
   if (loading) return (
     <div style={{ padding: 24 }}>
-      <div style={{ height: 100, borderRadius: 16, background: "linear-gradient(135deg,#1e1b4b,#2d2a6e)", marginBottom: 16 }} />
+      <div style={{ height: 100, borderRadius: 16, background: "linear-gradient(135deg,#0a1628,#0d2347)", marginBottom: 16 }} />
       {[1,2,3].map(i => (
         <div key={i} style={{ height: 80, borderRadius: 12, background: "#e5e7eb", marginBottom: 10 }} />
       ))}
@@ -191,7 +191,7 @@ export default function CurriculumPage() {
 
       {/* HERO */}
       <div style={{
-        background: `linear-gradient(135deg, ${dark} 0%, #2d2a6e 100%)`,
+        background: `linear-gradient(135deg, ${dark} 0%, #0d2347 100%)`,
         padding: "24px 20px 32px", position: "relative", overflow: "hidden"
       }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />

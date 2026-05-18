@@ -378,7 +378,7 @@ export default function FinancePage() {
 
   const Modal = ({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) => (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(6px)" }}>
-      <div style={{ background: "#0d0d1a", border: `1px solid ${border}`, borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
+      <div style={{ background: "#0a1628", border: `1px solid ${border}`, borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: white }}>{title}</h2>
           <button onClick={onClose} style={{ background: "#e2e8f0", border: "none", color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
@@ -401,7 +401,7 @@ export default function FinancePage() {
         @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
         @keyframes pulse   { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
-        select option { background:#0d0d1a; color:#fff }
+        select option { background:#0a1628; color:#fff }
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4) }
       `}</style>
 

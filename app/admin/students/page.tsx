@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const deepspace = "#0a0a14"
+const deepspace = "#0a1628"
 const accent    = "#10b981"
 const amber     = "#f59e0b"
 const violet    = "#8b5cf6"
@@ -519,7 +519,7 @@ export default function StudentsPage() {
           zIndex:          100,
         }}>
           <div style={{
-            background:   "#111827",
+            background:   "#0a1628",
             borderRadius: "24px 24px 0 0",
             padding:      "28px 24px 40px",
             width:        "100%",

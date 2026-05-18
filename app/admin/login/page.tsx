@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const deepspace = "#0a0a14"
+const deepspace = "#0a1628"
 const accent    = "#10b981"
 const violet    = "#8b5cf6"
 

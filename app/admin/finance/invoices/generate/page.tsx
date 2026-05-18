@@ -211,7 +211,7 @@ export default function GenerateInvoicesPage() {
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
-        select option { background:#0d0d1a; color:#fff }
+        select option { background:#0a1628; color:#fff }
         input[type=date]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(0.4) }
         .cls-card:hover { border-color:rgba(16,185,129,0.4) !important; }
         .gen-row:hover { background:rgba(255,255,255,0.04) !important; }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const dark    = "#0a0a14"
+const dark    = "#0a1628"
 const accent  = "#10b981"
 const amber   = "#f59e0b"
 const red     = "#ef4444"
