@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -77,6 +77,10 @@ interface Summary {
   collectionRate:   number
 }
 
+function getTerm(month: number): string {
+  return month <= 4 ? "Term 1" : month <= 8 ? "Term 2" : "Term 3"
+}
+
 function Skeleton({ h = 48 }: { h?: number }) {
   return (
     <div style={{
@@ -148,7 +152,9 @@ function AgingBar({ invoices }: { invoices: InvoiceRow[] }) {
     <div>
       <div style={{ display: "flex", gap: "3px", height: "8px", borderRadius: "99px", overflow: "hidden", marginBottom: "10px" }}>
         {buckets.map(b => (
-          <div key={b.label} style={{ flex: b.count / total, background: b.color, minWidth: b.count > 0 ? "4px" : "0", transition: "flex 0.6s ease" }} />
+          b.count > 0 ? (
+            <div key={b.label} style={{ flex: b.count / total, background: b.color, transition: "flex 0.6s ease" }} />
+          ) : null
         ))}
       </div>
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -187,9 +193,10 @@ export default function FinancePage() {
   const [showPayModal, setShowPayModal] = useState(false)
   const [showExpModal, setShowExpModal] = useState(false)
 
-  const currentYear  = new Date().getFullYear()
-  const currentMonth = new Date().getMonth() + 1
-  const currentTerm  = currentMonth <= 4 ? "Term 1" : currentMonth <= 8 ? "Term 2" : "Term 3"
+  // FIX 5: stable term/year derived once, not inline on every render
+  const currentYear  = useMemo(() => new Date().getFullYear(),    [])
+  const currentMonth = useMemo(() => new Date().getMonth() + 1,   [])
+  const currentTerm  = useMemo(() => getTerm(currentMonth),       [currentMonth])
 
   const [payForm, setPayForm] = useState({
     invoice_id: "", student_id: "", amount: "",
@@ -259,7 +266,7 @@ export default function FinancePage() {
       const totalExpenses = expenseRows.filter(e => {
         const d = new Date(e.expense_date)
         const m = d.getMonth() + 1
-        const t = m <= 4 ? "Term 1" : m <= 8 ? "Term 2" : "Term 3"
+        const t = getTerm(m)
         return t === currentTerm && d.getFullYear() === currentYear
       }).reduce((s, e) => s + Number(e.amount), 0)
       const cashPosition = accountRows.reduce((s, a) => s + Number(a.current_balance), 0)
@@ -287,34 +294,58 @@ export default function FinancePage() {
   }, [router, load])
 
   const currentPeriod = periods.find(p => p.term === currentTerm && p.year === currentYear)
-  const periodLocked  = currentPeriod?.status === "locked" || currentPeriod?.status === "closed"
+  // FIX 4: if no period row exists at all, treat as locked to prevent orphaned transactions
+  const periodLocked  = !currentPeriod || currentPeriod.status === "locked" || currentPeriod.status === "closed"
+  const periodMissing = !currentPeriod
 
   async function handleRecordPayment() {
-    if (periodLocked) { showToast(`${currentTerm} ${currentYear} is ${currentPeriod?.status} — cannot post`, "error"); return }
-    if (!payForm.invoice_id || !payForm.amount || !payForm.student_id) { showToast("Select invoice and enter amount", "error"); return }
+    if (periodLocked) {
+      const reason = periodMissing
+        ? `No period configured for ${currentTerm} ${currentYear}. Ask an admin to create it.`
+        : `${currentTerm} ${currentYear} is ${currentPeriod?.status} — cannot post`
+      showToast(reason, "error")
+      return
+    }
+    // FIX 1: explicit check with clear message
+    if (!payForm.invoice_id) { showToast("Select an invoice", "error"); return }
+    if (!payForm.student_id) { showToast("Invoice has no student — re-select", "error"); return }
+    if (!payForm.amount || Number(payForm.amount) <= 0) { showToast("Enter a valid amount", "error"); return }
+
     setSaving(true)
     try {
       const { data: pay, error } = await supabase
         .from("finance_payments")
         .insert({
-          school_id: schoolId, invoice_id: payForm.invoice_id, student_id: payForm.student_id,
-          amount: Number(payForm.amount), method: payForm.method,
-          reference: payForm.reference || null, notes: payForm.notes || null,
+          school_id:       schoolId,
+          invoice_id:      payForm.invoice_id,
+          student_id:      payForm.student_id,
+          amount:          Number(payForm.amount),
+          method:          payForm.method,
+          reference:       payForm.reference || null,
+          notes:           payForm.notes || null,
           bank_account_id: payForm.bank_account_id || null,
-          received_at: new Date().toISOString(),
+          received_at:     new Date().toISOString(),
         })
         .select("id").single()
 
       if (error) throw error
 
-      const { data: link } = await supabase.from("parent_student_links").select("parent_id").eq("student_id", payForm.student_id).eq("is_primary", true).single()
+      const { data: link } = await supabase
+        .from("parent_student_links")
+        .select("parent_id")
+        .eq("student_id", payForm.student_id)
+        .eq("is_primary", true)
+        .single()
+
       if (link?.parent_id && pay?.id) {
         const inv = invoices.find(i => i.id === payForm.invoice_id)
         await supabase.from("notifications").insert({
-          school_id: schoolId, user_id: link.parent_id,
-          title: "Fee Payment Received",
-          body: `KES ${Number(payForm.amount).toLocaleString()} received for ${inv?.student_name ?? "your child"}. Ref: ${payForm.reference || "N/A"}. Tap to view receipt.`,
-          type: "fee_payment", related_id: pay.id,
+          school_id: schoolId,
+          user_id:   link.parent_id,
+          title:     "Fee Payment Received",
+          body:      `KES ${Number(payForm.amount).toLocaleString()} received for ${inv?.student_name ?? "your child"}. Ref: ${payForm.reference || "N/A"}. Tap to view receipt.`,
+          type:      "fee_payment",
+          related_id: pay.id,
         })
       }
 
@@ -328,14 +359,26 @@ export default function FinancePage() {
   }
 
   async function handleRecordExpense() {
-    if (periodLocked) { showToast(`${currentTerm} ${currentYear} is ${currentPeriod?.status} — cannot post`, "error"); return }
-    if (!expForm.description || !expForm.amount) { showToast("Enter description and amount", "error"); return }
+    if (periodLocked) {
+      const reason = periodMissing
+        ? `No period configured for ${currentTerm} ${currentYear}. Ask an admin to create it.`
+        : `${currentTerm} ${currentYear} is ${currentPeriod?.status} — cannot post`
+      showToast(reason, "error")
+      return
+    }
+    if (!expForm.description) { showToast("Enter a description", "error"); return }
+    if (!expForm.amount || Number(expForm.amount) <= 0) { showToast("Enter a valid amount", "error"); return }
+
     setSaving(true)
     try {
       const { error } = await supabase.from("finance_expenses").insert({
-        school_id: schoolId, amount: Number(expForm.amount), description: expForm.description,
-        vendor: expForm.vendor || null, paid_via: expForm.paid_via,
-        expense_date: expForm.expense_date, bank_account_id: expForm.bank_account_id || null,
+        school_id:       schoolId,
+        amount:          Number(expForm.amount),
+        description:     expForm.description,
+        vendor:          expForm.vendor || null,
+        paid_via:        expForm.paid_via,
+        expense_date:    expForm.expense_date,
+        bank_account_id: expForm.bank_account_id || null,
       })
       if (error) throw error
       showToast("Expense recorded")
@@ -352,10 +395,11 @@ export default function FinancePage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "12px 14px",
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background: surface,
+    border: `1px solid ${border}`,
     borderRadius: "10px", color: white,
     fontSize: "14px", outline: "none",
+    boxSizing: "border-box",
   }
 
   const labelStyle: React.CSSProperties = {
@@ -381,15 +425,19 @@ export default function FinancePage() {
 
   const Modal = ({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) => (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(6px)" }}>
-      <div style={{ background: "#0d1f3c", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
+      <div style={{ background: "#0d1f3c", border: `1px solid ${border}`, borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: white }}>{title}</h2>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          <button onClick={onClose} style={{ background: surface, border: `1px solid ${border}`, color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
         {periodLocked && (
           <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "12px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: red, display: "flex", gap: "8px", alignItems: "center" }}>
             <span>🔒</span>
-            <span>{currentTerm} {currentYear} is {currentPeriod?.status}. Unlock the period to post transactions.</span>
+            <span>
+              {periodMissing
+                ? `No period configured for ${currentTerm} ${currentYear}. Ask an admin to create it.`
+                : `${currentTerm} ${currentYear} is ${currentPeriod?.status}. Unlock the period to post transactions.`}
+            </span>
           </div>
         )}
         {children}
@@ -430,7 +478,7 @@ export default function FinancePage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
               <h1 style={{ fontSize: "24px", fontWeight: "800", margin: 0, letterSpacing: "-0.5px" }}>Finance</h1>
-              {currentPeriod && (
+              {currentPeriod ? (
                 <span style={{
                   background: currentPeriod.status === "open" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
                   color: currentPeriod.status === "open" ? accent : red,
@@ -438,6 +486,10 @@ export default function FinancePage() {
                   borderRadius: "20px", letterSpacing: "0.5px",
                 }}>
                   {currentPeriod.status === "open" ? "● " : "🔒 "}{currentPeriod.status.toUpperCase()}
+                </span>
+              ) : (
+                <span style={{ background: "rgba(239,68,68,0.15)", color: red, fontSize: "11px", fontWeight: "700", padding: "4px 12px", borderRadius: "20px" }}>
+                  ⚠ NO PERIOD
                 </span>
               )}
             </div>
@@ -453,7 +505,7 @@ export default function FinancePage() {
             ].map(btn => (
               <button key={btn.label}
                 onClick={() => router.push(btn.href)}
-                style={{ padding: "9px 14px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.8)", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}
+                style={{ padding: "9px 14px", borderRadius: "10px", border: `1px solid ${border}`, background: surface, color: "rgba(255,255,255,0.8)", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}
               >
                 {btn.label}
               </button>
@@ -482,14 +534,14 @@ export default function FinancePage() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "10px", marginBottom: "20px" }}>
           {[
-            { label: "Cash Position", value: fmtK(summary.cashPosition),    sub: `${accounts.length} accounts`,        icon: "🏦", color: accent,  glow: "rgba(16,185,129,0.1)"  },
-            { label: "Collected",     value: fmtK(summary.totalCollected),   sub: `${summary.collectionRate}% rate`,    icon: "✅", color: accent,  glow: "rgba(16,185,129,0.08)" },
-            { label: "Outstanding",   value: fmtK(summary.totalOutstanding), sub: `of ${fmtK(summary.totalInvoiced)}`,  icon: "⏳", color: amber,   glow: "rgba(245,158,11,0.08)" },
-            { label: "Expenses",      value: fmtK(summary.totalExpenses),    sub: `${currentTerm} spend`,               icon: "💸", color: red,     glow: "rgba(239,68,68,0.08)"  },
-            { label: "Overdue",       value: `${summary.overdueCount}`,      sub: "invoices past due",                  icon: "🚨", color: summary.overdueCount > 0 ? red : muted, glow: summary.overdueCount > 0 ? "rgba(239,68,68,0.08)" : "transparent" },
-            { label: "Net Position",  value: fmtK(summary.cashPosition - summary.totalExpenses), sub: "cash minus expenses", icon: "📈", color: (summary.cashPosition - summary.totalExpenses) >= 0 ? accent : red, glow: "rgba(139,92,246,0.08)" },
+            { label: "Cash Position", value: fmtK(summary.cashPosition),    sub: `${accounts.length} account${accounts.length !== 1 ? "s" : ""}`, icon: "🏦", color: accent,  glow: "rgba(16,185,129,0.1)"  },
+            { label: "Collected",     value: fmtK(summary.totalCollected),   sub: `${summary.collectionRate}% rate`,                                icon: "✅", color: accent,  glow: "rgba(16,185,129,0.08)" },
+            { label: "Outstanding",   value: fmtK(summary.totalOutstanding), sub: `of ${fmtK(summary.totalInvoiced)}`,                             icon: "⏳", color: amber,   glow: "rgba(245,158,11,0.08)" },
+            { label: "Expenses",      value: fmtK(summary.totalExpenses),    sub: `${currentTerm} spend`,                                          icon: "💸", color: red,     glow: "rgba(239,68,68,0.08)"  },
+            { label: "Overdue",       value: `${summary.overdueCount}`,      sub: "invoices past due",                                             icon: "🚨", color: summary.overdueCount > 0 ? red : muted, glow: summary.overdueCount > 0 ? "rgba(239,68,68,0.08)" : "transparent" },
+            { label: "Net Position",  value: fmtK(summary.cashPosition - summary.totalExpenses), sub: "cash minus expenses",                       icon: "📈", color: (summary.cashPosition - summary.totalExpenses) >= 0 ? accent : red, glow: "rgba(139,92,246,0.08)" },
           ].map(kpi => (
-            <div key={kpi.label} style={{ background: kpi.glow, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", padding: "16px 14px" }}>
+            <div key={kpi.label} style={{ background: kpi.glow, border: `1px solid ${border}`, borderRadius: "14px", padding: "16px 14px" }}>
               <div style={{ fontSize: "20px", marginBottom: "8px" }}>{kpi.icon}</div>
               <div style={{ fontSize: "10px", color: muted, fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "4px" }}>{kpi.label}</div>
               <div style={{ fontSize: "16px", fontWeight: "800", color: kpi.color, letterSpacing: "-0.3px" }}>{kpi.value}</div>
@@ -500,7 +552,7 @@ export default function FinancePage() {
       )}
 
       {/* ── Tabs ── */}
-      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "rgba(255,255,255,0.04)", padding: "4px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "rgba(255,255,255,0.04)", padding: "4px", borderRadius: "14px", border: `1px solid ${border}` }}>
         {(["overview","invoices","payments","expenses"] as Tab[]).map(t => (
           <button key={t} onClick={() => { setTab(t); setSearch("") }} style={{
             flex: 1, padding: "10px 8px", borderRadius: "10px", border: "none",
@@ -510,7 +562,7 @@ export default function FinancePage() {
             cursor: "pointer", whiteSpace: "nowrap", textTransform: "capitalize",
             transition: "all 0.15s ease", letterSpacing: "0.2px",
           }}>
-            {t === "overview" ? "⚡ Overview" : t === "invoices" ? `📄 Invoices${invoices.length > 0 ? ` (${invoices.length})` : ""}` : t === "payments" ? `✅ Payments` : `💸 Expenses`}
+            {t === "overview" ? "⚡ Overview" : t === "invoices" ? `📄 Invoices${invoices.length > 0 ? ` (${invoices.length})` : ""}` : t === "payments" ? "✅ Payments" : "💸 Expenses"}
           </button>
         ))}
       </div>
@@ -519,9 +571,20 @@ export default function FinancePage() {
       {tab === "overview" && (
         <div style={{ animation: "fadeIn 0.3s ease", display: "flex", flexDirection: "column", gap: "16px" }}>
 
+          {/* Missing period warning */}
+          {!loading && periodMissing && (
+            <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "14px", padding: "16px 18px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "20px" }}>⚠️</span>
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: red, marginBottom: "2px" }}>No accounting period for {currentTerm} {currentYear}</div>
+                <div style={{ fontSize: "12px", color: muted }}>Payments and expenses cannot be posted until a period is created.</div>
+              </div>
+            </div>
+          )}
+
           {/* Collection progress */}
           {!loading && summary.totalInvoiced > 0 && (
-            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                 <div>
                   <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "3px" }}>{currentTerm} Collection</div>
@@ -554,7 +617,7 @@ export default function FinancePage() {
 
           {/* Aging analysis */}
           {!loading && invoices.length > 0 && (
-            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <div style={{ fontSize: "13px", fontWeight: "700" }}>Invoice Aging</div>
                 <button onClick={() => setTab("invoices")} style={{ background: "none", border: "none", color: accent, fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>View all →</button>
@@ -564,7 +627,7 @@ export default function FinancePage() {
           )}
 
           {/* Cash position */}
-          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
             <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "16px" }}>Cash Position</div>
             {loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>{[1,2,3].map(i => <Skeleton key={i} h={52} />)}</div>
@@ -573,7 +636,7 @@ export default function FinancePage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {accounts.map(acc => (
-                  <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: surface, borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: surface, borderRadius: "12px", border: `1px solid ${border}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: acc.type === "mpesa" ? "rgba(16,185,129,0.15)" : acc.type === "bank" ? "rgba(59,130,246,0.15)" : "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
                         {acc.type === "mpesa" ? "📱" : acc.type === "bank" ? "🏦" : "💵"}
@@ -588,7 +651,7 @@ export default function FinancePage() {
                     </div>
                   </div>
                 ))}
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", borderTop: `1px solid ${border}`, marginTop: "4px" }}>
                   <span style={{ fontSize: "13px", fontWeight: "800" }}>Total</span>
                   <span style={{ fontSize: "18px", fontWeight: "800", color: accent }}>{fmt(summary.cashPosition)}</span>
                 </div>
@@ -598,7 +661,7 @@ export default function FinancePage() {
 
           {/* Recent activity */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700" }}>Recent Payments</div>
                 <button onClick={() => setTab("payments")} style={{ background: "none", border: "none", color: accent, fontSize: "11px", cursor: "pointer" }}>all →</button>
@@ -615,7 +678,7 @@ export default function FinancePage() {
                 </div>
               ))}
             </div>
-            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700" }}>Recent Expenses</div>
                 <button onClick={() => setTab("expenses")} style={{ background: "none", border: "none", color: accent, fontSize: "11px", cursor: "pointer" }}>all →</button>
@@ -635,7 +698,7 @@ export default function FinancePage() {
           </div>
 
           {/* Periods */}
-          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
             <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "16px" }}>Accounting Periods</div>
             {loading ? <Skeleton h={100} /> : periods.length === 0 ? (
               <p style={{ fontSize: "13px", color: muted, textAlign: "center", padding: "16px 0" }}>No periods configured</p>
@@ -660,14 +723,10 @@ export default function FinancePage() {
       {tab === "invoices" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
           <div style={{ marginBottom: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search student or term..."
-              style={inputStyle}
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student or term..." style={inputStyle} />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>×</button>}
           </div>
-          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}
@@ -681,7 +740,7 @@ export default function FinancePage() {
             ) : (
               filteredInvoices.map((inv, idx) => (
                 <div key={inv.id}
-                  style={{ padding: "16px 18px", borderBottom: idx < filteredInvoices.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer" }}
+                  style={{ padding: "16px 18px", borderBottom: idx < filteredInvoices.length - 1 ? `1px solid ${border}` : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer" }}
                   onClick={() => router.push(`/admin/finance/invoices/${inv.id}`)}
                 >
                   <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: inv.status === "paid" ? "rgba(16,185,129,0.15)" : inv.status === "partial" ? "rgba(245,158,11,0.15)" : "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
@@ -710,14 +769,10 @@ export default function FinancePage() {
       {tab === "payments" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
           <div style={{ marginBottom: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search student, reference, receipt..."
-              style={inputStyle}
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student, reference, receipt..." style={inputStyle} />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>×</button>}
           </div>
-          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}
@@ -733,7 +788,7 @@ export default function FinancePage() {
             ) : (
               filteredPayments.map((pay, idx) => (
                 <div key={pay.id}
-                  style={{ padding: "16px 18px", borderBottom: idx < filteredPayments.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer" }}
+                  style={{ padding: "16px 18px", borderBottom: idx < filteredPayments.length - 1 ? `1px solid ${border}` : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer" }}
                   onClick={() => router.push(`/admin/finance/receipt/${pay.id}`)}
                 >
                   <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(16,185,129,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
@@ -762,14 +817,10 @@ export default function FinancePage() {
       {tab === "expenses" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
           <div style={{ marginBottom: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search description or vendor..."
-              style={inputStyle}
-            />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search description or vendor..." style={inputStyle} />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>×</button>}
           </div>
-          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}
@@ -784,7 +835,7 @@ export default function FinancePage() {
               </div>
             ) : (
               filteredExpenses.map((exp, idx) => (
-                <div key={exp.id} style={{ padding: "16px 18px", borderBottom: idx < filteredExpenses.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+                <div key={exp.id} style={{ padding: "16px 18px", borderBottom: idx < filteredExpenses.length - 1 ? `1px solid ${border}` : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                   <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
                     💸
                   </div>
@@ -812,25 +863,32 @@ export default function FinancePage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div>
               <label style={labelStyle}>Invoice *</label>
-              <select
-                value={payForm.invoice_id}
-                onChange={e => {
-                  const inv = invoices.find(i => i.id === e.target.value)
-                  setPayForm(f => ({ ...f, invoice_id: e.target.value, student_id: inv?.student_id ?? "", amount: inv ? String(Number(inv.total_amount) - Number(inv.paid_amount)) : "" }))
-                }}
-                style={{ ...inputStyle, appearance: "none" }}
-              >
-                <option value="">Select invoice</option>
-                {unpaidInvoices.map(i => (
-                  <option key={i.id} value={i.id}>
-                    {i.student_name} — {i.term} {i.year} — Balance {fmt(Number(i.total_amount) - Number(i.paid_amount))}
-                  </option>
-                ))}
-              </select>
+              {unpaidInvoices.length === 0 ? (
+                <div style={{ padding: "14px", background: surface, borderRadius: "10px", fontSize: "13px", color: muted, textAlign: "center" }}>
+                  No unpaid invoices found
+                </div>
+              ) : (
+                <select
+                  value={payForm.invoice_id}
+                  onChange={e => {
+                    const inv = invoices.find(i => i.id === e.target.value)
+                    const balance = inv ? String(Math.max(0, Number(inv.total_amount) - Number(inv.paid_amount))) : ""
+                    setPayForm(f => ({ ...f, invoice_id: e.target.value, student_id: inv?.student_id ?? "", amount: balance }))
+                  }}
+                  style={{ ...inputStyle, appearance: "none" }}
+                >
+                  <option value="">Select invoice</option>
+                  {unpaidInvoices.map(i => (
+                    <option key={i.id} value={i.id}>
+                      {i.student_name} — {i.term} {i.year} — Balance {fmt(Math.max(0, Number(i.total_amount) - Number(i.paid_amount)))}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Amount (KES) *</label>
-              <input type="number" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" style={inputStyle} />
+              <input type="number" min="1" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" style={inputStyle} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div>
@@ -858,7 +916,11 @@ export default function FinancePage() {
               <label style={labelStyle}>Notes</label>
               <input type="text" value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" style={inputStyle} />
             </div>
-            <button onClick={handleRecordPayment} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(16,185,129,0.3)" : `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : "0 4px 16px rgba(16,185,129,0.3)" }}>
+            <button
+              onClick={handleRecordPayment}
+              disabled={saving || periodLocked || unpaidInvoices.length === 0}
+              style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked || unpaidInvoices.length === 0 ? "rgba(16,185,129,0.3)" : `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked || unpaidInvoices.length === 0 ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : "0 4px 16px rgba(16,185,129,0.3)" }}
+            >
               {saving ? "Recording..." : "✓ Record Payment"}
             </button>
           </div>
@@ -876,7 +938,7 @@ export default function FinancePage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <div>
                 <label style={labelStyle}>Amount (KES) *</label>
-                <input type="number" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" style={inputStyle} />
+                <input type="number" min="1" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Date *</label>
@@ -905,7 +967,11 @@ export default function FinancePage() {
                 </select>
               </div>
             </div>
-            <button onClick={handleRecordExpense} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(239,68,68,0.3)" : `linear-gradient(135deg, ${red}, #dc2626)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : "0 4px 16px rgba(239,68,68,0.3)" }}>
+            <button
+              onClick={handleRecordExpense}
+              disabled={saving || periodLocked}
+              style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(239,68,68,0.3)" : `linear-gradient(135deg, ${red}, #dc2626)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : "0 4px 16px rgba(239,68,68,0.3)" }}
+            >
               {saving ? "Recording..." : "✓ Record Expense"}
             </button>
           </div>
