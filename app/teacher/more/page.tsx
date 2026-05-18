@@ -13,7 +13,7 @@ const ITEMS = [
   { icon: '📋', label: 'Scheme of Work', desc: 'Curriculum map and topic tracker',           href: '/teacher/scheme',     live: true  },
   { icon: '⚙️', label: 'Settings',      desc: 'Account, notifications, preferences',        href: '/teacher/settings',   live: true  },
   { icon: '🎓', label: 'VibeLearn',      desc: 'Student-facing learning platform',           href: '/teacher/vibelearn',  live: false },
-  { icon: '❓', label: 'Help & Support', desc: 'Guides, FAQs, and contact',                  href: '/teacher/help',       live: false },
+  { icon: '❓', label: 'Help & Support', desc: 'Guides, FAQs, and contact',                  href: '/teacher/help',       live: true  },
 ]
 
 export default function MorePage() {

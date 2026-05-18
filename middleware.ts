@@ -33,5 +33,8 @@ export const config = {
     '/academy/:path*',
     '/global/:path*',
     '/admin/:path*',
+    '/parent/:path*',
+    '/student/:path*',
+    '/select/:path*',
   ],
 }
