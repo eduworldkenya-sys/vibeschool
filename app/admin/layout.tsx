@@ -366,7 +366,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; } html, body { overflow-x: hidden; max-width: 100vw; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
