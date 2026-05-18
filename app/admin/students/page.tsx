@@ -243,7 +243,7 @@ export default function StudentsPage() {
         {[1,2,3,4,5].map(i => (
           <div key={i} style={{
             height:       "72px",
-            background:   "rgba(255,255,255,0.03)",
+            background:   "#ffffff",
             borderRadius: "16px",
             animation:    "pulse 1.5s ease-in-out infinite",
           }} />
@@ -265,7 +265,7 @@ export default function StudentsPage() {
       }}>
         <div>
           <h1 style={{
-            color:      "#ffffff",
+            color:      "#0f172a",
             fontSize:   "22px",
             fontWeight: "800",
             margin:     "0 0 2px",
@@ -283,7 +283,7 @@ export default function StudentsPage() {
             border:       "none",
             borderRadius: "12px",
             padding:      "10px 18px",
-            color:        "#ffffff",
+            color:        "#0f172a",
             fontSize:     "13px",
             fontWeight:   "700",
             cursor:       "pointer",
@@ -307,8 +307,8 @@ export default function StudentsPage() {
           { label: "Fee Issues",     value: stats.owing,         color: red       },
         ].map(s => (
           <div key={s.label} style={{
-            background:    "rgba(255,255,255,0.03)",
-            border:        "1px solid rgba(255,255,255,0.07)",
+            background:    "#ffffff",
+            border:        "1px solid #e2e8f0",
             borderRadius:  "12px",
             padding:       "12px",
             textAlign:     "center",
@@ -337,11 +337,11 @@ export default function StudentsPage() {
         onChange={e => setSearch(e.target.value)}
         style={{
           width:        "100%",
-          background:   "rgba(255,255,255,0.05)",
-          border:       "1px solid rgba(255,255,255,0.1)",
+          background:   "#f8fafc",
+          border:       "1px solid #e2e8f0",
           borderRadius: "12px",
           padding:      "12px 16px",
-          color:        "#ffffff",
+          color:        "#0f172a",
           fontSize:     "14px",
           marginBottom: "12px",
           boxSizing:    "border-box",
@@ -397,8 +397,8 @@ export default function StudentsPage() {
               key={s.id}
               onClick={() => router.push(`/admin/students/${s.id}`)}
               style={{
-                background:     "rgba(255,255,255,0.03)",
-                border:         "1px solid rgba(255,255,255,0.07)",
+                background:     "#ffffff",
+                border:         "1px solid #e2e8f0",
                 borderRadius:   "16px",
                 padding:        "16px",
                 display:        "flex",
@@ -416,7 +416,7 @@ export default function StudentsPage() {
                 width:          "44px",
                 height:         "44px",
                 borderRadius:   "50%",
-                background:     "rgba(255,255,255,0.06)",
+                background:     "#f1f5f9",
                 display:        "flex",
                 alignItems:     "center",
                 justifyContent: "center",
@@ -429,7 +429,7 @@ export default function StudentsPage() {
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  color:        "#ffffff",
+                  color:        "#0f172a",
                   fontSize:     "15px",
                   fontWeight:   "700",
                   marginBottom: "4px",
@@ -445,14 +445,14 @@ export default function StudentsPage() {
                   flexWrap: "wrap",
                 }}>
                   <span style={{
-                    color:     "rgba(255,255,255,0.4)",
+                    color:     "#64748b",
                     fontSize:  "12px",
                   }}>
                     {s.class_name}{s.class_stream ? " " + s.class_stream : ""}
                   </span>
                   {s.admission_number && (
                     <span style={{
-                      color:    "rgba(255,255,255,0.25)",
+                      color:    "#94a3b8",
                       fontSize: "12px",
                     }}>
                       #{s.admission_number}
@@ -542,7 +542,7 @@ export default function StudentsPage() {
                   borderRadius:"50%",
                   width:      "32px",
                   height:     "32px",
-                  color:      "#ffffff",
+                  color:      "#0f172a",
                   fontSize:   "16px",
                   cursor:     "pointer",
                 }}
@@ -573,11 +573,11 @@ export default function StudentsPage() {
                   onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                   style={{
                     width:        "100%",
-                    background:   "rgba(255,255,255,0.06)",
-                    border:       "1px solid rgba(255,255,255,0.1)",
+                    background:   "#f1f5f9",
+                    border:       "1px solid #e2e8f0",
                     borderRadius: "10px",
                     padding:      "10px 14px",
-                    color:        "#ffffff",
+                    color:        "#0f172a",
                     fontSize:     "14px",
                     boxSizing:    "border-box",
                     outline:      "none",
@@ -637,8 +637,8 @@ export default function StudentsPage() {
                 onChange={e => setForm(prev => ({ ...prev, class_id: e.target.value }))}
                 style={{
                   width:        "100%",
-                  background:   "rgba(255,255,255,0.06)",
-                  border:       "1px solid rgba(255,255,255,0.1)",
+                  background:   "#f1f5f9",
+                  border:       "1px solid #e2e8f0",
                   borderRadius: "10px",
                   padding:      "10px 14px",
                   color:        form.class_id ? "#ffffff" : "rgba(255,255,255,0.3)",
@@ -665,7 +665,7 @@ export default function StudentsPage() {
                 border:       "none",
                 borderRadius: "12px",
                 padding:      "14px",
-                color:        "#ffffff",
+                color:        "#0f172a",
                 fontSize:     "15px",
                 fontWeight:   "700",
                 cursor:       saving || !form.name.trim() ? "not-allowed" : "pointer",

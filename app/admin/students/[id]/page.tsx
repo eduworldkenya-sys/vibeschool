@@ -324,7 +324,7 @@ export default function StudentDetailPage() {
 
   if (!student) {
     return (
-      <div style={{ textAlign: "center", padding: "60px 20px", color: "rgba(255,255,255,0.3)" }}>
+      <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
         Student not found.
         <br />
         <button
@@ -366,8 +366,8 @@ export default function StudentDetailPage() {
 
       {/* ── Hero ── */}
       <div style={{
-        background:    "rgba(255,255,255,0.03)",
-        border:        "1px solid rgba(255,255,255,0.07)",
+        background:    "#ffffff",
+        border:        "1px solid #e2e8f0",
         borderRadius:  "20px",
         padding:       "24px",
         marginBottom:  "16px",
@@ -401,7 +401,7 @@ export default function StudentDetailPage() {
                 {student.class_name} {student.class_stream}
               </span>
               {student.admission_number && (
-                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px" }}>
+                <span style={{ color: "#94a3b8", fontSize: "13px" }}>
                   #{student.admission_number}
                 </span>
               )}
@@ -417,7 +417,7 @@ export default function StudentDetailPage() {
           marginTop:           "20px",
         }}>
           <div style={{
-            background:   "rgba(255,255,255,0.04)",
+            background:   "#f8fafc",
             borderRadius: "12px",
             padding:      "12px",
             textAlign:    "center",
@@ -425,12 +425,12 @@ export default function StudentDetailPage() {
             <div style={{ color: attendancePct !== null && attendancePct >= 80 ? accent : red, fontSize: "20px", fontWeight: "800" }}>
               {attendancePct !== null ? `${attendancePct}%` : "—"}
             </div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", marginTop: "2px" }}>
+            <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>
               Attendance
             </div>
           </div>
           <div style={{
-            background:   "rgba(255,255,255,0.04)",
+            background:   "#f8fafc",
             borderRadius: "12px",
             padding:      "12px",
             textAlign:    "center",
@@ -442,12 +442,12 @@ export default function StudentDetailPage() {
             }}>
               {balance > 0 ? `KES ${balance.toLocaleString()}` : "Clear"}
             </div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", marginTop: "2px" }}>
+            <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>
               Fee Balance
             </div>
           </div>
           <div style={{
-            background:   "rgba(255,255,255,0.04)",
+            background:   "#f8fafc",
             borderRadius: "12px",
             padding:      "12px",
             textAlign:    "center",
@@ -455,7 +455,7 @@ export default function StudentDetailPage() {
             <div style={{ color: parents.length > 0 ? accent : amber, fontSize: "20px", fontWeight: "800" }}>
               {parents.length > 0 ? "✓" : "✗"}
             </div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", marginTop: "2px" }}>
+            <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>
               Parent Linked
             </div>
           </div>
@@ -497,8 +497,8 @@ export default function StudentDetailPage() {
 
           {/* Personal Info */}
           <div style={{
-            background:    "rgba(255,255,255,0.03)",
-            border:        "1px solid rgba(255,255,255,0.07)",
+            background:    "#ffffff",
+            border:        "1px solid #e2e8f0",
             borderRadius:  "16px",
             padding:       "20px",
             backdropFilter:"blur(12px)",
@@ -529,10 +529,10 @@ export default function StudentDetailPage() {
                 padding:       "10px 0",
                 borderBottom:  "1px solid rgba(255,255,255,0.04)",
               }}>
-                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px" }}>
+                <span style={{ color: "#64748b", fontSize: "13px" }}>
                   {row.label}
                 </span>
-                <span style={{ color: "#ffffff", fontSize: "13px", fontWeight: "600" }}>
+                <span style={{ color: "#0f172a", fontSize: "13px", fontWeight: "600" }}>
                   {row.value}
                 </span>
               </div>
@@ -541,8 +541,8 @@ export default function StudentDetailPage() {
 
           {/* Quick Actions */}
           <div style={{
-            background:    "rgba(255,255,255,0.03)",
-            border:        "1px solid rgba(255,255,255,0.07)",
+            background:    "#ffffff",
+            border:        "1px solid #e2e8f0",
             borderRadius:  "16px",
             padding:       "20px",
             backdropFilter:"blur(12px)",
@@ -617,8 +617,8 @@ export default function StudentDetailPage() {
 
           {/* Fee Summary */}
           <div style={{
-            background:    "rgba(255,255,255,0.03)",
-            border:        "1px solid rgba(255,255,255,0.07)",
+            background:    "#ffffff",
+            border:        "1px solid #e2e8f0",
             borderRadius:  "16px",
             padding:       "20px",
             backdropFilter:"blur(12px)",
@@ -630,7 +630,7 @@ export default function StudentDetailPage() {
               marginBottom:        "16px",
             }}>
               {[
-                { label: "Total Invoiced", value: `KES ${totalOwed.toLocaleString()}`,  color: "#ffffff" },
+                { label: "Total Invoiced", value: `KES ${totalOwed.toLocaleString()}`,  color: "#0f172a" },
                 { label: "Total Paid",     value: `KES ${totalPaid.toLocaleString()}`,  color: accent    },
                 { label: "Balance",        value: `KES ${balance.toLocaleString()}`,    color: balance > 0 ? red : accent },
               ].map(s => (
@@ -638,7 +638,7 @@ export default function StudentDetailPage() {
                   <div style={{ color: s.color, fontSize: "15px", fontWeight: "800" }}>
                     {s.value}
                   </div>
-                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", marginTop: "2px" }}>
+                  <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>
                     {s.label}
                   </div>
                 </div>
@@ -699,8 +699,8 @@ export default function StudentDetailPage() {
               )
               return (
                 <div key={inv.id} style={{
-                  background:    "rgba(255,255,255,0.03)",
-                  border:        "1px solid rgba(255,255,255,0.07)",
+                  background:    "#ffffff",
+                  border:        "1px solid #e2e8f0",
                   borderRadius:  "16px",
                   padding:       "16px",
                   backdropFilter:"blur(12px)",
@@ -712,11 +712,11 @@ export default function StudentDetailPage() {
                     marginBottom:   "12px",
                   }}>
                     <div>
-                      <div style={{ color: "#ffffff", fontSize: "14px", fontWeight: "700" }}>
+                      <div style={{ color: "#0f172a", fontSize: "14px", fontWeight: "700" }}>
                         {inv.term} {inv.year}
                       </div>
                       {inv.due_date && (
-                        <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px" }}>
+                        <div style={{ color: "#94a3b8", fontSize: "12px" }}>
                           Due {formatDate(inv.due_date)}
                         </div>
                       )}
@@ -741,7 +741,7 @@ export default function StudentDetailPage() {
 
                   {/* Progress bar */}
                   <div style={{
-                    background:   "rgba(255,255,255,0.06)",
+                    background:   "#f1f5f9",
                     borderRadius: "4px",
                     height:       "6px",
                     marginBottom: "10px",
@@ -757,10 +757,10 @@ export default function StudentDetailPage() {
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>
+                    <span style={{ color: "#64748b", fontSize: "12px" }}>
                       Paid: KES {inv.paid_amount.toLocaleString()}
                     </span>
-                    <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px" }}>
+                    <span style={{ color: "#64748b", fontSize: "12px" }}>
                       Total: KES {inv.total_amount.toLocaleString()}
                     </span>
                   </div>
@@ -772,8 +772,8 @@ export default function StudentDetailPage() {
           {/* Payment history */}
           {payments.length > 0 && (
             <div style={{
-              background:    "rgba(255,255,255,0.03)",
-              border:        "1px solid rgba(255,255,255,0.07)",
+              background:    "#ffffff",
+              border:        "1px solid #e2e8f0",
               borderRadius:  "16px",
               padding:       "20px",
               backdropFilter:"blur(12px)",
@@ -797,15 +797,15 @@ export default function StudentDetailPage() {
                   borderBottom:  "1px solid rgba(255,255,255,0.04)",
                 }}>
                   <div>
-                    <div style={{ color: "#ffffff", fontSize: "13px", fontWeight: "600" }}>
+                    <div style={{ color: "#0f172a", fontSize: "13px", fontWeight: "600" }}>
                       KES {pay.amount.toLocaleString()}
                     </div>
-                    <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px" }}>
+                    <div style={{ color: "#94a3b8", fontSize: "11px" }}>
                       {pay.method.toUpperCase()} {pay.reference ? `· ${pay.reference}` : ""}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px" }}>
+                    <div style={{ color: "#64748b", fontSize: "11px" }}>
                       {formatDate(pay.received_at)}
                     </div>
                     {pay.receipt_number && (
@@ -825,8 +825,8 @@ export default function StudentDetailPage() {
       {tab === "attendance" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <div style={{
-            background:    "rgba(255,255,255,0.03)",
-            border:        "1px solid rgba(255,255,255,0.07)",
+            background:    "#ffffff",
+            border:        "1px solid #e2e8f0",
             borderRadius:  "16px",
             padding:       "20px",
             backdropFilter:"blur(12px)",
@@ -847,7 +847,7 @@ export default function StudentDetailPage() {
                   <div style={{ color: s.color, fontSize: "20px", fontWeight: "800" }}>
                     {s.value}
                   </div>
-                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", marginTop: "2px" }}>
+                  <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>
                     {s.label}
                   </div>
                 </div>
@@ -855,7 +855,7 @@ export default function StudentDetailPage() {
             </div>
 
             {attendance.length === 0 ? (
-              <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: "13px", padding: "20px 0" }}>
+              <div style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px", padding: "20px 0" }}>
                 No attendance records yet.
               </div>
             ) : (
@@ -868,7 +868,7 @@ export default function StudentDetailPage() {
                     padding:        "8px 0",
                     borderBottom:   "1px solid rgba(255,255,255,0.04)",
                   }}>
-                    <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
+                    <span style={{ color: "#64748b", fontSize: "13px" }}>
                       {formatDate(a.date)}
                     </span>
                     <span style={{
@@ -902,8 +902,8 @@ export default function StudentDetailPage() {
           ) : (
             parents.map(parent => (
               <div key={parent.id} style={{
-                background:    "rgba(255,255,255,0.03)",
-                border:        "1px solid rgba(255,255,255,0.07)",
+                background:    "#ffffff",
+                border:        "1px solid #e2e8f0",
                 borderRadius:  "16px",
                 padding:       "20px",
                 backdropFilter:"blur(12px)",
@@ -922,10 +922,10 @@ export default function StudentDetailPage() {
                     👤
                   </div>
                   <div>
-                    <div style={{ color: "#ffffff", fontSize: "16px", fontWeight: "700" }}>
+                    <div style={{ color: "#0f172a", fontSize: "16px", fontWeight: "700" }}>
                       {parent.full_name}
                     </div>
-                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", textTransform: "capitalize" }}>
+                    <div style={{ color: "#64748b", fontSize: "12px", textTransform: "capitalize" }}>
                       {parent.relationship} {parent.is_primary ? "· Primary" : ""}
                     </div>
                   </div>
@@ -983,13 +983,13 @@ export default function StudentDetailPage() {
               alignItems:     "center",
               marginBottom:   "24px",
             }}>
-              <h2 style={{ color: "#ffffff", fontSize: "18px", fontWeight: "800", margin: 0 }}>
+              <h2 style={{ color: "#0f172a", fontSize: "18px", fontWeight: "800", margin: 0 }}>
                 Create Invoice
               </h2>
               <button
                 onClick={() => setShowInvModal(false)}
                 style={{
-                  background:   "rgba(255,255,255,0.08)",
+                  background:   "#e2e8f0",
                   border:       "none",
                   borderRadius: "50%",
                   width:        "32px",
@@ -1005,7 +1005,7 @@ export default function StudentDetailPage() {
 
             {/* Term */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+              <label style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
                 Term
               </label>
               <div style={{ display: "flex", gap: "8px" }}>
@@ -1037,7 +1037,7 @@ export default function StudentDetailPage() {
               { label: "Due Date",     key: "due_date",     type: "date",   placeholder: ""           },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: "16px" }}>
-                <label style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+                <label style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
                   {f.label}
                 </label>
                 <input
@@ -1047,8 +1047,8 @@ export default function StudentDetailPage() {
                   onChange={e => setInvForm(p => ({ ...p, [f.key]: e.target.value }))}
                   style={{
                     width:        "100%",
-                    background:   "rgba(255,255,255,0.06)",
-                    border:       "1px solid rgba(255,255,255,0.1)",
+                    background:   "#f1f5f9",
+                    border:       "1px solid #e2e8f0",
                     borderRadius: "10px",
                     padding:      "10px 14px",
                     color:        "#ffffff",
@@ -1106,13 +1106,13 @@ export default function StudentDetailPage() {
               alignItems:     "center",
               marginBottom:   "24px",
             }}>
-              <h2 style={{ color: "#ffffff", fontSize: "18px", fontWeight: "800", margin: 0 }}>
+              <h2 style={{ color: "#0f172a", fontSize: "18px", fontWeight: "800", margin: 0 }}>
                 Record Payment
               </h2>
               <button
                 onClick={() => setShowPayModal(false)}
                 style={{
-                  background:   "rgba(255,255,255,0.08)",
+                  background:   "#e2e8f0",
                   border:       "none",
                   borderRadius: "50%",
                   width:        "32px",
@@ -1128,7 +1128,7 @@ export default function StudentDetailPage() {
 
             {/* Invoice selector */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+              <label style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
                 Invoice
               </label>
               <select
@@ -1136,8 +1136,8 @@ export default function StudentDetailPage() {
                 onChange={e => setPayForm(p => ({ ...p, invoice_id: e.target.value }))}
                 style={{
                   width:        "100%",
-                  background:   "rgba(255,255,255,0.06)",
-                  border:       "1px solid rgba(255,255,255,0.1)",
+                  background:   "#f1f5f9",
+                  border:       "1px solid #e2e8f0",
                   borderRadius: "10px",
                   padding:      "10px 14px",
                   color:        "#ffffff",
@@ -1157,7 +1157,7 @@ export default function StudentDetailPage() {
 
             {/* Amount */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+              <label style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
                 Amount (KES)
               </label>
               <input
@@ -1167,8 +1167,8 @@ export default function StudentDetailPage() {
                 onChange={e => setPayForm(p => ({ ...p, amount: e.target.value }))}
                 style={{
                   width:        "100%",
-                  background:   "rgba(255,255,255,0.06)",
-                  border:       "1px solid rgba(255,255,255,0.1)",
+                  background:   "#f1f5f9",
+                  border:       "1px solid #e2e8f0",
                   borderRadius: "10px",
                   padding:      "10px 14px",
                   color:        "#ffffff",
@@ -1181,7 +1181,7 @@ export default function StudentDetailPage() {
 
             {/* Method */}
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+              <label style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
                 Payment Method
               </label>
               <div style={{ display: "flex", gap: "8px" }}>
@@ -1210,7 +1210,7 @@ export default function StudentDetailPage() {
 
             {/* Reference */}
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+              <label style={{ color: "#64748b", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
                 Reference / Mpesa Code
               </label>
               <input
@@ -1220,8 +1220,8 @@ export default function StudentDetailPage() {
                 onChange={e => setPayForm(p => ({ ...p, reference: e.target.value }))}
                 style={{
                   width:        "100%",
-                  background:   "rgba(255,255,255,0.06)",
-                  border:       "1px solid rgba(255,255,255,0.1)",
+                  background:   "#f1f5f9",
+                  border:       "1px solid #e2e8f0",
                   borderRadius: "10px",
                   padding:      "10px 14px",
                   color:        "#ffffff",
