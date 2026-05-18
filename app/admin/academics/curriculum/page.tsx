@@ -137,7 +137,7 @@ export default function CurriculumPage() {
     const kicdTopics    = curriculum.filter(c => c.grade === cls.name)
     const schemeRows    = schemes.filter(s => s.class_id === cls.id)
     const deliveredRows = schemeRows.filter(s => s.status === "delivered")
-    const subjects      = [...new Set(kicdTopics.map(k => k.subject))]
+    const subjects      = Array.from(new Set(kicdTopics.map(k => k.subject)))
     const total         = kicdTopics.length
     const delivered     = deliveredRows.length
     const pct           = total > 0 ? Math.round((delivered / total) * 100) : 0
