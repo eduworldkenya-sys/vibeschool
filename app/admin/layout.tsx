@@ -20,31 +20,52 @@ interface AdminProfile {
   logoUrl:    string | null
 }
 
-const NAV_ITEMS = [
-  { id: "dashboard",     label: "Hub",        icon: "⚡", href: "/admin"                },
-  { id: "students",      label: "Students",   icon: "🎓", href: "/admin/students"       },
-  { id: "staff",         label: "Staff",      icon: "👥", href: "/admin/staff"          },
-  { id: "finance",       label: "Finance",    icon: "💰", href: "/admin/finance"        },
-  { id: "academics",     label: "Academics",  icon: "📚", href: "/admin/academics"      },
-  { id: "attendance",    label: "Attendance", icon: "📋", href: "/admin/attendance"     },
-  { id: "meetings",      label: "Meetings",   icon: "🗓️", href: "/admin/meetings"       },
-  { id: "visitors",      label: "Visitors",   icon: "🚪", href: "/admin/visitors"       },
-  { id: "projects",      label: "Projects",   icon: "🚀", href: "/admin/projects"       },
-  { id: "communication", label: "Comms",      icon: "📢", href: "/admin/communication"  },
-  { id: "resources",     label: "Resources",  icon: "🏫", href: "/admin/resources"      },
-  { id: "reports",       label: "Reports",    icon: "📊", href: "/admin/reports"        },
-  { id: "settings",      label: "Settings",   icon: "⚙️", href: "/admin/settings"       },
+const NAV_GROUPS = [
+  {
+    label: "Main",
+    items: [
+      { id: "dashboard",  label: "School Hub",  icon: "🏠", href: "/admin"               },
+      { id: "students",   label: "Students",    icon: "🎓", href: "/admin/students"      },
+      { id: "staff",      label: "Staff",       icon: "👥", href: "/admin/staff"         },
+      { id: "finance",    label: "Finance",     icon: "💰", href: "/admin/finance"       },
+      { id: "academics",  label: "Academics",   icon: "📚", href: "/admin/academics"     },
+    ],
+  },
+  {
+    label: "Daily Ops",
+    items: [
+      { id: "attendance", label: "Attendance",  icon: "📋", href: "/admin/attendance"    },
+      { id: "meetings",   label: "Meetings",    icon: "🗓️", href: "/admin/meetings"      },
+      { id: "visitors",   label: "Visitors",    icon: "🚪", href: "/admin/visitors"      },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      { id: "projects",      label: "Projects",   icon: "🚀", href: "/admin/projects"      },
+      { id: "communication", label: "Comms",      icon: "📢", href: "/admin/communication" },
+      { id: "resources",     label: "Resources",  icon: "🏫", href: "/admin/resources"     },
+      { id: "reports",       label: "Reports",    icon: "📊", href: "/admin/reports"       },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { id: "settings", label: "Settings", icon: "⚙️", href: "/admin/settings" },
+    ],
+  },
 ]
 
+const NAV_ITEMS = NAV_GROUPS.flatMap(g => g.items)
+
 const BOTTOM_NAV = [
-  { label: "Hub",       icon: "⚡", href: "/admin"           },
+  { label: "Home",      icon: "🏠", href: "/admin"           },
   { label: "Students",  icon: "🎓", href: "/admin/students"  },
   { label: "Finance",   icon: "💰", href: "/admin/finance"   },
   { label: "Academics", icon: "📚", href: "/admin/academics" },
   { label: "More",      icon: "☰",  href: null               },
 ]
 
-// ─── School Logo / Avatar ─────────────────────────────────────────────────────
 function SchoolAvatar({ logoUrl, name, size = 44 }: { logoUrl: string | null; name: string; size?: number }) {
   const initials = name
     .split(" ")
@@ -73,19 +94,19 @@ function SchoolAvatar({ logoUrl, name, size = 44 }: { logoUrl: string | null; na
 
   return (
     <div style={{
-      width:           size,
-      height:          size,
-      borderRadius:    "12px",
-      background:      `linear-gradient(135deg, ${C.emerald}, ${C.navy3})`,
-      display:         "flex",
-      alignItems:      "center",
-      justifyContent:  "center",
-      fontSize:        size * 0.36,
-      fontWeight:      "800",
-      color:           "#ffffff",
-      flexShrink:      0,
-      letterSpacing:   "-0.5px",
-      border:          "2px solid rgba(255,255,255,0.12)",
+      width:          size,
+      height:         size,
+      borderRadius:   "12px",
+      background:     `linear-gradient(135deg, ${C.emerald}, ${C.navy3})`,
+      display:        "flex",
+      alignItems:     "center",
+      justifyContent: "center",
+      fontSize:       size * 0.36,
+      fontWeight:     "800",
+      color:          "#ffffff",
+      flexShrink:     0,
+      letterSpacing:  "-0.5px",
+      border:         "2px solid rgba(255,255,255,0.12)",
     }}>
       {initials}
     </div>
@@ -96,10 +117,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router   = useRouter()
   const pathname = usePathname()
 
-  const [profile,     setProfile]     = useState<AdminProfile | null>(null)
-  const [loading,     setLoading]     = useState(true)
-  const [sidebarOpen, setSidebar]     = useState(false)
-  const [mounted,     setMounted]     = useState(false)
+  const [profile,     setProfile] = useState<AdminProfile | null>(null)
+  const [loading,     setLoading] = useState(true)
+  const [sidebarOpen, setSidebar] = useState(false)
+  const [mounted,     setMounted] = useState(false)
 
   const isLoginPage = pathname === "/admin/login"
 
@@ -180,7 +201,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {sidebarOpen && (
         <div
           onClick={() => setSidebar(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 40, backdropFilter: "blur(3px)" }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40, backdropFilter: "blur(4px)" }}
         />
       )}
 
@@ -190,7 +211,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         top:           0,
         left:          0,
         transform:     sidebarOpen ? "translateX(0)" : "translateX(-280px)",
-        width:         "265px",
+        width:         "270px",
         height:        "100vh",
         background:    `linear-gradient(180deg, ${C.hero} 0%, ${C.heroMid} 100%)`,
         zIndex:        50,
@@ -199,66 +220,110 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         transition:    "transform 0.3s cubic-bezier(.4,0,.2,1)",
         overflowY:     "auto",
       }}>
-        {/* School identity */}
-        <div style={{ padding: "52px 20px 24px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+
+        {/* School identity + close button */}
+        <div style={{ padding: "52px 16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", position: "relative" }}>
+          {/* Close button */}
+          <button
+            onClick={() => setSidebar(false)}
+            style={{
+              position:       "absolute",
+              top:            "14px",
+              right:          "14px",
+              width:          "30px",
+              height:         "30px",
+              borderRadius:   "8px",
+              background:     "rgba(255,255,255,0.08)",
+              border:         "1px solid rgba(255,255,255,0.12)",
+              color:          "rgba(255,255,255,0.6)",
+              fontSize:       "16px",
+              cursor:         "pointer",
+              display:        "flex",
+              alignItems:     "center",
+              justifyContent: "center",
+              lineHeight:     1,
+            }}
+          >✕</button>
+
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <SchoolAvatar logoUrl={profile?.logoUrl ?? null} name={profile?.schoolName ?? "S"} size={48} />
             <div style={{ overflow: "hidden", flex: 1 }}>
               <div style={{ color: "#fff", fontSize: "14px", fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {profile?.schoolName}
               </div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", marginTop: "2px" }}>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", marginTop: "3px" }}>
                 {profile?.name}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Nav */}
-        <nav style={{ padding: "12px 10px", flex: 1 }}>
-          {NAV_ITEMS.map(item => {
-            const active = isActive(item.href)
-            return (
-              <button
-                key={item.id}
-                onClick={() => { router.push(item.href); setSidebar(false) }}
-                style={{
-                  width:        "100%",
-                  display:      "flex",
-                  alignItems:   "center",
-                  gap:          "12px",
-                  padding:      "11px 14px",
-                  borderRadius: "10px",
-                  border:       "none",
-                  borderLeft:   active ? `3px solid ${C.emerald}` : "3px solid transparent",
-                  background:   active ? "rgba(16,185,129,0.12)" : "transparent",
-                  color:        active ? C.emerald : "rgba(255,255,255,0.55)",
-                  fontSize:     "13px",
-                  fontWeight:   active ? "700" : "400",
-                  cursor:       "pointer",
-                  textAlign:    "left",
-                  marginBottom: "2px",
-                  transition:   "all 0.15s ease",
-                }}
-              >
-                <span style={{ fontSize: "16px", width: "20px", textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {active && <span style={{ color: C.emerald, fontSize: "16px" }}>›</span>}
-              </button>
-            )
-          })}
+        {/* Grouped Nav */}
+        <nav style={{ padding: "10px 12px", flex: 1 }}>
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.label} style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? "6px" : 0 }}>
+              {/* Group label */}
+              <div style={{
+                color:         "rgba(255,255,255,0.28)",
+                fontSize:      "10px",
+                fontWeight:    "700",
+                letterSpacing: "1.1px",
+                textTransform: "uppercase",
+                padding:       "10px 12px 6px",
+              }}>
+                {group.label}
+              </div>
+
+              {group.items.map(item => {
+                const active = isActive(item.href)
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { router.push(item.href); setSidebar(false) }}
+                    style={{
+                      width:        "100%",
+                      display:      "flex",
+                      alignItems:   "center",
+                      gap:          "12px",
+                      padding:      "11px 14px",
+                      borderRadius: "10px",
+                      border:       "none",
+                      borderLeft:   active ? `3px solid ${C.emerald}` : "3px solid transparent",
+                      background:   active ? "rgba(16,185,129,0.13)" : "transparent",
+                      color:        active ? C.emerald : "rgba(255,255,255,0.88)",
+                      fontSize:     "13.5px",
+                      fontWeight:   active ? "700" : "500",
+                      cursor:       "pointer",
+                      textAlign:    "left",
+                      marginBottom: "1px",
+                      transition:   "all 0.15s ease",
+                    }}
+                  >
+                    <span style={{ fontSize: "16px", width: "22px", textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {active && <span style={{ color: C.emerald, fontSize: "16px", opacity: 0.8 }}>›</span>}
+                  </button>
+                )
+              })}
+
+              {/* Divider between groups */}
+              {gi < NAV_GROUPS.length - 1 && (
+                <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "6px 12px 0" }} />
+              )}
+            </div>
+          ))}
         </nav>
 
         {/* Sign out */}
-        <div style={{ padding: "16px 10px 36px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ padding: "12px 12px 36px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
           <button
             onClick={handleSignOut}
             style={{
               width:        "100%",
-              padding:      "11px 14px",
+              padding:      "12px 14px",
               borderRadius: "10px",
-              border:       "none",
-              background:   "rgba(239,68,68,0.1)",
+              border:       "1px solid rgba(239,68,68,0.2)",
+              background:   "rgba(239,68,68,0.08)",
               color:        "#ef4444",
               fontSize:     "13px",
               fontWeight:   "600",
@@ -291,27 +356,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <button
           onClick={() => setSidebar(s => !s)}
           style={{
-            background:   "rgba(255,255,255,0.08)",
-            border:       "1px solid rgba(255,255,255,0.12)",
-            borderRadius: "10px",
-            width:        "38px",
-            height:       "38px",
-            display:      "flex",
-            alignItems:   "center",
-            justifyContent:"center",
-            cursor:       "pointer",
-            fontSize:     "16px",
-            color:        "#fff",
-            flexShrink:   0,
+            background:     "rgba(255,255,255,0.08)",
+            border:         "1px solid rgba(255,255,255,0.12)",
+            borderRadius:   "10px",
+            width:          "38px",
+            height:         "38px",
+            display:        "flex",
+            alignItems:     "center",
+            justifyContent: "center",
+            cursor:         "pointer",
+            fontSize:       "16px",
+            color:          "#fff",
+            flexShrink:     0,
           }}
         >☰</button>
 
         {/* Page title */}
-        <span style={{ color: "#fff", fontSize: "15px", fontWeight: "700", flex: 1 }}>
+        <span style={{ color: "#fff", fontSize: "15px", fontWeight: "700", flex: 1, paddingLeft: "4px" }}>
           {currentPage?.icon} {currentPage?.label ?? "Admin"}
         </span>
 
-        {/* School badge — logo or name */}
+        {/* School badge */}
         <div
           onClick={() => setSidebar(true)}
           style={{
@@ -328,7 +393,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <SchoolAvatar logoUrl={profile?.logoUrl ?? null} name={profile?.schoolName ?? "S"} size={28} />
           <span style={{
-            color:        "rgba(255,255,255,0.85)",
+            color:        "rgba(255,255,255,0.9)",
             fontSize:     "12px",
             fontWeight:   "600",
             overflow:     "hidden",
@@ -342,12 +407,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ── MAIN ─────────────────────────────────────────────────────────── */}
       <main style={{
-        flex:       1,
-        padding:    "20px 16px 90px",
-        overflowX:  "hidden",
-        width:      "100%",
-        maxWidth:   "900px",
-        margin:     "0 auto",
+        flex:      1,
+        padding:   "20px 16px 90px",
+        overflowX: "hidden",
+        width:     "100%",
+        maxWidth:  "900px",
+        margin:    "0 auto",
       }}>
         {children}
       </main>
@@ -363,7 +428,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         borderTop:  `1px solid ${C.border}`,
         display:    "flex",
         zIndex:     30,
-        boxShadow:  "0 -4px 24px rgba(0,0,0,0.07)",
+        boxShadow:  "0 -4px 24px rgba(0,0,0,0.08)",
       }}>
         {BOTTOM_NAV.map((n, i) => {
           const active = n.href ? isActive(n.href) : false
@@ -391,14 +456,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   top:          0,
                   left:         "50%",
                   transform:    "translateX(-50%)",
-                  width:        "32px",
+                  width:        "36px",
                   height:       "3px",
                   background:   C.emerald,
-                  borderRadius: "0 0 4px 4px",
+                  borderRadius: "0 0 6px 6px",
                 }} />
               )}
-              <span style={{ fontSize: "20px" }}>{n.icon}</span>
-              <span style={{ fontSize: "10px", fontWeight: "600", color: active ? C.hero : "#aab4c4" }}>
+              <span style={{ fontSize: "22px", lineHeight: 1 }}>{n.icon}</span>
+              <span style={{
+                fontSize:   "10px",
+                fontWeight: "600",
+                color:      active ? C.hero : "#aab4c4",
+                marginTop:  "1px",
+              }}>
                 {n.label}
               </span>
             </button>
