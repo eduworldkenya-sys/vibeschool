@@ -443,6 +443,12 @@ export default function FinancePage() {
           </div>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <button
+              onClick={() => router.push("/admin/finance/invoices/generate")}
+              style={{ padding: "10px 16px", borderRadius: "10px", border: `1px solid ${border}`, background: surface, color: muted, fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              📄 Generate
+            </button>
+            <button
               onClick={() => router.push("/admin/finance/reconciliation")}
               style={{ padding: "10px 16px", borderRadius: "10px", border: `1px solid ${border}`, background: surface, color: muted, fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
             >
