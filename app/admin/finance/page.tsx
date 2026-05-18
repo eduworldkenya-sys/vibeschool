@@ -4,16 +4,16 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const dark    = "#0a0a14"
+const dark    = "#0a1628"
 const accent  = "#10b981"
 const amber   = "#f59e0b"
 const red     = "#ef4444"
 const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
-const surface = "rgba(255,255,255,0.03)"
-const card    = "rgba(255,255,255,0.05)"
-const border  = "rgba(255,255,255,0.08)"
-const muted   = "rgba(255,255,255,0.4)"
+const surface = "#ffffff"
+const card    = "rgba(248,250,252,1)"
+const border  = "#e2e8f0"
+const muted   = "#64748b"
 const white   = "#ffffff"
 
 type Tab = "overview" | "invoices" | "payments" | "expenses"
@@ -352,7 +352,7 @@ export default function FinancePage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "11px 14px",
-    background: "rgba(255,255,255,0.05)", border: `1px solid ${border}`,
+    background: "rgba(248,250,252,1)", border: `1px solid ${border}`,
     borderRadius: "10px", color: white, fontSize: "14px", outline: "none",
   }
   const labelStyle: React.CSSProperties = {
@@ -381,7 +381,7 @@ export default function FinancePage() {
       <div style={{ background: "#0d0d1a", border: `1px solid ${border}`, borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: white }}>{title}</h2>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+          <button onClick={onClose} style={{ background: "#e2e8f0", border: "none", color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
         {periodLocked && (
           <div style={{ background: "rgba(239,68,68,0.1)", border: `1px solid rgba(239,68,68,0.25)`, borderRadius: "12px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: red, display: "flex", gap: "8px", alignItems: "center" }}>
@@ -502,7 +502,7 @@ export default function FinancePage() {
       )}
 
       {/* ── Tabs ── */}
-      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "14px", border: `1px solid ${border}` }}>
+      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "#ffffff", padding: "4px", borderRadius: "14px", border: `1px solid ${border}` }}>
         {(["overview","invoices","payments","expenses"] as Tab[]).map(t => (
           <button key={t} onClick={() => { setTab(t); setSearch("") }} style={{
             flex: 1, padding: "10px 8px", borderRadius: "10px", border: "none",

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const dark   = "#1e1b4b"
+const dark   = "#0a1628"
 const accent = "#10b981"
 const bg     = "#f0f2f5"
 const red    = "#ef4444"
@@ -265,7 +265,7 @@ export default function StaffPage() {
 
       {/* ── HERO HEADER ── */}
       <div style={{
-        background: `linear-gradient(135deg, ${dark} 0%, #2d2a6e 100%)`,
+        background: `linear-gradient(135deg, ${dark} 0%, #0d2347 100%)`,
         padding: "28px 20px 32px", position: "relative", overflow: "hidden",
       }}>
         <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
