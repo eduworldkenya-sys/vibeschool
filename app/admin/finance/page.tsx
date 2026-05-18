@@ -10,11 +10,11 @@ const amber   = "#f59e0b"
 const red     = "#ef4444"
 const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
-const surface = "#ffffff"
-const card    = "rgba(248,250,252,1)"
-const border  = "#e2e8f0"
-const muted   = "#64748b"
+const border  = "rgba(255,255,255,0.08)"
+const muted   = "rgba(255,255,255,0.45)"
 const white   = "#ffffff"
+const card    = "rgba(255,255,255,0.04)"
+const surface = "rgba(255,255,255,0.06)"
 
 type Tab = "overview" | "invoices" | "payments" | "expenses"
 
@@ -82,7 +82,7 @@ function Skeleton({ h = 48 }: { h?: number }) {
     <div style={{
       height:         h,
       borderRadius:   12,
-      background:     "linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%)",
+      background:     "linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.03) 75%)",
       backgroundSize: "200% 100%",
       animation:      "shimmer 1.4s infinite",
     }} />
@@ -134,14 +134,14 @@ function AgingBadge({ dueDate, status }: { dueDate: string | null; status: strin
 }
 
 function AgingBar({ invoices }: { invoices: InvoiceRow[] }) {
-  const now = Date.now()
+  const now    = Date.now()
   const unpaid = invoices.filter(i => i.status !== "paid" && i.status !== "waived" && i.due_date)
   const buckets = [
-    { label: "Current",  color: accent, count: unpaid.filter(i => new Date(i.due_date!).getTime() >= now).length },
-    { label: "1–30d",    color: amber,  count: unpaid.filter(i => { const d = Math.floor((now - new Date(i.due_date!).getTime()) / 86400000); return d > 0 && d <= 30 }).length },
-    { label: "31–60d",   color: "#f97316", count: unpaid.filter(i => { const d = Math.floor((now - new Date(i.due_date!).getTime()) / 86400000); return d > 30 && d <= 60 }).length },
-    { label: "61–90d",   color: red,    count: unpaid.filter(i => { const d = Math.floor((now - new Date(i.due_date!).getTime()) / 86400000); return d > 60 && d <= 90 }).length },
-    { label: "90d+",     color: "#7f1d1d", count: unpaid.filter(i => Math.floor((now - new Date(i.due_date!).getTime()) / 86400000) > 90).length },
+    { label: "Current", color: accent,    count: unpaid.filter(i => new Date(i.due_date!).getTime() >= now).length },
+    { label: "1–30d",   color: amber,     count: unpaid.filter(i => { const d = Math.floor((now - new Date(i.due_date!).getTime()) / 86400000); return d > 0 && d <= 30 }).length },
+    { label: "31–60d",  color: "#f97316", count: unpaid.filter(i => { const d = Math.floor((now - new Date(i.due_date!).getTime()) / 86400000); return d > 30 && d <= 60 }).length },
+    { label: "61–90d",  color: red,       count: unpaid.filter(i => { const d = Math.floor((now - new Date(i.due_date!).getTime()) / 86400000); return d > 60 && d <= 90 }).length },
+    { label: "90d+",    color: "#7f1d1d", count: unpaid.filter(i => Math.floor((now - new Date(i.due_date!).getTime()) / 86400000) > 90).length },
   ]
   const total = unpaid.length || 1
   return (
@@ -167,19 +167,19 @@ function AgingBar({ invoices }: { invoices: InvoiceRow[] }) {
 export default function FinancePage() {
   const router = useRouter()
 
-  const [tab,       setTab]       = useState<Tab>("overview")
-  const [schoolId,  setSchoolId]  = useState("")
-  const [loading,   setLoading]   = useState(true)
-  const [saving,    setSaving]    = useState(false)
-  const [toast,     setToast]     = useState({ msg: "", type: "success" })
-  const [search,    setSearch]    = useState("")
+  const [tab,      setTab]      = useState<Tab>("overview")
+  const [schoolId, setSchoolId] = useState("")
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState(false)
+  const [toast,    setToast]    = useState({ msg: "", type: "success" })
+  const [search,   setSearch]   = useState("")
 
-  const [accounts,  setAccounts]  = useState<BankAccount[]>([])
-  const [invoices,  setInvoices]  = useState<InvoiceRow[]>([])
-  const [payments,  setPayments]  = useState<PaymentRow[]>([])
-  const [expenses,  setExpenses]  = useState<ExpenseRow[]>([])
-  const [periods,   setPeriods]   = useState<PeriodRow[]>([])
-  const [summary,   setSummary]   = useState<Summary>({
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([])
+  const [payments, setPayments] = useState<PaymentRow[]>([])
+  const [expenses, setExpenses] = useState<ExpenseRow[]>([])
+  const [periods,  setPeriods]  = useState<PeriodRow[]>([])
+  const [summary,  setSummary]  = useState<Summary>({
     totalInvoiced: 0, totalCollected: 0, totalOutstanding: 0,
     totalExpenses: 0, overdueCount: 0, cashPosition: 0, collectionRate: 0,
   })
@@ -246,13 +246,13 @@ export default function FinancePage() {
       const expenseRows: ExpenseRow[]  = expRes.data ?? []
       const periodRows:  PeriodRow[]   = perRes.data ?? []
 
-      const termInv      = invoiceRows.filter(i => i.term === currentTerm && i.year === currentYear)
+      const termInv          = invoiceRows.filter(i => i.term === currentTerm && i.year === currentYear)
       const totalInvoiced    = termInv.reduce((s, i) => s + Number(i.total_amount), 0)
       const totalCollected   = termInv.reduce((s, i) => s + Number(i.paid_amount),  0)
       const totalOutstanding = totalInvoiced - totalCollected
       const collectionRate   = totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : 0
-      const now = Date.now()
-      const overdueCount = invoiceRows.filter(i =>
+      const now              = Date.now()
+      const overdueCount     = invoiceRows.filter(i =>
         i.due_date && new Date(i.due_date).getTime() < now &&
         i.status !== "paid" && i.status !== "waived"
       ).length
@@ -351,17 +351,20 @@ export default function FinancePage() {
   const fmtK = (n: number) => n >= 1000000 ? `KES ${(n/1000000).toFixed(1)}M` : n >= 1000 ? `KES ${(n/1000).toFixed(0)}K` : fmt(n)
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "11px 14px",
-    background: "rgba(248,250,252,1)", border: `1px solid ${border}`,
-    borderRadius: "10px", color: white, fontSize: "14px", outline: "none",
+    width: "100%", padding: "12px 14px",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "10px", color: white,
+    fontSize: "14px", outline: "none",
   }
+
   const labelStyle: React.CSSProperties = {
-    fontSize: "11px", color: muted, marginBottom: "6px",
-    display: "block", fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase",
+    fontSize: "11px", color: "rgba(255,255,255,0.5)",
+    marginBottom: "6px", display: "block",
+    fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase",
   }
 
-  const unpaidInvoices = invoices.filter(i => i.status !== "paid" && i.status !== "waived")
-
+  const unpaidInvoices   = invoices.filter(i => i.status !== "paid" && i.status !== "waived")
   const filteredInvoices = invoices.filter(i =>
     !search || i.student_name.toLowerCase().includes(search.toLowerCase()) ||
     i.term.toLowerCase().includes(search.toLowerCase())
@@ -378,13 +381,13 @@ export default function FinancePage() {
 
   const Modal = ({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) => (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(6px)" }}>
-      <div style={{ background: "#0a1628", border: `1px solid ${border}`, borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
+      <div style={{ background: "#0d1f3c", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: white }}>{title}</h2>
-          <button onClick={onClose} style={{ background: "#e2e8f0", border: "none", color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
         {periodLocked && (
-          <div style={{ background: "rgba(239,68,68,0.1)", border: `1px solid rgba(239,68,68,0.25)`, borderRadius: "12px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: red, display: "flex", gap: "8px", alignItems: "center" }}>
+          <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "12px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: red, display: "flex", gap: "8px", alignItems: "center" }}>
             <span>🔒</span>
             <span>{currentTerm} {currentYear} is {currentPeriod?.status}. Unlock the period to post transactions.</span>
           </div>
@@ -403,12 +406,13 @@ export default function FinancePage() {
         @keyframes pulse   { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
         select option { background:#0a1628; color:#fff }
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4) }
+        input::placeholder { color: rgba(255,255,255,0.25) }
       `}</style>
 
       {/* ── Toast ── */}
       {toast.msg && (
         <div style={{
-          position: "fixed", bottom: "28px", right: "20px", zIndex: 300,
+          position: "fixed", bottom: "88px", right: "16px", zIndex: 300,
           background: toast.type === "error" ? red : accent,
           color: white, padding: "14px 22px", borderRadius: "14px",
           fontSize: "13px", fontWeight: "700", animation: "slideUp 0.3s ease",
@@ -421,11 +425,11 @@ export default function FinancePage() {
       )}
 
       {/* ── Page Header ── */}
-      <div style={{ marginBottom: "28px" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "14px" }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
-              <h1 style={{ fontSize: "26px", fontWeight: "800", margin: 0, letterSpacing: "-0.5px" }}>Finance</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
+              <h1 style={{ fontSize: "24px", fontWeight: "800", margin: 0, letterSpacing: "-0.5px" }}>Finance</h1>
               {currentPeriod && (
                 <span style={{
                   background: currentPeriod.status === "open" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
@@ -437,38 +441,32 @@ export default function FinancePage() {
                 </span>
               )}
             </div>
-            <p style={{ fontSize: "13px", color: muted, margin: 0 }}>
+            <p style={{ fontSize: "12px", color: muted, margin: 0 }}>
               {currentTerm} {currentYear} · School financial command center
             </p>
           </div>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              onClick={() => router.push("/admin/finance/invoices/generate")}
-              style={{ padding: "10px 16px", borderRadius: "10px", border: `1px solid ${border}`, background: surface, color: muted, fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-            >
-              📄 Generate
-            </button>
-            <button
-              onClick={() => router.push("/admin/finance/reconciliation")}
-              style={{ padding: "10px 16px", borderRadius: "10px", border: `1px solid ${border}`, background: surface, color: muted, fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-            >
-              📱 Mpesa
-            </button>
-            <button
-              onClick={() => router.push("/admin/finance/reports")}
-              style={{ padding: "10px 16px", borderRadius: "10px", border: `1px solid ${border}`, background: surface, color: muted, fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-            >
-              📊 Reports
-            </button>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {[
+              { label: "📄 Generate", href: "/admin/finance/invoices/generate" },
+              { label: "📱 Mpesa",    href: "/admin/finance/reconciliation"     },
+              { label: "📊 Reports",  href: "/admin/finance/reports"            },
+            ].map(btn => (
+              <button key={btn.label}
+                onClick={() => router.push(btn.href)}
+                style={{ padding: "9px 14px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.8)", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}
+              >
+                {btn.label}
+              </button>
+            ))}
             <button
               onClick={() => setShowExpModal(true)}
-              style={{ padding: "10px 18px", borderRadius: "10px", border: `1px solid rgba(239,68,68,0.3)`, background: "rgba(239,68,68,0.08)", color: red, fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
+              style={{ padding: "9px 16px", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: red, fontSize: "13px", fontWeight: "700", cursor: "pointer" }}
             >
               + Expense
             </button>
             <button
               onClick={() => setShowPayModal(true)}
-              style={{ padding: "10px 20px", borderRadius: "10px", border: "none", background: `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: `0 4px 16px rgba(16,185,129,0.3)` }}
+              style={{ padding: "9px 18px", borderRadius: "10px", border: "none", background: `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 16px rgba(16,185,129,0.25)" }}
             >
               + Payment
             </button>
@@ -478,20 +476,20 @@ export default function FinancePage() {
 
       {/* ── KPI Strip ── */}
       {loading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "10px", marginBottom: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "10px", marginBottom: "20px" }}>
           {[1,2,3,4,5,6].map(i => <Skeleton key={i} h={88} />)}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: "10px", marginBottom: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "10px", marginBottom: "20px" }}>
           {[
-            { label: "Cash Position",  value: fmtK(summary.cashPosition),    sub: `${accounts.length} accounts`,       icon: "🏦", color: accent,  glow: "rgba(16,185,129,0.15)" },
-            { label: "Collected",      value: fmtK(summary.totalCollected),   sub: `${summary.collectionRate}% rate`,   icon: "✅", color: accent,  glow: "rgba(16,185,129,0.1)"  },
-            { label: "Outstanding",    value: fmtK(summary.totalOutstanding), sub: `of ${fmtK(summary.totalInvoiced)}`, icon: "⏳", color: amber,   glow: "rgba(245,158,11,0.1)"  },
-            { label: "Expenses",       value: fmtK(summary.totalExpenses),    sub: `${currentTerm} spend`,              icon: "💸", color: red,     glow: "rgba(239,68,68,0.1)"   },
-            { label: "Overdue",        value: `${summary.overdueCount}`,       sub: "invoices past due",                icon: "🚨", color: summary.overdueCount > 0 ? red : muted, glow: summary.overdueCount > 0 ? "rgba(239,68,68,0.1)" : "transparent" },
-            { label: "Net Position",   value: fmtK(summary.cashPosition - summary.totalExpenses), sub: "cash minus expenses", icon: "📈", color: (summary.cashPosition - summary.totalExpenses) >= 0 ? accent : red, glow: "rgba(139,92,246,0.1)" },
+            { label: "Cash Position", value: fmtK(summary.cashPosition),    sub: `${accounts.length} accounts`,        icon: "🏦", color: accent,  glow: "rgba(16,185,129,0.1)"  },
+            { label: "Collected",     value: fmtK(summary.totalCollected),   sub: `${summary.collectionRate}% rate`,    icon: "✅", color: accent,  glow: "rgba(16,185,129,0.08)" },
+            { label: "Outstanding",   value: fmtK(summary.totalOutstanding), sub: `of ${fmtK(summary.totalInvoiced)}`,  icon: "⏳", color: amber,   glow: "rgba(245,158,11,0.08)" },
+            { label: "Expenses",      value: fmtK(summary.totalExpenses),    sub: `${currentTerm} spend`,               icon: "💸", color: red,     glow: "rgba(239,68,68,0.08)"  },
+            { label: "Overdue",       value: `${summary.overdueCount}`,      sub: "invoices past due",                  icon: "🚨", color: summary.overdueCount > 0 ? red : muted, glow: summary.overdueCount > 0 ? "rgba(239,68,68,0.08)" : "transparent" },
+            { label: "Net Position",  value: fmtK(summary.cashPosition - summary.totalExpenses), sub: "cash minus expenses", icon: "📈", color: (summary.cashPosition - summary.totalExpenses) >= 0 ? accent : red, glow: "rgba(139,92,246,0.08)" },
           ].map(kpi => (
-            <div key={kpi.label} style={{ background: kpi.glow, border: `1px solid ${border}`, borderRadius: "14px", padding: "16px 14px", position: "relative", overflow: "hidden" }}>
+            <div key={kpi.label} style={{ background: kpi.glow, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px", padding: "16px 14px" }}>
               <div style={{ fontSize: "20px", marginBottom: "8px" }}>{kpi.icon}</div>
               <div style={{ fontSize: "10px", color: muted, fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "4px" }}>{kpi.label}</div>
               <div style={{ fontSize: "16px", fontWeight: "800", color: kpi.color, letterSpacing: "-0.3px" }}>{kpi.value}</div>
@@ -502,12 +500,12 @@ export default function FinancePage() {
       )}
 
       {/* ── Tabs ── */}
-      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "#ffffff", padding: "4px", borderRadius: "14px", border: `1px solid ${border}` }}>
+      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "rgba(255,255,255,0.04)", padding: "4px", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.08)" }}>
         {(["overview","invoices","payments","expenses"] as Tab[]).map(t => (
           <button key={t} onClick={() => { setTab(t); setSearch("") }} style={{
             flex: 1, padding: "10px 8px", borderRadius: "10px", border: "none",
             background: tab === t ? "rgba(16,185,129,0.15)" : "transparent",
-            color: tab === t ? accent : muted,
+            color: tab === t ? accent : "rgba(255,255,255,0.55)",
             fontSize: "12px", fontWeight: tab === t ? "700" : "500",
             cursor: "pointer", whiteSpace: "nowrap", textTransform: "capitalize",
             transition: "all 0.15s ease", letterSpacing: "0.2px",
@@ -517,15 +515,13 @@ export default function FinancePage() {
         ))}
       </div>
 
-      {/* ═══════════════════════════════════════
-          OVERVIEW
-      ═══════════════════════════════════════ */}
+      {/* ═══════════ OVERVIEW ═══════════ */}
       {tab === "overview" && (
         <div style={{ animation: "fadeIn 0.3s ease", display: "flex", flexDirection: "column", gap: "16px" }}>
 
           {/* Collection progress */}
           {!loading && summary.totalInvoiced > 0 && (
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                 <div>
                   <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "3px" }}>{currentTerm} Collection</div>
@@ -558,19 +554,17 @@ export default function FinancePage() {
 
           {/* Aging analysis */}
           {!loading && invoices.length > 0 && (
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <div style={{ fontSize: "13px", fontWeight: "700" }}>Invoice Aging</div>
-                <button onClick={() => setTab("invoices")} style={{ background: "none", border: "none", color: accent, fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
-                  View all →
-                </button>
+                <button onClick={() => setTab("invoices")} style={{ background: "none", border: "none", color: accent, fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>View all →</button>
               </div>
               <AgingBar invoices={invoices} />
             </div>
           )}
 
           {/* Cash position */}
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
             <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "16px" }}>Cash Position</div>
             {loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>{[1,2,3].map(i => <Skeleton key={i} h={52} />)}</div>
@@ -579,7 +573,7 @@ export default function FinancePage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {accounts.map(acc => (
-                  <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: surface, borderRadius: "12px", border: `1px solid ${border}` }}>
+                  <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: surface, borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: acc.type === "mpesa" ? "rgba(16,185,129,0.15)" : acc.type === "bank" ? "rgba(59,130,246,0.15)" : "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
                         {acc.type === "mpesa" ? "📱" : acc.type === "bank" ? "🏦" : "💵"}
@@ -594,7 +588,7 @@ export default function FinancePage() {
                     </div>
                   </div>
                 ))}
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", borderTop: `1px solid ${border}`, marginTop: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: "4px" }}>
                   <span style={{ fontSize: "13px", fontWeight: "800" }}>Total</span>
                   <span style={{ fontSize: "18px", fontWeight: "800", color: accent }}>{fmt(summary.cashPosition)}</span>
                 </div>
@@ -604,7 +598,7 @@ export default function FinancePage() {
 
           {/* Recent activity */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700" }}>Recent Payments</div>
                 <button onClick={() => setTab("payments")} style={{ background: "none", border: "none", color: accent, fontSize: "11px", cursor: "pointer" }}>all →</button>
@@ -621,7 +615,7 @@ export default function FinancePage() {
                 </div>
               ))}
             </div>
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700" }}>Recent Expenses</div>
                 <button onClick={() => setTab("expenses")} style={{ background: "none", border: "none", color: accent, fontSize: "11px", cursor: "pointer" }}>all →</button>
@@ -641,14 +635,14 @@ export default function FinancePage() {
           </div>
 
           {/* Periods */}
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", padding: "20px" }}>
             <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "16px" }}>Accounting Periods</div>
             {loading ? <Skeleton h={100} /> : periods.length === 0 ? (
               <p style={{ fontSize: "13px", color: muted, textAlign: "center", padding: "16px 0" }}>No periods configured</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {periods.slice(0,6).map(p => (
-                  <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: p.term === currentTerm && p.year === currentYear ? "rgba(16,185,129,0.06)" : surface, borderRadius: "10px", border: p.term === currentTerm && p.year === currentYear ? `1px solid rgba(16,185,129,0.2)` : `1px solid transparent` }}>
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: p.term === currentTerm && p.year === currentYear ? "rgba(16,185,129,0.06)" : surface, borderRadius: "10px", border: p.term === currentTerm && p.year === currentYear ? "1px solid rgba(16,185,129,0.2)" : "1px solid transparent" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       {p.term === currentTerm && p.year === currentYear && <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: accent, animation: "pulse 2s infinite" }} />}
                       <span style={{ fontSize: "13px", fontWeight: p.term === currentTerm && p.year === currentYear ? "700" : "400" }}>{p.term} {p.year}</span>
@@ -659,24 +653,21 @@ export default function FinancePage() {
               </div>
             )}
           </div>
-
         </div>
       )}
 
-      {/* ═══════════════════════════════════════
-          INVOICES
-      ═══════════════════════════════════════ */}
+      {/* ═══════════ INVOICES ═══════════ */}
       {tab === "invoices" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
           <div style={{ marginBottom: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search student or term..."
-              style={{ ...inputStyle, flex: 1 }}
+              style={inputStyle}
             />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>×</button>}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}
@@ -689,7 +680,8 @@ export default function FinancePage() {
               </div>
             ) : (
               filteredInvoices.map((inv, idx) => (
-                <div key={inv.id} style={{ padding: "16px 18px", borderBottom: idx < filteredInvoices.length - 1 ? `1px solid ${border}` : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer", transition: "background 0.15s" }}
+                <div key={inv.id}
+                  style={{ padding: "16px 18px", borderBottom: idx < filteredInvoices.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer" }}
                   onClick={() => router.push(`/admin/finance/invoices/${inv.id}`)}
                 >
                   <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: inv.status === "paid" ? "rgba(16,185,129,0.15)" : inv.status === "partial" ? "rgba(245,158,11,0.15)" : "rgba(139,92,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
@@ -714,20 +706,18 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════
-          PAYMENTS
-      ═══════════════════════════════════════ */}
+      {/* ═══════════ PAYMENTS ═══════════ */}
       {tab === "payments" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
           <div style={{ marginBottom: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search student, reference, receipt..."
-              style={{ ...inputStyle, flex: 1 }}
+              style={inputStyle}
             />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>×</button>}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}
@@ -742,7 +732,8 @@ export default function FinancePage() {
               </div>
             ) : (
               filteredPayments.map((pay, idx) => (
-                <div key={pay.id} style={{ padding: "16px 18px", borderBottom: idx < filteredPayments.length - 1 ? `1px solid ${border}` : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer" }}
+                <div key={pay.id}
+                  style={{ padding: "16px 18px", borderBottom: idx < filteredPayments.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", cursor: "pointer" }}
                   onClick={() => router.push(`/admin/finance/receipt/${pay.id}`)}
                 >
                   <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(16,185,129,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
@@ -767,20 +758,18 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════
-          EXPENSES
-      ═══════════════════════════════════════ */}
+      {/* ═══════════ EXPENSES ═══════════ */}
       {tab === "expenses" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
           <div style={{ marginBottom: "14px", display: "flex", gap: "10px", alignItems: "center" }}>
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search description or vendor..."
-              style={{ ...inputStyle, flex: 1 }}
+              style={inputStyle}
             />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>×</button>}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: card, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}
@@ -795,7 +784,7 @@ export default function FinancePage() {
               </div>
             ) : (
               filteredExpenses.map((exp, idx) => (
-                <div key={exp.id} style={{ padding: "16px 18px", borderBottom: idx < filteredExpenses.length - 1 ? `1px solid ${border}` : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+                <div key={exp.id} style={{ padding: "16px 18px", borderBottom: idx < filteredExpenses.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none", display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                   <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
                     💸
                   </div>
@@ -817,9 +806,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════
-          RECORD PAYMENT MODAL
-      ═══════════════════════════════════════ */}
+      {/* ═══════════ PAYMENT MODAL ═══════════ */}
       {showPayModal && (
         <Modal title="Record Payment" onClose={() => setShowPayModal(false)}>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -871,16 +858,14 @@ export default function FinancePage() {
               <label style={labelStyle}>Notes</label>
               <input type="text" value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" style={inputStyle} />
             </div>
-            <button onClick={handleRecordPayment} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(16,185,129,0.3)" : `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : `0 4px 16px rgba(16,185,129,0.3)` }}>
+            <button onClick={handleRecordPayment} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(16,185,129,0.3)" : `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : "0 4px 16px rgba(16,185,129,0.3)" }}>
               {saving ? "Recording..." : "✓ Record Payment"}
             </button>
           </div>
         </Modal>
       )}
 
-      {/* ═══════════════════════════════════════
-          RECORD EXPENSE MODAL
-      ═══════════════════════════════════════ */}
+      {/* ═══════════ EXPENSE MODAL ═══════════ */}
       {showExpModal && (
         <Modal title="Record Expense" onClose={() => setShowExpModal(false)}>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -920,7 +905,7 @@ export default function FinancePage() {
                 </select>
               </div>
             </div>
-            <button onClick={handleRecordExpense} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(239,68,68,0.3)" : `linear-gradient(135deg, ${red}, #dc2626)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : `0 4px 16px rgba(239,68,68,0.3)` }}>
+            <button onClick={handleRecordExpense} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(239,68,68,0.3)" : `linear-gradient(135deg, ${red}, #dc2626)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px", boxShadow: saving || periodLocked ? "none" : "0 4px 16px rgba(239,68,68,0.3)" }}>
               {saving ? "Recording..." : "✓ Record Expense"}
             </button>
           </div>
