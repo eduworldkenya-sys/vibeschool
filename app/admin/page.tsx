@@ -4,24 +4,27 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
-const deepspace = "#0a0a14"
-const accent    = "#10b981"
-const amber     = "#f59e0b"
-const violet    = "#8b5cf6"
+const accent = "#10b981"
+const amber  = "#f59e0b"
+const violet = "#8b5cf6"
+const navy   = "#0a1628"
+const navy2  = "#0d3b7a"
+const navy3  = "#0f5fa8"
+const red    = "#ef4444"
 
 interface DashStats {
-  totalStudents:    number
-  totalStaff:       number
-  totalClasses:     number
-  parentsLinked:    number
-  presentToday:     number
-  absentToday:      number
+  totalStudents:     number
+  totalStaff:        number
+  totalClasses:      number
+  parentsLinked:     number
+  presentToday:      number
+  absentToday:       number
   feesCollectedTerm: number
-  feesOutstanding:  number
-  visitorsToday:    number
-  meetingsToday:    number
-  pendingLeave:     number
-  activeProjects:   number
+  feesOutstanding:   number
+  visitorsToday:     number
+  meetingsToday:     number
+  pendingLeave:      number
+  activeProjects:    number
 }
 
 interface Alert {
@@ -32,15 +35,48 @@ interface Alert {
   href:    string
 }
 
+function StatCard({ icon, label, value, color, href, router }: any) {
+  return (
+    <button
+      onClick={() => router.push(href)}
+      style={{
+        background:    "#fff",
+        border:        "none",
+        borderLeft:    `4px solid ${color}`,
+        borderRadius:  "14px",
+        padding:       "16px 14px",
+        textAlign:     "left",
+        cursor:        "pointer",
+        boxShadow:     "0 2px 8px rgba(0,0,0,0.06)",
+        transition:    "transform 0.15s, box-shadow 0.15s",
+        width:         "100%",
+      }}
+    >
+      <div style={{ fontSize: "22px", marginBottom: "8px" }}>{icon}</div>
+      <div style={{ color, fontSize: "22px", fontWeight: "800", lineHeight: 1, fontFamily: "monospace" }}>{value}</div>
+      <div style={{ color: "#8a96aa", fontSize: "11px", marginTop: "4px", fontWeight: "500" }}>{label}</div>
+    </button>
+  )
+}
+
+function SectionLabel({ children }: any) {
+  return (
+    <p style={{ color: "#6b7a99", fontSize: "11px", fontWeight: "700", letterSpacing: "1.2px", textTransform: "uppercase", margin: "0 0 10px" }}>
+      {children}
+    </p>
+  )
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
 
-  const [stats, setStats]       = useState<DashStats | null>(null)
-  const [alerts, setAlerts]     = useState<Alert[]>([])
-  const [schoolId, setSchoolId] = useState<string>("")
+  const [stats, setStats]         = useState<DashStats | null>(null)
+  const [alerts, setAlerts]       = useState<Alert[]>([])
   const [adminName, setAdminName] = useState<string>("")
-  const [loading, setLoading]   = useState(true)
-  const [now, setNow]           = useState(new Date())
+  const [schoolName, setSchoolName] = useState<string>("")
+  const [loading, setLoading]     = useState(true)
+  const [now, setNow]             = useState(new Date())
+  const [balanceHidden, setBalanceHidden] = useState(true)
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 60000)
@@ -62,9 +98,14 @@ export default function AdminDashboard() {
 
       if (!p?.school_id) { router.push("/admin/login"); return }
 
-      setSchoolId(p.school_id)
-      setAdminName(p.full_name ?? "Principal")
+      const { data: school } = await supabase
+        .from("schools")
+        .select("name")
+        .eq("id", p.school_id)
+        .single()
 
+      setAdminName(p.full_name ?? "Principal")
+      setSchoolName(school?.name ?? "School")
       await loadStats(p.school_id)
     } catch {
       router.push("/admin/login")
@@ -75,20 +116,10 @@ export default function AdminDashboard() {
 
   async function loadStats(sid: string) {
     const today = new Date().toISOString().split("T")[0]
-
-    // Run all queries in parallel
     const [
-      studentsRes,
-      staffRes,
-      classesRes,
-      parentsRes,
-      presentRes,
-      absentRes,
-      feesRes,
-      visitorsRes,
-      meetingsRes,
-      leaveRes,
-      projectsRes,
+      studentsRes, staffRes, classesRes, parentsRes,
+      presentRes, absentRes, feesRes, feeStructRes,
+      visitorsRes, meetingsRes, leaveRes, projectsRes,
     ] = await Promise.all([
       supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", sid),
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("school_id", sid).eq("role", "teacher"),
@@ -105,7 +136,7 @@ export default function AdminDashboard() {
     ])
 
     const feesCollected = (feesRes.data ?? []).reduce((s: number, r: any) => s + (r.amount ?? 0), 0)
-    const feesExpected  = (feesRes.data ?? []).reduce((s: number, r: any) => s + (r.amount ?? 0), 0)
+    const feesExpected  = (feeStructRes.data ?? []).reduce((s: number, r: any) => s + (r.amount ?? 0), 0)
 
     const s: DashStats = {
       totalStudents:     studentsRes.count ?? 0,
@@ -121,54 +152,16 @@ export default function AdminDashboard() {
       pendingLeave:      leaveRes.count ?? 0,
       activeProjects:    projectsRes.count ?? 0,
     }
-
     setStats(s)
     buildAlerts(s)
   }
 
   function buildAlerts(s: DashStats) {
     const list: Alert[] = []
-
-    if (s.absentToday > 0) list.push({
-      id:      "absent",
-      type:    s.absentToday > 10 ? "critical" : "warning",
-      message: `${s.absentToday} student${s.absentToday > 1 ? "s" : ""} absent today`,
-      action:  "View Attendance",
-      href:    "/admin/attendance",
-    })
-
-    if (s.pendingLeave > 0) list.push({
-      id:      "leave",
-      type:    "warning",
-      message: `${s.pendingLeave} staff leave request${s.pendingLeave > 1 ? "s" : ""} awaiting approval`,
-      action:  "Review",
-      href:    "/admin/staff",
-    })
-
-    if (s.feesOutstanding > 0) list.push({
-      id:      "fees",
-      type:    "info",
-      message: `KES ${s.feesOutstanding.toLocaleString()} in outstanding fees this term`,
-      action:  "View Finance",
-      href:    "/admin/finance",
-    })
-
-    if (s.meetingsToday > 0) list.push({
-      id:      "meetings",
-      type:    "info",
-      message: `${s.meetingsToday} meeting${s.meetingsToday > 1 ? "s" : ""} scheduled today`,
-      action:  "View Meetings",
-      href:    "/admin/meetings",
-    })
-
-    if (s.parentsLinked < s.totalStudents * 0.7) list.push({
-      id:      "parents",
-      type:    "warning",
-      message: "Less than 70% of students have a linked parent account",
-      action:  "View Students",
-      href:    "/admin/students",
-    })
-
+    if (s.absentToday > 0)    list.push({ id: "absent",   type: s.absentToday > 10 ? "critical" : "warning", message: `${s.absentToday} student${s.absentToday > 1 ? "s" : ""} absent today`,                          action: "View", href: "/admin/attendance" })
+    if (s.pendingLeave > 0)   list.push({ id: "leave",    type: "warning",  message: `${s.pendingLeave} staff leave request${s.pendingLeave > 1 ? "s" : ""} pending`,                                                  action: "Review", href: "/admin/staff" })
+    if (s.feesOutstanding > 0)list.push({ id: "fees",     type: "info",     message: `KES ${s.feesOutstanding.toLocaleString()} outstanding fees`,                                                                      action: "View", href: "/admin/finance" })
+    if (s.meetingsToday > 0)  list.push({ id: "meetings", type: "info",     message: `${s.meetingsToday} meeting${s.meetingsToday > 1 ? "s" : ""} today`,                                                              action: "View", href: "/admin/meetings" })
     setAlerts(list)
   }
 
@@ -180,341 +173,152 @@ export default function AdminDashboard() {
   }
 
   function formatDate() {
-    return now.toLocaleDateString("en-KE", {
-      weekday: "long", day: "numeric", month: "long", year: "numeric"
-    })
+    return now.toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
   }
-
-  const alertColor = (type: Alert["type"]) =>
-    type === "critical" ? "#ef4444" :
-    type === "warning"  ? amber :
-    accent
 
   if (loading) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {[1,2,3,4].map(i => (
-          <div key={i} style={{
-            height:       "80px",
-            background:   "rgba(255,255,255,0.03)",
-            borderRadius: "16px",
-            animation:    "pulse 1.5s ease-in-out infinite",
-          }} />
+          <div key={i} style={{ height: "80px", background: "#fff", borderRadius: "14px", opacity: 0.5, animation: "pulse 1.5s ease-in-out infinite" }} />
         ))}
-        <style>{`@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }`}</style>
+        <style>{`@keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.7} }`}</style>
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
-      {/* ── Greeting ── */}
-      <div style={{ marginBottom: "28px" }}>
-        <h1 style={{
-          color:         "#ffffff",
-          fontSize:      "24px",
-          fontWeight:    "800",
-          margin:        "0 0 4px",
-          letterSpacing: "-0.5px",
-        }}>
-          {greeting()}, {adminName.split(" ")[0]} 👋
+      {/* HERO GREETING CARD */}
+      <div style={{
+        background:    `linear-gradient(135deg, ${navy} 0%, ${navy2} 55%, ${navy3} 100%)`,
+        borderRadius:  "20px",
+        padding:       "24px 20px",
+        position:      "relative",
+        overflow:      "hidden",
+        boxShadow:     "0 8px 32px rgba(10,22,40,0.18)",
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+        <div style={{ position: "absolute", top: 20, right: 20, width: 70, height: 70, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+
+        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "13px", margin: "0 0 2px" }}>{greeting()},</p>
+        <h1 style={{ color: "#fff", fontSize: "22px", fontWeight: "800", margin: "0 0 2px", letterSpacing: "-0.5px" }}>
+          {adminName.split(" ")[0]} 👋
         </h1>
-        <p style={{
-          color:    "rgba(255,255,255,0.35)",
-          fontSize: "13px",
-          margin:   0,
+        <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", margin: "0 0 20px" }}>{formatDate()}</p>
+
+        {/* School summary card */}
+        <div style={{
+          background:   "rgba(255,255,255,0.08)",
+          border:       "1px solid rgba(255,255,255,0.12)",
+          borderRadius: "14px",
+          padding:      "16px",
         }}>
-          {formatDate()}
-        </p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "16px" }}>🏫</span>
+              <span style={{ color: "rgba(255,255,255,0.6)", fontSize: "12px" }}>{schoolName}</span>
+            </div>
+            <button
+              onClick={() => setBalanceHidden(!balanceHidden)}
+              style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "8px", padding: "4px 10px", color: "#fff", cursor: "pointer", fontSize: "12px" }}
+            >{balanceHidden ? "👁️ Show" : "🙈 Hide"}</button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "10px", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Fees Collected</p>
+              <span style={{ color: accent, fontWeight: "700", fontSize: "15px" }}>
+                {balanceHidden ? "KES ••••••" : `KES ${(stats?.feesCollectedTerm ?? 0).toLocaleString()}`}
+              </span>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "10px", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Outstanding</p>
+              <span style={{ color: red, fontWeight: "700", fontSize: "15px" }}>
+                {balanceHidden ? "KES ••••••" : `KES ${(stats?.feesOutstanding ?? 0).toLocaleString()}`}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Alerts ── */}
+      {/* ALERTS */}
       {alerts.length > 0 && (
-        <div style={{ marginBottom: "28px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          <p style={{
-            color:        "rgba(255,255,255,0.4)",
-            fontSize:     "11px",
-            fontWeight:   "700",
-            letterSpacing:"1px",
-            textTransform:"uppercase",
-            margin:       "0 0 4px",
-          }}>
-            Needs Your Attention
-          </p>
-          {alerts.map(a => (
-            <div
-              key={a.id}
-              style={{
-                background:    `rgba(${
-                  a.type === "critical" ? "239,68,68" :
-                  a.type === "warning"  ? "245,158,11" :
-                  "16,185,129"
-                },0.08)`,
-                border:        `1px solid rgba(${
-                  a.type === "critical" ? "239,68,68" :
-                  a.type === "warning"  ? "245,158,11" :
-                  "16,185,129"
-                },0.2)`,
-                borderRadius:  "12px",
-                padding:       "14px 16px",
-                display:       "flex",
-                alignItems:    "center",
-                justifyContent:"space-between",
-                gap:           "12px",
-              }}
-            >
-              <span style={{
-                color:    alertColor(a.type),
-                fontSize: "13px",
-                flex:     1,
-              }}>
-                {a.type === "critical" ? "🔴" : a.type === "warning" ? "🟡" : "🟢"} {a.message}
-              </span>
-              <button
-                onClick={() => router.push(a.href)}
-                style={{
-                  background:   "rgba(255,255,255,0.08)",
-                  border:       "none",
-                  borderRadius: "8px",
-                  padding:      "6px 12px",
-                  color:        "#ffffff",
-                  fontSize:     "12px",
-                  fontWeight:   "600",
-                  cursor:       "pointer",
-                  whiteSpace:   "nowrap",
-                }}
-              >
-                {a.action} →
-              </button>
-            </div>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <SectionLabel>Needs Attention</SectionLabel>
+          {alerts.map(a => {
+            const c = a.type === "critical" ? red : a.type === "warning" ? amber : accent
+            const rgb = a.type === "critical" ? "239,68,68" : a.type === "warning" ? "245,158,11" : "16,185,129"
+            return (
+              <div key={a.id} style={{ background: `rgba(${rgb},0.08)`, border: `1px solid rgba(${rgb},0.25)`, borderRadius: "12px", padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                <span style={{ color: c, fontSize: "13px", flex: 1 }}>
+                  {a.type === "critical" ? "🔴" : a.type === "warning" ? "🟡" : "🟢"} {a.message}
+                </span>
+                <button onClick={() => router.push(a.href)} style={{ background: "rgba(255,255,255,0.9)", border: "none", borderRadius: "8px", padding: "5px 12px", color: navy, fontSize: "11px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {a.action} →
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {/* ── Key Stats Grid ── */}
-      <p style={{
-        color:        "rgba(255,255,255,0.4)",
-        fontSize:     "11px",
-        fontWeight:   "700",
-        letterSpacing:"1px",
-        textTransform:"uppercase",
-        margin:       "0 0 12px",
-      }}>
-        School At A Glance
-      </p>
-
-      <div style={{
-        display:             "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap:                 "12px",
-        marginBottom:        "28px",
-      }}>
-        {[
-          { label: "Total Students",    value: stats?.totalStudents ?? 0,    icon: "🎓", color: accent,  href: "/admin/students" },
-          { label: "Total Staff",       value: stats?.totalStaff ?? 0,       icon: "👥", color: violet,  href: "/admin/staff" },
-          { label: "Classes",           value: stats?.totalClasses ?? 0,     icon: "📚", color: amber,   href: "/admin/academics" },
-          { label: "Parents Linked",    value: stats?.parentsLinked ?? 0,    icon: "👨‍👩‍👧", color: accent,  href: "/admin/students" },
-        ].map(item => (
-          <button
-            key={item.label}
-            onClick={() => router.push(item.href)}
-            style={{
-              background:     "rgba(255,255,255,0.03)",
-              border:         "1px solid rgba(255,255,255,0.07)",
-              borderRadius:   "16px",
-              padding:        "20px 16px",
-              backdropFilter: "blur(12px)",
-              cursor:         "pointer",
-              textAlign:      "left",
-              transition:     "border-color 0.2s",
-            }}
-          >
-            <div style={{ fontSize: "22px", marginBottom: "10px" }}>{item.icon}</div>
-            <div style={{
-              color:      "#ffffff",
-              fontSize:   "28px",
-              fontWeight: "800",
-              fontFamily: "monospace",
-              lineHeight: 1,
-            }}>
-              {item.value.toLocaleString()}
-            </div>
-            <div style={{
-              color:     "rgba(255,255,255,0.4)",
-              fontSize:  "12px",
-              marginTop: "4px",
-            }}>
-              {item.label}
-            </div>
-          </button>
-        ))}
+      {/* QUICK ACTIONS */}
+      <div>
+        <SectionLabel>Quick Actions</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+          {[
+            { label: "Log Visitor",    icon: "🚪", href: "/admin/visitors" },
+            { label: "Add Student",    icon: "➕", href: "/admin/students" },
+            { label: "Record Payment", icon: "💳", href: "/admin/finance" },
+            { label: "Attendance",     icon: "📋", href: "/admin/attendance" },
+            { label: "Meeting",        icon: "🗓️", href: "/admin/meetings" },
+            { label: "Announcement",   icon: "📢", href: "/admin/communication" },
+          ].map(item => (
+            <button
+              key={item.label}
+              onClick={() => router.push(item.href)}
+              style={{ background: `linear-gradient(135deg, ${navy} 0%, ${navy2} 100%)`, border: "none", borderRadius: "14px", padding: "16px 8px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer", transition: "transform 0.15s" }}
+            >
+              <span style={{ fontSize: "22px" }}>{item.icon}</span>
+              <span style={{ color: "#fff", fontSize: "10px", fontWeight: "600", textAlign: "center", lineHeight: 1.3 }}>{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── Today's Snapshot ── */}
-      <p style={{
-        color:        "rgba(255,255,255,0.4)",
-        fontSize:     "11px",
-        fontWeight:   "700",
-        letterSpacing:"1px",
-        textTransform:"uppercase",
-        margin:       "0 0 12px",
-      }}>
-        Today
-      </p>
-
-      <div style={{
-        display:             "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap:                 "12px",
-        marginBottom:        "28px",
-      }}>
-        {[
-          { label: "Present Today",    value: stats?.presentToday ?? 0,   icon: "✅", color: accent,            href: "/admin/attendance" },
-          { label: "Absent Today",     value: stats?.absentToday ?? 0,    icon: "❌", color: "#ef4444",          href: "/admin/attendance" },
-          { label: "Visitors Today",   value: stats?.visitorsToday ?? 0,  icon: "🚪", color: amber,             href: "/admin/visitors" },
-          { label: "Meetings Today",   value: stats?.meetingsToday ?? 0,  icon: "🗓️", color: violet,            href: "/admin/meetings" },
-        ].map(item => (
-          <button
-            key={item.label}
-            onClick={() => router.push(item.href)}
-            style={{
-              background:     "rgba(255,255,255,0.03)",
-              border:         `1px solid rgba(255,255,255,0.07)`,
-              borderRadius:   "16px",
-              padding:        "20px 16px",
-              backdropFilter: "blur(12px)",
-              cursor:         "pointer",
-              textAlign:      "left",
-            }}
-          >
-            <div style={{ fontSize: "22px", marginBottom: "10px" }}>{item.icon}</div>
-            <div style={{
-              color:      item.color,
-              fontSize:   "28px",
-              fontWeight: "800",
-              fontFamily: "monospace",
-              lineHeight: 1,
-            }}>
-              {item.value.toLocaleString()}
-            </div>
-            <div style={{
-              color:     "rgba(255,255,255,0.4)",
-              fontSize:  "12px",
-              marginTop: "4px",
-            }}>
-              {item.label}
-            </div>
-          </button>
-        ))}
+      {/* SCHOOL AT A GLANCE */}
+      <div>
+        <SectionLabel>School at a Glance</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
+          <StatCard icon="🎓" label="Total Students" value={(stats?.totalStudents ?? 0).toLocaleString()} color={accent}  href="/admin/students"  router={router} />
+          <StatCard icon="👥" label="Total Staff"    value={(stats?.totalStaff ?? 0).toLocaleString()}    color={navy3}   href="/admin/staff"     router={router} />
+          <StatCard icon="📚" label="Classes"        value={(stats?.totalClasses ?? 0).toLocaleString()}  color={amber}   href="/admin/academics" router={router} />
+          <StatCard icon="👨‍👩‍👧" label="Parents Linked" value={(stats?.parentsLinked ?? 0).toLocaleString()} color={violet}  href="/admin/students"  router={router} />
+        </div>
       </div>
 
-      {/* ── Finance & Operations ── */}
-      <p style={{
-        color:        "rgba(255,255,255,0.4)",
-        fontSize:     "11px",
-        fontWeight:   "700",
-        letterSpacing:"1px",
-        textTransform:"uppercase",
-        margin:       "0 0 12px",
-      }}>
-        Finance & Operations
-      </p>
-
-      <div style={{
-        display:             "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap:                 "12px",
-        marginBottom:        "28px",
-      }}>
-        {[
-          { label: "Fees Collected",   value: `KES ${(stats?.feesCollectedTerm ?? 0).toLocaleString()}`, icon: "💰", color: accent,   href: "/admin/finance" },
-          { label: "Outstanding Fees", value: `KES ${(stats?.feesOutstanding ?? 0).toLocaleString()}`,   icon: "⚠️", color: amber,    href: "/admin/finance" },
-          { label: "Pending Leave",    value: stats?.pendingLeave ?? 0,                                   icon: "🏖️", color: violet,   href: "/admin/staff" },
-          { label: "Active Projects",  value: stats?.activeProjects ?? 0,                                 icon: "🚀", color: accent,   href: "/admin/projects" },
-        ].map(item => (
-          <button
-            key={item.label}
-            onClick={() => router.push(item.href)}
-            style={{
-              background:     "rgba(255,255,255,0.03)",
-              border:         "1px solid rgba(255,255,255,0.07)",
-              borderRadius:   "16px",
-              padding:        "20px 16px",
-              backdropFilter: "blur(12px)",
-              cursor:         "pointer",
-              textAlign:      "left",
-            }}
-          >
-            <div style={{ fontSize: "22px", marginBottom: "10px" }}>{item.icon}</div>
-            <div style={{
-              color:      item.color,
-              fontSize:   typeof item.value === "string" ? "18px" : "28px",
-              fontWeight: "800",
-              fontFamily: "monospace",
-              lineHeight: 1,
-            }}>
-              {item.value}
-            </div>
-            <div style={{
-              color:     "rgba(255,255,255,0.4)",
-              fontSize:  "12px",
-              marginTop: "4px",
-            }}>
-              {item.label}
-            </div>
-          </button>
-        ))}
+      {/* TODAY */}
+      <div>
+        <SectionLabel>Today</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
+          <StatCard icon="✅" label="Present"       value={(stats?.presentToday ?? 0).toLocaleString()}  color={accent}  href="/admin/attendance" router={router} />
+          <StatCard icon="❌" label="Absent"        value={(stats?.absentToday ?? 0).toLocaleString()}   color={red}     href="/admin/attendance" router={router} />
+          <StatCard icon="🚪" label="Visitors"      value={(stats?.visitorsToday ?? 0).toLocaleString()} color={amber}   href="/admin/visitors"   router={router} />
+          <StatCard icon="🗓️" label="Meetings"      value={(stats?.meetingsToday ?? 0).toLocaleString()} color={violet}  href="/admin/meetings"   router={router} />
+        </div>
       </div>
 
-      {/* ── Quick Actions ── */}
-      <p style={{
-        color:        "rgba(255,255,255,0.4)",
-        fontSize:     "11px",
-        fontWeight:   "700",
-        letterSpacing:"1px",
-        textTransform:"uppercase",
-        margin:       "0 0 12px",
-      }}>
-        Quick Actions
-      </p>
-
-      <div style={{
-        display:             "grid",
-        gridTemplateColumns: "repeat(2, 1fr)",
-        gap:                 "10px",
-      }}>
-        {[
-          { label: "Log Visitor",       icon: "🚪", href: "/admin/visitors" },
-          { label: "Record Payment",    icon: "💳", href: "/admin/finance" },
-          { label: "Schedule Meeting",  icon: "🗓️", href: "/admin/meetings" },
-          { label: "Add Student",       icon: "➕", href: "/admin/students" },
-          { label: "Approve Leave",     icon: "✅", href: "/admin/staff" },
-          { label: "Send Announcement", icon: "📢", href: "/admin/communication" },
-        ].map(item => (
-          <button
-            key={item.label}
-            onClick={() => router.push(item.href)}
-            style={{
-              background:     "rgba(255,255,255,0.03)",
-              border:         "1px solid rgba(255,255,255,0.07)",
-              borderRadius:   "12px",
-              padding:        "14px 16px",
-              display:        "flex",
-              alignItems:     "center",
-              gap:            "10px",
-              color:          "rgba(255,255,255,0.7)",
-              fontSize:       "13px",
-              fontWeight:     "500",
-              cursor:         "pointer",
-              textAlign:      "left",
-              transition:     "all 0.15s ease",
-            }}
-          >
-            <span style={{ fontSize: "18px" }}>{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
+      {/* FINANCE & OPERATIONS */}
+      <div>
+        <SectionLabel>Finance &amp; Operations</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
+          <StatCard icon="💰" label="Fees Collected"  value={`KES ${(stats?.feesCollectedTerm ?? 0).toLocaleString()}`} color={accent}  href="/admin/finance" router={router} />
+          <StatCard icon="⚠️" label="Outstanding"     value={`KES ${(stats?.feesOutstanding ?? 0).toLocaleString()}`}   color={red}     href="/admin/finance" router={router} />
+          <StatCard icon="🏖️" label="Pending Leave"   value={(stats?.pendingLeave ?? 0).toLocaleString()}               color={amber}   href="/admin/staff"   router={router} />
+          <StatCard icon="🚀" label="Active Projects" value={(stats?.activeProjects ?? 0).toLocaleString()}              color={violet}  href="/admin/projects" router={router} />
+        </div>
       </div>
 
     </div>
