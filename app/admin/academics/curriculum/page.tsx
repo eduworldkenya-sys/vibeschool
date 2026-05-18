@@ -108,7 +108,7 @@ export default function CurriculumPage() {
 
       if (!activeTerm || !classList.length) { setLoading(false); return }
 
-      const grades = [...new Set(classList.map(c => c.name))]
+      const grades = Array.from(new Set(classList.map(c => c.name)))
 
       const [schemeRes, currRes] = await Promise.all([
         supabase
