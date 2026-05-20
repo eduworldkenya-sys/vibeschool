@@ -43,7 +43,7 @@ const NAV_GROUPS = [
     label: "Management",
     items: [
       { id: "projects",      label: "Projects",   icon: "🚀", href: "/admin/projects"      },
-      { id: "communication", label: "Comms",      icon: "📢", href: "/admin/communication" },
+      { id: "communication", label: "VibeConnect", icon: "💬", href: "/admin/communication" },
       { id: "resources",     label: "Resources",  icon: "🏫", href: "/admin/resources"     },
       { id: "reports",       label: "Reports",    icon: "📊", href: "/admin/reports"       },
     ],

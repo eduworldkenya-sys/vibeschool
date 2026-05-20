@@ -2,10 +2,10 @@
 const nextConfig = {
   compress: true,
   productionBrowserSourceMaps: false,
+  swcMinify: false,
   experimental: {
     forceSwcTransforms: false,
   },
-  swcMinify: false,
+  webpack: (config) => config,
 }
-
 module.exports = nextConfig
