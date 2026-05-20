@@ -1,9 +1,9 @@
-"use client"
+'use client'
+
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-
 const dark    = "#0a1628"
 const accent  = "#10b981"
 const amber   = "#f59e0b"
@@ -13,9 +13,7 @@ const muted   = "#6b7280"
 const white   = "#ffffff"
 const card    = "#ffffff"
 const surface = "#f8fafc"
-
 type Tab = "now" | "today" | "history"
-
 interface Visitor {
   id:            string
   school_id:     string
@@ -31,7 +29,6 @@ interface Visitor {
   recorded_by:   string | null
   created_at:    string
 }
-
 function Skeleton({ h = 48 }: { h?: number }) {
   return (
     <div style={{
@@ -41,7 +38,6 @@ function Skeleton({ h = 48 }: { h?: number }) {
     }} />
   )
 }
-
 function duration(timeIn: string): { label: string; overstay: boolean } {
   const mins = Math.floor((Date.now() - new Date(timeIn).getTime()) / 60000)
   const h    = Math.floor(mins / 60)
@@ -49,15 +45,12 @@ function duration(timeIn: string): { label: string; overstay: boolean } {
   const label = h > 0 ? `${h}h ${m}m` : `${m}m`
   return { label, overstay: mins > 120 }
 }
-
 function timeLabel(ts: string): string {
   return new Date(ts).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })
 }
-
 function dateLabel(ts: string): string {
   return new Date(ts).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })
 }
-
 function Avatar({ name }: { name: string }) {
   const initials = name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase()
   return (
@@ -70,10 +63,8 @@ function Avatar({ name }: { name: string }) {
     }}>{initials}</div>
   )
 }
-
 export default function VisitorsPage() {
   const router = useRouter()
-
   const [tab,      setTab]      = useState<Tab>("now")
   const [schoolId, setSchoolId] = useState("")
   const [userId,   setUserId]   = useState("")
@@ -84,17 +75,14 @@ export default function VisitorsPage() {
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [showModal, setShowModal] = useState(false)
   const [now, setNow] = useState(Date.now())
-
   const [form, setForm] = useState({
     full_name: "", phone: "", id_number: "",
     purpose: "", visiting_whom: "",
   })
-
   const showToast = (msg: string, type = "success") => {
     setToast({ msg, type })
     setTimeout(() => setToast({ msg: "", type: "success" }), 3500)
   }
-
   const load = useCallback(async (sid: string) => {
     setLoading(true)
     try {
@@ -109,7 +97,6 @@ export default function VisitorsPage() {
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }, [])
-
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -122,18 +109,14 @@ export default function VisitorsPage() {
     }
     init()
   }, [router, load])
-
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000)
     return () => clearInterval(t)
   }, [])
-
   const today = new Date().toISOString().split("T")[0]
-
   const nowVisitors     = visitors.filter(v => !v.time_out)
   const todayVisitors   = visitors.filter(v => v.time_in.startsWith(today))
   const historyVisitors = visitors.filter(v => !v.time_in.startsWith(today))
-
   const filtered = (list: Visitor[]) =>
     !search ? list : list.filter(v =>
       v.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -141,7 +124,6 @@ export default function VisitorsPage() {
       (v.purpose ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (v.phone ?? "").includes(search)
     )
-
   async function handleSignOut(id: string) {
     try {
       const { error } = await supabase
@@ -155,7 +137,6 @@ export default function VisitorsPage() {
       showToast(e instanceof Error ? e.message : "Failed to sign out", "error")
     }
   }
-
   async function handleAddVisitor() {
     if (!form.full_name.trim()) { showToast("Enter visitor name", "error"); return }
     if (!form.visiting_whom.trim()) { showToast("Enter who they are visiting", "error"); return }
@@ -181,20 +162,17 @@ export default function VisitorsPage() {
       showToast(e instanceof Error ? e.message : "Failed to log visitor", "error")
     } finally { setSaving(false) }
   }
-
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "12px 14px",
     background: "#f8fafc", border: "1px solid #e2e8f0",
     borderRadius: "10px", color: "#111827",
     fontSize: "14px", outline: "none", boxSizing: "border-box",
   }
-
   const labelStyle: React.CSSProperties = {
     fontSize: "11px", color: "#6b7280",
     marginBottom: "6px", display: "block",
     fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase",
   }
-
   function NowCard({ v }: { v: Visitor }) {
     const { label, overstay } = duration(v.time_in)
     return (
@@ -238,7 +216,6 @@ export default function VisitorsPage() {
       </div>
     )
   }
-
   function VisitorRow({ v }: { v: Visitor }) {
     const active = !v.time_out
     return (
@@ -251,7 +228,7 @@ export default function VisitorsPage() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "13px", fontWeight: "700", color: "#111827" }}>{v.full_name}</div>
           <div style={{ fontSize: "11px", color: muted, marginTop: "1px" }}>
-            {v.visiting_whom} {v.purpose ? `· ${v.purpose}` : ""}
+            {v.visiting_whom} {v.purpose ? ` ${v.purpose}` : ""}
           </div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -262,13 +239,12 @@ export default function VisitorsPage() {
             color: active ? accent : muted,
           }}>{active ? "Active" : "Left"}</div>
           <div style={{ fontSize: "10px", color: muted }}>
-            {timeLabel(v.time_in)}{v.time_out ? ` → ${timeLabel(v.time_out)}` : ""}
+            {timeLabel(v.time_in)}{v.time_out ? `  ${timeLabel(v.time_out)}` : ""}
           </div>
         </div>
       </div>
     )
   }
-
   function HistoryRow({ v }: { v: Visitor }) {
     return (
       <div style={{
@@ -280,28 +256,26 @@ export default function VisitorsPage() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "13px", fontWeight: "700", color: "#111827" }}>{v.full_name}</div>
           <div style={{ fontSize: "11px", color: muted, marginTop: "1px" }}>
-            {v.visiting_whom}{v.purpose ? ` · ${v.purpose}` : ""}
+            {v.visiting_whom}{v.purpose ? `  ${v.purpose}` : ""}
           </div>
           <div style={{ fontSize: "10px", color: muted, marginTop: "2px" }}>{dateLabel(v.time_in)}</div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           <div style={{ fontSize: "10px", color: muted }}>
-            {timeLabel(v.time_in)}{v.time_out ? ` → ${timeLabel(v.time_out)}` : " → active"}
+            {timeLabel(v.time_in)}{v.time_out ? `  ${timeLabel(v.time_out)}` : "  active"}
           </div>
           {v.flagged && (
-            <div style={{ fontSize: "10px", color: amber, marginTop: "3px" }}>⚑ Flagged</div>
+            <div style={{ fontSize: "10px", color: amber, marginTop: "3px" }}> Flagged</div>
           )}
         </div>
       </div>
     )
   }
-
   const tabList: { id: Tab; label: string; count?: number }[] = [
     { id: "now",     label: `Now${nowVisitors.length > 0 ? ` (${nowVisitors.length})` : ""}` },
     { id: "today",   label: `Today${todayVisitors.length > 0 ? ` (${todayVisitors.length})` : ""}` },
     { id: "history", label: "History" },
   ]
-
   return (
     <div style={{ color: "#111827", fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
       <style>{`
@@ -311,7 +285,6 @@ export default function VisitorsPage() {
         input::placeholder { color: #9ca3af }
         select option { background:#0a1628;color:#fff }
       `}</style>
-
       {toast.msg && (
         <div style={{
           position: "fixed", bottom: "88px", right: "16px", zIndex: 300,
@@ -321,16 +294,15 @@ export default function VisitorsPage() {
           boxShadow: "0 12px 40px rgba(0,0,0,0.5)", maxWidth: "320px",
           display: "flex", alignItems: "center", gap: "10px",
         }}>
-          <span>{toast.type === "error" ? "!" : "✓"}</span>{toast.msg}
+          <span>{toast.type === "error" ? "!" : ""}</span>{toast.msg}
         </div>
       )}
-
       {/* Header */}
       <div style={{ marginBottom: "24px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "14px" }}>
         <div>
           <h1 style={{ fontSize: "24px", fontWeight: "800", margin: 0, letterSpacing: "-0.5px" }}>Visitors</h1>
           <p style={{ fontSize: "12px", color: muted, margin: "4px 0 0" }}>
-            {nowVisitors.length} on campus · {todayVisitors.length} today
+            {nowVisitors.length} on campus  {todayVisitors.length} today
           </p>
         </div>
         <button
@@ -343,7 +315,6 @@ export default function VisitorsPage() {
           }}
         >+ New Visitor</button>
       </div>
-
       {/* Tabs */}
       <div style={{
         display: "flex", gap: "2px", marginBottom: "20px",
@@ -360,7 +331,6 @@ export default function VisitorsPage() {
           }}>{t.label}</button>
         ))}
       </div>
-
       {/* NOW TAB */}
       {tab === "now" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
@@ -370,7 +340,7 @@ export default function VisitorsPage() {
             </div>
           ) : nowVisitors.length === 0 ? (
             <div style={{ textAlign: "center", padding: "64px 20px" }}>
-              <div style={{ fontSize: "40px", marginBottom: "12px" }}>🚪</div>
+              <div style={{ fontSize: "40px", marginBottom: "12px" }}></div>
               <p style={{ fontSize: "14px", color: muted, fontWeight: "600" }}>No visitors on campus</p>
               <button onClick={() => setShowModal(true)} style={{
                 marginTop: "16px", padding: "10px 20px", borderRadius: "10px",
@@ -383,7 +353,6 @@ export default function VisitorsPage() {
           )}
         </div>
       )}
-
       {/* TODAY TAB */}
       {tab === "today" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
@@ -394,7 +363,7 @@ export default function VisitorsPage() {
               style={inputStyle}
             />
             {search && (
-              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>✕</button>
+              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}></button>
             )}
           </div>
           <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
@@ -404,7 +373,7 @@ export default function VisitorsPage() {
               </div>
             ) : filtered(todayVisitors).length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 20px" }}>
-                <div style={{ fontSize: "32px", marginBottom: "10px" }}>📋</div>
+                <div style={{ fontSize: "32px", marginBottom: "10px" }}></div>
                 <p style={{ fontSize: "13px", color: muted, fontWeight: "600" }}>No visitors today</p>
               </div>
             ) : (
@@ -413,7 +382,6 @@ export default function VisitorsPage() {
           </div>
         </div>
       )}
-
       {/* HISTORY TAB */}
       {tab === "history" && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
@@ -424,7 +392,7 @@ export default function VisitorsPage() {
               style={inputStyle}
             />
             {search && (
-              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>✕</button>
+              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}></button>
             )}
           </div>
           <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
@@ -434,7 +402,7 @@ export default function VisitorsPage() {
               </div>
             ) : filtered(historyVisitors).length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 20px" }}>
-                <div style={{ fontSize: "32px", marginBottom: "10px" }}>🗂️</div>
+                <div style={{ fontSize: "32px", marginBottom: "10px" }}></div>
                 <p style={{ fontSize: "13px", color: muted, fontWeight: "600" }}>No history yet</p>
               </div>
             ) : (
@@ -443,7 +411,6 @@ export default function VisitorsPage() {
           </div>
         </div>
       )}
-
       {/* NEW VISITOR MODAL */}
       {showModal && (
         <div style={{
@@ -463,7 +430,7 @@ export default function VisitorsPage() {
                 background: "#f8fafc", border: "1px solid #e2e8f0", color: "#111827",
                 width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer",
                 fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center",
-              }}>✕</button>
+              }}></button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div>
