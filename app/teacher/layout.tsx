@@ -308,12 +308,14 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           .single();
         setSchool(schoolData?.name ?? "");
       }
-      const { count } = await supabase
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("recipient_id", user.id)
-        .eq("is_read", false);
-      setUnreadConnect(count ?? 0);
+      const { data: participation } = await supabase
+        .from('vc_participants')
+        .select('thread_id, last_read_at')
+        .eq('profile_id', user.id)
+      const unread = (participation ?? []).filter((p: { last_read_at: string | null }) =>
+        p.last_read_at === null
+      ).length
+      setUnreadConnect(unread)
     }
     fetchProfile();
   }, [pathname]);
