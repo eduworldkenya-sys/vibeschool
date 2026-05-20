@@ -60,7 +60,7 @@ function Toast({ msg }: { msg: string }) {
   return (
     <div style={{
       position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
-      background: dark, color: "#fff", padding: "12px 24px", borderRadius: 40,
+      background: "#f0f4f8", color: "#111827", padding: "12px 24px", borderRadius: 40,
       fontSize: 13, fontWeight: 700, zIndex: 9999, whiteSpace: "nowrap",
       boxShadow: "0 4px 24px rgba(0,0,0,0.25)"
     }}>{msg}</div>
@@ -262,21 +262,21 @@ export default function AcademicsPage() {
         <div style={{
           position: "absolute", top: -40, right: -40,
           width: 160, height: 160, borderRadius: "50%",
-          background: "rgba(255,255,255,0.04)"
+          background: "#ffffff"
         }} />
         <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "rgba(16,185,129,0.08)" }} />
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>School Hub</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: -0.5 }}>Academics</div>
+        <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>School Hub</div>
+        <div style={{ fontSize: 26, fontWeight: 900, color: "#111827", letterSpacing: -0.5 }}>Academics</div>
 
         {term ? (
           <div style={{ marginTop: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>
+              <div style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
                 {term.name} {term.academic_year} &nbsp;·&nbsp; Week {currentWeek} of 13
               </div>
               <div style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{weekPct}%</div>
             </div>
-            <div style={{ height: 6, background: "rgba(255,255,255,0.12)", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: 6, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${weekPct}%`, background: accent, borderRadius: 99, transition: "width 0.6s ease" }} />
             </div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>

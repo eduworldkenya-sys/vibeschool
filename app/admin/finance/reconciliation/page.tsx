@@ -12,7 +12,7 @@ const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
 const surface = "rgba(255,255,255,0.03)"
 const card    = "rgba(255,255,255,0.05)"
-const border  = "rgba(255,255,255,0.08)"
+const border  = "#e2e8f0"
 const muted   = "rgba(255,255,255,0.4)"
 const white   = "#ffffff"
 
@@ -21,7 +21,7 @@ const fmt = (n: number) => `KES ${Number(n).toLocaleString("en-KE", { minimumFra
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px",
   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "10px", color: "#ffffff", fontSize: "14px", outline: "none",
+  borderRadius: "10px", color: "#111827", fontSize: "14px", outline: "none",
   boxSizing: "border-box",
 }
 const labelStyle: React.CSSProperties = {
@@ -47,9 +47,9 @@ function StatusChip({ status }: { status: string }) {
     partial:   ["rgba(245,158,11,0.15)", "#f59e0b"],
     issued:    ["rgba(139,92,246,0.15)", "#8b5cf6"],
     overdue:   ["rgba(239,68,68,0.15)",  "#ef4444"],
-    draft:     ["rgba(255,255,255,0.06)","rgba(255,255,255,0.4)"],
+    draft:     ["#f8fafc","rgba(255,255,255,0.4)"],
   }
-  const [bg, color] = map[status] ?? ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"]
+  const [bg, color] = map[status] ?? ["#f8fafc", "rgba(255,255,255,0.4)"]
   return (
     <span style={{ background: bg, color, fontSize: "11px", fontWeight: "700",
       padding: "3px 12px", borderRadius: "20px", whiteSpace: "nowrap", letterSpacing: "0.3px" }}>
@@ -65,8 +65,8 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
       borderRadius:"24px 24px 0 0", padding:"24px 20px 40px", width:"100%",
       maxWidth:"540px", maxHeight:"92vh", overflowY:"auto", animation:"slideUp 0.3s ease" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px" }}>
-        <h2 style={{ fontSize:"18px", fontWeight:"800", margin:0, color: white }}>{title}</h2>
-        <button onClick={onClose} style={{ background:"rgba(255,255,255,0.08)", border:"none",
+        <h2 style={{ fontSize:"18px", fontWeight:"800", margin:0, color: "#111827" }}>{title}</h2>
+        <button onClick={onClose} style={{ background:"#e2e8f0", border:"none",
           color:"#fff", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer",
           fontSize:"16px", display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
       </div>
@@ -358,13 +358,13 @@ export default function ReconciliationPage() {
     .reduce((sum, s) => sum + (s.amount ?? 0), 0)
 
   return (
-    <div style={{ minHeight: "100vh", background: dark, color: white, fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f4f8", color: "#111827", fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
       <style>{`
         @keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
         @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
         @keyframes pulse   { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
-        select option { background:#0a1628; color:#fff }
+        select option { background:#ffffff; color:#111827 }
         * { box-sizing: border-box }
       `}</style>
 
@@ -393,7 +393,7 @@ export default function ReconciliationPage() {
             { label: "Matched Today", value: totalMatched, color: accent },
             { label: "KES Parsed Today", value: fmtK(totalKesToday), color: blue },
           ].map(stat => (
-            <div key={stat.label} style={{ background: card, border: `1px solid ${border}`, borderRadius: 14, padding: "16px" }}>
+            <div key={stat.label} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 14, padding: "16px" }}>
               <p style={{ margin: "0 0 4px", fontSize: 11, color: muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{stat.label}</p>
               <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: stat.color }}>{stat.value}</p>
             </div>
@@ -401,7 +401,7 @@ export default function ReconciliationPage() {
         </div>
 
         {/* Paste area */}
-        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, marginBottom: 16 }}>
           <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>Paste Mpesa SMS Messages</h2>
           <p style={{ margin: "0 0 12px", fontSize: 12, color: muted }}>Separate multiple messages with a blank line.</p>
           <textarea
@@ -415,7 +415,7 @@ export default function ReconciliationPage() {
             disabled={!pasteText.trim()}
             style={{
               marginTop: 12, padding: "11px 24px", borderRadius: 10,
-              background: pasteText.trim() ? accent : "rgba(255,255,255,0.06)",
+              background: pasteText.trim() ? accent : "#f8fafc",
               color: pasteText.trim() ? dark : muted,
               border: "none", fontSize: 14, fontWeight: 700,
               cursor: pasteText.trim() ? "pointer" : "not-allowed",
@@ -427,7 +427,7 @@ export default function ReconciliationPage() {
 
         {/* Parsed preview */}
         {parsed.length > 0 && (
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 20, marginBottom: 16, animation: "fadeIn 0.3s ease" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, marginBottom: 16, animation: "fadeIn 0.3s ease" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Parsed Preview — {parsed.length} message{parsed.length !== 1 ? "s" : ""}</h2>
               <button
@@ -435,7 +435,7 @@ export default function ReconciliationPage() {
                 disabled={saving || isLocked}
                 style={{
                   padding: "9px 20px", borderRadius: 10,
-                  background: saving || isLocked ? "rgba(255,255,255,0.06)" : accent,
+                  background: saving || isLocked ? "#f8fafc" : accent,
                   color: saving || isLocked ? muted : dark,
                   border: "none", fontSize: 13, fontWeight: 700,
                   cursor: saving || isLocked ? "not-allowed" : "pointer",
@@ -455,10 +455,10 @@ export default function ReconciliationPage() {
                 </thead>
                 <tbody>
                   {parsed.map((row, i) => (
-                    <tr key={i} style={{ borderTop: `1px solid ${border}` }}>
+                    <tr key={i} style={{ borderTop: "1px solid #e2e8f0" }}>
                       <td style={{ padding: "10px 16px 10px 0", fontFamily: "monospace", color: accent, fontSize: 12 }}>{row.reference}</td>
                       <td style={{ padding: "10px 16px 10px 0", fontWeight: 700 }}>{fmt(row.amount)}</td>
-                      <td style={{ padding: "10px 16px 10px 0", color: white }}>{row.sender_name || "—"}</td>
+                      <td style={{ padding: "10px 16px 10px 0", color: "#111827" }}>{row.sender_name || "—"}</td>
                       <td style={{ padding: "10px 16px 10px 0", color: muted, fontSize: 12 }}>{row.sender_phone || "—"}</td>
                       <td style={{ padding: "10px 0", color: muted, fontSize: 12 }}>
                         {row.transaction_date ? new Date(row.transaction_date).toLocaleDateString("en-KE") : "—"}
@@ -472,7 +472,7 @@ export default function ReconciliationPage() {
         )}
 
         {/* Unmatched statements */}
-        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 20, marginBottom: 16 }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, marginBottom: 16 }}>
           <h2 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700 }}>
             Unmatched Statements <span style={{ color: amber, marginLeft: 8 }}>{unmatched.length}</span>
           </h2>
@@ -485,7 +485,7 @@ export default function ReconciliationPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {unmatched.map(s => (
-                <div key={s.id} style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "14px 16px" }}>
+                <div key={s.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
@@ -502,7 +502,7 @@ export default function ReconciliationPage() {
                       disabled={isLocked}
                       style={{
                         padding: "8px 16px", borderRadius: 10,
-                        background: isLocked ? "rgba(255,255,255,0.06)" : "rgba(16,185,129,0.15)",
+                        background: isLocked ? "#f8fafc" : "rgba(16,185,129,0.15)",
                         color: isLocked ? muted : accent,
                         border: `1px solid ${isLocked ? border : "rgba(16,185,129,0.3)"}`,
                         fontSize: 13, fontWeight: 700,
@@ -520,13 +520,13 @@ export default function ReconciliationPage() {
 
         {/* Matched today */}
         {matched.length > 0 && (
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 20, animation: "fadeIn 0.3s ease" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, animation: "fadeIn 0.3s ease" }}>
             <h2 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700 }}>
               Matched Today <span style={{ color: accent, marginLeft: 8 }}>{matched.length}</span>
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {matched.map(s => (
-                <div key={s.id} style={{ background: surface, border: `1px solid rgba(16,185,129,0.15)`, borderRadius: 12, padding: "14px 16px" }}>
+                <div key={s.id} style={{ background: "#f8fafc", border: `1px solid rgba(16,185,129,0.15)`, borderRadius: 12, padding: "14px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -550,7 +550,7 @@ export default function ReconciliationPage() {
       {matchModal && (
         <Modal title="Match to Invoice" onClose={() => setMatchModal(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: 14 }}>
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14 }}>
               <p style={{ margin: "0 0 4px", fontSize: 12, color: muted, fontWeight: 600, textTransform: "uppercase" }}>Statement</p>
               <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 700 }}>{fmt(matchModal.amount)}</p>
               <p style={{ margin: 0, fontSize: 12, color: muted }}>{matchModal.reference} · {matchModal.sender_name} {matchModal.sender_phone}</p>
@@ -575,7 +575,7 @@ export default function ReconciliationPage() {
               disabled={!selectedInvoiceId || matching}
               style={{
                 width: "100%", padding: "14px", borderRadius: 12,
-                background: !selectedInvoiceId || matching ? "rgba(255,255,255,0.06)" : accent,
+                background: !selectedInvoiceId || matching ? "#f8fafc" : accent,
                 color: !selectedInvoiceId || matching ? muted : dark,
                 border: "none", fontSize: 15, fontWeight: 800,
                 cursor: !selectedInvoiceId || matching ? "not-allowed" : "pointer",
@@ -591,7 +591,7 @@ export default function ReconciliationPage() {
         <div style={{
           position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
           background: toast.type === "error" ? "rgba(239,68,68,0.95)" : "rgba(16,185,129,0.95)",
-          color: white, padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
+          color: "#111827", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
           zIndex: 200, animation: "slideUp 0.3s ease", whiteSpace: "nowrap", maxWidth: "90vw",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
         }}>

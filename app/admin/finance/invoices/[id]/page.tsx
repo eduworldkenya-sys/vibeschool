@@ -12,7 +12,7 @@ const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
 const surface = "rgba(255,255,255,0.03)"
 const card    = "rgba(255,255,255,0.05)"
-const border  = "rgba(255,255,255,0.08)"
+const border  = "#e2e8f0"
 const muted   = "rgba(255,255,255,0.4)"
 const white   = "#ffffff"
 
@@ -22,7 +22,7 @@ const fmtK = (n: number) => n >= 1000000 ? `KES ${(n/1000000).toFixed(1)}M` : n 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px",
   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "10px", color: "#ffffff", fontSize: "14px", outline: "none",
+  borderRadius: "10px", color: "#111827", fontSize: "14px", outline: "none",
   boxSizing: "border-box",
 }
 const labelStyle: React.CSSProperties = {
@@ -46,13 +46,13 @@ function StatusChip({ status }: { status: string }) {
     partial: ["rgba(245,158,11,0.15)",  "#f59e0b"],
     issued:  ["rgba(139,92,246,0.15)",  "#8b5cf6"],
     overdue: ["rgba(239,68,68,0.15)",   "#ef4444"],
-    draft:   ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"],
-    waived:  ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"],
+    draft:   ["#f8fafc", "rgba(255,255,255,0.4)"],
+    waived:  ["#f8fafc", "rgba(255,255,255,0.4)"],
     open:    ["rgba(16,185,129,0.15)",  "#10b981"],
     closed:  ["rgba(239,68,68,0.15)",   "#ef4444"],
     locked:  ["rgba(239,68,68,0.2)",    "#ef4444"],
   }
-  const [bg, color] = map[status] ?? ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"]
+  const [bg, color] = map[status] ?? ["#f8fafc", "rgba(255,255,255,0.4)"]
   return (
     <span style={{ background: bg, color, fontSize: "11px", fontWeight: "700",
       padding: "3px 12px", borderRadius: "20px", whiteSpace: "nowrap", letterSpacing: "0.3px" }}>
@@ -85,8 +85,8 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
       borderRadius:"24px 24px 0 0", padding:"24px 20px 40px", width:"100%",
       maxWidth:"540px", maxHeight:"92vh", overflowY:"auto", animation:"slideUp 0.3s ease" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px" }}>
-        <h2 style={{ fontSize:"18px", fontWeight:"800", margin:0, color: white }}>{title}</h2>
-        <button onClick={onClose} style={{ background:"rgba(255,255,255,0.08)", border:"none",
+        <h2 style={{ fontSize:"18px", fontWeight:"800", margin:0, color: "#111827" }}>{title}</h2>
+        <button onClick={onClose} style={{ background:"#e2e8f0", border:"none",
           color:"#fff", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer",
           fontSize:"16px", display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
       </div>
@@ -325,13 +325,13 @@ export default function InvoiceDetailPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: dark, color: white, fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f4f8", color: "#111827", fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
       <style>{`
         @keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
         @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
         @keyframes pulse   { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
-        select option { background:#0a1628; color:#fff }
+        select option { background:#ffffff; color:#111827 }
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4) }
         * { box-sizing: border-box }
       `}</style>
@@ -364,7 +364,7 @@ export default function InvoiceDetailPage() {
         ) : invoice ? (
           <div style={{ animation: "fadeIn 0.4s ease" }}>
             {/* Header card */}
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "20px", marginBottom: 16 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "20px", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
                 <div>
                   <p style={{ margin: 0, fontSize: 12, color: muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Invoice</p>
@@ -390,9 +390,9 @@ export default function InvoiceDetailPage() {
               <div style={{ marginTop: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontSize: 12, color: muted }}>Paid: <strong style={{ color: accent }}>{fmt(invoice.paid_amount ?? 0)}</strong></span>
-                  <span style={{ fontSize: 12, color: muted }}>Total: <strong style={{ color: white }}>{fmt(invoice.total_amount ?? 0)}</strong></span>
+                  <span style={{ fontSize: 12, color: muted }}>Total: <strong style={{ color: "#111827" }}>{fmt(invoice.total_amount ?? 0)}</strong></span>
                 </div>
-                <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ height: 8, background: "#f8fafc", borderRadius: 99, overflow: "hidden" }}>
                   <div style={{ height: "100%", width: `${paidPct}%`, background: paidPct >= 100 ? accent : amber,
                     borderRadius: 99, transition: "width 0.6s ease" }} />
                 </div>
@@ -406,7 +406,7 @@ export default function InvoiceDetailPage() {
             </div>
 
             {/* Line items */}
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "20px", marginBottom: 16 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "20px", marginBottom: 16 }}>
               <h2 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700 }}>Invoice Lines</h2>
               {lines.length === 0 ? (
                 <p style={{ color: muted, fontSize: 13, margin: 0 }}>No line items.</p>
@@ -420,13 +420,13 @@ export default function InvoiceDetailPage() {
                   </thead>
                   <tbody>
                     {lines.map((line, i) => (
-                      <tr key={line.id} style={{ borderTop: `1px solid ${border}` }}>
-                        <td style={{ padding: "12px 0", fontSize: 14, color: white }}>{line.description}</td>
-                        <td style={{ padding: "12px 0", fontSize: 14, color: white, textAlign: "right" }}>{fmt(line.amount)}</td>
+                      <tr key={line.id} style={{ borderTop: "1px solid #e2e8f0" }}>
+                        <td style={{ padding: "12px 0", fontSize: 14, color: "#111827" }}>{line.description}</td>
+                        <td style={{ padding: "12px 0", fontSize: 14, color: "#111827", textAlign: "right" }}>{fmt(line.amount)}</td>
                       </tr>
                     ))}
-                    <tr style={{ borderTop: `1px solid ${border}` }}>
-                      <td style={{ padding: "12px 0", fontSize: 14, fontWeight: 700, color: white }}>Total</td>
+                    <tr style={{ borderTop: "1px solid #e2e8f0" }}>
+                      <td style={{ padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#111827" }}>Total</td>
                       <td style={{ padding: "12px 0", fontSize: 14, fontWeight: 700, color: accent, textAlign: "right" }}>{fmt(invoice.total_amount)}</td>
                     </tr>
                   </tbody>
@@ -435,7 +435,7 @@ export default function InvoiceDetailPage() {
             </div>
 
             {/* Payment history */}
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: "20px", marginBottom: 16 }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 16, padding: "20px", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Payment History</h2>
                 <span style={{ fontSize: 12, color: muted }}>{payments.length} payment{payments.length !== 1 ? "s" : ""}</span>
@@ -445,7 +445,7 @@ export default function InvoiceDetailPage() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {payments.map(pay => (
-                    <div key={pay.id} style={{ background: surface, border: `1px solid ${border}`, borderRadius: 12, padding: "14px 16px" }}>
+                    <div key={pay.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "14px 16px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <MethodIcon method={pay.method} />
@@ -457,7 +457,7 @@ export default function InvoiceDetailPage() {
                       </div>
                       <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 12 }}>
                         {pay.reference && (
-                          <span style={{ fontSize: 12, color: muted }}>Ref: <span style={{ color: white }}>{pay.reference}</span></span>
+                          <span style={{ fontSize: 12, color: muted }}>Ref: <span style={{ color: "#111827" }}>{pay.reference}</span></span>
                         )}
                         {pay.received_at && (
                           <span style={{ fontSize: 12, color: muted }}>
@@ -481,7 +481,7 @@ export default function InvoiceDetailPage() {
                 disabled={isLocked}
                 style={{
                   width: "100%", padding: "15px", borderRadius: 14,
-                  background: isLocked ? "rgba(255,255,255,0.06)" : accent,
+                  background: isLocked ? "#f8fafc" : accent,
                   color: isLocked ? muted : dark,
                   border: "none", fontSize: 15, fontWeight: 800,
                   cursor: isLocked ? "not-allowed" : "pointer",
@@ -579,7 +579,7 @@ export default function InvoiceDetailPage() {
         <div style={{
           position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
           background: toast.type === "error" ? "rgba(239,68,68,0.95)" : "rgba(16,185,129,0.95)",
-          color: white, padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
+          color: "#111827", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
           zIndex: 200, animation: "slideUp 0.3s ease", whiteSpace: "nowrap", maxWidth: "90vw",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
         }}>

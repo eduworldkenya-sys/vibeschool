@@ -288,7 +288,7 @@ export default function StudentDetailPage() {
     status === "partial" ? amber  :
     status === "owing"   ? red    :
     status === "overdue" ? red    :
-    "rgba(255,255,255,0.3)"
+    "#9ca3af"
 
   const genderIcon = (g: string | null) =>
     g === "male" ? "👦" : g === "female" ? "👧" : "🧑"
@@ -478,7 +478,7 @@ export default function StudentDetailPage() {
               border:       "1px solid " + (tab === t ? accent : "rgba(255,255,255,0.1)"),
               borderRadius: "20px",
               padding:      "7px 16px",
-              color:        tab === t ? "#ffffff" : "rgba(255,255,255,0.5)",
+              color:        tab === t ? "#ffffff" : "#6b7280",
               fontSize:     "12px",
               fontWeight:   "600",
               cursor:       "pointer",
@@ -668,10 +668,10 @@ export default function StudentDetailPage() {
                 style={{
                   flex:         1,
                   background:   invoices.length === 0 ? "rgba(255,255,255,0.03)" : "rgba(139,92,246,0.1)",
-                  border:       "1px solid " + (invoices.length === 0 ? "rgba(255,255,255,0.07)" : "rgba(139,92,246,0.3)"),
+                  border:       "1px solid " + (invoices.length === 0 ? "#e2e8f0" : "rgba(139,92,246,0.3)"),
                   borderRadius: "10px",
                   padding:      "10px",
-                  color:        invoices.length === 0 ? "rgba(255,255,255,0.2)" : violet,
+                  color:        invoices.length === 0 ? "#e2e8f0" : violet,
                   fontSize:     "13px",
                   fontWeight:   "600",
                   cursor:       invoices.length === 0 ? "not-allowed" : "pointer",
@@ -687,7 +687,7 @@ export default function StudentDetailPage() {
             <div style={{
               textAlign: "center",
               padding:   "40px 20px",
-              color:     "rgba(255,255,255,0.3)",
+              color:     "#9ca3af",
               fontSize:  "13px",
             }}>
               No invoices yet. Create the first invoice.
@@ -894,7 +894,7 @@ export default function StudentDetailPage() {
             <div style={{
               textAlign:  "center",
               padding:    "60px 20px",
-              color:      "rgba(255,255,255,0.3)",
+              color:      "#9ca3af",
               fontSize:   "13px",
             }}>
               No parent linked to this student yet.
@@ -1015,11 +1015,11 @@ export default function StudentDetailPage() {
                     onClick={() => setInvForm(p => ({ ...p, term: t }))}
                     style={{
                       flex:         1,
-                      background:   invForm.term === t ? accent : "rgba(255,255,255,0.06)",
+                      background:   invForm.term === t ? accent : "#f8fafc",
                       border:       "1px solid " + (invForm.term === t ? accent : "rgba(255,255,255,0.1)"),
                       borderRadius: "10px",
                       padding:      "10px",
-                      color:        invForm.term === t ? "#ffffff" : "rgba(255,255,255,0.5)",
+                      color:        invForm.term === t ? "#ffffff" : "#6b7280",
                       fontSize:     "12px",
                       fontWeight:   "600",
                       cursor:       "pointer",
@@ -1191,11 +1191,11 @@ export default function StudentDetailPage() {
                     onClick={() => setPayForm(p => ({ ...p, method: m }))}
                     style={{
                       flex:         1,
-                      background:   payForm.method === m ? accent : "rgba(255,255,255,0.06)",
+                      background:   payForm.method === m ? accent : "#f8fafc",
                       border:       "1px solid " + (payForm.method === m ? accent : "rgba(255,255,255,0.1)"),
                       borderRadius: "10px",
                       padding:      "8px 4px",
-                      color:        payForm.method === m ? "#ffffff" : "rgba(255,255,255,0.5)",
+                      color:        payForm.method === m ? "#ffffff" : "#6b7280",
                       fontSize:     "11px",
                       fontWeight:   "600",
                       cursor:       "pointer",

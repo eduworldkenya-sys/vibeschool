@@ -15,3 +15,12 @@
 html, body {
   height: 100%;
 }
+
+/* VibeSchool Admin — Force dark theme across all admin pages */
+[id^="admin-"] {
+  background: transparent !important;
+}
+
+.admin-page-root {
+  background: transparent !important;
+}

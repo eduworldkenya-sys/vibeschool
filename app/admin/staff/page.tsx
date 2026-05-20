@@ -94,7 +94,7 @@ function Toast({ msg }: { msg: string }) {
   return (
     <div style={{
       position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
-      background: dark, color: "#fff", padding: "12px 24px", borderRadius: 40,
+      background: "#f0f4f8", color: "#111827", padding: "12px 24px", borderRadius: 40,
       fontSize: 13, fontWeight: 700, zIndex: 9999, whiteSpace: "nowrap",
       boxShadow: "0 4px 24px rgba(0,0,0,0.25)", animation: "fadeIn 0.2s ease",
     }}>{msg}</div>
@@ -268,12 +268,12 @@ export default function StaffPage() {
         background: `linear-gradient(135deg, ${dark} 0%, #0d2347 100%)`,
         padding: "28px 20px 32px", position: "relative", overflow: "hidden",
       }}>
-        <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+        <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "#ffffff" }} />
         <div style={{ position: "absolute", bottom: -20, right: 40, width: 80, height: 80, borderRadius: "50%", background: "rgba(16,185,129,0.12)" }} />
 
         <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", fontWeight: 600, marginBottom: 4, letterSpacing: 0.5 }}>HUMAN RESOURCES</div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: -0.5, marginBottom: 6 }}>Staff</div>
+          <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 600, marginBottom: 4, letterSpacing: 0.5 }}>HUMAN RESOURCES</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#111827", letterSpacing: -0.5, marginBottom: 6 }}>Staff</div>
           <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: accent }} />
@@ -284,7 +284,7 @@ export default function StaffPage() {
               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{onLeave} On Leave</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.3)" }} />
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#9ca3af" }} />
               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{staff.length} Total</span>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function StaffPage() {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ background: amber, color: "#fff", fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>{leaves.length}</div>
+                <div style={{ background: amber, color: "#111827", fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>{leaves.length}</div>
                 <div style={{ fontSize: 12, color: "#9ca3af" }}>{leaveOpen ? "▲" : "▼"}</div>
               </div>
             </div>
@@ -349,7 +349,7 @@ export default function StaffPage() {
                       <button
                         onClick={() => handleApprove(l.id, true)}
                         disabled={approvingId === l.id}
-                        style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: approvingId === l.id ? "#d1d5db" : accent, color: "#fff", fontWeight: 700, fontSize: 13, cursor: approvingId === l.id ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                        style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: approvingId === l.id ? "#d1d5db" : accent, color: "#111827", fontWeight: 700, fontSize: 13, cursor: approvingId === l.id ? "not-allowed" : "pointer", fontFamily: "inherit" }}
                       >
                         {approvingId === l.id ? "..." : "Approve"}
                       </button>
@@ -427,7 +427,7 @@ export default function StaffPage() {
                           width: 48, height: 48, borderRadius: 14,
                           background: avatarGradient(s.category),
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 20, fontWeight: 900, color: "#fff", flexShrink: 0,
+                          fontSize: 20, fontWeight: 900, color: "#111827", flexShrink: 0,
                           boxShadow: `0 4px 12px ${categoryColor(s.category)}40`,
                         }}>
                           {s.full_name[0].toUpperCase()}
@@ -527,7 +527,7 @@ export default function StaffPage() {
           position: "fixed", bottom: 28, right: 24, width: 58, height: 58,
           borderRadius: "50%", border: "none",
           background: `linear-gradient(135deg, ${accent}, #059669)`,
-          color: "#fff", fontSize: 26, fontWeight: 900,
+          color: "#111827", fontSize: 26, fontWeight: 900,
           cursor: "pointer", zIndex: 800,
           boxShadow: "0 6px 24px rgba(16,185,129,0.45)",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -690,7 +690,7 @@ export default function StaffPage() {
                     if (formStep === 0 && !form.full_name.trim()) { fireToast("Full name is required."); return }
                     setFormStep(s => s + 1)
                   }}
-                  style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: dark, color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: "#f0f4f8", color: "#111827", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
                 >
                   Next
                 </button>
@@ -698,7 +698,7 @@ export default function StaffPage() {
                 <button
                   onClick={handleAddStaff}
                   disabled={saving}
-                  style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: saving ? "#d1d5db" : accent, color: "#fff", fontWeight: 800, fontSize: 15, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: saving ? "none" : "0 4px 14px rgba(16,185,129,0.35)" }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: saving ? "#d1d5db" : accent, color: "#111827", fontWeight: 800, fontSize: 15, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: saving ? "none" : "0 4px 14px rgba(16,185,129,0.35)" }}
                 >
                   {saving ? "Adding..." : "Add Staff Member"}
                 </button>

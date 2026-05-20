@@ -8,11 +8,11 @@ const dark    = "#0a1628"
 const accent  = "#10b981"
 const amber   = "#f59e0b"
 const red     = "#ef4444"
-const border  = "rgba(255,255,255,0.08)"
-const muted   = "rgba(255,255,255,0.45)"
+const border  = "#e2e8f0"
+const muted   = "#6b7280"
 const white   = "#ffffff"
-const card    = "rgba(255,255,255,0.04)"
-const surface = "rgba(255,255,255,0.06)"
+const card    = "#ffffff"
+const surface = "#f8fafc"
 
 type Tab = "now" | "today" | "history"
 
@@ -36,7 +36,7 @@ function Skeleton({ h = 48 }: { h?: number }) {
   return (
     <div style={{
       height: h, borderRadius: 12,
-      background: "linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.03) 75%)",
+      background: "linear-gradient(90deg,#e5e7eb 25%,#d1d5db 50%,#e5e7eb 75%)",
       backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite",
     }} />
   )
@@ -184,13 +184,13 @@ export default function VisitorsPage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "12px 14px",
-    background: surface, border: `1px solid ${border}`,
-    borderRadius: "10px", color: white,
+    background: "#f8fafc", border: "1px solid #e2e8f0",
+    borderRadius: "10px", color: "#111827",
     fontSize: "14px", outline: "none", boxSizing: "border-box",
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: "11px", color: "rgba(255,255,255,0.5)",
+    fontSize: "11px", color: "#6b7280",
     marginBottom: "6px", display: "block",
     fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase",
   }
@@ -208,7 +208,7 @@ export default function VisitorsPage() {
           <Avatar name={v.full_name} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
-              <div style={{ fontSize: "14px", fontWeight: "700", color: white }}>{v.full_name}</div>
+              <div style={{ fontSize: "14px", fontWeight: "700", color: "#111827" }}>{v.full_name}</div>
               <span style={{
                 fontSize: "11px", fontWeight: "700", padding: "3px 10px",
                 borderRadius: "20px", whiteSpace: "nowrap", flexShrink: 0,
@@ -217,7 +217,7 @@ export default function VisitorsPage() {
               }}>{label}</span>
             </div>
             <div style={{ fontSize: "12px", color: muted, marginTop: "2px" }}>
-              Seeing: <span style={{ color: "rgba(255,255,255,0.75)", fontWeight: "600" }}>{v.visiting_whom}</span>
+              Seeing: <span style={{ color: "#374151", fontWeight: "600" }}>{v.visiting_whom}</span>
             </div>
             {v.purpose && (
               <div style={{ fontSize: "11px", color: muted, marginTop: "2px" }}>{v.purpose}</div>
@@ -229,7 +229,7 @@ export default function VisitorsPage() {
                 style={{
                   padding: "7px 16px", borderRadius: "8px", border: "none",
                   background: `linear-gradient(135deg, ${accent}, #059669)`,
-                  color: white, fontSize: "12px", fontWeight: "700", cursor: "pointer",
+                  color: "#111827", fontSize: "12px", fontWeight: "700", cursor: "pointer",
                 }}
               >Sign Out</button>
             </div>
@@ -244,12 +244,12 @@ export default function VisitorsPage() {
     return (
       <div style={{
         padding: "14px 16px",
-        borderBottom: `1px solid ${border}`,
+        borderBottom: "1px solid #e2e8f0",
         display: "flex", alignItems: "center", gap: "12px",
       }}>
         <Avatar name={v.full_name} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: "13px", fontWeight: "700", color: white }}>{v.full_name}</div>
+          <div style={{ fontSize: "13px", fontWeight: "700", color: "#111827" }}>{v.full_name}</div>
           <div style={{ fontSize: "11px", color: muted, marginTop: "1px" }}>
             {v.visiting_whom} {v.purpose ? `· ${v.purpose}` : ""}
           </div>
@@ -258,7 +258,7 @@ export default function VisitorsPage() {
           <div style={{
             fontSize: "11px", fontWeight: "700", padding: "3px 10px",
             borderRadius: "20px", marginBottom: "4px",
-            background: active ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.06)",
+            background: active ? "rgba(16,185,129,0.12)" : "#f8fafc",
             color: active ? accent : muted,
           }}>{active ? "Active" : "Left"}</div>
           <div style={{ fontSize: "10px", color: muted }}>
@@ -273,12 +273,12 @@ export default function VisitorsPage() {
     return (
       <div style={{
         padding: "14px 16px",
-        borderBottom: `1px solid ${border}`,
+        borderBottom: "1px solid #e2e8f0",
         display: "flex", alignItems: "center", gap: "12px",
       }}>
         <Avatar name={v.full_name} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: "13px", fontWeight: "700", color: white }}>{v.full_name}</div>
+          <div style={{ fontSize: "13px", fontWeight: "700", color: "#111827" }}>{v.full_name}</div>
           <div style={{ fontSize: "11px", color: muted, marginTop: "1px" }}>
             {v.visiting_whom}{v.purpose ? ` · ${v.purpose}` : ""}
           </div>
@@ -303,12 +303,12 @@ export default function VisitorsPage() {
   ]
 
   return (
-    <div style={{ color: white, fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
+    <div style={{ color: "#111827", fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
       <style>{`
         @keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
         @keyframes slideUp { from { opacity:0;transform:translateY(20px) } to { opacity:1;transform:translateY(0) } }
         @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
-        input::placeholder { color:rgba(255,255,255,0.25) }
+        input::placeholder { color: #9ca3af }
         select option { background:#0a1628;color:#fff }
       `}</style>
 
@@ -316,7 +316,7 @@ export default function VisitorsPage() {
         <div style={{
           position: "fixed", bottom: "88px", right: "16px", zIndex: 300,
           background: toast.type === "error" ? red : accent,
-          color: white, padding: "14px 22px", borderRadius: "14px",
+          color: "#111827", padding: "14px 22px", borderRadius: "14px",
           fontSize: "13px", fontWeight: "700", animation: "slideUp 0.3s ease",
           boxShadow: "0 12px 40px rgba(0,0,0,0.5)", maxWidth: "320px",
           display: "flex", alignItems: "center", gap: "10px",
@@ -338,7 +338,7 @@ export default function VisitorsPage() {
           style={{
             padding: "10px 18px", borderRadius: "10px", border: "none",
             background: `linear-gradient(135deg, ${accent}, #059669)`,
-            color: white, fontSize: "13px", fontWeight: "700", cursor: "pointer",
+            color: "#111827", fontSize: "13px", fontWeight: "700", cursor: "pointer",
             boxShadow: "0 4px 16px rgba(16,185,129,0.25)",
           }}
         >+ New Visitor</button>
@@ -347,14 +347,14 @@ export default function VisitorsPage() {
       {/* Tabs */}
       <div style={{
         display: "flex", gap: "2px", marginBottom: "20px",
-        background: "rgba(255,255,255,0.04)", padding: "4px",
-        borderRadius: "14px", border: `1px solid ${border}`,
+        background: "#ffffff", padding: "4px",
+        borderRadius: "14px", border: "1px solid #e2e8f0",
       }}>
         {tabList.map(t => (
           <button key={t.id} onClick={() => { setTab(t.id); setSearch("") }} style={{
             flex: 1, padding: "10px 8px", borderRadius: "10px", border: "none",
             background: tab === t.id ? "rgba(16,185,129,0.15)" : "transparent",
-            color: tab === t.id ? accent : "rgba(255,255,255,0.55)",
+            color: tab === t.id ? accent : "#6b7280",
             fontSize: "12px", fontWeight: tab === t.id ? "700" : "500",
             cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s ease",
           }}>{t.label}</button>
@@ -374,7 +374,7 @@ export default function VisitorsPage() {
               <p style={{ fontSize: "14px", color: muted, fontWeight: "600" }}>No visitors on campus</p>
               <button onClick={() => setShowModal(true)} style={{
                 marginTop: "16px", padding: "10px 20px", borderRadius: "10px",
-                border: "none", background: accent, color: white,
+                border: "none", background: accent, color: "#111827",
                 fontSize: "13px", fontWeight: "700", cursor: "pointer",
               }}>Log a visitor</button>
             </div>
@@ -397,7 +397,7 @@ export default function VisitorsPage() {
               <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>✕</button>
             )}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4].map(i => <Skeleton key={i} h={60} />)}
@@ -427,7 +427,7 @@ export default function VisitorsPage() {
               <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>✕</button>
             )}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[1,2,3,4,5].map(i => <Skeleton key={i} h={60} />)}
@@ -452,15 +452,15 @@ export default function VisitorsPage() {
           backdropFilter: "blur(6px)",
         }}>
           <div style={{
-            background: "#0d1f3c", border: `1px solid ${border}`,
+            background: "#ffffff", border: "1px solid #e2e8f0",
             borderRadius: "24px 24px 0 0", padding: "24px 20px 48px",
             width: "100%", maxWidth: "540px", maxHeight: "92vh",
             overflowY: "auto", animation: "slideUp 0.3s ease",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: white }}>Log Visitor</h2>
+              <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: "#111827" }}>Log Visitor</h2>
               <button onClick={() => setShowModal(false)} style={{
-                background: surface, border: `1px solid ${border}`, color: white,
+                background: "#f8fafc", border: "1px solid #e2e8f0", color: "#111827",
                 width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer",
                 fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center",
               }}>✕</button>
@@ -514,7 +514,7 @@ export default function VisitorsPage() {
                 style={{
                   width: "100%", padding: "15px", borderRadius: "12px", border: "none",
                   background: saving ? "rgba(16,185,129,0.3)" : `linear-gradient(135deg, ${accent}, #059669)`,
-                  color: white, fontSize: "15px", fontWeight: "800",
+                  color: "#111827", fontSize: "15px", fontWeight: "800",
                   cursor: saving ? "not-allowed" : "pointer", marginTop: "4px",
                 }}
               >{saving ? "Logging..." : "Log Visitor"}</button>

@@ -61,7 +61,7 @@ function Toast({ msg }: { msg: string }) {
   return (
     <div style={{
       position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
-      background: dark, color: "#fff", padding: "12px 24px", borderRadius: 40,
+      background: "#f0f4f8", color: "#111827", padding: "12px 24px", borderRadius: 40,
       fontSize: 13, fontWeight: 700, zIndex: 9999, whiteSpace: "nowrap",
       boxShadow: "0 4px 24px rgba(0,0,0,0.25)"
     }}>{msg}</div>
@@ -249,19 +249,19 @@ export default function GradebookPage() {
         background: `linear-gradient(135deg, ${dark} 0%, #0d2347 100%)`,
         padding: "24px 20px 28px", position: "relative", overflow: "hidden"
       }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+        <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "#ffffff" }} />
         <div
           onClick={() => router.push("/admin/academics")}
-          style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, cursor: "pointer" }}>
+          style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, cursor: "pointer" }}>
           ‹ Academics
         </div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: -0.5 }}>Gradebook</div>
-        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>
+        <div style={{ fontSize: 26, fontWeight: 900, color: "#111827", letterSpacing: -0.5 }}>Gradebook</div>
+        <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
           Read only · Admin view
         </div>
 
         {classAvg !== null && (
-          <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.08)", padding: "8px 16px", borderRadius: 20 }}>
+          <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, background: "#e2e8f0", padding: "8px 16px", borderRadius: 20 }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: classAvg >= 70 ? accent : classAvg >= 50 ? amber : red, fontFamily: "monospace" }}>{classAvg}%</div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>Class average</div>
           </div>
@@ -344,7 +344,7 @@ export default function GradebookPage() {
 
           /* CBC VIEW */
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", overflow: "hidden" }}>
-            <div style={{ background: dark, padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 60px 60px", gap: 0 }}>
+            <div style={{ background: "#f0f4f8", padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 60px 60px", gap: 0 }}>
               {["Student", "Rating", "Count"].map(h => (
                 <div key={h} style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", textAlign: h === "Student" ? "left" : "center", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
               ))}
@@ -386,7 +386,7 @@ export default function GradebookPage() {
           /* TRADITIONAL VIEW */
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 360, background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", overflow: "hidden" }}>
-              <div style={{ background: dark, padding: "12px 16px", display: "grid", gridTemplateColumns: `1fr ${tradAssessmentTypes.map(() => "72px").join(" ")} 72px 52px` }}>
+              <div style={{ background: "#f0f4f8", padding: "12px 16px", display: "grid", gridTemplateColumns: `1fr ${tradAssessmentTypes.map(() => "72px").join(" ")} 72px 52px` }}>
                 {["Student", ...tradAssessmentTypes, "Final", "Grade"].map(h => (
                   <div key={h} style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", textAlign: h === "Student" ? "left" : "center", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
                 ))}

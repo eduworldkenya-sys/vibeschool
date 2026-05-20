@@ -12,7 +12,7 @@ const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
 const surface = "rgba(255,255,255,0.03)"
 const card    = "rgba(255,255,255,0.05)"
-const border  = "rgba(255,255,255,0.08)"
+const border  = "#e2e8f0"
 const muted   = "rgba(255,255,255,0.4)"
 const white   = "#ffffff"
 
@@ -23,7 +23,7 @@ const inputStyle: React.CSSProperties = {
   padding: "9px 14px",
   background: "rgba(255,255,255,0.05)",
   border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "10px", color: "#ffffff", fontSize: "14px", outline: "none",
+  borderRadius: "10px", color: "#111827", fontSize: "14px", outline: "none",
   boxSizing: "border-box",
 }
 
@@ -345,12 +345,12 @@ export default function ReportsPage() {
   const ACCOUNT_TYPES = ["asset", "liability", "equity", "revenue", "expense"]
 
   return (
-    <div style={{ minHeight: "100vh", background: dark, color: white, fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f4f8", color: "#111827", fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
-        select option { background:#0a1628; color:#fff }
+        select option { background:#ffffff; color:#111827 }
         * { box-sizing:border-box }
       `}</style>
 
@@ -603,7 +603,7 @@ export default function ReportsPage() {
                             </span>
                           </div>
                           {/* Progress bar */}
-                          <div style={{ height:7, background:"rgba(255,255,255,0.06)", borderRadius:99, overflow:"hidden", marginBottom:10 }}>
+                          <div style={{ height:7, background:"#f8fafc", borderRadius:99, overflow:"hidden", marginBottom:10 }}>
                             <div style={{ height:"100%", width:`${pct}%`, background:barClr, borderRadius:99, transition:"width 0.5s ease" }} />
                           </div>
                           <div style={{ display:"flex", justifyContent:"space-between", fontSize:12 }}>

@@ -37,7 +37,7 @@ function Toast({ msg }: { msg: string }) {
   return (
     <div style={{
       position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
-      background: dark, color: "#fff", padding: "12px 24px", borderRadius: 40,
+      background: "#f0f4f8", color: "#111827", padding: "12px 24px", borderRadius: 40,
       fontSize: 13, fontWeight: 700, zIndex: 9999, whiteSpace: "nowrap",
       boxShadow: "0 4px 24px rgba(0,0,0,0.25)"
     }}>{msg}</div>
@@ -194,14 +194,14 @@ export default function CurriculumPage() {
         background: `linear-gradient(135deg, ${dark} 0%, #0d2347 100%)`,
         padding: "24px 20px 32px", position: "relative", overflow: "hidden"
       }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+        <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "#ffffff" }} />
         <div
           onClick={() => router.push("/admin/academics")}
-          style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, cursor: "pointer" }}>
+          style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, cursor: "pointer" }}>
           ‹ Academics
         </div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", letterSpacing: -0.5 }}>Curriculum</div>
-        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>
+        <div style={{ fontSize: 26, fontWeight: 900, color: "#111827", letterSpacing: -0.5 }}>Curriculum</div>
+        <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
           {term ? `${term.name} ${term.academic_year} · Week ${currentWeek} of 13` : "No active term"}
         </div>
 
@@ -215,7 +215,7 @@ export default function CurriculumPage() {
                 {overallPct}%
               </div>
             </div>
-            <div style={{ height: 6, background: "rgba(255,255,255,0.12)", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: 6, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${overallPct}%`, background: overallPct >= weekPct ? accent : red, borderRadius: 99, transition: "width 0.6s ease" }} />
             </div>
             <div style={{ marginTop: 6, fontSize: 10, color: "rgba(255,255,255,0.35)" }}>

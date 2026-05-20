@@ -279,20 +279,20 @@ export default function AdminHub() {
             <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", margin: "0 0 1px", letterSpacing: "0.8px", textTransform: "uppercase", fontWeight: "600" }}>
               {data?.schoolName}
             </p>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", margin: "0 0 4px", letterSpacing: "0.3px" }}>{greeting()},</p>
-            <h1 style={{ color: "#fff", fontSize: "22px", fontWeight: "800", margin: "0 0 3px", letterSpacing: "-0.5px" }}>
+            <p style={{ color: "#6b7280", fontSize: "12px", margin: "0 0 4px", letterSpacing: "0.3px" }}>{greeting()},</p>
+            <h1 style={{ color: "#111827", fontSize: "22px", fontWeight: "800", margin: "0 0 3px", letterSpacing: "-0.5px" }}>
               {data?.adminName} 👋
             </h1>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px", margin: 0 }}>{dateStr()}</p>
+            <p style={{ color: "#9ca3af", fontSize: "11px", margin: 0 }}>{dateStr()}</p>
           </div>
           <button
             onClick={() => setBalHidden(h => !h)}
             style={{
-              background:    "rgba(255,255,255,0.08)",
+              background:    "#e2e8f0",
               border:        "1px solid rgba(255,255,255,0.15)",
               borderRadius:  "10px",
               padding:       "7px 14px",
-              color:         "rgba(255,255,255,0.8)",
+              color:         "#374151",
               fontSize:      "11px",
               fontWeight:    "600",
               cursor:        "pointer",
@@ -306,7 +306,7 @@ export default function AdminHub() {
 
         {/* Finance strip */}
         <div style={{
-          background:     "rgba(255,255,255,0.06)",
+          background:     "#f8fafc",
           border:         "1px solid rgba(255,255,255,0.1)",
           borderRadius:   "16px",
           padding:        "16px",
@@ -322,7 +322,7 @@ export default function AdminHub() {
           ].map(chip => (
             <div key={chip.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
               <span style={{ color: chip.color, fontSize: "15px", fontWeight: "800", letterSpacing: "-0.3px" }}>{chip.value}</span>
-              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "10px", letterSpacing: "0.5px" }}>{chip.label}</span>
+              <span style={{ color: "#6b7280", fontSize: "10px", letterSpacing: "0.5px" }}>{chip.label}</span>
             </div>
           ))}
         </div>
@@ -334,7 +334,7 @@ export default function AdminHub() {
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px" }}>Term fee collection</span>
               <span style={{ color: feesPct >= 80 ? C.emerald : feesPct >= 60 ? C.amber : C.red, fontSize: "11px", fontWeight: "700" }}>{feesPct}%</span>
             </div>
-            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: "99px", height: "6px", overflow: "hidden" }}>
+            <div style={{ background: "#e2e8f0", borderRadius: "99px", height: "6px", overflow: "hidden" }}>
               <div style={{
                 height:       "100%",
                 width:        `${Math.min(100, feesPct)}%`,
@@ -352,7 +352,7 @@ export default function AdminHub() {
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
           <span style={{ color: C.textMuted, fontSize: "10px", fontWeight: "700", letterSpacing: "1.2px", textTransform: "uppercase" }}>Command Centre</span>
           <div style={{ flex: 1, height: "1px", background: C.border }} />
-          <span style={{ background: C.hero, color: "#fff", fontSize: "10px", fontWeight: "700", borderRadius: "99px", padding: "2px 8px" }}>{b.length}</span>
+          <span style={{ background: C.hero, color: "#111827", fontSize: "10px", fontWeight: "700", borderRadius: "99px", padding: "2px 8px" }}>{b.length}</span>
         </div>
 
         {b.length === 0 ? (

@@ -47,7 +47,7 @@ function Toast({ msg }: { msg: string }) {
   return (
     <div style={{
       position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-      background: dark, color: "#fff", padding: "12px 24px", borderRadius: 40,
+      background: "#f0f4f8", color: "#111827", padding: "12px 24px", borderRadius: 40,
       fontSize: 13, fontWeight: 700, zIndex: 9999, whiteSpace: "nowrap",
       boxShadow: "0 4px 24px rgba(0,0,0,0.18)", animation: "fadeIn 0.2s ease",
     }}>{msg}</div>
@@ -370,7 +370,7 @@ export default function AttendancePage() {
               </div>
             )}
 
-            <button onClick={saveStaff} disabled={saving} style={{ width: "100%", marginTop: 20, padding: 15, borderRadius: 14, border: "none", background: saving ? "#d1d5db" : accent, color: "#fff", fontWeight: 800, fontSize: 15, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: saving ? "none" : "0 4px 14px rgba(16,185,129,0.35)" }}>
+            <button onClick={saveStaff} disabled={saving} style={{ width: "100%", marginTop: 20, padding: 15, borderRadius: 14, border: "none", background: saving ? "#d1d5db" : accent, color: "#111827", fontWeight: 800, fontSize: 15, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: saving ? "none" : "0 4px 14px rgba(16,185,129,0.35)" }}>
               {saving ? "Saving..." : "Save Staff Attendance"}
             </button>
           </div>
@@ -419,7 +419,7 @@ export default function AttendancePage() {
                     <div key={s.id} style={{ background: "#fff", borderRadius: 14, padding: "14px 16px", border: "1px solid #e5e7eb", animation: "fadeIn 0.2s ease" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: dark+"15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: dark }}>
+                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#f0f4f8"+"15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: dark }}>
                             {i + 1}
                           </div>
                           <div>
@@ -450,7 +450,7 @@ export default function AttendancePage() {
               </div>
             )}
 
-            <button onClick={saveStudents} disabled={saving} style={{ width: "100%", marginTop: 20, padding: 15, borderRadius: 14, border: "none", background: saving ? "#d1d5db" : accent, color: "#fff", fontWeight: 800, fontSize: 15, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: saving ? "none" : "0 4px 14px rgba(16,185,129,0.35)" }}>
+            <button onClick={saveStudents} disabled={saving} style={{ width: "100%", marginTop: 20, padding: 15, borderRadius: 14, border: "none", background: saving ? "#d1d5db" : accent, color: "#111827", fontWeight: 800, fontSize: 15, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: saving ? "none" : "0 4px 14px rgba(16,185,129,0.35)" }}>
               {saving ? "Saving..." : "Save Student Attendance"}
             </button>
           </div>

@@ -9,7 +9,7 @@ const amber   = "#f59e0b"
 const red     = "#ef4444"
 const surface = "rgba(255,255,255,0.03)"
 const card    = "rgba(255,255,255,0.05)"
-const border  = "rgba(255,255,255,0.08)"
+const border  = "#e2e8f0"
 const muted   = "rgba(255,255,255,0.4)"
 const white   = "#ffffff"
 
@@ -18,7 +18,7 @@ const fmt = (n: number) => `KES ${Number(n).toLocaleString("en-KE", { minimumFra
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px",
   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "10px", color: "#ffffff", fontSize: "14px", outline: "none",
+  borderRadius: "10px", color: "#111827", fontSize: "14px", outline: "none",
 }
 const labelStyle: React.CSSProperties = {
   fontSize: "11px", color: "rgba(255,255,255,0.4)", marginBottom: "6px",
@@ -206,12 +206,12 @@ export default function GenerateInvoicesPage() {
   const stepLabels = ["Configure", "Preview", "Done"]
 
   return (
-    <div style={{ color: white, fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
+    <div style={{ color: "#111827", fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
-        select option { background:#0a1628; color:#fff }
+        select option { background:#ffffff; color:#111827 }
         input[type=date]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(0.4) }
         .cls-card:hover { border-color:rgba(16,185,129,0.4) !important; }
         .gen-row:hover { background:rgba(255,255,255,0.04) !important; }
@@ -253,7 +253,7 @@ export default function GenerateInvoicesPage() {
                   width:"28px", height:"28px", borderRadius:"50%", flexShrink:0,
                   display:"flex", alignItems:"center", justifyContent:"center",
                   fontSize:"12px", fontWeight:"800",
-                  background: done ? accent : active ? "rgba(16,185,129,0.2)" : "rgba(255,255,255,0.06)",
+                  background: done ? accent : active ? "rgba(16,185,129,0.2)" : "#f8fafc",
                   color: done ? white : active ? accent : muted,
                   border: active ? `2px solid ${accent}` : "2px solid transparent",
                   transition:"all 0.3s ease",
@@ -265,7 +265,7 @@ export default function GenerateInvoicesPage() {
               </div>
               {i < 2 && <div style={{
                 flex:1, height:"2px", margin:"0 12px",
-                background: done ? accent : "rgba(255,255,255,0.08)", transition:"background 0.3s ease",
+                background: done ? accent : "#e2e8f0", transition:"background 0.3s ease",
               }} />}
             </div>
           )
@@ -322,7 +322,7 @@ export default function GenerateInvoicesPage() {
                       }}>
                         <div style={{
                           width:"18px", height:"18px", borderRadius:"5px", flexShrink:0,
-                          border:`2px solid ${selected ? accent : "rgba(255,255,255,0.2)"}`,
+                          border:`2px solid ${selected ? accent : "#e2e8f0"}`,
                           background: selected ? accent : "transparent",
                           display:"flex", alignItems:"center", justifyContent:"center",
                           fontSize:"11px", color:white, transition:"all 0.15s ease",

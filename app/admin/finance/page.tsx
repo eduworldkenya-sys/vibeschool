@@ -10,11 +10,11 @@ const amber   = "#f59e0b"
 const red     = "#ef4444"
 const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
-const border  = "rgba(255,255,255,0.08)"
-const muted   = "rgba(255,255,255,0.45)"
+const border  = "#e2e8f0"
+const muted   = "#6b7280"
 const white   = "#ffffff"
-const card    = "rgba(255,255,255,0.04)"
-const surface = "rgba(255,255,255,0.06)"
+const card    = "#ffffff"
+const surface = "#f8fafc"
 
 type Tab = "overview" | "invoices" | "payments" | "expenses"
 
@@ -86,7 +86,7 @@ function Skeleton({ h = 48 }: { h?: number }) {
     <div style={{
       height:         h,
       borderRadius:   12,
-      background:     "linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.07) 50%,rgba(255,255,255,0.03) 75%)",
+      background:     "linear-gradient(90deg,#e5e7eb 25%,#d1d5db 50%,#e5e7eb 75%)",
       backgroundSize: "200% 100%",
       animation:      "shimmer 1.4s infinite",
     }} />
@@ -99,13 +99,13 @@ function StatusChip({ status }: { status: string }) {
     partial: ["rgba(245,158,11,0.15)",  amber],
     issued:  ["rgba(139,92,246,0.15)",  violet],
     overdue: ["rgba(239,68,68,0.15)",   red],
-    draft:   ["rgba(255,255,255,0.06)", muted],
-    waived:  ["rgba(255,255,255,0.06)", muted],
+    draft:   ["#f8fafc", muted],
+    waived:  ["#f8fafc", muted],
     open:    ["rgba(16,185,129,0.15)",  accent],
     closed:  ["rgba(239,68,68,0.15)",   red],
     locked:  ["rgba(239,68,68,0.2)",    red],
   }
-  const [bg, color] = map[status] ?? ["rgba(255,255,255,0.06)", muted]
+  const [bg, color] = map[status] ?? ["#f8fafc", muted]
   const label = status.charAt(0).toUpperCase() + status.slice(1)
   return (
     <span style={{ background: bg, color, fontSize: "11px", fontWeight: "700", padding: "3px 12px", borderRadius: "20px", whiteSpace: "nowrap", letterSpacing: "0.3px" }}>
@@ -162,7 +162,7 @@ function AgingBar({ invoices }: { invoices: InvoiceRow[] }) {
           <div key={b.label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
             <div style={{ width: "8px", height: "8px", borderRadius: "2px", background: b.color }} />
             <span style={{ fontSize: "11px", color: muted }}>{b.label}</span>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: white }}>{b.count}</span>
+            <span style={{ fontSize: "11px", fontWeight: "700", color: "#111827" }}>{b.count}</span>
           </div>
         ))}
       </div>
@@ -364,13 +364,13 @@ export default function FinancePage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "12px 14px",
-    background: surface, border: `1px solid ${border}`,
-    borderRadius: "10px", color: white,
+    background: "#f8fafc", border: "1px solid #e2e8f0",
+    borderRadius: "10px", color: "#111827",
     fontSize: "14px", outline: "none", boxSizing: "border-box",
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: "11px", color: "rgba(255,255,255,0.5)",
+    fontSize: "11px", color: "#6b7280",
     marginBottom: "6px", display: "block",
     fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase",
   }
@@ -382,10 +382,10 @@ export default function FinancePage() {
 
   const Modal = ({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) => (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(6px)" }}>
-      <div style={{ background: "#0d1f3c", border: `1px solid ${border}`, borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
+      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "24px 24px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "540px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: white }}>{title}</h2>
-          <button onClick={onClose} style={{ background: surface, border: `1px solid ${border}`, color: white, width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>x</button>
+          <h2 style={{ fontSize: "18px", fontWeight: "800", margin: 0, color: "#111827" }}>{title}</h2>
+          <button onClick={onClose} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", color: "#111827", width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>x</button>
         </div>
         {periodLocked && (
           <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "12px", padding: "12px 16px", marginBottom: "20px", fontSize: "13px", color: red, display: "flex", gap: "8px", alignItems: "center" }}>
@@ -399,19 +399,19 @@ export default function FinancePage() {
   )
 
   return (
-    <div style={{ color: white, fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
+    <div style={{ color: "#111827", fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
       <style>{`
         @keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
         @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
         @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
         @keyframes pulse   { 0%,100% { opacity:1 } 50% { opacity:0.5 } }
-        select option { background:#0a1628; color:#fff }
+        select option { background:#ffffff; color:#111827 }
         input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4) }
-        input::placeholder { color: rgba(255,255,255,0.25) }
+        input::placeholder { color: #9ca3af }
       `}</style>
 
       {toast.msg && (
-        <div style={{ position: "fixed", bottom: "88px", right: "16px", zIndex: 300, background: toast.type === "error" ? red : accent, color: white, padding: "14px 22px", borderRadius: "14px", fontSize: "13px", fontWeight: "700", animation: "slideUp 0.3s ease", boxShadow: "0 12px 40px rgba(0,0,0,0.5)", maxWidth: "320px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ position: "fixed", bottom: "88px", right: "16px", zIndex: 300, background: toast.type === "error" ? red : accent, color: "#111827", padding: "14px 22px", borderRadius: "14px", fontSize: "13px", fontWeight: "700", animation: "slideUp 0.3s ease", boxShadow: "0 12px 40px rgba(0,0,0,0.5)", maxWidth: "320px", display: "flex", alignItems: "center", gap: "10px" }}>
           <span>{toast.type === "error" ? "!" : "✓"}</span>
           {toast.msg}
         </div>
@@ -438,14 +438,14 @@ export default function FinancePage() {
               { label: "Mpesa",    href: "/admin/finance/reconciliation"     },
               { label: "Reports",  href: "/admin/finance/reports"            },
             ].map(btn => (
-              <button key={btn.label} onClick={() => router.push(btn.href)} style={{ padding: "9px 14px", borderRadius: "10px", border: `1px solid ${border}`, background: surface, color: "rgba(255,255,255,0.8)", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
+              <button key={btn.label} onClick={() => router.push(btn.href)} style={{ padding: "9px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", background: "#f8fafc", color: "#374151", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
                 {btn.label}
               </button>
             ))}
             <button onClick={() => setShowExpModal(true)} style={{ padding: "9px 16px", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.1)", color: red, fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
               + Expense
             </button>
-            <button onClick={() => setShowPayModal(true)} style={{ padding: "9px 18px", borderRadius: "10px", border: "none", background: `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 16px rgba(16,185,129,0.25)" }}>
+            <button onClick={() => setShowPayModal(true)} style={{ padding: "9px 18px", borderRadius: "10px", border: "none", background: `linear-gradient(135deg, ${accent}, #059669)`, color: "#111827", fontSize: "13px", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 16px rgba(16,185,129,0.25)" }}>
               + Payment
             </button>
           </div>
@@ -466,7 +466,7 @@ export default function FinancePage() {
             { label: "Overdue",       value: `${summary.overdueCount}`,      sub: "invoices past due",                  icon: "🚨", color: summary.overdueCount > 0 ? red : muted, glow: summary.overdueCount > 0 ? "rgba(239,68,68,0.08)" : "transparent" },
             { label: "Net Position",  value: fmtK(summary.cashPosition - summary.totalExpenses), sub: "cash minus expenses", icon: "📈", color: (summary.cashPosition - summary.totalExpenses) >= 0 ? accent : red, glow: "rgba(139,92,246,0.08)" },
           ].map(kpi => (
-            <div key={kpi.label} style={{ background: kpi.glow, border: `1px solid ${border}`, borderRadius: "14px", padding: "16px 14px" }}>
+            <div key={kpi.label} style={{ background: kpi.glow, border: "1px solid #e2e8f0", borderRadius: "14px", padding: "16px 14px" }}>
               <div style={{ fontSize: "20px", marginBottom: "8px" }}>{kpi.icon}</div>
               <div style={{ fontSize: "10px", color: muted, fontWeight: "600", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: "4px" }}>{kpi.label}</div>
               <div style={{ fontSize: "16px", fontWeight: "800", color: kpi.color, letterSpacing: "-0.3px" }}>{kpi.value}</div>
@@ -476,9 +476,9 @@ export default function FinancePage() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "rgba(255,255,255,0.04)", padding: "4px", borderRadius: "14px", border: `1px solid ${border}` }}>
+      <div style={{ display: "flex", gap: "2px", marginBottom: "20px", background: "#ffffff", padding: "4px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
         {(["overview","invoices","payments","expenses"] as Tab[]).map(t => (
-          <button key={t} onClick={() => { setTab(t); setSearch("") }} style={{ flex: 1, padding: "10px 8px", borderRadius: "10px", border: "none", background: tab === t ? "rgba(16,185,129,0.15)" : "transparent", color: tab === t ? accent : "rgba(255,255,255,0.55)", fontSize: "12px", fontWeight: tab === t ? "700" : "500", cursor: "pointer", whiteSpace: "nowrap", textTransform: "capitalize", transition: "all 0.15s ease" }}>
+          <button key={t} onClick={() => { setTab(t); setSearch("") }} style={{ flex: 1, padding: "10px 8px", borderRadius: "10px", border: "none", background: tab === t ? "rgba(16,185,129,0.15)" : "transparent", color: tab === t ? accent : "#6b7280", fontSize: "12px", fontWeight: tab === t ? "700" : "500", cursor: "pointer", whiteSpace: "nowrap", textTransform: "capitalize", transition: "all 0.15s ease" }}>
             {t === "overview" ? "Overview" : t === "invoices" ? `Invoices${invoices.length > 0 ? ` (${invoices.length})` : ""}` : t === "payments" ? "Payments" : "Expenses"}
           </button>
         ))}
@@ -498,7 +498,7 @@ export default function FinancePage() {
           )}
 
           {!loading && summary.totalInvoiced > 0 && (
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                 <div>
                   <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "3px" }}>{currentTerm} Collection</div>
@@ -509,7 +509,7 @@ export default function FinancePage() {
                   <div style={{ fontSize: "10px", color: muted, marginTop: "2px" }}>collected</div>
                 </div>
               </div>
-              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: "99px", height: "10px", marginBottom: "12px", overflow: "hidden" }}>
+              <div style={{ background: "#f8fafc", borderRadius: "99px", height: "10px", marginBottom: "12px", overflow: "hidden" }}>
                 <div style={{ width: `${Math.min(100, summary.collectionRate)}%`, height: "100%", borderRadius: "99px", transition: "width 0.8s ease", background: summary.collectionRate >= 80 ? `linear-gradient(90deg, ${accent}, #34d399)` : summary.collectionRate >= 50 ? `linear-gradient(90deg, ${amber}, #fbbf24)` : `linear-gradient(90deg, ${red}, #f87171)` }} />
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -520,7 +520,7 @@ export default function FinancePage() {
           )}
 
           {!loading && invoices.length > 0 && (
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <div style={{ fontSize: "13px", fontWeight: "700" }}>Invoice Aging</div>
                 <button onClick={() => setTab("invoices")} style={{ background: "none", border: "none", color: accent, fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>View all</button>
@@ -529,7 +529,7 @@ export default function FinancePage() {
             </div>
           )}
 
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px" }}>
             <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "16px" }}>Cash Position</div>
             {loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>{[1,2,3].map(i => <Skeleton key={i} h={52} />)}</div>
@@ -538,7 +538,7 @@ export default function FinancePage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {accounts.map(acc => (
-                  <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: surface, borderRadius: "12px", border: `1px solid ${border}` }}>
+                  <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: acc.type === "mpesa" ? "rgba(16,185,129,0.15)" : acc.type === "bank" ? "rgba(59,130,246,0.15)" : "rgba(245,158,11,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
                         {acc.type === "mpesa" ? "📱" : acc.type === "bank" ? "🏦" : "💵"}
@@ -551,7 +551,7 @@ export default function FinancePage() {
                     <div style={{ fontSize: "16px", fontWeight: "800", color: Number(acc.current_balance) >= 0 ? accent : red }}>{fmt(Number(acc.current_balance))}</div>
                   </div>
                 ))}
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", borderTop: `1px solid ${border}`, marginTop: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", borderTop: "1px solid #e2e8f0", marginTop: "4px" }}>
                   <span style={{ fontSize: "13px", fontWeight: "800" }}>Total</span>
                   <span style={{ fontSize: "18px", fontWeight: "800", color: accent }}>{fmt(summary.cashPosition)}</span>
                 </div>
@@ -560,7 +560,7 @@ export default function FinancePage() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700" }}>Recent Payments</div>
                 <button onClick={() => setTab("payments")} style={{ background: "none", border: "none", color: accent, fontSize: "11px", cursor: "pointer" }}>all</button>
@@ -577,7 +577,7 @@ export default function FinancePage() {
                 </div>
               ))}
             </div>
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700" }}>Recent Expenses</div>
                 <button onClick={() => setTab("expenses")} style={{ background: "none", border: "none", color: accent, fontSize: "11px", cursor: "pointer" }}>all</button>
@@ -596,7 +596,7 @@ export default function FinancePage() {
             </div>
           </div>
 
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px" }}>
             <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "16px" }}>Accounting Periods</div>
             {loading ? <Skeleton h={100} /> : periods.length === 0 ? (
               <p style={{ fontSize: "13px", color: muted, textAlign: "center", padding: "16px 0" }}>No periods configured</p>
@@ -623,7 +623,7 @@ export default function FinancePage() {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student or term..." style={inputStyle} />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>x</button>}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>{[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}</div>
             ) : filteredInvoices.length === 0 ? (
@@ -663,14 +663,14 @@ export default function FinancePage() {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search student, reference, receipt..." style={inputStyle} />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>x</button>}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>{[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}</div>
             ) : filteredPayments.length === 0 ? (
               <div style={{ textAlign: "center", padding: "56px 20px" }}>
                 <div style={{ fontSize: "36px", marginBottom: "12px" }}>💳</div>
                 <p style={{ fontSize: "14px", color: muted, fontWeight: "600" }}>No payments recorded yet</p>
-                <button onClick={() => setShowPayModal(true)} style={{ marginTop: "12px", padding: "10px 20px", borderRadius: "10px", border: "none", background: accent, color: white, fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>Record first payment</button>
+                <button onClick={() => setShowPayModal(true)} style={{ marginTop: "12px", padding: "10px 20px", borderRadius: "10px", border: "none", background: accent, color: "#111827", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>Record first payment</button>
               </div>
             ) : (
               filteredPayments.map((pay, idx) => (
@@ -700,14 +700,14 @@ export default function FinancePage() {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search description or vendor..." style={inputStyle} />
             {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: muted, cursor: "pointer", fontSize: "18px" }}>x</button>}
           </div>
-          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: "16px", overflow: "hidden" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>{[1,2,3,4,5].map(i => <Skeleton key={i} h={68} />)}</div>
             ) : filteredExpenses.length === 0 ? (
               <div style={{ textAlign: "center", padding: "56px 20px" }}>
                 <div style={{ fontSize: "36px", marginBottom: "12px" }}>💸</div>
                 <p style={{ fontSize: "14px", color: muted, fontWeight: "600" }}>No expenses recorded yet</p>
-                <button onClick={() => setShowExpModal(true)} style={{ marginTop: "12px", padding: "10px 20px", borderRadius: "10px", border: "none", background: red, color: white, fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>Record first expense</button>
+                <button onClick={() => setShowExpModal(true)} style={{ marginTop: "12px", padding: "10px 20px", borderRadius: "10px", border: "none", background: red, color: "#111827", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>Record first expense</button>
               </div>
             ) : (
               filteredExpenses.map((exp, idx) => (
@@ -734,7 +734,7 @@ export default function FinancePage() {
             <div>
               <label style={labelStyle}>Invoice *</label>
               {unpaidInvoices.length === 0 ? (
-                <div style={{ padding: "14px", background: surface, borderRadius: "10px", fontSize: "13px", color: muted, textAlign: "center" }}>No unpaid invoices found</div>
+                <div style={{ padding: "14px", background: "#f8fafc", borderRadius: "10px", fontSize: "13px", color: muted, textAlign: "center" }}>No unpaid invoices found</div>
               ) : (
                 <select value={payForm.invoice_id} onChange={e => { const inv = invoices.find(i => i.id === e.target.value); const balance = inv ? String(Math.max(0, Number(inv.total_amount) - Number(inv.paid_amount))) : ""; setPayForm(f => ({ ...f, invoice_id: e.target.value, student_id: inv?.student_id ?? "", amount: balance })) }} style={{ ...inputStyle, appearance: "none" }}>
                   <option value="">Select invoice</option>
@@ -774,7 +774,7 @@ export default function FinancePage() {
               <label style={labelStyle}>Notes</label>
               <input type="text" value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" style={inputStyle} />
             </div>
-            <button onClick={handleRecordPayment} disabled={saving || periodLocked || unpaidInvoices.length === 0} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked || unpaidInvoices.length === 0 ? "rgba(16,185,129,0.3)" : `linear-gradient(135deg, ${accent}, #059669)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked || unpaidInvoices.length === 0 ? "not-allowed" : "pointer", marginTop: "4px" }}>
+            <button onClick={handleRecordPayment} disabled={saving || periodLocked || unpaidInvoices.length === 0} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked || unpaidInvoices.length === 0 ? "rgba(16,185,129,0.3)" : `linear-gradient(135deg, ${accent}, #059669)`, color: "#111827", fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked || unpaidInvoices.length === 0 ? "not-allowed" : "pointer", marginTop: "4px" }}>
               {saving ? "Recording..." : "Record Payment"}
             </button>
           </div>
@@ -820,7 +820,7 @@ export default function FinancePage() {
                 </select>
               </div>
             </div>
-            <button onClick={handleRecordExpense} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(239,68,68,0.3)" : `linear-gradient(135deg, ${red}, #dc2626)`, color: white, fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px" }}>
+            <button onClick={handleRecordExpense} disabled={saving || periodLocked} style={{ width: "100%", padding: "15px", borderRadius: "12px", border: "none", background: saving || periodLocked ? "rgba(239,68,68,0.3)" : `linear-gradient(135deg, ${red}, #dc2626)`, color: "#111827", fontSize: "15px", fontWeight: "800", cursor: saving || periodLocked ? "not-allowed" : "pointer", marginTop: "4px" }}>
               {saving ? "Recording..." : "Record Expense"}
             </button>
           </div>

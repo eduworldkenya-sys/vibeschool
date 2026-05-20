@@ -413,8 +413,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         width:     "100%",
         maxWidth:  "900px",
         margin:    "0 auto",
-        background: true ? "#0a1628" : "transparent",
-        minHeight:  true ? "100vh" : "auto",
+        background: C.bg,
+        minHeight:  "auto",
       }}>
         {children}
       </main>

@@ -12,7 +12,7 @@ const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
 const surface = "rgba(255,255,255,0.03)"
 const card    = "rgba(255,255,255,0.05)"
-const border  = "rgba(255,255,255,0.08)"
+const border  = "#e2e8f0"
 const muted   = "rgba(255,255,255,0.4)"
 const white   = "#ffffff"
 
@@ -34,10 +34,10 @@ function StatusChip({ status }: { status: string }) {
     partial: ["rgba(245,158,11,0.15)",  "#f59e0b"],
     issued:  ["rgba(139,92,246,0.15)",  "#8b5cf6"],
     overdue: ["rgba(239,68,68,0.15)",   "#ef4444"],
-    draft:   ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"],
-    waived:  ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"],
+    draft:   ["#f8fafc", "rgba(255,255,255,0.4)"],
+    waived:  ["#f8fafc", "rgba(255,255,255,0.4)"],
   }
-  const [bg, color] = map[status] ?? ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"]
+  const [bg, color] = map[status] ?? ["#f8fafc", "rgba(255,255,255,0.4)"]
   return (
     <span style={{ background: bg, color, fontSize: "11px", fontWeight: "700",
       padding: "3px 12px", borderRadius: "20px", whiteSpace: "nowrap", letterSpacing: "0.3px" }}>
@@ -160,7 +160,7 @@ export default function ReceiptPage() {
     : "—"
 
   return (
-    <div style={{ minHeight: "100vh", background: dark, color: white, fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f4f8", color: "#111827", fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
       <style>{`
         @keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
         @keyframes slideUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
@@ -202,15 +202,15 @@ export default function ReceiptPage() {
         ) : payment && invoice ? (
           <div style={{ animation: "fadeIn 0.4s ease" }}>
             <div className="receipt-card" style={{
-              background: card, border: `1px solid ${border}`,
+              background: "#ffffff", border: "1px solid #e2e8f0",
               borderRadius: 20, overflow: "hidden",
             }}>
               {/* Header stripe */}
-              <div style={{ background: `linear-gradient(135deg, ${accent}22, ${blue}22)`, padding: "28px 24px", textAlign: "center", borderBottom: `1px solid ${border}` }}>
+              <div style={{ background: `linear-gradient(135deg, ${accent}22, ${blue}22)`, padding: "28px 24px", textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>
                 <p className="receipt-school" style={{ margin: "0 0 4px", fontSize: 13, color: muted, textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>
                   {school?.name ?? "School"}
                 </p>
-                <h1 className="receipt-heading" style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 900, letterSpacing: "2px", textTransform: "uppercase", color: white }}>
+                <h1 className="receipt-heading" style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 900, letterSpacing: "2px", textTransform: "uppercase", color: "#111827" }}>
                   Official Receipt
                 </h1>
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 20, padding: "4px 14px" }}>
@@ -225,17 +225,17 @@ export default function ReceiptPage() {
                 {/* Date */}
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 8 }}>
                   <span className="receipt-label" style={{ fontSize: 12, color: muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Date</span>
-                  <span className="receipt-value" style={{ fontSize: 13, color: white, fontWeight: 600 }}>{receivedDate}</span>
+                  <span className="receipt-value" style={{ fontSize: 13, color: "#111827", fontWeight: 600 }}>{receivedDate}</span>
                 </div>
 
-                <hr className="receipt-divider" style={{ border: "none", borderTop: `1px solid ${border}`, margin: "0 0 20px" }} />
+                <hr className="receipt-divider" style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "0 0 20px" }} />
 
                 {/* Student */}
                 <p style={{ margin: "0 0 4px", fontSize: 11, color: muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Student</p>
-                <p style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 800, color: white }}>{student?.name ?? "—"}</p>
+                <p style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 800, color: "#111827" }}>{student?.name ?? "—"}</p>
                 <p style={{ margin: "0 0 20px", fontSize: 13, color: muted }}>Adm No: {student?.admission_number ?? "—"}</p>
 
-                <hr className="receipt-divider" style={{ border: "none", borderTop: `1px solid ${border}`, margin: "0 0 20px" }} />
+                <hr className="receipt-divider" style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "0 0 20px" }} />
 
                 {/* Invoice info */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
@@ -251,7 +251,7 @@ export default function ReceiptPage() {
                   )}
                 </div>
 
-                <hr className="receipt-divider" style={{ border: "none", borderTop: `1px solid ${border}`, margin: "0 0 20px" }} />
+                <hr className="receipt-divider" style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "0 0 20px" }} />
 
                 {/* Amounts */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
@@ -262,13 +262,13 @@ export default function ReceiptPage() {
 
                 {payment.notes && (
                   <>
-                    <hr className="receipt-divider" style={{ border: "none", borderTop: `1px solid ${border}`, margin: "0 0 16px" }} />
-                    <p style={{ margin: 0, fontSize: 12, color: muted }}><strong style={{ color: white }}>Notes:</strong> {payment.notes}</p>
+                    <hr className="receipt-divider" style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "0 0 16px" }} />
+                    <p style={{ margin: 0, fontSize: 12, color: muted }}><strong style={{ color: "#111827" }}>Notes:</strong> {payment.notes}</p>
                   </>
                 )}
 
                 {/* Footer */}
-                <div style={{ marginTop: 24, textAlign: "center", paddingTop: 20, borderTop: `1px solid ${border}` }}>
+                <div style={{ marginTop: 24, textAlign: "center", paddingTop: 20, borderTop: "1px solid #e2e8f0" }}>
                   <p style={{ margin: 0, fontSize: 11, color: muted }}>This is an official receipt. Please retain for your records.</p>
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function ReceiptPage() {
         <div style={{
           position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
           background: toast.type === "error" ? "rgba(239,68,68,0.95)" : "rgba(16,185,129,0.95)",
-          color: white, padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
+          color: "#111827", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600,
           zIndex: 200, animation: "slideUp 0.3s ease", whiteSpace: "nowrap", maxWidth: "90vw",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
         }}>

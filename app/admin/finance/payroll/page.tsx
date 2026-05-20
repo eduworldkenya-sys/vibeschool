@@ -12,7 +12,7 @@ const violet  = "#8b5cf6"
 const blue    = "#3b82f6"
 const surface = "rgba(255,255,255,0.03)"
 const card    = "rgba(255,255,255,0.05)"
-const border  = "rgba(255,255,255,0.08)"
+const border  = "#e2e8f0"
 const muted   = "rgba(255,255,255,0.4)"
 const white   = "#ffffff"
 
@@ -23,7 +23,7 @@ const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px",
   background: "rgba(255,255,255,0.05)",
   border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "10px", color: "#ffffff", fontSize: "14px", outline: "none",
+  borderRadius: "10px", color: "#111827", fontSize: "14px", outline: "none",
   boxSizing: "border-box",
 }
 const labelStyle: React.CSSProperties = {
@@ -43,11 +43,11 @@ function Skeleton({ h = 48 }: { h?: number }) {
 
 function StatusChip({ status }: { status: string }) {
   const map: Record<string, [string, string]> = {
-    draft:    ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"],
+    draft:    ["#f8fafc", "rgba(255,255,255,0.4)"],
     approved: ["rgba(16,185,129,0.15)",  "#10b981"],
     paid:     ["rgba(59,130,246,0.15)",  "#3b82f6"],
   }
-  const [bg, color] = map[status] ?? ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.4)"]
+  const [bg, color] = map[status] ?? ["#f8fafc", "rgba(255,255,255,0.4)"]
   return (
     <span style={{ background: bg, color, fontSize: "11px", fontWeight: "700",
       padding: "3px 12px", borderRadius: "20px", whiteSpace: "nowrap", letterSpacing: "0.3px" }}>
@@ -63,8 +63,8 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
       borderRadius:"24px 24px 0 0", padding:"24px 20px 40px", width:"100%",
       maxWidth:"540px", maxHeight:"92vh", overflowY:"auto", animation:"slideUp 0.3s ease" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px" }}>
-        <h2 style={{ fontSize:"18px", fontWeight:"800", margin:0, color: white }}>{title}</h2>
-        <button onClick={onClose} style={{ background:"rgba(255,255,255,0.08)", border:"none",
+        <h2 style={{ fontSize:"18px", fontWeight:"800", margin:0, color: "#111827" }}>{title}</h2>
+        <button onClick={onClose} style={{ background:"#e2e8f0", border:"none",
           color:"#fff", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer",
           fontSize:"16px", display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
       </div>
@@ -316,13 +316,13 @@ export default function PayrollPage() {
   const autoNet = (parseFloat(lineForm.gross) || 0) - (parseFloat(lineForm.deductions) || 0)
 
   return (
-    <div style={{ minHeight: "100vh", background: dark, color: white, fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
+    <div style={{ minHeight: "100vh", background: "#f0f4f8", color: "#111827", fontFamily: "system-ui, sans-serif", padding: "20px 16px 60px" }}>
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
         @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        select option { background:#0a1628; color:#fff }
+        select option { background:#ffffff; color:#111827 }
         * { box-sizing:border-box }
       `}</style>
 
@@ -426,7 +426,7 @@ export default function PayrollPage() {
                               onClick={() => handleApprove(run)}
                               disabled={approvingThis || lines.length === 0}
                               style={{ padding:"9px 18px", borderRadius:10,
-                                background: approvingThis || lines.length===0 ? "rgba(255,255,255,0.06)" : "rgba(245,158,11,0.15)",
+                                background: approvingThis || lines.length===0 ? "#f8fafc" : "rgba(245,158,11,0.15)",
                                 color: approvingThis || lines.length===0 ? muted : amber,
                                 border:`1px solid ${approvingThis || lines.length===0 ? border : "rgba(245,158,11,0.3)"}`,
                                 fontSize:13, fontWeight:700,
@@ -439,7 +439,7 @@ export default function PayrollPage() {
                             onClick={() => handleMarkPaid(run)}
                             disabled={payingThis}
                             style={{ padding:"9px 18px", borderRadius:10,
-                              background: payingThis ? "rgba(255,255,255,0.06)" : "rgba(59,130,246,0.15)",
+                              background: payingThis ? "#f8fafc" : "rgba(59,130,246,0.15)",
                               color: payingThis ? muted : blue,
                               border:`1px solid ${payingThis ? border : "rgba(59,130,246,0.3)"}`,
                               fontSize:13, fontWeight:700,

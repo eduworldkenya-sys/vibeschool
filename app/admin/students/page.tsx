@@ -226,7 +226,7 @@ export default function StudentsPage() {
     status === "paid"    ? accent :
     status === "partial" ? amber  :
     status === "owing"   ? red    :
-    "rgba(255,255,255,0.2)"
+    "#e2e8f0"
 
   const feeLabel = (status: Student["fee_status"]) =>
     status === "paid"    ? "Paid"    :
@@ -301,7 +301,7 @@ export default function StudentsPage() {
         marginBottom:        "20px",
       }}>
         {[
-          { label: "Total",          value: stats.total,         color: "#ffffff" },
+          { label: "Total",          value: stats.total,         color: "#111827" },
           { label: "Parent Linked",  value: stats.withParent,    color: accent    },
           { label: "No Parent",      value: stats.withoutParent, color: amber     },
           { label: "Fee Issues",     value: stats.owing,         color: red       },
@@ -366,7 +366,7 @@ export default function StudentsPage() {
               border:       "1px solid " + (classFilter === cls ? accent : "rgba(255,255,255,0.1)"),
               borderRadius: "20px",
               padding:      "6px 14px",
-              color:        classFilter === cls ? "#ffffff" : "rgba(255,255,255,0.5)",
+              color:        classFilter === cls ? "#ffffff" : "#6b7280",
               fontSize:     "12px",
               fontWeight:   "600",
               cursor:       "pointer",
@@ -383,7 +383,7 @@ export default function StudentsPage() {
         <div style={{
           textAlign:  "center",
           padding:    "60px 20px",
-          color:      "rgba(255,255,255,0.3)",
+          color:      "#9ca3af",
           fontSize:   "14px",
         }}>
           {students.length === 0
@@ -500,7 +500,7 @@ export default function StudentsPage() {
                 </span>
               </div>
 
-              <span style={{ color: "rgba(255,255,255,0.2)", fontSize: "16px" }}>›</span>
+              <span style={{ color: "#e2e8f0", fontSize: "16px" }}>›</span>
             </button>
           ))}
         </div>
@@ -531,13 +531,13 @@ export default function StudentsPage() {
               alignItems:     "center",
               marginBottom:   "24px",
             }}>
-              <h2 style={{ color: "#ffffff", fontSize: "18px", fontWeight: "800", margin: 0 }}>
+              <h2 style={{ color: "#111827", fontSize: "18px", fontWeight: "800", margin: 0 }}>
                 Add Student
               </h2>
               <button
                 onClick={() => setShowModal(false)}
                 style={{
-                  background: "rgba(255,255,255,0.08)",
+                  background: "#e2e8f0",
                   border:     "none",
                   borderRadius:"50%",
                   width:      "32px",
@@ -558,7 +558,7 @@ export default function StudentsPage() {
             ].map(f => (
               <div key={f.key} style={{ marginBottom: "16px" }}>
                 <label style={{
-                  color:        "rgba(255,255,255,0.5)",
+                  color:        "#6b7280",
                   fontSize:     "12px",
                   fontWeight:   "600",
                   display:      "block",
@@ -589,7 +589,7 @@ export default function StudentsPage() {
             {/* Gender */}
             <div style={{ marginBottom: "16px" }}>
               <label style={{
-                color:        "rgba(255,255,255,0.5)",
+                color:        "#6b7280",
                 fontSize:     "12px",
                 fontWeight:   "600",
                 display:      "block",
@@ -604,11 +604,11 @@ export default function StudentsPage() {
                     onClick={() => setForm(prev => ({ ...prev, gender: g }))}
                     style={{
                       flex:         1,
-                      background:   form.gender === g ? accent : "rgba(255,255,255,0.06)",
+                      background:   form.gender === g ? accent : "#f8fafc",
                       border:       "1px solid " + (form.gender === g ? accent : "rgba(255,255,255,0.1)"),
                       borderRadius: "10px",
                       padding:      "10px",
-                      color:        form.gender === g ? "#ffffff" : "rgba(255,255,255,0.5)",
+                      color:        form.gender === g ? "#ffffff" : "#6b7280",
                       fontSize:     "13px",
                       fontWeight:   "600",
                       cursor:       "pointer",
@@ -624,7 +624,7 @@ export default function StudentsPage() {
             {/* Class */}
             <div style={{ marginBottom: "24px" }}>
               <label style={{
-                color:        "rgba(255,255,255,0.5)",
+                color:        "#6b7280",
                 fontSize:     "12px",
                 fontWeight:   "600",
                 display:      "block",
@@ -641,7 +641,7 @@ export default function StudentsPage() {
                   border:       "1px solid #e2e8f0",
                   borderRadius: "10px",
                   padding:      "10px 14px",
-                  color:        form.class_id ? "#ffffff" : "rgba(255,255,255,0.3)",
+                  color:        form.class_id ? "#ffffff" : "#9ca3af",
                   fontSize:     "14px",
                   boxSizing:    "border-box",
                   outline:      "none",
