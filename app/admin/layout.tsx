@@ -222,7 +222,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }}>
 
         {/* School identity + close button */}
-        <div style={{ padding: "52px 16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", position: "relative" }}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", position: "relative" }}>
           {/* Close button */}
           <button
             onClick={() => setSidebar(false)}
@@ -315,7 +315,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Sign out */}
-        <div style={{ padding: "12px 12px 36px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ padding: "12px 12px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
           <button
             onClick={handleSignOut}
             style={{
