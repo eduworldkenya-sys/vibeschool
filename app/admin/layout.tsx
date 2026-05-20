@@ -413,6 +413,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         width:     "100%",
         maxWidth:  "900px",
         margin:    "0 auto",
+        background: pathname.startsWith("/admin/finance") ? "#0a1628" : "transparent",
+        minHeight:  pathname.startsWith("/admin/finance") ? "100vh" : "auto",
       }}>
         {children}
       </main>
