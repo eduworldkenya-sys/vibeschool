@@ -437,6 +437,7 @@ export default function FinancePage() {
               { label: "Generate", href: "/admin/finance/invoices/generate" },
               { label: "Mpesa",    href: "/admin/finance/reconciliation"     },
               { label: "Reports",  href: "/admin/finance/reports"            },
+              { label: "Approvals", href: "/admin/finance/approvals"          },
             ].map(btn => (
               <button key={btn.label} onClick={() => router.push(btn.href)} style={{ padding: "9px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", background: "#f8fafc", color: "#374151", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
                 {btn.label}
