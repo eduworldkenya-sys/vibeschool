@@ -1,5 +1,6 @@
 'use client'
 
+
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -833,4 +834,4 @@ export default function ProjectDetailPage() {
       )}
     </div>
   )
-}'use client'
+}
