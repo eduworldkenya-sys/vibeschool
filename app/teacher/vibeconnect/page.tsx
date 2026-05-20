@@ -1,504 +1,517 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Card, Btn, C } from '@/components/teacher/ui'
+import type { VCThread, VCMessage, VCCircular } from '@/lib/types'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface MessageThread {
-  id: string
-  studentId: string
-  studentName: string
-  subject: string
-  body: string
-  channel: string
-  sentAt: string
+const C = {
+  hero:      '#0a1628',
+  heroMid:   '#0d2347',
+  emerald:   '#10b981',
+  emeraldLt: '#d1fae5',
+  bg:        '#f0f4f8',
+  border:    '#e2e8f0',
+  surface:   '#ffffff',
+  text:      '#0f172a',
+  muted:     '#64748b',
+  warning:   '#f59e0b',
+  warningLt: '#fef3c7',
+  error:     '#ef4444',
+  errorLt:   '#fee2e2',
+  navy3:     '#0f5fa8',
 }
 
-interface StudentOption {
-  id: string
-  name: string
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins  = Math.floor(diff / 60000)
-  const hours = Math.floor(mins / 60)
-  const days  = Math.floor(hours / 24)
-  if (mins  <  1) return 'Just now'
-  if (mins  < 60) return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  return `${days}d ago`
-}
-
-function initials(name: string): string {
-  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
-}
-
-const PALETTES = [
-  { bg: '#dbeafe', color: '#1d4ed8' },
-  { bg: '#ede9fe', color: '#6d28d9' },
-  { bg: '#fef3c7', color: '#92400e' },
-  { bg: '#fce7f3', color: '#9d174d' },
-  { bg: C.accentLight, color: '#065f46' },
-]
-
-function Avatar({ name, idx }: { name: string; idx: number }) {
-  const p = PALETTES[idx % PALETTES.length]
+function Skeleton({ h = 56, r = 12 }: { h?: number; r?: number }) {
   return (
     <div style={{
-      width: 42, height: 42, borderRadius: '50%',
-      background: p.bg, color: p.color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 13, fontWeight: 700, flexShrink: 0,
-    }}>
-      {initials(name)}
-    </div>
-  )
-}
-
-function Skeleton({ h = 56 }: { h?: number }) {
-  return (
-    <div style={{
-      height: h, borderRadius: 12,
-      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
+      height: h, borderRadius: r,
+      background: 'linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.4s infinite',
     }} />
   )
 }
 
-// ─── Compose modal ────────────────────────────────────────────────────────────
-
-function ComposeModal({
-  students,
-  teacherId,
-  schoolId,
-  onClose,
-  onSent,
-}: {
-  students: StudentOption[]
-  teacherId: string
-  schoolId: string
-  onClose: () => void
-  onSent: () => void
-}) {
-  const [studentId, setStudentId] = useState(students[0]?.id ?? '')
-  const [subject, setSubject]     = useState('')
-  const [body, setBody]           = useState('')
-  const [sending, setSending]     = useState(false)
-  const [err, setErr]             = useState<string | null>(null)
-
-  async function send() {
-    if (!subject.trim() || !body.trim() || !studentId) {
-      setErr('Please fill in all fields.')
-      return
-    }
-    setSending(true)
-    setErr(null)
-
-    const { error } = await supabase
-      .from('parent_messages')
-      .insert({
-        school_id:    schoolId,
-        teacher_id:   teacherId,
-        student_id:   studentId,
-        channel:      'app',
-        subject:      subject.trim(),
-        body:         body.trim(),
-        generated_by: 'teacher',
-        sent_at:      new Date().toISOString(),
-      })
-
-    if (error) { setErr(error.message); setSending(false); return }
-    onSent()
-  }
-
+function VCIcon({ size = 24 }: { size?: number }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 100,
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    }}>
-      <div style={{
-        background: C.bg, borderRadius: '20px 20px 0 0',
-        padding: '24px 20px 36px', width: '100%', maxWidth: 480,
-        display: 'flex', flexDirection: 'column', gap: 14,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>New Message</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.textMuted }}>✕</button>
-        </div>
-
-        {err && (
-          <div style={{ fontSize: 12, color: C.error, background: '#fef2f2', padding: '8px 12px', borderRadius: 8 }}>
-            {err}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Student</label>
-          <select
-            value={studentId}
-            onChange={e => setStudentId(e.target.value)}
-            style={{ padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', background: C.bg, color: C.textPrimary }}
-          >
-            {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Subject</label>
-          <input
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            placeholder="Message subject..."
-            style={{ padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>Message</label>
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            placeholder="Type your message..."
-            rows={4}
-            style={{ padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'none' }}
-          />
-        </div>
-
-        <Btn onClick={send} disabled={sending}>
-          {sending ? 'Sending…' : 'Send Message'}
-        </Btn>
-      </div>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="10" fill="#0a1628"/>
+      <path d="M6 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H10l-4 4V8z" fill="#10b981" opacity="0.15"/>
+      <path d="M6 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H10l-4 4V8z" stroke="#10b981" strokeWidth="1.5" fill="none"/>
+      <text x="16" y="17" textAnchor="middle" fontSize="10" fill="#10b981" fontWeight="bold">✦</text>
+    </svg>
   )
 }
 
-// ─── Detail view ──────────────────────────────────────────────────────────────
-
-function MessageDetail({
-  msg,
-  onBack,
-}: {
-  msg: MessageThread
-  onBack: () => void
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: `1px solid ${C.border}` }}>
-        <button
-          onClick={onBack}
-          style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: C.textMuted, lineHeight: 1 }}
-        >
-          ←
-        </button>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>{msg.studentName}</div>
-          <div style={{ fontSize: 11, color: C.textMuted }}>{timeAgo(msg.sentAt)}</div>
-        </div>
-      </div>
-
-      <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary }}>{msg.subject}</div>
-
-        <div style={{
-          background: C.surface, borderRadius: 14,
-          padding: '14px 16px', fontSize: 13, color: C.textPrimary, lineHeight: 1.7,
-        }}>
-          {msg.body}
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <div style={{
-            fontSize: 11, fontWeight: 600, padding: '4px 12px',
-            borderRadius: 20, background: C.accentLight, color: C.accent,
-          }}>
-            via {msg.channel}
-          </div>
-          <div style={{
-            fontSize: 11, fontWeight: 600, padding: '4px 12px',
-            borderRadius: 20, background: C.surface, color: C.textMuted, border: `1px solid ${C.border}`,
-          }}>
-            Sent {new Date(msg.sentAt).toLocaleDateString()}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+function initials(name: string) {
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function timeAgo(ts: string) {
+  const diff = Date.now() - new Date(ts).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1)  return 'now'
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h`
+  return `${Math.floor(h / 24)}d`
+}
 
-export default function VibeConnectPage() {
-  const [messages, setMessages]       = useState<MessageThread[]>([])
-  const [students, setStudents]       = useState<StudentOption[]>([])
-  const [teacherId, setTeacherId]     = useState<string | null>(null)
-  const [schoolId, setSchoolId]       = useState<string | null>(null)
-  const [loading, setLoading]         = useState(true)
-  const [error, setError]             = useState<string | null>(null)
-  const [activeMsg, setActiveMsg]     = useState<MessageThread | null>(null)
-  const [composing, setComposing]     = useState(false)
-  const [filter, setFilter]           = useState<'all' | 'app' | 'sms' | 'email'>('all')
+async function ensureVCId(userId: string, fullName: string) {
+  const { data } = await supabase.from('profiles').select('vc_id').eq('id', userId).single()
+  if (data?.vc_id) return data.vc_id
+  const slug = fullName.toLowerCase().split(' ')[0].replace(/[^a-z]/g, '').slice(0, 8)
+  const suffix = Math.floor(1000 + Math.random() * 9000)
+  const vcId = `@${slug}.${suffix}`
+  await supabase.from('profiles').update({ vc_id: vcId }).eq('id', userId)
+  return vcId
+}
 
-  async function load(uid: string, sid: string) {
-    setLoading(true)
-    setError(null)
-
-    const [msgsRes, tcRes] = await Promise.all([
-      supabase
-        .from('parent_messages')
-        .select('id, student_id, subject, body, channel, sent_at')
-        .eq('teacher_id', uid)
-        .eq('school_id', sid)
-        .order('sent_at', { ascending: false }),
-      supabase
-        .from('teacher_classes')
-        .select('class_id')
-        .eq('teacher_id', uid),
-    ])
-
-    if (msgsRes.error) { setError(msgsRes.error.message); setLoading(false); return }
-    if (tcRes.error)   { setError(tcRes.error.message);   setLoading(false); return }
-
-    const classIds   = Array.from(new Set((tcRes.data ?? []).map((r: { class_id: string }) => r.class_id)))
-    const studentIds = Array.from(new Set((msgsRes.data ?? []).map((r: { student_id: string }) => r.student_id)))
-
-    // Fetch student names — union of message recipients and class students
-    const allStudentIds = Array.from(new Set([...studentIds]))
-
-    const [msgStudentsRes, classStudentsRes] = await Promise.all([
-      allStudentIds.length > 0
-        ? supabase.from('students').select('id, name').in('id', allStudentIds)
-        : Promise.resolve({ data: [], error: null }),
-      classIds.length > 0
-        ? supabase.from('student_classes').select('student_id').in('class_id', classIds).eq('is_current', true)
-        : Promise.resolve({ data: [], error: null }),
-    ])
-
-    if (msgStudentsRes.error)   { setError(msgStudentsRes.error.message);   setLoading(false); return }
-    if (classStudentsRes.error) { setError(classStudentsRes.error.message); setLoading(false); return }
-
-    // Get names for all students in teacher's classes (for compose dropdown)
-    const classStudentIds = Array.from(new Set(
-      (classStudentsRes.data ?? []).map((r: { student_id: string }) => r.student_id)
-    ))
-
-    const { data: allStudentData } = classStudentIds.length > 0
-      ? await supabase.from('students').select('id, name').in('id', classStudentIds)
-      : { data: [] }
-
-    const nameMap = new Map<string, string>(
-      [...(msgStudentsRes.data ?? []), ...(allStudentData ?? [])]
-        .map((s: { id: string; name: string }) => [s.id, s.name])
-    )
-
-    const threads: MessageThread[] = (msgsRes.data ?? []).map((m: {
-      id: string; student_id: string; subject: string;
-      body: string; channel: string; sent_at: string
-    }) => ({
-      id:          m.id,
-      studentId:   m.student_id,
-      studentName: nameMap.get(m.student_id) ?? 'Unknown',
-      subject:     m.subject,
-      body:        m.body,
-      channel:     m.channel,
-      sentAt:      m.sent_at,
-    }))
-
-    const composeStudents: StudentOption[] = (allStudentData ?? []).map(
-      (s: { id: string; name: string }) => ({ id: s.id, name: s.name })
-    )
-
-    setMessages(threads)
-    setStudents(composeStudents)
-    setLoading(false)
+async function findOrCreateThread(schoolId: string, currentUserId: string, otherUserId: string): Promise<string> {
+  const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
+  const myThreadIds = (myThreads ?? []).map((t: { thread_id: string }) => t.thread_id)
+  if (myThreadIds.length > 0) {
+    const { data: shared } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', otherUserId).in('thread_id', myThreadIds)
+    if (shared && shared.length > 0) return shared[0].thread_id
   }
+  const { data: thread } = await supabase.from('vc_threads').insert({ school_id: schoolId, type: 'direct', created_by: currentUserId }).select().single()
+  await supabase.from('vc_participants').insert([
+    { thread_id: thread.id, profile_id: currentUserId, school_id: schoolId },
+    { thread_id: thread.id, profile_id: otherUserId,   school_id: schoolId },
+  ])
+  return thread.id
+}
+
+interface ThreadUI {
+  threadId:      string
+  otherName:     string
+  otherInitials: string
+  lastMessage:   string
+  lastTime:      string
+  unreadCount:   number
+  otherRole:     string
+  otherId:       string
+}
+
+interface CircularUI extends VCCircular {
+  acked: boolean
+  recipientId: string
+}
+
+interface ProfileRow {
+  id:        string
+  full_name: string
+  role:      string
+}
+
+export default function TeacherVibeConnectPage() {
+  const router = useRouter()
+
+  const [userId,   setUserId]   = useState('')
+  const [schoolId, setSchoolId] = useState('')
+  const [loading,  setLoading]  = useState(true)
+
+  const [tab, setTab] = useState<'threads' | 'circulars'>('threads')
+
+  // Threads
+  const [threads,      setThreads]      = useState<ThreadUI[]>([])
+  const [activeThread, setActiveThread] = useState<ThreadUI | null>(null)
+  const [messages,     setMessages]     = useState<VCMessage[]>([])
+  const [msgBody,      setMsgBody]      = useState('')
+  const [sending,      setSending]      = useState(false)
+  const [msgLoading,   setMsgLoading]   = useState(false)
+  const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Compose
+  const [composeOpen,   setComposeOpen]   = useState(false)
+  const [searchQuery,   setSearchQuery]   = useState('')
+  const [searchResults, setSearchResults] = useState<ProfileRow[]>([])
+  const [searching,     setSearching]     = useState(false)
+
+  // Circulars
+  const [circulars, setCirculars] = useState<CircularUI[]>([])
+  const [acking,    setAcking]    = useState<string | null>(null)
 
   useEffect(() => {
-    async function boot() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setError('Not signed in.'); setLoading(false); return }
-
-      setTeacherId(user.id)
-
-      const { data: memberData, error: memberErr } = await supabase
-        .from('school_members')
-        .select('school_id')
-        .eq('profile_id', user.id)
-        .maybeSingle()
-
-      if (memberErr) { setError(memberErr.message); setLoading(false); return }
-
-      const sid = memberData?.school_id ?? null
-      setSchoolId(sid)
-
-      if (sid) await load(user.id, sid)
-      else setLoading(false)
-    }
-
-    boot()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadUser()
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
-  const FILTERS: Array<'all' | 'app' | 'sms' | 'email'> = ['all', 'app', 'sms', 'email']
+  async function loadUser() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/teacher'); return }
+      const { data: p } = await supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single()
+      if (!p || p.role !== 'teacher') { router.push('/teacher'); return }
+      setUserId(user.id)
+      setSchoolId(p.school_id)
+      await ensureVCId(user.id, p.full_name ?? 'Teacher')
+      await loadAll(user.id, p.school_id)
+    } catch {
+      router.push('/teacher')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const filtered = filter === 'all'
-    ? messages
-    : messages.filter(m => m.channel === filter)
+  async function loadAll(uid: string, sid: string) {
+    const [{ data: parts }, { data: circRecips }] = await Promise.all([
+      supabase.from('vc_participants').select('thread_id, last_read_at').eq('profile_id', uid),
+      supabase.from('vc_circular_recipients').select('id, circular_id, ack_at').eq('profile_id', uid),
+    ])
 
-  // ─── Detail view ────────────────────────────────────────────────────────────
-  if (activeMsg) {
+    const threadIds = (parts ?? []).map((p: { thread_id: string }) => p.thread_id)
+
+    if (threadIds.length > 0) {
+      const [{ data: threadRows }, { data: allParts }] = await Promise.all([
+        supabase.from('vc_threads').select('*').in('id', threadIds).order('last_message_at', { ascending: false }),
+        supabase.from('vc_participants').select('thread_id, profile_id').in('thread_id', threadIds),
+      ])
+
+      const otherIds = (allParts ?? [])
+        .filter((p: { profile_id: string }) => p.profile_id !== uid)
+        .map((p: { profile_id: string }) => p.profile_id)
+
+      const { data: profiles } = otherIds.length > 0
+        ? await supabase.from('profiles').select('id, full_name, role').in('id', otherIds)
+        : { data: [] }
+
+      const profileMap: Record<string, ProfileRow> = {}
+      ;(profiles ?? []).forEach((pr: ProfileRow) => { profileMap[pr.id] = pr })
+
+      const readMap: Record<string, string | null> = {}
+      ;(parts ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => { readMap[p.thread_id] = p.last_read_at })
+
+      const ui: ThreadUI[] = (threadRows ?? []).map((t: VCThread) => {
+        const otherPart = (allParts ?? []).find(
+          (p: { thread_id: string; profile_id: string }) => p.thread_id === t.id && p.profile_id !== uid
+        )
+        const other = otherPart ? profileMap[otherPart.profile_id] : null
+        const lastRead = readMap[t.id]
+        const unread = (!lastRead && t.last_message_at) ? 1 : 0
+        return {
+          threadId:      t.id,
+          otherName:     other?.full_name ?? 'Unknown',
+          otherInitials: initials(other?.full_name ?? '?'),
+          lastMessage:   t.last_message_preview ?? '',
+          lastTime:      t.last_message_at ? timeAgo(t.last_message_at) : '',
+          unreadCount:   unread,
+          otherRole:     other?.role ?? '',
+          otherId:       otherPart?.profile_id ?? '',
+        }
+      })
+      setThreads(ui)
+    }
+
+    // Circulars
+    const circIds = (circRecips ?? []).map((r: { circular_id: string }) => r.circular_id)
+    if (circIds.length > 0) {
+      const { data: circs } = await supabase
+        .from('vc_circulars')
+        .select('*')
+        .in('id', circIds)
+        .order('sent_at', { ascending: false })
+
+      const circUI: CircularUI[] = (circs ?? []).map((c: VCCircular) => {
+        const recip = (circRecips ?? []).find((r: { circular_id: string; id: string; ack_at: string | null }) => r.circular_id === c.id)
+        return { ...c, acked: !!recip?.ack_at, recipientId: recip?.id ?? '' }
+      })
+      setCirculars(circUI)
+    }
+  }
+
+  async function openThread(t: ThreadUI) {
+    setActiveThread(t)
+    setMsgLoading(true)
+    await loadMessages(t.threadId)
+    setMsgLoading(false)
+    await supabase.from('vc_participants')
+      .update({ last_read_at: new Date().toISOString() })
+      .eq('thread_id', t.threadId)
+      .eq('profile_id', userId)
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(() => loadMessages(t.threadId), 10000)
+  }
+
+  async function loadMessages(threadId: string) {
+    const { data } = await supabase
+      .from('vc_messages')
+      .select('*')
+      .eq('thread_id', threadId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+    setMessages(data ?? [])
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  }
+
+  async function sendMessage() {
+    if (!msgBody.trim() || !activeThread) return
+    setSending(true)
+    const body = msgBody.trim()
+    setMsgBody('')
+    await supabase.from('vc_messages').insert({
+      thread_id: activeThread.threadId,
+      school_id: schoolId,
+      sender_id: userId,
+      body,
+    })
+    await supabase.from('vc_threads').update({
+      last_message_at:      new Date().toISOString(),
+      last_message_preview: body.slice(0, 80),
+    }).eq('id', activeThread.threadId)
+    await loadMessages(activeThread.threadId)
+    setSending(false)
+  }
+
+  async function searchPeople(q: string) {
+    setSearchQuery(q)
+    if (q.length < 2) { setSearchResults([]); return }
+    setSearching(true)
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('school_id', schoolId)
+      .neq('id', userId)
+      .in('role', ['parent', 'teacher', 'admin'])
+      .ilike('full_name', `%${q}%`)
+      .limit(10)
+    setSearchResults(data ?? [])
+    setSearching(false)
+  }
+
+  async function startThread(other: ProfileRow) {
+    setComposeOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+    const threadId = await findOrCreateThread(schoolId, userId, other.id)
+    const t: ThreadUI = {
+      threadId,
+      otherName:     other.full_name,
+      otherInitials: initials(other.full_name),
+      lastMessage:   '',
+      lastTime:      '',
+      unreadCount:   0,
+      otherRole:     other.role,
+      otherId:       other.id,
+    }
+    await openThread(t)
+  }
+
+  async function acknowledgeCircular(recipientId: string, circularId: string) {
+    setAcking(circularId)
+    await supabase.from('vc_circular_recipients')
+      .update({ ack_at: new Date().toISOString() })
+      .eq('id', recipientId)
+    setCirculars(prev => prev.map(c =>
+      c.id === circularId ? { ...c, acked: true } : c
+    ))
+    setAcking(null)
+  }
+
+  // ── Conversation view ──────────────────────────────────────────────────────
+  if (activeThread) {
     return (
-      <>
-        <div style={{ padding: '16px 16px 32px' }}>
-          <MessageDetail msg={activeMsg} onBack={() => setActiveMsg(null)} />
+      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 120px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <button
+            onClick={() => { setActiveThread(null); if (pollRef.current) clearInterval(pollRef.current); loadAll(userId, schoolId) }}
+            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}
+          >←</button>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>
+            {activeThread.otherInitials}
+          </div>
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '15px', color: C.text }}>{activeThread.otherName}</div>
+            <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{activeThread.otherRole}</div>
+          </div>
         </div>
-      </>
+
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '8px' }}>
+          {msgLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[1,2,3].map(i => <Skeleton key={i} h={48} />)}
+            </div>
+          ) : messages.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: C.muted }}>
+              <VCIcon size={40} />
+              <p style={{ marginTop: '12px', fontSize: '14px' }}>No messages yet. Say hello!</p>
+            </div>
+          ) : messages.map(m => {
+            const mine = m.sender_id === userId
+            return (
+              <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  maxWidth: '75%', padding: '10px 14px',
+                  borderRadius: mine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  background: mine ? C.emerald : C.surface,
+                  color: mine ? '#fff' : C.text,
+                  fontSize: '14px', lineHeight: '1.4',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                }}>
+                  {m.body}
+                  <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px', textAlign: 'right' }}>{timeAgo(m.created_at)}</div>
+                </div>
+              </div>
+            )
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        <div style={{ paddingTop: '8px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <textarea
+            value={msgBody}
+            onChange={e => setMsgBody(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+            placeholder="Type a message..."
+            rows={2}
+            style={{ flex: 1, padding: '10px 14px', borderRadius: '14px', border: `1px solid ${C.border}`, fontSize: '14px', resize: 'none', fontFamily: 'inherit', outline: 'none', background: C.surface }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={sending || !msgBody.trim()}
+            style={{ background: C.emerald, border: 'none', borderRadius: '14px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '18px', flexShrink: 0, opacity: sending || !msgBody.trim() ? 0.5 : 1 }}
+          >➤</button>
+        </div>
+        <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+      </div>
     )
   }
 
-  // ─── List view ──────────────────────────────────────────────────────────────
+  // ── Main view ──────────────────────────────────────────────────────────────
   return (
-    <>
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position:  200% 0 }
-          100% { background-position: -200% 0 }
-        }
-      `}</style>
-
-      {composing && teacherId && schoolId && (
-        <ComposeModal
-          students={students}
-          teacherId={teacherId}
-          schoolId={schoolId}
-          onClose={() => setComposing(false)}
-          onSent={() => {
-            setComposing(false)
-            if (teacherId && schoolId) load(teacherId, schoolId)
-          }}
-        />
-      )}
-
-      <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #0f766e 0%, #10b981 100%)',
-          borderRadius: 20, padding: '20px', color: '#fff',
-        }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-            VibeConnect
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>Messages & Threads</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-            Teachers · Parents · Admin. Scoped to your school.
-          </div>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+        <VCIcon size={32} />
+        <div>
+          <h1 style={{ fontSize: '20px', fontWeight: '800', color: C.text, margin: 0 }}>VibeConnect</h1>
+          <p style={{ fontSize: '12px', color: C.muted, margin: 0 }}>Messages · Notices · School comms</p>
         </div>
+      </div>
 
-        {/* Error */}
-        {error && (
-          <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', color: C.error, fontSize: 13 }}>
-            {error}
-          </div>
-        )}
+      <div style={{ display: 'flex', gap: '8px', margin: '20px 0 16px', background: C.surface, borderRadius: '12px', padding: '4px', border: `1px solid ${C.border}` }}>
+        {(['threads', 'circulars'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '14px', background: tab === t ? C.hero : 'transparent', color: tab === t ? '#fff' : C.muted, transition: 'all 0.2s' }}>
+            {t === 'threads' ? '💬 Messages' : '📢 Notices'}
+          </button>
+        ))}
+      </div>
 
-        {/* Filter tabs + compose */}
-        {!loading && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 8, flex: 1, flexWrap: 'wrap' }}>
-              {FILTERS.map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 20, border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
-                    background: filter === f ? C.accent : C.surface,
-                    color:      filter === f ? '#fff'    : C.textMuted,
-                  }}
-                >
-                  {f === 'all' ? 'All' : f.toUpperCase()}
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[1,2,3,4].map(i => <Skeleton key={i} h={72} />)}
+        </div>
+      ) : tab === 'threads' ? (
+        <>
+          {threads.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}` }}>
+              <VCIcon size={48} />
+              <p style={{ marginTop: '16px', fontWeight: '700', color: C.text }}>No conversations yet</p>
+              <p style={{ fontSize: '13px', color: C.muted, marginTop: '4px' }}>Tap + to message a parent or colleague</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {threads.map(t => (
+                <button key={t.threadId} onClick={() => openThread(t)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '15px', flexShrink: 0 }}>
+                    {t.otherInitials}
+                  </div>
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '700', fontSize: '14px', color: C.text }}>{t.otherName}</span>
+                      <span style={{ fontSize: '11px', color: C.muted }}>{t.lastTime}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{t.lastMessage || 'No messages yet'}</div>
+                    <div style={{ fontSize: '11px', color: C.muted, textTransform: 'capitalize', marginTop: '2px' }}>{t.otherRole}</div>
+                  </div>
+                  {t.unreadCount > 0 && (
+                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.emerald, color: '#fff', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{t.unreadCount}</div>
+                  )}
                 </button>
               ))}
             </div>
-            <Btn small onClick={() => setComposing(true)}>+ New</Btn>
-          </div>
-        )}
-
-        {/* Loading skeletons */}
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} h={72} />)}
-          </div>
-        )}
-
-        {/* Empty */}
-        {!loading && !error && filtered.length === 0 && (
-          <Card>
-            <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
-              {filter === 'all'
-                ? "No messages sent yet. Tap + New to send your first message."
-                : `No ${filter.toUpperCase()} messages found.`}
+          )}
+          <button
+            onClick={() => setComposeOpen(true)}
+            style={{ position: 'fixed', bottom: '80px', right: '20px', width: '56px', height: '56px', borderRadius: '50%', background: C.emerald, border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
+          >+</button>
+        </>
+      ) : (
+        <>
+          {circulars.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: '32px' }}>📢</p>
+              <p style={{ marginTop: '12px', fontWeight: '700', color: C.text }}>No notices yet</p>
+              <p style={{ fontSize: '13px', color: C.muted, marginTop: '4px' }}>School circulars will appear here</p>
             </div>
-          </Card>
-        )}
-
-        {/* Message list */}
-        {!loading && !error && filtered.length > 0 && (
-          <Card>
-            {filtered.map((m, idx) => (
-              <div
-                key={m.id}
-                onClick={() => setActiveMsg(m)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 0', cursor: 'pointer',
-                  borderBottom: idx < filtered.length - 1 ? `1px solid ${C.border}` : 'none',
-                }}
-              >
-                <Avatar name={m.studentName} idx={idx} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>
-                      {m.studentName}
-                    </span>
-                    <span style={{ fontSize: 11, color: C.textMuted, flexShrink: 0 }}>
-                      {timeAgo(m.sentAt)}
-                    </span>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {circulars.map(c => (
+                <div key={c.id} style={{ background: C.surface, border: `1px solid ${c.requires_ack && !c.acked ? C.warning : C.border}`, borderRadius: '14px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: '700', fontSize: '14px', color: C.text, flex: 1 }}>{c.title}</span>
+                    <span style={{ fontSize: '11px', color: C.muted, marginLeft: '8px', flexShrink: 0 }}>{timeAgo(c.sent_at)}</span>
                   </div>
-                  <div style={{
-                    fontSize: 13, fontWeight: 600, color: C.textPrimary,
-                    marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {m.subject}
-                  </div>
-                  <div style={{
-                    fontSize: 12, color: C.textMuted, marginTop: 2,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {m.body}
-                  </div>
-                  <div style={{
-                    display: 'inline-block', marginTop: 4,
-                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                    padding: '2px 8px', borderRadius: 10,
-                    background: C.accentLight, color: C.accent,
-                  }}>
-                    {m.channel}
+                  <p style={{ fontSize: '13px', color: C.muted, lineHeight: '1.5', marginBottom: '12px' }}>{c.body}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ background: C.emeraldLt, color: C.emerald, borderRadius: '20px', padding: '3px 10px', fontSize: '11px', fontWeight: '600' }}>{c.audience_type.replace('_', ' ')}</span>
+                    {c.requires_ack && (
+                      c.acked ? (
+                        <span style={{ fontSize: '12px', color: C.emerald, fontWeight: '700' }}>✓ Acknowledged</span>
+                      ) : (
+                        <button
+                          onClick={() => acknowledgeCircular(c.recipientId, c.id)}
+                          disabled={acking === c.id}
+                          style={{ padding: '6px 14px', borderRadius: '10px', border: 'none', background: C.warning, color: '#fff', fontWeight: '700', fontSize: '12px', cursor: 'pointer', opacity: acking === c.id ? 0.6 : 1 }}
+                        >
+                          {acking === c.id ? 'Saving...' : 'Acknowledge'}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </Card>
-        )}
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
-      </div>
-    </>
+      {composeOpen && (
+        <>
+          <div onClick={() => setComposeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', background: C.surface, zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '70dvh' }}>
+            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ fontWeight: '700', fontSize: '16px', color: C.text }}>New Message</div>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, padding: '16px' }}>
+              <input
+                value={searchQuery}
+                onChange={e => searchPeople(e.target.value)}
+                placeholder="Search parents, teachers, admin..."
+                style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+              />
+              {searching && <div style={{ textAlign: 'center', padding: '16px', color: C.muted, fontSize: '13px' }}>Searching...</div>}
+              {searchResults.map(p => (
+                <button key={p.id} onClick={() => startThread(p)} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', marginTop: '4px' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '13px', flexShrink: 0 }}>
+                    {initials(p.full_name)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: C.text }}>{p.full_name}</div>
+                    <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{p.role}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}` }}>
+              <button onClick={() => setComposeOpen(false)} style={{ width: '100%', padding: '13px', borderRadius: '12px', border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+    </div>
   )
 }
