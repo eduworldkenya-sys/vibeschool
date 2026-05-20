@@ -375,3 +375,195 @@ export interface HealthVaccination {
   created_at:      string;
   deleted_at:      string | null;
 }
+
+// ─── VibeConnect ──────────────────────────────────────────────────────────────
+
+export interface VCThread {
+  id:                   string;
+  school_id:            string;
+  type:                 'direct' | 'circular';
+  subject:              string | null;
+  created_by:           string;
+  created_at:           string;
+  last_message_at:      string | null;
+  last_message_preview: string | null;
+}
+
+export interface VCParticipant {
+  id:           string;
+  thread_id:    string;
+  profile_id:   string;
+  school_id:    string;
+  joined_at:    string;
+  left_at:      string | null;
+  last_read_at: string | null;
+}
+
+export interface VCMessage {
+  id:         string;
+  thread_id:  string;
+  school_id:  string;
+  sender_id:  string;
+  body:       string;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+export interface VCCircular {
+  id:            string;
+  school_id:     string;
+  title:         string;
+  body:          string;
+  audience_type: 'all_staff' | 'all_parents' | 'everyone';
+  requires_ack:  boolean;
+  ack_deadline:  string | null;
+  sent_by:       string;
+  sent_at:       string;
+  created_at:    string;
+}
+
+export interface VCCircularRecipient {
+  id:           string;
+  circular_id:  string;
+  profile_id:   string;
+  delivered_at: string;
+  ack_at:       string | null;
+}
+
+export interface VCThreadUI {
+  threadId:      string;
+  otherName:     string;
+  otherInitials: string;
+  lastMessage:   string;
+  lastTime:      string;
+  unreadCount:   number;
+  otherRole:     string;
+}
+
+// ─── VibeConnect ──────────────────────────────────────────────────────────────
+
+export interface VCThread {
+  id:                   string;
+  school_id:            string;
+  type:                 'direct' | 'circular';
+  subject:              string | null;
+  created_by:           string;
+  created_at:           string;
+  last_message_at:      string | null;
+  last_message_preview: string | null;
+}
+
+export interface VCParticipant {
+  id:           string;
+  thread_id:    string;
+  profile_id:   string;
+  school_id:    string;
+  joined_at:    string;
+  left_at:      string | null;
+  last_read_at: string | null;
+}
+
+export interface VCMessage {
+  id:         string;
+  thread_id:  string;
+  school_id:  string;
+  sender_id:  string;
+  body:       string;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+export interface VCCircular {
+  id:            string;
+  school_id:     string;
+  title:         string;
+  body:          string;
+  audience_type: 'all_staff' | 'all_parents' | 'everyone';
+  requires_ack:  boolean;
+  ack_deadline:  string | null;
+  sent_by:       string;
+  sent_at:       string;
+  created_at:    string;
+}
+
+export interface VCCircularRecipient {
+  id:           string;
+  circular_id:  string;
+  profile_id:   string;
+  delivered_at: string;
+  ack_at:       string | null;
+}
+
+export interface VCThreadUI {
+  threadId:      string;
+  otherName:     string;
+  otherInitials: string;
+  lastMessage:   string;
+  lastTime:      string;
+  unreadCount:   number;
+  otherRole:     string;
+}
+
+// ─── VibeConnect ──────────────────────────────────────────────────────────────
+
+export interface VCThread {
+  id:                   string;
+  school_id:            string;
+  type:                 'direct' | 'circular';
+  subject:              string | null;
+  created_by:           string;
+  created_at:           string;
+  last_message_at:      string | null;
+  last_message_preview: string | null;
+}
+
+export interface VCParticipant {
+  id:           string;
+  thread_id:    string;
+  profile_id:   string;
+  school_id:    string;
+  joined_at:    string;
+  left_at:      string | null;
+  last_read_at: string | null;
+}
+
+export interface VCMessage {
+  id:         string;
+  thread_id:  string;
+  school_id:  string;
+  sender_id:  string;
+  body:       string;
+  created_at: string;
+  deleted_at: string | null;
+}
+
+export interface VCCircular {
+  id:            string;
+  school_id:     string;
+  title:         string;
+  body:          string;
+  audience_type: 'all_staff' | 'all_parents' | 'everyone';
+  requires_ack:  boolean;
+  ack_deadline:  string | null;
+  sent_by:       string;
+  sent_at:       string;
+  created_at:    string;
+}
+
+export interface VCCircularRecipient {
+  id:           string;
+  circular_id:  string;
+  profile_id:   string;
+  delivered_at: string;
+  ack_at:       string | null;
+}
+
+export interface VCThreadUI {
+  threadId:      string;
+  otherName:     string;
+  otherInitials: string;
+  lastMessage:   string;
+  lastTime:      string;
+  unreadCount:   number;
+  otherRole:     string;
+}
