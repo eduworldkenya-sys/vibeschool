@@ -158,7 +158,7 @@ export default function AdminCommunicationPage() {
       setUserId(user.id)
       setSchoolId(p.school_id)
       setMyName(p.full_name ?? 'Admin')
-      await ensureVCId(user.id, p.full_name ?? 'Admin')
+      try { await ensureVCId(user.id, p.full_name ?? 'Admin') } catch {}
       await loadAll(user.id, p.school_id)
     } catch {
       router.push('/admin/login')

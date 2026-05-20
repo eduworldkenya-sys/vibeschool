@@ -147,7 +147,7 @@ export default function TeacherVibeConnectPage() {
       if (!p || p.role !== 'teacher') { router.push('/teacher'); return }
       setUserId(user.id)
       setSchoolId(p.school_id)
-      await ensureVCId(user.id, p.full_name ?? 'Teacher')
+      try { await ensureVCId(user.id, p.full_name ?? 'Teacher') } catch {}
       await loadAll(user.id, p.school_id)
     } catch {
       router.push('/teacher')

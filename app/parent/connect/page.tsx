@@ -150,7 +150,7 @@ export default function ParentConnectPage() {
       if (!p || p.role !== 'parent') { router.push('/parent/login'); return }
       setUserId(user.id)
       setSchoolId(p.school_id)
-      await ensureVCId(user.id, p.full_name ?? 'Parent')
+      try { await ensureVCId(user.id, p.full_name ?? 'Parent') } catch {}
       await loadAll(user.id, p.school_id)
     } catch {
       router.push('/parent/login')
@@ -533,7 +533,7 @@ export default function ParentConnectPage() {
               )}
             </div>
             {/* Send button — always visible, never scrolls away */}
-            <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}`, background: C.surface, display: 'flex', gap: '8px' }}>
+            <div style={{ padding: "12px 16px", paddingBottom: "max(16px, env(safe-area-inset-bottom))", borderTop: `1px solid ${C.border}`, background: C.surface, display: "flex", gap: "8px", position: "sticky", bottom: 0 }}>
               <button onClick={() => { setComposeOpen(false); setSelected(null); setSearchQuery(''); setDraftBody('') }} style={{ flex: 1, padding: '13px', borderRadius: '12px', border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
               {selected && (
                 <button
