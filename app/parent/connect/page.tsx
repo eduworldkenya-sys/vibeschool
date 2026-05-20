@@ -1,379 +1,555 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
-import { Message, MessageThread } from "@/lib/types";
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import type { VCThread, VCMessage, VCCircular } from '@/lib/types'
 
-function relativeTime(iso: string): string {
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  const diff = now - then;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  const d = new Date(iso);
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const C = {
+  hero:      '#0a1628',
+  heroMid:   '#0d2347',
+  emerald:   '#10b981',
+  emeraldLt: '#d1fae5',
+  bg:        '#f0f4f8',
+  border:    '#e2e8f0',
+  surface:   '#ffffff',
+  text:      '#0f172a',
+  muted:     '#64748b',
+  warning:   '#f59e0b',
+  warningLt: '#fef3c7',
+  error:     '#ef4444',
+  errorLt:   '#fee2e2',
+  navy3:     '#0f5fa8',
 }
 
-function ThreadSkeleton() {
+function Skeleton({ h = 56, r = 12 }: { h?: number; r?: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px" }}>
-      {[0, 1].map((i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, background: "#fff", borderRadius: 12 }}>
-          <div className="shimmer" style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0 }} />
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div className="shimmer" style={{ width: "55%", height: 14, borderRadius: 6 }} />
-            <div className="shimmer" style={{ width: "80%", height: 12, borderRadius: 6 }} />
-          </div>
-          <div className="shimmer" style={{ width: 32, height: 10, borderRadius: 6 }} />
-        </div>
-      ))}
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position: -400px 0; }
-          100% { background-position:  400px 0; }
-        }
-        .shimmer {
-          background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
-          background-size: 800px 100%;
-          animation: shimmer 1.4s infinite linear;
-        }
-      `}</style>
-    </div>
-  );
+    <div style={{
+      height: h, borderRadius: r,
+      background: 'linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s infinite',
+    }} />
+  )
 }
 
-export default function ConnectPage() {
-  const [userId, setUserId]                   = useState<string | null>(null);
-  const [threads, setThreads]                 = useState<MessageThread[]>([]);
-  const [loading, setLoading]                 = useState(true);
-  const [view, setView]                       = useState<"threads" | "conversation">("threads");
-  const [activeThread, setActiveThread]       = useState<MessageThread | null>(null);
-  const [conversation, setConversation]       = useState<Message[]>([]);
-  const [convLoading, setConvLoading]         = useState(false);
-  const [composeOpen, setComposeOpen]         = useState(false);
-  const [searchQuery, setSearchQuery]         = useState("");
-  const [searchResults, setSearchResults]     = useState<{ id: string; full_name: string }[]>([]);
-  const [selectedTeacher, setSelectedTeacher] = useState<{ id: string; full_name: string } | null>(null);
-  const [messageBody, setMessageBody]         = useState("");
-  const [sending, setSending]                 = useState(false);
-  const [replyText, setReplyText]             = useState("");
+function VCIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="10" fill="#0a1628"/>
+      <path d="M6 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H10l-4 4V8z" fill="#10b981" opacity="0.15"/>
+      <path d="M6 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H10l-4 4V8z" stroke="#10b981" strokeWidth="1.5" fill="none"/>
+      <text x="16" y="17" textAnchor="middle" fontSize="10" fill="#10b981" fontWeight="bold">✦</text>
+    </svg>
+  )
+}
+
+function initials(name: string) {
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+}
+
+function timeAgo(ts: string) {
+  const diff = Date.now() - new Date(ts).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1)  return 'now'
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h`
+  return `${Math.floor(h / 24)}d`
+}
+
+async function ensureVCId(userId: string, fullName: string) {
+  const { data } = await supabase.from('profiles').select('vc_id').eq('id', userId).single()
+  if (data?.vc_id) return data.vc_id
+  const slug = fullName.toLowerCase().split(' ')[0].replace(/[^a-z]/g, '').slice(0, 8)
+  const suffix = Math.floor(1000 + Math.random() * 9000)
+  const vcId = `@${slug}.${suffix}`
+  await supabase.from('profiles').update({ vc_id: vcId }).eq('id', userId)
+  return vcId
+}
+
+async function findOrCreateThread(schoolId: string, currentUserId: string, otherUserId: string): Promise<string> {
+  const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
+  const myThreadIds = (myThreads ?? []).map((t: { thread_id: string }) => t.thread_id)
+  if (myThreadIds.length > 0) {
+    const { data: shared } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', otherUserId).in('thread_id', myThreadIds)
+    if (shared && shared.length > 0) return shared[0].thread_id
+  }
+  const { data: thread } = await supabase.from('vc_threads').insert({ school_id: schoolId, type: 'direct', created_by: currentUserId }).select().single()
+  await supabase.from('vc_participants').insert([
+    { thread_id: thread.id, profile_id: currentUserId, school_id: schoolId },
+    { thread_id: thread.id, profile_id: otherUserId,   school_id: schoolId },
+  ])
+  return thread.id
+}
+
+interface ThreadUI {
+  threadId:      string
+  otherName:     string
+  otherInitials: string
+  lastMessage:   string
+  lastTime:      string
+  unreadCount:   number
+  otherRole:     string
+  otherId:       string
+}
+
+interface CircularUI extends VCCircular {
+  acked:       boolean
+  recipientId: string
+}
+
+interface ProfileRow {
+  id:        string
+  full_name: string
+  role:      string
+}
+
+export default function ParentConnectPage() {
+  const router = useRouter()
+
+  const [userId,   setUserId]   = useState('')
+  const [schoolId, setSchoolId] = useState('')
+  const [loading,  setLoading]  = useState(true)
+
+  const [tab, setTab] = useState<'threads' | 'notices'>('threads')
+
+  // Threads
+  const [threads,       setThreads]       = useState<ThreadUI[]>([])
+  const [activeThread,  setActiveThread]  = useState<ThreadUI | null>(null)
+  const [messages,      setMessages]      = useState<VCMessage[]>([])
+  const [msgBody,       setMsgBody]       = useState('')
+  const [sending,       setSending]       = useState(false)
+  const [msgLoading,    setMsgLoading]    = useState(false)
+  const pollRef   = useRef<ReturnType<typeof setInterval> | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Compose
+  const [composeOpen,   setComposeOpen]   = useState(false)
+  const [searchQuery,   setSearchQuery]   = useState('')
+  const [searchResults, setSearchResults] = useState<ProfileRow[]>([])
+  const [searching,     setSearching]     = useState(false)
+  const [selected,      setSelected]      = useState<ProfileRow | null>(null)
+  const [draftBody,     setDraftBody]     = useState('')
+  const [draftSending,  setDraftSending]  = useState(false)
+
+  // Notices
+  const [circulars, setCirculars] = useState<CircularUI[]>([])
+  const [acking,    setAcking]    = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUserId(data.user.id);
-    });
-  }, []);
+    loadUser()
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [])
 
-  const fetchThreads = useCallback(async (uid: string) => {
-    setLoading(true);
-    const { data: messages, error } = await supabase
-      .from("parent_messages")
-      .select("*")
-      .or(`sender_id.eq.${uid},recipient_id.eq.${uid}`)
-      .order("created_at", { ascending: false });
-
-    if (error || !messages) { setLoading(false); return; }
-
-    const threadMap: Record<string, Message[]> = {};
-    for (const msg of messages as Message[]) {
-      const otherId = msg.sender_id === uid ? msg.recipient_id : msg.sender_id;
-      if (!threadMap[otherId]) threadMap[otherId] = [];
-      threadMap[otherId].push(msg);
+  async function loadUser() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/parent/login'); return }
+      const { data: p } = await supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single()
+      if (!p || p.role !== 'parent') { router.push('/parent/login'); return }
+      setUserId(user.id)
+      setSchoolId(p.school_id)
+      await ensureVCId(user.id, p.full_name ?? 'Parent')
+      await loadAll(user.id, p.school_id)
+    } catch {
+      router.push('/parent/login')
+    } finally {
+      setLoading(false)
     }
-
-    const teacherIds = Object.keys(threadMap);
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", teacherIds);
-
-    const nameMap: Record<string, string> = {};
-    for (const p of profiles ?? []) nameMap[p.id] = p.full_name;
-
-    const built: MessageThread[] = teacherIds.map((tid) => {
-      const msgs = threadMap[tid];
-      const latest = msgs[0];
-      const unread = msgs.filter((m) => m.recipient_id === uid && !m.is_read).length;
-      return {
-        teacherId:   tid,
-        teacherName: nameMap[tid] ?? "Unknown",
-        lastMessage: latest.body,
-        lastTime:    relativeTime(latest.created_at),
-        unreadCount: unread,
-      };
-    });
-
-    setThreads(built);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (userId) fetchThreads(userId);
-  }, [userId, fetchThreads]);
-
-  const fetchConversation = useCallback(async (uid: string, teacherId: string) => {
-    setConvLoading(true);
-    const { data } = await supabase
-      .from("parent_messages")
-      .select("*")
-      .or(`and(sender_id.eq.${uid},recipient_id.eq.${teacherId}),and(sender_id.eq.${teacherId},recipient_id.eq.${uid})`)
-      .order("created_at", { ascending: true });
-    setConversation((data as Message[]) ?? []);
-    setConvLoading(false);
-  }, []);
-
-  const openThread = useCallback((thread: MessageThread) => {
-    setActiveThread(thread);
-    setView("conversation");
-    if (userId) fetchConversation(userId, thread.teacherId);
-  }, [userId, fetchConversation]);
-
-  const searchTeachers = useCallback(async (q: string) => {
-    if (q.trim().length < 2) { setSearchResults([]); return; }
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("role", "teacher")
-      .ilike("full_name", `%${q}%`)
-      .limit(8);
-    setSearchResults(data ?? []);
-  }, []);
-
-  useEffect(() => {
-    searchTeachers(searchQuery);
-  }, [searchQuery, searchTeachers]);
-
-  const sendNewMessage = useCallback(async () => {
-    if (!userId || !selectedTeacher || messageBody.trim() === "") return;
-    setSending(true);
-    await supabase.from("parent_messages").insert({
-      sender_id:    userId,
-      recipient_id: selectedTeacher.id,
-      body:         messageBody.trim(),
-      is_read:      false,
-    });
-    setSending(false);
-    setComposeOpen(false);
-    setSelectedTeacher(null);
-    setSearchQuery("");
-    setMessageBody("");
-    fetchThreads(userId);
-  }, [userId, selectedTeacher, messageBody, fetchThreads]);
-
-  const sendReply = useCallback(async () => {
-    if (!userId || !activeThread || replyText.trim() === "") return;
-    const { data } = await supabase
-      .from("parent_messages")
-      .insert({
-        sender_id:    userId,
-        recipient_id: activeThread.teacherId,
-        body:         replyText.trim(),
-        is_read:      false,
-      })
-      .select()
-      .single();
-    if (data) setConversation((prev) => [...prev, data as Message]);
-    setReplyText("");
-  }, [userId, activeThread, replyText]);
-
-  const totalUnread = threads.reduce((sum, t) => sum + t.unreadCount, 0);
-
-  const closeCompose = useCallback(() => {
-    setComposeOpen(false);
-    setSelectedTeacher(null);
-    setSearchQuery("");
-    setMessageBody("");
-    setSearchResults([]);
-  }, []);
-
-  if (view === "conversation" && activeThread) {
-    return (
-      <div id="parent-conversation-page" style={{ display: "flex", flexDirection: "column", background: "#f0f2f5" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#fff", borderBottom: "1px solid #e5e7eb" }}>
-          <button
-            onClick={() => { setView("threads"); setActiveThread(null); setConversation([]); }}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#1e1b4b", padding: 0, lineHeight: 1 }}
-          >
-            &#8592;
-          </button>
-          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1e1b4b", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
-            {activeThread.teacherName.charAt(0).toUpperCase()}
-          </div>
-          <span style={{ fontWeight: 600, fontSize: 15, color: "#111827" }}>{activeThread.teacherName}</span>
-        </div>
-
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-          {convLoading ? (
-            <p style={{ textAlign: "center", color: "#6b7280", fontSize: 14 }}>Loading...</p>
-          ) : (
-            conversation.map((msg) => {
-              const isParent = msg.sender_id === userId;
-              return (
-                <div key={msg.id} style={{ display: "flex", flexDirection: "column", alignItems: isParent ? "flex-end" : "flex-start" }}>
-                  <div style={{
-                    maxWidth: "75%", padding: "10px 14px",
-                    borderRadius: isParent ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                    background: isParent ? "#1e1b4b" : "#fff",
-                    color: isParent ? "#fff" : "#111827",
-                    border: isParent ? "none" : "1px solid #e5e7eb",
-                    fontSize: 14, lineHeight: 1.5,
-                  }}>
-                    {msg.body}
-                  </div>
-                  <span style={{ fontSize: 11, color: "#9ca3af", marginTop: 4, padding: "0 4px" }}>
-                    {relativeTime(msg.created_at)}
-                  </span>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#fff", borderTop: "1px solid #e5e7eb" }}>
-          <input
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
-            placeholder="Type a message"
-            style={{ flex: 1, padding: "10px 14px", borderRadius: 24, border: "1px solid #e5e7eb", fontSize: 14, outline: "none", background: "#f0f2f5" }}
-          />
-          <button
-            onClick={sendReply}
-            style={{ width: 40, height: 40, borderRadius: "50%", background: "#10b981", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    );
   }
 
+  async function loadAll(uid: string, sid: string) {
+    const [{ data: parts }, { data: circRecips }] = await Promise.all([
+      supabase.from('vc_participants').select('thread_id, last_read_at').eq('profile_id', uid),
+      supabase.from('vc_circular_recipients').select('id, circular_id, ack_at').eq('profile_id', uid),
+    ])
+
+    const threadIds = (parts ?? []).map((p: { thread_id: string }) => p.thread_id)
+
+    if (threadIds.length > 0) {
+      const [{ data: threadRows }, { data: allParts }] = await Promise.all([
+        supabase.from('vc_threads').select('*').in('id', threadIds).order('last_message_at', { ascending: false }),
+        supabase.from('vc_participants').select('thread_id, profile_id').in('thread_id', threadIds),
+      ])
+
+      const otherIds = (allParts ?? [])
+        .filter((p: { profile_id: string }) => p.profile_id !== uid)
+        .map((p: { profile_id: string }) => p.profile_id)
+
+      const { data: profiles } = otherIds.length > 0
+        ? await supabase.from('profiles').select('id, full_name, role').in('id', otherIds)
+        : { data: [] }
+
+      const profileMap: Record<string, ProfileRow> = {}
+      ;(profiles ?? []).forEach((pr: ProfileRow) => { profileMap[pr.id] = pr })
+
+      const readMap: Record<string, string | null> = {}
+      ;(parts ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => { readMap[p.thread_id] = p.last_read_at })
+
+      const ui: ThreadUI[] = (threadRows ?? []).map((t: VCThread) => {
+        const otherPart = (allParts ?? []).find(
+          (p: { thread_id: string; profile_id: string }) => p.thread_id === t.id && p.profile_id !== uid
+        )
+        const other = otherPart ? profileMap[otherPart.profile_id] : null
+        const lastRead = readMap[t.id]
+        const unread = (!lastRead && t.last_message_at) ? 1 : 0
+        return {
+          threadId:      t.id,
+          otherName:     other?.full_name ?? 'Unknown',
+          otherInitials: initials(other?.full_name ?? '?'),
+          lastMessage:   t.last_message_preview ?? '',
+          lastTime:      t.last_message_at ? timeAgo(t.last_message_at) : '',
+          unreadCount:   unread,
+          otherRole:     other?.role ?? '',
+          otherId:       otherPart?.profile_id ?? '',
+        }
+      })
+      setThreads(ui)
+    }
+
+    const circIds = (circRecips ?? []).map((r: { circular_id: string }) => r.circular_id)
+    if (circIds.length > 0) {
+      const { data: circs } = await supabase
+        .from('vc_circulars')
+        .select('*')
+        .in('id', circIds)
+        .order('sent_at', { ascending: false })
+
+      const circUI: CircularUI[] = (circs ?? []).map((c: VCCircular) => {
+        const recip = (circRecips ?? []).find((r: { circular_id: string; id: string; ack_at: string | null }) => r.circular_id === c.id)
+        return { ...c, acked: !!recip?.ack_at, recipientId: recip?.id ?? '' }
+      })
+      setCirculars(circUI)
+    }
+  }
+
+  async function openThread(t: ThreadUI) {
+    setActiveThread(t)
+    setMsgLoading(true)
+    await loadMessages(t.threadId)
+    setMsgLoading(false)
+    await supabase.from('vc_participants')
+      .update({ last_read_at: new Date().toISOString() })
+      .eq('thread_id', t.threadId)
+      .eq('profile_id', userId)
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(() => loadMessages(t.threadId), 10000)
+  }
+
+  async function loadMessages(threadId: string) {
+    const { data } = await supabase
+      .from('vc_messages')
+      .select('*')
+      .eq('thread_id', threadId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+    setMessages(data ?? [])
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  }
+
+  async function sendMessage() {
+    if (!msgBody.trim() || !activeThread) return
+    setSending(true)
+    const body = msgBody.trim()
+    setMsgBody('')
+    await supabase.from('vc_messages').insert({
+      thread_id: activeThread.threadId,
+      school_id: schoolId,
+      sender_id: userId,
+      body,
+    })
+    await supabase.from('vc_threads').update({
+      last_message_at:      new Date().toISOString(),
+      last_message_preview: body.slice(0, 80),
+    }).eq('id', activeThread.threadId)
+    await loadMessages(activeThread.threadId)
+    setSending(false)
+  }
+
+  async function searchPeople(q: string) {
+    setSearchQuery(q)
+    setSelected(null)
+    if (q.length < 2) { setSearchResults([]); return }
+    setSearching(true)
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('school_id', schoolId)
+      .neq('id', userId)
+      .in('role', ['teacher', 'admin'])
+      .ilike('full_name', `%${q}%`)
+      .limit(10)
+    setSearchResults(data ?? [])
+    setSearching(false)
+  }
+
+  async function sendDraft() {
+    if (!selected || !draftBody.trim()) return
+    setDraftSending(true)
+    const threadId = await findOrCreateThread(schoolId, userId, selected.id)
+    await supabase.from('vc_messages').insert({
+      thread_id: threadId,
+      school_id: schoolId,
+      sender_id: userId,
+      body:      draftBody.trim(),
+    })
+    await supabase.from('vc_threads').update({
+      last_message_at:      new Date().toISOString(),
+      last_message_preview: draftBody.trim().slice(0, 80),
+    }).eq('id', threadId)
+    setDraftSending(false)
+    setComposeOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+    setSelected(null)
+    setDraftBody('')
+    await loadAll(userId, schoolId)
+    const t: ThreadUI = {
+      threadId,
+      otherName:     selected.full_name,
+      otherInitials: initials(selected.full_name),
+      lastMessage:   draftBody.trim().slice(0, 80),
+      lastTime:      'now',
+      unreadCount:   0,
+      otherRole:     selected.role,
+      otherId:       selected.id,
+    }
+    await openThread(t)
+  }
+
+  async function acknowledgeCircular(recipientId: string, circularId: string) {
+    setAcking(circularId)
+    await supabase.from('vc_circular_recipients')
+      .update({ ack_at: new Date().toISOString() })
+      .eq('id', recipientId)
+    setCirculars(prev => prev.map(c =>
+      c.id === circularId ? { ...c, acked: true } : c
+    ))
+    setAcking(null)
+  }
+
+  // ── Conversation view ──────────────────────────────────────────────────────
+  if (activeThread) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 120px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <button
+            onClick={() => { setActiveThread(null); if (pollRef.current) clearInterval(pollRef.current); loadAll(userId, schoolId) }}
+            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}
+          >←</button>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>
+            {activeThread.otherInitials}
+          </div>
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '15px', color: C.text }}>{activeThread.otherName}</div>
+            <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{activeThread.otherRole}</div>
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '8px' }}>
+          {msgLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[1,2,3].map(i => <Skeleton key={i} h={48} />)}
+            </div>
+          ) : messages.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: C.muted }}>
+              <VCIcon size={40} />
+              <p style={{ marginTop: '12px', fontSize: '14px' }}>No messages yet. Say hello!</p>
+            </div>
+          ) : messages.map(m => {
+            const mine = m.sender_id === userId
+            return (
+              <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                <div style={{
+                  maxWidth: '75%', padding: '10px 14px',
+                  borderRadius: mine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  background: mine ? C.emerald : C.surface,
+                  color: mine ? '#fff' : C.text,
+                  fontSize: '14px', lineHeight: '1.4',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                }}>
+                  {m.body}
+                  <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px', textAlign: 'right' }}>{timeAgo(m.created_at)}</div>
+                </div>
+              </div>
+            )
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        <div style={{ paddingTop: '8px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <textarea
+            value={msgBody}
+            onChange={e => setMsgBody(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+            placeholder="Type a message..."
+            rows={2}
+            style={{ flex: 1, padding: '10px 14px', borderRadius: '14px', border: `1px solid ${C.border}`, fontSize: '14px', resize: 'none', fontFamily: 'inherit', outline: 'none', background: C.surface }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={sending || !msgBody.trim()}
+            style={{ background: C.emerald, border: 'none', borderRadius: '14px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '18px', flexShrink: 0, opacity: sending || !msgBody.trim() ? 0.5 : 1 }}
+          >➤</button>
+        </div>
+        <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+      </div>
+    )
+  }
+
+  // ── Main view ──────────────────────────────────────────────────────────────
   return (
-    <div id="parent-connect-page" style={{ background: "#f0f2f5", paddingBottom: 80 }}>
-      <div style={{ padding: "20px 16px 12px", display: "flex", alignItems: "center", gap: 10 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111827", margin: 0 }}>Messages</h1>
-        {totalUnread > 0 && (
-          <span style={{ background: "#10b981", color: "#fff", borderRadius: 999, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>
-            {totalUnread}
-          </span>
-        )}
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+        <VCIcon size={32} />
+        <div>
+          <h1 style={{ fontSize: '20px', fontWeight: '800', color: C.text, margin: 0 }}>VibeConnect</h1>
+          <p style={{ fontSize: '12px', color: C.muted, margin: 0 }}>Messages · Notices · School comms</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', margin: '20px 0 16px', background: C.surface, borderRadius: '12px', padding: '4px', border: `1px solid ${C.border}` }}>
+        {(['threads', 'notices'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '14px', background: tab === t ? C.hero : 'transparent', color: tab === t ? '#fff' : C.muted, transition: 'all 0.2s' }}>
+            {t === 'threads' ? '💬 Messages' : '📢 Notices'}
+          </button>
+        ))}
       </div>
 
       {loading ? (
-        <ThreadSkeleton />
-      ) : threads.length === 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 32px", gap: 12, textAlign: "center" }}>
-          <span style={{ fontSize: 48 }}>&#128172;</span>
-          <p style={{ fontSize: 17, fontWeight: 600, color: "#111827", margin: 0 }}>No messages yet</p>
-          <p style={{ fontSize: 14, color: "#6b7280", margin: 0 }}>Start a conversation with your child's teacher</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[1,2,3,4].map(i => <Skeleton key={i} h={72} />)}
+        </div>
+      ) : tab === 'threads' ? (
+        <>
+          {threads.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}` }}>
+              <VCIcon size={48} />
+              <p style={{ marginTop: '16px', fontWeight: '700', color: C.text }}>No conversations yet</p>
+              <p style={{ fontSize: '13px', color: C.muted, marginTop: '4px' }}>Tap + to message a teacher</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {threads.map(t => (
+                <button key={t.threadId} onClick={() => openThread(t)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '15px', flexShrink: 0 }}>
+                    {t.otherInitials}
+                  </div>
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: '700', fontSize: '14px', color: C.text }}>{t.otherName}</span>
+                      <span style={{ fontSize: '11px', color: C.muted }}>{t.lastTime}</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{t.lastMessage || 'No messages yet'}</div>
+                    <div style={{ fontSize: '11px', color: C.muted, textTransform: 'capitalize', marginTop: '2px' }}>{t.otherRole}</div>
+                  </div>
+                  {t.unreadCount > 0 && (
+                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.emerald, color: '#fff', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{t.unreadCount}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
           <button
             onClick={() => setComposeOpen(true)}
-            style={{ marginTop: 8, padding: "12px 24px", background: "#10b981", color: "#fff", border: "none", borderRadius: 24, fontSize: 15, fontWeight: 600, cursor: "pointer" }}
-          >
-            Message a Teacher
-          </button>
-        </div>
+            style={{ position: 'fixed', bottom: '80px', right: '20px', width: '56px', height: '56px', borderRadius: '50%', background: C.emerald, border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
+          >+</button>
+        </>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 16px" }}>
-          {threads.map((t) => (
-            <button
-              key={t.teacherId}
-              onClick={() => openThread(t)}
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, background: "#fff", borderRadius: 14, border: "none", cursor: "pointer", textAlign: "left", width: "100%" }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#1e1b4b", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 18, flexShrink: 0 }}>
-                {t.teacherName.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: "#111827" }}>{t.teacherName}</p>
-                <p style={{ margin: "2px 0 0", fontSize: 13, color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {t.lastMessage}
-                </p>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: "#9ca3af" }}>{t.lastTime}</span>
-                {t.unreadCount > 0 && (
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#10b981", display: "block" }} />
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
+        <>
+          {circulars.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: '32px' }}>📢</p>
+              <p style={{ marginTop: '12px', fontWeight: '700', color: C.text }}>No notices yet</p>
+              <p style={{ fontSize: '13px', color: C.muted, marginTop: '4px' }}>School notices will appear here</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {circulars.map(c => (
+                <div key={c.id} style={{ background: C.surface, border: `1px solid ${c.requires_ack && !c.acked ? C.warning : C.border}`, borderRadius: '14px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: '700', fontSize: '14px', color: C.text, flex: 1 }}>{c.title}</span>
+                    <span style={{ fontSize: '11px', color: C.muted, marginLeft: '8px', flexShrink: 0 }}>{timeAgo(c.sent_at)}</span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: C.muted, lineHeight: '1.5', marginBottom: '12px' }}>{c.body}</p>
+                  {c.requires_ack && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      {c.acked ? (
+                        <span style={{ fontSize: '12px', color: C.emerald, fontWeight: '700' }}>✓ Acknowledged</span>
+                      ) : (
+                        <button
+                          onClick={() => acknowledgeCircular(c.recipientId, c.id)}
+                          disabled={acking === c.id}
+                          style={{ padding: '8px 18px', borderRadius: '10px', border: 'none', background: C.warning, color: '#fff', fontWeight: '700', fontSize: '13px', cursor: 'pointer', opacity: acking === c.id ? 0.6 : 1 }}
+                        >
+                          {acking === c.id ? 'Saving...' : 'Acknowledge'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      <button
-        onClick={() => setComposeOpen(true)}
-        style={{ position: "fixed", bottom: 96, right: 20, width: 52, height: 52, borderRadius: "50%", background: "#10b981", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(16,185,129,0.4)", zIndex: 10 }}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-        </svg>
-      </button>
-
+      {/* Compose sheet */}
       {composeOpen && (
         <>
-          <div onClick={closeCompose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 40 }} />
-          <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 16px 36px", zIndex: 50, display: "flex", flexDirection: "column", gap: 14, maxHeight: "55dvh", overflowY: "auto", paddingBottom: "max(36px, env(safe-area-inset-bottom))" }}>
-            <div style={{ width: 36, height: 4, background: "#e5e7eb", borderRadius: 2, margin: "0 auto 4px" }} />
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#111827" }}>New Message</h2>
-
-            {selectedTeacher ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#f0fdf4", border: "1px solid #10b981", borderRadius: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "#065f46" }}>{selectedTeacher.full_name}</span>
-                <button onClick={() => { setSelectedTeacher(null); setSearchQuery(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 16 }}>
-                  &#10005;
-                </button>
-              </div>
-            ) : (
-              <div>
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search teacher by name..."
-                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box" }}
-                />
-                {searchResults.length > 0 && (
-                  <div style={{ border: "1px solid #e5e7eb", borderTop: "none", borderRadius: "0 0 10px 10px", overflow: "hidden" }}>
-                    {searchResults.map((r) => (
-                      <button
-                        key={r.id}
-                        onClick={() => { setSelectedTeacher(r); setSearchQuery(""); setSearchResults([]); }}
-                        style={{ display: "block", width: "100%", padding: "10px 14px", background: "#fff", border: "none", borderBottom: "1px solid #f3f4f6", cursor: "pointer", textAlign: "left", fontSize: 14, color: "#111827" }}
-                      >
-                        {r.full_name}
-                      </button>
-                    ))}
+          <div onClick={() => setComposeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
+          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', background: C.surface, zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '70dvh' }}>
+            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ fontWeight: '700', fontSize: '16px', color: C.text }}>Message a Teacher</div>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                value={searchQuery}
+                onChange={e => searchPeople(e.target.value)}
+                placeholder="Search teachers or admin..."
+                style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+              />
+              {searching && <div style={{ textAlign: 'center', padding: '8px', color: C.muted, fontSize: '13px' }}>Searching...</div>}
+              {!selected && searchResults.map(p => (
+                <button key={p.id} onClick={() => { setSelected(p); setSearchQuery(p.full_name); setSearchResults([]) }} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', borderRadius: '12px', border: `1px solid ${C.border}`, background: C.bg, cursor: 'pointer', textAlign: 'left' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '13px', flexShrink: 0 }}>
+                    {initials(p.full_name)}
                   </div>
-                )}
-              </div>
-            )}
-
-            <textarea
-              value={messageBody}
-              onChange={(e) => setMessageBody(e.target.value)}
-              placeholder="Write your message..."
-              rows={4}
-              style={{ width: "100%", padding: "10px 14px", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 14, outline: "none", resize: "none", boxSizing: "border-box", fontFamily: "inherit" }}
-            />
-
-            <button
-              onClick={sendNewMessage}
-              disabled={sending || !selectedTeacher || messageBody.trim() === ""}
-              style={{ padding: 13, background: (sending || !selectedTeacher || messageBody.trim() === "") ? "#d1fae5" : "#10b981", color: "#fff", border: "none", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: sending ? "not-allowed" : "pointer" }}
-            >
-              {sending ? "Sending..." : "Send Message"}
-            </button>
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '14px', color: C.text }}>{p.full_name}</div>
+                    <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{p.role}</div>
+                  </div>
+                </button>
+              ))}
+              {selected && (
+                <textarea
+                  value={draftBody}
+                  onChange={e => setDraftBody(e.target.value)}
+                  placeholder={`Message to ${selected.full_name}...`}
+                  rows={4}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              )}
+            </div>
+            {/* Send button — always visible, never scrolls away */}
+            <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}`, background: C.surface, display: 'flex', gap: '8px' }}>
+              <button onClick={() => { setComposeOpen(false); setSelected(null); setSearchQuery(''); setDraftBody('') }} style={{ flex: 1, padding: '13px', borderRadius: '12px', border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+              {selected && (
+                <button
+                  onClick={sendDraft}
+                  disabled={draftSending || !draftBody.trim()}
+                  style={{ flex: 2, padding: '13px', borderRadius: '12px', border: 'none', background: C.emerald, color: '#fff', fontWeight: '700', fontSize: '14px', cursor: 'pointer', opacity: draftSending || !draftBody.trim() ? 0.5 : 1 }}
+                >
+                  {draftSending ? 'Sending...' : 'Send Message'}
+                </button>
+              )}
+            </div>
           </div>
         </>
       )}
+
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
     </div>
-  );
+  )
 }
