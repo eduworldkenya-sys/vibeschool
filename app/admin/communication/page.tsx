@@ -412,7 +412,7 @@ export default function AdminCommunicationPage() {
           school_id:            schoolId,
           title:                memoSubject.trim(),
           body:                 memoBody.trim(),
-          audience_type:        'individual',
+          audience_type:        'all_staff',
           recipient_profile_id: memoRecipient.id,
           requires_ack:         memoAck,
           sent_by:              userId,
@@ -654,7 +654,7 @@ export default function AdminCommunicationPage() {
           <button onClick={() => setNewCircSheet(true)} style={{ width: '100%', padding: '14px', borderRadius: '14px', background: C.emerald, border: 'none', color: '#fff', fontWeight: '700', fontSize: '15px', cursor: 'pointer', marginBottom: '16px' }}>
             + New Circular
           </button>
-          {circulars.filter(c => c.audience_type !== 'individual').length === 0 ? (
+          {circulars.filter(c => c.audience_type !== 'everyone').length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 20px', background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}` }}>
               <p style={{ fontSize: '32px' }}>📢</p>
               <p style={{ marginTop: '12px', fontWeight: '700', color: C.text }}>No circulars sent yet</p>
@@ -662,7 +662,7 @@ export default function AdminCommunicationPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {circulars.filter(c => c.audience_type !== 'individual').map(c => (
+              {circulars.filter(c => c.audience_type !== 'everyone').map(c => (
                 <button key={c.id} onClick={() => setActiveCircular(c)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '16px', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <span style={{ fontWeight: '700', fontSize: '14px', color: C.text, flex: 1 }}>{c.title}</span>
