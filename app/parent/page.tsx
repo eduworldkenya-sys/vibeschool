@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import ParentTwinDrawer from '@/components/parent/TwinDrawer'
 import { useRouter } from 'next/navigation'
 
 interface ChildData {
@@ -33,6 +34,7 @@ export default function ParentHomePage() {
   const [children,  setChildren]  = useState<ChildData[]>([])
   const [loading,   setLoading]   = useState(true)
   const [noChild,   setNoChild]   = useState(false)
+  const [twinOpen,   setTwinOpen]  = useState(false)
 
   const dark   = '#1e1b4b'
   const accent = '#10b981'
@@ -221,6 +223,34 @@ export default function ParentHomePage() {
         </button>
       )}
 
+      {/* ── Parent Twin ──────────────────────────────────────────────── */}
+      <button
+        onClick={() => setTwinOpen(true)}
+        style={{
+          position:       "fixed",
+          bottom:         90,
+          right:          20,
+          zIndex:         750,
+          width:          52,
+          height:         52,
+          borderRadius:   "50%",
+          background:     "linear-gradient(135deg, #1e1b4b 0%, #064e3b 100%)",
+          border:         "1.5px solid rgba(16,185,129,0.5)",
+          color:          "#10b981",
+          fontSize:       20,
+          cursor:         "pointer",
+          boxShadow:      "0 4px 24px rgba(16,185,129,0.35)",
+          display:        "flex",
+          alignItems:     "center",
+          justifyContent: "center",
+        }}
+      >
+        ✦
+      </button>
+      <ParentTwinDrawer
+        open={twinOpen}
+        onClose={() => setTwinOpen(false)}
+      />
     </div>
   )
 }
