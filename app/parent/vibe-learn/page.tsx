@@ -162,7 +162,7 @@ export default function VibeLearnPage() {
 
     const plans = lessonPlansRes.data ?? []
     const planIds = plans.map((p: { id: string }) => p.id)
-    const subjectIds = [...new Set(plans.map((p: { subject_id: string }) => p.subject_id))]
+    const subjectIds = Array.from(new Set(plans.map((p: { subject_id: string }) => p.subject_id)))
 
     const [contentRes, subjectsRes] = await Promise.all([
       planIds.length > 0
