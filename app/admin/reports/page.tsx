@@ -1,13 +1,9 @@
 'use client'
+import { supabase } from '@/lib/supabase'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const categories = [
   { key: 'academic',     label: 'Academic',     icon: '📚', href: '/admin/reports/academic',     color: 'from-blue-600 to-blue-800' },
