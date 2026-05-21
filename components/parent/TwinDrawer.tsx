@@ -94,9 +94,7 @@ export default function ParentTwinDrawer({ open, onClose }: Props) {
       const ctx = `Parent: ${parentName}
 Today: ${new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
-${childLines.join("
-
-")}`;
+${childLines.join("\n\n")}`;
 
       setContext(ctx);
       setMessages([{
