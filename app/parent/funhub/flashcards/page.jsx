@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -22,14 +22,23 @@ function shuffle(arr) {
 }
 
 function normalise(row) {
-  const opts = typeof row.options === 'string' ? JSON.parse(row.options) : row.options;
+  let opts = {};
+  try {
+    opts = typeof row.options === 'string' ? JSON.parse(row.options) : (row.options || {});
+  } catch (e) {
+    opts = {};
+  }
+  
   const optMap = Array.isArray(opts)
     ? { A: opts[0], B: opts[1], C: opts[2], D: opts[3] }
     : opts;
-  const answerText = optMap[row.correct] ?? row.correct ?? '';
+    
+  const lookupKey = String(row.correct || row.correct_option || '').toUpperCase().trim();
+  const answerText = optMap[lookupKey] ?? row.correct ?? '';
+  
   return {
     id: row.id,
-    front: row.question_text,
+    front: row.question_text || row.question || 'Missing Question Text',
     back: row.explanation && row.explanation.trim() !== '' ? row.explanation : answerText,
   };
 }
@@ -109,8 +118,8 @@ function FlipCard({ card, onGotIt, onStillLearning }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, width: '100%' }}>
       <style>{`
-        .card-scene { width: 100%; max-width: 360px; height: 220px; perspective: 900px; cursor: pointer; }
-        .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.4,0,0.2,1); }
+        .card-scene { width: 100%; max-width: 360px; height: 220px; perspective: 1000px; -webkit-perspective: 1000px; cursor: pointer; }
+        .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); }
         .card-inner.flipped { transform: rotateY(180deg); }
         .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; }
         .card-front { background: #fff; border: 2px solid #e0f2fe; box-shadow: 0 8px 32px rgba(8,145,178,0.12); }
@@ -127,12 +136,12 @@ function FlipCard({ card, onGotIt, onStillLearning }) {
         <div className={`card-inner${flipped ? ' flipped' : ''}`}>
           <div className="card-face card-front">
             <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Question</p>
-            <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2937', textAlign: 'center', lineHeight: 1.45, margin: 0 }}>{card.front}</p>
+            <p style={{ fontSize: 17, fontWeight: 700, color: '#1f2937', textAlign: 'center', lineHeight: 1.45, margin: 0 }}>{card.front}</p>
             <p style={{ fontSize: 12, color: '#cbd5e1', margin: '16px 0 0', fontWeight: 500 }}>Tap to reveal answer</p>
           </div>
           <div className="card-face card-back">
             <p style={{ fontSize: 11, fontWeight: 700, color: '#a5f3fc', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Answer</p>
-            <p style={{ fontSize: 18, fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.45, margin: 0 }}>{card.back}</p>
+            <p style={{ fontSize: 17, fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.45, margin: 0 }}>{card.back}</p>
           </div>
         </div>
       </div>
@@ -171,7 +180,6 @@ function GameScreen({ cards, subject, grade, onFinish }) {
     newGotIt.add(currentCard.id);
     setGotItIds(newGotIt);
 
-    const remaining = deck.filter((_, i) => i !== deckIdx && !newGotIt.has(deck[i]?.id));
     if (newGotIt.size >= totalCards) {
       onFinish({ gotItCount: newGotIt.size, totalCards, rounds });
       return;
@@ -184,22 +192,23 @@ function GameScreen({ cards, subject, grade, onFinish }) {
   }
 
   function advanceDeck(currentGotIt, currentIdx) {
-    const remaining = deck.filter((c, i) => !currentGotIt.has(c.id));
+    const remaining = deck.filter((c) => !currentGotIt.has(c.id));
     if (remaining.length === 0) {
       onFinish({ gotItCount: currentGotIt.size, totalCards, rounds });
       return;
     }
+    
     const nextIdx = currentIdx + 1;
     if (nextIdx >= deck.length) {
-      // reshuffle remaining cards
       setDeck(shuffle(remaining));
       setDeckIdx(0);
       setRounds(r => r + 1);
     } else {
-      // skip already-got cards
       let ni = nextIdx;
-      while (ni < deck.length && currentGotIt.has(deck[ni]?.id)) ni++;
-      if (ni >= deck.length) {
+      while (ni < deck.length && deck[ni] && currentGotIt.has(deck[ni].id)) {
+        ni++;
+      }
+      if (ni >= deck.length || !deck[ni]) {
         setDeck(shuffle(remaining));
         setDeckIdx(0);
         setRounds(r => r + 1);
@@ -233,11 +242,13 @@ function GameScreen({ cards, subject, grade, onFinish }) {
           </div>
         )}
 
-        <FlipCard
-          card={currentCard}
-          onGotIt={handleGotIt}
-          onStillLearning={handleStillLearning}
-        />
+        {currentCard && (
+          <FlipCard
+            card={currentCard}
+            onGotIt={handleGotIt}
+            onStillLearning={handleStillLearning}
+          />
+        )}
 
         <div style={{ textAlign: 'center' }}>
           <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>{subject} · Grade {grade}</span>
@@ -358,7 +369,7 @@ export default function FlashcardsGame() {
         total: result.totalCards,
         completed: true,
       });
-    } catch { /* silent */ }
+    } catch { /* silent fallback */ }
   }
 
   function handleReplay() {
