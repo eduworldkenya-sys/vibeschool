@@ -11,6 +11,7 @@ create table if not exists report_comparisons (
 
 alter table report_comparisons enable row level security;
 
+drop policy if exists "school members can view comparisons" on report_comparisons;
 create policy "school members can view comparisons"
   on report_comparisons for select
   using (school_id in (
