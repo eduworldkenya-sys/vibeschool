@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 interface ResourceDocument {
   id: string
@@ -95,7 +95,7 @@ const TABS = [
 
 export default function AdminResourcesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  
 
   const [activeTab, setActiveTab] = useState('documents')
   const [schoolId, setSchoolId]   = useState<string | null>(null)
