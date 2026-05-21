@@ -286,7 +286,7 @@ export default function AdminResourcesPage() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 0, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: 0, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', maskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 85%, transparent 100%)' }}>
           {TABS.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
               background: 'none', border: 'none', cursor: 'pointer',
@@ -484,7 +484,7 @@ export default function AdminResourcesPage() {
         <button
           onClick={() => { resetForm(); setError(null); setShowModal(true) }}
           style={{
-            position: 'fixed', bottom: 24, right: 20,
+            position: 'fixed', bottom: 90, right: 20,
             background: C.emerald, color: '#fff', border: 'none',
             borderRadius: 20, padding: '14px 22px',
             fontWeight: 700, fontSize: 15, cursor: 'pointer',
