@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
-const BG      = '#0a0a1a'
-const SURFACE = '#12122a'
-const CARD    = '#1a1a35'
+const BG      = '#f0f2f5'
+const SURFACE = '#ffffff'
+const CARD    = '#ffffff'
 const GOLD    = '#f5a623'
 const GREEN   = '#10b981'
-const MUTED   = 'rgba(255,255,255,0.45)'
-const WHITE   = '#ffffff'
+const MUTED   = '#9ca3af'
+const WHITE   = '#111827'
 const DARK    = '#1e1b4b'
 
 interface Child {
@@ -53,7 +53,7 @@ function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
   return (
     <div style={{
       height: h, borderRadius: radius,
-      background: 'linear-gradient(90deg,#1e1e3a 25%,#252545 50%,#1e1e3a 75%)',
+      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.4s infinite',
     }} />
@@ -62,7 +62,7 @@ function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
 
 function SectionTitle({ children }: { children: string }) {
   return (
-    <div style={{ fontSize: 13, fontWeight: 800, color: MUTED, letterSpacing: 1.2,
+    <div style={{ fontSize: 13, fontWeight: 800, color: '#6b7280', letterSpacing: 1.2,
       textTransform: 'uppercase', marginBottom: 12, marginTop: 28 }}>
       {children}
     </div>
@@ -297,10 +297,10 @@ export default function VibeLearnPage() {
         {/* ── Twin greeting card ── */}
         <div style={{ padding: '16px 16px 0' }}>
           <div style={{
-            background: SURFACE,
+            background: '#ffffff',
             borderRadius: 20,
             padding: '20px 18px',
-            border: `1px solid rgba(16,185,129,0.2)`,
+            border: `1px solid rgba(16,185,129,0.3)`,
             position: 'relative', overflow: 'hidden',
           }}>
             <div style={{
@@ -350,9 +350,9 @@ export default function VibeLearnPage() {
               placeholder="Search any concept, subject, lesson..."
               style={{
                 width: '100%', boxSizing: 'border-box',
-                background: CARD, border: `1px solid rgba(255,255,255,0.08)`,
+                background: '#ffffff', border: '1px solid #e5e7eb',
                 borderRadius: 14, padding: '13px 16px 13px 42px',
-                fontSize: 13, color: WHITE, outline: 'none',
+                fontSize: 13, color: '#111827', outline: 'none',
               }}
             />
           </div>
@@ -500,7 +500,7 @@ export default function VibeLearnPage() {
           {/* ── Learning Biography ── */}
           <SectionTitle>Learning Biography</SectionTitle>
           <div style={{
-            background: SURFACE, borderRadius: 20, padding: '20px 18px',
+            background: '#ffffff', borderRadius: 20, padding: '20px 18px',
             border: `1px solid rgba(255,255,255,0.06)`,
           }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
