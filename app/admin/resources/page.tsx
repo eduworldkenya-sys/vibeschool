@@ -17,18 +17,24 @@ interface StoreItem {
   added_by: string; created_at: string
 }
 
-interface StoreTransaction {
-  id: string; school_id: string; item_id: string; txn_type: 'stock_in' | 'stock_out' | 'adjustment'
-  quantity: number; reference: string | null; issued_to: string | null
-  notes: string | null; created_by: string; created_at: string
-}
-
 interface ResourceRequest {
   id: string; school_id: string; requested_by: string; item_id: string | null
   item_name: string | null; quantity: number; reason: string | null
   status: 'pending' | 'approved' | 'rejected' | 'fulfilled'
   reviewed_by: string | null; reviewed_at: string | null; created_at: string
   requester_name?: string
+}
+
+interface LearningMaterial {
+  id: string; school_id: string; uploaded_by: string; class_id: string | null
+  subject: string; title: string; description: string | null
+  file_url: string; file_type: 'pdf' | 'docx' | 'zip' | 'png' | 'mp4' | 'other'
+  file_size_kb: number | null; visibility: 'class' | 'school' | 'staff'
+  created_at: string; uploader_name?: string; class_name?: string
+}
+
+interface SchoolClass {
+  id: string; name: string
 }
 
 const C = {
@@ -67,6 +73,13 @@ const STORE_CAT_COLORS: Record<string,{bg:string;color:string}> = {
   other:{bg:'#f1f5f9',color:'#475569'},
 }
 
+const LEARN_FILE_TYPES = ['pdf','docx','zip','png','mp4','other']
+const LEARN_VISIBILITIES = ['class','school','staff']
+const LEARN_VIS_LABELS: Record<string,string> = { class:'Class Only', school:'School-wide', staff:'Staff Only' }
+const LEARN_VIS_COLORS: Record<string,{bg:string;color:string}> = {
+  class:{bg:'#dbeafe',color:'#1d4ed8'}, school:{bg:'#d1fae5',color:'#065f46'}, staff:{bg:'#fef3c7',color:'#92400e'},
+}
+
 function formatSize(kb: number | null): string {
   if (!kb) return ''
   return kb < 1024 ? `${kb} KB` : `${(kb/1024).toFixed(1)} MB`
@@ -81,42 +94,63 @@ export default function AdminResourcesPage() {
   const [schoolId, setSchoolId]   = useState<string | null>(null)
   const [userId, setUserId]       = useState<string | null>(null)
 
-  const [docs, setDocs]                 = useState<ResourceDocument[]>([])
-  const [docsLoading, setDocsLoading]   = useState(true)
-  const [docSearch, setDocSearch]       = useState('')
-  const [filterCat, setFilterCat]       = useState('all')
-  const [filterVis, setFilterVis]       = useState('all')
-  const [showDocModal, setShowDocModal] = useState(false)
+  // ── Documents state ──
+  const [docs, setDocs]                       = useState<ResourceDocument[]>([])
+  const [docsLoading, setDocsLoading]         = useState(true)
+  const [docSearch, setDocSearch]             = useState('')
+  const [filterCat, setFilterCat]             = useState('all')
+  const [filterVis, setFilterVis]             = useState('all')
+  const [showDocModal, setShowDocModal]       = useState(false)
   const [deleteDocTarget, setDeleteDocTarget] = useState<ResourceDocument | null>(null)
-  const [docUploading, setDocUploading] = useState(false)
-  const [formTitle, setFormTitle]       = useState('')
-  const [formCat, setFormCat]           = useState('policy')
-  const [formVis, setFormVis]           = useState<'admin_only'|'staff'|'everyone'>('staff')
-  const [formFile, setFormFile]         = useState<File | null>(null)
+  const [docUploading, setDocUploading]       = useState(false)
+  const [formTitle, setFormTitle]             = useState('')
+  const [formCat, setFormCat]                 = useState('policy')
+  const [formVis, setFormVis]                 = useState<'admin_only'|'staff'|'everyone'>('staff')
+  const [formFile, setFormFile]               = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [storeItems, setStoreItems]           = useState<StoreItem[]>([])
-  const [storeLoading, setStoreLoading]       = useState(false)
-  const [storeSearch, setStoreSearch]         = useState('')
-  const [storeCatFilter, setStoreCatFilter]   = useState('all')
-  const [storeRequests, setStoreRequests]     = useState<ResourceRequest[]>([])
-  const [showAddItem, setShowAddItem]         = useState(false)
-  const [showTxnModal, setShowTxnModal]       = useState(false)
-  const [txnTarget, setTxnTarget]             = useState<StoreItem | null>(null)
-  const [txnType, setTxnType]                 = useState<'stock_in'|'stock_out'>('stock_in')
-  const [txnQty, setTxnQty]                   = useState('')
-  const [txnRef, setTxnRef]                   = useState('')
-  const [txnNotes, setTxnNotes]               = useState('')
-  const [txnLoading, setTxnLoading]           = useState(false)
-  const [itemName, setItemName]               = useState('')
-  const [itemCat, setItemCat]                 = useState('stationery')
-  const [itemUnit, setItemUnit]               = useState('piece')
-  const [itemQty, setItemQty]                 = useState('0')
-  const [itemThreshold, setItemThreshold]     = useState('5')
-  const [itemLoading, setItemLoading]         = useState(false)
+  // ── Store state ──
+  const [storeItems, setStoreItems]               = useState<StoreItem[]>([])
+  const [storeLoading, setStoreLoading]           = useState(false)
+  const [storeSearch, setStoreSearch]             = useState('')
+  const [storeCatFilter, setStoreCatFilter]       = useState('all')
+  const [storeRequests, setStoreRequests]         = useState<ResourceRequest[]>([])
+  const [showAddItem, setShowAddItem]             = useState(false)
+  const [showTxnModal, setShowTxnModal]           = useState(false)
+  const [txnTarget, setTxnTarget]                 = useState<StoreItem | null>(null)
+  const [txnType, setTxnType]                     = useState<'stock_in'|'stock_out'>('stock_in')
+  const [txnQty, setTxnQty]                       = useState('')
+  const [txnRef, setTxnRef]                       = useState('')
+  const [txnNotes, setTxnNotes]                   = useState('')
+  const [txnLoading, setTxnLoading]               = useState(false)
+  const [itemName, setItemName]                   = useState('')
+  const [itemCat, setItemCat]                     = useState('stationery')
+  const [itemUnit, setItemUnit]                   = useState('piece')
+  const [itemQty, setItemQty]                     = useState('0')
+  const [itemThreshold, setItemThreshold]         = useState('5')
+  const [itemLoading, setItemLoading]             = useState(false)
   const [deleteStoreTarget, setDeleteStoreTarget] = useState<StoreItem | null>(null)
-  const [storeViewMode, setStoreViewMode]     = useState<'items'|'requests'>('items')
+  const [storeViewMode, setStoreViewMode]         = useState<'items'|'requests'>('items')
 
+  // ── Learning state ──
+  const [materials, setMaterials]                   = useState<LearningMaterial[]>([])
+  const [learnLoading, setLearnLoading]             = useState(false)
+  const [learnSearch, setLearnSearch]               = useState('')
+  const [learnSubjectFilter, setLearnSubjectFilter] = useState('all')
+  const [learnVisFilter, setLearnVisFilter]         = useState('all')
+  const [classes, setClasses]                       = useState<SchoolClass[]>([])
+  const [showUploadModal, setShowUploadModal]       = useState(false)
+  const [deleteLearnTarget, setDeleteLearnTarget]   = useState<LearningMaterial | null>(null)
+  const [learnUploading, setLearnUploading]         = useState(false)
+  const [lFormTitle, setLFormTitle]                 = useState('')
+  const [lFormSubject, setLFormSubject]             = useState('')
+  const [lFormClassId, setLFormClassId]             = useState('')
+  const [lFormVisibility, setLFormVisibility]       = useState<'class'|'school'|'staff'>('school')
+  const [lFormDesc, setLFormDesc]                   = useState('')
+  const [lFormFile, setLFormFile]                   = useState<File | null>(null)
+  const learnFileRef = useRef<HTMLInputElement>(null)
+
+  // ── Shared toast ──
   const [error, setError]     = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -125,6 +159,7 @@ export default function AdminResourcesPage() {
     else { setError(msg) }
   }
 
+  // ── Auth ──
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -137,12 +172,15 @@ export default function AdminResourcesPage() {
     init()
   }, [])
 
+  // ── Fetch by tab ──
   useEffect(() => {
     if (!schoolId) return
     if (activeTab === 'documents') fetchDocs()
     if (activeTab === 'store') { fetchStoreItems(); fetchStoreRequests() }
+    if (activeTab === 'learning') { fetchMaterials(); fetchClasses() }
   }, [schoolId, activeTab])
 
+  // ── Documents logic ──
   async function fetchDocs() {
     setDocsLoading(true)
     const { data, error: err } = await supabase
@@ -199,28 +237,23 @@ export default function AdminResourcesPage() {
     (filterVis === 'all' || d.visibility === filterVis)
   )
 
+  // ── Store logic ──
   async function fetchStoreItems() {
     setStoreLoading(true)
     const { data, error: err } = await supabase
-      .from('store_items')
-      .select('*')
-      .eq('school_id', schoolId!)
-      .is('deleted_at', null)
-      .order('name')
+      .from('store_items').select('*')
+      .eq('school_id', schoolId!).is('deleted_at', null).order('name')
     if (err) { toast('Failed to load store items.', 'error'); setStoreLoading(false); return }
     setStoreItems(data || [])
     setStoreLoading(false)
   }
 
   async function fetchStoreRequests() {
-    const { data, error: err } = await supabase
+    const { data } = await supabase
       .from('resource_requests')
       .select('*, requester:requested_by(full_name)')
-      .eq('school_id', schoolId!)
-      .eq('status', 'pending')
-      .is('deleted_at', null)
+      .eq('school_id', schoolId!).eq('status', 'pending').is('deleted_at', null)
       .order('created_at', { ascending: false })
-    if (err) return
     setStoreRequests((data || []).map((r: any) => ({ ...r, requester_name: r.requester?.full_name ?? 'Unknown' })))
   }
 
@@ -286,6 +319,89 @@ export default function AdminResourcesPage() {
   )
   const lowStockCount = storeItems.filter(i => i.quantity <= i.low_stock_threshold).length
 
+  // ── Learning logic ──
+  async function fetchClasses() {
+    const { data } = await supabase
+      .from('classes').select('id, name')
+      .eq('school_id', schoolId!).order('name')
+    setClasses(data || [])
+  }
+
+  async function fetchMaterials() {
+    setLearnLoading(true)
+    const { data, error: err } = await supabase
+      .from('resource_materials')
+      .select('*, uploader:uploaded_by(full_name), class:class_id(name)')
+      .eq('school_id', schoolId!)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+    if (err) { toast('Failed to load materials.', 'error'); setLearnLoading(false); return }
+    setMaterials((data || []).map((m: any) => ({
+      ...m,
+      uploader_name: m.uploader?.full_name ?? 'Unknown',
+      class_name: m.class?.name ?? null,
+    })))
+    setLearnLoading(false)
+  }
+
+  async function handleUploadMaterial() {
+    if (!lFormTitle.trim()) { toast('Title is required.', 'error'); return }
+    if (!lFormSubject.trim()) { toast('Subject is required.', 'error'); return }
+    if (!lFormFile) { toast('Please select a file.', 'error'); return }
+    if (!schoolId || !userId) return
+    setLearnUploading(true)
+    const ext      = lFormFile.name.split('.').pop()?.toLowerCase() ?? 'other'
+    const safeName = `${Date.now()}_${lFormFile.name.replace(/\s+/g, '_')}`
+    const path     = `${schoolId}/${safeName}`
+    const { error: upErr } = await supabase.storage.from('resource-materials').upload(path, lFormFile, { upsert: false })
+    if (upErr) { toast('File upload failed: ' + upErr.message, 'error'); setLearnUploading(false); return }
+    const { data: urlData } = supabase.storage.from('resource-materials').getPublicUrl(path)
+    const fileType = (['pdf','docx','zip','png','mp4'] as string[]).includes(ext) ? ext : 'other'
+    const { error: dbErr } = await supabase.from('resource_materials').insert({
+      school_id: schoolId,
+      uploaded_by: userId,
+      class_id: lFormClassId || null,
+      subject: lFormSubject.trim(),
+      title: lFormTitle.trim(),
+      description: lFormDesc.trim() || null,
+      file_url: urlData.publicUrl,
+      file_type: fileType,
+      file_size_kb: Math.round(lFormFile.size / 1024),
+      visibility: lFormVisibility,
+    })
+    if (dbErr) { toast('DB insert failed: ' + dbErr.message, 'error'); setLearnUploading(false); return }
+    toast('Material uploaded successfully.')
+    setShowUploadModal(false)
+    resetLearnForm()
+    fetchMaterials()
+    setLearnUploading(false)
+  }
+
+  async function handleDeleteMaterial(m: LearningMaterial) {
+    const { error: err } = await supabase.from('resource_materials').update({ deleted_at: new Date().toISOString() }).eq('id', m.id)
+    if (err) { toast('Delete failed.', 'error'); return }
+    setDeleteLearnTarget(null)
+    toast('Material removed.')
+    fetchMaterials()
+  }
+
+  function resetLearnForm() {
+    setLFormTitle(''); setLFormSubject(''); setLFormClassId(''); setLFormVisibility('school')
+    setLFormDesc(''); setLFormFile(null)
+    if (learnFileRef.current) learnFileRef.current.value = ''
+  }
+
+  const allSubjects = Array.from(new Set(materials.map(m => m.subject))).sort()
+  const filteredMaterials = materials.filter(m =>
+    (m.title.toLowerCase().includes(learnSearch.toLowerCase()) ||
+     m.subject.toLowerCase().includes(learnSearch.toLowerCase())) &&
+    (learnSubjectFilter === 'all' || m.subject === learnSubjectFilter) &&
+    (learnVisFilter === 'all' || m.visibility === learnVisFilter)
+  )
+  const byClassCount  = materials.filter(m => m.visibility === 'class').length
+  const schoolWideCount = materials.filter(m => m.visibility === 'school').length
+
+  // ── Stats ──
   const stats = [
     { label: 'Total Assets',     value: '—', icon: '🏫' },
     { label: 'Books Borrowed',   value: '—', icon: '📖' },
@@ -296,6 +412,7 @@ export default function AdminResourcesPage() {
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
+      {/* Header */}
       <div style={{ background: `linear-gradient(135deg, ${C.hero} 0%, ${C.heroMid} 100%)`, padding: '20px 16px 0', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}>‹</button>
@@ -304,7 +421,6 @@ export default function AdminResourcesPage() {
             <div style={{ color: '#fff', fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>Resources</div>
           </div>
         </div>
-
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
           {stats.map(s => (
             <div key={s.label} style={{ background: 'rgba(255,255,255,0.10)', borderRadius: 12, padding: '10px 14px', minWidth: 110, flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -314,7 +430,6 @@ export default function AdminResourcesPage() {
             </div>
           ))}
         </div>
-
         <div style={{ display: 'flex', gap: 0, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', maskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 85%, transparent 100%)' }}>
           {TABS.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', whiteSpace: 'nowrap', color: activeTab === t.key ? C.emerald : 'rgba(255,255,255,0.55)', fontWeight: activeTab === t.key ? 700 : 500, fontSize: 13, borderBottom: activeTab === t.key ? `2px solid ${C.emerald}` : '2px solid transparent', transition: 'all 0.2s' }}>
@@ -324,6 +439,7 @@ export default function AdminResourcesPage() {
         </div>
       </div>
 
+      {/* Toasts */}
       <div style={{ padding: '12px 16px 0' }}>
         {success && <div style={{ background: C.emeraldLt, color: '#065f46', borderRadius: 10, padding: '10px 14px', marginBottom: 4, fontSize: 13, fontWeight: 600 }}>✅ {success}</div>}
         {error && <div style={{ background: '#fee2e2', color: '#b91c1c', borderRadius: 10, padding: '10px 14px', marginBottom: 4, fontSize: 13, fontWeight: 600 }}>⚠️ {error} <button onClick={() => setError(null)} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: 700 }}>✕</button></div>}
@@ -331,6 +447,7 @@ export default function AdminResourcesPage() {
 
       <div style={{ padding: '8px 16px 100px' }}>
 
+        {/* ══ DOCUMENTS TAB ══ */}
         {activeTab === 'documents' && (
           <div>
             <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
@@ -387,6 +504,7 @@ export default function AdminResourcesPage() {
           </div>
         )}
 
+        {/* ══ STORE TAB ══ */}
         {activeTab === 'store' && (
           <div>
             <div style={{ display: 'flex', background: C.surface, borderRadius: 14, padding: 4, marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
@@ -396,7 +514,6 @@ export default function AdminResourcesPage() {
                 </button>
               ))}
             </div>
-
             {storeViewMode === 'items' && (
               <div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
@@ -411,7 +528,6 @@ export default function AdminResourcesPage() {
                     </div>
                   ))}
                 </div>
-
                 <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
                   <input value={storeSearch} onChange={e => setStoreSearch(e.target.value)} placeholder="Search items…" style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 14, color: C.text, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
                   <select value={storeCatFilter} onChange={e => setStoreCatFilter(e.target.value)} style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text, background: C.surface, outline: 'none' }}>
@@ -419,11 +535,9 @@ export default function AdminResourcesPage() {
                     {STORE_CATEGORIES.map(c => <option key={c} value={c}>{STORE_CAT_LABELS[c]}</option>)}
                   </select>
                 </div>
-
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 10, paddingLeft: 2 }}>
                   {storeLoading ? 'Loading…' : `${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''}`}
                 </div>
-
                 {storeLoading ? (
                   <div style={{ textAlign: 'center', padding: 40, color: C.muted }}><div style={{ fontSize: 32 }}>📦</div><div style={{ marginTop: 8, fontSize: 14 }}>Loading…</div></div>
                 ) : filteredItems.length === 0 ? (
@@ -467,7 +581,6 @@ export default function AdminResourcesPage() {
                 )}
               </div>
             )}
-
             {storeViewMode === 'requests' && (
               <div>
                 {storeRequests.length === 0 ? (
@@ -497,7 +610,83 @@ export default function AdminResourcesPage() {
           </div>
         )}
 
-        {!['documents','store'].includes(activeTab) && (
+        {/* ══ LEARNING TAB ══ */}
+        {activeTab === 'learning' && (
+          <div>
+            {/* Stats */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              {[
+                { label: 'Total Materials', value: materials.length, icon: '📚', color: C.emerald },
+                { label: 'By Class',        value: byClassCount,    icon: '🏫', color: '#6d28d9' },
+                { label: 'School-wide',     value: schoolWideCount, icon: '🌐', color: '#0284c7' },
+              ].map(s => (
+                <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 14, padding: '12px 10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}`, textAlign: 'center' }}>
+                  <div style={{ fontSize: 18 }}>{s.icon}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: s.color, marginTop: 4 }}>{s.value}</div>
+                  <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Search + filters */}
+            <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
+              <input value={learnSearch} onChange={e => setLearnSearch(e.target.value)} placeholder="Search materials…" style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 14, color: C.text, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <select value={learnSubjectFilter} onChange={e => setLearnSubjectFilter(e.target.value)} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text, background: C.surface, outline: 'none' }}>
+                  <option value="all">All Subjects</option>
+                  {allSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select value={learnVisFilter} onChange={e => setLearnVisFilter(e.target.value)} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text, background: C.surface, outline: 'none' }}>
+                  <option value="all">All Visibility</option>
+                  {LEARN_VISIBILITIES.map(v => <option key={v} value={v}>{LEARN_VIS_LABELS[v]}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 10, paddingLeft: 2 }}>
+              {learnLoading ? 'Loading…' : `${filteredMaterials.length} material${filteredMaterials.length !== 1 ? 's' : ''}`}
+            </div>
+
+            {learnLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: C.muted }}><div style={{ fontSize: 32 }}>📚</div><div style={{ marginTop: 8, fontSize: 14 }}>Loading…</div></div>
+            ) : filteredMaterials.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: 40 }}>📚</div>
+                <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No materials yet</div>
+                <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Upload lesson notes, schemes, past papers and more.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {filteredMaterials.map(m => (
+                  <div key={m.id} style={{ background: C.surface, borderRadius: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', padding: '14px 14px 12px', border: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{FILE_ICONS[m.file_type] ?? '📎'}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                          {m.uploader_name} · {formatDate(m.created_at)}{m.file_size_kb ? ` · ${formatSize(m.file_size_kb)}` : ''}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.subject}</span>
+                          {m.class_name && <span style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.class_name}</span>}
+                          <span style={{ ...LEARN_VIS_COLORS[m.visibility], fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5 }}>{LEARN_VIS_LABELS[m.visibility]}</span>
+                        </div>
+                        {m.description && <div style={{ fontSize: 12, color: C.muted, marginTop: 6, lineHeight: 1.4 }}>{m.description}</div>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <a href={m.file_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: C.emerald, color: '#fff', borderRadius: 10, padding: '8px 0', textAlign: 'center', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'block' }}>↗ Open</a>
+                      <button onClick={() => setDeleteLearnTarget(m)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🗑</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ OTHER TABS (stubs) ══ */}
+        {!['documents','store','learning'].includes(activeTab) && (
           <div style={{ textAlign: 'center', padding: 60, color: C.muted }}>
             <div style={{ fontSize: 40 }}>{TABS.find(t => t.key === activeTab)?.icon}</div>
             <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>{TABS.find(t => t.key === activeTab)?.label} — Coming Soon</div>
@@ -506,6 +695,7 @@ export default function AdminResourcesPage() {
         )}
       </div>
 
+      {/* ══ FABs ══ */}
       {activeTab === 'documents' && (
         <button onClick={() => { resetDocForm(); setError(null); setShowDocModal(true) }} style={{ position: 'fixed', bottom: 90, right: 20, background: C.emerald, color: '#fff', border: 'none', borderRadius: 20, padding: '14px 22px', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 50 }}>
           <span style={{ fontSize: 20, lineHeight: 1 }}>+</span> Upload
@@ -516,7 +706,13 @@ export default function AdminResourcesPage() {
           <span style={{ fontSize: 20, lineHeight: 1 }}>+</span> Add Item
         </button>
       )}
+      {activeTab === 'learning' && (
+        <button onClick={() => { resetLearnForm(); setError(null); setShowUploadModal(true) }} style={{ position: 'fixed', bottom: 90, right: 20, background: C.emerald, color: '#fff', border: 'none', borderRadius: 20, padding: '14px 22px', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 50 }}>
+          <span style={{ fontSize: 20, lineHeight: 1 }}>+</span> Upload
+        </button>
+      )}
 
+      {/* ══ Doc Upload Modal ══ */}
       {showDocModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowDocModal(false) }}>
           <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
@@ -560,6 +756,7 @@ export default function AdminResourcesPage() {
         </div>
       )}
 
+      {/* ══ Add Store Item Modal ══ */}
       {showAddItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowAddItem(false) }}>
           <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
@@ -590,6 +787,7 @@ export default function AdminResourcesPage() {
         </div>
       )}
 
+      {/* ══ Stock In/Out Modal ══ */}
       {showTxnModal && txnTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowTxnModal(false) }}>
           <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
@@ -616,6 +814,60 @@ export default function AdminResourcesPage() {
         </div>
       )}
 
+      {/* ══ Upload Learning Material Modal ══ */}
+      {showUploadModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowUploadModal(false) }}>
+          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
+            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
+            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 18 }}>Upload Material</div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Title *</label>
+              <input value={lFormTitle} onChange={e => setLFormTitle(e.target.value)} placeholder="e.g. Form 2 Maths Notes Term 1" style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 14, color: C.text, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Subject *</label>
+              <input value={lFormSubject} onChange={e => setLFormSubject(e.target.value)} placeholder="e.g. Mathematics, English, Biology" style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 14, color: C.text, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Class (optional)</label>
+              <select value={lFormClassId} onChange={e => setLFormClassId(e.target.value)} style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 14, color: C.text, background: C.surface, outline: 'none', boxSizing: 'border-box' }}>
+                <option value="">— No specific class —</option>
+                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Visibility *</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {LEARN_VISIBILITIES.map(v => (
+                  <button key={v} onClick={() => setLFormVisibility(v as any)} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: `2px solid ${lFormVisibility === v ? C.emerald : C.border}`, background: lFormVisibility === v ? C.emeraldLt : C.surface, color: lFormVisibility === v ? '#065f46' : C.muted, transition: 'all 0.15s' }}>
+                    {LEARN_VIS_LABELS[v]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>Description (optional)</label>
+              <input value={lFormDesc} onChange={e => setLFormDesc(e.target.value)} placeholder="Brief description…" style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 14, color: C.text, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }}>File *</label>
+              <div onClick={() => learnFileRef.current?.click()} style={{ border: `2px dashed ${lFormFile ? C.emerald : C.border}`, borderRadius: 12, padding: '18px 12px', textAlign: 'center', cursor: 'pointer', background: lFormFile ? C.emeraldLt : C.bg, transition: 'all 0.2s' }}>
+                <div style={{ fontSize: 28 }}>{lFormFile ? '✅' : '📤'}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 6, color: C.text }}>{lFormFile ? lFormFile.name : 'Tap to select file'}</div>
+                {lFormFile && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{formatSize(Math.round(lFormFile.size / 1024))}</div>}
+                {!lFormFile && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>PDF, DOCX, ZIP, PNG, MP4</div>}
+              </div>
+              <input ref={learnFileRef} type="file" accept=".pdf,.docx,.zip,.png,.mp4" style={{ display: 'none' }} onChange={e => setLFormFile(e.target.files?.[0] ?? null)} />
+            </div>
+            <button onClick={handleUploadMaterial} disabled={learnUploading} style={{ width: '100%', background: learnUploading ? C.muted : C.emerald, color: '#fff', border: 'none', borderRadius: 12, padding: '14px', fontWeight: 800, fontSize: 15, cursor: learnUploading ? 'not-allowed' : 'pointer' }}>
+              {learnUploading ? 'Uploading…' : 'Upload Material'}
+            </button>
+            <button onClick={() => setShowUploadModal(false)} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Delete Doc Confirm ══ */}
       {deleteDocTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
@@ -630,6 +882,7 @@ export default function AdminResourcesPage() {
         </div>
       )}
 
+      {/* ══ Delete Store Item Confirm ══ */}
       {deleteStoreTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
@@ -639,6 +892,21 @@ export default function AdminResourcesPage() {
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setDeleteStoreTarget(null)} style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: C.text }}>Cancel</button>
               <button onClick={() => handleDeleteStoreItem(deleteStoreTarget)} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff' }}>Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ Delete Learning Material Confirm ══ */}
+      {deleteLearnTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
+            <div style={{ fontSize: 32, textAlign: 'center' }}>🗑️</div>
+            <div style={{ fontWeight: 800, fontSize: 16, textAlign: 'center', marginTop: 10, color: C.text }}>Remove Material?</div>
+            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>"{deleteLearnTarget.title}" will be removed.</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setDeleteLearnTarget(null)} style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: C.text }}>Cancel</button>
+              <button onClick={() => handleDeleteMaterial(deleteLearnTarget)} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff' }}>Remove</button>
             </div>
           </div>
         </div>
