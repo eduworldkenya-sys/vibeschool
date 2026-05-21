@@ -13,7 +13,7 @@ const NAV_TABS: ParentNavTab[] = [
   { id: "home",      label: "Home",      icon: "🏠", href: "/parent"            },
   { id: "learn",     label: "Learn",     icon: "📚", href: "/parent/learn"      },
   { id: "vibelearn", label: "VibeLearn", icon: "🎓", href: "/parent/vibe-learn" },
-  { id: "connect",   label: "Connect",   icon: "💬", href: "/parent/connect"    },
+  { id: "funhub",    label: "FunHub",    icon: "🎮", href: "/parent/funhub"    },
   { id: "students",  label: "Students",  icon: "🎒", href: "/parent/students"   },
 ];
 
@@ -180,16 +180,30 @@ function TopBar({ initials }: { initials: string }) {
           </div>
         </div>
       </div>
-      <div
-        onClick={() => router.push("/parent/profile")}
-        style={{
-          width: 34, height: 34, borderRadius: "50%",
-          background: "#10b981",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
-        }}
-      >
-        {initials || "…"}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          onClick={() => router.push("/parent/connect")}
+          style={{
+            width: 34, height: 34, borderRadius: "50%",
+            background: "rgba(255,255,255,0.1)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, cursor: "pointer",
+          }}
+        >
+          💬
+        </div>
+        <div
+          onClick={() => router.push("/parent/profile")}
+          style={{
+            width: 34, height: 34, borderRadius: "50%",
+            background: "#10b981",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
+          }}
+        >
+          {initials || "…"}
+        </div>
       </div>
     </div>
   );
