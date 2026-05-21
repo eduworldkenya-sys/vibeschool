@@ -1,22 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
-const INDIGO = '#4f46e5';
-const INDIGO_DARK = '#3730a3';
-const GREEN = '#16a34a';
-const RED = '#dc2626';
-const GOLD = '#f59e0b';
-const BG = '#f9fafb';
+const CRIMSON = '#dc2626';
+const CRIMSON_DARK = '#991b1b';
+const BG = '#fff5f5';
 
 const SUBJECTS = ['Maths', 'English', 'Kiswahili', 'Science', 'Social Studies', 'General'];
 const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-const TOTAL_Q = 10;
-const TIME_PER_Q = 15;
 
-/* ─── tiny helpers ─── */
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -26,133 +20,31 @@ function shuffle(arr) {
   return a;
 }
 
-function calcXP(score, correct, streak) {
-  return Math.round(score * 0.4 + correct * 8 + streak * 5);
-}
+function parseOptions(row) {
+  let opts = {};
+  try {
+    opts = typeof row.options === 'string' ? JSON.parse(row.options) : (row.options || {});
+  } catch (e) {
+    opts = {};
+  }
+  const optMap = Array.isArray(opts)
+    ? { A: opts[0], B: opts[1], C: opts[2], D: opts[3] }
+    : opts;
 
-function calcStars(accuracy) {
-  if (accuracy >= 80) return 3;
-  if (accuracy >= 50) return 2;
-  return 1;
-}
+  const lookupKey = String(row.correct || row.correct_option || '').toUpperCase().trim();
 
-/* ─── subcomponents ─── */
-function ProgressBar({ pct, color = INDIGO }) {
-  return (
-    <div style={{ width: '100%', height: 6, background: '#e0e7ff', borderRadius: 99, overflow: 'hidden' }}>
-      <div
-        style={{
-          height: '100%',
-          width: `${pct}%`,
-          background: color,
-          borderRadius: 99,
-          transition: 'width 1s linear',
-        }}
-      />
-    </div>
-  );
-}
-
-function StarRow({ count }) {
-  return (
-    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', fontSize: 36 }}>
-      {[1, 2, 3].map(i => (
-        <span key={i} style={{ opacity: i <= count ? 1 : 0.2, filter: i <= count ? 'drop-shadow(0 0 6px #f59e0b)' : 'none' }}>
-          ⭐
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/* ─── screens ─── */
-function LobbyScreen({ onStart }) {
-  const [grade, setGrade] = useState(4);
-  const [subject, setSubject] = useState('Maths');
-  const [pressed, setPressed] = useState(false);
-
-  const chipStyle = (active) => ({
-    padding: '8px 14px',
-    borderRadius: 99,
-    border: `2px solid ${active ? INDIGO : '#e5e7eb'}`,
-    background: active ? '#eef2ff' : '#fff',
-    color: active ? INDIGO : '#374151',
-    fontWeight: active ? 700 : 500,
-    fontSize: 14,
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    transform: active ? 'scale(1.04)' : 'scale(1)',
-  });
-
-  return (
-    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      {/* hero */}
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{ fontSize: 52, marginBottom: 4 }}>⚡</div>
-        <h1 style={{ fontSize: 28, fontWeight: 900, color: INDIGO, margin: 0, letterSpacing: '-0.5px' }}>Quiz Blitz</h1>
-        <p style={{ color: '#6b7280', fontSize: 14, margin: '6px 0 0', fontWeight: 500 }}>10 questions · 15s each · streak bonus</p>
-      </div>
-
-      <div style={{ width: '100%', maxWidth: 360, background: '#fff', borderRadius: 24, padding: '24px 20px', boxShadow: '0 4px 24px rgba(79,70,229,0.10)', display: 'flex', flexDirection: 'column', gap: 22 }}>
-        {/* grade */}
-        <div>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Grade</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {GRADES.map(g => (
-              <button key={g} onClick={() => setGrade(g)} style={chipStyle(grade === g)}>Grade {g}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* subject */}
-        <div>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select Subject</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {SUBJECTS.map(s => (
-              <button key={s} onClick={() => setSubject(s)} style={chipStyle(subject === s)}>{s}</button>
-            ))}
-          </div>
-        </div>
-
-        {/* start */}
-        <button
-          onPointerDown={() => setPressed(true)}
-          onPointerUp={() => setPressed(false)}
-          onPointerLeave={() => setPressed(false)}
-          onClick={() => onStart(grade, subject)}
-          style={{
-            width: '100%',
-            padding: '16px 0',
-            borderRadius: 16,
-            border: 'none',
-            background: `linear-gradient(135deg, ${INDIGO}, ${INDIGO_DARK})`,
-            color: '#fff',
-            fontSize: 17,
-            fontWeight: 800,
-            cursor: 'pointer',
-            letterSpacing: '0.02em',
-            transform: pressed ? 'scale(0.96)' : 'scale(1)',
-            transition: 'transform 0.12s',
-            boxShadow: '0 4px 16px rgba(79,70,229,0.35)',
-          }}
-        >
-          START BLITZ →
-        </button>
-      </div>
-    </div>
-  );
+  return Object.keys(optMap).map(key => ({
+    key,
+    text: optMap[key],
+    isCorrect: key === lookupKey
+  })).filter(o => o.text);
 }
 
 function LoadingScreen({ text }) {
   return (
     <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: '50%',
-        border: `4px solid #e0e7ff`,
-        borderTopColor: INDIGO,
-        animation: 'spin 0.8s linear infinite',
-      }} />
-      <p style={{ color: '#6b7280', fontWeight: 600, fontSize: 15 }}>{text}</p>
+      <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid #fee2e2', borderTopColor: CRIMSON, animation: 'spin 0.8s linear infinite' }} />
+      <p style={{ color: '#991b1b', fontWeight: 600, fontSize: 15 }}>{text}</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
@@ -162,407 +54,348 @@ function ErrorScreen({ message, onBack }) {
   return (
     <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16, textAlign: 'center' }}>
       <div style={{ fontSize: 48 }}>😕</div>
-      <h2 style={{ color: '#374151', fontWeight: 800, margin: 0 }}>Oops!</h2>
-      <p style={{ color: '#6b7280', fontSize: 15, maxWidth: 300 }}>{message}</p>
-      <button
-        onClick={onBack}
-        style={{ padding: '14px 32px', borderRadius: 16, border: 'none', background: INDIGO, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
-      >
-        ← Back to FunHub
-      </button>
+      <h2 style={{ color: '#991b1b', fontWeight: 800, margin: 0 }}>Oops!</h2>
+      <p style={{ color: '#7f1d1d', fontSize: 15, maxWidth: 300 }}>{message}</p>
+      <button onClick={onBack} style={{ padding: '14px 32px', borderRadius: 16, border: 'none', background: CRIMSON, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>← Back to FunHub</button>
     </div>
   );
 }
 
-function GameScreen({ questions, grade, subject, onFinish }) {
-  const [idx, setIdx] = useState(0);
-  const [selected, setSelected] = useState(null);   // 'A'|'B'|'C'|'D'
-  const [feedback, setFeedback] = useState(null);   // 'correct'|'wrong'
-  const [timeLeft, setTimeLeft] = useState(TIME_PER_Q);
-  const [score, setScore] = useState(0);
-  const [correct, setCorrect] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [bestStreak, setBestStreak] = useState(0);
-  const [multiplier, setMultiplier] = useState(1.0);
-  const timerRef = useRef(null);
-  const lockRef = useRef(false);
+function LobbyScreen({ onStart }) {
+  const [subject, setSubject] = useState('Maths');
+  const [grade, setGrade] = useState(4);
+  const [pressed, setPressed] = useState(false);
 
-  const q = questions[idx];
-  const options = [
-    { key: 'A', text: q.option_a },
-    { key: 'B', text: q.option_b },
-    { key: 'C', text: q.option_c },
-    { key: 'D', text: q.option_d },
-  ];
+  const chipStyle = (active) => ({
+    padding: '8px 14px', borderRadius: 99,
+    border: `2px solid ${active ? CRIMSON : '#e5e7eb'}`,
+    background: active ? '#fee2e2' : '#fff',
+    color: active ? CRIMSON_DARK : '#374151',
+    fontWeight: active ? 700 : 500, fontSize: 14,
+    cursor: 'pointer', transition: 'all 0.15s ease',
+    transform: active ? 'scale(1.04)' : 'scale(1)',
+  });
 
-  const advance = useCallback((wasCorrect, basePoints) => {
-    const newIdx = idx + 1;
-    if (newIdx >= questions.length) {
-      onFinish({ score, correct, streak: bestStreak });
-    } else {
-      setIdx(newIdx);
-      setSelected(null);
-      setFeedback(null);
-      setTimeLeft(TIME_PER_Q);
-      lockRef.current = false;
-    }
-  }, [idx, questions.length, onFinish, score, correct, bestStreak]);
+  return (
+    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ fontSize: 52, marginBottom: 4 }}>⚡</div>
+        <h1 style={{ fontSize: 28, fontWeight: 900, color: CRIMSON_DARK, margin: 0, letterSpacing: '-0.5px' }}>Speed Quiz</h1>
+        <p style={{ color: '#7f1d1d', fontSize: 14, margin: '6px 0 0', fontWeight: 500 }}>Beat the Clock & Ace the Session</p>
+      </div>
+      <div style={{ width: '100%', maxWidth: 360, background: '#fff', borderRadius: 24, padding: '24px 20px', border: '1px solid #e5e7eb', boxShadow: '0 4px 24px rgba(220,38,38,0.06)', display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <div>
+          <p style={{ fontWeight: 700, fontSize: 13, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {SUBJECTS.map(s => <button key={s} onClick={() => setSubject(s)} style={chipStyle(subject === s)}>{s}</button>)}
+          </div>
+        </div>
+        <div>
+          <p style={{ fontWeight: 700, fontSize: 13, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Grade</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {GRADES.map(g => <button key={g} onClick={() => setGrade(g)} style={chipStyle(grade === g)}>Grade {g}</button>)}
+          </div>
+        </div>
+        <button
+          onPointerDown={() => setPressed(true)} onPointerUp={() => setPressed(false)} onPointerLeave={() => setPressed(false)}
+          onClick={() => onStart(subject, grade)}
+          style={{ width: '100%', padding: '16px 0', borderRadius: 16, border: 'none', background: `linear-gradient(135deg, ${CRIMSON}, ${CRIMSON_DARK})`, color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', transform: pressed ? 'scale(0.96)' : 'scale(1)', transition: 'all 0.15s ease', boxShadow: '0 4px 16px rgba(220,38,38,0.25)' }}
+        >LAUNCH SPEED QUIZ →</button>
+      </div>
+    </div>
+  );
+}
 
-  // timer
+function GameScreen({ questions, subject, grade, onFinish }) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [options, setOptions] = useState([]);
+  const [selectedKey, setSelectedKey] = useState(null);
+  const [correctKey, setCorrectKey] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(15);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const timeRef = useRef(0);
+  const currentQuestion = questions[currentIdx];
+
   useEffect(() => {
-    if (feedback !== null) return; // paused during feedback
-    timerRef.current = setInterval(() => {
+    if (currentQuestion) {
+      const parsed = parseOptions(currentQuestion);
+      setOptions(shuffle(parsed));
+      setSelectedKey(null);
+      setCorrectKey(null);
+      setTimeLeft(15);
+      setIsTransitioning(false);
+    }
+  }, [currentIdx, questions]);
+
+  useEffect(() => {
+    const totalTimer = setInterval(() => {
+      timeRef.current += 1;
+    }, 1000);
+
+    return () => clearInterval(totalTimer);
+  }, []);
+
+  useEffect(() => {
+    if (isTransitioning) return;
+
+    const questionTimer = setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
-          clearInterval(timerRef.current);
-          if (!lockRef.current) {
-            lockRef.current = true;
-            // time out = wrong
-            setFeedback('wrong');
-            setStreak(0);
-            setMultiplier(1.0);
-            setTimeout(() => advance(false, 0), 800);
-          }
+          clearInterval(questionTimer);
+          handleTimeOut();
           return 0;
         }
         return t - 1;
       });
     }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [idx, feedback, advance]);
 
-  function handleSelect(key) {
-    if (lockRef.current || feedback !== null) return;
-    lockRef.current = true;
-    clearInterval(timerRef.current);
-    setSelected(key);
-    const isCorrect = key === q.correct_option;
-    setFeedback(isCorrect ? 'correct' : 'wrong');
+    return () => clearInterval(questionTimer);
+  }, [currentIdx, isTransitioning]);
 
-    if (isCorrect) {
-      const newStreak = streak + 1;
-      const newMult = 1.0 + Math.floor(newStreak / 3) * 0.5;
-      const pts = Math.round(100 * newMult);
-      setScore(s => s + pts);
-      setCorrect(c => c + 1);
-      setStreak(newStreak);
-      setMultiplier(newMult);
-      setBestStreak(b => Math.max(b, newStreak));
-    } else {
-      setStreak(0);
-      setMultiplier(1.0);
-    }
+  function handleTimeOut() {
+    setIsTransitioning(true);
+    const correctOpt = options.find(o => o.isCorrect);
+    if (correctOpt) setCorrectKey(correctOpt.key);
 
-    setTimeout(() => advance(isCorrect, 0), 800);
+    setTimeout(() => {
+      advanceGame(correctCount);
+    }, 1200);
   }
 
-  const timerPct = (timeLeft / TIME_PER_Q) * 100;
-  const timerColor = timeLeft <= 5 ? RED : timeLeft <= 9 ? GOLD : INDIGO;
+  function advanceGame(currentScore) {
+    if (currentIdx + 1 >= questions.length) {
+      onFinish({ timeTaken: timeRef.current, correctCount: currentScore, totalQuestions: questions.length });
+    } else {
+      setCurrentIdx(prev => prev + 1);
+    }
+  }
 
-  const optionBg = (key) => {
-    if (feedback === null) return '#fff';
-    if (key === q.correct_option) return '#dcfce7';
-    if (key === selected && selected !== q.correct_option) return '#fee2e2';
-    return '#fff';
-  };
-  const optionBorder = (key) => {
-    if (feedback === null) return selected === key ? INDIGO : '#e5e7eb';
-    if (key === q.correct_option) return GREEN;
-    if (key === selected) return RED;
-    return '#e5e7eb';
-  };
+  function handleOptionClick(opt) {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setSelectedKey(opt.key);
+
+    const correctOpt = options.find(o => o.isCorrect);
+    if (correctOpt) setCorrectKey(correctOpt.key);
+
+    let nextCorrect = correctCount;
+    if (opt.isCorrect) {
+      nextCorrect += 1;
+      setCorrectCount(nextCorrect);
+    }
+
+    setTimeout(() => {
+      advanceGame(nextCorrect);
+    }, 1200);
+  }
 
   return (
-    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px' }}>
+    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px' }}>
       <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-        {/* top bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 800, color: INDIGO, fontSize: 15 }}>⚡ Quiz Blitz</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>{idx + 1} / {questions.length}</span>
-        </div>
-
-        {/* score + multiplier */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', padding: '12px 16px', borderRadius: 16, border: '1px solid #fee2e2' }}>
           <div>
-            <p style={{ margin: 0, fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase' }}>Score</p>
-            <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: INDIGO }}>{score}</p>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Time Left</span>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: timeLeft <= 5 ? CRIMSON : '#1f2937' }}>{timeLeft}s</p>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Progress</span>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1f2937' }}>{currentIdx + 1} / {questions.length}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: 0, fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase' }}>Streak</p>
-            <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: streak > 0 ? GOLD : '#d1d5db' }}>
-              {streak > 0 ? `🔥 ${streak}` : '—'}
-            </p>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Score</span>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#16a34a' }}>{correctCount * 20} XP</p>
           </div>
-          {multiplier > 1 && (
-            <div style={{ background: '#fef3c7', borderRadius: 10, padding: '6px 10px', border: '2px solid #f59e0b' }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: '#92400e' }}>{multiplier.toFixed(1)}×</p>
-            </div>
-          )}
         </div>
 
-        {/* timer */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>Time</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: timerColor }}>{timeLeft}s</span>
-          </div>
-          <ProgressBar pct={timerPct} color={timerColor} />
+        <div style={{ height: 6, background: '#e5e7eb', borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${(timeLeft / 15) * 100}%`, background: timeLeft <= 5 ? CRIMSON : '#ef4444', transition: 'width 1s linear' }} />
         </div>
 
-        {/* question card */}
-        <div style={{ background: '#fff', borderRadius: 20, padding: '20px 18px', boxShadow: '0 4px 20px rgba(79,70,229,0.09)', minHeight: 90, display: 'flex', alignItems: 'center' }}>
-          <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1f2937', lineHeight: 1.45, textAlign: 'center', width: '100%' }}>
-            {q.question}
+        <div style={{ background: '#fff', border: '1px solid #fee2e2', borderRadius: 24, padding: '24px 16px', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+          <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#1f2937', lineHeight: 1.45 }}>
+            {currentQuestion?.question_text || currentQuestion?.question || 'Question Prompt'}
           </p>
         </div>
 
-        {/* options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {options.map(({ key, text }) => (
-            <button
-              key={key}
-              onClick={() => handleSelect(key)}
-              disabled={feedback !== null}
-              style={{
-                width: '100%',
-                padding: '14px 16px',
-                borderRadius: 16,
-                border: `2px solid ${optionBorder(key)}`,
-                background: optionBg(key),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                cursor: feedback !== null ? 'default' : 'pointer',
-                transition: 'all 0.15s',
-                transform: selected === key ? 'scale(0.97)' : 'scale(1)',
-                textAlign: 'left',
-              }}
-            >
-              <span style={{
-                minWidth: 30, height: 30, borderRadius: '50%',
-                background: key === q.correct_option && feedback ? '#dcfce7' : (selected === key && feedback ? (feedback === 'wrong' ? '#fee2e2' : '#dcfce7') : '#f3f4f6'),
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 800, fontSize: 13, color: '#374151',
-              }}>
-                {key}
-              </span>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#1f2937', lineHeight: 1.3 }}>{text}</span>
-              {feedback && key === q.correct_option && <span style={{ marginLeft: 'auto', fontSize: 18 }}>✅</span>}
-              {feedback === 'wrong' && key === selected && key !== q.correct_option && <span style={{ marginLeft: 'auto', fontSize: 18 }}>❌</span>}
-            </button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+          {options.map((opt) => {
+            const isSelected = selectedKey === opt.key;
+            const isCorrectAnswer = correctKey === opt.key;
+            
+            let btnBg = '#fff';
+            let btnBorder = '1px solid #e5e7eb';
+            let btnColor = '#374151';
+
+            if (isTransitioning) {
+              if (isCorrectAnswer) {
+                btnBg = '#dcfce7';
+                btnBorder = '2px solid #16a34a';
+                btnColor = '#15803d';
+              } else if (isSelected) {
+                btnBg = '#fee2e2';
+                btnBorder = '2px solid #dc2626';
+                btnColor = '#991b1b';
+              }
+            }
+
+            return (
+              <button
+                key={opt.key}
+                disabled={isTransitioning}
+                onClick={() => handleOptionClick(opt)}
+                style={{
+                  width: '100%', padding: '16px', borderRadius: 16, background: btnBg, border: btnBorder, color: btnColor,
+                  fontSize: 14, fontWeight: 700, textAlign: 'left', cursor: isTransitioning ? 'default' : 'pointer',
+                  transition: 'all 0.15s ease', display: 'flex', gap: 12, alignItems: 'center'
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: '50%', background: isCorrectAnswer ? '#16a34a' : isSelected ? '#dc2626' : '#f3f4f6', color: isCorrectAnswer || isSelected ? '#fff' : '#6b7280', fontSize: 12, fontWeight: 800 }}>
+                  {opt.key}
+                </span>
+                <span style={{ flex: 1 }}>{opt.text}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* subject/grade tag */}
-        <div style={{ textAlign: 'center' }}>
-          <span style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>{subject} · Grade {grade}</span>
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 600 }}>{subject} · Grade {grade}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function ResultScreen({ result, grade, subject, onReplay, onBack, xpEarned }) {
-  const { score, correct, total, bestStreak } = result;
-  const wrong = total - correct;
-  const accuracy = Math.round((correct / total) * 100);
-  const stars = calcStars(accuracy);
+function ResultScreen({ result, subject, grade, onReplay, onBack, xpEarned }) {
   const [pressedR, setPressedR] = useState(false);
   const [pressedB, setPressedB] = useState(false);
 
+  const total = result.totalQuestions;
+  const stars = result.correctCount === total ? 3 : result.correctCount >= Math.floor(total / 2) ? 2 : 1;
+
   const statBox = (label, value, color = '#1f2937') => (
-    <div style={{ flex: 1, background: '#fff', borderRadius: 16, padding: '14px 10px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-      <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color }}>{value}</p>
-      <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase' }}>{label}</p>
+    <div style={{ flex: 1, background: '#fff', borderRadius: 16, padding: '14px 10px', textAlign: 'center', border: '1px solid #fee2e2' }}>
+      <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color }}>{value}</p>
+      <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase' }}>{label}</p>
     </div>
   );
 
   return (
     <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
       <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* header */}
         <div style={{ textAlign: 'center' }}>
-          <StarRow count={stars} />
-          <h1 style={{ margin: '12px 0 4px', fontSize: 26, fontWeight: 900, color: '#1f2937' }}>
-            {accuracy >= 80 ? 'Brilliant! 🎉' : accuracy >= 50 ? 'Good effort! 👍' : 'Keep going! 💪'}
-          </h1>
+          <div style={{ fontSize: 44, marginBottom: 6 }}>{'⭐'.repeat(stars)}</div>
+          <h1 style={{ margin: '6px 0 4px', fontSize: 26, fontWeight: 900, color: '#1f2937' }}>Quiz Completed!</h1>
           <p style={{ margin: 0, color: '#6b7280', fontWeight: 500, fontSize: 14 }}>{subject} · Grade {grade}</p>
         </div>
 
-        {/* score big */}
-        <div style={{ background: `linear-gradient(135deg, ${INDIGO}, ${INDIGO_DARK})`, borderRadius: 20, padding: '20px 0', textAlign: 'center', boxShadow: '0 6px 24px rgba(79,70,229,0.3)' }}>
-          <p style={{ margin: 0, fontSize: 13, color: '#c7d2fe', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Final Score</p>
-          <p style={{ margin: '4px 0 0', fontSize: 52, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{score}</p>
+        <div style={{ background: `linear-gradient(135deg, ${CRIMSON}, ${CRIMSON_DARK})`, borderRadius: 20, padding: '20px 0', textAlign: 'center', boxShadow: '0 6px 24px rgba(220,38,38,0.2)' }}>
+          <p style={{ margin: 0, fontSize: 13, color: '#fca5a5', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Accuracy Ratio</p>
+          <p style={{ margin: '4px 0 0', fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{result.correctCount} / {total}</p>
         </div>
 
-        {/* stats */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          {statBox('Correct', correct, GREEN)}
-          {statBox('Wrong', wrong, RED)}
-          {statBox('Accuracy', `${accuracy}%`, INDIGO)}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {statBox('Duration', `${Math.floor(result.timeTaken / 60)}:${result.timeTaken % 60 < 10 ? '0' : ''}${result.timeTaken % 60}`, CRIMSON_DARK)}
+          {statBox('XP Earned', `+${xpEarned}`, '#16a34a')}
         </div>
 
-        <div style={{ display: 'flex', gap: 10 }}>
-          {statBox('Best Streak', bestStreak > 0 ? `🔥 ${bestStreak}` : '—', GOLD)}
-          {statBox('XP Earned', `+${xpEarned}`, '#7c3aed')}
-        </div>
-
-        {/* buttons */}
         <button
-          onPointerDown={() => setPressedR(true)}
-          onPointerUp={() => setPressedR(false)}
-          onPointerLeave={() => setPressedR(false)}
+          onPointerDown={() => setPressedR(true)} onPointerUp={() => setPressedR(false)} onPointerLeave={() => setPressedR(false)}
           onClick={onReplay}
-          style={{
-            width: '100%', padding: '15px 0', borderRadius: 16, border: 'none',
-            background: `linear-gradient(135deg, ${INDIGO}, ${INDIGO_DARK})`,
-            color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer',
-            transform: pressedR ? 'scale(0.96)' : 'scale(1)',
-            transition: 'transform 0.12s',
-            boxShadow: '0 4px 16px rgba(79,70,229,0.35)',
-          }}
-        >
-          ⚡ Play Again
-        </button>
-
+          style={{ width: '100%', padding: '15px 0', borderRadius: 16, border: 'none', background: `linear-gradient(135deg, ${CRIMSON}, ${CRIMSON_DARK})`, color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', transform: pressedR ? 'scale(0.96)' : 'scale(1)', transition: 'transform 0.1s ease', boxShadow: '0 4px 16px rgba(220,38,38,0.25)' }}
+        >⚡ Play Again</button>
         <button
-          onPointerDown={() => setPressedB(true)}
-          onPointerUp={() => setPressedB(false)}
-          onPointerLeave={() => setPressedB(false)}
+          onPointerDown={() => setPressedB(true)} onPointerUp={() => setPressedB(false)} onPointerLeave={() => setPressedB(false)}
           onClick={onBack}
-          style={{
-            width: '100%', padding: '15px 0', borderRadius: 16,
-            border: `2px solid ${INDIGO}`,
-            background: '#fff', color: INDIGO, fontSize: 16, fontWeight: 700, cursor: 'pointer',
-            transform: pressedB ? 'scale(0.96)' : 'scale(1)',
-            transition: 'transform 0.12s',
-          }}
-        >
-          ← Back to FunHub
-        </button>
+          style={{ width: '100%', padding: '15px 0', borderRadius: 16, border: `2px solid ${CRIMSON}`, background: '#fff', color: CRIMSON_DARK, fontSize: 16, fontWeight: 700, cursor: 'pointer', transform: pressedB ? 'scale(0.96)' : 'scale(1)', transition: 'transform 0.1s ease' }}
+        >← Back to FunHub</button>
       </div>
     </div>
   );
 }
 
-/* ─── main page ─── */
-export default function QuizBlitz() {
+export default function SpeedQuizGame() {
   const router = useRouter();
-  const supabase = createClient();
-
-  const [screen, setScreen] = useState('lobby'); // lobby | loading | error | game | result
-  const [grade, setGrade] = useState(null);
+  const [screen, setScreen] = useState('lobby');
   const [subject, setSubject] = useState(null);
+  const [grade, setGrade] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [gameResult, setGameResult] = useState(null);
   const [xpEarned, setXpEarned] = useState(0);
 
-  async function getStudentId() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data } = await supabase
-        .from('students')
-        .select('id')
-        .eq('profile_id', user.id)
-        .single();
-      return data?.id ?? null;
-    } catch {
-      return null;
-    }
-  }
-
-  async function handleStart(g, s) {
-    setGrade(g);
-    setSubject(s);
+  async function handleStart(sub, gr) {
+    setSubject(sub);
+    setGrade(gr);
     setScreen('loading');
-
     try {
       const { data, error } = await supabase
         .from('funhub_questions')
         .select('*')
-        .eq('grade', g)
-        .eq('subject', s);
+        .eq('subject', sub)
+        .eq('grade', gr)
+        .limit(10);
 
       if (error) throw error;
-
       if (!data || data.length === 0) {
-        setErrorMsg(`No questions found for ${s} Grade ${g}. Ask your teacher to add questions!`);
+        setErrorMsg(`No quiz entries found matching ${sub} for Grade ${gr}. Try another standard category!`);
         setScreen('error');
         return;
       }
 
-      const picked = shuffle(data).slice(0, TOTAL_Q);
-      setQuestions(picked);
+      setQuestions(data);
       setScreen('game');
-    } catch (e) {
-      setErrorMsg('Could not load questions. Check your connection and try again.');
+    } catch {
+      setErrorMsg('Could not establish data link stream. Check configuration settings.');
       setScreen('error');
     }
   }
 
   async function handleFinish(result) {
-    const total = questions.length;
-    const xp = calcXP(result.score, result.correct, result.streak);
-    setXpEarned(xp);
-    setGameResult({ ...result, total });
-    setScreen('result');
+    const accuracy = result.correctCount / result.totalQuestions;
+    const baseXP = result.correctCount * 20;
+    const bonusXP = accuracy === 1 ? 50 : accuracy >= 0.5 ? 20 : 0;
+    const totalXP = baseXP + bonusXP;
 
-    // save session — fire and forget, don't block UI
+    setXpEarned(totalXP);
+    setGameResult(result);
+    setScreen('loading');
     try {
-      const studentId = await getStudentId();
-      await supabase.from('funhub_sessions').insert({
-        student_id: studentId,
-        game_slug: 'quiz-blitz',
-        subject,
-        grade,
-        score: result.score,
-        xp_earned: xp,
-        correct: result.correct,
-        total,
-        streak_max: result.streak,
-        completed: true,
-      });
-    } catch {
-      // silent — game result already shown
-    }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: student } = await supabase
+          .from('students')
+          .select('id')
+          .eq('profile_id', user.id)
+          .single();
+        if (student) {
+          await supabase.from('funhub_sessions').insert({
+            student_id: student.id,
+            game_slug: 'speed-quiz',
+            subject,
+            grade,
+            score: totalXP,
+            xp_earned: totalXP,
+            correct: result.correctCount,
+            total: result.totalQuestions,
+            duration_secs: result.timeTaken,
+            completed: true,
+          });
+        }
+      }
+    } catch { /* Fail silently */ }
+    setScreen('result');
   }
 
-  function handleReplay() {
-    setQuestions([]);
-    setGameResult(null);
-    setXpEarned(0);
-    handleStart(grade, subject);
-  }
-
-  function handleBack() {
-    router.push('/parent/funhub');
-  }
+  function handleBack() { router.push('/parent/funhub'); }
 
   if (screen === 'lobby') return <LobbyScreen onStart={handleStart} />;
-  if (screen === 'loading') return <LoadingScreen text="Loading questions…" />;
+  if (screen === 'loading') return <LoadingScreen text="Loading quick fire questions..." />;
   if (screen === 'error') return <ErrorScreen message={errorMsg} onBack={handleBack} />;
-  if (screen === 'game') return (
-    <GameScreen
-      questions={questions}
-      grade={grade}
-      subject={subject}
-      onFinish={handleFinish}
-    />
-  );
-  if (screen === 'result') return (
-    <ResultScreen
-      result={gameResult}
-      grade={grade}
-      subject={subject}
-      xpEarned={xpEarned}
-      onReplay={handleReplay}
-      onBack={handleBack}
-    />
-  );
-
+  if (screen === 'game') return <GameScreen questions={questions} subject={subject} grade={grade} onFinish={handleFinish} />;
+  if (screen === 'result') return <ResultScreen result={gameResult} subject={subject} grade={grade} xpEarned={xpEarned} onReplay={() => handleStart(subject, grade)} onBack={handleBack} />;
   return null;
 }
