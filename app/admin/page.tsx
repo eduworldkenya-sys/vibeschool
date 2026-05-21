@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import AdminTwinDrawer from "@/components/admin/TwinDrawer"
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
 const C = {
@@ -69,6 +70,7 @@ export default function AdminHub() {
   const router = useRouter()
   const [data,      setData]      = useState<DashData | null>(null)
   const [loading,   setLoading]   = useState(true)
+  const [twinOpen,   setTwinOpen]  = useState(false)
   const [balHidden, setBalHidden] = useState(true)
   const [now,       setNow]       = useState(new Date())
 
@@ -497,6 +499,35 @@ export default function AdminHub() {
       ))}
 
     </div>
+
+      {/* ── Admin Twin ───────────────────────────────────────────────── */}
+      <button
+        onClick={() => setTwinOpen(true)}
+        style={{
+          position:   "fixed",
+          bottom:     90,
+          right:      20,
+          zIndex:     750,
+          width:      52,
+          height:     52,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #1e1b4b 0%, #0f3460 100%)",
+          border:     "1.5px solid rgba(99,102,241,0.5)",
+          color:      "#6366f1",
+          fontSize:   20,
+          cursor:     "pointer",
+          boxShadow:  "0 4px 24px rgba(99,102,241,0.35)",
+          display:    "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        ✦
+      </button>
+      <AdminTwinDrawer
+        open={twinOpen}
+        onClose={() => setTwinOpen(false)}
+      />
   )
 }
 
