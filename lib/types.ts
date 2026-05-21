@@ -216,7 +216,7 @@ export interface LinkedChild {
 
 // ─── Parent Nav ───────────────────────────────────────────────────────────────
 export interface ParentNavTab {
-  id:    "home" | "learn" | "vibelearn" | "connect" | "students";
+  id:    "home" | "learn" | "vibelearn" | "connect" | "students" | "funhub";
   label: string;
   icon:  string;
   href:  string;
