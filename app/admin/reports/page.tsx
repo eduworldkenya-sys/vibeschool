@@ -34,18 +34,18 @@ export default function ReportsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#f1f5f9"}}>
       {/* Header */}
-      <div className="bg-[#1e293b] border-b border-slate-700 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-3">
+      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"16px",position:"sticky",top:0,zIndex:10}}>
+        <div style={{maxWidth:"672px",margin:"0 auto"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
             <div>
-              <h1 className="text-xl font-bold text-white">Reports</h1>
+              <h1 style={{fontSize:"20px",fontWeight:700,color:"#f1f5f9",margin:0}}>Reports</h1>
               {!loading && (
-                <p className="text-xs text-slate-400">{schoolName}</p>
+                <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{schoolName}</p>
               )}
             </div>
-            <span className="text-2xl">📊</span>
+            <span style={{fontSize:"24px"}}>📊</span>
           </div>
           {/* Search */}
           <input
@@ -53,41 +53,41 @@ export default function ReportsPage() {
             placeholder="Search reports..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#0f172a] border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            style={{width:"100%",background:"#0f172a",border:"1px solid #475569",borderRadius:"12px",padding:"10px 16px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
           />
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <div style={{maxWidth:"672px",margin:"0 auto",padding:"24px 16px",display:"flex",flexDirection:"column",gap:"24px"}}>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#1e293b] rounded-xl p-3 text-center border border-slate-700">
-            <p className="text-2xl font-bold text-blue-400">7</p>
-            <p className="text-xs text-slate-400 mt-1">Categories</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px"}}>
+          <div style={{background:"#1e293b",borderRadius:"12px",padding:"12px",border:"1px solid #334155",textAlign:"center"}}>
+            <p style={{fontSize:"24px",fontWeight:800,color:"#38bdf8",margin:0}}>7</p>
+            <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Categories</p>
           </div>
-          <div className="bg-[#1e293b] rounded-xl p-3 text-center border border-slate-700">
-            <p className="text-2xl font-bold text-green-400">134</p>
-            <p className="text-xs text-slate-400 mt-1">Data Tables</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",padding:"12px",border:"1px solid #334155",textAlign:"center"}}>
+            <p style={{fontSize:"24px",fontWeight:800,color:"#10b981",margin:0}}>134</p>
+            <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Data Tables</p>
           </div>
-          <div className="bg-[#1e293b] rounded-xl p-3 text-center border border-slate-700">
-            <p className="text-2xl font-bold text-yellow-400">5</p>
-            <p className="text-xs text-slate-400 mt-1">Live Views</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",padding:"12px",border:"1px solid #334155",textAlign:"center"}}>
+            <p style={{fontSize:"24px",fontWeight:800,color:"#f59e0b",margin:0}}>5</p>
+            <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Live Views</p>
           </div>
         </div>
 
         {/* Categories */}
         <div>
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+          <h2 style={{fontSize:"12px",fontWeight:600,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:"12px"}}>
             Report Categories
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
             {filtered.map(cat => (
               <Link key={cat.key} href={cat.href}>
-                <div className={`bg-gradient-to-br ${cat.color} rounded-xl p-4 border border-slate-700 active:scale-95 transition-transform cursor-pointer`}>
-                  <div className="text-3xl mb-2">{cat.icon}</div>
-                  <p className="font-semibold text-white text-sm">{cat.label}</p>
-                  <p className="text-xs text-white/60 mt-0.5">View reports →</p>
+                <div style={{background:"linear-gradient(135deg,#1e3a5f,#0f172a)",borderRadius:"12px",padding:"16px",border:"1px solid #334155",cursor:"pointer"}}>
+                  <div style={{fontSize:"30px",marginBottom:"8px"}}>{cat.icon}</div>
+                  <p style={{fontWeight:600,color:"#f1f5f9",fontSize:"13px",margin:0}}>{cat.label}</p>
+                  <p style={{fontSize:"11px",color:"rgba(255,255,255,0.6)",marginTop:"2px"}}>View reports →</p>
                 </div>
               </Link>
             ))}
@@ -95,8 +95,8 @@ export default function ReportsPage() {
         </div>
 
         {filtered.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-slate-500 text-sm">No categories match "{search}"</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{color:"#64748b",fontSize:"14px"}}>No categories match "{search}"</p>
           </div>
         )}
 
