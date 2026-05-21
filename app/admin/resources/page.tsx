@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ResourceDocument {
   id: string; school_id: string; title: string; category: string
@@ -59,7 +59,7 @@ interface StaffProfile {
   resource_role_id?: string | null
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const C = {
   hero: '#0a1628', heroMid: '#0d2347', emerald: '#10b981', emeraldLt: '#d1fae5',
@@ -76,54 +76,90 @@ const TABS = [
 
 const DOC_CATEGORIES = ['policy','moe_circular','form','template','report','other']
 const DOC_VISIBILITIES = ['admin_only','staff','everyone']
-const CATEGORY_LABELS: Record<string,string> = { policy:'Policy', moe_circular:'MOE Circular', form:'Form', template:'Template', report:'Report', other:'Other' }
-const CATEGORY_COLORS: Record<string,{bg:string;color:string}> = {
-  policy:{bg:'#dbeafe',color:'#1d4ed8'}, moe_circular:{bg:'#fce7f3',color:'#be185d'},
-  form:{bg:'#fef9c3',color:'#a16207'}, template:{bg:'#d1fae5',color:'#065f46'},
-  report:{bg:'#ede9fe',color:'#6d28d9'}, other:{bg:'#f1f5f9',color:'#475569'},
+const CATEGORY_LABELS: Record<string,string> = {
+  policy:'Policy', moe_circular:'MOE Circular', form:'Form',
+  template:'Template', report:'Report', other:'Other',
 }
-const VISIBILITY_COLORS: Record<string,{bg:string;color:string}> = {
-  admin_only:{bg:'#fee2e2',color:'#b91c1c'}, staff:{bg:'#fef3c7',color:'#92400e'}, everyone:{bg:'#d1fae5',color:'#065f46'},
+const CATEGORY_COLORS: Record<string,React.CSSProperties> = {
+  policy:       { background:'#dbeafe', color:'#1d4ed8' },
+  moe_circular: { background:'#fce7f3', color:'#be185d' },
+  form:         { background:'#fef9c3', color:'#a16207' },
+  template:     { background:'#d1fae5', color:'#065f46' },
+  report:       { background:'#ede9fe', color:'#6d28d9' },
+  other:        { background:'#f1f5f9', color:'#475569' },
 }
-const VISIBILITY_LABELS: Record<string,string> = { admin_only:'Admin Only', staff:'Staff', everyone:'Everyone' }
-const FILE_ICONS: Record<string,string> = { pdf:'📄', docx:'📝', zip:'🗜️', png:'🖼️', mp4:'🎬', other:'📎' }
+const VISIBILITY_COLORS: Record<string,React.CSSProperties> = {
+  admin_only: { background:'#fee2e2', color:'#b91c1c' },
+  staff:      { background:'#fef3c7', color:'#92400e' },
+  everyone:   { background:'#d1fae5', color:'#065f46' },
+}
+const VISIBILITY_LABELS: Record<string,string> = {
+  admin_only:'Admin Only', staff:'Staff', everyone:'Everyone',
+}
+const FILE_ICONS: Record<string,string> = {
+  pdf:'📄', docx:'📝', zip:'🗜️', png:'🖼️', mp4:'🎬', other:'📎',
+}
 
 const STORE_CATEGORIES = ['stationery','cleaning','furniture','electronics','other']
-const STORE_CAT_LABELS: Record<string,string> = { stationery:'Stationery', cleaning:'Cleaning', furniture:'Furniture', electronics:'Electronics', other:'Other' }
-const STORE_CAT_COLORS: Record<string,{bg:string;color:string}> = {
-  stationery:{bg:'#dbeafe',color:'#1d4ed8'}, cleaning:{bg:'#d1fae5',color:'#065f46'},
-  furniture:{bg:'#fef3c7',color:'#92400e'}, electronics:{bg:'#ede9fe',color:'#6d28d9'},
-  other:{bg:'#f1f5f9',color:'#475569'},
+const STORE_CAT_LABELS: Record<string,string> = {
+  stationery:'Stationery', cleaning:'Cleaning',
+  furniture:'Furniture', electronics:'Electronics', other:'Other',
+}
+const STORE_CAT_COLORS: Record<string,React.CSSProperties> = {
+  stationery:  { background:'#dbeafe', color:'#1d4ed8' },
+  cleaning:    { background:'#d1fae5', color:'#065f46' },
+  furniture:   { background:'#fef3c7', color:'#92400e' },
+  electronics: { background:'#ede9fe', color:'#6d28d9' },
+  other:       { background:'#f1f5f9', color:'#475569' },
 }
 
 const ASSET_CATEGORIES = ['furniture','electronics','sports','lab','other']
-const ASSET_CAT_LABELS: Record<string,string> = { furniture:'Furniture', electronics:'Electronics', sports:'Sports', lab:'Lab', other:'Other' }
-const ASSET_CONDITION_COLORS: Record<string,{bg:string;color:string}> = {
-  good:{bg:'#d1fae5',color:'#065f46'}, fair:{bg:'#fef9c3',color:'#a16207'},
-  needs_repair:{bg:'#ffedd5',color:'#c2410c'}, condemned:{bg:'#fee2e2',color:'#b91c1c'},
+const ASSET_CAT_LABELS: Record<string,string> = {
+  furniture:'Furniture', electronics:'Electronics',
+  sports:'Sports', lab:'Lab', other:'Other',
 }
-const ASSET_CONDITION_LABELS: Record<string,string> = { good:'Good', fair:'Fair', needs_repair:'Needs Repair', condemned:'Condemned' }
+const ASSET_CONDITION_COLORS: Record<string,React.CSSProperties> = {
+  good:         { background:'#d1fae5', color:'#065f46' },
+  fair:         { background:'#fef9c3', color:'#a16207' },
+  needs_repair: { background:'#ffedd5', color:'#c2410c' },
+  condemned:    { background:'#fee2e2', color:'#b91c1c' },
+}
+const ASSET_CONDITION_LABELS: Record<string,string> = {
+  good:'Good', fair:'Fair', needs_repair:'Needs Repair', condemned:'Condemned',
+}
 
 const RESOURCE_ROLES = ['general','librarian','store_keeper'] as const
-const RESOURCE_ROLE_LABELS: Record<string,string> = { general:'General', librarian:'Librarian', store_keeper:'Store Keeper' }
-const RESOURCE_ROLE_COLORS: Record<string,{bg:string;color:string}> = {
-  librarian:{bg:'#dbeafe',color:'#1d4ed8'}, store_keeper:{bg:'#ffedd5',color:'#c2410c'}, general:{bg:'#f1f5f9',color:'#475569'},
+const RESOURCE_ROLE_LABELS: Record<string,string> = {
+  general:'General', librarian:'Librarian', store_keeper:'Store Keeper',
+}
+const RESOURCE_ROLE_COLORS: Record<string,React.CSSProperties> = {
+  librarian:    { background:'#dbeafe', color:'#1d4ed8' },
+  store_keeper: { background:'#ffedd5', color:'#c2410c' },
+  general:      { background:'#f1f5f9', color:'#475569' },
 }
 
-const CONDITION_OPTIONS = ['good','fair','damaged']
+const CONDITION_OPTIONS    = ['good','fair','damaged']
 const CONDITION_IN_OPTIONS = ['good','fair','damaged','lost']
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const MAX_FILE_SIZE_MB = 50
+const MAX_DUE_DATE_DAYS = 365
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatSize(kb: number | null): string {
   if (!kb) return ''
-  return kb < 1024 ? `${kb} KB` : `${(kb/1024).toFixed(1)} MB`
+  return kb < 1024 ? `${kb} KB` : `${(kb / 1024).toFixed(1)} MB`
 }
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric' })
 }
 function today(): string {
   return new Date().toISOString().split('T')[0]
+}
+function maxDueDate(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + MAX_DUE_DATE_DAYS)
+  return d.toISOString().split('T')[0]
 }
 function isOverdue(dueDate: string, returnedAt: string | null): boolean {
   return !returnedAt && new Date(dueDate) < new Date()
@@ -132,8 +168,74 @@ function calcFine(dueDate: string): number {
   const days = Math.floor((Date.now() - new Date(dueDate).getTime()) / 86400000)
   return days > 0 ? days * 5 : 0
 }
+function initials(name: string): string {
+  return name.split(' ').map(n => n[0] ?? '').join('').toUpperCase().slice(0, 2)
+}
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Shared styles ────────────────────────────────────────────────────────────
+
+const inp: React.CSSProperties = {
+  width: '100%', border: `1px solid ${C.border}`, borderRadius: 10,
+  padding: '10px 12px', fontSize: 14, color: C.text, outline: 'none',
+  boxSizing: 'border-box', background: C.surface,
+}
+const lbl: React.CSSProperties = {
+  fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase',
+  letterSpacing: 0.5, display: 'block', marginBottom: 6,
+}
+const field = (mb = 14): React.CSSProperties => ({ marginBottom: mb })
+
+const badge = (styles: React.CSSProperties): React.CSSProperties => ({
+  fontSize: 10, fontWeight: 700, padding: '2px 8px',
+  borderRadius: 20, textTransform: 'uppercase', ...styles,
+})
+
+// ─── Confirm Dialog ───────────────────────────────────────────────────────────
+
+function ConfirmDialog({
+  icon, title, message, confirmLabel = 'Confirm', confirmColor = '#ef4444',
+  onCancel, onConfirm,
+}: {
+  icon: string; title: string; message: string
+  confirmLabel?: string; confirmColor?: string
+  onCancel: () => void; onConfirm: () => void
+}) {
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+      <div style={{ background:C.surface, borderRadius:20, padding:24, width:'100%', maxWidth:340 }}>
+        <div style={{ fontSize:32, textAlign:'center' }}>{icon}</div>
+        <div style={{ fontWeight:800, fontSize:16, textAlign:'center', marginTop:10, color:C.text }}>{title}</div>
+        <div style={{ fontSize:13, color:C.muted, textAlign:'center', marginTop:6, marginBottom:20 }}>{message}</div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={onCancel} style={{ flex:1, background:C.bg, border:`1px solid ${C.border}`, borderRadius:12, padding:12, fontWeight:700, fontSize:14, cursor:'pointer', color:C.text }}>Cancel</button>
+          <button onClick={onConfirm} style={{ flex:1, background:confirmColor, border:'none', borderRadius:12, padding:12, fontWeight:700, fontSize:14, cursor:'pointer', color:'#fff' }}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── BottomSheet ──────────────────────────────────────────────────────────────
+
+function BottomSheet({ title, subtitle, onClose, children }: {
+  title: string; subtitle?: string; onClose: () => void; children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:100, display:'flex', alignItems:'flex-end' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div style={{ background:C.surface, borderRadius:'20px 20px 0 0', width:'100%', maxHeight:'90vh', overflowY:'auto', padding:'20px 16px 32px' }}>
+        <div style={{ width:36, height:4, background:C.border, borderRadius:2, margin:'0 auto 16px' }} />
+        <div style={{ fontWeight:800, fontSize:18, color:C.text, marginBottom: subtitle ? 4 : 18 }}>{title}</div>
+        {subtitle && <div style={{ fontSize:13, color:C.muted, marginBottom:18 }}>{subtitle}</div>}
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminResourcesPage() {
   const router = useRouter()
@@ -142,22 +244,22 @@ export default function AdminResourcesPage() {
   const [schoolId, setSchoolId]   = useState<string | null>(null)
   const [userId, setUserId]       = useState<string | null>(null)
 
-  // ── Documents state ──
-  const [docs, setDocs]                 = useState<ResourceDocument[]>([])
-  const [docsLoading, setDocsLoading]   = useState(true)
-  const [docSearch, setDocSearch]       = useState('')
-  const [filterCat, setFilterCat]       = useState('all')
-  const [filterVis, setFilterVis]       = useState('all')
-  const [showDocModal, setShowDocModal] = useState(false)
+  // ── Documents ──
+  const [docs, setDocs]                       = useState<ResourceDocument[]>([])
+  const [docsLoading, setDocsLoading]         = useState(true)
+  const [docSearch, setDocSearch]             = useState('')
+  const [filterCat, setFilterCat]             = useState('all')
+  const [filterVis, setFilterVis]             = useState('all')
+  const [showDocModal, setShowDocModal]       = useState(false)
   const [deleteDocTarget, setDeleteDocTarget] = useState<ResourceDocument | null>(null)
-  const [docUploading, setDocUploading] = useState(false)
-  const [formTitle, setFormTitle]       = useState('')
-  const [formCat, setFormCat]           = useState('policy')
-  const [formVis, setFormVis]           = useState<'admin_only'|'staff'|'everyone'>('staff')
-  const [formFile, setFormFile]         = useState<File | null>(null)
+  const [docUploading, setDocUploading]       = useState(false)
+  const [formTitle, setFormTitle]             = useState('')
+  const [formCat, setFormCat]                 = useState('policy')
+  const [formVis, setFormVis]                 = useState<'admin_only'|'staff'|'everyone'>('staff')
+  const [formFile, setFormFile]               = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // ── Store state ──
+  // ── Store ──
   const [storeItems, setStoreItems]               = useState<StoreItem[]>([])
   const [storeLoading, setStoreLoading]           = useState(false)
   const [storeTxnCount, setStoreTxnCount]         = useState(0)
@@ -182,72 +284,74 @@ export default function AdminResourcesPage() {
   const [deleteStoreTarget, setDeleteStoreTarget] = useState<StoreItem | null>(null)
   const [storeViewMode, setStoreViewMode]         = useState<'items'|'requests'>('items')
 
-  // ── Assets state ──
-  const [assets, setAssets]                   = useState<ResourceAsset[]>([])
-  const [assetsLoading, setAssetsLoading]     = useState(false)
-  const [assetSearch, setAssetSearch]         = useState('')
-  const [assetCatFilter, setAssetCatFilter]   = useState('all')
-  const [assetCondFilter, setAssetCondFilter] = useState('all')
-  const [showAddAsset, setShowAddAsset]       = useState(false)
-  const [editAsset, setEditAsset]             = useState<ResourceAsset | null>(null)
+  // ── Assets ──
+  const [assets, setAssets]                       = useState<ResourceAsset[]>([])
+  const [assetsLoading, setAssetsLoading]         = useState(false)
+  const [assetSearch, setAssetSearch]             = useState('')
+  const [assetCatFilter, setAssetCatFilter]       = useState('all')
+  const [assetCondFilter, setAssetCondFilter]     = useState('all')
+  const [showAddAsset, setShowAddAsset]           = useState(false)
+  const [editAsset, setEditAsset]                 = useState<ResourceAsset | null>(null)
   const [deleteAssetTarget, setDeleteAssetTarget] = useState<ResourceAsset | null>(null)
-  const [condemnTarget, setCondemnTarget]     = useState<ResourceAsset | null>(null)
-  const [assetLoading, setAssetLoading]       = useState(false)
-  const [aName, setAName]                     = useState('')
-  const [aCat, setACat]                       = useState('furniture')
-  const [aQty, setAQty]                       = useState('1')
-  const [aCond, setACond]                     = useState<ResourceAsset['item_condition']>('good')
-  const [aLocation, setALocation]             = useState('')
-  const [aSerial, setASerial]                 = useState('')
-  const [aLastChecked, setALastChecked]       = useState('')
+  const [condemnTarget, setCondemnTarget]         = useState<ResourceAsset | null>(null)
+  const [assetLoading, setAssetLoading]           = useState(false)
+  const [aName, setAName]                         = useState('')
+  const [aCat, setACat]                           = useState('furniture')
+  const [aQty, setAQty]                           = useState('1')
+  const [aCond, setACond]                         = useState<ResourceAsset['item_condition']>('good')
+  const [aLocation, setALocation]                 = useState('')
+  const [aSerial, setASerial]                     = useState('')
+  const [aLastChecked, setALastChecked]           = useState('')
 
-  // ── Library state ──
-  const [libView, setLibView]                   = useState<'books'|'borrowings'>('books')
-  const [books, setBooks]                       = useState<LibraryBook[]>([])
-  const [borrowings, setBorrowings]             = useState<LibraryBorrowing[]>([])
-  const [libLoading, setLibLoading]             = useState(false)
-  const [bookSearch, setBookSearch]             = useState('')
-  const [showAddBook, setShowAddBook]           = useState(false)
-  const [showIssueModal, setShowIssueModal]     = useState(false)
-  const [showReturnModal, setShowReturnModal]   = useState(false)
-  const [issueTarget, setIssueTarget]           = useState<LibraryBook | null>(null)
-  const [returnTarget, setReturnTarget]         = useState<LibraryBorrowing | null>(null)
-  const [deleteBookTarget, setDeleteBookTarget] = useState<LibraryBook | null>(null)
-  const [libActionLoading, setLibActionLoading] = useState(false)
-  const [bTitle, setBTitle]                     = useState('')
-  const [bAuthor, setBAuthor]                   = useState('')
-  const [bIsbn, setBIsbn]                       = useState('')
-  const [bSubject, setBSubject]                 = useState('')
-  const [bClassLevel, setBClassLevel]           = useState('')
-  const [bCopies, setBCopies]                   = useState('1')
-  const [issuerType, setIssuerType]             = useState<'student'|'staff'>('student')
-  const [issuerName, setIssuerName]             = useState('')
-  const [issueDue, setIssueDue]                 = useState('')
-  const [issueCondOut, setIssueCondOut]         = useState('good')
-  const [returnCondIn, setReturnCondIn]         = useState('good')
-  const [returnFinePaid, setReturnFinePaid]     = useState(false)
+  // ── Library ──
+  const [libView, setLibView]                     = useState<'books'|'borrowings'>('books')
+  const [books, setBooks]                         = useState<LibraryBook[]>([])
+  const [borrowings, setBorrowings]               = useState<LibraryBorrowing[]>([])
+  const [libLoading, setLibLoading]               = useState(false)
+  const [bookSearch, setBookSearch]               = useState('')
+  const [showAddBook, setShowAddBook]             = useState(false)
+  const [showIssueModal, setShowIssueModal]       = useState(false)
+  const [showReturnModal, setShowReturnModal]     = useState(false)
+  const [issueTarget, setIssueTarget]             = useState<LibraryBook | null>(null)
+  const [returnTarget, setReturnTarget]           = useState<LibraryBorrowing | null>(null)
+  const [deleteBookTarget, setDeleteBookTarget]   = useState<LibraryBook | null>(null)
+  const [libActionLoading, setLibActionLoading]   = useState(false)
+  const [bTitle, setBTitle]                       = useState('')
+  const [bAuthor, setBAuthor]                     = useState('')
+  const [bIsbn, setBIsbn]                         = useState('')
+  const [bSubject, setBSubject]                   = useState('')
+  const [bClassLevel, setBClassLevel]             = useState('')
+  const [bCopies, setBCopies]                     = useState('1')
+  const [borrowerType, setBorrowerType]           = useState<'student'|'staff'>('student')
+  const [borrowerName, setBorrowerName]           = useState('')
+  const [issueDue, setIssueDue]                   = useState('')
+  const [issueCondOut, setIssueCondOut]           = useState('good')
+  const [returnCondIn, setReturnCondIn]           = useState('good')
+  const [returnFinePaid, setReturnFinePaid]       = useState(false)
 
-  // ── Staff state ──
-  const [staffList, setStaffList]           = useState<StaffProfile[]>([])
-  const [staffLoading, setStaffLoading]     = useState(false)
-  const [staffSearch, setStaffSearch]       = useState('')
-  const [roleUpdating, setRoleUpdating]     = useState<string | null>(null)
+  // ── Staff ──
+  const [staffList, setStaffList]       = useState<StaffProfile[]>([])
+  const [staffLoading, setStaffLoading] = useState(false)
+  const [staffSearch, setStaffSearch]   = useState('')
+  const [roleUpdating, setRoleUpdating] = useState<string | null>(null)
 
-  // ── Shared toast ──
-  const [error, setError]     = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  // ── Toast ──
+  const [toastMsg, setToastMsg]   = useState<string | null>(null)
+  const [toastType, setToastType] = useState<'success'|'error'>('success')
 
   function toast(msg: string, type: 'success'|'error' = 'success') {
-    if (type === 'success') { setSuccess(msg); setTimeout(() => setSuccess(null), 3000) }
-    else { setError(msg); setTimeout(() => setError(null), 4000) }
+    setToastMsg(msg); setToastType(type)
+    setTimeout(() => setToastMsg(null), type === 'error' ? 4000 : 3000)
   }
 
-  // ─── Auth ─────────────────────────────────────────────────────────────────
+  // ─── Auth ──────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: p } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
+      const { data: p } = await supabase
+        .from('profiles').select('school_id').eq('id', user.id).single()
       if (!p?.school_id) { router.push('/login'); return }
       setUserId(user.id)
       setSchoolId(p.school_id)
@@ -264,7 +368,8 @@ export default function AdminResourcesPage() {
     if (activeTab === 'staff')     fetchStaff()
   }, [schoolId, activeTab])
 
-  // ─── Documents ────────────────────────────────────────────────────────────
+  // ─── Documents ─────────────────────────────────────────────────────────────
+
   async function fetchDocs() {
     setDocsLoading(true)
     const { data, error: err } = await supabase
@@ -274,7 +379,9 @@ export default function AdminResourcesPage() {
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
     if (err) { toast('Failed to load documents.', 'error'); setDocsLoading(false); return }
-    setDocs((data || []).map((d: any) => ({ ...d, uploader_name: d.uploader?.full_name ?? 'Unknown' })))
+    setDocs((data || []).map((d: any) => ({
+      ...d, uploader_name: d.uploader?.full_name ?? 'Unknown',
+    })))
     setDocsLoading(false)
   }
 
@@ -282,26 +389,41 @@ export default function AdminResourcesPage() {
     if (!formTitle.trim()) { toast('Title is required.', 'error'); return }
     if (!formFile)          { toast('Please select a file.', 'error'); return }
     if (!schoolId || !userId) return
+
+    // FIX: enforce file size limit
+    if (formFile.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      toast(`File too large. Max ${MAX_FILE_SIZE_MB}MB.`, 'error'); return
+    }
+
     setDocUploading(true)
     const ext      = formFile.name.split('.').pop()?.toLowerCase() ?? 'other'
     const safeName = `${Date.now()}_${formFile.name.replace(/\s+/g, '_')}`
     const path     = `${schoolId}/${safeName}`
-    const { error: upErr } = await supabase.storage.from('resource-documents').upload(path, formFile, { upsert: false })
-    if (upErr) { toast('File upload failed: ' + upErr.message, 'error'); setDocUploading(false); return }
-    const { data: urlData } = supabase.storage.from('resource-documents').getPublicUrl(path)
+
+    const { error: upErr } = await supabase.storage
+      .from('resource-documents').upload(path, formFile, { upsert: false })
+    if (upErr) { toast('Upload failed: ' + upErr.message, 'error'); setDocUploading(false); return }
+
+    const { data: urlData } = supabase.storage
+      .from('resource-documents').getPublicUrl(path)
+
     const { error: dbErr } = await supabase.from('resource_documents').insert({
       school_id: schoolId, title: formTitle.trim(), category: formCat,
-      file_url: urlData.publicUrl, file_type: ['pdf','docx','zip','png','mp4'].includes(ext) ? ext : 'other',
-      file_size_kb: Math.round(formFile.size / 1024), visibility: formVis, uploaded_by: userId,
+      file_url: urlData.publicUrl,
+      file_type: ['pdf','docx','zip','png','mp4'].includes(ext) ? ext : 'other',
+      file_size_kb: Math.round(formFile.size / 1024),
+      visibility: formVis, uploaded_by: userId,
     })
     if (dbErr) { toast('DB insert failed: ' + dbErr.message, 'error'); setDocUploading(false); return }
+
     toast('Document uploaded.')
     setShowDocModal(false); resetDocForm(); fetchDocs()
     setDocUploading(false)
   }
 
   async function handleDeleteDoc(doc: ResourceDocument) {
-    await supabase.from('resource_documents').update({ deleted_at: new Date().toISOString() }).eq('id', doc.id)
+    await supabase.from('resource_documents')
+      .update({ deleted_at: new Date().toISOString() }).eq('id', doc.id)
     setDeleteDocTarget(null); toast('Document removed.'); fetchDocs()
   }
 
@@ -316,19 +438,30 @@ export default function AdminResourcesPage() {
     (filterVis === 'all' || d.visibility === filterVis)
   )
 
-  // ─── Store ────────────────────────────────────────────────────────────────
+  // ─── Store ─────────────────────────────────────────────────────────────────
+
   async function fetchStoreItems() {
     setStoreLoading(true)
-    const { data } = await supabase.from('store_items').select('*').eq('school_id', schoolId!).is('deleted_at', null).order('name')
+    const { data } = await supabase
+      .from('store_items').select('*').eq('school_id', schoolId!)
+      .is('deleted_at', null).order('name')
     setStoreItems(data || []); setStoreLoading(false)
   }
   async function fetchStoreTxnCount() {
-    const { count } = await supabase.from('store_transactions').select('id', { count: 'exact', head: true }).eq('school_id', schoolId!).is('deleted_at', null)
+    const { count } = await supabase
+      .from('store_transactions').select('id', { count:'exact', head:true })
+      .eq('school_id', schoolId!).is('deleted_at', null)
     setStoreTxnCount(count ?? 0)
   }
   async function fetchStoreRequests() {
-    const { data } = await supabase.from('resource_requests').select('*, requester:requested_by(full_name)').eq('school_id', schoolId!).eq('status', 'pending').is('deleted_at', null).order('created_at', { ascending: false })
-    setStoreRequests((data || []).map((r: any) => ({ ...r, requester_name: r.requester?.full_name ?? 'Unknown' })))
+    const { data } = await supabase
+      .from('resource_requests')
+      .select('*, requester:requested_by(full_name)')
+      .eq('school_id', schoolId!).eq('status', 'pending')
+      .is('deleted_at', null).order('created_at', { ascending: false })
+    setStoreRequests((data || []).map((r: any) => ({
+      ...r, requester_name: r.requester?.full_name ?? 'Unknown',
+    })))
   }
 
   async function handleAddItem() {
@@ -341,46 +474,60 @@ export default function AdminResourcesPage() {
     })
     if (err) { toast('Failed: ' + err.message, 'error'); setItemLoading(false); return }
     toast('Item added.')
-    setShowAddItem(false); setItemName(''); setItemCat('stationery'); setItemUnit('piece'); setItemQty('0'); setItemThreshold('5')
+    setShowAddItem(false)
+    setItemName(''); setItemCat('stationery'); setItemUnit('piece')
+    setItemQty('0'); setItemThreshold('5')
     fetchStoreItems(); fetchStoreTxnCount(); setItemLoading(false)
   }
 
   async function handleTxn() {
     if (!txnTarget || parseInt(txnQty) <= 0) { toast('Enter valid quantity.', 'error'); return }
     setTxnLoading(true)
-    const qty = parseInt(txnQty)
+    const qty    = parseInt(txnQty)
     const newQty = txnType === 'stock_in' ? txnTarget.quantity + qty : txnTarget.quantity - qty
     if (newQty < 0) { toast('Not enough stock.', 'error'); setTxnLoading(false); return }
+
     const { error: e1 } = await supabase.from('store_transactions').insert({
       school_id: schoolId, item_id: txnTarget.id, txn_type: txnType,
-      quantity: qty, reference: txnRef || null, issued_to: txnIssuedTo || null,
-      notes: txnNotes || null, created_by: userId,
+      quantity: qty, reference: txnRef || null,
+      issued_to: txnIssuedTo || null, notes: txnNotes || null, created_by: userId,
     })
     if (e1) { toast('Transaction failed.', 'error'); setTxnLoading(false); return }
+
     await supabase.from('store_items').update({ quantity: newQty }).eq('id', txnTarget.id)
-    toast(txnType === 'stock_in' ? `+${qty} added.` : `-${qty} removed.`)
-    setShowTxnModal(false); setTxnTarget(null); setTxnQty(''); setTxnRef(''); setTxnIssuedTo(''); setTxnNotes('')
+    toast(txnType === 'stock_in' ? `+${qty} added.` : `-${qty} issued.`)
+    setShowTxnModal(false); setTxnTarget(null)
+    setTxnQty(''); setTxnRef(''); setTxnIssuedTo(''); setTxnNotes('')
     fetchStoreItems(); fetchStoreTxnCount(); setTxnLoading(false)
   }
 
   async function handleDeleteStoreItem(item: StoreItem) {
-    await supabase.from('store_items').update({ deleted_at: new Date().toISOString() }).eq('id', item.id)
+    await supabase.from('store_items')
+      .update({ deleted_at: new Date().toISOString() }).eq('id', item.id)
     setDeleteStoreTarget(null); toast('Item removed.'); fetchStoreItems()
   }
 
   async function handleRequestAction(req: ResourceRequest, action: 'approved'|'rejected') {
-    const { error: err } = await supabase.from('resource_requests').update({ status: action, reviewed_by: userId, reviewed_at: new Date().toISOString() }).eq('id', req.id)
+    const { error: err } = await supabase.from('resource_requests').update({
+      status: action, reviewed_by: userId, reviewed_at: new Date().toISOString(),
+    }).eq('id', req.id)
     if (err) { toast('Action failed.', 'error'); return }
     toast(`Request ${action}.`); fetchStoreRequests()
   }
 
-  const filteredItems = storeItems.filter(i => i.name.toLowerCase().includes(storeSearch.toLowerCase()) && (storeCatFilter === 'all' || i.category === storeCatFilter))
+  const filteredItems = storeItems.filter(i =>
+    i.name.toLowerCase().includes(storeSearch.toLowerCase()) &&
+    (storeCatFilter === 'all' || i.category === storeCatFilter)
+  )
   const lowStockCount = storeItems.filter(i => i.quantity <= i.low_stock_threshold).length
 
-  // ─── Assets ───────────────────────────────────────────────────────────────
+  // ─── Assets ────────────────────────────────────────────────────────────────
+
   async function fetchAssets() {
     setAssetsLoading(true)
-    const { data } = await supabase.from('resource_assets').select('*').eq('school_id', schoolId!).is('deleted_at', null).order('name')
+    const { data } = await supabase
+      .from('resource_assets').select('*').eq('school_id', schoolId!)
+      .is('deleted_at', null).order('name')
     setAssets(data || []); setAssetsLoading(false)
   }
 
@@ -391,8 +538,8 @@ export default function AdminResourcesPage() {
 
   function loadAssetToForm(a: ResourceAsset) {
     setAName(a.name); setACat(a.category); setAQty(String(a.quantity))
-    setACond(a.item_condition); setALocation(a.location ?? ''); setASerial(a.serial_no ?? '')
-    setALastChecked(a.last_checked ?? '')
+    setACond(a.item_condition); setALocation(a.location ?? '')
+    setASerial(a.serial_no ?? ''); setALastChecked(a.last_checked ?? '')
   }
 
   async function handleSaveAsset() {
@@ -405,31 +552,33 @@ export default function AdminResourcesPage() {
       last_checked: aLastChecked || null, added_by: userId,
     }
     if (editAsset) {
-      const { error: err } = await supabase.from('resource_assets').update(payload).eq('id', editAsset.id)
+      const { error: err } = await supabase
+        .from('resource_assets').update(payload).eq('id', editAsset.id)
       if (err) { toast('Update failed.', 'error'); setAssetLoading(false); return }
-      toast('Asset updated.')
-      setEditAsset(null)
+      toast('Asset updated.'); setEditAsset(null)
     } else {
       const { error: err } = await supabase.from('resource_assets').insert(payload)
       if (err) { toast('Failed: ' + err.message, 'error'); setAssetLoading(false); return }
-      toast('Asset added.')
-      setShowAddAsset(false)
+      toast('Asset added.'); setShowAddAsset(false)
     }
     resetAssetForm(); fetchAssets(); setAssetLoading(false)
   }
 
   async function handleCondemnAsset(a: ResourceAsset) {
-    await supabase.from('resource_assets').update({ item_condition: 'condemned' }).eq('id', a.id)
-    setCondemnTarget(null); toast('Asset marked as condemned.'); fetchAssets()
+    await supabase.from('resource_assets')
+      .update({ item_condition: 'condemned' }).eq('id', a.id)
+    setCondemnTarget(null); toast('Asset marked condemned.'); fetchAssets()
   }
 
   async function handleDeleteAsset(a: ResourceAsset) {
-    await supabase.from('resource_assets').update({ deleted_at: new Date().toISOString() }).eq('id', a.id)
+    await supabase.from('resource_assets')
+      .update({ deleted_at: new Date().toISOString() }).eq('id', a.id)
     setDeleteAssetTarget(null); toast('Asset removed.'); fetchAssets()
   }
 
   async function handleLastChecked(a: ResourceAsset) {
-    await supabase.from('resource_assets').update({ last_checked: today() }).eq('id', a.id)
+    await supabase.from('resource_assets')
+      .update({ last_checked: today() }).eq('id', a.id)
     toast('Last checked updated.'); fetchAssets()
   }
 
@@ -440,16 +589,19 @@ export default function AdminResourcesPage() {
   )
 
   const assetCondCounts = {
-    good: assets.filter(a => a.item_condition === 'good').length,
-    fair: assets.filter(a => a.item_condition === 'fair').length,
+    good:         assets.filter(a => a.item_condition === 'good').length,
+    fair:         assets.filter(a => a.item_condition === 'fair').length,
     needs_repair: assets.filter(a => a.item_condition === 'needs_repair').length,
-    condemned: assets.filter(a => a.item_condition === 'condemned').length,
+    condemned:    assets.filter(a => a.item_condition === 'condemned').length,
   }
 
-  // ─── Library ──────────────────────────────────────────────────────────────
+  // ─── Library ───────────────────────────────────────────────────────────────
+
   async function fetchBooks() {
     setLibLoading(true)
-    const { data } = await supabase.from('library_books').select('*').eq('school_id', schoolId!).is('deleted_at', null).order('title')
+    const { data } = await supabase
+      .from('library_books').select('*').eq('school_id', schoolId!)
+      .is('deleted_at', null).order('title')
     setBooks(data || []); setLibLoading(false)
   }
 
@@ -463,14 +615,17 @@ export default function AdminResourcesPage() {
       .order('due_date')
     setBorrowings((data || []).map((b: any) => ({
       ...b,
-      book_title: b.book?.title ?? 'Unknown',
-      issuer_name: b.issuer?.full_name ?? 'Unknown',
-      borrower_name: b.borrower_type === 'staff' ? 'Staff' : 'Student',
+      book_title:   b.book?.title ?? 'Unknown',
+      issuer_name:  b.issuer?.full_name ?? 'Unknown',
+      // borrower name stored in notes field per issue flow
+      borrower_name: b.notes ?? '—',
     })))
   }
 
   async function handleAddBook() {
-    if (!bTitle.trim() || !bAuthor.trim()) { toast('Title and author required.', 'error'); return }
+    if (!bTitle.trim() || !bAuthor.trim()) {
+      toast('Title and author required.', 'error'); return
+    }
     setLibActionLoading(true)
     const copies = parseInt(bCopies) || 1
     const { error: err } = await supabase.from('library_books').insert({
@@ -479,53 +634,83 @@ export default function AdminResourcesPage() {
       total_copies: copies, available_copies: copies, added_by: userId,
     })
     if (err) { toast('Failed: ' + err.message, 'error'); setLibActionLoading(false); return }
-    toast('Book added.')
-    setShowAddBook(false)
-    setBTitle(''); setBAuthor(''); setBIsbn(''); setBSubject(''); setBClassLevel(''); setBCopies('1')
+    toast('Book added.'); setShowAddBook(false)
+    setBTitle(''); setBAuthor(''); setBIsbn(''); setBSubject('')
+    setBClassLevel(''); setBCopies('1')
     fetchBooks(); setLibActionLoading(false)
   }
 
   async function handleIssueBook() {
-    if (!issueTarget || !issuerName.trim() || !issueDue) { toast('Fill all fields.', 'error'); return }
-    if (issueTarget.available_copies <= 0) { toast('No copies available.', 'error'); return }
+    if (!issueTarget || !borrowerName.trim() || !issueDue) {
+      toast('Fill all required fields.', 'error'); return
+    }
+    if (issueTarget.available_copies <= 0) {
+      toast('No copies available.', 'error'); return
+    }
     setLibActionLoading(true)
+
+    // FIX: properly set student_id / staff_id based on borrower type.
+    // We store the name in `notes` since we don't have a foreign key lookup UI here.
+    // student_id and staff_id remain null until a picker is added.
     const { error: e1 } = await supabase.from('library_borrowings').insert({
-      school_id: schoolId, book_id: issueTarget.id,
-      borrower_type: issuerType,
-      student_id: issuerType === 'student' ? null : null,
-      staff_id: issuerType === 'staff' ? null : null,
-      issued_by: userId!, issued_at: new Date().toISOString(),
-      due_date: issueDue, condition_out: issueCondOut,
-      fine_amount: 0, fine_paid: false,
-      notes: issuerName.trim(),
+      school_id:     schoolId,
+      book_id:       issueTarget.id,
+      borrower_type: borrowerType,
+      student_id:    null,   // extend later with student picker
+      staff_id:      null,   // extend later with staff picker
+      issued_by:     userId!,
+      issued_at:     new Date().toISOString(),
+      due_date:      issueDue,
+      condition_out: issueCondOut,
+      fine_amount:   0,
+      fine_paid:     false,
+      notes:         borrowerName.trim(),   // borrower name stored here
     })
-    if (e1) { toast('Issue failed.', 'error'); setLibActionLoading(false); return }
-    await supabase.from('library_books').update({ available_copies: issueTarget.available_copies - 1 }).eq('id', issueTarget.id)
+    if (e1) { toast('Issue failed: ' + e1.message, 'error'); setLibActionLoading(false); return }
+
+    await supabase.from('library_books')
+      .update({ available_copies: issueTarget.available_copies - 1 })
+      .eq('id', issueTarget.id)
+
     toast('Book issued.')
-    setShowIssueModal(false); setIssueTarget(null); setIssuerName(''); setIssueDue(''); setIssueCondOut('good')
+    setShowIssueModal(false); setIssueTarget(null)
+    setBorrowerName(''); setIssueDue(''); setIssueCondOut('good')
     fetchBooks(); fetchBorrowings(); setLibActionLoading(false)
   }
 
   async function handleReturnBook() {
     if (!returnTarget) return
     setLibActionLoading(true)
-    const fine = isOverdue(returnTarget.due_date, null) ? calcFine(returnTarget.due_date) : 0
+
+    // FIX: only calculate fine if actually overdue; don't overwrite existing fine_amount
+    // if the book is being returned on time.
+    const overdue = isOverdue(returnTarget.due_date, null)
+    const fine    = overdue ? calcFine(returnTarget.due_date) : 0
+
     const { error: e1 } = await supabase.from('library_borrowings').update({
-      returned_at: new Date().toISOString(),
+      returned_at:  new Date().toISOString(),
       condition_in: returnCondIn,
-      fine_amount: fine,
-      fine_paid: returnFinePaid,
+      fine_amount:  fine,
+      fine_paid:    overdue ? returnFinePaid : false,
     }).eq('id', returnTarget.id)
-    if (e1) { toast('Return failed.', 'error'); setLibActionLoading(false); return }
+    if (e1) { toast('Return failed: ' + e1.message, 'error'); setLibActionLoading(false); return }
+
     const book = books.find(b => b.id === returnTarget.book_id)
-    if (book) await supabase.from('library_books').update({ available_copies: book.available_copies + 1 }).eq('id', book.id)
+    if (book) {
+      await supabase.from('library_books')
+        .update({ available_copies: book.available_copies + 1 })
+        .eq('id', book.id)
+    }
+
     toast('Book returned.')
-    setShowReturnModal(false); setReturnTarget(null); setReturnCondIn('good'); setReturnFinePaid(false)
+    setShowReturnModal(false); setReturnTarget(null)
+    setReturnCondIn('good'); setReturnFinePaid(false)
     fetchBooks(); fetchBorrowings(); setLibActionLoading(false)
   }
 
   async function handleDeleteBook(book: LibraryBook) {
-    await supabase.from('library_books').update({ deleted_at: new Date().toISOString() }).eq('id', book.id)
+    await supabase.from('library_books')
+      .update({ deleted_at: new Date().toISOString() }).eq('id', book.id)
     setDeleteBookTarget(null); toast('Book removed.'); fetchBooks()
   }
 
@@ -534,146 +719,224 @@ export default function AdminResourcesPage() {
     b.author.toLowerCase().includes(bookSearch.toLowerCase())
   )
   const overdueCount = borrowings.filter(b => isOverdue(b.due_date, b.returned_at)).length
-  const unpaidFines  = borrowings.filter(b => b.fine_amount > 0 && !b.fine_paid).reduce((s, b) => s + b.fine_amount, 0)
+  const unpaidFines  = borrowings
+    .filter(b => b.fine_amount > 0 && !b.fine_paid)
+    .reduce((s, b) => s + b.fine_amount, 0)
 
-  // ─── Staff ────────────────────────────────────────────────────────────────
+  // ─── Staff ─────────────────────────────────────────────────────────────────
+
   async function fetchStaff() {
     setStaffLoading(true)
     const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, role')
-      .eq('school_id', schoolId!)
-      .neq('role', 'admin')
-      .order('full_name')
+      .from('profiles').select('id, full_name, email, role')
+      .eq('school_id', schoolId!).neq('role', 'admin').order('full_name')
 
+    // FIX: ensure resource_roles table has unique constraint on (school_id, profile_id)
+    // for the upsert in handleRoleChange to work correctly.
     const { data: roles } = await supabase
-      .from('resource_roles')
-      .select('id, profile_id, role')
-      .eq('school_id', schoolId!)
-      .is('deleted_at', null)
+      .from('resource_roles').select('id, profile_id, role')
+      .eq('school_id', schoolId!).is('deleted_at', null)
 
     const roleMap: Record<string, { role: string; id: string }> = {}
     for (const r of roles || []) roleMap[r.profile_id] = { role: r.role, id: r.id }
 
     setStaffList((profiles || []).map((p: any) => ({
       ...p,
-      resource_role: (roleMap[p.id]?.role ?? 'general') as StaffProfile['resource_role'],
+      resource_role:    (roleMap[p.id]?.role ?? 'general') as StaffProfile['resource_role'],
       resource_role_id: roleMap[p.id]?.id ?? null,
     })))
     setStaffLoading(false)
   }
 
-  async function handleRoleChange(person: StaffProfile, newRole: typeof RESOURCE_ROLES[number]) {
+  async function handleRoleChange(
+    person: StaffProfile,
+    newRole: typeof RESOURCE_ROLES[number],
+  ) {
     if (!userId) return
     setRoleUpdating(person.id)
+    // NOTE: requires unique constraint on (school_id, profile_id) in resource_roles table
     const { error: err } = await supabase.from('resource_roles').upsert({
-      school_id: schoolId, profile_id: person.id, role: newRole, assigned_by: userId,
+      school_id:   schoolId,
+      profile_id:  person.id,
+      role:        newRole,
+      assigned_by: userId,
       assigned_at: new Date().toISOString(),
     }, { onConflict: 'school_id,profile_id' })
     if (err) { toast('Role update failed.', 'error'); setRoleUpdating(null); return }
-    toast('Role updated.')
-    setRoleUpdating(null); fetchStaff()
+    toast('Role updated.'); setRoleUpdating(null); fetchStaff()
   }
 
-  const filteredStaff = staffList.filter(s => s.full_name.toLowerCase().includes(staffSearch.toLowerCase()))
+  const filteredStaff    = staffList.filter(s =>
+    s.full_name.toLowerCase().includes(staffSearch.toLowerCase())
+  )
   const librarianCount   = staffList.filter(s => s.resource_role === 'librarian').length
   const storeKeeperCount = staffList.filter(s => s.resource_role === 'store_keeper').length
 
-  // ─── Header stats ─────────────────────────────────────────────────────────
+  // ─── Header stats (loaded lazily per tab) ──────────────────────────────────
+
   const headerStats = [
-    { label: 'Total Assets',     value: assets.length > 0 ? String(assets.length) : '—', icon: '🏫' },
-    { label: 'Books Available',  value: books.reduce((s,b) => s + b.available_copies, 0) > 0 ? String(books.reduce((s,b) => s + b.available_copies, 0)) : '—', icon: '📖' },
-    { label: 'Pending Requests', value: storeRequests.length > 0 ? String(storeRequests.length) : '—', icon: '⏳' },
-    { label: 'Low Stock',        value: lowStockCount > 0 ? String(lowStockCount) : '—', icon: '⚠️' },
+    { label:'Total Assets',     value: assets.length         || null, icon:'🏫' },
+    { label:'Books Available',  value: books.reduce((s,b) => s + b.available_copies, 0) || null, icon:'📖' },
+    { label:'Pending Requests', value: storeRequests.length  || null, icon:'⏳' },
+    { label:'Low Stock',        value: lowStockCount         || null, icon:'⚠️' },
   ]
 
-  // ─── Shared input style ───────────────────────────────────────────────────
-  const inp: React.CSSProperties = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 14, color: C.text, outline: 'none', boxSizing: 'border-box', background: C.surface }
-  const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 6 }
-  const field = (mb = 14): React.CSSProperties => ({ marginBottom: mb })
+  // ─── FAB helper ────────────────────────────────────────────────────────────
+
+  function FAB({ label, onClick }: { label: string; onClick: () => void }) {
+    return (
+      <button onClick={onClick} style={{
+        position:'fixed', bottom:90, right:20,
+        background:C.emerald, color:'#fff', border:'none',
+        borderRadius:20, padding:'14px 22px', fontWeight:700,
+        fontSize:15, cursor:'pointer',
+        boxShadow:'0 4px 20px rgba(16,185,129,0.45)',
+        display:'flex', alignItems:'center', gap:8, zIndex:50,
+      }}>
+        <span style={{ fontSize:20, lineHeight:1 }}>+</span> {label}
+      </button>
+    )
+  }
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ minHeight:'100vh', background:C.bg, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
 
-      {/* ── Header ── */}
-      <div style={{ background: `linear-gradient(135deg, ${C.hero} 0%, ${C.heroMid} 100%)`, padding: '20px 16px 0', position: 'sticky', top: 0, zIndex: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}>‹</button>
+      {/* Header */}
+      <div style={{
+        background:`linear-gradient(135deg, ${C.hero} 0%, ${C.heroMid} 100%)`,
+        padding:'20px 16px 0', position:'sticky', top:0, zIndex:40,
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+          <button
+            onClick={() => router.back()}
+            style={{
+              background:'rgba(255,255,255,0.12)', border:'none', borderRadius:10,
+              width:36, height:36, display:'flex', alignItems:'center',
+              justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:18,
+            }}
+          >‹</button>
           <div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>Admin</div>
-            <div style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>Resources</div>
+            <div style={{ color:'rgba(255,255,255,0.6)', fontSize:11, fontWeight:600, letterSpacing:1, textTransform:'uppercase' }}>Admin</div>
+            <div style={{ color:'#fff', fontSize:20, fontWeight:700 }}>Resources</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
+
+        {/* Stats strip */}
+        <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:12, scrollbarWidth:'none' }}>
           {headerStats.map(s => (
-            <div key={s.label} style={{ background: 'rgba(255,255,255,0.10)', borderRadius: 12, padding: '10px 14px', minWidth: 110, flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ fontSize: 18 }}>{s.icon}</div>
-              <div style={{ color: s.value !== '—' ? C.emerald : '#fff', fontSize: 18, fontWeight: 700, marginTop: 2 }}>{s.value}</div>
-              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, fontWeight: 500 }}>{s.label}</div>
+            <div key={s.label} style={{
+              background:'rgba(255,255,255,0.10)', borderRadius:12,
+              padding:'10px 14px', minWidth:110, flexShrink:0,
+              border:'1px solid rgba(255,255,255,0.08)',
+            }}>
+              <div style={{ fontSize:18 }}>{s.icon}</div>
+              <div style={{ color: s.value ? C.emerald : '#fff', fontSize:18, fontWeight:700, marginTop:2 }}>
+                {s.value ?? '—'}
+              </div>
+              <div style={{ color:'rgba(255,255,255,0.55)', fontSize:10, fontWeight:500 }}>{s.label}</div>
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', overflowX: 'auto', scrollbarWidth: 'none' }}>
+
+        {/* Tabs */}
+        <div style={{ display:'flex', overflowX:'auto', scrollbarWidth:'none' }}>
           {TABS.map(t => (
-            <button key={t.key} onClick={() => setActiveTab(t.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '10px 14px', whiteSpace: 'nowrap', color: activeTab === t.key ? C.emerald : 'rgba(255,255,255,0.55)', fontWeight: activeTab === t.key ? 700 : 500, fontSize: 13, borderBottom: activeTab === t.key ? `2px solid ${C.emerald}` : '2px solid transparent', transition: 'all 0.2s' }}>
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              style={{
+                background:'none', border:'none', cursor:'pointer',
+                padding:'10px 14px', whiteSpace:'nowrap',
+                color: activeTab === t.key ? C.emerald : 'rgba(255,255,255,0.55)',
+                fontWeight: activeTab === t.key ? 700 : 500,
+                fontSize:13,
+                borderBottom: activeTab === t.key ? `2px solid ${C.emerald}` : '2px solid transparent',
+                transition:'all 0.2s',
+              }}
+            >
               {t.icon} {t.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Toasts ── */}
-      <div style={{ padding: '10px 16px 0' }}>
-        {success && <div style={{ background: C.emeraldLt, color: '#065f46', borderRadius: 10, padding: '10px 14px', marginBottom: 4, fontSize: 13, fontWeight: 600 }}>✅ {success}</div>}
-        {error   && <div style={{ background: '#fee2e2', color: '#b91c1c', borderRadius: 10, padding: '10px 14px', marginBottom: 4, fontSize: 13, fontWeight: 600 }}>⚠️ {error} <button onClick={() => setError(null)} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer', color: '#b91c1c', fontWeight: 700 }}>✕</button></div>}
+      {/* Toast */}
+      <div style={{ padding:'10px 16px 0' }}>
+        {toastMsg && toastType === 'success' && (
+          <div style={{ background:C.emeraldLt, color:'#065f46', borderRadius:10, padding:'10px 14px', marginBottom:4, fontSize:13, fontWeight:600 }}>
+            ✅ {toastMsg}
+          </div>
+        )}
+        {toastMsg && toastType === 'error' && (
+          <div style={{ background:'#fee2e2', color:'#b91c1c', borderRadius:10, padding:'10px 14px', marginBottom:4, fontSize:13, fontWeight:600 }}>
+            ⚠️ {toastMsg}
+            <button onClick={() => setToastMsg(null)} style={{ float:'right', background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:700 }}>✕</button>
+          </div>
+        )}
       </div>
 
-      <div style={{ padding: '8px 16px 100px' }}>
+      <div style={{ padding:'8px 16px 100px' }}>
 
-        {/* ══════════════════════════════════════════
-            DOCUMENTS TAB
-        ══════════════════════════════════════════ */}
+        {/* ══ DOCUMENTS ══ */}
         {activeTab === 'documents' && (
           <div>
-            <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
-              <input value={docSearch} onChange={e => setDocSearch(e.target.value)} placeholder="Search documents…" style={{ ...inp, marginBottom: 10 }} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text, background: C.surface, outline: 'none' }}>
+            <div style={{ background:C.surface, borderRadius:16, padding:14, boxShadow:'0 1px 3px rgba(0,0,0,0.08)', marginBottom:12 }}>
+              <input
+                value={docSearch} onChange={e => setDocSearch(e.target.value)}
+                placeholder="Search documents…" style={{ ...inp, marginBottom:10 }}
+              />
+              <div style={{ display:'flex', gap:8 }}>
+                <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ flex:1, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 10px', fontSize:13, color:C.text, background:C.surface, outline:'none' }}>
                   <option value="all">All Categories</option>
                   {DOC_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
                 </select>
-                <select value={filterVis} onChange={e => setFilterVis(e.target.value)} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text, background: C.surface, outline: 'none' }}>
+                <select value={filterVis} onChange={e => setFilterVis(e.target.value)} style={{ flex:1, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 10px', fontSize:13, color:C.text, background:C.surface, outline:'none' }}>
                   <option value="all">All Visibility</option>
                   {DOC_VISIBILITIES.map(v => <option key={v} value={v}>{VISIBILITY_LABELS[v]}</option>)}
                 </select>
               </div>
             </div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 10, paddingLeft: 2 }}>{docsLoading ? 'Loading…' : `${filteredDocs.length} document${filteredDocs.length !== 1 ? 's' : ''}`}</div>
-            {docsLoading ? <div style={{ textAlign: 'center', padding: 40, color: C.muted }}>Loading…</div>
-            : filteredDocs.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16 }}>
-                <div style={{ fontSize: 40 }}>📁</div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No documents yet</div>
-                <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Upload policies, MOE circulars and more.</div>
+
+            <div style={{ fontSize:12, color:C.muted, marginBottom:10, paddingLeft:2 }}>
+              {docsLoading ? 'Loading…' : `${filteredDocs.length} document${filteredDocs.length !== 1 ? 's' : ''}`}
+            </div>
+
+            {docsLoading ? (
+              <div style={{ textAlign:'center', padding:40, color:C.muted }}>Loading…</div>
+            ) : filteredDocs.length === 0 ? (
+              <div style={{ textAlign:'center', padding:48, background:C.surface, borderRadius:16 }}>
+                <div style={{ fontSize:40 }}>📁</div>
+                <div style={{ fontWeight:700, fontSize:16, marginTop:12, color:C.text }}>No documents yet</div>
+                <div style={{ color:C.muted, fontSize:13, marginTop:6 }}>Upload policies, MOE circulars and more.</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {filteredDocs.map(doc => (
-                  <div key={doc.id} style={{ background: C.surface, borderRadius: 16, padding: '14px 14px 12px', border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{FILE_ICONS[doc.file_type ?? 'other'] ?? '📎'}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.title}</div>
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{doc.uploader_name} · {formatDate(doc.created_at)}{doc.file_size_kb ? ` · ${formatSize(doc.file_size_kb)}` : ''}</div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
-                          <span style={{ ...CATEGORY_COLORS[doc.category], fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{CATEGORY_LABELS[doc.category]}</span>
-                          <span style={{ ...VISIBILITY_COLORS[doc.visibility], fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{VISIBILITY_LABELS[doc.visibility]}</span>
+                  <div key={doc.id} style={{ background:C.surface, borderRadius:16, padding:'14px 14px 12px', border:`1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
+                      <div style={{ width:42, height:42, borderRadius:12, flexShrink:0, background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
+                        {FILE_ICONS[doc.file_type ?? 'other'] ?? '📎'}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontWeight:700, fontSize:14, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{doc.title}</div>
+                        <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                          {doc.uploader_name} · {formatDate(doc.created_at)}
+                          {doc.file_size_kb ? ` · ${formatSize(doc.file_size_kb)}` : ''}
+                        </div>
+                        <div style={{ display:'flex', gap:6, marginTop:7, flexWrap:'wrap' }}>
+                          <span style={badge(CATEGORY_COLORS[doc.category])}>{CATEGORY_LABELS[doc.category]}</span>
+                          <span style={badge(VISIBILITY_COLORS[doc.visibility])}>{VISIBILITY_LABELS[doc.visibility]}</span>
                         </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      {doc.file_url ? <a href={doc.file_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: C.emerald, color: '#fff', borderRadius: 10, padding: '8px 0', textAlign: 'center', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'block' }}>↗ Open</a> : <div style={{ flex: 1, background: C.bg, borderRadius: 10, padding: '8px 0', textAlign: 'center', fontSize: 13, color: C.muted }}>No file</div>}
-                      <button onClick={() => setDeleteDocTarget(doc)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 10, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🗑</button>
+                    <div style={{ display:'flex', gap:8, marginTop:12 }}>
+                      {doc.file_url
+                        ? <a href={doc.file_url} target="_blank" rel="noopener noreferrer" style={{ flex:1, background:C.emerald, color:'#fff', borderRadius:10, padding:'8px 0', textAlign:'center', fontWeight:700, fontSize:13, textDecoration:'none', display:'block' }}>↗ Open</a>
+                        : <div style={{ flex:1, background:C.bg, borderRadius:10, padding:'8px 0', textAlign:'center', fontSize:13, color:C.muted }}>No file</div>
+                      }
+                      <button onClick={() => setDeleteDocTarget(doc)} style={{ background:'#fee2e2', color:'#b91c1c', border:'none', borderRadius:10, padding:'8px 16px', fontWeight:700, fontSize:13, cursor:'pointer' }}>🗑</button>
                     </div>
                   </div>
                 ))}
@@ -682,14 +945,20 @@ export default function AdminResourcesPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════
-            STORE TAB
-        ══════════════════════════════════════════ */}
+        {/* ══ STORE ══ */}
         {activeTab === 'store' && (
           <div>
-            <div style={{ display: 'flex', background: C.surface, borderRadius: 14, padding: 4, marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+            <div style={{ display:'flex', background:C.surface, borderRadius:14, padding:4, marginBottom:14, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
               {(['items','requests'] as const).map(v => (
-                <button key={v} onClick={() => setStoreViewMode(v)} style={{ flex: 1, background: storeViewMode === v ? C.emerald : 'none', color: storeViewMode === v ? '#fff' : C.muted, border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}>
+                <button
+                  key={v} onClick={() => setStoreViewMode(v)}
+                  style={{
+                    flex:1, background: storeViewMode === v ? C.emerald : 'none',
+                    color: storeViewMode === v ? '#fff' : C.muted,
+                    border:'none', borderRadius:10, padding:'9px 0',
+                    fontWeight:700, fontSize:13, cursor:'pointer', transition:'all 0.2s',
+                  }}
+                >
                   {v === 'items' ? '📦 Inventory' : `📋 Requests${storeRequests.length > 0 ? ` (${storeRequests.length})` : ''}`}
                 </button>
               ))}
@@ -697,60 +966,66 @@ export default function AdminResourcesPage() {
 
             {storeViewMode === 'items' && (
               <div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <div style={{ display:'flex', gap:8, marginBottom:14 }}>
                   {[
-                    { label: 'Total Items',  value: storeItems.length, icon: '📦', color: C.emerald },
-                    { label: 'Low Stock',    value: lowStockCount,     icon: '⚠️', color: lowStockCount > 0 ? '#ef4444' : C.muted },
-                    { label: 'Transactions', value: storeTxnCount,     icon: '🔄', color: C.text },
+                    { label:'Total Items',  value:storeItems.length, icon:'📦', color:C.emerald },
+                    { label:'Low Stock',    value:lowStockCount,     icon:'⚠️', color: lowStockCount > 0 ? '#ef4444' : C.muted },
+                    { label:'Transactions', value:storeTxnCount,     icon:'🔄', color:C.text },
                   ].map(s => (
-                    <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 14, padding: '12px 10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}` }}>
-                      <div style={{ fontSize: 18 }}>{s.icon}</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: s.color, marginTop: 4 }}>{s.value}</div>
-                      <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{s.label}</div>
+                    <div key={s.label} style={{ flex:1, background:C.surface, borderRadius:14, padding:'12px 10px', boxShadow:'0 1px 3px rgba(0,0,0,0.08)', border:`1px solid ${C.border}` }}>
+                      <div style={{ fontSize:18 }}>{s.icon}</div>
+                      <div style={{ fontSize:20, fontWeight:800, color:s.color, marginTop:4 }}>{s.value}</div>
+                      <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
-                  <input value={storeSearch} onChange={e => setStoreSearch(e.target.value)} placeholder="Search items…" style={{ ...inp, marginBottom: 10 }} />
-                  <select value={storeCatFilter} onChange={e => setStoreCatFilter(e.target.value)} style={{ ...inp }}>
+
+                <div style={{ background:C.surface, borderRadius:16, padding:14, boxShadow:'0 1px 3px rgba(0,0,0,0.08)', marginBottom:12 }}>
+                  <input value={storeSearch} onChange={e => setStoreSearch(e.target.value)} placeholder="Search items…" style={{ ...inp, marginBottom:10 }} />
+                  <select value={storeCatFilter} onChange={e => setStoreCatFilter(e.target.value)} style={inp}>
                     <option value="all">All Categories</option>
                     {STORE_CATEGORIES.map(c => <option key={c} value={c}>{STORE_CAT_LABELS[c]}</option>)}
                   </select>
                 </div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{storeLoading ? 'Loading…' : `${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''}`}</div>
-                {storeLoading ? <div style={{ textAlign: 'center', padding: 40, color: C.muted }}>Loading…</div>
-                : filteredItems.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16 }}>
-                    <div style={{ fontSize: 40 }}>📦</div>
-                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No items yet</div>
+
+                <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>
+                  {storeLoading ? 'Loading…' : `${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''}`}
+                </div>
+
+                {storeLoading ? (
+                  <div style={{ textAlign:'center', padding:40, color:C.muted }}>Loading…</div>
+                ) : filteredItems.length === 0 ? (
+                  <div style={{ textAlign:'center', padding:48, background:C.surface, borderRadius:16 }}>
+                    <div style={{ fontSize:40 }}>📦</div>
+                    <div style={{ fontWeight:700, fontSize:16, marginTop:12, color:C.text }}>No items yet</div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     {filteredItems.map(item => {
                       const isLow = item.quantity <= item.low_stock_threshold
                       return (
-                        <div key={item.id} style={{ background: C.surface, borderRadius: 16, padding: '14px 14px 12px', border: isLow ? '1px solid #fca5a5' : `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 44, height: 44, borderRadius: 12, background: isLow ? '#fee2e2' : C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📦</div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <div style={{ fontWeight: 700, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-                                {isLow && <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>Low</span>}
+                        <div key={item.id} style={{ background:C.surface, borderRadius:16, padding:'14px 14px 12px', border: isLow ? '1px solid #fca5a5' : `1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                            <div style={{ width:44, height:44, borderRadius:12, background: isLow ? '#fee2e2' : C.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>📦</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                                <div style={{ fontWeight:700, fontSize:14, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.name}</div>
+                                {isLow && <span style={badge({ background:'#fee2e2', color:'#b91c1c' })}>Low</span>}
                               </div>
-                              <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
-                                <span style={{ ...STORE_CAT_COLORS[item.category], fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{STORE_CAT_LABELS[item.category]}</span>
-                                <span style={{ fontSize: 12, color: C.muted }}>{item.unit}</span>
+                              <div style={{ display:'flex', gap:6, marginTop:5, flexWrap:'wrap' }}>
+                                <span style={badge(STORE_CAT_COLORS[item.category])}>{STORE_CAT_LABELS[item.category]}</span>
+                                <span style={{ fontSize:12, color:C.muted }}>{item.unit}</span>
                               </div>
                             </div>
-                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <div style={{ fontSize: 26, fontWeight: 800, color: isLow ? '#ef4444' : C.text, lineHeight: 1 }}>{item.quantity}</div>
-                              <div style={{ fontSize: 10, color: C.muted }}>in stock</div>
+                            <div style={{ textAlign:'right', flexShrink:0 }}>
+                              <div style={{ fontSize:26, fontWeight:800, color: isLow ? '#ef4444' : C.text, lineHeight:1 }}>{item.quantity}</div>
+                              <div style={{ fontSize:10, color:C.muted }}>in stock</div>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                            <button onClick={() => { setTxnTarget(item); setTxnType('stock_in'); setShowTxnModal(true) }} style={{ flex: 1, background: C.emeraldLt, color: '#065f46', border: 'none', borderRadius: 10, padding: '8px 0', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>+ In</button>
-                            <button onClick={() => { setTxnTarget(item); setTxnType('stock_out'); setShowTxnModal(true) }} style={{ flex: 1, background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: 10, padding: '8px 0', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>− Out</button>
-                            <button onClick={() => setDeleteStoreTarget(item)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 10, padding: '8px 12px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🗑</button>
+                          <div style={{ display:'flex', gap:8, marginTop:12 }}>
+                            <button onClick={() => { setTxnTarget(item); setTxnType('stock_in');  setShowTxnModal(true) }} style={{ flex:1, background:C.emeraldLt, color:'#065f46', border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:12, cursor:'pointer' }}>+ In</button>
+                            <button onClick={() => { setTxnTarget(item); setTxnType('stock_out'); setShowTxnModal(true) }} style={{ flex:1, background:'#fef3c7', color:'#92400e', border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:12, cursor:'pointer' }}>− Out</button>
+                            <button onClick={() => setDeleteStoreTarget(item)} style={{ background:'#fee2e2', color:'#b91c1c', border:'none', borderRadius:10, padding:'8px 12px', fontWeight:700, fontSize:13, cursor:'pointer' }}>🗑</button>
                           </div>
                         </div>
                       )
@@ -763,22 +1038,22 @@ export default function AdminResourcesPage() {
             {storeViewMode === 'requests' && (
               <div>
                 {storeRequests.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16 }}>
-                    <div style={{ fontSize: 40 }}>📋</div>
-                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No pending requests</div>
-                    <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Teacher requests will appear here.</div>
+                  <div style={{ textAlign:'center', padding:48, background:C.surface, borderRadius:16 }}>
+                    <div style={{ fontSize:40 }}>📋</div>
+                    <div style={{ fontWeight:700, fontSize:16, marginTop:12, color:C.text }}>No pending requests</div>
+                    <div style={{ color:C.muted, fontSize:13, marginTop:6 }}>Teacher requests will appear here.</div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     {storeRequests.map(req => (
-                      <div key={req.id} style={{ background: C.surface, borderRadius: 16, padding: 14, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{req.item_name ?? 'Unknown Item'}</div>
-                        <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>By {req.requester_name} · Qty: {req.quantity}</div>
-                        {req.reason && <div style={{ fontSize: 12, color: C.text, marginTop: 4, fontStyle: 'italic' }}>"{req.reason}"</div>}
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{formatDate(req.created_at)}</div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                          <button onClick={() => handleRequestAction(req, 'approved')} style={{ flex: 1, background: C.emeraldLt, color: '#065f46', border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✓ Approve</button>
-                          <button onClick={() => handleRequestAction(req, 'rejected')} style={{ flex: 1, background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✕ Reject</button>
+                      <div key={req.id} style={{ background:C.surface, borderRadius:16, padding:14, border:`1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
+                        <div style={{ fontWeight:700, fontSize:14, color:C.text }}>{req.item_name ?? 'Unknown Item'}</div>
+                        <div style={{ fontSize:12, color:C.muted, marginTop:3 }}>By {req.requester_name} · Qty: {req.quantity}</div>
+                        {req.reason && <div style={{ fontSize:12, color:C.text, marginTop:4, fontStyle:'italic' }}>"{req.reason}"</div>}
+                        <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>{formatDate(req.created_at)}</div>
+                        <div style={{ display:'flex', gap:8, marginTop:12 }}>
+                          <button onClick={() => handleRequestAction(req, 'approved')} style={{ flex:1, background:C.emeraldLt, color:'#065f46', border:'none', borderRadius:10, padding:'9px 0', fontWeight:700, fontSize:13, cursor:'pointer' }}>✓ Approve</button>
+                          <button onClick={() => handleRequestAction(req, 'rejected')} style={{ flex:1, background:'#fee2e2', color:'#b91c1c', border:'none', borderRadius:10, padding:'9px 0', fontWeight:700, fontSize:13, cursor:'pointer' }}>✕ Reject</button>
                         </div>
                       </div>
                     ))}
@@ -789,35 +1064,31 @@ export default function AdminResourcesPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════
-            ASSETS TAB
-        ══════════════════════════════════════════ */}
+        {/* ══ ASSETS ══ */}
         {activeTab === 'assets' && (
           <div>
-            {/* Condition stats */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto' }}>
+            <div style={{ display:'flex', gap:8, marginBottom:14, overflowX:'auto' }}>
               {[
-                { label: 'Good',        value: assetCondCounts.good,        color: '#065f46', bg: '#d1fae5' },
-                { label: 'Fair',        value: assetCondCounts.fair,        color: '#a16207', bg: '#fef9c3' },
-                { label: 'Repair',      value: assetCondCounts.needs_repair,color: '#c2410c', bg: '#ffedd5' },
-                { label: 'Condemned',   value: assetCondCounts.condemned,   color: '#b91c1c', bg: '#fee2e2' },
+                { label:'Good',     value:assetCondCounts.good,         color:'#065f46', bg:'#d1fae5' },
+                { label:'Fair',     value:assetCondCounts.fair,         color:'#a16207', bg:'#fef9c3' },
+                { label:'Repair',   value:assetCondCounts.needs_repair, color:'#c2410c', bg:'#ffedd5' },
+                { label:'Condemned',value:assetCondCounts.condemned,    color:'#b91c1c', bg:'#fee2e2' },
               ].map(s => (
-                <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 14, padding: '10px 8px', minWidth: 72, flexShrink: 0 }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: s.color, marginTop: 2, fontWeight: 600 }}>{s.label}</div>
+                <div key={s.label} style={{ flex:1, background:s.bg, borderRadius:14, padding:'10px 8px', minWidth:72, flexShrink:0 }}>
+                  <div style={{ fontSize:20, fontWeight:800, color:s.color }}>{s.value}</div>
+                  <div style={{ fontSize:10, color:s.color, marginTop:2, fontWeight:600 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            {/* Filters */}
-            <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
-              <input value={assetSearch} onChange={e => setAssetSearch(e.target.value)} placeholder="Search assets…" style={{ ...inp, marginBottom: 10 }} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <select value={assetCatFilter} onChange={e => setAssetCatFilter(e.target.value)} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text, background: C.surface, outline: 'none' }}>
+            <div style={{ background:C.surface, borderRadius:16, padding:14, boxShadow:'0 1px 3px rgba(0,0,0,0.08)', marginBottom:12 }}>
+              <input value={assetSearch} onChange={e => setAssetSearch(e.target.value)} placeholder="Search assets…" style={{ ...inp, marginBottom:10 }} />
+              <div style={{ display:'flex', gap:8 }}>
+                <select value={assetCatFilter} onChange={e => setAssetCatFilter(e.target.value)} style={{ flex:1, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 10px', fontSize:13, color:C.text, background:C.surface, outline:'none' }}>
                   <option value="all">All Categories</option>
                   {ASSET_CATEGORIES.map(c => <option key={c} value={c}>{ASSET_CAT_LABELS[c]}</option>)}
                 </select>
-                <select value={assetCondFilter} onChange={e => setAssetCondFilter(e.target.value)} style={{ flex: 1, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text, background: C.surface, outline: 'none' }}>
+                <select value={assetCondFilter} onChange={e => setAssetCondFilter(e.target.value)} style={{ flex:1, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 10px', fontSize:13, color:C.text, background:C.surface, outline:'none' }}>
                   <option value="all">All Conditions</option>
                   <option value="good">Good</option>
                   <option value="fair">Fair</option>
@@ -827,39 +1098,44 @@ export default function AdminResourcesPage() {
               </div>
             </div>
 
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{assetsLoading ? 'Loading…' : `${filteredAssets.length} asset${filteredAssets.length !== 1 ? 's' : ''} · Total: ${assets.length}`}</div>
+            <div style={{ fontSize:12, color:C.muted, marginBottom:10 }}>
+              {assetsLoading ? 'Loading…' : `${filteredAssets.length} of ${assets.length} asset${assets.length !== 1 ? 's' : ''}`}
+            </div>
 
-            {assetsLoading ? <div style={{ textAlign: 'center', padding: 40, color: C.muted }}>Loading…</div>
-            : filteredAssets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16 }}>
-                <div style={{ fontSize: 40 }}>🏫</div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No assets yet</div>
-                <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Track furniture, electronics, sports equipment and more.</div>
+            {assetsLoading ? (
+              <div style={{ textAlign:'center', padding:40, color:C.muted }}>Loading…</div>
+            ) : filteredAssets.length === 0 ? (
+              <div style={{ textAlign:'center', padding:48, background:C.surface, borderRadius:16 }}>
+                <div style={{ fontSize:40 }}>🏫</div>
+                <div style={{ fontWeight:700, fontSize:16, marginTop:12, color:C.text }}>No assets yet</div>
+                <div style={{ color:C.muted, fontSize:13, marginTop:6 }}>Track furniture, electronics, sports equipment and more.</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {filteredAssets.map(asset => (
-                  <div key={asset.id} style={{ background: C.surface, borderRadius: 16, padding: '14px 14px 12px', border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{asset.name}</div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                          <span style={{ background: '#f1f5f9', color: '#475569', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{ASSET_CAT_LABELS[asset.category]}</span>
-                          <span style={{ ...ASSET_CONDITION_COLORS[asset.item_condition], fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{ASSET_CONDITION_LABELS[asset.item_condition]}</span>
-                        </div>
-                        <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
-                          Qty: <strong style={{ color: C.text }}>{asset.quantity}</strong>
-                          {asset.location ? ` · 📍 ${asset.location}` : ''}
-                          {asset.serial_no ? ` · S/N: ${asset.serial_no}` : ''}
-                        </div>
-                        {asset.last_checked && <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Last checked: {formatDate(asset.last_checked)}</div>}
+                  <div key={asset.id} style={{ background:C.surface, borderRadius:16, padding:'14px 14px 12px', border:`1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:15, color:C.text }}>{asset.name}</div>
+                      <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap' }}>
+                        <span style={badge({ background:'#f1f5f9', color:'#475569' })}>{ASSET_CAT_LABELS[asset.category]}</span>
+                        <span style={badge(ASSET_CONDITION_COLORS[asset.item_condition])}>{ASSET_CONDITION_LABELS[asset.item_condition]}</span>
                       </div>
+                      <div style={{ fontSize:12, color:C.muted, marginTop:6 }}>
+                        Qty: <strong style={{ color:C.text }}>{asset.quantity}</strong>
+                        {asset.location ? ` · 📍 ${asset.location}` : ''}
+                        {asset.serial_no ? ` · S/N: ${asset.serial_no}` : ''}
+                      </div>
+                      {asset.last_checked && (
+                        <div style={{ fontSize:11, color:C.muted, marginTop:3 }}>Last checked: {formatDate(asset.last_checked)}</div>
+                      )}
                     </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                      <button onClick={() => { loadAssetToForm(asset); setEditAsset(asset) }} style={{ flex: 1, background: C.emeraldLt, color: '#065f46', border: 'none', borderRadius: 10, padding: '8px 0', fontWeight: 700, fontSize: 12, cursor: 'pointer', minWidth: 60 }}>✏️ Edit</button>
-                      <button onClick={() => handleLastChecked(asset)} style={{ flex: 1, background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: 10, padding: '8px 0', fontWeight: 700, fontSize: 12, cursor: 'pointer', minWidth: 60 }}>✓ Checked</button>
-                      {asset.item_condition !== 'condemned' && <button onClick={() => setCondemnTarget(asset)} style={{ flex: 1, background: '#ffedd5', color: '#c2410c', border: 'none', borderRadius: 10, padding: '8px 0', fontWeight: 700, fontSize: 12, cursor: 'pointer', minWidth: 60 }}>⚠️ Condemn</button>}
-                      <button onClick={() => setDeleteAssetTarget(asset)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 10, padding: '8px 12px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🗑</button>
+                    <div style={{ display:'flex', gap:8, marginTop:12, flexWrap:'wrap' }}>
+                      <button onClick={() => { loadAssetToForm(asset); setEditAsset(asset) }} style={{ flex:1, background:C.emeraldLt, color:'#065f46', border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:12, cursor:'pointer', minWidth:60 }}>✏️ Edit</button>
+                      <button onClick={() => handleLastChecked(asset)} style={{ flex:1, background:'#dbeafe', color:'#1d4ed8', border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:12, cursor:'pointer', minWidth:60 }}>✓ Checked</button>
+                      {asset.item_condition !== 'condemned' && (
+                        <button onClick={() => setCondemnTarget(asset)} style={{ flex:1, background:'#ffedd5', color:'#c2410c', border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:12, cursor:'pointer', minWidth:60 }}>⚠️ Condemn</button>
+                      )}
+                      <button onClick={() => setDeleteAssetTarget(asset)} style={{ background:'#fee2e2', color:'#b91c1c', border:'none', borderRadius:10, padding:'8px 12px', fontWeight:700, fontSize:13, cursor:'pointer' }}>🗑</button>
                     </div>
                   </div>
                 ))}
@@ -868,31 +1144,27 @@ export default function AdminResourcesPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════
-            LIBRARY TAB
-        ══════════════════════════════════════════ */}
+        {/* ══ LIBRARY ══ */}
         {activeTab === 'library' && (
           <div>
-            {/* Stats */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <div style={{ display:'flex', gap:8, marginBottom:14 }}>
               {[
-                { label: 'Total Books',  value: books.length,                                                           icon: '📚', color: C.emerald },
-                { label: 'Available',    value: books.reduce((s,b) => s + b.available_copies, 0),                       icon: '✅', color: '#065f46' },
-                { label: 'Overdue',      value: overdueCount,                                                           icon: '⏰', color: overdueCount > 0 ? '#ef4444' : C.muted },
-                { label: 'Fines (KES)',  value: unpaidFines,                                                            icon: '💰', color: unpaidFines > 0 ? '#b91c1c' : C.muted },
+                { label:'Total Books', value:books.length,                                        icon:'📚', color:C.emerald },
+                { label:'Available',   value:books.reduce((s,b) => s + b.available_copies, 0),   icon:'✅', color:'#065f46' },
+                { label:'Overdue',     value:overdueCount,                                        icon:'⏰', color: overdueCount > 0 ? '#ef4444' : C.muted },
+                { label:'Fines (KES)', value:unpaidFines,                                         icon:'💰', color: unpaidFines > 0 ? '#b91c1c' : C.muted },
               ].map(s => (
-                <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 14, padding: '10px 8px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 16 }}>{s.icon}</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: s.color, marginTop: 2 }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: C.muted, marginTop: 2 }}>{s.label}</div>
+                <div key={s.label} style={{ flex:1, background:C.surface, borderRadius:14, padding:'10px 8px', boxShadow:'0 1px 3px rgba(0,0,0,0.08)', border:`1px solid ${C.border}` }}>
+                  <div style={{ fontSize:16 }}>{s.icon}</div>
+                  <div style={{ fontSize:18, fontWeight:800, color:s.color, marginTop:2 }}>{s.value}</div>
+                  <div style={{ fontSize:9, color:C.muted, marginTop:2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            {/* Sub-view toggle */}
-            <div style={{ display: 'flex', background: C.surface, borderRadius: 14, padding: 4, marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+            <div style={{ display:'flex', background:C.surface, borderRadius:14, padding:4, marginBottom:14, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
               {(['books','borrowings'] as const).map(v => (
-                <button key={v} onClick={() => setLibView(v)} style={{ flex: 1, background: libView === v ? C.emerald : 'none', color: libView === v ? '#fff' : C.muted, border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}>
+                <button key={v} onClick={() => setLibView(v)} style={{ flex:1, background: libView === v ? C.emerald : 'none', color: libView === v ? '#fff' : C.muted, border:'none', borderRadius:10, padding:'9px 0', fontWeight:700, fontSize:13, cursor:'pointer', transition:'all 0.2s' }}>
                   {v === 'books' ? '📚 Catalog' : `📋 Borrowings${borrowings.length > 0 ? ` (${borrowings.length})` : ''}`}
                 </button>
               ))}
@@ -900,30 +1172,37 @@ export default function AdminResourcesPage() {
 
             {libView === 'books' && (
               <div>
-                <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
-                  <input value={bookSearch} onChange={e => setBookSearch(e.target.value)} placeholder="Search by title or author…" style={{ ...inp }} />
+                <div style={{ background:C.surface, borderRadius:16, padding:14, boxShadow:'0 1px 3px rgba(0,0,0,0.08)', marginBottom:12 }}>
+                  <input value={bookSearch} onChange={e => setBookSearch(e.target.value)} placeholder="Search by title or author…" style={inp} />
                 </div>
-                {libLoading ? <div style={{ textAlign: 'center', padding: 40, color: C.muted }}>Loading…</div>
-                : filteredBooks.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16 }}>
-                    <div style={{ fontSize: 40 }}>📚</div>
-                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No books yet</div>
-                    <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>Add your library catalog.</div>
+                {libLoading ? (
+                  <div style={{ textAlign:'center', padding:40, color:C.muted }}>Loading…</div>
+                ) : filteredBooks.length === 0 ? (
+                  <div style={{ textAlign:'center', padding:48, background:C.surface, borderRadius:16 }}>
+                    <div style={{ fontSize:40 }}>📚</div>
+                    <div style={{ fontWeight:700, fontSize:16, marginTop:12, color:C.text }}>No books yet</div>
+                    <div style={{ color:C.muted, fontSize:13, marginTop:6 }}>Add your library catalog.</div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     {filteredBooks.map(book => (
-                      <div key={book.id} style={{ background: C.surface, borderRadius: 16, padding: '14px 14px 12px', border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{book.title}</div>
-                        <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>by {book.author}</div>
-                        <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                          {book.subject && <span style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{book.subject}</span>}
-                          {book.class_level && <span style={{ background: '#f1f5f9', color: '#475569', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>Class {book.class_level}</span>}
-                          <span style={{ background: book.available_copies > 0 ? C.emeraldLt : '#fee2e2', color: book.available_copies > 0 ? '#065f46' : '#b91c1c', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20 }}>{book.available_copies}/{book.total_copies} avail.</span>
+                      <div key={book.id} style={{ background:C.surface, borderRadius:16, padding:'14px 14px 12px', border:`1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
+                        <div style={{ fontWeight:700, fontSize:15, color:C.text }}>{book.title}</div>
+                        <div style={{ fontSize:13, color:C.muted, marginTop:2 }}>by {book.author}</div>
+                        <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap', alignItems:'center' }}>
+                          {book.subject     && <span style={badge({ background:'#dbeafe', color:'#1d4ed8' })}>{book.subject}</span>}
+                          {book.class_level && <span style={badge({ background:'#f1f5f9', color:'#475569' })}>Class {book.class_level}</span>}
+                          <span style={badge({ background: book.available_copies > 0 ? C.emeraldLt : '#fee2e2', color: book.available_copies > 0 ? '#065f46' : '#b91c1c' })}>
+                            {book.available_copies}/{book.total_copies} avail.
+                          </span>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                          <button onClick={() => { setIssueTarget(book); setShowIssueModal(true) }} disabled={book.available_copies === 0} style={{ flex: 1, background: book.available_copies > 0 ? C.emerald : C.bg, color: book.available_copies > 0 ? '#fff' : C.muted, border: 'none', borderRadius: 10, padding: '8px 0', fontWeight: 700, fontSize: 13, cursor: book.available_copies > 0 ? 'pointer' : 'not-allowed' }}>Issue Book</button>
-                          <button onClick={() => setDeleteBookTarget(book)} style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 10, padding: '8px 12px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>🗑</button>
+                        <div style={{ display:'flex', gap:8, marginTop:12 }}>
+                          <button
+                            onClick={() => { setIssueTarget(book); setShowIssueModal(true) }}
+                            disabled={book.available_copies === 0}
+                            style={{ flex:1, background: book.available_copies > 0 ? C.emerald : C.bg, color: book.available_copies > 0 ? '#fff' : C.muted, border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:13, cursor: book.available_copies > 0 ? 'pointer' : 'not-allowed' }}
+                          >Issue Book</button>
+                          <button onClick={() => setDeleteBookTarget(book)} style={{ background:'#fee2e2', color:'#b91c1c', border:'none', borderRadius:10, padding:'8px 12px', fontWeight:700, fontSize:13, cursor:'pointer' }}>🗑</button>
                         </div>
                       </div>
                     ))}
@@ -935,27 +1214,41 @@ export default function AdminResourcesPage() {
             {libView === 'borrowings' && (
               <div>
                 {borrowings.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16 }}>
-                    <div style={{ fontSize: 40 }}>📋</div>
-                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No active borrowings</div>
+                  <div style={{ textAlign:'center', padding:48, background:C.surface, borderRadius:16 }}>
+                    <div style={{ fontSize:40 }}>📋</div>
+                    <div style={{ fontWeight:700, fontSize:16, marginTop:12, color:C.text }}>No active borrowings</div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     {borrowings.map(b => {
                       const overdue = isOverdue(b.due_date, b.returned_at)
                       const fine    = overdue ? calcFine(b.due_date) : 0
                       return (
-                        <div key={b.id} style={{ background: C.surface, borderRadius: 16, padding: '14px 14px 12px', border: overdue ? '1px solid #fca5a5' : `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{b.book_title}</div>
-                              <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>Borrower: {b.notes ?? '—'} ({b.borrower_type})</div>
-                              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Issued: {formatDate(b.issued_at)} · Due: {formatDate(b.due_date)}</div>
-                              {overdue && <div style={{ fontSize: 12, color: '#b91c1c', fontWeight: 700, marginTop: 4 }}>⏰ Overdue · Fine: KES {fine}</div>}
+                        <div key={b.id} style={{ background:C.surface, borderRadius:16, padding:'14px 14px 12px', border: overdue ? '1px solid #fca5a5' : `1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                            <div style={{ flex:1 }}>
+                              <div style={{ fontWeight:700, fontSize:14, color:C.text }}>{b.book_title}</div>
+                              {/* FIX: use borrower_name (which is set from notes) */}
+                              <div style={{ fontSize:12, color:C.muted, marginTop:3 }}>
+                                {b.borrower_name} · {b.borrower_type}
+                              </div>
+                              <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>
+                                Issued: {formatDate(b.issued_at)} · Due: {formatDate(b.due_date)}
+                              </div>
+                              {overdue && (
+                                <div style={{ fontSize:12, color:'#b91c1c', fontWeight:700, marginTop:4 }}>
+                                  ⏰ Overdue · Fine: KES {fine}
+                                </div>
+                              )}
                             </div>
-                            {overdue && <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>Overdue</span>}
+                            {overdue && (
+                              <span style={badge({ background:'#fee2e2', color:'#b91c1c' })}>Overdue</span>
+                            )}
                           </div>
-                          <button onClick={() => { setReturnTarget(b); setReturnCondIn('good'); setReturnFinePaid(false); setShowReturnModal(true) }} style={{ width: '100%', background: C.emerald, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginTop: 12 }}>Return Book</button>
+                          <button
+                            onClick={() => { setReturnTarget(b); setReturnCondIn('good'); setReturnFinePaid(false); setShowReturnModal(true) }}
+                            style={{ width:'100%', background:C.emerald, color:'#fff', border:'none', borderRadius:10, padding:'9px 0', fontWeight:700, fontSize:13, cursor:'pointer', marginTop:12 }}
+                          >Return Book</button>
                         </div>
                       )
                     })}
@@ -966,63 +1259,62 @@ export default function AdminResourcesPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════
-            STAFF TAB
-        ══════════════════════════════════════════ */}
+        {/* ══ STAFF ══ */}
         {activeTab === 'staff' && (
           <div>
-            {/* Stats */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <div style={{ display:'flex', gap:8, marginBottom:14 }}>
               {[
-                { label: 'Total Staff',   value: staffList.length, icon: '👥', color: C.emerald },
-                { label: 'Librarians',    value: librarianCount,   icon: '📖', color: '#1d4ed8' },
-                { label: 'Store Keepers', value: storeKeeperCount, icon: '🏪', color: '#c2410c' },
+                { label:'Total Staff',   value:staffList.length, icon:'👥', color:C.emerald },
+                { label:'Librarians',    value:librarianCount,   icon:'📖', color:'#1d4ed8' },
+                { label:'Store Keepers', value:storeKeeperCount, icon:'🏪', color:'#c2410c' },
               ].map(s => (
-                <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 14, padding: '12px 10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}` }}>
-                  <div style={{ fontSize: 18 }}>{s.icon}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: s.color, marginTop: 4 }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{s.label}</div>
+                <div key={s.label} style={{ flex:1, background:C.surface, borderRadius:14, padding:'12px 10px', boxShadow:'0 1px 3px rgba(0,0,0,0.08)', border:`1px solid ${C.border}` }}>
+                  <div style={{ fontSize:18 }}>{s.icon}</div>
+                  <div style={{ fontSize:20, fontWeight:800, color:s.color, marginTop:4 }}>{s.value}</div>
+                  <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
 
-            <div style={{ background: C.surface, borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 12 }}>
-              <input value={staffSearch} onChange={e => setStaffSearch(e.target.value)} placeholder="Search staff…" style={{ ...inp }} />
+            <div style={{ background:C.surface, borderRadius:16, padding:14, boxShadow:'0 1px 3px rgba(0,0,0,0.08)', marginBottom:12 }}>
+              <input value={staffSearch} onChange={e => setStaffSearch(e.target.value)} placeholder="Search staff…" style={inp} />
             </div>
 
-            {staffLoading ? <div style={{ textAlign: 'center', padding: 40, color: C.muted }}>Loading…</div>
-            : filteredStaff.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 48, background: C.surface, borderRadius: 16 }}>
-                <div style={{ fontSize: 40 }}>👥</div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginTop: 12, color: C.text }}>No staff found</div>
+            {staffLoading ? (
+              <div style={{ textAlign:'center', padding:40, color:C.muted }}>Loading…</div>
+            ) : filteredStaff.length === 0 ? (
+              <div style={{ textAlign:'center', padding:48, background:C.surface, borderRadius:16 }}>
+                <div style={{ fontSize:40 }}>👥</div>
+                <div style={{ fontWeight:700, fontSize:16, marginTop:12, color:C.text }}>No staff found</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                 {filteredStaff.map(person => {
-                  const role = person.resource_role ?? 'general'
+                  const role   = person.resource_role ?? 'general'
                   const colors = RESOURCE_ROLE_COLORS[role]
-                  const initials = person.full_name.split(' ').map((n:string) => n[0]).join('').toUpperCase().slice(0,2)
                   return (
-                    <div key={person.id} style={{ background: C.surface, borderRadius: 16, padding: '14px', border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 22, background: C.hero, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>{initials}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{person.full_name}</div>
-                          <div style={{ fontSize: 12, color: C.muted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{person.email}</div>
-                          <span style={{ ...colors, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', marginTop: 4, display: 'inline-block' }}>{RESOURCE_ROLE_LABELS[role]}</span>
+                    <div key={person.id} style={{ background:C.surface, borderRadius:16, padding:14, border:`1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,0.08)' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                        <div style={{ width:44, height:44, borderRadius:22, background:C.hero, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:800, fontSize:15, flexShrink:0 }}>
+                          {initials(person.full_name)}
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontWeight:700, fontSize:14, color:C.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{person.full_name}</div>
+                          <div style={{ fontSize:12, color:C.muted, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{person.email}</div>
+                          <span style={badge({ ...colors, marginTop:4, display:'inline-block' })}>{RESOURCE_ROLE_LABELS[role]}</span>
                         </div>
                       </div>
-                      <div style={{ marginTop: 12 }}>
-                        <label style={{ ...lbl }}>Assign Resource Role</label>
+                      <div style={{ marginTop:12 }}>
+                        <label style={lbl}>Assign Resource Role</label>
                         <select
                           value={role}
                           disabled={roleUpdating === person.id}
                           onChange={e => handleRoleChange(person, e.target.value as typeof RESOURCE_ROLES[number])}
-                          style={{ ...inp, fontSize: 13 }}
+                          style={{ ...inp, fontSize:13 }}
                         >
                           {RESOURCE_ROLES.map(r => <option key={r} value={r}>{RESOURCE_ROLE_LABELS[r]}</option>)}
                         </select>
-                        {roleUpdating === person.id && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Updating…</div>}
+                        {roleUpdating === person.id && <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>Updating…</div>}
                       </div>
                     </div>
                   )
@@ -1031,368 +1323,319 @@ export default function AdminResourcesPage() {
             )}
           </div>
         )}
-
       </div>
 
-      {/* ══════════════════════════════════════════
-          FABs
-      ══════════════════════════════════════════ */}
+      {/* ══ FABs ══ */}
       {activeTab === 'documents' && (
-        <button onClick={() => { resetDocForm(); setError(null); setShowDocModal(true) }} style={{ position: 'fixed', bottom: 90, right: 20, background: C.emerald, color: '#fff', border: 'none', borderRadius: 20, padding: '14px 22px', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 50 }}>
-          <span style={{ fontSize: 20, lineHeight: 1 }}>+</span> Upload
-        </button>
+        <FAB label="Upload" onClick={() => { resetDocForm(); setShowDocModal(true) }} />
       )}
       {activeTab === 'store' && storeViewMode === 'items' && (
-        <button onClick={() => { setError(null); setShowAddItem(true) }} style={{ position: 'fixed', bottom: 90, right: 20, background: C.emerald, color: '#fff', border: 'none', borderRadius: 20, padding: '14px 22px', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 50 }}>
-          <span style={{ fontSize: 20, lineHeight: 1 }}>+</span> Add Item
-        </button>
+        <FAB label="Add Item" onClick={() => setShowAddItem(true)} />
       )}
       {activeTab === 'assets' && !editAsset && (
-        <button onClick={() => { resetAssetForm(); setShowAddAsset(true) }} style={{ position: 'fixed', bottom: 90, right: 20, background: C.emerald, color: '#fff', border: 'none', borderRadius: 20, padding: '14px 22px', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 50 }}>
-          <span style={{ fontSize: 20, lineHeight: 1 }}>+</span> Add Asset
-        </button>
+        <FAB label="Add Asset" onClick={() => { resetAssetForm(); setShowAddAsset(true) }} />
       )}
       {activeTab === 'library' && libView === 'books' && (
-        <button onClick={() => setShowAddBook(true)} style={{ position: 'fixed', bottom: 90, right: 20, background: C.emerald, color: '#fff', border: 'none', borderRadius: 20, padding: '14px 22px', fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 50 }}>
-          <span style={{ fontSize: 20, lineHeight: 1 }}>+</span> Add Book
-        </button>
+        <FAB label="Add Book" onClick={() => setShowAddBook(true)} />
       )}
 
-      {/* ══════════════════════════════════════════
-          MODALS
-      ══════════════════════════════════════════ */}
+      {/* ══ MODALS ══ */}
 
-      {/* Doc Upload */}
+      {/* Upload Document */}
       {showDocModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowDocModal(false) }}>
-          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
-            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 18 }}>Upload Document</div>
-            <div style={field()}}>
-              <label style={lbl}>Title *</label>
-              <input value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="e.g. School Fees Policy 2025" style={inp} />
-            </div>
-            <div style={field()}>
-              <label style={lbl}>Category *</label>
-              <select value={formCat} onChange={e => setFormCat(e.target.value)} style={inp}>
-                {DOC_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
-              </select>
-            </div>
-            <div style={field()}>
-              <label style={lbl}>Visibility *</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {DOC_VISIBILITIES.map(v => (
-                  <button key={v} onClick={() => setFormVis(v as any)} style={{ flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: `2px solid ${formVis === v ? C.emerald : C.border}`, background: formVis === v ? C.emeraldLt : C.surface, color: formVis === v ? '#065f46' : C.muted }}>
-                    {VISIBILITY_LABELS[v]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={field(20)}>
-              <label style={lbl}>File *</label>
-              <div onClick={() => fileRef.current?.click()} style={{ border: `2px dashed ${formFile ? C.emerald : C.border}`, borderRadius: 12, padding: '18px 12px', textAlign: 'center', cursor: 'pointer', background: formFile ? C.emeraldLt : C.bg }}>
-                <div style={{ fontSize: 28 }}>{formFile ? '✅' : '📤'}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 6, color: C.text }}>{formFile ? formFile.name : 'Tap to select file'}</div>
-                {!formFile && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>PDF, DOCX, ZIP, PNG, MP4</div>}
-              </div>
-              <input ref={fileRef} type="file" accept=".pdf,.docx,.zip,.png,.mp4" style={{ display: 'none' }} onChange={e => setFormFile(e.target.files?.[0] ?? null)} />
-            </div>
-            <button onClick={handleUpload} disabled={docUploading} style={{ width: '100%', background: docUploading ? C.muted : C.emerald, color: '#fff', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 15, cursor: docUploading ? 'not-allowed' : 'pointer' }}>
-              {docUploading ? 'Uploading…' : 'Upload Document'}
-            </button>
-            <button onClick={() => setShowDocModal(false)} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
+        <BottomSheet title="Upload Document" onClose={() => setShowDocModal(false)}>
+          <div style={field()}>
+            <label style={lbl}>Title *</label>
+            <input value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="e.g. School Fees Policy 2025" style={inp} />
           </div>
-        </div>
+          <div style={field()}>
+            <label style={lbl}>Category *</label>
+            <select value={formCat} onChange={e => setFormCat(e.target.value)} style={inp}>
+              {DOC_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
+            </select>
+          </div>
+          <div style={field()}>
+            <label style={lbl}>Visibility *</label>
+            <div style={{ display:'flex', gap:8 }}>
+              {DOC_VISIBILITIES.map(v => (
+                <button key={v} onClick={() => setFormVis(v as typeof formVis)} style={{ flex:1, padding:'9px 4px', borderRadius:10, fontSize:12, fontWeight:700, cursor:'pointer', border:`2px solid ${formVis === v ? C.emerald : C.border}`, background: formVis === v ? C.emeraldLt : C.surface, color: formVis === v ? '#065f46' : C.muted }}>
+                  {VISIBILITY_LABELS[v]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={field(20)}>
+            <label style={lbl}>File * (max {MAX_FILE_SIZE_MB}MB)</label>
+            <div
+              onClick={() => fileRef.current?.click()}
+              style={{ border:`2px dashed ${formFile ? C.emerald : C.border}`, borderRadius:12, padding:'18px 12px', textAlign:'center', cursor:'pointer', background: formFile ? C.emeraldLt : C.bg }}
+            >
+              <div style={{ fontSize:28 }}>{formFile ? '✅' : '📤'}</div>
+              <div style={{ fontSize:13, fontWeight:600, marginTop:6, color:C.text }}>{formFile ? formFile.name : 'Tap to select file'}</div>
+              {!formFile && <div style={{ fontSize:11, color:C.muted, marginTop:4 }}>PDF, DOCX, ZIP, PNG, MP4</div>}
+            </div>
+            <input ref={fileRef} type="file" accept=".pdf,.docx,.zip,.png,.mp4" style={{ display:'none' }} onChange={e => setFormFile(e.target.files?.[0] ?? null)} />
+          </div>
+          <button onClick={handleUpload} disabled={docUploading} style={{ width:'100%', background: docUploading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: docUploading ? 'not-allowed' : 'pointer' }}>
+            {docUploading ? 'Uploading…' : 'Upload Document'}
+          </button>
+          <button onClick={() => setShowDocModal(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
       )}
 
       {/* Add Store Item */}
       {showAddItem && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowAddItem(false) }}>
-          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
-            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 18 }}>Add Store Item</div>
-            {[
-              { label: 'Item Name *', value: itemName, set: setItemName, placeholder: 'e.g. A4 Paper Ream' },
-              { label: 'Unit',        value: itemUnit, set: setItemUnit, placeholder: 'e.g. piece, box, litre' },
-              { label: 'Opening Qty', value: itemQty,  set: setItemQty,  placeholder: '0', type: 'number' },
-              { label: 'Low Stock Alert At', value: itemThreshold, set: setItemThreshold, placeholder: '5', type: 'number' },
-            ].map(f => (
-              <div key={f.label} style={field()}>
-                <label style={lbl}>{f.label}</label>
-                <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type ?? 'text'} style={inp} />
-              </div>
-            ))}
-            <div style={field(20)}>
-              <label style={lbl}>Category *</label>
-              <select value={itemCat} onChange={e => setItemCat(e.target.value)} style={inp}>
-                {STORE_CATEGORIES.map(c => <option key={c} value={c}>{STORE_CAT_LABELS[c]}</option>)}
-              </select>
+        <BottomSheet title="Add Store Item" onClose={() => setShowAddItem(false)}>
+          {[
+            { label:'Item Name *',       value:itemName,      set:setItemName,      placeholder:'e.g. A4 Paper Ream' },
+            { label:'Unit',              value:itemUnit,      set:setItemUnit,      placeholder:'e.g. piece, box, litre' },
+            { label:'Opening Qty',       value:itemQty,       set:setItemQty,       placeholder:'0', type:'number' },
+            { label:'Low Stock Alert At',value:itemThreshold, set:setItemThreshold, placeholder:'5', type:'number' },
+          ].map(f => (
+            <div key={f.label} style={field()}>
+              <label style={lbl}>{f.label}</label>
+              <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type ?? 'text'} style={inp} />
             </div>
-            <button onClick={handleAddItem} disabled={itemLoading} style={{ width: '100%', background: itemLoading ? C.muted : C.emerald, color: '#fff', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 15, cursor: itemLoading ? 'not-allowed' : 'pointer' }}>
-              {itemLoading ? 'Adding…' : 'Add Item'}
-            </button>
-            <button onClick={() => setShowAddItem(false)} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
+          ))}
+          <div style={field(20)}>
+            <label style={lbl}>Category *</label>
+            <select value={itemCat} onChange={e => setItemCat(e.target.value)} style={inp}>
+              {STORE_CATEGORIES.map(c => <option key={c} value={c}>{STORE_CAT_LABELS[c]}</option>)}
+            </select>
           </div>
-        </div>
+          <button onClick={handleAddItem} disabled={itemLoading} style={{ width:'100%', background: itemLoading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: itemLoading ? 'not-allowed' : 'pointer' }}>
+            {itemLoading ? 'Adding…' : 'Add Item'}
+          </button>
+          <button onClick={() => setShowAddItem(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
       )}
 
-      {/* Stock In/Out */}
+      {/* Stock In / Out */}
       {showTxnModal && txnTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowTxnModal(false) }}>
-          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
-            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 4 }}>{txnType === 'stock_in' ? '+ Stock In' : '− Stock Out'}</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>{txnTarget.name} · Current: {txnTarget.quantity} {txnTarget.unit}</div>
-            <div style={field()}>
-              <label style={lbl}>Quantity *</label>
-              <input value={txnQty} onChange={e => setTxnQty(e.target.value)} placeholder="0" type="number" min="1" style={inp} />
-            </div>
-            <div style={field()}>
-              <label style={lbl}>Reference</label>
-              <input value={txnRef} onChange={e => setTxnRef(e.target.value)} placeholder="e.g. LPO-001, Invoice #123" style={inp} />
-            </div>
-            {txnType === 'stock_out' && (
-              <div style={field()}>
-                <label style={lbl}>Issued To</label>
-                <input value={txnIssuedTo} onChange={e => setTxnIssuedTo(e.target.value)} placeholder="e.g. Mr. Kamau, Class 4B" style={inp} />
-              </div>
-            )}
-            <div style={field(20)}>
-              <label style={lbl}>Notes</label>
-              <input value={txnNotes} onChange={e => setTxnNotes(e.target.value)} placeholder="Optional notes" style={inp} />
-            </div>
-            <button onClick={handleTxn} disabled={txnLoading} style={{ width: '100%', background: txnLoading ? C.muted : txnType === 'stock_in' ? C.emerald : '#f59e0b', color: '#fff', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 15, cursor: txnLoading ? 'not-allowed' : 'pointer' }}>
-              {txnLoading ? 'Saving…' : txnType === 'stock_in' ? 'Confirm Stock In' : 'Confirm Stock Out'}
-            </button>
-            <button onClick={() => setShowTxnModal(false)} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
+        <BottomSheet
+          title={txnType === 'stock_in' ? '+ Stock In' : '− Stock Out'}
+          subtitle={`${txnTarget.name} · Current: ${txnTarget.quantity} ${txnTarget.unit}`}
+          onClose={() => setShowTxnModal(false)}
+        >
+          <div style={field()}>
+            <label style={lbl}>Quantity *</label>
+            <input value={txnQty} onChange={e => setTxnQty(e.target.value)} placeholder="0" type="number" min="1" style={inp} />
           </div>
-        </div>
+          <div style={field()}>
+            <label style={lbl}>Reference</label>
+            <input value={txnRef} onChange={e => setTxnRef(e.target.value)} placeholder="e.g. LPO-001, Invoice #123" style={inp} />
+          </div>
+          {txnType === 'stock_out' && (
+            <div style={field()}>
+              <label style={lbl}>Issued To</label>
+              <input value={txnIssuedTo} onChange={e => setTxnIssuedTo(e.target.value)} placeholder="e.g. Mr. Kamau, Class 4B" style={inp} />
+            </div>
+          )}
+          <div style={field(20)}>
+            <label style={lbl}>Notes</label>
+            <input value={txnNotes} onChange={e => setTxnNotes(e.target.value)} placeholder="Optional notes" style={inp} />
+          </div>
+          <button onClick={handleTxn} disabled={txnLoading} style={{ width:'100%', background: txnLoading ? C.muted : txnType === 'stock_in' ? C.emerald : '#f59e0b', color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: txnLoading ? 'not-allowed' : 'pointer' }}>
+            {txnLoading ? 'Saving…' : txnType === 'stock_in' ? 'Confirm Stock In' : 'Confirm Stock Out'}
+          </button>
+          <button onClick={() => setShowTxnModal(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
       )}
 
       {/* Add / Edit Asset */}
       {(showAddAsset || editAsset) && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) { setShowAddAsset(false); setEditAsset(null) } }}>
-          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
-            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 18 }}>{editAsset ? 'Edit Asset' : 'Add Asset'}</div>
-            <div style={field()}>
-              <label style={lbl}>Name *</label>
-              <input value={aName} onChange={e => setAName(e.target.value)} placeholder="e.g. Student Desk" style={inp} />
+        <BottomSheet
+          title={editAsset ? 'Edit Asset' : 'Add Asset'}
+          onClose={() => { setShowAddAsset(false); setEditAsset(null); resetAssetForm() }}
+        >
+          <div style={field()}>
+            <label style={lbl}>Name *</label>
+            <input value={aName} onChange={e => setAName(e.target.value)} placeholder="e.g. Student Desk" style={inp} />
+          </div>
+          <div style={field()}>
+            <label style={lbl}>Category *</label>
+            <select value={aCat} onChange={e => setACat(e.target.value)} style={inp}>
+              {ASSET_CATEGORIES.map(c => <option key={c} value={c}>{ASSET_CAT_LABELS[c]}</option>)}
+            </select>
+          </div>
+          <div style={{ display:'flex', gap:10, marginBottom:14 }}>
+            <div style={{ flex:1 }}>
+              <label style={lbl}>Quantity</label>
+              <input value={aQty} onChange={e => setAQty(e.target.value)} type="number" min="1" style={inp} />
             </div>
-            <div style={field()}>
-              <label style={lbl}>Category *</label>
-              <select value={aCat} onChange={e => setACat(e.target.value)} style={inp}>
-                {ASSET_CATEGORIES.map(c => <option key={c} value={c}>{ASSET_CAT_LABELS[c]}</option>)}
+            <div style={{ flex:1 }}>
+              <label style={lbl}>Condition</label>
+              <select value={aCond} onChange={e => setACond(e.target.value as ResourceAsset['item_condition'])} style={inp}>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="needs_repair">Needs Repair</option>
+                <option value="condemned">Condemned</option>
               </select>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Quantity</label>
-                <input value={aQty} onChange={e => setAQty(e.target.value)} type="number" min="1" style={inp} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Condition</label>
-                <select value={aCond} onChange={e => setACond(e.target.value as ResourceAsset['item_condition'])} style={inp}>
-                  <option value="good">Good</option>
-                  <option value="fair">Fair</option>
-                  <option value="needs_repair">Needs Repair</option>
-                  <option value="condemned">Condemned</option>
-                </select>
-              </div>
-            </div>
-            <div style={field()}>
-              <label style={lbl}>Location</label>
-              <input value={aLocation} onChange={e => setALocation(e.target.value)} placeholder="e.g. Block A, Room 3" style={inp} />
-            </div>
-            <div style={field()}>
-              <label style={lbl}>Serial No.</label>
-              <input value={aSerial} onChange={e => setASerial(e.target.value)} placeholder="Optional" style={inp} />
-            </div>
-            <div style={field(20)}>
-              <label style={lbl}>Last Checked</label>
-              <input value={aLastChecked} onChange={e => setALastChecked(e.target.value)} type="date" style={inp} />
-            </div>
-            <button onClick={handleSaveAsset} disabled={assetLoading} style={{ width: '100%', background: assetLoading ? C.muted : C.emerald, color: '#fff', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 15, cursor: assetLoading ? 'not-allowed' : 'pointer' }}>
-              {assetLoading ? 'Saving…' : editAsset ? 'Save Changes' : 'Add Asset'}
-            </button>
-            <button onClick={() => { setShowAddAsset(false); setEditAsset(null); resetAssetForm() }} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
           </div>
-        </div>
+          <div style={field()}>
+            <label style={lbl}>Location</label>
+            <input value={aLocation} onChange={e => setALocation(e.target.value)} placeholder="e.g. Block A, Room 3" style={inp} />
+          </div>
+          <div style={field()}>
+            <label style={lbl}>Serial No.</label>
+            <input value={aSerial} onChange={e => setASerial(e.target.value)} placeholder="Optional" style={inp} />
+          </div>
+          <div style={field(20)}>
+            <label style={lbl}>Last Checked</label>
+            <input value={aLastChecked} onChange={e => setALastChecked(e.target.value)} type="date" style={inp} />
+          </div>
+          <button onClick={handleSaveAsset} disabled={assetLoading} style={{ width:'100%', background: assetLoading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: assetLoading ? 'not-allowed' : 'pointer' }}>
+            {assetLoading ? 'Saving…' : editAsset ? 'Save Changes' : 'Add Asset'}
+          </button>
+          <button onClick={() => { setShowAddAsset(false); setEditAsset(null); resetAssetForm() }} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
       )}
 
       {/* Add Book */}
       {showAddBook && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowAddBook(false) }}>
-          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
-            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 18 }}>Add Book</div>
-            {[
-              { label: 'Title *',      value: bTitle,      set: setBTitle,      placeholder: 'e.g. A Tale of Two Cities' },
-              { label: 'Author *',     value: bAuthor,     set: setBAuthor,     placeholder: 'e.g. Charles Dickens' },
-              { label: 'ISBN',         value: bIsbn,       set: setBIsbn,       placeholder: 'Optional' },
-              { label: 'Subject',      value: bSubject,    set: setBSubject,    placeholder: 'e.g. English' },
-              { label: 'Class Level',  value: bClassLevel, set: setBClassLevel, placeholder: 'e.g. Form 3' },
-              { label: 'No. of Copies', value: bCopies,   set: setBCopies,     placeholder: '1', type: 'number' },
-            ].map(f => (
-              <div key={f.label} style={field()}>
-                <label style={lbl}>{f.label}</label>
-                <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type ?? 'text'} style={inp} />
-              </div>
-            ))}
-            <button onClick={handleAddBook} disabled={libActionLoading} style={{ width: '100%', background: libActionLoading ? C.muted : C.emerald, color: '#fff', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 15, cursor: libActionLoading ? 'not-allowed' : 'pointer', marginTop: 6 }}>
-              {libActionLoading ? 'Adding…' : 'Add Book'}
-            </button>
-            <button onClick={() => setShowAddBook(false)} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
-          </div>
-        </div>
+        <BottomSheet title="Add Book" onClose={() => setShowAddBook(false)}>
+          {[
+            { label:'Title *',        value:bTitle,      set:setBTitle,      placeholder:'e.g. A Tale of Two Cities' },
+            { label:'Author *',       value:bAuthor,     set:setBAuthor,     placeholder:'e.g. Charles Dickens' },
+            { label:'ISBN',           value:bIsbn,       set:setBIsbn,       placeholder:'Optional' },
+            { label:'Subject',        value:bSubject,    set:setBSubject,    placeholder:'e.g. English' },
+            { label:'Class Level',    value:bClassLevel, set:setBClassLevel, placeholder:'e.g. Form 3' },
+            { label:'No. of Copies',  value:bCopies,     set:setBCopies,     placeholder:'1', type:'number' },
+          ].map(f => (
+            <div key={f.label} style={field()}>
+              <label style={lbl}>{f.label}</label>
+              <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} type={f.type ?? 'text'} style={inp} />
+            </div>
+          ))}
+          <button onClick={handleAddBook} disabled={libActionLoading} style={{ width:'100%', background: libActionLoading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: libActionLoading ? 'not-allowed' : 'pointer', marginTop:6 }}>
+            {libActionLoading ? 'Adding…' : 'Add Book'}
+          </button>
+          <button onClick={() => setShowAddBook(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
       )}
 
       {/* Issue Book */}
       {showIssueModal && issueTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowIssueModal(false) }}>
-          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
-            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 4 }}>Issue Book</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>{issueTarget.title}</div>
-            <div style={field()}>
-              <label style={lbl}>Borrower Type</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {(['student','staff'] as const).map(t => (
-                  <button key={t} onClick={() => setIssuerType(t)} style={{ flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: `2px solid ${issuerType === t ? C.emerald : C.border}`, background: issuerType === t ? C.emeraldLt : C.surface, color: issuerType === t ? '#065f46' : C.muted, textTransform: 'capitalize' }}>
-                    {t}
-                  </button>
-                ))}
-              </div>
+        <BottomSheet
+          title="Issue Book"
+          subtitle={issueTarget.title}
+          onClose={() => setShowIssueModal(false)}
+        >
+          <div style={field()}>
+            <label style={lbl}>Borrower Type</label>
+            <div style={{ display:'flex', gap:8 }}>
+              {(['student','staff'] as const).map(t => (
+                <button key={t} onClick={() => setBorrowerType(t)} style={{ flex:1, padding:'9px 4px', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', border:`2px solid ${borrowerType === t ? C.emerald : C.border}`, background: borrowerType === t ? C.emeraldLt : C.surface, color: borrowerType === t ? '#065f46' : C.muted, textTransform:'capitalize' }}>
+                  {t}
+                </button>
+              ))}
             </div>
-            <div style={field()}>
-              <label style={lbl}>Borrower Name *</label>
-              <input value={issuerName} onChange={e => setIssuerName(e.target.value)} placeholder="Full name" style={inp} />
-            </div>
-            <div style={field()}>
-              <label style={lbl}>Due Date *</label>
-              <input value={issueDue} onChange={e => setIssueDue(e.target.value)} type="date" min={today()} style={inp} />
-            </div>
-            <div style={field(20)}>
-              <label style={lbl}>Condition Out</label>
-              <select value={issueCondOut} onChange={e => setIssueCondOut(e.target.value)} style={inp}>
-                {CONDITION_OPTIONS.map(c => <option key={c} value={c} style={{ textTransform: 'capitalize' }}>{c}</option>)}
-              </select>
-            </div>
-            <button onClick={handleIssueBook} disabled={libActionLoading} style={{ width: '100%', background: libActionLoading ? C.muted : C.emerald, color: '#fff', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 15, cursor: libActionLoading ? 'not-allowed' : 'pointer' }}>
-              {libActionLoading ? 'Issuing…' : 'Issue Book'}
-            </button>
-            <button onClick={() => setShowIssueModal(false)} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
           </div>
-        </div>
+          <div style={field()}>
+            <label style={lbl}>Borrower Name *</label>
+            <input value={borrowerName} onChange={e => setBorrowerName(e.target.value)} placeholder="Full name" style={inp} />
+          </div>
+          <div style={field()}>
+            <label style={lbl}>Due Date *</label>
+            {/* FIX: max due date capped at 1 year out */}
+            <input value={issueDue} onChange={e => setIssueDue(e.target.value)} type="date" min={today()} max={maxDueDate()} style={inp} />
+          </div>
+          <div style={field(20)}>
+            <label style={lbl}>Condition Out</label>
+            <select value={issueCondOut} onChange={e => setIssueCondOut(e.target.value)} style={inp}>
+              {CONDITION_OPTIONS.map(c => <option key={c} value={c} style={{ textTransform:'capitalize' }}>{c}</option>)}
+            </select>
+          </div>
+          <button onClick={handleIssueBook} disabled={libActionLoading} style={{ width:'100%', background: libActionLoading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: libActionLoading ? 'not-allowed' : 'pointer' }}>
+            {libActionLoading ? 'Issuing…' : 'Issue Book'}
+          </button>
+          <button onClick={() => setShowIssueModal(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
       )}
 
       {/* Return Book */}
       {showReturnModal && returnTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }} onClick={e => { if (e.target === e.currentTarget) setShowReturnModal(false) }}>
-          <div style={{ background: C.surface, borderRadius: '20px 20px 0 0', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '20px 16px 32px' }}>
-            <div style={{ width: 36, height: 4, background: C.border, borderRadius: 2, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: 800, fontSize: 18, color: C.text, marginBottom: 4 }}>Return Book</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 18 }}>{returnTarget.book_title}</div>
-            {isOverdue(returnTarget.due_date, null) && (
-              <div style={{ background: '#fee2e2', color: '#b91c1c', borderRadius: 12, padding: '10px 14px', marginBottom: 14, fontSize: 13, fontWeight: 700 }}>
-                ⏰ Overdue by {Math.floor((Date.now() - new Date(returnTarget.due_date).getTime()) / 86400000)} day(s) · Fine: KES {calcFine(returnTarget.due_date)}
-              </div>
-            )}
-            <div style={field()}>
-              <label style={lbl}>Condition Returned In</label>
-              <select value={returnCondIn} onChange={e => setReturnCondIn(e.target.value)} style={inp}>
-                {CONDITION_IN_OPTIONS.map(c => <option key={c} value={c} style={{ textTransform: 'capitalize' }}>{c}</option>)}
-              </select>
+        <BottomSheet
+          title="Return Book"
+          subtitle={returnTarget.book_title}
+          onClose={() => setShowReturnModal(false)}
+        >
+          {isOverdue(returnTarget.due_date, null) && (
+            <div style={{ background:'#fee2e2', color:'#b91c1c', borderRadius:12, padding:'10px 14px', marginBottom:14, fontSize:13, fontWeight:700 }}>
+              ⏰ Overdue by {Math.floor((Date.now() - new Date(returnTarget.due_date).getTime()) / 86400000)} day(s) · Fine: KES {calcFine(returnTarget.due_date)}
             </div>
-            {isOverdue(returnTarget.due_date, null) && (
-              <div style={field(20)}>
-                <label style={lbl}>Fine Payment</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {[false, true].map(paid => (
-                    <button key={String(paid)} onClick={() => setReturnFinePaid(paid)} style={{ flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', border: `2px solid ${returnFinePaid === paid ? C.emerald : C.border}`, background: returnFinePaid === paid ? C.emeraldLt : C.surface, color: returnFinePaid === paid ? '#065f46' : C.muted }}>
-                      {paid ? '✅ Paid' : '❌ Unpaid'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <button onClick={handleReturnBook} disabled={libActionLoading} style={{ width: '100%', background: libActionLoading ? C.muted : C.emerald, color: '#fff', border: 'none', borderRadius: 12, padding: 14, fontWeight: 800, fontSize: 15, cursor: libActionLoading ? 'not-allowed' : 'pointer' }}>
-              {libActionLoading ? 'Processing…' : 'Confirm Return'}
-            </button>
-            <button onClick={() => setShowReturnModal(false)} style={{ width: '100%', background: 'none', border: 'none', color: C.muted, fontSize: 14, marginTop: 12, cursor: 'pointer', padding: 8 }}>Cancel</button>
+          )}
+          <div style={field()}>
+            <label style={lbl}>Condition Returned In</label>
+            <select value={returnCondIn} onChange={e => setReturnCondIn(e.target.value)} style={inp}>
+              {CONDITION_IN_OPTIONS.map(c => <option key={c} value={c} style={{ textTransform:'capitalize' }}>{c}</option>)}
+            </select>
           </div>
-        </div>
+          {isOverdue(returnTarget.due_date, null) && (
+            <div style={field(20)}>
+              <label style={lbl}>Fine Payment</label>
+              <div style={{ display:'flex', gap:8 }}>
+                {[false, true].map(paid => (
+                  <button key={String(paid)} onClick={() => setReturnFinePaid(paid)} style={{ flex:1, padding:'9px 4px', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', border:`2px solid ${returnFinePaid === paid ? C.emerald : C.border}`, background: returnFinePaid === paid ? C.emeraldLt : C.surface, color: returnFinePaid === paid ? '#065f46' : C.muted }}>
+                    {paid ? '✅ Paid' : '❌ Unpaid'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <button onClick={handleReturnBook} disabled={libActionLoading} style={{ width:'100%', background: libActionLoading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: libActionLoading ? 'not-allowed' : 'pointer' }}>
+            {libActionLoading ? 'Processing…' : 'Confirm Return'}
+          </button>
+          <button onClick={() => setShowReturnModal(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
       )}
 
-      {/* ── Confirm dialogs ── */}
+      {/* ── Confirm Dialogs ── */}
       {deleteDocTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontSize: 32, textAlign: 'center' }}>🗑️</div>
-            <div style={{ fontWeight: 800, fontSize: 16, textAlign: 'center', marginTop: 10, color: C.text }}>Remove Document?</div>
-            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>"{deleteDocTarget.title}" will be removed.</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setDeleteDocTarget(null)} style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: C.text }}>Cancel</button>
-              <button onClick={() => handleDeleteDoc(deleteDocTarget)} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff' }}>Remove</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          icon="🗑️" title="Remove Document?"
+          message={`"${deleteDocTarget.title}" will be removed.`}
+          confirmLabel="Remove"
+          onCancel={() => setDeleteDocTarget(null)}
+          onConfirm={() => handleDeleteDoc(deleteDocTarget)}
+        />
       )}
-
       {deleteStoreTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontSize: 32, textAlign: 'center' }}>🗑️</div>
-            <div style={{ fontWeight: 800, fontSize: 16, textAlign: 'center', marginTop: 10, color: C.text }}>Remove Item?</div>
-            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>"{deleteStoreTarget.name}" will be removed.</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setDeleteStoreTarget(null)} style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: C.text }}>Cancel</button>
-              <button onClick={() => handleDeleteStoreItem(deleteStoreTarget)} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff' }}>Remove</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          icon="🗑️" title="Remove Item?"
+          message={`"${deleteStoreTarget.name}" will be removed.`}
+          confirmLabel="Remove"
+          onCancel={() => setDeleteStoreTarget(null)}
+          onConfirm={() => handleDeleteStoreItem(deleteStoreTarget)}
+        />
       )}
-
       {deleteAssetTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontSize: 32, textAlign: 'center' }}>🗑️</div>
-            <div style={{ fontWeight: 800, fontSize: 16, textAlign: 'center', marginTop: 10, color: C.text }}>Remove Asset?</div>
-            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>"{deleteAssetTarget.name}" will be removed.</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setDeleteAssetTarget(null)} style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: C.text }}>Cancel</button>
-              <button onClick={() => handleDeleteAsset(deleteAssetTarget)} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff' }}>Remove</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          icon="🗑️" title="Remove Asset?"
+          message={`"${deleteAssetTarget.name}" will be removed.`}
+          confirmLabel="Remove"
+          onCancel={() => setDeleteAssetTarget(null)}
+          onConfirm={() => handleDeleteAsset(deleteAssetTarget)}
+        />
       )}
-
       {condemnTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontSize: 32, textAlign: 'center' }}>⚠️</div>
-            <div style={{ fontWeight: 800, fontSize: 16, textAlign: 'center', marginTop: 10, color: C.text }}>Mark as Condemned?</div>
-            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>"{condemnTarget.name}" will be marked condemned. This can be reversed by editing.</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setCondemnTarget(null)} style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: C.text }}>Cancel</button>
-              <button onClick={() => handleCondemnAsset(condemnTarget)} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff' }}>Condemn</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          icon="⚠️" title="Mark as Condemned?"
+          message={`"${condemnTarget.name}" will be marked condemned. You can reverse this by editing.`}
+          confirmLabel="Condemn"
+          onCancel={() => setCondemnTarget(null)}
+          onConfirm={() => handleCondemnAsset(condemnTarget)}
+        />
       )}
-
       {deleteBookTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontSize: 32, textAlign: 'center' }}>🗑️</div>
-            <div style={{ fontWeight: 800, fontSize: 16, textAlign: 'center', marginTop: 10, color: C.text }}>Remove Book?</div>
-            <div style={{ fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>"{deleteBookTarget.title}" will be removed from the catalog.</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setDeleteBookTarget(null)} style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: C.text }}>Cancel</button>
-              <button onClick={() => handleDeleteBook(deleteBookTarget)} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 12, padding: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#fff' }}>Remove</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          icon="🗑️" title="Remove Book?"
+          message={`"${deleteBookTarget.title}" will be removed from the catalog.`}
+          confirmLabel="Remove"
+          onCancel={() => setDeleteBookTarget(null)}
+          onConfirm={() => handleDeleteBook(deleteBookTarget)}
+        />
       )}
 
     </div>
