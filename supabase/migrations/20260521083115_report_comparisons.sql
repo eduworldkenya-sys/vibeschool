@@ -18,12 +18,14 @@ create policy "school members can view comparisons"
     select school_id from profiles where id = auth.uid()
   ));
 
+drop policy if exists "school members can insert comparisons" on report_comparisons;
 create policy "school members can insert comparisons"
   on report_comparisons for insert
   with check (school_id in (
     select school_id from profiles where id = auth.uid()
   ));
 
+drop policy if exists "creator can delete comparison" on report_comparisons;
 create policy "creator can delete comparison"
   on report_comparisons for delete
   using (created_by = auth.uid());
