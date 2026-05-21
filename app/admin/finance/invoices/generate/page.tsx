@@ -18,7 +18,7 @@ const fmt = (n: number) => `KES ${Number(n).toLocaleString("en-KE", { minimumFra
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px",
   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "10px", color: "#111827", fontSize: "14px", outline: "none",
+  borderRadius: "10px", color: "#f1f5f9", fontSize: "14px", outline: "none",
 }
 const labelStyle: React.CSSProperties = {
   fontSize: "11px", color: "rgba(255,255,255,0.4)", marginBottom: "6px",
