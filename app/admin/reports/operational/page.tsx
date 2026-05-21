@@ -177,7 +177,7 @@ export default function OperationalReportPage() {
     return (
       <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
         <div style={{flex:1,background:"#334155",borderRadius:"99px",height:"6px"}}>
-          <div style={{height:"6px",borderRadius:"99px",background:"#10b981"}} style={{ width: `${Math.min(pct, 100)}%` }} />
+          <div style={{height:"6px",borderRadius:"99px",background:"#10b981",width:`${Math.min(pct, 100)}%`}} />
         </div>
         <span style={{fontSize:"11px",color:"#94a3b8",width:"32px",textAlign:"right"}}>{pct}%</span>
       </div>

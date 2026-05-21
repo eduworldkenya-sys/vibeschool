@@ -149,7 +149,7 @@ export default function AttendanceReportPage() {
     return (
       <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
         <div style={{flex:1,background:"#334155",borderRadius:"99px",height:"6px"}}>
-          <div style={{height:"6px",borderRadius:"99px",background:"#10b981"}} style={{ width: `${rate}%` }} />
+          <div style={{height:"6px",borderRadius:"99px",background:"#10b981",width:`${rate}%`}} />
         </div>
         <span style={{fontSize:"11px",fontWeight:700,width:"32px",textAlign:"right",color:rateColor(rate)}}>{rate}%</span>
       </div>
