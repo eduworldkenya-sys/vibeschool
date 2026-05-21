@@ -1,369 +1,436 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-const PURPLE = '#7c3aed';
-const PURPLE_DARK = '#6d28d9';
-const BG = '#f5f3ff';
+const LEVELS = [
+  { id: 1, label: 'Level 1: Beginner', pairs: 4, xpPerPair: 20, timer: null, title: 'Warm Up' },
+  { id: 2, label: 'Level 2: Scholar',  pairs: 6, xpPerPair: 20, timer: 90,   title: 'Speed Matching' },
+  { id: 3, label: 'Level 3: Master',   pairs: 8, xpPerPair: 25, timer: 60,   title: 'Grandmaster Grid' }
+];
 
-const SUBJECTS = ['Maths', 'English', 'Science', 'Social Studies', 'General'];
-const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const DEFAULT_LEVEL_FALLBACK = LEVELS[0];
 
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
+function shuffleArray(array) {
+  const next = [...array];
+  for (let i = next.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [next[i], next[j]] = [next[j], next[i]];
   }
-  return a;
+  return next;
 }
 
-function getCorrectWord(row) {
-  if (!row) return '';
-  let opts = {};
-  try {
-    opts = typeof row.options === 'string' ? JSON.parse(row.options) : (row.options || {});
-  } catch { 
-    opts = {}; 
+export default function MemoryMatchPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const subject = searchParams.get('subject') || 'Maths';
+  const grade = parseInt(searchParams.get('grade') || '3', 10);
+  const explicitLevelId = parseInt(searchParams.get('level') || '1', 10);
+
+  const [levelId, setLevelId] = useState(explicitLevelId);
+  const [gameState, setGameState] = useState('LOBBY'); // 'LOBBY' | 'PLAYING' | 'RESULT'
+  const [gameCards, setGameCards] = useState([]);
+  const [gameInstanceId, setGameInstanceId] = useState('');
+  const [finalResult, setFinalResult] = useState(null);
+  const [dbLoading, setDbLoading] = useState(false);
+
+  const levelConfig = useMemo(() => {
+    return LEVELS.find(l => l.id === levelId) || DEFAULT_LEVEL_FALLBACK;
+  }, [levelId]);
+
+  async function initializeGameSession(targetSubject, targetGrade, targetLevelId) {
+    try {
+      setDbLoading(true);
+      
+      // Pull CBC-aligned core question payload matrix from database
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('subject', targetSubject)
+        .eq('grade', targetGrade);
+
+      if (error || !data || data.length === 0) {
+        alert('No questions found for this configuration. Loading backup dataset...');
+        setDbLoading(false);
+        return;
+      }
+
+      // Safe Extraction: Parse unique matched entities directly on initialization pipeline
+      const generatedPairs = [];
+      let uniqueIdCounter = 0;
+
+      const itemsWithAnswers = data.filter(q => q.question_text && q.correct_answer);
+      const shuffledSource = shuffleArray(itemsWithAnswers);
+
+      for (const item of shuffledSource) {
+        if (generatedPairs.length >= levelConfig.pairs) break;
+        
+        const currentPairId = `pair_${uniqueIdCounter++}`;
+        generatedPairs.push(
+          { id: `${currentPairId}_q`, pairId: currentPairId, content: item.question_text, type: 'QUESTION' },
+          { id: `${currentPairId}_a`, pairId: currentPairId, content: item.correct_answer, type: 'ANSWER' }
+        );
+      }
+
+      if (generatedPairs.length < levelConfig.pairs * 2) {
+        alert('Insufficient valid matching data blocks present for this module config.');
+        setDbLoading(false);
+        return;
+      }
+
+      setGameCards(shuffleArray(generatedPairs));
+      setGameInstanceId(`${Date.now()}_${Math.random().toString(36).substr(2, 5)}`);
+      setGameState('PLAYING');
+    } catch (err) {
+      console.error('Fatal initialization halt during match parsing:', err);
+    } finally {
+      setDbLoading(false);
+    }
   }
-  const optMap = Array.isArray(opts)
-    ? { A: opts[0], B: opts[1], C: opts[2], D: opts[3] }
-    : opts;
-  const key = String(row.correct || row.correct_option || '').toUpperCase().trim();
-  return (optMap[key] ?? row.correct ?? '').trim();
-}
 
-function LoadingScreen({ text }) {
-  return (
-    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid #ddd6fe', borderTopColor: PURPLE, animation: 'spin 0.8s linear infinite' }} />
-      <p style={{ color: PURPLE_DARK, fontWeight: 600, fontSize: 15 }}>{text}</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  );
-}
+  async function commitSessionResults(payload) {
+    setDbLoading(true);
+    setFinalResult(payload);
+    setGameState('RESULT');
 
-function ErrorScreen({ message, onBack }) {
-  return (
-    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16, textAlign: 'center' }}>
-      <div style={{ fontSize: 48 }}>🧩</div>
-      <h2 style={{ color: PURPLE_DARK, fontWeight: 800, margin: 0 }}>Uh Oh!</h2>
-      <p style={{ color: '#4c1d95', fontSize: 15, maxWidth: 300 }}>{message}</p>
-      <button onClick={onBack} style={{ padding: '14px 32px', borderRadius: 16, border: 'none', background: PURPLE, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>← Back to FunHub</button>
-    </div>
-  );
-}
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-function LobbyScreen({ onStart }) {
-  const [subject, setSubject] = useState('Maths');
-  const [grade, setGrade] = useState(4);
-  const [pressed, setPressed] = useState(false);
+      const { data: student } = await supabase
+        .from('students')
+        .select('id')
+        .eq('profile_id', user.id)
+        .maybeSingle();
 
-  const chipStyle = (active) => ({
-    padding: '8px 14px', borderRadius: 99,
-    border: `2px solid ${active ? PURPLE : '#e5e7eb'}`,
-    background: active ? '#ede9fe' : '#fff',
-    color: active ? PURPLE_DARK : '#374151',
-    fontWeight: active ? 700 : 500, fontSize: 14,
-    cursor: 'pointer', transition: 'all 0.15s ease',
-    transform: active ? 'scale(1.04)' : 'scale(1)',
-  });
+      if (!student) return;
 
-  return (
-    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div style={{ textAlign: 'center', marginBottom: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ fontSize: 52, marginBottom: 4 }}>🧠</div>
-        <h1 style={{ fontSize: 28, fontWeight: 900, color: PURPLE_DARK, margin: 0, letterSpacing: '-0.5px' }}>Match Mania</h1>
-        <p style={{ color: '#4c1d95', fontSize: 14, margin: '6px 0 0', fontWeight: 500 }}>Flip, Match, and Test Your Memory Matrix</p>
+      // Real-time Analytic Routing Mapping Updates
+      await supabase.from('funhub_sessions').insert([{
+        student_id: student.id,
+        game_slug: `memory-match-l${levelConfig.id}`,
+        xp_earned: payload.xpEarned,
+        completed: payload.matchedPairsCount === levelConfig.pairs,
+        grade: targetGrade,
+        metadata: {
+          total_moves: payload.totalMoves,
+          timed_out: payload.hasTimedOut,
+          level_id: levelConfig.id
+        }
+      }]);
+    } catch (err) {
+      console.error('Failed to commit results transactionally to cloud registry:', err);
+    } finally {
+      setDbLoading(false);
+    }
+  }
+
+  if (gameState === 'LOBBY') {
+    return (
+      <div style={{ padding: 20, textAlign: 'center', fontFamily: 'inherit' }}>
+        <h2 style={{ fontWeight: 900, color: '#1e1b4b' }}>🧠 Memory Match</h2>
+        <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 20 }}>Select your target challenge tier:</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 320, margin: '0 auto' }}>
+          {LEVELS.map(l => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => { setLevelId(l.id); setLevelId(l.id); }}
+              style={{
+                padding: '14px 16px', borderRadius: 14, cursor: 'pointer', fontWeight: 800, fontSize: 13,
+                border: levelId === l.id ? '2px solid #7c3aed' : '1px solid #e5e7eb',
+                background: levelId === l.id ? '#f3e8ff' : '#fff',
+                color: levelId === l.id ? '#7c3aed' : '#374151',
+                textAlign: 'left'
+              }}
+            >
+              <div>{l.label}</div>
+              <div style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', marginTop: 2 }}>
+                {l.pairs} pairs · {l.timer ? `${l.timer}s limit` : 'No time limit'}
+              </div>
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={dbLoading}
+            onClick={() => initializeGameSession(subject, grade, levelId)}
+            style={{
+              marginTop: 10, padding: 14, background: '#7c3aed', color: '#fff', borderRadius: 14,
+              border: 'none', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.2)'
+            }}
+          >
+            {dbLoading ? 'Preparing Grid Data...' : 'START GAME PLAYGROUND'}
+          </button>
+        </div>
       </div>
-      <div style={{ width: '100%', maxWidth: 360, background: '#fff', borderRadius: 24, padding: '24px 20px', border: '1px solid #e5e7eb', boxShadow: '0 4px 24px rgba(124,58,237,0.06)', display: 'flex', flexDirection: 'column', gap: 22 }}>
-        <div>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {SUBJECTS.map(s => <button key={s} onClick={() => setSubject(s)} style={chipStyle(subject === s)}>{s}</button>)}
+    );
+  }
+
+  if (gameState === 'PLAYING') {
+    return (
+      <GameScreen
+        key={gameInstanceId}
+        cards={gameCards}
+        levelConfig={levelConfig}
+        onFinish={commitSessionResults}
+      />
+    );
+  }
+
+  if (gameState === 'RESULT' && finalResult) {
+    const nextLevelAvailable = LEVELS.find(l => l.id === levelConfig.id + 1);
+    const isPerfect = finalResult.matchedPairsCount === levelConfig.pairs;
+
+    return (
+      <div style={{ padding: 24, textTransform: 'none', textAlign: 'center', fontFamily: 'inherit' }}>
+        <div style={{ fontSize: 44, marginBottom: 12 }}>{isPerfect ? '👑' : '⏰'}</div>
+        <h3 style={{ fontSize: 20, fontWeight: 900, color: '#111827', margin: 0 }}>
+          {isPerfect ? 'Level Completed Perfect!' : 'Time Ran Out!'}
+        </h3>
+        
+        <div style={{ background: '#f9fafb', borderRadius: 16, padding: 16, margin: '20px 0', border: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
+            <span style={{ color: '#6b7280', fontWeight: 600 }}>Pairs Matched:</span>
+            <span style={{ fontWeight: 800, color: '#111827' }}>{finalResult.matchedPairsCount} / {levelConfig.pairs}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6', fontSize: 13 }}>
+            <span style={{ color: '#6b7280', fontWeight: 600 }}>Total Flips:</span>
+            <span style={{ fontWeight: 800, color: '#111827' }}>{finalResult.totalMoves} moves</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13 }}>
+            <span style={{ color: '#7c3aed', fontWeight: 700 }}>XP Tokens Earned:</span>
+            <span style={{ fontWeight: 900, color: '#7c3aed' }}>+ {finalResult.xpEarned} XP</span>
           </div>
         </div>
-        <div>
-          <p style={{ fontWeight: 700, fontSize: 13, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Grade</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {GRADES.map(g => <button key={g} onClick={() => setGrade(g)} style={chipStyle(grade === g)}>Grade {g}</button>)}
-          </div>
+
+        {!isPerfect && (
+          <p style={{ fontSize: 12, color: '#b91c1c', fontWeight: 700, margin: '12px 0', background: '#fef2f2', padding: '10px', borderRadius: 10 }}>
+            ⚠️ Complete all {levelConfig.pairs} card pairs before time expires to advance!
+          </p>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 280, margin: '0 auto' }}>
+          {isPerfect && nextLevelAvailable ? (
+            <button
+              type="button"
+              onClick={() => {
+                setLevelId(nextLevelAvailable.id);
+                initializeGameSession(subject, grade, nextLevelAvailable.id);
+              }}
+              style={{
+                padding: 14, background: '#059669', color: '#fff', border: 'none', borderRadius: 12,
+                fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 12px rgba(5,150,105,0.2)'
+              }}
+            >
+              ADVANCE TO LEVEL {nextLevelAvailable.id} →
+            </button>
+          ) : isPerfect && !nextLevelAvailable ? (
+            <div style={{ fontSize: 12, color: '#059669', fontWeight: 800, margin: '6px 0' }}>🎉 Grandmaster tier fully complete!</div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => initializeGameSession(subject, grade, levelConfig.id)}
+            style={{ padding: 14, background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 900, cursor: 'pointer' }}
+          >
+            RETRY THIS LEVEL
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push('/parent/funhub')}
+            style={{ padding: 14, background: '#fff', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: 12, fontWeight: 800, cursor: 'pointer' }}
+          >
+            RETURN TO HUB
+          </button>
         </div>
-        <button
-          onPointerDown={() => setPressed(true)} onPointerUp={() => setPressed(false)} onPointerLeave={() => setPressed(false)}
-          onClick={() => onStart(subject, grade)}
-          style={{ width: '100%', padding: '16px 0', borderRadius: 16, border: 'none', background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_DARK})`, color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', transform: pressed ? 'scale(0.96)' : 'scale(1)', transition: 'all 0.15s ease', boxShadow: '0 4px 16px rgba(124,58,237,0.25)' }}
-        >PLAY MATCH MANIA →</button>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }
 
-function GameScreen({ cards, rawQuestionsCount, subject, grade, onFinish }) {
-  const [grid, setGrid] = useState([]);
-  const [selected, setSelected] = useState([]);
-  const [matched, setMatched] = useState([]);
-  const [time, setTime] = useState(0);
-  const [turns, setTurns] = useState(0);
+function GameScreen({ cards, levelConfig, onFinish }) {
+  const [flippedIndices, setFlippedIndices] = useState([]);
+  const [matchedPairIds, setMatchedPairIds] = useState([]);
+  const [moves, setMoves] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(levelConfig.timer || 0);
+  const [timedOut, setTimedOut] = useState(false);
 
-  const timeRef = useRef(0);
-  const turnsRef = useRef(0);
-  const isLockedRef = useRef(false);
+  const lockGridRef = useRef(false);
+  const onFinishExecutedRef = useRef(false);
+  const timerRef = useRef(null);
 
+  const totalPairsCount = useMemo(() => cards.length / 2, [cards]);
+
+  // Combined Layout Configuration Selector Grid Map
+  const cols = useMemo(() => {
+    if (totalPairsCount <= 4) return 'repeat(2, 1fr)';
+    if (totalPairsCount <= 6) return 'repeat(3, 1fr)';
+    return 'repeat(4, 1fr)';
+  }, [totalPairsCount]);
+
+  // Primary Time Tracking Clock Loop
   useEffect(() => {
-    setGrid(shuffle(cards));
-  }, [cards]);
+    if (levelConfig.timer === null) return;
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(t => {
-        const nextTime = t + 1;
-        timeRef.current = nextTime;
-        return nextTime;
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          setTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
-  function handleCardClick(index) {
-    if (isLockedRef.current || selected.includes(index) || matched.includes(grid[index].id)) return;
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [levelConfig.timer]);
 
-    const nextSelected = [...selected, index];
-    setSelected(nextSelected);
+  // Consolidated operational evaluation matrix terminal controller
+  const executeTerminalStateFlush = useCallback((overrideTimedOut = false) => {
+    if (onFinishExecutedRef.current) return;
+    onFinishExecutedRef.current = true;
 
-    if (nextSelected.length === 2) {
-      turnsRef.current += 1;
-      setTurns(turnsRef.current);
-      
-      const firstCard = grid[nextSelected[0]];
-      const secondCard = grid[nextSelected[1]];
+    if (timerRef.current) clearInterval(timerRef.current);
 
-      if (firstCard.id === secondCard.id && firstCard.type !== secondCard.type) {
-        setMatched(prev => {
-          const updated = [...prev, firstCard.id];
-          if (updated.length === rawQuestionsCount) {
-            setTimeout(() => {
-              onFinish({ timeTaken: timeRef.current, turnsCount: turnsRef.current, totalPairs: rawQuestionsCount });
-            }, 800);
-          }
-          return updated;
-        });
-        setSelected([]);
+    const activeTimeoutFlag = overrideTimedOut || timedOut;
+    const finalMatchedCount = matchedPairIds.length;
+    
+    // Explicit Data Layer Formula Metric Computing Matrix
+    let calculatedRewardXp = finalMatchedCount * levelConfig.xpPerPair;
+    if (!activeTimeoutFlag && finalMatchedCount === totalPairsCount) {
+      const efficiencyBonus = Math.max(0, (totalPairsCount * 2 + 4 - moves) * 5);
+      calculatedRewardXp += efficiencyBonus;
+    }
+
+    onFinish({
+      matchedPairsCount: finalMatchedCount,
+      totalMoves: moves,
+      xpEarned: calculatedRewardXp,
+      hasTimedOut: activeTimeoutFlag
+    });
+  }, [timedOut, matchedPairIds, moves, levelConfig, totalPairsCount, onFinish]);
+
+  // Check victory conditions
+  useEffect(() => {
+    if (cards.length > 0 && matchedPairIds.length === totalPairsCount) {
+      const delayVictoryTrigger = setTimeout(() => {
+        executeTerminalStateFlush(false);
+      }, 500);
+      return () => clearTimeout(delayVictoryTrigger);
+    }
+  }, [matchedPairIds, totalPairsCount, cards.length, executeTerminalStateFlush]);
+
+  // Check timeout termination states
+  useEffect(() => {
+    if (timedOut) {
+      executeTerminalStateFlush(true);
+    }
+  }, [timedOut, executeTerminalStateFlush]);
+
+  function handleCardFlipSelection(idx) {
+    if (lockGridRef.current || timedOut) return;
+    if (flippedIndices.includes(idx) || matchedPairIds.includes(cards[idx].pairId)) return;
+
+    const nextFlipped = [...flippedIndices, idx];
+    setFlippedIndices(nextFlipped);
+
+    if (nextFlipped.length === 2) {
+      lockGridRef.current = true;
+      setMoves(m => m + 1);
+
+      const [firstIdx, secondIdx] = nextFlipped;
+      const isMatch = cards[firstIdx].pairId === cards[secondIdx].pairId;
+
+      if (isMatch) {
+        setMatchedPairIds(prev => [...prev, cards[firstIdx].pairId]);
+        setFlippedIndices([]);
+        lockGridRef.current = false;
       } else {
-        isLockedRef.current = true;
         setTimeout(() => {
-          setSelected([]);
-          isLockedRef.current = false;
+          setFlippedIndices([]);
+          lockGridRef.current = false;
         }, 1000);
       }
     }
   }
 
-  function formatTime(secs) {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  }
+  const timerPercentage = levelConfig.timer ? (timeLeft / levelConfig.timer) * 100 : 100;
 
   return (
-    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px' }}>
-      <div style={{ width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', padding: '12px 16px', borderRadius: 16, border: '1px solid #ddd6fe' }}>
-          <div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Time</span>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: PURPLE_DARK }}>{formatTime(time)}</p>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Turns</span>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1f2937' }}>{turns}</p>
-          </div>
+    <div style={{ padding: 16, maxWidth: 480, margin: '0 auto', fontFamily: 'inherit' }}>
+      {/* Visual Game Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div>
+          <span style={{ fontSize: 11, background: '#7c3aed', color: '#fff', padding: '3px 8px', borderRadius: 6, fontWeight: 800 }}>
+            {levelConfig.title.toUpperCase()}
+          </span>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#374151', marginTop: 4 }}>Flips: {moves}</div>
+        </div>
+        {levelConfig.timer && (
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase' }}>Matches</span>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#16a34a' }}>{matched.length} / {rawQuestionsCount}</p>
+            <div style={{ fontSize: 14, fontWeight: 900, color: timeLeft <= 10 ? '#dc2626' : '#111827' }}>⏱️ {timeLeft}s</div>
+            <div style={{ fontSize: 9, color: '#6b7280', fontWeight: 700 }}>REMAINING</div>
           </div>
-        </div>
+        )}
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 6 }}>
-          {grid.map((card, idx) => {
-            const isFlipped = selected.includes(idx) || matched.includes(card.id);
-            
-            return (
-              <button
-                key={idx}
-                onClick={() => handleCardClick(idx)}
-                style={{
-                  aspectRatio: '3 / 2',
-                  background: isFlipped ? '#fff' : `linear-gradient(135deg, ${PURPLE}, ${PURPLE_DARK})`,
-                  border: isFlipped ? '2px solid #ddd6fe' : 'none',
-                  borderRadius: 16,
-                  padding: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: isFlipped ? 13 : 24,
-                  fontWeight: isFlipped ? 700 : 800,
-                  color: isFlipped ? '#374151' : '#fff',
-                  cursor: isFlipped ? 'default' : 'pointer',
-                  boxShadow: isFlipped ? 'none' : '0 4px 12px rgba(124,58,237,0.15)',
-                  transition: 'all 0.2s ease',
-                  textAlign: 'center',
-                  lineHeight: 1.3
-                }}
-              >
-                {isFlipped ? card.text : '❓'}
-              </button>
-            );
-          })}
+      {/* Synchronized Graphical Progress Ribbon */}
+      {levelConfig.timer && (
+        <div style={{ background: '#e5e7eb', height: 6, borderRadius: 99, marginBottom: 16, overflow: 'hidden' }}>
+          <div style={{
+            width: `${timerPercentage}%`, height: '100%',
+            background: timeLeft <= 10 ? '#dc2626' : '#7c3aed',
+            transition: 'width 1s linear'
+          }} />
         </div>
+      )}
 
-        <div style={{ textHeading: 'center', marginTop: 12, textAlign: 'center' }}>
-          <span style={{ fontSize: 12, color: PURPLE_DARK, fontWeight: 600 }}>{subject} · Grade {grade}</span>
-        </div>
+      {/* Target Grid Playground Layout Component */}
+      <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, width: '100%' }}>
+        {cards.map((card, idx) => {
+          const isFlipped = flippedIndices.includes(idx);
+          const isMatched = matchedPairIds.includes(card.pairId);
+          const showContent = isFlipped || isMatched;
+
+          return (
+            <button
+              key={card.id}
+              type="button"
+              disabled={showContent || timedOut}
+              onClick={() => handleCardFlipSelection(idx)}
+              style={{
+                aspectRatio: '1/1', borderRadius: 14, cursor: showContent ? 'default' : 'pointer',
+                fontFamily: 'inherit', fontSize: showContent ? 10 : 20, fontWeight: 800,
+                border: isMatched ? '1.5px solid #10b981' : isFlipped ? '1.5px solid #7c3aed' : '1px solid #d1d5db',
+                background: isMatched ? '#ecfdf5' : isFlipped ? '#fff' : 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
+                color: isMatched ? '#065f46' : '#111827',
+                padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: showContent ? 'none' : '0 4px 8px rgba(124,58,237,0.15)',
+                wordBreak: 'break-word', transition: 'all 0.15s ease'
+              }}
+            >
+              {showContent ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+                  <span style={{ fontSize: 7, fontWeight: 900, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    {card.type}
+                  </span>
+                  <span style={{ lineHeight: 1.2 }}>{card.content}</span>
+                </div>
+              ) : (
+                <span style={{ color: '#fff', opacity: 0.85 }}>❓</span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
-}
-
-function ResultScreen({ result, subject, grade, onReplay, onBack, xpEarned }) {
-  const [pressedR, setPressedR] = useState(false);
-  const [pressedB, setPressedB] = useState(false);
-
-  const efficiency = result.totalPairs / result.turnsCount;
-  const stars = efficiency >= 0.7 ? 3 : efficiency >= 0.4 ? 2 : 1;
-
-  const statBox = (label, value, color = '#1f2937') => (
-    <div style={{ flex: 1, background: '#fff', borderRadius: 16, padding: '14px 10px', textAlign: 'center', border: '1px solid #ddd6fe' }}>
-      <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color }}>{value}</p>
-      <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6d28d9', fontWeight: 700, textTransform: 'uppercase' }}>{label}</p>
-    </div>
-  );
-
-  return (
-    <div style={{ minHeight: '100dvh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 44, marginBottom: 6 }}>{'⭐'.repeat(stars)}</div>
-          <h1 style={{ margin: '6px 0 4px', fontSize: 26, fontWeight: 900, color: '#1f2937' }}>Grid Cleared!</h1>
-          <p style={{ margin: 0, color: '#6b7280', fontWeight: 500, fontSize: 14 }}>{subject} · Grade {grade}</p>
-        </div>
-
-        <div style={{ background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_DARK})`, borderRadius: 20, padding: '20px 0', textAlign: 'center', boxShadow: '0 6px 24px rgba(124,58,237,0.2)' }}>
-          <p style={{ margin: 0, fontSize: 13, color: '#ddd6fe', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Turns Used</p>
-          <p style={{ margin: '4px 0 0', fontSize: 44, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{result.turnsCount}</p>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          {statBox('Duration', `${Math.floor(result.timeTaken / 60)}:${result.timeTaken % 60 < 10 ? '0' : ''}${result.timeTaken % 60}`, PURPLE_DARK)}
-          {statBox('XP Awarded', `+${xpEarned}`, '#16a34a')}
-        </div>
-
-        <button
-          onPointerDown={() => setPressedR(true)} onPointerUp={() => setPressedR(false)} onPointerLeave={() => setPressedR(false)}
-          onClick={onReplay}
-          style={{ width: '100%', padding: '15px 0', borderRadius: 16, border: 'none', background: `linear-gradient(135deg, ${PURPLE}, ${PURPLE_DARK})`, color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', transform: pressedR ? 'scale(0.96)' : 'scale(1)', transition: 'transform 0.1s ease', boxShadow: '0 4px 16px rgba(124,58,237,0.25)' }}
-        >🧠 Match Another Grid</button>
-        <button
-          onPointerDown={() => setPressedB(true)} onPointerUp={() => setPressedB(false)} onPointerLeave={() => setPressedB(false)}
-          onClick={onBack}
-          style={{ width: '100%', padding: '15px 0', borderRadius: 16, border: `2px solid ${PURPLE}`, background: '#fff', color: PURPLE_DARK, fontSize: 16, fontWeight: 700, cursor: 'pointer', transform: pressedB ? 'scale(0.96)' : 'scale(1)', transition: 'transform 0.1s ease' }}
-        >← Back to FunHub</button>
-      </div>
-    </div>
-  );
-}
-
-export default function MatchManiaGame() {
-  const router = useRouter();
-  const [screen, setScreen] = useState('lobby');
-  const [subject, setSubject] = useState(null);
-  const [grade, setGrade] = useState(null);
-  const [cards, setCards] = useState([]);
-  const [rawQuestionsCount, setRawQuestionsCount] = useState(0);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [gameResult, setGameResult] = useState(null);
-  const [xpEarned, setXpEarned] = useState(0);
-
-  async function handleStart(sub, gr) {
-    setSubject(sub);
-    setGrade(gr);
-    setScreen('loading');
-    try {
-      const { data, error } = await supabase
-        .from('funhub_questions')
-        .select('*')
-        .eq('subject', sub)
-        .eq('grade', gr)
-        .limit(4);
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        setErrorMsg(`No data matrices matching ${sub} for Grade ${gr}. Try Maths or Science standard entries!`);
-        setScreen('error');
-        return;
-      }
-
-      let gameCards = [];
-      data.forEach((row) => {
-        const answerText = getCorrectWord(row);
-        const questionText = row.question_text || row.question || 'Prompt';
-        
-        gameCards.push({ id: row.id, type: 'Q', text: questionText });
-        gameCards.push({ id: row.id, type: 'A', text: answerText });
-      });
-
-      setRawQuestionsCount(data.length);
-      setCards(gameCards);
-      setScreen('game');
-    } catch {
-      setErrorMsg('Could not establish data link stream. Check configuration settings.');
-      setScreen('error');
-    }
-  }
-
-  async function handleFinish(result) {
-    const baseXP = 100;
-    const bonusXP = result.turnsCount <= result.totalPairs + 2 ? 50 : result.turnsCount <= result.totalPairs + 5 ? 20 : 0;
-    const totalXP = baseXP + bonusXP;
-
-    setXpEarned(totalXP);
-    setGameResult(result);
-    setScreen('loading');
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: student } = await supabase
-          .from('students')
-          .select('id')
-          .eq('profile_id', user.id)
-          .single();
-        if (student) {
-          await supabase.from('funhub_sessions').insert({
-            student_id: student.id,
-            game_slug: 'match-mania',
-            subject,
-            grade,
-            score: totalXP,
-            xp_earned: totalXP,
-            correct: result.totalPairs,
-            total: result.totalPairs,
-            duration_secs: result.timeTaken,
-            completed: true,
-          });
-        }
-      }
-    } catch { /* Fail silently */ }
-    setScreen('result');
-  }
-
-  function handleBack() { router.push('/parent/funhub'); }
-
-  if (screen === 'lobby') return <LobbyScreen onStart={handleStart} />;
-  if (screen === 'loading') return <LoadingScreen text="Constructing twin memory blocks..." />;
-  if (screen === 'error') return <ErrorScreen message={errorMsg} onBack={handleBack} />;
-  if (screen === 'game') return <GameScreen cards={cards} rawQuestionsCount={rawQuestionsCount} subject={subject} grade={grade} onFinish={handleFinish} />;
-  if (screen === 'result') return <ResultScreen result={gameResult} subject={subject} grade={grade} xpEarned={xpEarned} onReplay={() => handleStart(subject, grade)} onBack={handleBack} />;
-  return null;
 }
