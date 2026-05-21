@@ -143,31 +143,27 @@ export default function FinanceReportPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#f1f5f9"}}>
       {/* Top Bar */}
-      <div className="bg-[#1e293b] border-b border-slate-700 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <a href="/admin/reports" className="text-slate-400 hover:text-white text-xl">←</a>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">Finance Report</h1>
-            <p className="text-xs text-slate-400">Fees · Aging · Budget · Expenses</p>
+      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"16px",position:"sticky",top:0,zIndex:10}}>
+        <div style={{maxWidth:"672px",margin:"0 auto",display:"flex",alignItems:"center",gap:"12px"}}>
+          <a href="/admin/reports" style={{color:"#94a3b8",fontSize:"20px",textDecoration:"none"}}>←</a>
+          <div style={{flex:1}}>
+            <h1 style={{fontSize:"18px",fontWeight:700,margin:0}}>Finance Report</h1>
+            <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>Fees · Aging · Budget · Expenses</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+      <div style={{maxWidth:"672px",margin:"0 auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:"20px"}}>
 
         {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"4px"}}>
           {tabs.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-                tab === t.key
-                  ? 'bg-yellow-600 text-white'
-                  : 'bg-[#1e293b] text-slate-400 border border-slate-700'
-              }`}
+              style={{display:"flex",alignItems:"center",gap:"6px",padding:"8px 16px",borderRadius:"12px",fontSize:"13px",fontWeight:500,whiteSpace:"nowrap",cursor:"pointer"}}
             >
               {t.icon} {t.label}
             </button>
@@ -176,70 +172,70 @@ export default function FinanceReportPage() {
 
         {/* AI Insight */}
         {insight && (
-          <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-4 py-3 flex gap-3 items-start">
-            <span className="text-xl">🤖</span>
-            <p className="text-sm text-amber-200">{insight}</p>
+          <div style={{background:"rgba(120,53,15,0.4)",border:"1px solid rgba(217,119,6,0.5)",borderRadius:"12px",padding:"12px 16px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+            <span style={{fontSize:"20px"}}>🤖</span>
+            <p style={{fontSize:"13px",color:"#fde68a",margin:0}}>{insight}</p>
           </div>
         )}
 
         {/* KPI Cards — Fees tab only */}
         {tab === 'fees' && feeRows.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-lg font-bold text-blue-400">KES {kpis.totalInvoiced.toLocaleString()}</p>
-              <p className="text-xs text-slate-400 mt-1">Total Invoiced</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"18px",fontWeight:800,color:"#38bdf8",margin:0}}>KES {kpis.totalInvoiced.toLocaleString()}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Total Invoiced</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-lg font-bold text-green-400">KES {kpis.totalPaid.toLocaleString()}</p>
-              <p className="text-xs text-slate-400 mt-1">Total Collected</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"18px",fontWeight:800,color:"#10b981",margin:0}}>KES {kpis.totalPaid.toLocaleString()}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Total Collected</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-lg font-bold text-red-400">KES {kpis.totalBalance.toLocaleString()}</p>
-              <p className="text-xs text-slate-400 mt-1">Outstanding</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"18px",fontWeight:800,color:"#ef4444",margin:0}}>KES {kpis.totalBalance.toLocaleString()}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Outstanding</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-lg font-bold text-yellow-400">{kpis.collectionRate}%</p>
-              <p className="text-xs text-slate-400 mt-1">Collection Rate</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"18px",fontWeight:800,color:"#f59e0b",margin:0}}>{kpis.collectionRate}%</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Collection Rate</p>
             </div>
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin text-3xl mb-3">⏳</div>
-            <p className="text-slate-400 text-sm">Loading finance data...</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <div style={{fontSize:"30px",marginBottom:"12px"}}>⏳</div>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>Loading finance data...</p>
           </div>
         )}
 
         {/* Fees Table */}
         {!loading && tab === 'fees' && feeRows.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Invoice Summary</p>
-              <p className="text-xs text-slate-400">{feeRows.length} invoices</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Invoice Summary</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{feeRows.length} invoices</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-[#0f172a]">
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:"11px",borderCollapse:"collapse"}}>
+                <thead style={{background:"#0f172a"}}>
                   <tr>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Student</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Class</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Invoiced</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Paid</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Balance</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Status</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Student</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Class</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Invoiced</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Paid</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Balance</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {feeRows.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t border-slate-700/50 hover:bg-slate-700/20">
-                      <td className="px-3 py-2.5 text-white font-medium whitespace-nowrap">{row.student_name}</td>
-                      <td className="px-3 py-2.5 text-slate-300 whitespace-nowrap">{row.class_name}</td>
-                      <td className="px-3 py-2.5 text-slate-300">{row.invoiced.toLocaleString()}</td>
-                      <td className="px-3 py-2.5 text-green-400">{row.paid.toLocaleString()}</td>
-                      <td className="px-3 py-2.5 text-red-400">{row.balance.toLocaleString()}</td>
-                      <td className={`px-3 py-2.5 font-semibold capitalize ${statusColor(row.status)}`}>{row.status}</td>
+                    <tr key={i} style={{borderTop:"1px solid rgba(51,65,85,0.5)"}}>
+                      <td style={{padding:"10px 12px",color:"#f1f5f9",fontWeight:500,whiteSpace:"nowrap"}}>{row.student_name}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1",whiteSpace:"nowrap"}}>{row.class_name}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1"}}>{row.invoiced.toLocaleString()}</td>
+                      <td style={{padding:"10px 12px",color:"#10b981"}}>{row.paid.toLocaleString()}</td>
+                      <td style={{padding:"10px 12px",color:"#ef4444"}}>{row.balance.toLocaleString()}</td>
+                      <td style={{padding:"10px 12px",fontWeight:600,textTransform:"capitalize",color:row.status.toLowerCase()==='paid'?'#4ade80':row.status.toLowerCase()==='partial'?'#facc15':row.status.toLowerCase()==='overdue'?'#f87171':'#94a3b8'}}>{row.status}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -250,25 +246,25 @@ export default function FinanceReportPage() {
 
         {/* Aging Table */}
         {!loading && tab === 'aging' && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Invoice Aging</p>
-              <p className="text-xs text-slate-400">{agingRows.length} overdue records</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Invoice Aging</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{agingRows.length} overdue records</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-[#0f172a]">
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:"11px",borderCollapse:"collapse"}}>
+                <thead style={{background:"#0f172a"}}>
                   <tr>
                     {Object.keys(agingRows[0] ?? {}).slice(0, 6).map(col => (
-                      <th key={col} className="px-3 py-2.5 text-left text-slate-400 whitespace-nowrap">{col}</th>
+                      <th key={col} style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500,whiteSpace:"nowrap"}}>{col}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {agingRows.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t border-slate-700/50 hover:bg-slate-700/20">
+                    <tr key={i} style={{borderTop:"1px solid rgba(51,65,85,0.5)"}}>
                       {Object.keys(row).slice(0, 6).map(col => (
-                        <td key={col} className="px-3 py-2.5 text-slate-300 whitespace-nowrap">
+                        <td key={col} style={{padding:"10px 12px",color:"#cbd5e1",whiteSpace:"nowrap"}}>
                           {String((row as any)[col] ?? '—')}
                         </td>
                       ))}
@@ -278,32 +274,32 @@ export default function FinanceReportPage() {
               </table>
             </div>
             {agingRows.length === 0 && (
-              <div className="text-center py-10 text-slate-500 text-sm">No aging data found</div>
+              <div style={{textAlign:"center",padding:"40px 0",color:"#64748b",fontSize:"13px"}}>No aging data found</div>
             )}
           </div>
         )}
 
         {/* Budget Table */}
         {!loading && tab === 'budget' && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Budget vs Actual</p>
-              <p className="text-xs text-slate-400">{budgetRows.length} line items</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Budget vs Actual</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{budgetRows.length} line items</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-[#0f172a]">
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:"11px",borderCollapse:"collapse"}}>
+                <thead style={{background:"#0f172a"}}>
                   <tr>
                     {Object.keys(budgetRows[0] ?? {}).slice(0, 6).map(col => (
-                      <th key={col} className="px-3 py-2.5 text-left text-slate-400 whitespace-nowrap">{col}</th>
+                      <th key={col} style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500,whiteSpace:"nowrap"}}>{col}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {budgetRows.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t border-slate-700/50 hover:bg-slate-700/20">
+                    <tr key={i} style={{borderTop:"1px solid rgba(51,65,85,0.5)"}}>
                       {Object.keys(row).slice(0, 6).map(col => (
-                        <td key={col} className="px-3 py-2.5 text-slate-300 whitespace-nowrap">
+                        <td key={col} style={{padding:"10px 12px",color:"#cbd5e1",whiteSpace:"nowrap"}}>
                           {String((row as any)[col] ?? '—')}
                         </td>
                       ))}
@@ -313,32 +309,32 @@ export default function FinanceReportPage() {
               </table>
             </div>
             {budgetRows.length === 0 && (
-              <div className="text-center py-10 text-slate-500 text-sm">No budget data found</div>
+              <div style={{textAlign:"center",padding:"40px 0",color:"#64748b",fontSize:"13px"}}>No budget data found</div>
             )}
           </div>
         )}
 
         {/* Expenses Table */}
         {!loading && tab === 'expenses' && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Expenses</p>
-              <p className="text-xs text-slate-400">{expenseRows.length} records</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Expenses</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{expenseRows.length} records</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-[#0f172a]">
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:"11px",borderCollapse:"collapse"}}>
+                <thead style={{background:"#0f172a"}}>
                   <tr>
                     {Object.keys(expenseRows[0] ?? {}).slice(0, 5).map(col => (
-                      <th key={col} className="px-3 py-2.5 text-left text-slate-400 whitespace-nowrap">{col}</th>
+                      <th key={col} style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500,whiteSpace:"nowrap"}}>{col}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {expenseRows.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t border-slate-700/50 hover:bg-slate-700/20">
+                    <tr key={i} style={{borderTop:"1px solid rgba(51,65,85,0.5)"}}>
                       {Object.keys(row).slice(0, 5).map(col => (
-                        <td key={col} className="px-3 py-2.5 text-slate-300 whitespace-nowrap">
+                        <td key={col} style={{padding:"10px 12px",color:"#cbd5e1",whiteSpace:"nowrap"}}>
                           {String((row as any)[col] ?? '—')}
                         </td>
                       ))}
@@ -348,7 +344,7 @@ export default function FinanceReportPage() {
               </table>
             </div>
             {expenseRows.length === 0 && (
-              <div className="text-center py-10 text-slate-500 text-sm">No expense data found</div>
+              <div style={{textAlign:"center",padding:"40px 0",color:"#64748b",fontSize:"13px"}}>No expense data found</div>
             )}
           </div>
         )}

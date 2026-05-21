@@ -206,7 +206,7 @@ export default function GenerateInvoicesPage() {
   const stepLabels = ["Configure", "Preview", "Done"]
 
   return (
-    <div style={{ color: "#111827", fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
+    <div style={{ color: "#f1f5f9", fontFamily: "'Inter', sans-serif", maxWidth: "900px" }}>
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
