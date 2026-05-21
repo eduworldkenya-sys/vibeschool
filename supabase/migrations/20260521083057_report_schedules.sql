@@ -15,6 +15,11 @@ create table if not exists report_schedules (
 
 alter table report_schedules enable row level security;
 
+drop policy if exists "school members can view schedules" on report_schedules;
+drop policy if exists "school members can insert schedules" on report_schedules;
+drop policy if exists "creator can update schedule" on report_schedules;
+drop policy if exists "creator can delete schedule" on report_schedules;
+
 create policy "school members can view schedules"
   on report_schedules for select
   using (school_id in (
