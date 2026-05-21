@@ -260,6 +260,7 @@ export default function AdminHub() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
+    <>
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
@@ -528,6 +529,7 @@ export default function AdminHub() {
         open={twinOpen}
         onClose={() => setTwinOpen(false)}
       />
+    </>
   )
 }
 
