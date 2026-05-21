@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '../../../lib/supabase';
+import { createClient } from '@/lib/supabase';
 
 const INDIGO = '#4f46e5';
 const INDIGO_DARK = '#3730a3';
