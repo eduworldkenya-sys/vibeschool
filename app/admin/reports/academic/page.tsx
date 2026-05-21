@@ -125,27 +125,27 @@ export default function AcademicReportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#f1f5f9"}}>
       {/* Top Bar */}
-      <div className="bg-[#1e293b] border-b border-slate-700 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <a href="/admin/reports" className="text-slate-400 hover:text-white text-xl">←</a>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">Academic Report</h1>
-            <p className="text-xs text-slate-400">Grades & Performance</p>
+      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"16px",position:"sticky",top:0,zIndex:10}}>
+        <div style={{maxWidth:"672px",margin:"0 auto",display:"flex",alignItems:"center",gap:"12px"}}>
+          <a href="/admin/reports" style={{color:"#94a3b8",fontSize:"20px",textDecoration:"none"}}>←</a>
+          <div style={{flex:1}}>
+            <h1 style={{fontSize:"18px",fontWeight:700,margin:0}}>Academic Report</h1>
+            <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>Grades & Performance</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+      <div style={{maxWidth:"672px",margin:"0 auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:"20px"}}>
 
         {/* Filters */}
-        <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700 space-y-3">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Filters</p>
+        <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155",display:"flex",flexDirection:"column",gap:"12px"}}>
+          <p style={{fontSize:"11px",fontWeight:600,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.8px",margin:0}}>Filters</p>
           <select
             value={selectedTerm}
             onChange={e => setSelectedTerm(e.target.value)}
-            className="w-full bg-[#0f172a] border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+            style={{width:"100%",background:"#0f172a",border:"1px solid #475569",borderRadius:"8px",padding:"10px 12px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
           >
             <option value="">Select Term</option>
             {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -153,7 +153,7 @@ export default function AcademicReportPage() {
           <select
             value={selectedClass}
             onChange={e => setSelectedClass(e.target.value)}
-            className="w-full bg-[#0f172a] border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+            style={{width:"100%",background:"#0f172a",border:"1px solid #475569",borderRadius:"8px",padding:"10px 12px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
           >
             <option value="">All Classes</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -162,60 +162,60 @@ export default function AcademicReportPage() {
 
         {/* AI Insight Banner */}
         {insight && (
-          <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-4 py-3 flex gap-3 items-start">
-            <span className="text-xl">🤖</span>
-            <p className="text-sm text-amber-200">{insight}</p>
+          <div style={{background:"rgba(120,53,15,0.4)",border:"1px solid rgba(217,119,6,0.5)",borderRadius:"12px",padding:"12px 16px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+            <span style={{fontSize:"20px"}}>🤖</span>
+            <p style={{fontSize:"13px",color:"#fde68a",margin:0}}>{insight}</p>
           </div>
         )}
 
         {/* KPI Cards */}
         {grades.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-blue-400">{kpis.total}</p>
-              <p className="text-xs text-slate-400 mt-1">Total Records</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#38bdf8",margin:0}}>{kpis.total}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Total Records</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-yellow-400">{kpis.avg}%</p>
-              <p className="text-xs text-slate-400 mt-1">Class Average</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#f59e0b",margin:0}}>{kpis.avg}%</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Class Average</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-green-400">{kpis.passing}</p>
-              <p className="text-xs text-slate-400 mt-1">Passing (≥50)</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#10b981",margin:0}}>{kpis.passing}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Passing (≥50)</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-red-400">{kpis.failing}</p>
-              <p className="text-xs text-slate-400 mt-1">Below 50</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#ef4444",margin:0}}>{kpis.failing}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Below 50</p>
             </div>
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin text-3xl mb-3">⏳</div>
-            <p className="text-slate-400 text-sm">Loading grades...</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <div style={{fontSize:"30px",marginBottom:"12px"}}>⏳</div>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>Loading grades...</p>
           </div>
         )}
 
         {/* Empty state */}
         {!loading && !selectedTerm && (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">📚</p>
-            <p className="text-slate-400 text-sm">Select a term to load academic data</p>
+          <div style={{textAlign:"center",padding:"64px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>📚</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>Select a term to load academic data</p>
           </div>
         )}
 
         {/* Data Table */}
         {!loading && grades.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Grade Records</p>
-              <p className="text-xs text-slate-400">{grades.length} entries — tap column to sort</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Grade Records</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{grades.length} entries — tap column to sort</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-[#0f172a]">
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:"11px",borderCollapse:"collapse"}}>
+                <thead style={{background:"#0f172a"}}>
                   <tr>
                     {[
                       { key: 'student_name', label: 'Student' },
@@ -227,7 +227,7 @@ export default function AcademicReportPage() {
                       <th
                         key={col.key}
                         onClick={() => handleSort(col.key as keyof GradeSummary)}
-                        className="px-3 py-2.5 text-left text-slate-400 font-medium cursor-pointer hover:text-white"
+                        style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500,cursor:"pointer"}}
                       >
                         {col.label} {sortField === col.key ? (sortAsc ? '↑' : '↓') : ''}
                       </th>
@@ -236,21 +236,21 @@ export default function AcademicReportPage() {
                 </thead>
                 <tbody>
                   {sorted.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t border-slate-700/50 hover:bg-slate-700/20">
-                      <td className="px-3 py-2.5 text-white font-medium">{row.student_name}</td>
-                      <td className="px-3 py-2.5 text-slate-300">{row.class_name}</td>
-                      <td className="px-3 py-2.5 text-slate-300">{row.subject}</td>
-                      <td className={`px-3 py-2.5 font-bold ${gradeColor(row.score)}`}>
+                    <tr key={i} style={{borderTop:"1px solid rgba(51,65,85,0.5)"}}>
+                      <td style={{padding:"10px 12px",color:"#f1f5f9",fontWeight:500}}>{row.student_name}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1"}}>{row.class_name}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1"}}>{row.subject}</td>
+                      <td style={{padding:"10px 12px",fontWeight:700}}>
                         {row.score ?? '—'}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-300">{row.grade ?? '—'}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1"}}>{row.grade ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             {sorted.length > 100 && (
-              <div className="px-4 py-3 border-t border-slate-700 text-xs text-slate-400">
+              <div style={{padding:"12px 16px",borderTop:"1px solid #334155",fontSize:"11px",color:"#94a3b8"}}>
                 Showing 100 of {sorted.length} records
               </div>
             )}
@@ -258,9 +258,9 @@ export default function AcademicReportPage() {
         )}
 
         {!loading && selectedTerm && grades.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="text-slate-400 text-sm">No grade data found for selected filters</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>📭</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No grade data found for selected filters</p>
           </div>
         )}
 

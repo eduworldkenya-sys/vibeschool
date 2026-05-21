@@ -147,37 +147,37 @@ export default function AttendanceReportPage() {
   function rateBar(rate: number) {
     const color = rate >= 90 ? 'bg-green-500' : rate >= 80 ? 'bg-yellow-500' : 'bg-red-500'
     return (
-      <div className="flex items-center gap-2">
-        <div className="flex-1 bg-slate-700 rounded-full h-1.5">
-          <div className={`${color} h-1.5 rounded-full`} style={{ width: `${rate}%` }} />
+      <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+        <div style={{flex:1,background:"#334155",borderRadius:"99px",height:"6px"}}>
+          <div style={{height:"6px",borderRadius:"99px",background:"#10b981"}} style={{ width: `${rate}%` }} />
         </div>
-        <span className={`text-xs font-bold w-8 text-right ${rateColor(rate)}`}>{rate}%</span>
+        <span style={{fontSize:"11px",fontWeight:700,width:"32px",textAlign:"right",color:rateColor(rate)}}>{rate}%</span>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#f1f5f9"}}>
       {/* Top Bar */}
-      <div className="bg-[#1e293b] border-b border-slate-700 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <a href="/admin/reports" className="text-slate-400 hover:text-white text-xl">←</a>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">Attendance Report</h1>
-            <p className="text-xs text-slate-400">Student attendance summary</p>
+      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"16px",position:"sticky",top:0,zIndex:10}}>
+        <div style={{maxWidth:"672px",margin:"0 auto",display:"flex",alignItems:"center",gap:"12px"}}>
+          <a href="/admin/reports" style={{color:"#94a3b8",fontSize:"20px",textDecoration:"none"}}>←</a>
+          <div style={{flex:1}}>
+            <h1 style={{fontSize:"18px",fontWeight:700,margin:0}}>Attendance Report</h1>
+            <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>Student attendance summary</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+      <div style={{maxWidth:"672px",margin:"0 auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:"20px"}}>
 
         {/* Filters */}
-        <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700 space-y-3">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Filters</p>
+        <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155",display:"flex",flexDirection:"column",gap:"12px"}}>
+          <p style={{fontSize:"11px",fontWeight:600,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.8px",margin:0}}>Filters</p>
           <select
             value={selectedTerm}
             onChange={e => setSelectedTerm(e.target.value)}
-            className="w-full bg-[#0f172a] border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-green-500"
+            style={{width:"100%",background:"#0f172a",border:"1px solid #475569",borderRadius:"8px",padding:"10px 12px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
           >
             <option value="">Select Term</option>
             {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -185,7 +185,7 @@ export default function AttendanceReportPage() {
           <select
             value={selectedClass}
             onChange={e => setSelectedClass(e.target.value)}
-            className="w-full bg-[#0f172a] border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-green-500"
+            style={{width:"100%",background:"#0f172a",border:"1px solid #475569",borderRadius:"8px",padding:"10px 12px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
           >
             <option value="">All Classes</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -194,60 +194,60 @@ export default function AttendanceReportPage() {
 
         {/* AI Insight Banner */}
         {insight && (
-          <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-4 py-3 flex gap-3 items-start">
-            <span className="text-xl">🤖</span>
-            <p className="text-sm text-amber-200">{insight}</p>
+          <div style={{background:"rgba(120,53,15,0.4)",border:"1px solid rgba(217,119,6,0.5)",borderRadius:"12px",padding:"12px 16px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+            <span style={{fontSize:"20px"}}>🤖</span>
+            <p style={{fontSize:"13px",color:"#fde68a",margin:0}}>{insight}</p>
           </div>
         )}
 
         {/* KPI Cards */}
         {rows.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-blue-400">{kpis.total}</p>
-              <p className="text-xs text-slate-400 mt-1">Total Students</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#38bdf8",margin:0}}>{kpis.total}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Total Students</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-green-400">{kpis.avgRate}%</p>
-              <p className="text-xs text-slate-400 mt-1">Avg Attendance</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#10b981",margin:0}}>{kpis.avgRate}%</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Avg Attendance</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-red-400">{kpis.chronic}</p>
-              <p className="text-xs text-slate-400 mt-1">Chronic Absent</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#ef4444",margin:0}}>{kpis.chronic}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Chronic Absent</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-yellow-400">{kpis.perfect}</p>
-              <p className="text-xs text-slate-400 mt-1">Perfect Attend.</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#f59e0b",margin:0}}>{kpis.perfect}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Perfect Attend.</p>
             </div>
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin text-3xl mb-3">⏳</div>
-            <p className="text-slate-400 text-sm">Loading attendance...</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <div style={{fontSize:"30px",marginBottom:"12px"}}>⏳</div>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>Loading attendance...</p>
           </div>
         )}
 
         {/* Empty prompt */}
         {!loading && !selectedTerm && (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">📅</p>
-            <p className="text-slate-400 text-sm">Select a term to load attendance data</p>
+          <div style={{textAlign:"center",padding:"64px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>📅</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>Select a term to load attendance data</p>
           </div>
         )}
 
         {/* Table */}
         {!loading && rows.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Student Attendance</p>
-              <p className="text-xs text-slate-400">{rows.length} students — tap column to sort</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Student Attendance</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{rows.length} students — tap column to sort</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-[#0f172a]">
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:"11px",borderCollapse:"collapse"}}>
+                <thead style={{background:"#0f172a"}}>
                   <tr>
                     {[
                       { key: 'student_name', label: 'Student' },
@@ -260,7 +260,7 @@ export default function AttendanceReportPage() {
                       <th
                         key={col.key}
                         onClick={() => handleSort(col.key as keyof AttendanceRow)}
-                        className="px-3 py-2.5 text-left text-slate-400 font-medium cursor-pointer hover:text-white whitespace-nowrap"
+                        style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500,cursor:"pointer",whiteSpace:"nowrap"}}
                       >
                         {col.label} {sortField === col.key ? (sortAsc ? '↑' : '↓') : ''}
                       </th>
@@ -269,20 +269,20 @@ export default function AttendanceReportPage() {
                 </thead>
                 <tbody>
                   {sorted.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t border-slate-700/50 hover:bg-slate-700/20">
-                      <td className="px-3 py-2.5 text-white font-medium whitespace-nowrap">{row.student_name}</td>
-                      <td className="px-3 py-2.5 text-slate-300 whitespace-nowrap">{row.class_name}</td>
-                      <td className="px-3 py-2.5 text-green-400 font-bold">{row.present}</td>
-                      <td className="px-3 py-2.5 text-red-400 font-bold">{row.absent}</td>
-                      <td className="px-3 py-2.5 text-yellow-400 font-bold">{row.late}</td>
-                      <td className="px-3 py-2.5 min-w-[100px]">{rateBar(row.rate)}</td>
+                    <tr key={i} style={{borderTop:"1px solid rgba(51,65,85,0.5)"}}>
+                      <td style={{padding:"10px 12px",color:"#f1f5f9",fontWeight:500,whiteSpace:"nowrap"}}>{row.student_name}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1",whiteSpace:"nowrap"}}>{row.class_name}</td>
+                      <td style={{padding:"10px 12px",color:"#4ade80",fontWeight:700}}>{row.present}</td>
+                      <td style={{padding:"10px 12px",color:"#f87171",fontWeight:700}}>{row.absent}</td>
+                      <td style={{padding:"10px 12px",color:"#facc15",fontWeight:700}}>{row.late}</td>
+                      <td style={{padding:"10px 12px",minWidth:"100px"}}>{rateBar(row.rate)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             {sorted.length > 100 && (
-              <div className="px-4 py-3 border-t border-slate-700 text-xs text-slate-400">
+              <div style={{padding:"12px 16px",borderTop:"1px solid #334155",fontSize:"11px",color:"#94a3b8"}}>
                 Showing 100 of {sorted.length} students
               </div>
             )}
@@ -290,9 +290,9 @@ export default function AttendanceReportPage() {
         )}
 
         {!loading && selectedTerm && rows.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="text-slate-400 text-sm">No attendance data found for selected filters</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>📭</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No attendance data found for selected filters</p>
           </div>
         )}
 

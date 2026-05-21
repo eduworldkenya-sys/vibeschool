@@ -175,11 +175,11 @@ export default function OperationalReportPage() {
   function progressBar(pct: number) {
     const color = pct >= 80 ? 'bg-green-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-500'
     return (
-      <div className="flex items-center gap-2">
-        <div className="flex-1 bg-slate-700 rounded-full h-1.5">
-          <div className={`${color} h-1.5 rounded-full`} style={{ width: `${Math.min(pct, 100)}%` }} />
+      <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+        <div style={{flex:1,background:"#334155",borderRadius:"99px",height:"6px"}}>
+          <div style={{height:"6px",borderRadius:"99px",background:"#10b981"}} style={{ width: `${Math.min(pct, 100)}%` }} />
         </div>
-        <span className="text-xs text-slate-400 w-8 text-right">{pct}%</span>
+        <span style={{fontSize:"11px",color:"#94a3b8",width:"32px",textAlign:"right"}}>{pct}%</span>
       </div>
     )
   }
@@ -197,31 +197,27 @@ export default function OperationalReportPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#f1f5f9"}}>
       {/* Top Bar */}
-      <div className="bg-[#1e293b] border-b border-slate-700 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <a href="/admin/reports" className="text-slate-400 hover:text-white text-xl">←</a>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">Operational Report</h1>
-            <p className="text-xs text-slate-400">Visitors · Meetings · Projects · Resources</p>
+      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"16px",position:"sticky",top:0,zIndex:10}}>
+        <div style={{maxWidth:"672px",margin:"0 auto",display:"flex",alignItems:"center",gap:"12px"}}>
+          <a href="/admin/reports" style={{color:"#94a3b8",fontSize:"20px",textDecoration:"none"}}>←</a>
+          <div style={{flex:1}}>
+            <h1 style={{fontSize:"18px",fontWeight:700,margin:0}}>Operational Report</h1>
+            <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>Visitors · Meetings · Projects · Resources</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+      <div style={{maxWidth:"672px",margin:"0 auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:"20px"}}>
 
         {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"4px"}}>
           {tabs.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-                tab === t.key
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-[#1e293b] text-slate-400 border border-slate-700'
-              }`}
+              style={{display:"flex",alignItems:"center",gap:"6px",padding:"8px 16px",borderRadius:"12px",fontSize:"13px",fontWeight:500,whiteSpace:"nowrap",cursor:"pointer"}}
             >
               {t.icon} {t.label}
             </button>
@@ -235,45 +231,45 @@ export default function OperationalReportPage() {
             placeholder="Search visitors by name or purpose..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#1e293b] border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500"
+            style={{width:"100%",background:"#1e293b",border:"1px solid #475569",borderRadius:"12px",padding:"10px 16px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
           />
         )}
 
         {/* AI Insight */}
         {insight && (
-          <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-4 py-3 flex gap-3 items-start">
-            <span className="text-xl">🤖</span>
-            <p className="text-sm text-amber-200">{insight}</p>
+          <div style={{background:"rgba(120,53,15,0.4)",border:"1px solid rgba(217,119,6,0.5)",borderRadius:"12px",padding:"12px 16px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+            <span style={{fontSize:"20px"}}>🤖</span>
+            <p style={{fontSize:"13px",color:"#fde68a",margin:0}}>{insight}</p>
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin text-3xl mb-3">⏳</div>
-            <p className="text-slate-400 text-sm">Loading data...</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <div style={{fontSize:"30px",marginBottom:"12px"}}>⏳</div>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>Loading data...</p>
           </div>
         )}
 
         {/* Visitors */}
         {!loading && tab === 'visitors' && filteredVisitors.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Visitor Log</p>
-              <p className="text-xs text-slate-400">{filteredVisitors.length} records</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Visitor Log</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{filteredVisitors.length} records</p>
             </div>
-            <div className="divide-y divide-slate-700/50">
+            <div style={{}}>
               {filteredVisitors.slice(0, 100).map((row, i) => (
-                <div key={i} className="px-4 py-3 hover:bg-slate-700/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{row.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{row.purpose} · Host: {row.host}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                <div key={i} style={{padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"8px"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:"13px",fontWeight:600,color:"#f1f5f9",margin:0}}>{row.name}</p>
+                      <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>{row.purpose} · Host: {row.host}</p>
+                      <p style={{fontSize:"11px",color:"#64748b",marginTop:"2px"}}>
                         {row.date} · In: {row.time_in} · Out: {row.time_out}
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${statusBadge(row.status)}`}>
+                    <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                       {row.status}
                     </span>
                   </div>
@@ -285,22 +281,22 @@ export default function OperationalReportPage() {
 
         {/* Meetings */}
         {!loading && tab === 'meetings' && meetings.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Meetings</p>
-              <p className="text-xs text-slate-400">{meetings.length} records</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Meetings</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{meetings.length} records</p>
             </div>
-            <div className="divide-y divide-slate-700/50">
+            <div style={{}}>
               {meetings.slice(0, 100).map((row, i) => (
-                <div key={i} className="px-4 py-3 hover:bg-slate-700/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{row.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                <div key={i} style={{padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"8px"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:"13px",fontWeight:600,color:"#f1f5f9",margin:0}}>{row.title}</p>
+                      <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>
                         {row.date} · {row.venue} · {row.attendees} attendee(s)
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${statusBadge(row.status)}`}>
+                    <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                       {row.status}
                     </span>
                   </div>
@@ -312,22 +308,22 @@ export default function OperationalReportPage() {
 
         {/* Projects */}
         {!loading && tab === 'projects' && projects.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Projects</p>
-              <p className="text-xs text-slate-400">{projects.length} projects</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Projects</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{projects.length} projects</p>
             </div>
-            <div className="divide-y divide-slate-700/50">
+            <div style={{}}>
               {projects.slice(0, 100).map((row, i) => (
-                <div key={i} className="px-4 py-3 hover:bg-slate-700/20">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{row.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                <div key={i} style={{padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"8px",marginBottom:"8px"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:"13px",fontWeight:600,color:"#f1f5f9",margin:0}}>{row.name}</p>
+                      <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>
                         Lead: {row.lead} · Due: {row.due_date}
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${statusBadge(row.status)}`}>
+                    <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                       {row.status}
                     </span>
                   </div>
@@ -340,22 +336,22 @@ export default function OperationalReportPage() {
 
         {/* Resources */}
         {!loading && tab === 'resources' && resources.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Resource Assets</p>
-              <p className="text-xs text-slate-400">{resources.length} assets</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Resource Assets</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{resources.length} assets</p>
             </div>
-            <div className="divide-y divide-slate-700/50">
+            <div style={{}}>
               {resources.slice(0, 100).map((row, i) => (
-                <div key={i} className="px-4 py-3 hover:bg-slate-700/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{row.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                <div key={i} style={{padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"8px"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:"13px",fontWeight:600,color:"#f1f5f9",margin:0}}>{row.name}</p>
+                      <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>
                         {row.type} · Qty: {row.quantity} · {row.assigned_to}
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${statusBadge(row.status)}`}>
+                    <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                       {row.status}
                     </span>
                   </div>
@@ -367,27 +363,27 @@ export default function OperationalReportPage() {
 
         {/* Empty states */}
         {!loading && tab === 'visitors' && filteredVisitors.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">🏛️</p>
-            <p className="text-slate-400 text-sm">No visitor records found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>🏛️</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No visitor records found</p>
           </div>
         )}
         {!loading && tab === 'meetings' && meetings.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">📋</p>
-            <p className="text-slate-400 text-sm">No meeting records found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>📋</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No meeting records found</p>
           </div>
         )}
         {!loading && tab === 'projects' && projects.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">🚀</p>
-            <p className="text-slate-400 text-sm">No projects found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>🚀</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No projects found</p>
           </div>
         )}
         {!loading && tab === 'resources' && resources.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">📦</p>
-            <p className="text-slate-400 text-sm">No resource assets found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>📦</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No resource assets found</p>
           </div>
         )}
 

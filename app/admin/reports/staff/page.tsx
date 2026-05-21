@@ -172,31 +172,27 @@ export default function StaffReportPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#f1f5f9"}}>
       {/* Top Bar */}
-      <div className="bg-[#1e293b] border-b border-slate-700 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <a href="/admin/reports" className="text-slate-400 hover:text-white text-xl">←</a>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold">Staff Report</h1>
-            <p className="text-xs text-slate-400">Directory · Attendance · Leave · Payroll</p>
+      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"16px",position:"sticky",top:0,zIndex:10}}>
+        <div style={{maxWidth:"672px",margin:"0 auto",display:"flex",alignItems:"center",gap:"12px"}}>
+          <a href="/admin/reports" style={{color:"#94a3b8",fontSize:"20px",textDecoration:"none"}}>←</a>
+          <div style={{flex:1}}>
+            <h1 style={{fontSize:"18px",fontWeight:700,margin:0}}>Staff Report</h1>
+            <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>Directory · Attendance · Leave · Payroll</p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+      <div style={{maxWidth:"672px",margin:"0 auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:"20px"}}>
 
         {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div style={{display:"flex",gap:"8px",overflowX:"auto",paddingBottom:"4px"}}>
           {tabs.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-                tab === t.key
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-[#1e293b] text-slate-400 border border-slate-700'
-              }`}
+              style={{display:"flex",alignItems:"center",gap:"6px",padding:"8px 16px",borderRadius:"12px",fontSize:"13px",fontWeight:500,whiteSpace:"nowrap",cursor:"pointer"}}
             >
               {t.icon} {t.label}
             </button>
@@ -210,65 +206,65 @@ export default function StaffReportPage() {
             placeholder="Search staff by name, role, department..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#1e293b] border border-slate-600 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+            style={{width:"100%",background:"#1e293b",border:"1px solid #475569",borderRadius:"12px",padding:"10px 16px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
           />
         )}
 
         {/* AI Insight */}
         {insight && (
-          <div className="bg-amber-900/40 border border-amber-600/50 rounded-xl px-4 py-3 flex gap-3 items-start">
-            <span className="text-xl">🤖</span>
-            <p className="text-sm text-amber-200">{insight}</p>
+          <div style={{background:"rgba(120,53,15,0.4)",border:"1px solid rgba(217,119,6,0.5)",borderRadius:"12px",padding:"12px 16px",display:"flex",gap:"12px",alignItems:"flex-start"}}>
+            <span style={{fontSize:"20px"}}>🤖</span>
+            <p style={{fontSize:"13px",color:"#fde68a",margin:0}}>{insight}</p>
           </div>
         )}
 
         {/* KPI Cards — directory only */}
         {tab === 'directory' && staffRows.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-purple-400">{kpis.total}</p>
-              <p className="text-xs text-slate-400 mt-1">Total Staff</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#8b5cf6",margin:0}}>{kpis.total}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Total Staff</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-green-400">{kpis.active}</p>
-              <p className="text-xs text-slate-400 mt-1">Active</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#10b981",margin:0}}>{kpis.active}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Active</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-blue-400">{kpis.departments}</p>
-              <p className="text-xs text-slate-400 mt-1">Departments</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#38bdf8",margin:0}}>{kpis.departments}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Departments</p>
             </div>
-            <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700">
-              <p className="text-2xl font-bold text-yellow-400">{kpis.total - kpis.active}</p>
-              <p className="text-xs text-slate-400 mt-1">Inactive</p>
+            <div style={{background:"#1e293b",borderRadius:"12px",padding:"16px",border:"1px solid #334155"}}>
+              <p style={{fontSize:"24px",fontWeight:800,color:"#f59e0b",margin:0}}>{kpis.total - kpis.active}</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Inactive</p>
             </div>
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin text-3xl mb-3">⏳</div>
-            <p className="text-slate-400 text-sm">Loading staff data...</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <div style={{fontSize:"30px",marginBottom:"12px"}}>⏳</div>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>Loading staff data...</p>
           </div>
         )}
 
         {/* Directory Table */}
         {!loading && tab === 'directory' && filteredStaff.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Staff Directory</p>
-              <p className="text-xs text-slate-400">{filteredStaff.length} members</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Staff Directory</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{filteredStaff.length} members</p>
             </div>
-            <div className="divide-y divide-slate-700/50">
+            <div style={{}}>
               {filteredStaff.slice(0, 100).map((row, i) => (
-                <div key={i} className="px-4 py-3 hover:bg-slate-700/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{row.full_name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{row.role} {row.department ? `· ${row.department}` : ''}</p>
-                      {row.email && <p className="text-xs text-slate-500 mt-0.5">{row.email}</p>}
+                <div key={i} style={{padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"8px"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:"13px",fontWeight:600,color:"#f1f5f9",margin:0}}>{row.full_name}</p>
+                      <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>{row.role} {row.department ? `· ${row.department}` : ''}</p>
+                      {row.email && <p style={{fontSize:"11px",color:"#64748b",marginTop:"2px"}}>{row.email}</p>}
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${statusBadge(row.status ?? '')}`}>
+                    <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                       {row.status ?? '—'}
                     </span>
                   </div>
@@ -280,34 +276,34 @@ export default function StaffReportPage() {
 
         {/* Attendance Table */}
         {!loading && tab === 'attendance' && attRows.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Staff Attendance</p>
-              <p className="text-xs text-slate-400">{attRows.length} records</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Staff Attendance</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{attRows.length} records</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-[#0f172a]">
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",fontSize:"11px",borderCollapse:"collapse"}}>
+                <thead style={{background:"#0f172a"}}>
                   <tr>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Name</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Date</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Status</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">In</th>
-                    <th className="px-3 py-2.5 text-left text-slate-400">Out</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Name</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Date</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Status</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>In</th>
+                    <th style={{padding:"10px 12px",textAlign:"left",color:"#94a3b8",fontWeight:500}}>Out</th>
                   </tr>
                 </thead>
                 <tbody>
                   {attRows.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t border-slate-700/50 hover:bg-slate-700/20">
-                      <td className="px-3 py-2.5 text-white font-medium whitespace-nowrap">{row.staff_name}</td>
-                      <td className="px-3 py-2.5 text-slate-300 whitespace-nowrap">{row.date}</td>
-                      <td className="px-3 py-2.5">
-                        <span className={`px-2 py-0.5 rounded-full capitalize text-xs ${statusBadge(row.status)}`}>
+                    <tr key={i} style={{borderTop:"1px solid rgba(51,65,85,0.5)"}}>
+                      <td style={{padding:"10px 12px",color:"#f1f5f9",fontWeight:500,whiteSpace:"nowrap"}}>{row.staff_name}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1",whiteSpace:"nowrap"}}>{row.date}</td>
+                      <td style={{padding:"10px 12px"}}>
+                        <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                           {row.status}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-slate-300">{row.check_in}</td>
-                      <td className="px-3 py-2.5 text-slate-300">{row.check_out}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1"}}>{row.check_in}</td>
+                      <td style={{padding:"10px 12px",color:"#cbd5e1"}}>{row.check_out}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -318,21 +314,21 @@ export default function StaffReportPage() {
 
         {/* Leave Table */}
         {!loading && tab === 'leave' && leaveRows.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Leave Records</p>
-              <p className="text-xs text-slate-400">{leaveRows.length} requests</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Leave Records</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{leaveRows.length} requests</p>
             </div>
-            <div className="divide-y divide-slate-700/50">
+            <div style={{}}>
               {leaveRows.slice(0, 100).map((row, i) => (
-                <div key={i} className="px-4 py-3 hover:bg-slate-700/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{row.staff_name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{row.leave_type} · {row.days} day(s)</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{row.start_date} → {row.end_date}</p>
+                <div key={i} style={{padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"8px"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:"13px",fontWeight:600,color:"#f1f5f9",margin:0}}>{row.staff_name}</p>
+                      <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>{row.leave_type} · {row.days} day(s)</p>
+                      <p style={{fontSize:"11px",color:"#64748b",marginTop:"2px"}}>{row.start_date} → {row.end_date}</p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${statusBadge(row.status)}`}>
+                    <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                       {row.status}
                     </span>
                   </div>
@@ -344,23 +340,23 @@ export default function StaffReportPage() {
 
         {/* Payroll Table */}
         {!loading && tab === 'payroll' && payrollRows.length > 0 && (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <p className="text-sm font-semibold">Payroll Runs</p>
-              <p className="text-xs text-slate-400">{payrollRows.length} runs</p>
+          <div style={{background:"#1e293b",borderRadius:"12px",border:"1px solid #334155",overflow:"hidden"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #334155"}}>
+              <p style={{fontSize:"13px",fontWeight:600,margin:0,color:"#f1f5f9"}}>Payroll Runs</p>
+              <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{payrollRows.length} runs</p>
             </div>
-            <div className="divide-y divide-slate-700/50">
+            <div style={{}}>
               {payrollRows.map((row, i) => (
-                <div key={i} className="px-4 py-3 hover:bg-slate-700/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-white">{row.run_name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Period: {row.period}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                <div key={i} style={{padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"8px"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:"13px",fontWeight:600,color:"#f1f5f9",margin:0}}>{row.run_name}</p>
+                      <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"2px"}}>Period: {row.period}</p>
+                      <p style={{fontSize:"11px",color:"#64748b",marginTop:"2px"}}>
                         Gross: KES {row.total_gross.toLocaleString()} · Net: KES {row.total_net.toLocaleString()}
                       </p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full capitalize ${statusBadge(row.status)}`}>
+                    <span style={{fontSize:"11px",padding:"2px 8px",borderRadius:"99px",textTransform:"capitalize"}}>
                       {row.status}
                     </span>
                   </div>
@@ -372,27 +368,27 @@ export default function StaffReportPage() {
 
         {/* Empty states */}
         {!loading && tab === 'directory' && filteredStaff.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">👨‍🏫</p>
-            <p className="text-slate-400 text-sm">No staff records found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>👨‍🏫</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No staff records found</p>
           </div>
         )}
         {!loading && tab === 'attendance' && attRows.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">📅</p>
-            <p className="text-slate-400 text-sm">No attendance records found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>📅</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No attendance records found</p>
           </div>
         )}
         {!loading && tab === 'leave' && leaveRows.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">🏖️</p>
-            <p className="text-slate-400 text-sm">No leave records found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>🏖️</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No leave records found</p>
           </div>
         )}
         {!loading && tab === 'payroll' && payrollRows.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-4xl mb-3">💰</p>
-            <p className="text-slate-400 text-sm">No payroll runs found</p>
+          <div style={{textAlign:"center",padding:"48px 0"}}>
+            <p style={{fontSize:"36px",marginBottom:"12px"}}>💰</p>
+            <p style={{color:"#94a3b8",fontSize:"14px"}}>No payroll runs found</p>
           </div>
         )}
 
