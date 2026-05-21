@@ -39,7 +39,7 @@ interface BadgeRow {
   badges: {
     name: string
     icon: string
-  } | { name: string; icon: string }[]
+  }
 }
 
 interface TwinSession {
@@ -213,14 +213,15 @@ export default function VibeLearnPage() {
 
     setLessons(lessonRows)
     setStreaks(streaksRes.data ?? [])
-    const rawBadges = (badgesRes.data ?? []).map((b: {
-      id: string; earned_at: string;
-      badges: { name: string; icon: string } | { name: string; icon: string }[]
-    }) => ({
-      id:        b.id,
-      earned_at: b.earned_at,
-      badges:    Array.isArray(b.badges) ? b.badges[0] ?? { name: '', icon: '' } : b.badges,
-    }))
+    const rawBadges: BadgeRow[] = (badgesRes.data ?? []).map((b: Record<string, unknown>) => {
+      const raw = b.badges
+      const obj = Array.isArray(raw) ? (raw[0] ?? { name: '', icon: '' }) : (raw ?? { name: '', icon: '' })
+      return {
+        id:        b.id        as string,
+        earned_at: b.earned_at as string,
+        badges:    obj         as { name: string; icon: string },
+      }
+    })
     setBadges(rawBadges)
     setSessions(sessionsRes.data ?? [])
     setChildLoading(false)
