@@ -493,7 +493,7 @@ export default function VibeLearnShellWrapper({
         await supabase
           .from('vibelearn_saved')
           .insert({ student_id: user.id, content_id: contentId })
-        setSavedIds(prev => new Set([...prev, contentId]))
+        setSavedIds(prev => { const next = new Set(prev); next.add(contentId); return next })
       }
     } catch {
       // Silent — save/unsave must never break experience
