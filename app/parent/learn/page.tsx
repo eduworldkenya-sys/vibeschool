@@ -484,7 +484,7 @@ export default function ParentLearnPage() {
         if (isCurrentFetch) {
           setContentError("An error occurred synchronizing data updates. Check your connection.");
         }
-      } fillAll: {
+      } finally {
         if (isCurrentFetch) {
           setLoadingContent(false);
           setIsRefreshing(false);
