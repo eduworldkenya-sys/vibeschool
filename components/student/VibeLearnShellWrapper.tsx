@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import VibeActionDock from '@/components/student/VibeActionDock'
 import VibeSubmitContent from '@/components/student/VibeSubmitContent'
 import VibeProgress from '@/components/student/VibeProgress'
+import { awardPoints, updateStreak } from '@/lib/vibelearn-points'
 
 type VibeTab = 'feed' | 'indexer' | 'library'
 type ContentType = 'ebook' | 'epage'
@@ -506,23 +507,36 @@ export default function VibeLearnShellWrapper({
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      await supabase.from('vibelearn_completed').insert({ student_id: user.id, content_id: contentId })
+      const { error } = await supabase
+        .from('vibelearn_completed')
+        .insert({ student_id: user.id, content_id: contentId })
+      if (error) throw error
       setCompletedIds(prev => {
         const next = new Set(prev)
         next.add(contentId)
         return next
       })
+      if (openContent) {
+        await awardPoints(
+          user.id,
+          openContent.type === 'ebook' ? 'complete_ebook' : 'complete_epage',
+          contentId
+        )
+      }
+      await updateStreak(user.id)
     } catch {
       // Silent
     } finally {
       setCompleting(false)
     }
-  }, [completing, completedIds])
+  }, [completing, completedIds, openContent])
 
   const handleOpen = useCallback(async (item: VibeContent) => {
     setOpenContent(item)
     try {
       await supabase.rpc('increment_view_count', { content_id: item.id })
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) await awardPoints(user.id, 'content_viewed', item.id)
     } catch {
       // Silent
     }
