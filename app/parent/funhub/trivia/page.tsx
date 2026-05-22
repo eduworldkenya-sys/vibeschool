@@ -23,12 +23,19 @@ const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard']
 const QUESTIONS_PER_GAME = 10
 const SECONDS_PER_QUESTION = 20
 
+const BG = '#faf5ff'
+const ACCENT = '#7c3aed'
+const ACCENT_LIGHT = '#ede9fe'
+const CARD = '#ffffff'
+const TEXT = '#1f2937'
+const MUTED = '#6b7280'
+
 const SUBJECT_COLORS: Record<Subject, string> = {
   Mathematics: '#3b82f6',
   English: '#8b5cf6',
   Science: '#10b981',
   'Social Studies': '#f97316',
-  Kiswahili: '#ef4444',
+  Kiswahili: '#e11d48',
 }
 
 const SUBJECT_ICONS: Record<Subject, string> = {
@@ -77,7 +84,6 @@ function setCache(subject: Subject, difficulty: Difficulty, data: TriviaQuestion
 
 export default function TriviaPage() {
   const router = useRouter()
-  
 
   const [phase, setPhase] = useState<GamePhase>('setup')
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
@@ -111,22 +117,36 @@ export default function TriviaPage() {
       return
     }
     try {
+      const subjectMap: Record<Subject, string> = {
+        Mathematics: 'maths',
+        English: 'english',
+        Science: 'science',
+        'Social Studies': 'social_studies',
+        Kiswahili: 'kiswahili',
+      }
+      const diffMap: Record<Difficulty, string> = {
+        Easy: 'easy', Medium: 'medium', Hard: 'hard',
+      }
       const { data, error: sbError } = await supabase
-        .from('trivia_questions')
+        .from('funhub_questions')
         .select('*')
-        .eq('subject', subject)
-        .eq('difficulty', difficulty)
-        .eq('is_active', true)
+        .eq('subject', subjectMap[subject])
+        .eq('difficulty', diffMap[difficulty])
       if (sbError) throw sbError
       if (!data || data.length === 0) throw new Error('No questions found')
-      const parsed: TriviaQuestion[] = data.map(row => ({
-        ...row,
+      const parsed: TriviaQuestion[] = data.map((row, idx) => ({
+        id: row.id ?? String(idx),
+        subject,
+        difficulty,
+        strand: row.strand ?? null,
+        question: row.question_text ?? row.question ?? '',
         options: Array.isArray(row.options) ? row.options : JSON.parse(row.options),
+        answer_index: Number(row.correct) ?? 0,
       }))
       setCache(subject, difficulty, parsed)
       setQuestions(shuffle(parsed).slice(0, QUESTIONS_PER_GAME))
     } catch (err) {
-      setError('Could not load questions. Check your connection.')
+      setError("Could not load questions. Check your connection.")
       console.error(err)
     } finally {
       setLoading(false)
@@ -191,45 +211,47 @@ export default function TriviaPage() {
   const current = questions[currentIndex]
   const percentage = Math.round((correctCount / QUESTIONS_PER_GAME) * 100)
 
-  // SETUP
+  // ── SETUP ──────────────────────────────────────────────────────────────────
   if (phase === 'setup') return (
-    <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '24px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-        <button onClick={() => router.back()} style={{ background: '#18181b', border: 'none', color: '#fff', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontSize: 16 }}>←</button>
+    <div style={{ minHeight: '100vh', background: BG, padding: '24px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+        <button onClick={() => router.back()} style={{ background: ACCENT_LIGHT, border: 'none', color: ACCENT, borderRadius: 10, padding: '8px 12px', cursor: 'pointer', fontSize: 16, fontFamily: 'inherit' }}>←</button>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 900 }}>Trivia</div>
-          <div style={{ fontSize: 11, color: '#71717a' }}>CBC Challenge · Pick & Play</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: TEXT }}>⚡ Trivia</div>
+          <div style={{ fontSize: 11, color: MUTED }}>CBC Challenge · Pick & Play</div>
         </div>
       </div>
 
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#52525b', letterSpacing: 2, marginBottom: 12 }}>PICK A SUBJECT</div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: 2, marginBottom: 12 }}>PICK A SUBJECT</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 28 }}>
         {SUBJECTS.map(s => (
           <div key={s} onClick={() => setSelectedSubject(s)} style={{
-            background: selectedSubject === s ? SUBJECT_COLORS[s] : '#18181b',
+            background: selectedSubject === s ? SUBJECT_COLORS[s] : CARD,
             borderRadius: 16, padding: '16px 12px', cursor: 'pointer',
-            border: selectedSubject === s ? `2px solid ${SUBJECT_COLORS[s]}` : '2px solid #27272a',
+            border: selectedSubject === s ? `2px solid ${SUBJECT_COLORS[s]}` : '2px solid #e5e7eb',
             transform: selectedSubject === s ? 'scale(1.02)' : 'scale(1)',
             transition: 'all 0.15s ease',
+            boxShadow: selectedSubject === s ? `0 4px 16px ${SUBJECT_COLORS[s]}33` : '0 1px 4px rgba(0,0,0,0.06)',
           }}>
             <div style={{ fontSize: 24, marginBottom: 6 }}>{SUBJECT_ICONS[s]}</div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>{s}</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: selectedSubject === s ? '#fff' : TEXT }}>{s}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ fontSize: 10, fontWeight: 700, color: '#52525b', letterSpacing: 2, marginBottom: 12 }}>PICK DIFFICULTY</div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: 2, marginBottom: 12 }}>PICK DIFFICULTY</div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 32 }}>
         {DIFFICULTIES.map(d => {
           const dc = d === 'Easy' ? '#10b981' : d === 'Medium' ? '#f59e0b' : '#ef4444'
+          const active = selectedDifficulty === d
           return (
             <div key={d} onClick={() => setSelectedDifficulty(d)} style={{
               flex: 1, padding: '12px 0', borderRadius: 12, textAlign: 'center', cursor: 'pointer',
-              border: selectedDifficulty === d ? `2px solid ${dc}` : '2px solid #27272a',
-              background: selectedDifficulty === d ? `${dc}22` : '#18181b',
-              color: selectedDifficulty === d ? dc : '#71717a',
-              fontWeight: 800, fontSize: 13,
-              transition: 'all 0.15s ease',
+              border: active ? `2px solid ${dc}` : '2px solid #e5e7eb',
+              background: active ? `${dc}18` : CARD,
+              color: active ? dc : MUTED,
+              fontWeight: 800, fontSize: 13, transition: 'all 0.15s ease',
+              fontFamily: 'inherit',
             }}>
               {d}
               <div style={{ fontSize: 10, fontWeight: 400, marginTop: 2 }}>+{DIFFICULTY_POINTS[d]}pts</div>
@@ -238,60 +260,61 @@ export default function TriviaPage() {
         })}
       </div>
 
-      {error && <div style={{ color: '#f87171', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>{error}</div>}
+      {error && <div style={{ color: '#ef4444', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>{error}</div>}
 
       <div onClick={(!selectedSubject || !selectedDifficulty || loading) ? undefined : startGame} style={{
-        background: selectedSubject && selectedDifficulty && !loading ? '#f59e0b' : '#27272a',
-        color: selectedSubject && selectedDifficulty && !loading ? '#000' : '#52525b',
+        background: selectedSubject && selectedDifficulty && !loading ? ACCENT : '#e5e7eb',
+        color: selectedSubject && selectedDifficulty && !loading ? '#fff' : MUTED,
         borderRadius: 16, padding: '16px 0', textAlign: 'center',
         fontWeight: 900, fontSize: 15, cursor: selectedSubject && selectedDifficulty ? 'pointer' : 'not-allowed',
         transition: 'all 0.15s ease',
+        boxShadow: selectedSubject && selectedDifficulty ? `0 4px 16px ${ACCENT}44` : 'none',
       }}>
         {loading ? '⏳ Loading...' : '⚡ Start Trivia'}
       </div>
     </div>
   )
 
-  // PLAYING
+  // ── PLAYING ────────────────────────────────────────────────────────────────
   if (phase === 'playing' && current) {
     const timerPct = (timer / SECONDS_PER_QUESTION) * 100
     const timerColor = timer > 10 ? '#10b981' : timer > 5 ? '#f59e0b' : '#ef4444'
     return (
-      <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '24px 16px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: BG, padding: '24px 16px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 12, color: '#71717a' }}>{currentIndex + 1}/{questions.length}</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#f59e0b' }}>{score}pts</span>
-          <span style={{ fontSize: 13, color: '#fb923c' }}>🔥 {streak}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: timer <= 5 ? '#ef4444' : '#d4d4d8' }}>{timer}s</span>
+          <span style={{ fontSize: 12, color: MUTED }}>{currentIndex + 1}/{questions.length}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: ACCENT }}>{score}pts</span>
+          <span style={{ fontSize: 13, color: '#f97316' }}>🔥 {streak}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: timer <= 5 ? '#ef4444' : TEXT }}>{timer}s</span>
         </div>
 
-        <div style={{ background: '#27272a', borderRadius: 99, height: 6, marginBottom: 20, overflow: 'hidden' }}>
+        <div style={{ background: '#e5e7eb', borderRadius: 99, height: 6, marginBottom: 16, overflow: 'hidden' }}>
           <div style={{ width: `${timerPct}%`, height: '100%', borderRadius: 99, background: timerColor, transition: 'width 1s linear, background 0.3s' }} />
         </div>
 
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginBottom: 16 }}>
           {questions.map((_, i) => (
-            <div key={i} style={{ height: 4, borderRadius: 99, background: i < currentIndex ? '#10b981' : i === currentIndex ? '#f59e0b' : '#27272a', width: i === currentIndex ? 20 : 8, transition: 'all 0.3s' }} />
+            <div key={i} style={{ height: 4, borderRadius: 99, background: i < currentIndex ? '#10b981' : i === currentIndex ? ACCENT : '#e5e7eb', width: i === currentIndex ? 20 : 8, transition: 'all 0.3s' }} />
           ))}
         </div>
 
         {current.strand && (
           <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 10, padding: '4px 10px', borderRadius: 99, background: '#18181b', color: '#71717a', border: '1px solid #27272a' }}>{current.strand}</span>
+            <span style={{ fontSize: 10, padding: '4px 10px', borderRadius: 99, background: ACCENT_LIGHT, color: ACCENT, fontWeight: 700 }}>{current.strand}</span>
           </div>
         )}
 
-        <div style={{ background: '#18181b', borderRadius: 20, padding: 20, marginBottom: 20, flex: 1, display: 'flex', alignItems: 'center' }}>
-          <p style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1.5, margin: 0 }}>{current.question}</p>
+        <div style={{ background: CARD, borderRadius: 20, padding: 20, marginBottom: 20, flex: 1, display: 'flex', alignItems: 'center', boxShadow: '0 2px 12px rgba(124,58,237,0.08)', border: `1px solid ${ACCENT_LIGHT}` }}>
+          <p style={{ fontSize: 17, fontWeight: 700, color: TEXT, lineHeight: 1.5, margin: 0 }}>{current.question}</p>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {current.options.map((opt, i) => {
-            let bg = '#18181b', border = '#27272a', color = '#d4d4d8'
+            let bg = CARD, border = '#e5e7eb', color = TEXT
             if (isAnswered) {
-              if (i === current.answer_index) { bg = '#052e16'; border = '#10b981'; color = '#4ade80' }
-              else if (i === selectedAnswer) { bg = '#2d0a0a'; border = '#ef4444'; color = '#f87171' }
-              else { color = '#52525b' }
+              if (i === current.answer_index) { bg = '#f0fdf4'; border = '#10b981'; color = '#16a34a' }
+              else if (i === selectedAnswer) { bg = '#fef2f2'; border = '#ef4444'; color = '#dc2626' }
+              else { color = MUTED }
             }
             return (
               <div key={i} onClick={() => handleAnswer(i)} style={{
@@ -300,8 +323,9 @@ export default function TriviaPage() {
                 display: 'flex', alignItems: 'center', gap: 12,
                 color, fontSize: 14, fontWeight: 600,
                 transition: 'all 0.2s ease',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
               }}>
-                <span style={{ width: 24, height: 24, borderRadius: '50%', border: `1.5px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                <span style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0, background: isAnswered && i === current.answer_index ? '#10b981' : isAnswered && i === selectedAnswer ? '#ef4444' : ACCENT_LIGHT, color: isAnswered && (i === current.answer_index || i === selectedAnswer) ? '#fff' : ACCENT }}>
                   {String.fromCharCode(65 + i)}
                 </span>
                 {opt}
@@ -313,48 +337,48 @@ export default function TriviaPage() {
     )
   }
 
-  // RESULT
+  // ── RESULT ─────────────────────────────────────────────────────────────────
   if (phase === 'result') {
     const grade = percentage >= 80 ? { label: 'Excellent!', color: '#10b981', emoji: '🏆' }
       : percentage >= 60 ? { label: 'Good Job!', color: '#f59e0b', emoji: '⭐' }
       : { label: 'Keep Trying!', color: '#ef4444', emoji: '💪' }
     return (
-      <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '40px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: BG, padding: '40px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ fontSize: 64, marginBottom: 12 }}>{grade.emoji}</div>
         <div style={{ fontSize: 24, fontWeight: 900, color: grade.color, marginBottom: 4 }}>{grade.label}</div>
-        <div style={{ fontSize: 12, color: '#71717a', marginBottom: 32 }}>{selectedSubject} · {selectedDifficulty}</div>
+        <div style={{ fontSize: 12, color: MUTED, marginBottom: 32 }}>{selectedSubject} · {selectedDifficulty}</div>
 
-        <div style={{ width: '100%', background: '#18181b', borderRadius: 20, padding: 20, marginBottom: 20, border: '1px solid #27272a' }}>
+        <div style={{ width: '100%', background: CARD, borderRadius: 20, padding: 20, marginBottom: 20, border: '1px solid #e5e7eb', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, textAlign: 'center', marginBottom: 20 }}>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900 }}>{score}</div>
-              <div style={{ fontSize: 10, color: '#71717a', marginTop: 4 }}>Points</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: ACCENT }}>{score}</div>
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Points</div>
             </div>
             <div>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#10b981' }}>{correctCount}/{QUESTIONS_PER_GAME}</div>
-              <div style={{ fontSize: 10, color: '#71717a', marginTop: 4 }}>Correct</div>
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Correct</div>
             </div>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#fb923c' }}>{bestStreak}</div>
-              <div style={{ fontSize: 10, color: '#71717a', marginTop: 4 }}>Best Streak</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#f97316' }}>{bestStreak}</div>
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 4 }}>Best Streak</div>
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#71717a', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: MUTED, marginBottom: 6 }}>
             <span>Accuracy</span><span>{percentage}%</span>
           </div>
-          <div style={{ background: '#27272a', borderRadius: 99, height: 8, overflow: 'hidden' }}>
+          <div style={{ background: '#e5e7eb', borderRadius: 99, height: 8, overflow: 'hidden' }}>
             <div style={{ width: `${percentage}%`, height: '100%', borderRadius: 99, background: grade.color, transition: 'width 0.8s ease' }} />
           </div>
         </div>
 
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div onClick={startGame} style={{ background: '#f59e0b', color: '#000', borderRadius: 16, padding: '16px 0', textAlign: 'center', fontWeight: 900, fontSize: 15, cursor: 'pointer' }}>
+          <div onClick={startGame} style={{ background: ACCENT, color: '#fff', borderRadius: 16, padding: '16px 0', textAlign: 'center', fontWeight: 900, fontSize: 15, cursor: 'pointer', boxShadow: `0 4px 16px ${ACCENT}44` }}>
             🔄 Play Again
           </div>
-          <div onClick={reset} style={{ background: '#18181b', color: '#d4d4d8', borderRadius: 16, padding: '16px 0', textAlign: 'center', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: '1px solid #27272a' }}>
+          <div onClick={reset} style={{ background: CARD, color: TEXT, borderRadius: 16, padding: '16px 0', textAlign: 'center', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: '1px solid #e5e7eb' }}>
             📚 Change Subject
           </div>
-          <div onClick={() => router.back()} style={{ background: 'transparent', color: '#71717a', borderRadius: 16, padding: '12px 0', textAlign: 'center', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          <div onClick={() => router.back()} style={{ color: MUTED, padding: '12px 0', textAlign: 'center', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             ← Back to FunHub
           </div>
         </div>
