@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -199,15 +198,12 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { router.push("/academy/signin?role=parent"); return; }
-
         const { data } = await supabase
           .from("profiles")
           .select("full_name, role")
           .eq("id", user.id)
           .single();
-
         if (data?.role !== "parent") { router.push("/academy/signin?role=parent"); return; }
-
         const name  = data?.full_name ?? "";
         setFullName(name);
         const parts = name.trim().split(" ").filter(Boolean);
@@ -228,20 +224,18 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         @keyframes fadeIn  { from{ opacity:0 } to{ opacity:1 } }
         @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
       `}</style>
-      <div style={{ background: "#f0f2f5" }}>
-        <TopBar initials={initials} />
-        <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px" }}>
-          {children}
-        </main>
-        <BottomNav
-          activeId={activeId}
-          onVibeLearnOpen={() => setVibeLearnOpen(true)}
-        />
-        <VibeLearnShellWrapper
-          isOpen={vibeLearnOpen}
-          onClose={() => setVibeLearnOpen(false)}
-        />
-      </div>
+      <TopBar initials={initials} />
+      <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px", background: "#f0f2f5" }}>
+        {children}
+      </main>
+      <BottomNav
+        activeId={activeId}
+        onVibeLearnOpen={() => setVibeLearnOpen(true)}
+      />
+      <VibeLearnShellWrapper
+        isOpen={vibeLearnOpen}
+        onClose={() => setVibeLearnOpen(false)}
+      />
     </UserContext.Provider>
   );
 }
