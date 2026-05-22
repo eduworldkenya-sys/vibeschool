@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useCallback, useState, useRef } from 'react'
-import type { ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
+import VibeActionDock from '@/components/student/VibeActionDock'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -203,9 +203,7 @@ function FeedTab({
     </div>
   )
 
-  if (error) return (
-    <EmptyState icon="⚠️" title="Something went wrong" body={error} />
-  )
+  if (error) return <EmptyState icon="⚠️" title="Something went wrong" body={error} />
 
   if (items.length === 0) return (
     <EmptyState
@@ -244,12 +242,12 @@ function IndexerTab({
   onSave: (id: string) => void
   onOpen: (item: VibeContent) => void
 }) {
-  const [query, setQuery]         = useState('')
-  const [results, setResults]     = useState<VibeContent[]>([])
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState<string | null>(null)
-  const [filter, setFilter]       = useState<ContentType | 'all'>('all')
-  const debounceRef               = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [query, setQuery]     = useState('')
+  const [results, setResults] = useState<VibeContent[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+  const [filter, setFilter]   = useState<ContentType | 'all'>('all')
+  const debounceRef           = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const search = useCallback(async (q: string, f: ContentType | 'all') => {
     if (!q.trim()) { setResults([]); return }
@@ -282,7 +280,6 @@ function IndexerTab({
 
   return (
     <div style={{ padding: '16px' }}>
-      {/* Search input */}
       <div style={{ position: 'relative', marginBottom: 12 }}>
         <div style={{
           position: 'absolute', left: 14, top: '50%',
@@ -302,7 +299,6 @@ function IndexerTab({
         />
       </div>
 
-      {/* Filter pills */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {(['all', 'ebook', 'epage'] as const).map(f => (
           <button
@@ -323,7 +319,6 @@ function IndexerTab({
         ))}
       </div>
 
-      {/* States */}
       {!query.trim() && (
         <EmptyState
           icon="🔍"
@@ -331,17 +326,12 @@ function IndexerTab({
           body="Find ebooks and epages indexed from across the platform. Type anything to begin."
         />
       )}
-
       {query.trim() && loading && (
-        <div>
-          {[1,2,3].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={160} /></div>)}
-        </div>
+        <div>{[1,2,3].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={160} /></div>)}</div>
       )}
-
       {query.trim() && !loading && error && (
         <EmptyState icon="⚠️" title="Search failed" body={error} />
       )}
-
       {query.trim() && !loading && !error && results.length === 0 && (
         <EmptyState
           icon="📭"
@@ -349,7 +339,6 @@ function IndexerTab({
           body="Try different keywords or browse the feed for trending content."
         />
       )}
-
       {!loading && results.map(item => (
         <ContentCard
           key={item.id}
@@ -385,19 +374,15 @@ function LibraryTab({
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { setItems([]); setLoading(false); return }
-
         const { data, error: err } = await supabase
           .from('vibelearn_saved')
           .select('content_id, vibelearn_content(*)')
           .eq('student_id', user.id)
           .order('saved_at', { ascending: false })
-
         if (err) throw err
-
         const contents = (data ?? [])
-          .map((row: { content_id: string; vibelearn_content: VibeContent | VibeContent[] }) => Array.isArray(row.vibelearn_content) ? row.vibelearn_content[0] : row.vibelearn_content)
+          .map((row: { content_id: string; vibelearn_content: VibeContent }) => row.vibelearn_content)
           .filter(Boolean)
-
         setItems(contents)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load library')
@@ -413,9 +398,7 @@ function LibraryTab({
       {[1,2].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={160} /></div>)}
     </div>
   )
-
   if (error) return <EmptyState icon="⚠️" title="Something went wrong" body={error} />
-
   if (items.length === 0) return (
     <EmptyState
       icon="📚"
@@ -451,9 +434,50 @@ export default function VibeLearnShellWrapper({
   isOpen: boolean
   onClose: () => void
 }) {
-  const [activeTab, setActiveTab]       = useState<VibeTab>('feed')
-  const [savedIds, setSavedIds]         = useState<Set<string>>(new Set())
-  const [openContent, setOpenContent]   = useState<VibeContent | null>(null)
+  const [activeTab, setActiveTab]     = useState<VibeTab>('feed')
+  const [savedIds, setSavedIds]       = useState<Set<string>>(new Set())
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
+  const [openContent, setOpenContent] = useState<VibeContent | null>(null)
+  const [completing, setCompleting]   = useState(false)
+
+  // ─── Load saved + completed on open ────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isOpen) return
+    async function loadUserSets() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const [savedRes, completedRes] = await Promise.all([
+          supabase
+            .from('vibelearn_saved')
+            .select('content_id')
+            .eq('student_id', user.id),
+          supabase
+            .from('vibelearn_completed')
+            .select('content_id')
+            .eq('student_id', user.id),
+        ])
+
+        if (savedRes.data) {
+          const s = new Set<string>()
+          savedRes.data.forEach((r: { content_id: string }) => s.add(r.content_id))
+          setSavedIds(s)
+        }
+        if (completedRes.data) {
+          const c = new Set<string>()
+          completedRes.data.forEach((r: { content_id: string }) => c.add(r.content_id))
+          setCompletedIds(c)
+        }
+      } catch {
+        // Silent — sets stay empty, user can still interact
+      }
+    }
+    loadUserSets()
+  }, [isOpen])
+
+  // ─── Keyboard ──────────────────────────────────────────────────────────────
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -472,6 +496,8 @@ export default function VibeLearnShellWrapper({
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen, handleKeyDown])
+
+  // ─── Save / Unsave ─────────────────────────────────────────────────────────
 
   const handleSave = useCallback(async (contentId: string) => {
     try {
@@ -493,19 +519,48 @@ export default function VibeLearnShellWrapper({
         await supabase
           .from('vibelearn_saved')
           .insert({ student_id: user.id, content_id: contentId })
-        setSavedIds(prev => { const next = new Set(prev); next.add(contentId); return next })
+        setSavedIds(prev => {
+          const next = new Set(prev)
+          next.add(contentId)
+          return next
+        })
       }
     } catch {
-      // Silent — save/unsave must never break experience
+      // Silent
     }
   }, [savedIds])
+
+  // ─── Complete ──────────────────────────────────────────────────────────────
+
+  const handleComplete = useCallback(async (contentId: string) => {
+    if (completing || completedIds.has(contentId)) return
+    setCompleting(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      await supabase
+        .from('vibelearn_completed')
+        .insert({ student_id: user.id, content_id: contentId })
+      setCompletedIds(prev => {
+        const next = new Set(prev)
+        next.add(contentId)
+        return next
+      })
+    } catch {
+      // Silent
+    } finally {
+      setCompleting(false)
+    }
+  }, [completing, completedIds])
+
+  // ─── Open content ──────────────────────────────────────────────────────────
 
   const handleOpen = useCallback(async (item: VibeContent) => {
     setOpenContent(item)
     try {
       await supabase.rpc('increment_view_count', { content_id: item.id })
     } catch {
-      // Silent — view tracking must never block content opening
+      // Silent
     }
   }, [])
 
@@ -520,12 +575,10 @@ export default function VibeLearnShellWrapper({
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes vl-slide-up { from{transform:translateY(100vh)} to{transform:translateY(0)} }
-        @keyframes vl-slide-down { from{transform:translateY(0)} to{transform:translateY(100vh)} }
         .vl-scroll::-webkit-scrollbar { display:none }
         .vl-scroll { -ms-overflow-style:none; scrollbar-width:none }
       `}</style>
 
-      {/* Shell */}
       <div
         role="dialog"
         aria-modal="true"
@@ -562,14 +615,12 @@ export default function VibeLearnShellWrapper({
           >
             ← Back
           </button>
-
           <span style={{
             color: ACCENT, fontWeight: 800, fontSize: 13,
             letterSpacing: '0.1em', textTransform: 'uppercase',
           }}>
             VibeLearn
           </span>
-
           <div style={{ minWidth: 72 }} />
         </header>
 
@@ -581,10 +632,12 @@ export default function VibeLearnShellWrapper({
             display: 'flex', flexDirection: 'column',
             animation: 'vl-slide-up 250ms ease-out',
           }}>
+            {/* Viewer header */}
             <div style={{
               display: 'flex', alignItems: 'center',
-              padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-              flexShrink: 0,
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              flexShrink: 0, height: 60,
             }}>
               <button
                 onClick={() => setOpenContent(null)}
@@ -593,16 +646,23 @@ export default function VibeLearnShellWrapper({
                   background: 'rgba(255,255,255,0.05)', border: 'none',
                   color: TEXT, padding: '8px 14px', borderRadius: 10,
                   cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  minWidth: 72,
                 }}
               >
                 ← Back
               </button>
-              <div style={{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 700, color: TEXT, padding: '0 12px' }}>
+              <div style={{
+                flex: 1, textAlign: 'center',
+                fontSize: 13, fontWeight: 700, color: TEXT,
+                padding: '0 12px',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
                 {openContent.title}
               </div>
               <div style={{ minWidth: 72 }} />
             </div>
 
+            {/* Viewer body — scrollable */}
             <div className="vl-scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
               <div style={{
                 display: 'inline-block',
@@ -627,6 +687,19 @@ export default function VibeLearnShellWrapper({
                   Source: {openContent.source}
                 </div>
               )}
+              {openContent.tags.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 24 }}>
+                  {openContent.tags.map(tag => (
+                    <span key={tag} style={{
+                      fontSize: 10, color: MUTED,
+                      background: 'rgba(255,255,255,0.05)',
+                      padding: '3px 10px', borderRadius: 999,
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               <a
                 href={openContent.url}
                 target="_blank"
@@ -638,36 +711,34 @@ export default function VibeLearnShellWrapper({
                   borderRadius: 14, padding: '16px',
                   fontSize: 14, fontWeight: 800,
                   textAlign: 'center', textDecoration: 'none',
+                  marginBottom: 8,
                 }}
               >
                 Open Content →
               </a>
             </div>
+
+            {/* VibeActionDock — wired with persistence */}
+            <VibeActionDock
+              contentId={openContent.id}
+              isSaved={savedIds.has(openContent.id)}
+              isCompleted={completedIds.has(openContent.id)}
+              onToggleSave={handleSave}
+              onComplete={handleComplete}
+            />
           </div>
         )}
 
         {/* Tab content */}
         <main className="vl-scroll" style={{ flex: 1, overflowY: 'auto' }}>
           {activeTab === 'feed' && (
-            <FeedTab
-              savedIds={savedIds}
-              onSave={handleSave}
-              onOpen={handleOpen}
-            />
+            <FeedTab savedIds={savedIds} onSave={handleSave} onOpen={handleOpen} />
           )}
           {activeTab === 'indexer' && (
-            <IndexerTab
-              savedIds={savedIds}
-              onSave={handleSave}
-              onOpen={handleOpen}
-            />
+            <IndexerTab savedIds={savedIds} onSave={handleSave} onOpen={handleOpen} />
           )}
           {activeTab === 'library' && (
-            <LibraryTab
-              savedIds={savedIds}
-              onUnsave={handleSave}
-              onOpen={handleOpen}
-            />
+            <LibraryTab savedIds={savedIds} onUnsave={handleSave} onOpen={handleOpen} />
           )}
         </main>
 
