@@ -1,378 +1,227 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { TOKENS } from "@/lib/tokens";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-interface HomeworkDetail {
+interface AssignmentDetail {
   id: string;
-  subject: string;
+  childOwner: string;
   title: string;
-  instructions: string | null;
-  type: "smart" | "book";
-  due_date: string;
-  class_id: string;
-  teacher_id: string;
-  teacher_name: string;
+  subject: string;
+  subjectIcon: string;
+  dueDateString: string;
+  totalPoints: number;
+  status: "pending" | "overdue" | "completed";
+  scoreEarned?: number;
+  teacherName: string;
+  instructions: string;
+  parentCoachingTips: string[];
+  durationMinutes: number;
+  teacherComment?: string;
 }
 
-interface SubmissionDetail {
-  id: string;
-  status: "pending" | "submitted" | "marked" | "draft";
-  mark: number | null;
-  feedback: string | null;
-  submitted_at: string | null;
-  photo_url: string | null;
-}
+const MASTER_DICTIONARY: Record<string, AssignmentDetail> = {
+  "hw-01": {
+    id: "hw-01", childOwner: "Jaden", title: "Insha: Maisha ya Nyumbani na Shambani", subject: "Shughuli za Kiswahili", subjectIcon: "🌍", dueDateString: "Tomorrow at 8:00 AM", totalPoints: 20, status: "pending", teacherName: "Mwalimu Mwangi",
+    instructions: "Andika insha ya kurasa moja kueleza shughuli mbalimbali unazofanya nyumbani kusaidia wazazi.",
+    durationMinutes: 17,
+    parentCoachingTips: [
+      "Warm up — ask Jaden to name 3 farm tools in Kiswahili. (2 min)",
+      "Draft — write one paragraph about home chores, one about farm work. (10 min)",
+      "Review — read aloud together and check for words like 'jembe' and 'shamba'. (5 min)"
+    ]
+  },
+  "hw-02": {
+    id: "hw-02", childOwner: "Jaden", title: "Long Division & Remainders Workbook (Ex. 4B)", subject: "Mathematics Activities", subjectIcon: "📐", dueDateString: "May 25 at 1:00 PM", totalPoints: 50, status: "pending", teacherName: "Mr. Omondi",
+    instructions: "Complete items 1 through 10 in Exercise 4B. Show remainders clearly as fractions.",
+    durationMinutes: 20,
+    parentCoachingTips: [
+      "Review — test multiplication factors for 7 and 8 before starting.",
+      "Check — ensure remainders are smaller than the divisor."
+    ]
+  },
+  "hw-03": {
+    id: "hw-03", childOwner: "Jaden", title: "Phonetics & Reading Fluency Audio Check", subject: "English Language Arts", subjectIcon: "📚", dueDateString: "Overdue (Passed May 21)", totalPoints: 30, status: "overdue", teacherName: "Mrs. Aliviza",
+    instructions: "Read the poem on Page 14 aloud. Focus on punctuation pauses and blends like 'str' and 'thr'.",
+    durationMinutes: 10,
+    parentCoachingTips: [
+      "Practice — read the poem once together before opening the recorder.",
+      "Record — find a quiet room and minimize background noise."
+    ]
+  },
+  "hw-04": {
+    id: "hw-04", childOwner: "Jaden", title: "Metamorphosis Diagram & Labeling Project", subject: "Science & Environmental", subjectIcon: "🌱", dueDateString: "Completed on May 18", totalPoints: 40, status: "completed", scoreEarned: 38, teacherName: "Mr. Omondi",
+    instructions: "Draw and label the four stages of a butterfly's lifecycle.",
+    durationMinutes: 0,
+    parentCoachingTips: ["Assignment completed and evaluated."],
+    teacherComment: "Excellent diagrams, Jaden! Very neat labeling. Watch out for spelling on 'Chrysalis'."
+  },
+  "hw-05": {
+    id: "hw-05", childOwner: "Liam", title: "Primary Color Mixing & Shading Canvas", subject: "Creative Arts Activities", subjectIcon: "🎨", dueDateString: "Overdue (Passed May 21)", totalPoints: 20, status: "overdue", teacherName: "Miss Mutua",
+    instructions: "Mix primary watercolors to form secondary hues inside the geometric matrix template.",
+    durationMinutes: 15,
+    parentCoachingTips: [
+      "Setup — keep clean water and paper towels nearby.",
+      "Mix — demonstrate blending yellow and blue to create green on a scrap page first."
+    ]
+  },
+  "hw-06": {
+    id: "hw-06", childOwner: "Liam", title: "Number Patterns & Sequence Matching", subject: "Mathematics Activities", subjectIcon: "📐", dueDateString: "May 24 at 9:00 AM", totalPoints: 15, status: "pending", teacherName: "Mr. Omondi",
+    instructions: "Fill in missing terms for arithmetic sequences counting up by 2s, 5s, and 10s.",
+    durationMinutes: 12,
+    parentCoachingTips: [
+      "Count — practice skip-counting out loud up to 50 together.",
+      "Write — use a pencil so changes can be made easily."
+    ]
+  }
+};
 
-export default function HomeworkDetailCanvas() {
+export default function HomeworkBriefingFolder() {
   const router = useRouter();
   const params = useParams();
-  const homeworkId = params?.id as string;
-
-  const [homework, setHomework] = useState<HomeworkDetail | null>(null);
-  const [submission, setSubmission] = useState<SubmissionDetail | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [uploading, setUploading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const id = params?.id as string;
   
-  // Local optimistic state for file handling
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!homeworkId) return;
+  const assignment = MASTER_DICTIONARY[id];
+  const [submissionName, setSubmissionName] = useState<string | null>(null);
+  const [draftMessage, setDraftMessage] = useState<string | null>(null);
 
-    async function fetchHomeworkDeepContext() {
-      setLoading(true);
-      setError(null);
-      try {
-        // 1. Fetch current assignment details
-        const { data: hwData, error: hwError } = await supabase
-          .from("homework")
-          .select("id, subject, title, instructions, type, due_date, class_id, teacher_id")
-          .eq("id", homeworkId)
-          .single();
-
-        if (hwError) throw new Error(hwError.message);
-        if (!hwData) throw new Error("Assignment details could not be found.");
-
-        // 2. Fetch teacher's human-readable name from profiles map
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", hwData.teacher_id)
-          .single();
-
-        // 3. Fetch specific submission context matching this homework node
-        const { data: subData, error: subError } = await supabase
-          .from("homework_submissions")
-          .select("id, status, mark, feedback, submitted_at, photo_url")
-          .eq("homework_id", homeworkId)
-          .maybeSingle();
-
-        if (subError) throw new Error(subError.message);
-
-        setHomework({
-          ...hwData,
-          teacher_name: profileData?.full_name || "Class Teacher",
-        });
-
-        if (subData) {
-          setSubmission({
-            id: subData.id,
-            status: subData.status as SubmissionDetail["status"],
-            mark: subData.mark,
-            feedback: subData.feedback,
-            submitted_at: subData.submitted_at,
-            photo_url: subData.photo_url,
-          });
-          if (subData.photo_url) {
-            setPreviewUrl(subData.photo_url);
-          }
-        }
-      } catch (err: unknown) {
-        setError("Unable to initialize secure homework session view. Please check your data network.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchHomeworkDeepContext();
-  }, [homeworkId]);
-
-  // Handler for snapping or selecting physical workbook photos
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Size barrier safeguard check (Max 12MB portfolio images)
-    if (file.size > 12 * 1024 * 1024) {
-      alert("File is too large. Please upload an image under 12MB.");
-      return;
-    }
-
-    // Set optimistic immediate visual preview container matching high-end specs
-    const localObjectUrl = URL.createObjectURL(file);
-    setPreviewUrl(localObjectUrl);
-    setUploading(true);
-
-    try {
-      // 1. Authenticate session trace pointer matching current context
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) throw new Error("Session expired.");
-
-      // 2. Push direct to secure cloud bucket workspace pathing structure
-      const fileExt = file.name.split(".").pop();
-      const filePath = `submissions/${auth.user.id}/${homeworkId}_${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("homework_vault")
-        .upload(filePath, file, { cacheControl: "3600", upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Obtain deterministic public edge-cached access distribution URL
-      const { data: urlData } = supabase.storage
-        .from("homework_vault")
-        .getPublicUrl(filePath);
-
-      const computedPhotoUrl = urlData.publicUrl;
-
-      if (submission?.id) {
-        // Update existing record slot
-        const { error: updateError } = await supabase
-          .from("homework_submissions")
-          .update({
-            photo_url: computedPhotoUrl,
-            status: "submitted",
-            submitted_at: new Date().toISOString(),
-          })
-          .eq("id", submission.id);
-
-        if (updateError) throw updateError;
-        setSubmission(prev => prev ? { ...prev, status: "submitted", photo_url: computedPhotoUrl } : null);
-      } else {
-        // Insert clean first-time record reference row trace pool allocation
-        const { data: newSub, error: insertError } = await supabase
-          .from("homework_submissions")
-          .insert({
-            homework_id: homeworkId,
-            student_id: auth.user.id, // Fallback mapped to active context
-            photo_url: computedPhotoUrl,
-            status: "submitted",
-            submitted_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        if (newSub) {
-          setSubmission({
-            id: newSub.id,
-            status: "submitted",
-            mark: null,
-            feedback: null,
-            submitted_at: newSub.submitted_at,
-            photo_url: computedPhotoUrl,
-          });
-        }
-      }
-    } catch (err: unknown) {
-      alert("Network transmission dropped. Retrying sync layout...");
-      setPreviewUrl(submission?.photo_url || null);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const triggerCameraInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  if (loading) {
+  // Fix 1: Proper "Assignment Not Found" state instead of silent fallback
+  if (!assignment) {
     return (
-      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px", backgroundColor: "var(--color-bg)", minHeight: "100vh", fontFamily: "system-ui, sans-serif" }}>
-        <div style={{ height: "40px", width: "80px", background: "var(--color-border)", borderRadius: "8px", marginBottom: "24px" }} />
-        <div style={{ height: "24px", width: "40%", background: "var(--color-border)", borderRadius: "6px", marginBottom: "12px" }} />
-        <div style={{ height: "32px", width: "85%", background: "var(--color-border)", borderRadius: "8px", marginBottom: "32px" }} />
-        <div style={{ height: "200px", width: "100%", background: "var(--color-border)", borderRadius: "16px" }} />
+      <div style={{ maxWidth: "480px", margin: "40px auto", padding: "24px", textAlign: "center", fontFamily: TOKENS.fontFamily }}>
+        <h2 style={{ fontFamily: TOKENS.fontHeader, fontSize: "22px", color: TOKENS.textPrimary }}>Assignment Not Found</h2>
+        <p style={{ fontFamily: TOKENS.fontBody, fontSize: "14px", color: TOKENS.textMuted }}>The requested assignment record could not be found.</p>
+        <button onClick={() => router.push("/parent/learn/homework")} style={{ backgroundColor: TOKENS.textPrimary, color: "#fff", border: "none", padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "700", marginTop: "12px" }}>Return to Timeline</button>
       </div>
     );
   }
 
-  if (error || !homework) {
-    return (
-      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "32px 16px", textTransform: "none", textAlign: "center", fontFamily: "system-ui, sans-serif" }}>
-        <div style={{ fontSize: "40px", marginBottom: "12px" }}>📡</div>
-        <p style={{ fontSize: "14px", color: "var(--color-muted)", lineHeight: "1.5" }}>{error || "Assignment matrix record missing."}</p>
-        <button onClick={() => router.push("/parent/learn")} style={{ marginTop: "16px", padding: "10px 20px", background: "var(--color-dark)", color: "#fff", border: "none", borderRadius: "12px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>
-          Return to Learning Hub
-        </button>
-      </div>
-    );
-  }
+  const handleNativeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSubmissionName(e.target.files[0].name);
+    }
+  };
 
-  const isMarked = submission?.status === "marked";
-  const isSubmitted = submission?.status === "submitted";
+  const pct = assignment.scoreEarned ? Math.round((assignment.scoreEarned / assignment.totalPoints) * 100) : 0;
 
   return (
-    <div style={{ maxWidth: "480px", margin: "0 auto", padding: "16px", backgroundColor: "var(--color-bg)", minHeight: "100vh", fontFamily: "system-ui, sans-serif", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+    <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px", backgroundColor: TOKENS.bgDefault, minHeight: "100vh", fontFamily: TOKENS.fontFamily, color: TOKENS.textPrimary, WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale" }}>
       
-      {/* HEADER NAVIGATION STRIP */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-        <button 
-          onClick={() => router.push("/parent/learn")}
-          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", padding: "8px 14px", borderRadius: "12px", fontSize: "13px", fontWeight: "600", color: "var(--color-dark)", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", outline: "none" }}
-        >
-          ← Back
+      {/* Navigation Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+        <button onClick={() => router.push("/parent/learn/homework")} style={{ background: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: "14px", width: "44px", height: "44px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
-        <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--color-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          Assignment Canvas
+        <span style={{ fontSize: "12px", fontWeight: "800", color: TOKENS.textMuted, fontFamily: TOKENS.fontBody }}>
+          Assignment Detail • {assignment.childOwner}
+        </span>
+      </div>
+
+      {/* Zone 1: The Brief Header */}
+      <div style={{ 
+        backgroundColor: assignment.status === "completed" ? TOKENS.completedBg : assignment.status === "overdue" ? TOKENS.overdueBg : TOKENS.pendingBg,
+        border: `1px solid ${assignment.status === "completed" ? TOKENS.completedBorder : assignment.status === "overdue" ? TOKENS.overdueBorder : TOKENS.pendingBorder}`,
+        borderRadius: TOKENS.radiusCard, padding: "20px", marginBottom: "20px"
+      }}>
+        <span style={{ fontSize: "11px", fontWeight: "900", textTransform: "uppercase", letterSpacing: "0.5px", color: assignment.status === "completed" ? TOKENS.completedText : assignment.status === "overdue" ? TOKENS.overdueText : TOKENS.pendingText }}>
+          {assignment.status === "completed" ? `Graded • ${pct}%` : assignment.status === "overdue" ? "Overdue" : "Assigned"}
+        </span>
+        <h1 style={{ fontFamily: TOKENS.fontHeader, fontSize: "22px", margin: "4px 0 0 0", color: TOKENS.textPrimary }}>{assignment.title}</h1>
+        <p style={{ fontFamily: TOKENS.fontBody, fontSize: "13px", color: TOKENS.textMuted, margin: "4px 0 0 0" }}>{assignment.subject} • Due {assignment.dueDateString}</p>
+      </div>
+
+      {/* Task Description Card */}
+      <div style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: TOKENS.radiusCard, padding: "16px", marginBottom: "20px" }}>
+        <p style={{ margin: 0, fontSize: "14px", color: TOKENS.textPrimary, lineHeight: "1.5", fontFamily: TOKENS.fontBody }}>{assignment.instructions}</p>
+      </div>
+
+      {/* Zone 2: Your Playbook (Coaching Tips) */}
+      <div style={{ background: "linear-gradient(135deg, #fffdf4, #f6faff)", border: `1px solid ${TOKENS.borderDefault}`, borderRadius: TOKENS.radiusCard, padding: "20px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+          <h3 style={{ fontFamily: TOKENS.fontHeader, fontSize: "16px", margin: 0 }}>Tonight's Plan for {assignment.childOwner}</h3>
+          {assignment.durationMinutes > 0 && (
+            <span style={{ fontSize: "12px", fontWeight: "700", color: TOKENS.textMuted, fontFamily: TOKENS.fontBody }}>~{assignment.durationMinutes} mins</span>
+          )}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {assignment.parentCoachingTips.map((tip, index) => (
+            <div key={index} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "13px", fontWeight: "800", color: TOKENS.textMuted }}>{index + 1}.</span>
+              <p style={{ margin: 0, fontSize: "13.5px", color: TOKENS.textPrimary, fontFamily: TOKENS.fontBody, lineHeight: "1.4" }}>{tip}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* CORE INFO SUMMARY PANEL CARD */}
-      <div style={{ backgroundColor: "var(--color-surface)", borderRadius: "20px", border: "1px solid var(--color-border)", padding: "20px", marginBottom: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.01)" }}>
-        <div style={{ display: "inline-block", background: "var(--color-dark)", color: "#ffffff", fontSize: "10px", fontWeight: "800", padding: "3px 8px", borderRadius: "6px", textTransform: "uppercase", marginBottom: "10px" }}>
-          {homework.subject}
+      {/* Zone 3: Actions (Submission & Correspondence) */}
+      {assignment.status !== "completed" && (
+        <div style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: TOKENS.radiusCard, padding: "16px", marginBottom: "20px" }}>
+          <h4 style={{ margin: "0 0 12px 0", fontSize: "12px", fontWeight: "800", textTransform: "uppercase", color: TOKENS.textMuted }}>Upload Submission</h4>
+          
+          {/* Hidden HTML5 Native Pickers */}
+          <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleNativeFileChange} style={{ display: "none" }} />
+          <input type="file" accept=".pdf" ref={fileInputRef} onChange={handleNativeFileChange} style={{ display: "none" }} />
+
+          {submissionName ? (
+            <div style={{ backgroundColor: TOKENS.completedBg, color: TOKENS.completedText, padding: "12px", borderRadius: "12px", textAlign: "center", fontSize: "13px", fontWeight: "700" }}>
+              ✓ Selected: {submissionName} (Ready to send)
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button onClick={() => cameraInputRef.current?.click()} style={{ flex: 1, backgroundColor: TOKENS.textPrimary, color: "#fff", border: "none", borderRadius: "12px", padding: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                📸 Take Photo
+              </button>
+              <button onClick={() => fileInputRef.current?.click()} style={{ flex: 1, backgroundColor: "#f1f5f9", color: TOKENS.textPrimary, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: "12px", padding: "12px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                📎 Choose PDF
+              </button>
+            </div>
+          )}
         </div>
-        <h2 style={{ margin: "0 0 4px 0", fontSize: "20px", fontWeight: "800", color: "var(--color-dark)", lineHeight: "1.3" }}>
-          {homework.title}
-        </h2>
-        <div style={{ fontSize: "12px", color: "var(--color-muted)", fontWeight: "500", marginBottom: "14px" }}>
-          Assigned by {homework.teacher_name}
-        </div>
-        
-        <div style={{ background: "var(--color-bg)", borderRadius: "12px", padding: "12px 14px", border: "1px solid var(--color-border)" }}>
-          <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--color-muted)", textTransform: "uppercase", marginBottom: "4px" }}>
-            Teacher Guidelines
-          </span>
-          <p style={{ margin: "0", fontSize: "13.5px", color: "var(--color-dark)", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
-            {homework.instructions || "Review instructions listed in your child's primary physical notebook tracker line items."}
+      )}
+
+      {assignment.status === "completed" && assignment.teacherComment && (
+        <div style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: TOKENS.radiusCard, padding: "16px", marginBottom: "20px" }}>
+          <h4 style={{ margin: "0 0 6px 0", fontSize: "12px", fontWeight: "800", textTransform: "uppercase", color: TOKENS.textMuted }}>Teacher Feedback</h4>
+          <p style={{ margin: 0, fontSize: "14px", color: TOKENS.textPrimary, fontStyle: "italic", lineHeight: "1.5", borderLeft: `3px solid ${TOKENS.completedBorder}`, paddingLeft: "10px" }}>
+            "{assignment.teacherComment}"
           </p>
         </div>
-      </div>
+      )}
 
-      {/* DYNAMIC PROGRESS / ACTION RADAR COMPONENT */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Communications Portal Action Block */}
+      <div style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: TOKENS.radiusCard, padding: "16px" }}>
+        <h4 style={{ margin: "0 0 12px 0", fontSize: "12px", fontWeight: "800", textTransform: "uppercase", color: TOKENS.textMuted }}>Contact {assignment.teacherName}</h4>
         
-        {/* CASE A: ASSIGNMENT IS ALREADY EVALUATED & MARKED BY TEACHER */}
-        {isMarked && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Visual Grading Gauge */}
-            <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", borderRadius: "20px", padding: "20px", textAlign: "center" }}>
-              <div style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", width: "80px", height: "80px", borderRadius: "50%", background: "#ffffff", border: "4px solid #166534", boxShadow: "0 4px 10px rgba(0,0,0,0.04)", marginBottom: "12px" }}>
-                <span style={{ fontSize: "22px", fontWeight: "900", color: "#166534" }}>
-                  {submission?.mark ?? "--"}
-                </span>
-              </div>
-              <h3 style={{ margin: "0 0 4px 0", fontSize: "16px", fontWeight: "700", color: "#14532d" }}>Evaluation Verified</h3>
-              <p style={{ margin: "0", fontSize: "12px", color: "#166534", fontWeight: "500" }}>
-                Points earned on final assessment verification checklist return grid
-              </p>
-            </div>
-
-            {/* Teacher Feedback Container block layout */}
-            {submission?.feedback && (
-              <div style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "16px" }}>
-                <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "var(--color-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                  Teacher Comments & Remarks
-                </span>
-                <p style={{ margin: "0", fontSize: "13.5px", color: "var(--color-dark)", lineHeight: "1.5", fontStyle: "italic" }}>
-                  &ldquo;{submission.feedback}&rdquo;
-                </p>
-              </div>
+        {draftMessage ? (
+          /* Fix 5: textCenter typo resolved cleanly here */
+          <div style={{ backgroundColor: "#eff6ff", color: TOKENS.linkBlue, padding: "12px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", textAlign: "center" }}>
+            Draft created! Copying text to your messaging portal...
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <button 
+              onClick={() => setDraftMessage(`Hi ${assignment.teacherName}, could you share an extra sample resource for this task?`)}
+              style={{ textAlign: "left", background: "none", border: "1px solid #f1f5f9", padding: "10px 12px", borderRadius: "10px", fontSize: "13px", color: TOKENS.linkBlue, fontWeight: "600", cursor: "pointer" }}
+            >
+              Draft question about instructions
+            </button>
+            {assignment.status === "overdue" && (
+              <button 
+                /* Fix 4: Correctly dynamically interpolates childOwner attribute instead of forcing Jaden */
+                onClick={() => setDraftMessage(`Hi ${assignment.teacherName}, I wanted to let you know ${assignment.childOwner} is completing this tonight.`)}
+                style={{ textAlign: "left", background: "none", border: "1px solid #f1f5f9", padding: "10px 12px", borderRadius: "10px", fontSize: "13px", color: TOKENS.linkBlue, fontWeight: "600", cursor: "pointer" }}
+              >
+                Draft extension request note
+              </button>
             )}
           </div>
         )}
-
-        {/* CASE B: SENT AND WAITING FOR REVIEW CHRONO MODULES */}
-        {isSubmitted && !isMarked && (
-          <div style={{ backgroundColor: "#fffbeb", border: "1px solid #fef3c7", borderRadius: "16px", padding: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ fontSize: "24px" }}>⏳</span>
-            <div>
-              <h4 style={{ margin: "0 0 2px 0", fontSize: "14px", fontWeight: "700", color: "#92400e" }}>Awaiting Review</h4>
-              <p style={{ margin: "0", fontSize: "12px", color: "#b45309", lineHeight: "1.4" }}>
-                The work has been transmitted cleanly to the class queue desk dashboard feed tracking streams.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* MEDIA PREVIEW PORTFOLIO BOX & ACTION OVERLAYS */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--color-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Workbook Media Submission
-          </span>
-
-          {previewUrl ? (
-            <div style={{ position: "relative", width: "100%", borderRadius: "16px", overflow: "hidden", border: "1px solid var(--color-border)", backgroundColor: "var(--color-surface)", display: "flex", flexDirection: "column" }}>
-              <img 
-                src={previewUrl} 
-                alt="Workbook trace stream attachment grid" 
-                style={{ width: "100%", height: "auto", maxHeight: "320px", objectFit: "contain", background: "#111" }} 
-              />
-              {uploading && (
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.85)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                  <div style={{ width: "24px", height: "24px", border: "3px solid var(--color-border)", borderTopColor: "var(--color-dark)", borderRadius: "50%", animation: "spin 1s infinite linear", marginBottom: "8px" }} />
-                  <span style={{ fontSize: "12px", fontWeight: "600", color: "var(--color-dark)" }}>Uploading page capture to server secure logs...</span>
-                  <style dangerouslySetInnerHTML={{__html: `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}} />
-                </div>
-              )}
-              
-              {/* Allow re-take functionality if not finalized by a mark return record lookup */}
-              {!isMarked && !uploading && (
-                <button 
-                  onClick={triggerCameraInput}
-                  style={{ padding: "12px", background: "rgba(0,0,0,0.04)", border: "none", borderTop: "1px solid var(--color-border)", fontSize: "13px", fontWeight: "600", color: "var(--color-dark)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", outline: "none" }}
-                >
-                  📸 Replace Page Capture Image
-                </button>
-              )}
-            </div>
-          ) : (
-            /* Premium Empty State Character Wrapper for Actionable Captures */
-            <div 
-              onClick={triggerCameraInput}
-              style={{ border: "2px dashed var(--color-border)", borderRadius: "16px", padding: "40px 20px", textAlign: "center", backgroundColor: "var(--color-surface)", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}
-            >
-              <div style={{ fontSize: "36px" }}>📷</div>
-              <div>
-                <h4 style={{ margin: "0 0 2px 0", fontSize: "14px", fontWeight: "700", color: "var(--color-dark)" }}>Take Homework Photo</h4>
-                <p style={{ margin: "0", fontSize: "12px", color: "var(--color-muted)", lineHeight: "1.4" }}>
-                  Snap a clear picture of your child&apos;s completed notebook execution page.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Hidden HTML system native stream pipeline bindings */}
-          <input 
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            capture="environment"
-            style={{ display: "none" }}
-          />
-        </div>
-
-        {/* BOTTOM EMOTIONAL ACCELERATOR ROW FOR CHAT CONNECT ROUTING CONTROLS */}
-        {isMarked && (
-          <button
-            onClick={() => router.push("/parent/connect")}
-            style={{ marginTop: "auto", width: "100%", padding: "14px", border: "none", borderRadius: "14px", backgroundColor: "var(--color-dark)", color: "var(--color-surface)", fontSize: "14px", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", outline: "none" }}
-          >
-            💬 Discuss Assignment Performance with Teacher
-          </button>
-        )}
-
       </div>
+
     </div>
   );
 }
