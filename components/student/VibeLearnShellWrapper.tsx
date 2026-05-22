@@ -3,6 +3,8 @@
 import { useEffect, useCallback, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import VibeActionDock from '@/components/student/VibeActionDock'
+import VibeSubmitContent from '@/components/student/VibeSubmitContent'
+import VibeProgress from '@/components/student/VibeProgress'
 
 type VibeTab = 'feed' | 'indexer' | 'library'
 type ContentType = 'ebook' | 'epage'
@@ -41,10 +43,7 @@ function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
 }
 
 function ContentCard({
-  item,
-  onSave,
-  isSaved,
-  onOpen,
+  item, onSave, isSaved, onOpen,
 }: {
   item: VibeContent
   onSave: (id: string) => void
@@ -53,11 +52,8 @@ function ContentCard({
 }) {
   return (
     <div style={{
-      background: CARD,
-      borderRadius: 16,
-      padding: '16px',
-      border: '1px solid rgba(255,255,255,0.06)',
-      marginBottom: 12,
+      background: CARD, borderRadius: 16, padding: '16px',
+      border: '1px solid rgba(255,255,255,0.06)', marginBottom: 12,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ flex: 1 }}>
@@ -136,9 +132,7 @@ function EmptyState({ icon, title, body }: { icon: string; title: string; body: 
 }
 
 function FeedTab({
-  savedIds,
-  onSave,
-  onOpen,
+  savedIds, onSave, onOpen,
 }: {
   savedIds: Set<string>
   onSave: (id: string) => void
@@ -187,21 +181,33 @@ function FeedTab({
 
   if (loading) return (
     <div style={{ padding: '16px' }}>
+      <div style={{ marginBottom: 16 }}><Skeleton h={88} radius={16} /></div>
       {[1,2,3].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={160} /></div>)}
     </div>
   )
+
   if (error) return <EmptyState icon="⚠️" title="Something went wrong" body={error} />
+
   if (items.length === 0) return (
-    <EmptyState
-      icon="📭"
-      title="Feed is empty"
-      body="Be the first to add educational content. Anyone on VibeSchool can contribute."
-    />
+    <div style={{ padding: '16px' }}>
+      <div style={{ marginBottom: 16 }}><VibeProgress /></div>
+      <EmptyState
+        icon="📭"
+        title="Feed is empty"
+        body="Be the first to add educational content. Anyone on VibeSchool can contribute."
+      />
+    </div>
   )
 
   return (
     <div style={{ padding: '16px' }}>
-      <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }}>
+        <VibeProgress />
+      </div>
+      <div style={{
+        fontSize: 11, color: MUTED, fontWeight: 700,
+        letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16,
+      }}>
         🔥 Trending Content
       </div>
       {items.map(item => (
@@ -218,9 +224,7 @@ function FeedTab({
 }
 
 function IndexerTab({
-  savedIds,
-  onSave,
-  onOpen,
+  savedIds, onSave, onOpen,
 }: {
   savedIds: Set<string>
   onSave: (id: string) => void
@@ -337,9 +341,7 @@ function IndexerTab({
 }
 
 function LibraryTab({
-  savedIds,
-  onUnsave,
-  onOpen,
+  savedIds, onUnsave, onOpen,
 }: {
   savedIds: Set<string>
   onUnsave: (id: string) => void
@@ -395,7 +397,10 @@ function LibraryTab({
 
   return (
     <div style={{ padding: '16px' }}>
-      <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16 }}>
+      <div style={{
+        fontSize: 11, color: MUTED, fontWeight: 700,
+        letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16,
+      }}>
         📚 Saved Content
       </div>
       {items.map(item => (
@@ -423,6 +428,7 @@ export default function VibeLearnShellWrapper({
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [openContent, setOpenContent]   = useState<VibeContent | null>(null)
   const [completing, setCompleting]     = useState(false)
+  const [submitOpen, setSubmitOpen]     = useState(false)
 
   useEffect(() => {
     if (!isOpen) return
@@ -453,10 +459,11 @@ export default function VibeLearnShellWrapper({
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
-      if (openContent) setOpenContent(null)
-      else onClose()
+      if (submitOpen) { setSubmitOpen(false); return }
+      if (openContent) { setOpenContent(null); return }
+      onClose()
     }
-  }, [onClose, openContent])
+  }, [onClose, openContent, submitOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -558,7 +565,13 @@ export default function VibeLearnShellWrapper({
           flexShrink: 0, height: 60,
         }}>
           <button
-            onClick={openContent ? () => setOpenContent(null) : onClose}
+            onClick={
+              openContent
+                ? () => setOpenContent(null)
+                : submitOpen
+                ? () => setSubmitOpen(false)
+                : onClose
+            }
             aria-label="Go back"
             style={{
               background: 'rgba(255,255,255,0.05)',
@@ -577,9 +590,63 @@ export default function VibeLearnShellWrapper({
           }}>
             VibeLearn
           </span>
-          <div style={{ minWidth: 72 }} />
+          <button
+            onClick={() => setSubmitOpen(true)}
+            aria-label="Submit content"
+            style={{
+              background: 'rgba(204,255,0,0.1)',
+              border: '1px solid rgba(204,255,0,0.2)',
+              borderRadius: 10, padding: '7px 12px',
+              color: ACCENT, fontSize: 11, fontWeight: 800,
+              cursor: 'pointer', letterSpacing: 0.4,
+              minWidth: 72,
+            }}
+          >
+            + Submit
+          </button>
         </header>
 
+        {/* Submit overlay */}
+        {submitOpen && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            backgroundColor: BG,
+            display: 'flex', flexDirection: 'column',
+            animation: 'vl-slide-up 250ms ease-out',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              flexShrink: 0, height: 60,
+            }}>
+              <button
+                onClick={() => setSubmitOpen(false)}
+                aria-label="Close submit"
+                style={{
+                  background: 'rgba(255,255,255,0.05)', border: 'none',
+                  color: TEXT, padding: '8px 14px', borderRadius: 10,
+                  cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  minWidth: 72,
+                }}
+              >
+                ← Back
+              </button>
+              <div style={{
+                flex: 1, textAlign: 'center',
+                fontSize: 13, fontWeight: 700, color: TEXT,
+              }}>
+                Submit Content
+              </div>
+              <div style={{ minWidth: 72 }} />
+            </div>
+            <div className="vl-scroll" style={{ flex: 1, overflowY: 'auto' }}>
+              <VibeSubmitContent onClose={() => setSubmitOpen(false)} />
+            </div>
+          </div>
+        )}
+
+        {/* Content viewer overlay */}
         {openContent && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10,
