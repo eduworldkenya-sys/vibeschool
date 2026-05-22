@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase'
 
 type Subject = 'Mathematics' | 'English' | 'Science' | 'Social Studies' | 'Kiswahili'
 type Difficulty = 'Easy' | 'Medium' | 'Hard'
@@ -77,7 +77,7 @@ function setCache(subject: Subject, difficulty: Difficulty, data: TriviaQuestion
 
 export default function TriviaPage() {
   const router = useRouter()
-  const supabase = createClient()
+  
 
   const [phase, setPhase] = useState<GamePhase>('setup')
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
@@ -131,7 +131,7 @@ export default function TriviaPage() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [])
 
   const startGame = async () => {
     if (!selectedSubject || !selectedDifficulty) return
