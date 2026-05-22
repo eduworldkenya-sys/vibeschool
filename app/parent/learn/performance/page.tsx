@@ -23,6 +23,7 @@ interface Subject {
   updatedAt: string;
 }
 
+// Mock database payload array to seed initial state
 const INITIAL_REGISTRY_PAYLOAD: Subject[] = [
   {
     id: "math",
@@ -80,6 +81,7 @@ const INITIAL_REGISTRY_PAYLOAD: Subject[] = [
 export default function BulletproofPerformancePortfolio() {
   const router = useRouter();
   
+  // Fix Quality Issue #9: Future-proof database swaps by running logic against active hook state hooks from day one
   const [subjects] = useState<Subject[]>(INITIAL_REGISTRY_PAYLOAD);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [animatedSubjectIds, setAnimatedSubjectIds] = useState<Record<string, boolean>>({});
@@ -89,6 +91,7 @@ export default function BulletproofPerformancePortfolio() {
     rating: null
   });
 
+  // Fix Bug #6: Use a proper double requestAnimationFrame loop to ensure the DOM is painted safely on all devices
   useEffect(() => {
     let frameId1: number;
     let frameId2: number;
@@ -106,6 +109,7 @@ export default function BulletproofPerformancePortfolio() {
     };
   }, []);
 
+  // Compute live analytical scores dynamically
   const totalStrandsCount = subjects.reduce((acc, sub) => acc + sub.strands.length, 0);
   const aggregateScore = totalStrandsCount > 0 
     ? Math.round(subjects.reduce((acc, sub) => acc + sub.strands.reduce((sAcc, str) => sAcc + str.score, 0), 0) / totalStrandsCount)
@@ -137,9 +141,11 @@ export default function BulletproofPerformancePortfolio() {
   const handleToggle = (id: string) => {
     if (expandedSubject === id) {
       setExpandedSubject(null);
+      // Fix Bug #1: Explicitly clear target subject keys when closed so progress bar elements re-animate from zero on reopen
       setAnimatedSubjectIds(prev => ({ ...prev, [id]: false }));
     } else {
       setExpandedSubject(id);
+      // Execute micro-task frame step passes cleanly
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setAnimatedSubjectIds(prev => ({ ...prev, [id]: true }));
@@ -161,6 +167,7 @@ export default function BulletproofPerformancePortfolio() {
   return (
     <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px", backgroundColor: "#f8fafc", minHeight: "100vh", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif", color: "#0f172a", position: "relative" }}>
       
+      {/* Top Navbar Row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
         <button 
           onClick={() => router.push("/parent/learn")} 
@@ -174,6 +181,7 @@ export default function BulletproofPerformancePortfolio() {
         </div>
       </div>
 
+      {/* Child Performance Aggregate Identity Card */}
       <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", padding: "20px", borderRadius: "24px", color: "#fff", marginBottom: "24px", boxShadow: "0 10px 25px -5px rgba(15,23,42,0.15)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <div style={{ width: "56px", height: "56px", borderRadius: "18px", background: "linear-gradient(45deg, #3b82f6, #10b981)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", fontWeight: "800", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }}>
@@ -187,10 +195,11 @@ export default function BulletproofPerformancePortfolio() {
         
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: "16px", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: "12px", color: "#94a3b8" }}>Overall Competency Aggregate:</span>
-          <span style={{ background: "rgba(16,185,129,0.2)", color: "#34d399", padding: "4px 10px", borderRadius: "8px", fontSize: "12px", fontWeight: "700" }}>{aggregateScore}% {getAggregateLabel(aggregateScore)}</span>
+          <span style={{ background: "rgba(16,185,129,0.2)", color: "#34d399", padding: "4px 10px", borderRadius: "8px", fontSize: "12px", fontWeight: "800" }}>{aggregateScore}% {getAggregateLabel(aggregateScore)}</span>
         </div>
       </div>
 
+      {/* Main Accordion Stream Block */}
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         {subjects.map((subject) => {
           const isExpanded = expandedSubject === subject.id;
@@ -201,6 +210,7 @@ export default function BulletproofPerformancePortfolio() {
               key={subject.id} 
               style={{ backgroundColor: "#fff", borderRadius: "22px", border: "1px solid #e2e8f0", overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", boxShadow: isExpanded ? "0 12px 20px -8px rgba(0,0,0,0.04)" : "0 2px 4px rgba(0,0,0,0.01)" }}
             >
+              {/* Trigger Node Bar — Fix Bug #4: Explicitly applied active functional accessibility roles */}
               <div 
                 onClick={() => handleToggle(subject.id)}
                 role="button"
@@ -230,10 +240,12 @@ export default function BulletproofPerformancePortfolio() {
                 </div>
               </div>
 
+              {/* Accordion Smooth Expand Area Container */}
               <div style={{ display: "grid", gridTemplateRows: isExpanded ? "1fr" : "0fr", transition: "grid-template-rows 250ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
                 <div style={{ overflow: "hidden", minHeight: 0 }}>
                   <div style={{ padding: "0 20px 20px 20px", borderTop: "1px solid #f1f5f9", backgroundColor: "#fafbfd" }}>
                     
+                    {/* Core Parameters Tracking Grid */}
                     <div style={{ marginTop: "16px" }}>
                       <h4 style={{ margin: "0 0 12px 0", fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Strand Verification Parameters</h4>
                       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -259,6 +271,7 @@ export default function BulletproofPerformancePortfolio() {
                       </div>
                     </div>
 
+                    {/* Teacher Feedback Container */}
                     <div style={{ marginTop: "18px", padding: "14px", backgroundColor: "#fff", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                         <span style={{ fontSize: "12px", fontWeight: "700", color: "#334155" }}>{subject.teacherName}</span>
@@ -268,6 +281,7 @@ export default function BulletproofPerformancePortfolio() {
                         "{subject.teacherFeedback}"
                       </p>
                       
+                      {/* Interaction Actions Bar Row */}
                       <div style={{ display: "flex", gap: "8px", borderTop: "1px solid #f1f5f9", paddingTop: "10px" }}>
                         {["❤️", "🔥", "👏"].map((emoji) => {
                           const isSelected = activeReaction[subject.id] === emoji;
@@ -278,6 +292,7 @@ export default function BulletproofPerformancePortfolio() {
                               style={{ border: isSelected ? `1px solid ${subject.themeColor}` : "1px solid #e2e8f0", background: isSelected ? subject.accentBg : "#fff", borderRadius: "10px", padding: "5px 12px", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
                             >
                               <span>{emoji}</span> 
+                              {/* Fix Bug #7: High fidelity vector line-check vector asset instead of breaking Unicode strings */}
                               {isSelected && (
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={subject.themeColor} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "2px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
                               )}
@@ -295,9 +310,11 @@ export default function BulletproofPerformancePortfolio() {
         })}
       </div>
 
+      {/* Context Dialogue Modal Overlay Sheet Wrapper */}
       {cbcExplainer.open && cbcExplainer.rating && (() => {
         const explainerMeta = getRatingMetadata(cbcExplainer.rating);
         return (
+          // Fix Bug #2: Absolute stacking insulation mapping to block interception bleed-through variables completely
           <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "flex-end", zIndex: 9999 }}>
             <div 
               onClick={() => setCbcExplainer({ open: false, rating: null })} 
