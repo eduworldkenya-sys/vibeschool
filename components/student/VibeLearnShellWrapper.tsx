@@ -4,8 +4,6 @@ import { useEffect, useCallback, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import VibeActionDock from '@/components/student/VibeActionDock'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type VibeTab = 'feed' | 'indexer' | 'library'
 type ContentType = 'ebook' | 'epage'
 
@@ -23,8 +21,6 @@ interface VibeContent {
   created_at: string
 }
 
-// ─── Colors ───────────────────────────────────────────────────────────────────
-
 const BG      = '#090D16'
 const SURFACE = '#111827'
 const CARD    = '#1a2235'
@@ -32,8 +28,6 @@ const ACCENT  = '#CCFF00'
 const MUTED   = 'rgba(255,255,255,0.4)'
 const TEXT    = '#ffffff'
 const GREEN   = '#10b981'
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
   return (
@@ -45,8 +39,6 @@ function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
     }} />
   )
 }
-
-// ─── Content Card ─────────────────────────────────────────────────────────────
 
 function ContentCard({
   item,
@@ -133,8 +125,6 @@ function ContentCard({
   )
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-
 function EmptyState({ icon, title, body }: { icon: string; title: string; body: string }) {
   return (
     <div style={{ textAlign: 'center', padding: '60px 24px' }}>
@@ -144,8 +134,6 @@ function EmptyState({ icon, title, body }: { icon: string; title: string; body: 
     </div>
   )
 }
-
-// ─── Feed Tab ─────────────────────────────────────────────────────────────────
 
 function FeedTab({
   savedIds,
@@ -202,9 +190,7 @@ function FeedTab({
       {[1,2,3].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={160} /></div>)}
     </div>
   )
-
   if (error) return <EmptyState icon="⚠️" title="Something went wrong" body={error} />
-
   if (items.length === 0) return (
     <EmptyState
       icon="📭"
@@ -230,8 +216,6 @@ function FeedTab({
     </div>
   )
 }
-
-// ─── Indexer Tab ──────────────────────────────────────────────────────────────
 
 function IndexerTab({
   savedIds,
@@ -352,8 +336,6 @@ function IndexerTab({
   )
 }
 
-// ─── Library Tab ──────────────────────────────────────────────────────────────
-
 function LibraryTab({
   savedIds,
   onUnsave,
@@ -381,8 +363,12 @@ function LibraryTab({
           .order('saved_at', { ascending: false })
         if (err) throw err
         const contents = (data ?? [])
-          .map((row: { content_id: string; vibelearn_content: VibeContent }) => row.vibelearn_content)
-          .filter(Boolean)
+          .map((row: { content_id: string; vibelearn_content: unknown }) => {
+            const vc = row.vibelearn_content
+            if (Array.isArray(vc)) return vc[0] as VibeContent
+            return vc as VibeContent
+          })
+          .filter((item): item is VibeContent => Boolean(item))
         setItems(contents)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load library')
@@ -425,8 +411,6 @@ function LibraryTab({
   )
 }
 
-// ─── Main Shell ───────────────────────────────────────────────────────────────
-
 export default function VibeLearnShellWrapper({
   isOpen,
   onClose,
@@ -434,13 +418,11 @@ export default function VibeLearnShellWrapper({
   isOpen: boolean
   onClose: () => void
 }) {
-  const [activeTab, setActiveTab]     = useState<VibeTab>('feed')
-  const [savedIds, setSavedIds]       = useState<Set<string>>(new Set())
+  const [activeTab, setActiveTab]       = useState<VibeTab>('feed')
+  const [savedIds, setSavedIds]         = useState<Set<string>>(new Set())
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
-  const [openContent, setOpenContent] = useState<VibeContent | null>(null)
-  const [completing, setCompleting]   = useState(false)
-
-  // ─── Load saved + completed on open ────────────────────────────────────────
+  const [openContent, setOpenContent]   = useState<VibeContent | null>(null)
+  const [completing, setCompleting]     = useState(false)
 
   useEffect(() => {
     if (!isOpen) return
@@ -448,18 +430,10 @@ export default function VibeLearnShellWrapper({
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
-
         const [savedRes, completedRes] = await Promise.all([
-          supabase
-            .from('vibelearn_saved')
-            .select('content_id')
-            .eq('student_id', user.id),
-          supabase
-            .from('vibelearn_completed')
-            .select('content_id')
-            .eq('student_id', user.id),
+          supabase.from('vibelearn_saved').select('content_id').eq('student_id', user.id),
+          supabase.from('vibelearn_completed').select('content_id').eq('student_id', user.id),
         ])
-
         if (savedRes.data) {
           const s = new Set<string>()
           savedRes.data.forEach((r: { content_id: string }) => s.add(r.content_id))
@@ -471,13 +445,11 @@ export default function VibeLearnShellWrapper({
           setCompletedIds(c)
         }
       } catch {
-        // Silent — sets stay empty, user can still interact
+        // Silent
       }
     }
     loadUserSets()
   }, [isOpen])
-
-  // ─── Keyboard ──────────────────────────────────────────────────────────────
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -497,28 +469,19 @@ export default function VibeLearnShellWrapper({
     }
   }, [isOpen, handleKeyDown])
 
-  // ─── Save / Unsave ─────────────────────────────────────────────────────────
-
   const handleSave = useCallback(async (contentId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       if (savedIds.has(contentId)) {
-        await supabase
-          .from('vibelearn_saved')
-          .delete()
-          .eq('student_id', user.id)
-          .eq('content_id', contentId)
+        await supabase.from('vibelearn_saved').delete().eq('student_id', user.id).eq('content_id', contentId)
         setSavedIds(prev => {
           const next = new Set(prev)
           next.delete(contentId)
           return next
         })
       } else {
-        await supabase
-          .from('vibelearn_saved')
-          .insert({ student_id: user.id, content_id: contentId })
+        await supabase.from('vibelearn_saved').insert({ student_id: user.id, content_id: contentId })
         setSavedIds(prev => {
           const next = new Set(prev)
           next.add(contentId)
@@ -530,17 +493,13 @@ export default function VibeLearnShellWrapper({
     }
   }, [savedIds])
 
-  // ─── Complete ──────────────────────────────────────────────────────────────
-
   const handleComplete = useCallback(async (contentId: string) => {
     if (completing || completedIds.has(contentId)) return
     setCompleting(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      await supabase
-        .from('vibelearn_completed')
-        .insert({ student_id: user.id, content_id: contentId })
+      await supabase.from('vibelearn_completed').insert({ student_id: user.id, content_id: contentId })
       setCompletedIds(prev => {
         const next = new Set(prev)
         next.add(contentId)
@@ -552,8 +511,6 @@ export default function VibeLearnShellWrapper({
       setCompleting(false)
     }
   }, [completing, completedIds])
-
-  // ─── Open content ──────────────────────────────────────────────────────────
 
   const handleOpen = useCallback(async (item: VibeContent) => {
     setOpenContent(item)
@@ -593,7 +550,6 @@ export default function VibeLearnShellWrapper({
           pointerEvents: isOpen ? 'auto' : 'none',
         }}
       >
-        {/* Header */}
         <header style={{
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between',
@@ -624,7 +580,6 @@ export default function VibeLearnShellWrapper({
           <div style={{ minWidth: 72 }} />
         </header>
 
-        {/* Content viewer overlay */}
         {openContent && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10,
@@ -632,7 +587,6 @@ export default function VibeLearnShellWrapper({
             display: 'flex', flexDirection: 'column',
             animation: 'vl-slide-up 250ms ease-out',
           }}>
-            {/* Viewer header */}
             <div style={{
               display: 'flex', alignItems: 'center',
               padding: '16px 20px',
@@ -662,7 +616,6 @@ export default function VibeLearnShellWrapper({
               <div style={{ minWidth: 72 }} />
             </div>
 
-            {/* Viewer body — scrollable */}
             <div className="vl-scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
               <div style={{
                 display: 'inline-block',
@@ -718,7 +671,6 @@ export default function VibeLearnShellWrapper({
               </a>
             </div>
 
-            {/* VibeActionDock — wired with persistence */}
             <VibeActionDock
               contentId={openContent.id}
               isSaved={savedIds.has(openContent.id)}
@@ -729,7 +681,6 @@ export default function VibeLearnShellWrapper({
           </div>
         )}
 
-        {/* Tab content */}
         <main className="vl-scroll" style={{ flex: 1, overflowY: 'auto' }}>
           {activeTab === 'feed' && (
             <FeedTab savedIds={savedIds} onSave={handleSave} onOpen={handleOpen} />
@@ -742,7 +693,6 @@ export default function VibeLearnShellWrapper({
           )}
         </main>
 
-        {/* Bottom nav */}
         <nav style={{
           display: 'flex', borderTop: '1px solid rgba(255,255,255,0.06)',
           flexShrink: 0, height: 64, background: SURFACE,
