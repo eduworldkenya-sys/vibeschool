@@ -82,12 +82,12 @@ function getDueDateMeta(due: string): { label: string; color: string } {
   dueDate.setHours(0, 0, 0, 0);
   const diff = dueDate.getTime() - today.getTime();
   const days = Math.round(diff / 86400000);
-  if (days < 0)  return { label: "Overdue",       color: "var(--color-danger)" };
-  if (days === 0) return { label: "Due today",    color: "var(--color-warn)"   };
-  if (days === 1) return { label: "Due tomorrow", color: "var(--color-warn)"   };
+  if (days < 0)  return { label: "Overdue",       color: "#ef4444" };
+  if (days === 0) return { label: "Due today",    color: "#f59e0b"   };
+  if (days === 1) return { label: "Due tomorrow", color: "#f59e0b"   };
   return {
     label: `Due ${dueDate.toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`,
-    color: "var(--color-muted)"
+    color: "#6b7280"
   };
 }
 
@@ -175,7 +175,7 @@ function BottomSheet({
           right: "auto",
           width: "100%",
           maxWidth: "480px",
-          backgroundColor: "var(--color-surface)",
+          backgroundColor: "#ffffff",
           borderRadius: "24px 24px 0 0",
           boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
           zIndex: 101,
@@ -190,7 +190,7 @@ function BottomSheet({
           style={{
             width: "36px",
             height: "5px",
-            backgroundColor: "var(--color-border)",
+            backgroundColor: "#e5e7eb",
             borderRadius: "2.5px",
             margin: "12px auto 4px",
             flexShrink: 0,
@@ -545,12 +545,12 @@ export default function ParentLearnPage() {
 
   if (initError) {
     return (
-      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px", backgroundColor: "var(--color-bg)", minHeight: "100vh", fontFamily: "system-ui, sans-serif", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ padding: "20px", backgroundColor: "var(--color-surface)", borderRadius: "20px", border: `1px solid var(--color-border)`, textAlign: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.02)" }}>
+      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px", backgroundColor: "#f0f2f5", minHeight: "100vh", fontFamily: "system-ui, sans-serif", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ padding: "20px", backgroundColor: "#ffffff", borderRadius: "20px", border: `1px solid #e5e7eb`, textAlign: "center", boxShadow: "0 4px 12px rgba(0,0,0,0.02)" }}>
           <div style={{ fontSize: "36px", marginBottom: "12px" }}>⚠️</div>
-          <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", color: "var(--color-dark)", fontWeight: "700" }}>Account Alert</h3>
-          <p style={{ margin: "0 0 20px 0", fontSize: "14px", color: "var(--color-muted)", lineHeight: "1.5" }}>{initError}</p>
-          <button onClick={() => window.location.reload()} style={{ width: "100%", padding: "12px", border: "none", borderRadius: "12px", backgroundColor: "var(--color-dark)", color: "var(--color-surface)", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>
+          <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", color: "#111827", fontWeight: "700" }}>Account Alert</h3>
+          <p style={{ margin: "0 0 20px 0", fontSize: "14px", color: "#6b7280", lineHeight: "1.5" }}>{initError}</p>
+          <button onClick={() => window.location.reload()} style={{ width: "100%", padding: "12px", border: "none", borderRadius: "12px", backgroundColor: "#111827", color: "#ffffff", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>
             Retry Login Process
           </button>
         </div>
@@ -568,7 +568,7 @@ export default function ParentLearnPage() {
   const skeletonItemStyle = {
     height: "90px",
     borderRadius: "16px",
-    border: "1px solid var(--color-border)",
+    border: "1px solid #e5e7eb",
     background: "#f3f4f6 linear-gradient(90deg, #f3f4f6 0px, #e5e7eb 40px, #f3f4f6 80px)",
     backgroundSize: "200px 100%",
     animation: "shimmer 1.2s infinite linear"
@@ -576,7 +576,7 @@ export default function ParentLearnPage() {
 
   if (loadingChildren) {
     return (
-      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "16px", backgroundColor: "var(--color-bg)", minHeight: "100vh", fontFamily: "system-ui, sans-serif", boxSizing: "border-box" }}>
+      <div style={{ maxWidth: "480px", margin: "0 auto", padding: "16px", backgroundColor: "#f0f2f5", minHeight: "100vh", fontFamily: "system-ui, sans-serif", boxSizing: "border-box" }}>
         <style dangerouslySetInnerHTML={{ __html: skeletonShimmerCSS }} />
   <style dangerouslySetInnerHTML={{ __html: `
     :root {
@@ -602,18 +602,18 @@ export default function ParentLearnPage() {
   }
 
   return (
-    <div style={{ maxWidth: "480px", margin: "0 auto", padding: "16px", backgroundColor: "var(--color-bg)", minHeight: "100vh", fontFamily: "system-ui, sans-serif", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+    <div style={{ maxWidth: "480px", margin: "0 auto", padding: "16px", backgroundColor: "#f0f2f5", minHeight: "100vh", fontFamily: "system-ui, sans-serif", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
       
       <style dangerouslySetInnerHTML={{ __html: skeletonShimmerCSS }} />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-        <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--color-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          Viewing: <span style={{ color: "var(--color-accent)" }}>{activeChildName}&apos;s Desk</span>
+        <span style={{ fontSize: "12px", fontWeight: "700", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          Viewing: <span style={{ color: "#10b981" }}>{activeChildName}&apos;s Desk</span>
         </span>
         <button 
           onClick={forceSyncRefresh}
           disabled={loadingContent}
-          style={{ background: "none", border: "none", color: "var(--color-accent)", fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", opacity: isRefreshing ? 0.5 : 1 }}
+          style={{ background: "none", border: "none", color: "#10b981", fontSize: "12px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", opacity: isRefreshing ? 0.5 : 1 }}
         >
           {isRefreshing ? "Syncing..." : "🔄 Refresh Data"}
         </button>
@@ -635,9 +635,9 @@ export default function ParentLearnPage() {
                 padding: "10px 16px",
                 borderRadius: "16px",
                 cursor: "pointer",
-                border: isActive ? `2px solid var(--color-accent)` : `1px solid var(--color-border)`,
-                backgroundColor: isActive ? "var(--color-dark)" : "var(--color-surface)",
-                color: isActive ? "var(--color-surface)" : "var(--color-dark)",
+                border: isActive ? `2px solid #10b981` : `1px solid #e5e7eb`,
+                backgroundColor: isActive ? "#111827" : "#ffffff",
+                color: isActive ? "#ffffff" : "#111827",
                 textAlign: "left",
                 minWidth: "125px",
                 boxSizing: "border-box",
@@ -645,7 +645,7 @@ export default function ParentLearnPage() {
               }}
             >
               <span style={{ fontSize: "14px", fontWeight: "700" }}>{firstWordName}</span>
-              <span style={{ fontSize: "11px", color: isActive ? "rgba(255, 255, 255, 0.75)" : "var(--color-muted)", marginTop: "2px", fontWeight: "500" }}>
+              <span style={{ fontSize: "11px", color: isActive ? "rgba(255, 255, 255, 0.75)" : "#6b7280", marginTop: "2px", fontWeight: "500" }}>
                 {child.className}
               </span>
             </button>
@@ -653,7 +653,7 @@ export default function ParentLearnPage() {
         })}
       </div>
 
-      <div style={{ display: "flex", borderBottom: "2px solid var(--color-border)", marginBottom: "16px", gap: "4px" }}>
+      <div style={{ display: "flex", borderBottom: "2px solid #e5e7eb", marginBottom: "16px", gap: "4px" }}>
         {(["work", "lessons", "results"] as const).map((tab) => {
           const isActive = mainTab === tab;
           let label = "Lessons";
@@ -671,8 +671,8 @@ export default function ParentLearnPage() {
                 background: "none",
                 fontSize: "14px",
                 fontWeight: "700",
-                color: isActive ? "var(--color-dark)" : "var(--color-muted)",
-                borderBottom: isActive ? `3px solid var(--color-accent)` : "3px solid transparent",
+                color: isActive ? "#111827" : "#6b7280",
+                borderBottom: isActive ? `3px solid #10b981` : "3px solid transparent",
                 marginBottom: "-2px",
                 cursor: "pointer",
                 position: "relative",
@@ -681,7 +681,7 @@ export default function ParentLearnPage() {
             >
               {label}
               {tab === "work" && pendingCount > 0 && (
-                <span style={{ marginLeft: "6px", backgroundColor: "var(--color-danger)", color: "#ffffff", fontSize: "10px", fontWeight: "700", padding: "2px 6px", borderRadius: "10px", inlineSize: "fit-content" }}>
+                <span style={{ marginLeft: "6px", backgroundColor: "#ef4444", color: "#ffffff", fontSize: "10px", fontWeight: "700", padding: "2px 6px", borderRadius: "10px", inlineSize: "fit-content" }}>
                   {pendingCount}
                 </span>
               )}
@@ -691,7 +691,7 @@ export default function ParentLearnPage() {
       </div>
 
       {contentError && (
-        <div style={{ padding: "12px 14px", backgroundColor: "#fef2f2", border: `1px solid var(--color-danger)`, borderRadius: "12px", color: "var(--color-danger)", fontSize: "13px", fontWeight: "500", marginBottom: "16px" }}>
+        <div style={{ padding: "12px 14px", backgroundColor: "#fef2f2", border: `1px solid #ef4444`, borderRadius: "12px", color: "#ef4444", fontSize: "13px", fontWeight: "500", marginBottom: "16px" }}>
           {contentError}
         </div>
       )}
@@ -706,7 +706,7 @@ export default function ParentLearnPage() {
         <div style={{ flex: 1 }}>
           {mainTab === "work" && !contentError && (
             <div>
-              <div style={{ display: "flex", gap: "4px", backgroundColor: "var(--color-border)", padding: "4px", borderRadius: "12px", marginBottom: "16px" }}>
+              <div style={{ display: "flex", gap: "4px", backgroundColor: "#e5e7eb", padding: "4px", borderRadius: "12px", marginBottom: "16px" }}>
                 {(["pending", "submitted", "marked"] as const).map((subTab) => {
                   const isActive = hwTab === subTab;
                   return (
@@ -720,8 +720,8 @@ export default function ParentLearnPage() {
                         borderRadius: "8px",
                         fontSize: "12px",
                         fontWeight: "600",
-                        backgroundColor: isActive ? "var(--color-surface)" : "transparent",
-                        color: isActive ? "var(--color-dark)" : "var(--color-muted)",
+                        backgroundColor: isActive ? "#ffffff" : "transparent",
+                        color: isActive ? "#111827" : "#6b7280",
                         cursor: "pointer",
                         textTransform: "capitalize",
                         outline: "none"
@@ -734,11 +734,11 @@ export default function ParentLearnPage() {
               </div>
 
               {homeworkLists[hwTab].length === 0 ? (
-                <div style={{ padding: "48px 24px", textAlign: "center", backgroundColor: "var(--color-surface)", borderRadius: "20px", border: "1px solid var(--color-border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ padding: "48px 24px", textAlign: "center", backgroundColor: "#ffffff", borderRadius: "20px", border: "1px solid #e5e7eb", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                   <div style={{ fontSize: "32px", marginBottom: "8px" }}>
                     {hwTab === "pending" ? "🎉" : hwTab === "submitted" ? "⏳" : "✨"}
                   </div>
-                  <span style={{ fontSize: "14px", color: "var(--color-muted)", fontWeight: "600" }}>
+                  <span style={{ fontSize: "14px", color: "#6b7280", fontWeight: "600" }}>
                     {hwTab === "pending" && "All caught up! No pending homework assignments."}
                     {hwTab === "submitted" && "No logs waiting for standard review right now."}
                     {hwTab === "marked" && "No marked evaluation returns found."}
@@ -754,9 +754,9 @@ export default function ParentLearnPage() {
                         key={item.id}
                         onClick={() => router.push(`/parent/homework/${item.id}`)}
                         style={{
-                          backgroundColor: "var(--color-surface)",
+                          backgroundColor: "#ffffff",
                           borderRadius: "16px",
-                          border: "1px solid var(--color-border)",
+                          border: "1px solid #e5e7eb",
                           padding: "16px",
                           boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                           cursor: "pointer",
@@ -770,20 +770,20 @@ export default function ParentLearnPage() {
                           <div style={{ display: "inline-block", backgroundColor: subColor, color: "#ffffff", fontSize: "10px", fontWeight: "700", padding: "3px 8px", borderRadius: "6px", textTransform: "uppercase" }}>
                             {item.subject}
                           </div>
-                          <span style={{ fontSize: "18px", color: "var(--color-muted)", fontWeight: "300" }}>›</span>
+                          <span style={{ fontSize: "18px", color: "#6b7280", fontWeight: "300" }}>›</span>
                         </div>
 
-                        <div style={{ fontSize: "12px", color: "var(--color-muted)", marginBottom: "8px", fontWeight: "500" }}>
+                        <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px", fontWeight: "500" }}>
                           {item.teacherName}
                         </div>
 
-                        <h4 style={{ margin: "0 0 4px 0", fontSize: "15px", color: "var(--color-dark)", fontWeight: "700", paddingRight: "12px" }}>{item.title}</h4>
+                        <h4 style={{ margin: "0 0 4px 0", fontSize: "15px", color: "#111827", fontWeight: "700", paddingRight: "12px" }}>{item.title}</h4>
                         
                         {item.instructions && (
                           <p style={{
                             margin: "0 0 12px 0",
                             fontSize: "13px",
-                            color: "var(--color-muted)",
+                            color: "#6b7280",
                             lineHeight: "1.4",
                             display: "-webkit-box",
                             WebkitLineClamp: "2",
@@ -796,11 +796,11 @@ export default function ParentLearnPage() {
                           </p>
                         )}
 
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--color-border)", paddingTop: "12px", fontSize: "12px", marginTop: item.instructions ? "0" : "8px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e5e7eb", paddingTop: "12px", fontSize: "12px", marginTop: item.instructions ? "0" : "8px" }}>
                           <span style={{ color: dueMeta.color, fontWeight: "600" }}>{dueMeta.label}</span>
                           
                           {hwTab === "pending" && (
-                            <span style={{ color: "var(--color-warn)", fontWeight: "600" }}>
+                            <span style={{ color: "#f59e0b", fontWeight: "600" }}>
                               {formatSubStatus(item.submission?.status)}
                             </span>
                           )}
@@ -811,17 +811,17 @@ export default function ParentLearnPage() {
                                 <img
                                   src={item.submission.photo_url}
                                   alt="Attachment Portfolio"
-                                  style={{ width: "22px", height: "22px", borderRadius: "4px", objectFit: "cover", border: "1px solid var(--color-border)" }}
+                                  style={{ width: "22px", height: "22px", borderRadius: "4px", objectFit: "cover", border: "1px solid #e5e7eb" }}
                                 />
                               )}
-                              <span style={{ color: "var(--color-accent)", fontWeight: "600" }}>Sent for review</span>
+                              <span style={{ color: "#10b981", fontWeight: "600" }}>Sent for review</span>
                             </div>
                           )}
 
                           {hwTab === "marked" && (
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", width: "100%" }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                                <span style={{ fontWeight: "700", color: "var(--color-dark)", backgroundColor: "var(--color-bg)", padding: "4px 8px", borderRadius: "6px", border: "1px solid var(--color-border)" }}>
+                                <span style={{ fontWeight: "700", color: "#111827", backgroundColor: "#f0f2f5", padding: "4px 8px", borderRadius: "6px", border: "1px solid #e5e7eb" }}>
                                   {item.submission?.mark !== null
                                     ? `${item.submission?.mark} pts earned`
                                     : "Score pending"}
@@ -864,9 +864,9 @@ export default function ParentLearnPage() {
           {mainTab === "lessons" && !contentError && (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {lessons.length === 0 ? (
-                <div style={{ padding: "48px 24px", textAlign: "center", backgroundColor: "var(--color-surface)", borderRadius: "20px", border: "1px solid var(--color-border)" }}>
+                <div style={{ padding: "48px 24px", textAlign: "center", backgroundColor: "#ffffff", borderRadius: "20px", border: "1px solid #e5e7eb" }}>
                   <div style={{ fontSize: "32px", marginBottom: "8px" }}>📖</div>
-                  <span style={{ fontSize: "14px", color: "var(--color-muted)", fontWeight: "600" }}>No daily lesson logs posted for this cycle.</span>
+                  <span style={{ fontSize: "14px", color: "#6b7280", fontWeight: "600" }}>No daily lesson logs posted for this cycle.</span>
                 </div>
               ) : (
                 lessons.map((lesson) => {
@@ -877,9 +877,9 @@ export default function ParentLearnPage() {
                       key={lesson.id}
                       onClick={() => setSheet({ type: "lesson", data: lesson })}
                       style={{
-                        backgroundColor: "var(--color-surface)",
+                        backgroundColor: "#ffffff",
                         borderRadius: "16px",
-                        border: "1px solid var(--color-border)",
+                        border: "1px solid #e5e7eb",
                         padding: "16px",
                         boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                         cursor: "pointer"
@@ -890,17 +890,17 @@ export default function ParentLearnPage() {
                           {lesson.subject}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                          <span style={{ fontSize: "12px", color: "var(--color-muted)", fontWeight: "600" }}>{dayName}</span>
-                          <span style={{ fontSize: "16px", color: "var(--color-muted)", fontWeight: "300" }}>›</span>
+                          <span style={{ fontSize: "12px", color: "#6b7280", fontWeight: "600" }}>{dayName}</span>
+                          <span style={{ fontSize: "16px", color: "#6b7280", fontWeight: "300" }}>›</span>
                         </div>
                       </div>
 
-                      <h4 style={{ margin: "0 0 6px 0", fontSize: "15px", color: "var(--color-dark)", fontWeight: "700" }}>{lesson.title}</h4>
+                      <h4 style={{ margin: "0 0 6px 0", fontSize: "15px", color: "#111827", fontWeight: "700" }}>{lesson.title}</h4>
                       
                       <p style={{
                         margin: "0",
                         fontSize: "13px",
-                        color: "var(--color-muted)",
+                        color: "#6b7280",
                         lineHeight: "1.45",
                         display: "-webkit-box",
                         WebkitLineClamp: "3",
@@ -919,9 +919,9 @@ export default function ParentLearnPage() {
           {mainTab === "results" && !contentError && (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {assessments.length === 0 ? (
-                <div style={{ padding: "48px 24px", textAlign: "center", backgroundColor: "var(--color-surface)", borderRadius: "20px", border: "1px solid var(--color-border)" }}>
+                <div style={{ padding: "48px 24px", textAlign: "center", backgroundColor: "#ffffff", borderRadius: "20px", border: "1px solid #e5e7eb" }}>
                   <div style={{ fontSize: "32px", marginBottom: "8px" }}>📊</div>
-                  <span style={{ fontSize: "14px", color: "var(--color-muted)", fontWeight: "600" }}>No assessment records tracked yet.</span>
+                  <span style={{ fontSize: "14px", color: "#6b7280", fontWeight: "600" }}>No assessment records tracked yet.</span>
                 </div>
               ) : (
                 assessments.map((assessment) => {
@@ -932,9 +932,9 @@ export default function ParentLearnPage() {
                       key={assessment.id}
                       onClick={() => setSheet({ type: "assessment", data: assessment })}
                       style={{
-                        backgroundColor: "var(--color-surface)",
+                        backgroundColor: "#ffffff",
                         borderRadius: "16px",
-                        border: "1px solid var(--color-border)",
+                        border: "1px solid #e5e7eb",
                         padding: "16px",
                         display: "flex",
                         justifyContent: "space-between",
@@ -949,10 +949,10 @@ export default function ParentLearnPage() {
                         <div style={{ display: "inline-block", backgroundColor: sColor, color: "#ffffff", fontSize: "10px", fontWeight: "700", padding: "2px 6px", borderRadius: "5px", marginBottom: "6px", textTransform: "uppercase" }}>
                           {assessment.subject}
                         </div>
-                        <h4 style={{ margin: "0 0 4px 0", fontSize: "14px", color: "var(--color-dark)", fontWeight: "700", display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        <h4 style={{ margin: "0 0 4px 0", fontSize: "14px", color: "#111827", fontWeight: "700", display: "-webkit-box", WebkitLineClamp: "2", WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                           {assessment.sub_strand}
                         </h4>
-                        <span style={{ fontSize: "11px", color: "var(--color-muted)", fontWeight: "500" }}>{assessment.assessment_type}</span>
+                        <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: "500" }}>{assessment.assessment_type}</span>
                       </div>
 
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
@@ -960,11 +960,11 @@ export default function ParentLearnPage() {
                           <div style={{ backgroundColor: badgeMeta.bg, color: badgeMeta.color, fontSize: "11px", fontWeight: "700", padding: "4px 8px", borderRadius: "6px", textTransform: "capitalize", textAlign: "center" }}>
                             {badgeMeta.label}
                           </div>
-                          <span style={{ fontSize: "11px", color: "var(--color-muted)", marginTop: "4px", fontWeight: "500" }}>
+                          <span style={{ fontSize: "11px", color: "#6b7280", marginTop: "4px", fontWeight: "500" }}>
                             T{assessment.term} · {assessment.academic_year}
                           </span>
                         </div>
-                        <span style={{ fontSize: "18px", color: "var(--color-muted)", fontWeight: "300" }}>›</span>
+                        <span style={{ fontSize: "18px", color: "#6b7280", fontWeight: "300" }}>›</span>
                       </div>
                     </div>
                   );
@@ -982,13 +982,13 @@ export default function ParentLearnPage() {
               <div style={{ backgroundColor: getSubjectColor(sheet.data.subject), color: "#ffffff", fontSize: "10px", fontWeight: "700", padding: "3px 8px", borderRadius: "6px", textTransform: "uppercase" }}>
                 {sheet.data.subject}
               </div>
-              <span style={{ fontSize: "12px", color: "var(--color-muted)", fontWeight: "600" }}>{DAYS[sheet.data.day_of_week]}</span>
+              <span style={{ fontSize: "12px", color: "#6b7280", fontWeight: "600" }}>{DAYS[sheet.data.day_of_week]}</span>
             </div>
-            <h3 style={{ fontSize: "18px", fontWeight: "700", color: "var(--color-dark)", marginTop: "12px", marginBottom: "16px" }}>
+            <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#111827", marginTop: "12px", marginBottom: "16px" }}>
               {sheet.data.title}
             </h3>
-            <div style={{ borderBottom: "1px solid var(--color-border)", marginBottom: "16px" }} />
-            <p style={{ fontSize: "14px", lineHeight: "1.7", color: "var(--color-dark)", whiteSpace: "pre-wrap", margin: "0" }}>
+            <div style={{ borderBottom: "1px solid #e5e7eb", marginBottom: "16px" }} />
+            <p style={{ fontSize: "14px", lineHeight: "1.7", color: "#111827", whiteSpace: "pre-wrap", margin: "0" }}>
               {sheet.data.student_copy}
             </p>
           </div>
@@ -999,7 +999,7 @@ export default function ParentLearnPage() {
               <div style={{ backgroundColor: getPerformanceMeta(sheet.data.performance).bg, color: getPerformanceMeta(sheet.data.performance).color, fontSize: "13px", fontWeight: "700", padding: "6px 16px", borderRadius: "20px", display: "inline-block", marginBottom: "12px", textTransform: "capitalize" }}>
                 {getPerformanceMeta(sheet.data.performance).label}
               </div>
-              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "var(--color-dark)", textAlign: "center", marginBottom: "24px", margin: "0 0 24px 0" }}>
+              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "#111827", textAlign: "center", marginBottom: "24px", margin: "0 0 24px 0" }}>
                 {EXPLANATION_MAP[sheet.data.performance]}
               </p>
             </div>
@@ -1018,11 +1018,11 @@ export default function ParentLearnPage() {
                   justifyContent: "space-between",
                   paddingTop: "12px",
                   paddingBottom: "12px",
-                  borderBottom: "1px solid var(--color-border)"
+                  borderBottom: "1px solid #e5e7eb"
                 }}
               >
-                <span style={{ fontSize: "13px", color: "var(--color-muted)", fontWeight: "500" }}>{row.label}</span>
-                <span style={{ fontSize: "13px", color: "var(--color-dark)", fontWeight: "700" }}>{row.value}</span>
+                <span style={{ fontSize: "13px", color: "#6b7280", fontWeight: "500" }}>{row.label}</span>
+                <span style={{ fontSize: "13px", color: "#111827", fontWeight: "700" }}>{row.value}</span>
               </div>
             ))}
           </div>
