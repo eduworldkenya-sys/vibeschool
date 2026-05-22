@@ -395,7 +395,7 @@ function LibraryTab({
         if (err) throw err
 
         const contents = (data ?? [])
-          .map((row: { content_id: string; vibelearn_content: VibeContent }) => row.vibelearn_content)
+          .map((row: { content_id: string; vibelearn_content: VibeContent | VibeContent[] }) => Array.isArray(row.vibelearn_content) ? row.vibelearn_content[0] : row.vibelearn_content)
           .filter(Boolean)
 
         setItems(contents)
