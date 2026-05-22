@@ -4,6 +4,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { ParentNavTab } from "@/lib/types";
+import VibeLearnShellWrapper from "@/components/student/VibeLearnShellWrapper";
 
 interface UserCtx { fullName: string; initials: string }
 const UserContext = createContext<UserCtx>({ fullName: "", initials: "" });
@@ -13,7 +14,7 @@ const NAV_TABS: ParentNavTab[] = [
   { id: "home",      label: "Home",      icon: "🏠", href: "/parent"            },
   { id: "learn",     label: "Learn",     icon: "📚", href: "/parent/learn"      },
   { id: "vibelearn", label: "VibeLearn", icon: "🎓", href: "/parent/vibe-learn" },
-  { id: "funhub",    label: "FunHub",    icon: "🎮", href: "/parent/funhub"    },
+  { id: "funhub",    label: "FunHub",    icon: "🎮", href: "/parent/funhub"     },
   { id: "students",  label: "Students",  icon: "🎒", href: "/parent/students"   },
 ];
 
@@ -25,7 +26,13 @@ function tabIdFromPath(path: string): ParentNavTab["id"] {
   return (match?.id ?? "home") as ParentNavTab["id"];
 }
 
-function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
+function BottomNav({
+  activeId,
+  onVibeLearnOpen,
+}: {
+  activeId: ParentNavTab["id"];
+  onVibeLearnOpen: () => void;
+}) {
   const router = useRouter();
 
   return (
@@ -44,49 +51,35 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
           return (
             <button
               key={t.id}
-              onClick={() => router.push(t.href)}
+              onClick={onVibeLearnOpen}
+              aria-label="Open VibeLearn"
               style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                border: "none",
-                background: "none",
-                cursor: "pointer",
-                padding: "0 0 6px",
-                position: "relative",
-                height: "100%",
+                flex: 1, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "flex-end",
+                border: "none", background: "none",
+                cursor: "pointer", padding: "0 0 6px",
+                position: "relative", height: "100%",
               }}
             >
               <div style={{
-                position: "absolute",
-                bottom: 20,
-                width: 54,
-                height: 54,
-                borderRadius: "50%",
+                position: "absolute", bottom: 20,
+                width: 54, height: 54, borderRadius: "50%",
                 background: isActive
                   ? "linear-gradient(135deg, #059669 0%, #10b981 100%)"
                   : "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                display: "flex", alignItems: "center", justifyContent: "center",
                 boxShadow: isActive
                   ? "0 4px 18px rgba(16,185,129,0.55)"
                   : "0 4px 18px rgba(30,27,75,0.35)",
-                border: "3px solid #fff",
-                fontSize: 22,
+                border: "3px solid #fff", fontSize: 22,
                 transition: "all 0.2s ease",
               }}>
                 {t.icon}
               </div>
               <span style={{
-                fontSize: 10,
-                fontWeight: isActive ? 800 : 600,
+                fontSize: 10, fontWeight: isActive ? 800 : 600,
                 color: isActive ? "#10b981" : "#6b7280",
-                lineHeight: 1,
-                marginBottom: 0,
-                zIndex: 1,
+                lineHeight: 1, zIndex: 1,
               }}>
                 {t.label}
               </span>
@@ -98,16 +91,11 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
           <button
             key={t.id}
             onClick={() => router.push(t.href)}
+            aria-label={t.label}
             style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 3,
-              border: "none",
-              background: "none",
-              cursor: "pointer",
+              flex: 1, display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 3,
+              border: "none", background: "none", cursor: "pointer",
               padding: "8px 0",
               color: isActive ? "#10b981" : "#6b7280",
               position: "relative",
@@ -119,12 +107,8 @@ function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
             </span>
             {isActive && (
               <div style={{
-                position: "absolute",
-                top: 0,
-                width: 28,
-                height: 2.5,
-                background: "#10b981",
-                borderRadius: "0 0 3px 3px",
+                position: "absolute", top: 0, width: 28, height: 2.5,
+                background: "#10b981", borderRadius: "0 0 3px 3px",
               }} />
             )}
           </button>
@@ -141,16 +125,10 @@ function TopBar({ initials }: { initials: string }) {
 
   return (
     <div style={{
-      background: "#1e1b4b",
-      color: "#fff",
-      padding: "0 20px",
-      height: 56,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      position: "sticky",
-      top: 0,
-      zIndex: 600,
+      background: "#1e1b4b", color: "#fff",
+      padding: "0 20px", height: 56,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      position: "sticky", top: 0, zIndex: 600,
       boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -167,8 +145,7 @@ function TopBar({ initials }: { initials: string }) {
           style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
         >
           <div style={{
-            width: 30, height: 30, borderRadius: 9,
-            background: "#10b981",
+            width: 30, height: 30, borderRadius: 9, background: "#10b981",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 15, fontWeight: 900, color: "#fff",
           }}>
@@ -196,8 +173,7 @@ function TopBar({ initials }: { initials: string }) {
         <div
           onClick={() => router.push("/parent/profile")}
           style={{
-            width: 34, height: 34, borderRadius: "50%",
-            background: "#10b981",
+            width: 34, height: 34, borderRadius: "50%", background: "#10b981",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer",
           }}
@@ -216,27 +192,32 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
   const [fullName, setFullName] = useState("");
   const [initials, setInitials] = useState("");
+  const [vibeLearnOpen, setVibeLearnOpen] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/academy/signin?role=parent"); return; }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push("/academy/signin?role=parent"); return; }
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, role")
-        .eq("id", user.id)
-        .single();
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", user.id)
+          .single();
 
-      if (data?.role !== "parent") { router.push("/academy/signin?role=parent"); return; }
+        if (data?.role !== "parent") { router.push("/academy/signin?role=parent"); return; }
 
-      const name  = data?.full_name ?? "";
-      setFullName(name);
-      const parts = name.trim().split(" ").filter(Boolean);
-      setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+        const name  = data?.full_name ?? "";
+        setFullName(name);
+        const parts = name.trim().split(" ").filter(Boolean);
+        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+      } catch {
+        router.push("/academy/signin?role=parent");
+      }
     }
     fetchProfile();
-  }, []);
+  }, [router]);
 
   return (
     <UserContext.Provider value={{ fullName, initials }}>
@@ -249,14 +230,17 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
       `}</style>
       <div style={{ background: "#f0f2f5" }}>
         <TopBar initials={initials} />
-        <main style={{
-          maxWidth: 768,
-          margin: "0 auto",
-          padding: "16px 16px 160px",
-        }}>
+        <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px" }}>
           {children}
         </main>
-        <BottomNav activeId={activeId} />
+        <BottomNav
+          activeId={activeId}
+          onVibeLearnOpen={() => setVibeLearnOpen(true)}
+        />
+        <VibeLearnShellWrapper
+          isOpen={vibeLearnOpen}
+          onClose={() => setVibeLearnOpen(false)}
+        />
       </div>
     </UserContext.Provider>
   );
