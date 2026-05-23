@@ -29,7 +29,7 @@ const ROLE_CONTENT: Record<Role, { descriptor: string }> = {
 }
 
 const ROLE_DESTINATIONS: Record<Role, string> = {
-  teacher: '/teacher',
+  teacher: '/teacher/onboarding/school',
   parent:  '/parent',
   student: '/student',
   admin:   '/admin',

@@ -134,6 +134,12 @@ export default function SchoolOnboardingPage() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
           {[1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i === 1 ? accent : C.border }} />)}
         </div>
+        
+        
+        <button onClick={() => router.push('/teacher')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: '0 0 16px', textAlign: 'left' }}>
+          Skip for now →
+        </button>
+
         {mode === 'choose' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <p style={{ fontSize: 14, color: '#374151', textAlign: 'center', marginBottom: 8 }}>How do you want to find your school?</p>
