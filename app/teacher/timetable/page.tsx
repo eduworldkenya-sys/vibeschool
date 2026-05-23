@@ -402,6 +402,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           .order('day_of_week', { ascending: true })
           .order('start_time',  { ascending: true }),
 
+
         supabase
           .from('profiles')
           .select('school_id')
@@ -417,11 +418,34 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         return
       }
 
-      const mapped: Slot[] = (slotsResult.data ?? []).map((s) => {
+      const slots = slotsResult.data ?? []
+
+      // Fetch subject and class names separately
+      const subjectIds = [...new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean))]
+      const classIds   = [...new Set(slots.map((s: {class_id: string}) => s.class_id).filter(Boolean))]
+
+      const [subjectsRes, classesRes] = await Promise.all([
+        subjectIds.length > 0
+          ? supabase.from('subjects').select('id, name').in('id', subjectIds)
+          : Promise.resolve({ data: [] }),
+        classIds.length > 0
+          ? supabase.from('classes').select('id, name, stream').in('id', classIds)
+          : Promise.resolve({ data: [] }),
+      ])
+
+      const subjectMap: Record<string, string> = {}
+      ;(subjectsRes.data ?? []).forEach((s: {id: string, name: string}) => { subjectMap[s.id] = s.name })
+
+      const classMap: Record<string, string> = {}
+      ;(classesRes.data ?? []).forEach((c: {id: string, name: string, stream: string|null}) => {
+        classMap[c.id] = c.name + (c.stream ? ` ${c.stream}` : '')
+      })
+
+      const mapped: Slot[] = slots.map((s: {id: string, subject_id: string, class_id: string, room: string, start_time: string, end_time: string, day_of_week: number}) => {
         return {
           id:        s.id,
-          subject:   s.subject_id ?? 'Unknown',
-          className: s.class_id ?? '',
+          subject:   subjectMap[s.subject_id] ?? 'Unknown',
+          className: classMap[s.class_id] ?? '',
           room:      s.room ?? '',
           startTime: s.start_time,
           endTime:   s.end_time,
