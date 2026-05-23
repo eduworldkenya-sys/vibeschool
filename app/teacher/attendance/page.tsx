@@ -203,7 +203,7 @@ function AttendanceInner() {
       class_id:          activeSlot.classId,
       teacher_id:        uid,
       school_id:         schoolId,
-      date:              today,
+      date:              selectedDate,
       status:            statuses[s.id] ?? 'present',
       marked_at:         new Date().toISOString(),
     }))
@@ -256,8 +256,7 @@ function AttendanceInner() {
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
   {selectedDate} · Synced to ClassHub and progressive record.</div>
         <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value) }} style={{ marginTop: 8, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }} />
-        <div style={{ display: 'none' }}>
-        </div>
+
         {urlClassId && (
           <button
             onClick={() => router.push('/teacher/classhub/' + urlClassId)}
