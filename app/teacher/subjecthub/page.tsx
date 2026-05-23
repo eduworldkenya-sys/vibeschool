@@ -73,6 +73,12 @@ export default function SubjectHubPage() {
   const [classLoading, setClassLoading] = useState(false)
   const [teamLoading,  setTeamLoading]  = useState(false)
   const [error,        setError]        = useState<string | null>(null)
+  const [showAddSubject,    setShowAddSubject]    = useState(false)
+  const [newSubjectName,    setNewSubjectName]    = useState('')
+  const [newSubjectClassId, setNewSubjectClassId] = useState('')
+  const [addingSubject,     setAddingSubject]     = useState(false)
+  const [addSubjectError,   setAddSubjectError]   = useState<string | null>(null)
+  const [allClasses,        setAllClasses]        = useState<{id: string; name: string; stream: string | null}[]>([])
 
   useEffect(() => { init() }, [])
 
@@ -99,6 +105,12 @@ export default function SubjectHubPage() {
       .from('subjects').select('id, name').in('id', subjectIds).order('name')
 
     setSubjects(subData ?? [])
+
+    // Load classes for add-subject modal (best-effort, MVP)
+    const { data: clData } = await supabase
+      .from('classes').select('id,name,stream')
+      .eq('school_id', sid ?? '')
+    setAllClasses(clData ?? [])
     setLoading(false)
   }
 
@@ -173,6 +185,61 @@ export default function SubjectHubPage() {
     setTeamLoading(false)
   }
 
+  function openAddSubject() {
+    setNewSubjectName('')
+    setNewSubjectClassId('')
+    setAddSubjectError(null)
+    setAddingSubject(false)
+    setShowAddSubject(true)
+  }
+
+  function closeAddSubject() {
+    setShowAddSubject(false)
+    setNewSubjectName('')
+    setNewSubjectClassId('')
+    setAddSubjectError(null)
+    setAddingSubject(false)
+  }
+
+  async function addSubject() {
+    if (addingSubject) return
+    if (!newSubjectName.trim()) { setAddSubjectError('Enter a subject name'); return }
+    if (!currentId) { setAddSubjectError('Not signed in'); return }
+    setAddingSubject(true)
+    setAddSubjectError(null)
+
+    // Deduplicate — no unique constraint on subjects.name
+    const dedupBase = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
+    const { data: existing } = await (
+      schoolId ? dedupBase.eq('school_id', schoolId) : dedupBase.is('school_id', null)
+    ).maybeSingle()
+
+    let subjectId: string
+    if (existing) {
+      subjectId = existing.id
+    } else {
+      const { data: newSub, error: subErr } = await supabase
+        .from('subjects')
+        .insert({ name: newSubjectName.trim(), school_id: schoolId ?? null })
+        .select('id')
+        .single()
+      if (subErr || !newSub) { setAddSubjectError('Failed to create subject'); setAddingSubject(false); return }
+      subjectId = newSub.id
+    }
+
+    const { error: tcErr } = await supabase.from('teacher_classes').insert({
+      teacher_id:       currentId,
+      subject_id:       subjectId,
+      class_id:         newSubjectClassId || null,
+      school_id:        schoolId ?? null,
+      is_class_teacher: false,
+    })
+    if (tcErr) { setAddSubjectError('Failed to link subject'); setAddingSubject(false); return }
+
+    setSubjects(prev => [...prev, { id: subjectId, name: newSubjectName.trim() }])
+    closeAddSubject()
+  }
+
   const activeSubject = subjects[activeIdx] ?? null
 
   const SUBJECT_ACTIONS = [
@@ -239,6 +306,16 @@ export default function SubjectHubPage() {
       </div>
 
       {/* ── SUBJECT TABS (if multiple) ── */}
+      {!loading && subjects.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
+          <button
+            onClick={openAddSubject}
+            style={{ padding: '7px 16px', borderRadius: 10, background: C.accent, color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            + Add Subject
+          </button>
+        </div>
+      )}
+
       {!loading && subjects.length > 1 && (
         <div style={{ padding: '14px 16px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
           {subjects.map((s, i) => (
@@ -389,7 +466,57 @@ export default function SubjectHubPage() {
         <div style={{ padding: '60px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 40 }}>🔬</span>
           <p style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, margin: 0, textAlign: 'center' }}>No subjects assigned yet</p>
-          <p style={{ fontSize: 13, color: C.textMuted, margin: 0, textAlign: 'center' }}>Contact your school admin to get assigned to subjects and classes.</p>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: 0, textAlign: 'center' }}>Add a subject you teach to get started.</p>
+          <button
+            onClick={openAddSubject}
+            style={{ marginTop: 8, padding: '12px 24px', borderRadius: 12, background: C.accent, color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            + Add Subject
+          </button>
+        </div>
+      )}
+
+      {showAddSubject && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 480 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 16 }}>Add Subject</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>SUBJECT NAME</div>
+            <input
+              value={newSubjectName}
+              onChange={e => setNewSubjectName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addSubject() }}
+              placeholder="e.g. Mathematics"
+              autoFocus
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, outline: 'none' }}
+            />
+            {allClasses.length > 0 && (
+              <>
+                <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>CLASS (OPTIONAL)</div>
+                <select
+                  value={newSubjectClassId}
+                  onChange={e => setNewSubjectClassId(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, background: '#fff' }}>
+                  <option value="">No class yet</option>
+                  {allClasses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ''}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 12, marginTop: 4 }}>{addSubjectError}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button
+                onClick={closeAddSubject}
+                style={{ flex: 1, padding: '12px', borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: C.textMuted }}>
+                Cancel
+              </button>
+              <button
+                onClick={addSubject}
+                disabled={addingSubject}
+                style={{ flex: 1, padding: '12px', borderRadius: 10, border: 'none', background: C.accent, fontSize: 14, fontWeight: 700, cursor: addingSubject ? 'not-allowed' : 'pointer', fontFamily: 'inherit', color: '#fff', opacity: addingSubject ? 0.7 : 1 }}>
+                {addingSubject ? 'Saving…' : 'Add Subject'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
