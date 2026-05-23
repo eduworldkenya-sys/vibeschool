@@ -355,7 +355,7 @@ export default function SubjectHubPage() {
             {SUBJECT_ACTIONS.map(a => (
               <button
                 key={a.id}
-                onClick={() => router.push(a.route + '?subjectId=' + activeSubject.id)}
+                onClick={() => router.push(a.route + '?subjectId=' + activeSubject.id + (classes[0] ? '&classId=' + classes[0].id : ''))}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
                   padding: '14px 4px', borderRadius: 14, border: 'none', cursor: 'pointer',
@@ -412,7 +412,24 @@ export default function SubjectHubPage() {
                   <p style={{ fontSize: 12, color: C.textMuted, margin: '2px 0 0' }}>{cls.studentCount} students</p>
                 </div>
               </div>
-              <span style={{ fontSize: 18, color: '#9ca3af' }}>›</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push('/teacher/assessment?classId=' + cls.id + '&subjectId=' + activeSubject.id)
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 8, border: 'none',
+                    background: '#92400e', color: '#fff',
+                    fontSize: 11, fontWeight: 700,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    flexShrink: 0,
+                  }}
+                >
+                  Assess
+                </button>
+                <span style={{ fontSize: 18, color: '#9ca3af' }}>›</span>
+              </div>
             </button>
           ))}
         </div>
