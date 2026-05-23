@@ -152,7 +152,7 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
       <div style={{
         background: C.bg,
         borderRadius: '20px 20px 0 0',
-        padding: '24px 20px 40px',
+        padding: '24px 20px 60px',
         width: '100%', maxWidth: 480,
         display: 'flex', flexDirection: 'column', gap: 16,
         maxHeight: '90vh', overflowY: 'auto',
