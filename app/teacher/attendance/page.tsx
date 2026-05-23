@@ -59,7 +59,8 @@ function Skeleton({ h = 56 }: { h?: number }) {
 // ── Page ───────────────────────────────────────────────────────────────────
 function AttendanceInner() {
   const today = new Date().toISOString().split('T')[0]
-  const dow   = new Date().getDay()
+  const [selectedDate, setSelectedDate] = useState(today)
+  const dow = new Date(selectedDate + 'T00:00:00').getDay()
   const router       = useRouter()
   const searchParams = useSearchParams()
   const urlClassId   = searchParams.get('classId')
@@ -98,7 +99,7 @@ function AttendanceInner() {
             classes  ( name, stream )
           `)
           .eq('teacher_id', user.id)
-          .eq('day_of_week', dow)
+          .eq('day_of_week', dow === 0 ? 7 : dow)
           .order('start_time', { ascending: true }),
       ])
 
@@ -143,7 +144,7 @@ function AttendanceInner() {
     }
 
     init()
-  }, [])
+  }, [selectedDate])
 
   // ── 2. Load students + existing attendance when slot changes ───────────
   const loadRegister = useCallback(async (slot: TSlot) => {
@@ -253,7 +254,9 @@ function AttendanceInner() {
         </div>
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>Mark Register</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-          {today} · Synced to ClassHub and progressive record.
+  {selectedDate} · Synced to ClassHub and progressive record.</div>
+        <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value) }} style={{ marginTop: 8, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }} />
+        <div style={{ display: 'none' }}>
         </div>
         {urlClassId && (
           <button
