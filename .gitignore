@@ -57,3 +57,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .env.local
 env.local*.bak
 fix_*.sh
+env.local
+.env*
