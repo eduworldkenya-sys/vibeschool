@@ -397,11 +397,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       const [slotsResult, memberResult] = await Promise.all([
         supabase
           .from('timetable_slots')
-          .select(`
-            id, day_of_week, start_time, end_time, room,
-            subjects ( name ),
-            classes ( name, stream )
-          `)
+          .select('id, day_of_week, start_time, end_time, room, subject_id, class_id')
           .eq('teacher_id', user.id)
           .order('day_of_week', { ascending: true })
           .order('start_time',  { ascending: true }),
@@ -422,23 +418,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       }
 
       const mapped: Slot[] = (slotsResult.data ?? []).map((s) => {
-        // FIX [TYPE-01]: runtime guard — Supabase may return array or object for joined relation
-        const rawSubject = s.subjects
-        const sub = Array.isArray(rawSubject)
-          ? (rawSubject[0]?.name ?? 'Unknown')
-          : ((rawSubject as { name: string } | null)?.name ?? 'Unknown')
-
-        const rawClass = s.classes
-        const cls = Array.isArray(rawClass)
-          ? rawClass[0] as { name: string; stream: string | null } | null
-          : rawClass as { name: string; stream: string | null } | null
-
-        const className = cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : ''
-
         return {
           id:        s.id,
-          subject:   sub,
-          className,
+          subject:   s.subject_id ?? 'Unknown',
+          className: s.class_id ?? '',
           room:      s.room ?? '',
           startTime: s.start_time,
           endTime:   s.end_time,
