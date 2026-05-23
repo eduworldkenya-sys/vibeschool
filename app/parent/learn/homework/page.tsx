@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TOKENS, ROUTES } from "../../../lib/tokens";
+import { TOKENS, ROUTES } from "@/lib/tokens";
 
 interface Assignment {
   id: string;

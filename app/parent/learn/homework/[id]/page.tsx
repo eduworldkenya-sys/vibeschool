@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { TOKENS } from "../../../../lib/tokens";
+import { TOKENS } from "@/lib/tokens";
 
 interface AssignmentDetail {
   id: string;
