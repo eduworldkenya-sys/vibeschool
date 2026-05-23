@@ -3,8 +3,6 @@ import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import TwinPill   from '@/components/teacher/TwinPill'
-import TwinDrawer from '@/components/teacher/TwinDrawer'
 import { useRouter } from 'next/navigation'
 
 interface Slot {
@@ -94,7 +92,6 @@ export default function TeacherHomePage() {
   const router = useRouter()
   const [data,    setData]    = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [twinOpen, setTwinOpen] = useState(false)
 
   const cardBg     = C.bg
   const cardBorder = C.border
@@ -340,14 +337,7 @@ export default function TeacherHomePage() {
       </div>
 
       {/* ── Twin ─────────────────────────────────────────────────────── */}
-      <TwinPill
-        onOpen={() => setTwinOpen(true)}
-        unread={0}
-      />
-      <TwinDrawer
-        open={twinOpen}
-        onClose={() => setTwinOpen(false)}
-      />
+
     </div>
   )
 }
