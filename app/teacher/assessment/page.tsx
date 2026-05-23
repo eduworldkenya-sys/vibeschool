@@ -70,9 +70,9 @@ function AssessmentInner() {
 
       const [memberRes, tcRes] = await Promise.all([
         supabase
-          .from('school_members')
+          .from('profiles')
           .select('school_id')
-          .eq('profile_id', user.id)
+          .eq('id', user.id)
           .maybeSingle(),
         supabase
           .from('teacher_classes')

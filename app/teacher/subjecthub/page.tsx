@@ -185,6 +185,16 @@ export default function SubjectHubPage() {
     setTeamLoading(false)
   }
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showAddSubject) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [showAddSubject])
+
   function openAddSubject() {
     setNewSubjectName('')
     setNewSubjectClassId('')
