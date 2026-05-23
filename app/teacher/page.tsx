@@ -71,7 +71,7 @@ const QUICK_ACTIONS = [
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'attendance', label: 'Attendance',   icon: '✅', color: '#dcfce7', iconColor: '#166534', route: '/teacher/attendance' },
   { id: 'subjecthub', label: 'SubjectHub',   icon: '🔬', color: '#e0f2fe', iconColor: '#075985', route: '/teacher/subjecthub' },
-  { id: 'vibelearn',  label: 'VibeLearn',    icon: '🎓', color: '#fef9c3', iconColor: '#854d0e', route: '/teacher/vibelearn'  },
+  { id: 'results',    label: 'Results',      icon: '🏆', color: '#d1fae5', iconColor: '#065f46', route: '/teacher/results'   },
   { id: 'assessment', label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', route: '/teacher/assessment' },
   { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', route: '/teacher/schoolhub'  },
 ]

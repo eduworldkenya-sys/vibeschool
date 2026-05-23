@@ -8,6 +8,7 @@ const ITEMS = [
   { icon: '🔬', label: 'SubjectHub',     desc: 'Subject teams and shared resources',         href: '/teacher/subjecthub', live: true  },
   { icon: '📦', label: 'Resources',      desc: 'Upload and manage teaching materials',       href: '/teacher/resources',  live: true  },
   { icon: '📊', label: 'Assessment',     desc: 'Scores, trends, and progressive records',    href: '/teacher/assessment', live: true  },
+  { icon: '🏆', label: 'Results',      desc: 'Exam marks, analysis and report cards',      href: '/teacher/results',    live: true  },
   { icon: '🗓️', label: 'Timetable',     desc: 'Full weekly timetable view',                 href: '/teacher/timetable',  live: true  },
   { icon: '🏛️', label: 'SchoolHub',     desc: 'School-wide admin and governance',           href: '/teacher/schoolhub',  live: true  },
   { icon: '📋', label: 'Scheme of Work', desc: 'Curriculum map and topic tracker',           href: '/teacher/scheme',     live: true  },
