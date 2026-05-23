@@ -46,8 +46,8 @@ const CLASS_ACTIONS = [
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
   { id: 'timetable',  label: 'Timetable',    icon: '📅', bg: '#075985', route: '/teacher/timetable' },
-  { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: `/teacher/classhub/${classId}/groups` },
-  { id: 'homework',   label: 'Homework',     icon: '📝', bg: '#0f766e', route: `/teacher/classhub/${classId}/homework` },
+  { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: '/teacher/classhub/__ID__/groups' },
+  { id: 'homework',   label: 'Homework',     icon: '📝', bg: '#0f766e', route: '/teacher/classhub/__ID__/homework' },
 ]
 
 const SUBJECT_ACTIONS = [
@@ -193,7 +193,7 @@ function ClassPageInner() {
 
   function handleAction(a: { id: string; route: string }) {
     if (a.id === 'students') { setShowRoster(v => !v); return }
-    const r = buildRoute(a.route)
+    const r = buildRoute(a.route.replace('__ID__', classId))
     if (r) router.push(r)
   }
 
