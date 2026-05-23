@@ -399,7 +399,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           .from('timetable_slots')
           .select(`
             id, day_of_week, start_time, end_time, room,
-            subjects!timetable_slots_subject_id_fkey ( name ),
+            subjects ( name ),
             classes ( name, stream )
           `)
           .eq('teacher_id', user.id)
