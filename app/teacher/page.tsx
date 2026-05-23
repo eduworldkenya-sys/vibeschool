@@ -121,7 +121,7 @@ export default function TeacherHomePage() {
           .from('timetable_slots')
           .select(`id, start_time, end_time, room, subjects ( name ), classes ( name, stream )`)
           .eq('teacher_id', uid)
-          .eq('day_of_week', dow)
+          .order('day_of_week', { ascending: true })
           .order('start_time', { ascending: true }),
 
         supabase
@@ -145,7 +145,7 @@ export default function TeacherHomePage() {
           : Promise.resolve({ data: null }),
 
         slotIds.length > 0
-          ? supabase.from('attendance').select('timetable_slot_id').in('timetable_slot_id', slotIds).gte('timestamp', today + 'T00:00:00').lt('timestamp', today + 'T23:59:59')
+          ? supabase.from('attendance').select('timetable_slot_id').in('timetable_slot_id', slotIds).eq('date', today)
           : Promise.resolve({ data: [] }),
 
         classTeacherId
@@ -153,7 +153,7 @@ export default function TeacherHomePage() {
           : Promise.resolve({ count: 0, data: null }),
 
         classTeacherId
-          ? supabase.from('attendance').select('status').eq('class_id', classTeacherId).gte('timestamp', today + 'T00:00:00').lt('timestamp', today + 'T23:59:59')
+          ? supabase.from('attendance').select('status').eq('class_id', classTeacherId).eq('date', today)
           : Promise.resolve({ data: [] }),
       ])
 
