@@ -48,11 +48,13 @@ function formatCountdown(mins: number): string {
 }
 
 const DAYS = [
-  { label: 'Mon', dow: 1 },
-  { label: 'Tue', dow: 2 },
-  { label: 'Wed', dow: 3 },
-  { label: 'Thu', dow: 4 },
-  { label: 'Fri', dow: 5 },
+  { label: 'Mon', dow: 1, weekend: false },
+  { label: 'Tue', dow: 2, weekend: false },
+  { label: 'Wed', dow: 3, weekend: false },
+  { label: 'Thu', dow: 4, weekend: false },
+  { label: 'Fri', dow: 5, weekend: false },
+  { label: 'Sat', dow: 6, weekend: true  },
+  { label: 'Sun', dow: 7, weekend: true  },
 ]
 
 // ── Skeleton ───────────────────────────────────────────────────────────────
@@ -672,6 +674,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           const count    = allSlots.filter(s => s.dayOfWeek === d.dow).length
           const isActive = activeDow === d.dow
           const isTdy    = d.dow === todayDow
+          const wknd     = d.weekend
+          const activeBg = wknd ? '#d97706' : C.accent
+          const border   = isTdy && !isActive ? `1.5px solid ${wknd ? '#d97706' : C.accent}` : wknd && !isActive ? '1.5px dashed #d97706' : 'none'
           return (
             <button
               type="button"
@@ -680,23 +685,24 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
               style={{
                 padding:      '8px 16px',
                 borderRadius: 20,
-                border:       isTdy && !isActive ? `1.5px solid ${C.accent}` : 'none',
+                border,
                 cursor:       'pointer',
                 fontFamily:   'inherit',
                 fontSize:     13,
                 fontWeight:   700,
                 flexShrink:   0,
-                background:   isActive ? C.accent : 'var(--surface-raised, #f9fafb)',
-                color:        isActive ? '#fff' : isTdy ? C.accent : C.textMuted,
+                background:   isActive ? activeBg : wknd ? '#fffbeb' : 'var(--surface-raised, #f9fafb)',
+                color:        isActive ? '#fff' : wknd ? '#d97706' : isTdy ? C.accent : C.textMuted,
               }}
             >
               {d.label}
+              {wknd && !isActive && <span style={{ fontSize: 9, marginLeft: 3 }}>✦</span>}
               {count > 0 && (
                 <span style={{
                   marginLeft: 6, fontSize: 10, fontWeight: 800,
                   padding: '1px 6px', borderRadius: 10,
-                  background: isActive ? 'rgba(255,255,255,0.25)' : C.accentLight,
-                  color:      isActive ? '#fff' : C.accent,
+                  background: isActive ? 'rgba(255,255,255,0.25)' : wknd ? '#fef3c7' : C.accentLight,
+                  color:      isActive ? '#fff' : wknd ? '#d97706' : C.accent,
                 }}>
                   {count}
                 </span>
