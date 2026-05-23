@@ -9,7 +9,7 @@ interface SubjectOption { id: string; name: string }
 
 interface Props {
   teacherId: string
-  schoolId:  string
+  schoolId:  string | null
   onClose:   () => void
   onSaved:   () => void
 }
@@ -46,6 +46,15 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: Props) {
+  if (!schoolId) return (
+    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+      <div style={{ background:'#fff', borderRadius:'20px 20px 0 0', padding:'32px 24px 48px', width:'100%', maxWidth:480 }}>
+        <div style={{ fontSize:16, fontWeight:800, color:'#111827', marginBottom:8 }}>No School Linked</div>
+        <div style={{ fontSize:13, color:'#6b7280', marginBottom:20 }}>Link a school first to add timetable slots.</div>
+        <button onClick={onClose} style={{ width:'100%', padding:'12px', borderRadius:12, border:'none', background:'#f3f4f6', color:'#6b7280', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit' }}>Close</button>
+      </div>
+    </div>
+  )
   const [classes,  setClasses]  = useState<ClassOption[]>([])
   const [subjects, setSubjects] = useState<SubjectOption[]>([])
   const [loading,  setLoading]  = useState(true)

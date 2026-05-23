@@ -112,30 +112,6 @@ export default function TeacherHomePage() {
       const today = new Date().toISOString().split('T')[0]
       const dow   = new Date().getDay()
 
-      // ── Guard: check onboarding completion ──────────────────────────
-      const { data: profileCheck } = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', uid)
-        .single()
-
-      if (!profileCheck?.school_id) {
-        router.push('/teacher/onboarding/school')
-        return
-      }
-
-      const { data: classCheck } = await supabase
-        .from('teacher_classes')
-        .select('class_id')
-        .eq('teacher_id', uid)
-        .eq('is_class_teacher', true)
-        .maybeSingle()
-
-      if (!classCheck?.class_id) {
-        router.push('/teacher/onboarding/class')
-        return
-      }
-      // ────────────────────────────────────────────────────────────────
 
       const [profileRes, slotsRes, homeClassRes] = await Promise.all([
         supabase

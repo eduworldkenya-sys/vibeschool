@@ -407,10 +407,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           .order('start_time',  { ascending: true }),
 
         supabase
-          .from('school_members')
+          .from('profiles')
           .select('school_id')
-          .eq('profile_id', user.id)
-          .maybeSingle(),
+          .eq('id', user.id)
+          .single(),
       ])
 
       if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
@@ -448,15 +448,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       setAllSlots(mapped)
 
-      if (memberResult.error) {
-        console.error('[TimetablePage] school_members error:', memberResult.error)
-        setSchoolError('School not found — cannot add slots until this is resolved.')
-      } else {
-        setTeacherSchoolId(memberResult.data?.school_id ?? null)
-        if (!memberResult.data?.school_id) {
-          setSchoolError('No school linked to your account. Contact your admin.')
-        }
-      }
+      setTeacherSchoolId(memberResult.data?.school_id ?? null)
 
     } catch (err) {
       console.error('[TimetablePage] load() fatal:', err)

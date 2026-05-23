@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { TOKENS } from "@/lib/tokens";
+import { TOKENS } from "../../../../lib/tokens";
 
 interface AssignmentDetail {
   id: string;
@@ -89,7 +89,6 @@ export default function HomeworkBriefingFolder() {
   const [submissionName, setSubmissionName] = useState<string | null>(null);
   const [draftMessage, setDraftMessage] = useState<string | null>(null);
 
-  // Fix 1: Proper "Assignment Not Found" state instead of silent fallback
   if (!assignment) {
     return (
       <div style={{ maxWidth: "480px", margin: "40px auto", padding: "24px", textAlign: "center", fontFamily: TOKENS.fontFamily }}>
@@ -139,7 +138,7 @@ export default function HomeworkBriefingFolder() {
         <p style={{ margin: 0, fontSize: "14px", color: TOKENS.textPrimary, lineHeight: "1.5", fontFamily: TOKENS.fontBody }}>{assignment.instructions}</p>
       </div>
 
-      {/* Zone 2: Your Playbook (Coaching Tips) */}
+      {/* Zone 2: Your Playbook */}
       <div style={{ background: "linear-gradient(135deg, #fffdf4, #f6faff)", border: `1px solid ${TOKENS.borderDefault}`, borderRadius: TOKENS.radiusCard, padding: "20px", marginBottom: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
           <h3 style={{ fontFamily: TOKENS.fontHeader, fontSize: "16px", margin: 0 }}>Tonight's Plan for {assignment.childOwner}</h3>
@@ -157,12 +156,11 @@ export default function HomeworkBriefingFolder() {
         </div>
       </div>
 
-      {/* Zone 3: Actions (Submission & Correspondence) */}
+      {/* Zone 3: Actions */}
       {assignment.status !== "completed" && (
         <div style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: TOKENS.radiusCard, padding: "16px", marginBottom: "20px" }}>
           <h4 style={{ margin: "0 0 12px 0", fontSize: "12px", fontWeight: "800", textTransform: "uppercase", color: TOKENS.textMuted }}>Upload Submission</h4>
           
-          {/* Hidden HTML5 Native Pickers */}
           <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleNativeFileChange} style={{ display: "none" }} />
           <input type="file" accept=".pdf" ref={fileInputRef} onChange={handleNativeFileChange} style={{ display: "none" }} />
 
@@ -197,7 +195,6 @@ export default function HomeworkBriefingFolder() {
         <h4 style={{ margin: "0 0 12px 0", fontSize: "12px", fontWeight: "800", textTransform: "uppercase", color: TOKENS.textMuted }}>Contact {assignment.teacherName}</h4>
         
         {draftMessage ? (
-          /* Fix 5: textCenter typo resolved cleanly here */
           <div style={{ backgroundColor: "#eff6ff", color: TOKENS.linkBlue, padding: "12px", borderRadius: "12px", fontSize: "13px", fontWeight: "700", textAlign: "center" }}>
             Draft created! Copying text to your messaging portal...
           </div>
@@ -211,7 +208,6 @@ export default function HomeworkBriefingFolder() {
             </button>
             {assignment.status === "overdue" && (
               <button 
-                /* Fix 4: Correctly dynamically interpolates childOwner attribute instead of forcing Jaden */
                 onClick={() => setDraftMessage(`Hi ${assignment.teacherName}, I wanted to let you know ${assignment.childOwner} is completing this tonight.`)}
                 style={{ textAlign: "left", background: "none", border: "1px solid #f1f5f9", padding: "10px 12px", borderRadius: "10px", fontSize: "13px", color: TOKENS.linkBlue, fontWeight: "600", cursor: "pointer" }}
               >

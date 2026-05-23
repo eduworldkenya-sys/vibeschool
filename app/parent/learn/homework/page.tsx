@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TOKENS, ROUTES } from "@/lib/tokens";
+import { TOKENS, ROUTES } from "../../../lib/tokens";
 
 interface Assignment {
   id: string;
@@ -39,7 +39,7 @@ export default function TodaysBriefing() {
   return (
     <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px", backgroundColor: TOKENS.bgDefault, minHeight: "100vh", fontFamily: TOKENS.fontFamily, color: TOKENS.textPrimary, WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale" }}>
       
-      {/* Persistent Multi-Child Navigation Segmented Control */}
+      {/* Multi-Child Navigation Segmented Control */}
       <div style={{ display: "flex", gap: "8px", background: "#f1f5f9", padding: "4px", borderRadius: "14px", marginBottom: "20px" }}>
         {childrenList.map((name) => {
           const isActive = activeChild === name;
@@ -55,7 +55,7 @@ export default function TodaysBriefing() {
         })}
       </div>
 
-      {/* Hero Summary Card: Resolves 80% of visits in 2 seconds */}
+      {/* Hero Summary Card */}
       {overdue.length > 0 ? (
         <div style={{ backgroundColor: TOKENS.overdueBg, border: `1px solid ${TOKENS.overdueBorder}`, borderRadius: TOKENS.radiusCard, padding: "20px", marginBottom: "24px" }}>
           <h1 style={{ fontFamily: TOKENS.fontHeader, fontSize: "22px", margin: 0, color: TOKENS.overdueText }}>{overdue.length} thing needs attention tonight</h1>
@@ -161,14 +161,6 @@ export default function TodaysBriefing() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {list.length === 0 && (
-          <div style={{ padding: "48px 24px", textAlign: "center", background: TOKENS.bgCard, borderRadius: TOKENS.radiusCard, border: `1px solid ${TOKENS.borderDefault}` }}>
-            <span style={{ fontSize: "40px" }}>🌟</span>
-            <h3 style={{ fontFamily: TOKENS.fontHeader, fontSize: "18px", marginTop: "12px", marginBottom: "4px" }}>All caught up!</h3>
-            <p style={{ fontFamily: TOKENS.fontBody, fontSize: "13px", color: TOKENS.textMuted, margin: 0 }}>No assignments found for {activeChild} right now.</p>
           </div>
         )}
 

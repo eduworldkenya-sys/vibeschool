@@ -70,7 +70,7 @@ export default function ClassHubPage() {
 
     const [profileRes, memberRes] = await Promise.all([
       supabase.from('teacher_profiles').select('designation').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
     ])
 
     const desig  = profileRes.data?.designation ?? null
