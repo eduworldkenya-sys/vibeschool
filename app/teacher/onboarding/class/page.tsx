@@ -86,6 +86,9 @@ export default function ClassOnboardingPage() {
           <button onClick={handleCreate} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: 'none', background: loading ? '#9ca3af' : accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
             {loading ? 'Creating…' : 'Create Class →'}
           </button>
+          <button onClick={() => router.push('/teacher')} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4, width: '100%' }}>
+            Skip for now
+          </button>
         </div>
       </div>
     </div>
