@@ -19,10 +19,23 @@ interface SubjectOption {
 }
 
 interface FormState {
-  name:       string
-  stream:     string
-  subject_id: string
+  name:    string
+  stream:  string
+  subject: string
 }
+
+const GRADES = [
+  'PP1','PP2',
+  'Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6',
+  'Grade 7','Grade 8','Grade 9',
+]
+
+const SUBJECTS = [
+  'Mathematics','English','Kiswahili','Science and Technology',
+  'Social Studies','Religious Education','Creative Arts and Sports',
+  'Agriculture and Nutrition','Home Science','Indigenous Languages',
+  'French','German','Arabic','Kenyan Sign Language',
+]
 
 const accent    = C.accent
 const dark      = C.dark
@@ -57,7 +70,7 @@ export default function ClassHubPage() {
   const [saving,        setSaving]        = useState(false)
   const [deleting,      setDeleting]      = useState<string | null>(null)
   const [error,         setError]         = useState('')
-  const [form,          setForm]          = useState<FormState>({ name: '', stream: '', subject_id: '' })
+  const [form,          setForm]          = useState<FormState>({ name: '', stream: '', subject: '' })
   const [userId,        setUserId]        = useState<string | null>(null)
   const [schoolId,      setSchoolId]      = useState<string | null>(null)
 
@@ -141,11 +154,8 @@ export default function ClassHubPage() {
   async function handleCreate() {
     setError('')
     if (!form.name.trim())       { setError('Class name is required.'); return }
-    if (!form.subject_id)        { setError('Subject is required.'); return }
+    if (!form.subject)           { setError('Subject is required.'); return }
     if (!userId) return
-
-    const subject = subjects.find(s => s.id === form.subject_id)
-    if (!subject) { setError('Invalid subject selected.'); return }
 
     setSaving(true)
     const { error: err } = await supabase.from('classes').insert({
@@ -153,12 +163,11 @@ export default function ClassHubPage() {
       school_id:  schoolId,
       name:       form.name.trim(),
       stream:     form.stream.trim(),
-      subject:    subject.name,
-      subject_id: form.subject_id,
+      subject:    form.subject.trim(),
     })
     setSaving(false)
     if (err) { setError(err.message); return }
-    setForm({ name: '', stream: '', subject_id: '' })
+    setForm({ name: '', stream: '', subject: '' })
     setShowForm(false)
     await loadClasses(userId, schoolId)
   }
@@ -276,24 +285,22 @@ export default function ClassHubPage() {
 
             <div>
               <label style={labelStyle}>Class Name *</label>
-              <input style={inputStyle} placeholder="e.g. Grade 6" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              <select style={{ ...inputStyle, appearance: 'none' }} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}>
+                <option value="" disabled>Select grade</option>
+                {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
             </div>
 
             <div>
               <label style={labelStyle}>Subject *</label>
               <select
                 style={{ ...inputStyle, appearance: 'none' }}
-                value={form.subject_id}
-                onChange={e => setForm(f => ({ ...f, subject_id: e.target.value }))}
+                value={form.subject}
+                onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
               >
                 <option value="" disabled>Select a subject</option>
-                {subjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              {subjects.length === 0 && (
-                <p style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>No subjects found. Ask your admin to add subjects first.</p>
-              )}
             </div>
 
             <div>
