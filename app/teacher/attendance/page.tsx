@@ -60,7 +60,6 @@ function Skeleton({ h = 56 }: { h?: number }) {
 function AttendanceInner() {
   const today = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
-  const dow = new Date(selectedDate + 'T00:00:00').getDay()
   const router       = useRouter()
   const searchParams = useSearchParams()
   const urlClassId   = searchParams.get('classId')
@@ -81,6 +80,7 @@ function AttendanceInner() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      const dow = new Date(selectedDate + 'T00:00:00').getDay()
 
       setUid(user.id)
 
