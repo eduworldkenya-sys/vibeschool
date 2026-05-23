@@ -46,8 +46,8 @@ const CLASS_ACTIONS = [
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
   { id: 'timetable',  label: 'Timetable',    icon: '📅', bg: '#075985', route: '/teacher/timetable' },
-  { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: '' },
-  { id: 'homework',   label: 'Homework',     icon: '📝', bg: '#0f766e', route: '' },
+  { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: `/teacher/classhub/${classId}/groups` },
+  { id: 'homework',   label: 'Homework',     icon: '📝', bg: '#0f766e', route: `/teacher/classhub/${classId}/homework` },
 ]
 
 const SUBJECT_ACTIONS = [
