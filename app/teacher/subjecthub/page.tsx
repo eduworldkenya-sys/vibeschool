@@ -83,7 +83,7 @@ export default function SubjectHubPage() {
 
     const [tcRes, memberRes] = await Promise.all([
       supabase.from('teacher_classes').select('subject_id').eq('teacher_id', user.id),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
     ])
 
     const sid = memberRes.data?.school_id ?? null
