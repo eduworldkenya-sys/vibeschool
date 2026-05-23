@@ -421,8 +421,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       const slots = slotsResult.data ?? []
 
       // Fetch subject and class names separately
-      const subjectIds = [...new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean))]
-      const classIds   = [...new Set(slots.map((s: {class_id: string}) => s.class_id).filter(Boolean))]
+      const subjectIds = Array.from(new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean)))
+      const classIds   = Array.from(new Set(slots.map((s: {class_id: string}) => s.class_id).filter(Boolean)))
 
       const [subjectsRes, classesRes] = await Promise.all([
         subjectIds.length > 0
