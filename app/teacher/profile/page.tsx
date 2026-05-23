@@ -209,27 +209,27 @@ function PersonalInfoSection() {
     setSaving(true)
     setError(null)
 
-    const [pRes, tRes] = await Promise.all([
-      supabase.from('profiles').update({
-        full_name:     form.full_name     || null,
-        phone:         form.phone         || null,
-        date_of_birth: form.date_of_birth || null,
-        country_code:  form.country_code  || null,
-        gender:        form.gender        || null,
-        bio:           form.bio           || null,
-      }).eq('id', userId),
-      supabase.from('teacher_profiles').upsert({
-        tsc_number:      form.tsc_number      || null,
-        employment_type: form.employment_type || null,
-        profile_id:      userId,
-      }, { onConflict: 'profile_id' }),
-    ])
+    const pRes = await supabase.from('profiles').update({
+      full_name:     form.full_name     || null,
+      phone:         form.phone         || null,
+      date_of_birth: form.date_of_birth || null,
+      country_code:  form.country_code  || null,
+      gender:        form.gender        || null,
+      bio:           form.bio           || null,
+    }).eq('id', userId)
 
-    if (pRes.error || tRes.error) {
+    if (pRes.error) {
       setSaving(false)
       setError('Save failed. Please try again.')
       return
     }
+
+    // Best-effort — don't block on teacher_profiles failure
+    await supabase.from('teacher_profiles').upsert({
+      tsc_number:      form.tsc_number      || null,
+      employment_type: form.employment_type || null,
+      profile_id:      userId,
+    }, { onConflict: 'profile_id' })
 
     if (selectedSubjectIds.length > 0 && selectedClassId) {
       await supabase.from('teacher_classes').delete().eq('teacher_id', userId)
