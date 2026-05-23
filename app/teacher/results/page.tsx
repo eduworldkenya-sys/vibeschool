@@ -373,7 +373,7 @@ function ResultsInner() {
 
     if (!aErr && data) {
       const s = data as { id: string; name: string; class_name: string | null }
-      setStudents(prev => [...prev, { id: s.id, name: s.name, source: 'manual', class_name: s.class_name ?? undefined }]
+      setStudents(prev => [...prev, { id: s.id, name: s.name, source: 'manual' as const, class_name: s.class_name ?? undefined }]
         .sort((a, b) => a.name.localeCompare(b.name))
       )
     }
