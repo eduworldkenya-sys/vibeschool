@@ -400,7 +400,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           .select(`
             id, day_of_week, start_time, end_time, room,
             subjects!timetable_slots_subject_id_fkey ( name ),
-            classes!timetable_slots_class_id_fkey    ( name, stream )
+            classes ( name, stream )
           `)
           .eq('teacher_id', user.id)
           .order('day_of_week', { ascending: true })
