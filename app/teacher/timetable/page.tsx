@@ -769,7 +769,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       />
 
       {/* Add slot modal — only when school confirmed */}
-      {showAddSlot && teacherId != null && teacherSchoolId != null && (
+      {showAddSlot && teacherId != null && (
         <AddSlotModal
           teacherId={teacherId}
           schoolId={teacherSchoolId}
@@ -778,37 +778,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         />
       )}
 
-      {/* No school linked — explicit error sheet */}
-      {showAddSlot && teacherId != null && teacherSchoolId == null && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 900,
-          display: 'flex', alignItems: 'flex-end',
-        }}>
-          <div
-            onClick={() => setShowAddSlot(false)}
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }}
-          />
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              position: 'relative', zIndex: 1,
-              width: '100%', background: 'var(--sheet-bg, #fff)',
-              borderRadius: '20px 20px 0 0',
-              padding: '32px 24px 48px',
-            }}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#b91c1c', marginBottom: 8 }}>
-              Cannot Add Slot
-            </div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>
-              {schoolError ?? 'Your account is not linked to a school. Please contact your administrator.'}
-            </div>
-            <Btn variant="muted" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowAddSlot(false)}>
-              Close
-            </Btn>
-          </div>
-        </div>
-      )}
+
     </>
   )
 }

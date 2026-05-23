@@ -1,11 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
-
-interface ClassOption   { id: string; name: string; stream: string }
-interface SubjectOption { id: string; name: string }
 
 interface Props {
   teacherId: string
@@ -20,6 +17,21 @@ const DAYS = [
   { label: 'Wednesday', value: 3 },
   { label: 'Thursday',  value: 4 },
   { label: 'Friday',    value: 5 },
+  { label: 'Saturday',  value: 6 },
+  { label: 'Sunday',    value: 7 },
+]
+
+const GRADES = [
+  'PP1','PP2',
+  'Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6',
+  'Grade 7','Grade 8','Grade 9',
+]
+
+const SUBJECTS = [
+  'Mathematics','English','Kiswahili','Science and Technology',
+  'Social Studies','Religious Education','Creative Arts and Sports',
+  'Agriculture and Nutrition','Home Science','Indigenous Languages',
+  'French','German','Arabic','Kenyan Sign Language',
 ]
 
 const inputStyle: React.CSSProperties = {
@@ -46,72 +58,71 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: Props) {
-  if (!schoolId) return (
-    <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-      <div style={{ background:'#fff', borderRadius:'20px 20px 0 0', padding:'32px 24px 48px', width:'100%', maxWidth:480 }}>
-        <div style={{ fontSize:16, fontWeight:800, color:'#111827', marginBottom:8 }}>No School Linked</div>
-        <div style={{ fontSize:13, color:'#6b7280', marginBottom:20 }}>Link a school first to add timetable slots.</div>
-        <button onClick={onClose} style={{ width:'100%', padding:'12px', borderRadius:12, border:'none', background:'#f3f4f6', color:'#6b7280', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit' }}>Close</button>
-      </div>
-    </div>
-  )
-  const [classes,  setClasses]  = useState<ClassOption[]>([])
-  const [subjects, setSubjects] = useState<SubjectOption[]>([])
-  const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState<string | null>(null)
 
-  const [classId,   setClassId]   = useState('')
-  const [subjectId, setSubjectId] = useState('')
-  const [dayOfWeek, setDayOfWeek] = useState('1')
-  const [startTime, setStartTime] = useState('08:00')
-  const [endTime,   setEndTime]   = useState('09:00')
-  const [room,      setRoom]      = useState('')
+  const [className,  setClassName]  = useState('')
+  const [subject,    setSubject]    = useState('')
+  const [dayOfWeek,  setDayOfWeek]  = useState('1')
+  const [startTime,  setStartTime]  = useState('08:00')
+  const [endTime,    setEndTime]    = useState('09:00')
+  const [room,       setRoom]       = useState('')
   const [effectiveFrom, setEffectiveFrom] = useState('')
-
-  useEffect(() => {
-    async function load() {
-      const [tcRes, subjRes] = await Promise.all([
-        supabase
-          .from('teacher_classes')
-          .select('class_id, subject_id')
-          .eq('teacher_id', teacherId),
-        supabase
-          .from('subjects')
-          .select('id, name')
-          .eq('school_id', schoolId),
-      ])
-
-      const classIds   = Array.from(new Set((tcRes.data ?? []).map((r: { class_id: string }) => r.class_id)))
-      const subjectIds = Array.from(new Set((tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id)))
-
-      const [classRes] = await Promise.all([
-        classIds.length > 0
-          ? supabase.from('classes').select('id, name, stream').in('id', classIds)
-          : Promise.resolve({ data: [] }),
-      ])
-
-      const cls  = (classRes.data ?? []) as ClassOption[]
-      const subs = ((subjRes.data ?? []) as SubjectOption[]).filter(s => subjectIds.includes(s.id))
-
-      setClasses(cls)
-      setSubjects(subs)
-      setClassId(cls[0]?.id   ?? '')
-      setSubjectId(subs[0]?.id ?? '')
-      setLoading(false)
-    }
-    load()
-  }, [teacherId, schoolId])
 
   async function save() {
     setError(null)
-    if (!classId)    { setError('Select a class.');   return }
-    if (!subjectId)  { setError('Select a subject.'); return }
+    if (!className)  { setError('Select a class.');   return }
+    if (!subject)    { setError('Select a subject.'); return }
     if (!startTime)  { setError('Enter start time.'); return }
     if (!endTime)    { setError('Enter end time.');   return }
     if (startTime >= endTime) { setError('End time must be after start time.'); return }
 
     setSaving(true)
+
+    // Find or create class record
+    let classId: string | null = null
+
+    const { data: existingClass } = await supabase
+      .from('classes')
+      .select('id')
+      .eq('teacher_id', teacherId)
+      .eq('name', className)
+      .maybeSingle()
+
+    if (existingClass) {
+      classId = existingClass.id
+    } else {
+      const { data: newClass, error: classErr } = await supabase
+        .from('classes')
+        .insert({ teacher_id: teacherId, school_id: schoolId, name: className, subject })
+        .select('id')
+        .single()
+      if (classErr || !newClass) { setError('Failed to create class: ' + classErr?.message); setSaving(false); return }
+      classId = newClass.id
+    }
+
+    // Find or create subject record
+    let subjectId: string | null = null
+
+    if (schoolId) {
+      const { data: existingSubject } = await supabase
+        .from('subjects')
+        .select('id')
+        .eq('school_id', schoolId)
+        .eq('name', subject)
+        .maybeSingle()
+
+      if (existingSubject) {
+        subjectId = existingSubject.id
+      } else {
+        const { data: newSubject } = await supabase
+          .from('subjects')
+          .insert({ school_id: schoolId, name: subject })
+          .select('id')
+          .single()
+        subjectId = newSubject?.id ?? null
+      }
+    }
 
     const { error: err } = await supabase
       .from('timetable_slots')
@@ -146,7 +157,6 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
         display: 'flex', flexDirection: 'column', gap: 16,
         maxHeight: '90vh', overflowY: 'auto',
       }}>
-        {/* Handle + title */}
         <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>Add Timetable Slot</div>
@@ -159,79 +169,53 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
           </div>
         )}
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: C.textMuted, fontSize: 13 }}>Loading…</div>
-        ) : (
-          <>
-            {/* Class */}
-            <div>
-              <label style={labelStyle}>Class *</label>
-              <select value={classId} onChange={e => setClassId(e.target.value)} style={inputStyle}>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ''}</option>
-                ))}
-              </select>
-            </div>
+        <div>
+          <label style={labelStyle}>Class *</label>
+          <select value={className} onChange={e => setClassName(e.target.value)} style={inputStyle}>
+            <option value="">Select grade</option>
+            {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
 
-            {/* Subject */}
-            <div>
-              <label style={labelStyle}>Subject *</label>
-              <select value={subjectId} onChange={e => setSubjectId(e.target.value)} style={inputStyle}>
-                {subjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
+        <div>
+          <label style={labelStyle}>Subject *</label>
+          <select value={subject} onChange={e => setSubject(e.target.value)} style={inputStyle}>
+            <option value="">Select subject</option>
+            {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
 
-            {/* Day */}
-            <div>
-              <label style={labelStyle}>Day *</label>
-              <select value={dayOfWeek} onChange={e => setDayOfWeek(e.target.value)} style={inputStyle}>
-                {DAYS.map(d => (
-                  <option key={d.value} value={d.value}>{d.label}</option>
-                ))}
-              </select>
-            </div>
+        <div>
+          <label style={labelStyle}>Day *</label>
+          <select value={dayOfWeek} onChange={e => setDayOfWeek(e.target.value)} style={inputStyle}>
+            {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+          </select>
+        </div>
 
-            {/* Start / end time */}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Start Time *</label>
-                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>End Time *</label>
-                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
-              </div>
-            </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Start Time *</label>
+            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>End Time *</label>
+            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
+          </div>
+        </div>
 
-            {/* Room */}
-            <div>
-              <label style={labelStyle}>Room (optional)</label>
-              <input
-                value={room}
-                onChange={e => setRoom(e.target.value)}
-                placeholder="e.g. Room 4B"
-                style={inputStyle}
-              />
-            </div>
+        <div>
+          <label style={labelStyle}>Room (optional)</label>
+          <input value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. Room 4B" style={inputStyle} />
+        </div>
 
-            {/* Effective from */}
-            <div>
-              <label style={labelStyle}>Effective From (optional)</label>
-              <input
-                type="date"
-                value={effectiveFrom}
-                onChange={e => setEffectiveFrom(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
+        <div>
+          <label style={labelStyle}>Effective From (optional)</label>
+          <input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputStyle} />
+        </div>
 
-            <Btn onClick={save} disabled={saving}>
-              {saving ? 'Saving…' : 'Add Slot'}
-            </Btn>
-          </>
-        )}
+        <Btn onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Add Slot'}
+        </Btn>
       </div>
     </div>
   )
