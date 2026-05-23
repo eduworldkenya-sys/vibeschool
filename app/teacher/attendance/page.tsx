@@ -255,7 +255,7 @@ function AttendanceInner() {
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>Mark Register</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
   {selectedDate} · Synced to ClassHub and progressive record.</div>
-        <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value) }} style={{ marginTop: 8, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }} />
+        <input type="date" value={selectedDate} onChange={e => { setSelectedDate(e.target.value) }} style={{ marginTop: 8, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#fff', color: '#111827', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', width: '100%' }} />
 
         {urlClassId && (
           <button
