@@ -1,7 +1,7 @@
 'use client'
 import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
-import { useEffect, useState, Suspense } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 
