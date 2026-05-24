@@ -109,7 +109,7 @@ export default function TeacherHomePage() {
       const uid   = user.id
       const today = new Date().toISOString().split('T')[0]
       const rawDow = new Date().getDay()
-      const dow   = rawDow === 0 ? 7 : rawDow
+      const dow   = rawDow + 1
 
 
       const [profileRes, slotsRes, homeClassRes] = await Promise.all([
