@@ -53,8 +53,7 @@ function Skeleton({ h = 72 }: { h?: number }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 function LessonPlanInner() {
-  const rawDow     = new Date().getDay()
-  const dow         = rawDow === 0 || rawDow === 6 ? 1 : rawDow
+
   const weekStart  = getWeekStart()
   const router       = useRouter()
   const searchParams = useSearchParams()
@@ -79,7 +78,6 @@ function LessonPlanInner() {
             classes  ( name, stream )
           `)
           .eq('teacher_id', user.id)
-          .eq('day_of_week', dow)
           .order('start_time', { ascending: true }),
 
         supabase
