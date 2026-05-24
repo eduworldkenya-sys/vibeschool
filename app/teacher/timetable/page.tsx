@@ -347,7 +347,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [todayDow, setTodayDow] = useState<number>(new Date().getDay())
 
   const isWeekend    = todayDow === 0 || todayDow === 6
-  const effectiveDow = isWeekend ? 1 : todayDow
+  const effectiveDow = todayDow === 0 ? 7 : todayDow
 
   const [activeDow,       setActiveDow]       = useState(effectiveDow)
   const [allSlots,        setAllSlots]         = useState<Slot[]>([])
