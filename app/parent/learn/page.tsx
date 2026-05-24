@@ -372,7 +372,7 @@ export default function ParentLearnPage() {
 
       supabase
           .from("exam_results")
-          .select("id, marks, is_absent, subject_id, exam_id, exams(name, term, academic_year, exam_type), exam_subject_config(max_marks)")
+          .select("id, marks, is_absent, subject_id, exam_id, exams(name, term, academic_year, exam_type)")
           .eq("student_id", childId)
           .order("created_at", { ascending: false }),
         ]);
@@ -516,7 +516,7 @@ export default function ParentLearnPage() {
           year:      r.exams?.academic_year ?? 0,
           subject:   subjectMap.get(r.subject_id) ?? "Subject",
           marks:     r.marks ?? 0,
-          maxMarks:  r.exam_subject_config?.max_marks ?? 100,
+          maxMarks:  100,
           isAbsent:  r.is_absent ?? false,
         }));
         cache.current.set(childId, { 
