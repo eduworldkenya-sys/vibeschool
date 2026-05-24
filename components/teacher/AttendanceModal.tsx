@@ -15,7 +15,7 @@ const OPT_COLOR: Record<AttendanceStatus, string> = {
 interface Props {
   slot: TimetableSlot;
   onClose: () => void;
-  onSave: (slotId: number, statuses: Record<number, AttendanceStatus>) => void;
+  onSave: (slotId: string, statuses: Record<number, AttendanceStatus>) => void;
 }
 
 export default function AttendanceModal({ slot, onClose, onSave }: Props) {
