@@ -753,7 +753,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           {[
             { label: 'Total Lessons', value: totalLessons },
             { label: 'Classes',       value: uniqueClasses },
-            { label: isWeekend ? 'Mon Lessons' : 'Today', value: todayCount },
+            { label: "Today's Lessons", value: allSlots.filter(s => s.dayOfWeek === todayDow).length },
           ].map(r => (
             <div
               key={r.label}
