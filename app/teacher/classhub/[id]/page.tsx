@@ -1,6 +1,5 @@
 'use client'
-import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
-
+import { C } from '@/components/teacher/ui'
 import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
@@ -24,11 +23,6 @@ interface FormState {
   admission_number: string
 }
 
-interface ClaimCode {
-  studentId: string
-  code:      string
-}
-
 function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
   return (
     <div style={{
@@ -41,7 +35,7 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 }
 
 const CLASS_ACTIONS = [
-  { id: 'students',   label: 'Students',     icon: '👥', bg: C.dark, route: '' },
+  { id: 'students',   label: 'Students',     icon: '👥', bg: C.dark,    route: '' },
   { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
@@ -58,8 +52,6 @@ const SUBJECT_ACTIONS = [
   { id: 'timetable',  label: 'Timetable',    icon: '📅', bg: '#075985', route: '/teacher/timetable' },
 ]
 
-// NOTICES removed - activity section now renders inline with smart nudge
-
 function generateCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
@@ -73,20 +65,22 @@ function ClassPageInner() {
   const subjectId    = searchParams.get('subjectId') ?? ''
   const isSubject    = mode === 'subject'
 
-  const [classInfo,    setClassInfo]    = useState<ClassInfo | null>(null)
-  const [students,     setStudents]     = useState<Student[]>([])
-  const [loading,      setLoading]      = useState(true)
-  const [showRoster,   setShowRoster]   = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [showForm,     setShowForm]     = useState(false)
-  const [saving,       setSaving]       = useState(false)
-  const [deleting,     setDeleting]     = useState<string | null>(null)
-  const [error,        setError]        = useState('')
-  const [form,         setForm]         = useState<FormState>({ name: '', admission_number: '' })
-  const [claimCodes,   setClaimCodes]   = useState<Record<string, string>>({})
-  const [generating,   setGenerating]   = useState<string | null>(null)
-  const [copiedId,     setCopiedId]     = useState<string | null>(null)
-  const [joinRequests, setJoinRequests] = useState<number>(0)
+  const [classInfo,        setClassInfo]        = useState<ClassInfo | null>(null)
+  const [students,         setStudents]         = useState<Student[]>([])
+  const [loading,          setLoading]          = useState(true)
+  const [showRoster,       setShowRoster]       = useState(false)
+  const [selectedStudent,  setSelectedStudent]  = useState<Student | null>(null)
+  const [confirmRemoveId,  setConfirmRemoveId]  = useState<string | null>(null)
+  const [showForm,         setShowForm]         = useState(false)
+  const [saving,           setSaving]           = useState(false)
+  const [error,            setError]            = useState('')
+  const [form,             setForm]             = useState<FormState>({ name: '', admission_number: '' })
+  const [claimCodes,       setClaimCodes]       = useState<Record<string, string>>({})
+  const [generating,       setGenerating]       = useState<string | null>(null)
+  const [copiedId,         setCopiedId]         = useState<string | null>(null)
+  const [joinRequests,     setJoinRequests]     = useState<number>(0)
+  const [removeError,      setRemoveError]      = useState('')
+  const [removing,         setRemoving]         = useState(false)
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -96,23 +90,34 @@ function ClassPageInner() {
       ? supabase.from('classes').select('name, stream, subject').eq('id', classId).single()
       : supabase.from('classes').select('name, stream, subject').eq('id', classId).eq('teacher_id', user.id).single()
 
-    const [clsRes, studsRes, codesRes, requestsRes] = await Promise.all([
+    const [clsRes, studsRes, requestsRes] = await Promise.all([
       classQuery,
       supabase.from('students').select('*').eq('class_id', classId).order('created_at', { ascending: true }),
-      supabase.from('student_claim_codes').select('student_id, code').eq('claimed', false),
       supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
     ])
 
     if (!clsRes.data) { router.push(isSubject ? '/teacher/subjecthub' : '/teacher/classhub'); return }
     setClassInfo(clsRes.data)
-    setStudents(studsRes.data ?? [])
+
+    const loadedStudents = studsRes.data ?? []
+    setStudents(loadedStudents)
     setJoinRequests(requestsRes.data?.length ?? 0)
 
-    const codes: Record<string, string> = {}
-    for (const c of codesRes.data ?? []) {
-      codes[c.student_id] = c.code
+    if (loadedStudents.length > 0) {
+      const ids = loadedStudents.map(s => s.id)
+      const { data: codesData } = await supabase
+        .from('student_claim_codes')
+        .select('student_id, code')
+        .eq('claimed', false)
+        .in('student_id', ids)
+
+      const codes: Record<string, string> = {}
+      for (const c of codesData ?? []) {
+        codes[c.student_id] = c.code
+      }
+      setClaimCodes(codes)
     }
-    setClaimCodes(codes)
+
     setLoading(false)
   }
 
@@ -135,13 +140,17 @@ function ClassPageInner() {
 
     if (err || !student) { setSaving(false); setError(err?.message ?? 'Failed to add student'); return }
 
-    // Auto-generate claim code for new student
     const code = generateCode()
-    await supabase.from('student_claim_codes').insert({
-      student_id: student.id,
-      code,
-      claimed:    false,
-    })
+    const { error: codeErr } = await supabase
+      .from('student_claim_codes')
+      .insert({ student_id: student.id, code, claimed: false })
+
+    if (codeErr) {
+      setSaving(false)
+      setError('Student added but claim code failed. Reload and generate code manually.')
+      loadData()
+      return
+    }
 
     setSaving(false)
     setForm({ name: '', admission_number: '' })
@@ -152,18 +161,21 @@ function ClassPageInner() {
   async function handleGenerateCode(studentId: string) {
     setGenerating(studentId)
     const code = generateCode()
+    const { error: delErr } = await supabase
+      .from('student_claim_codes')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('claimed', false)
 
-    // Delete old unclaimed code if exists
-    await supabase.from('student_claim_codes').delete()
-      .eq('student_id', studentId).eq('claimed', false)
+    if (delErr) { setGenerating(null); return }
 
-    await supabase.from('student_claim_codes').insert({
-      student_id: studentId,
-      code,
-      claimed:    false,
-    })
+    const { error: insErr } = await supabase
+      .from('student_claim_codes')
+      .insert({ student_id: studentId, code, claimed: false })
 
-    setClaimCodes(prev => ({ ...prev, [studentId]: code }))
+    if (!insErr) {
+      setClaimCodes(prev => ({ ...prev, [studentId]: code }))
+    }
     setGenerating(null)
   }
 
@@ -173,16 +185,35 @@ function ClassPageInner() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  async function handleDelete(id: string) {
-    const student = students.find(s => s.id === id)
-    const confirmed = window.confirm(
-      `Remove ${student?.name ?? 'this student'} from the class?\n\nThis cannot be undone.`
-    )
-    setDeleting(id)
-    await supabase.from('student_claim_codes').delete().eq('student_id', id)
-    await supabase.from('students').delete().eq('id', id)
-    setDeleting(null)
-    loadData()
+  async function handleRemoveStudent(student: Student) {
+    setRemoving(true)
+    setRemoveError('')
+    const { error: delCodeErr } = await supabase
+      .from('student_claim_codes')
+      .delete()
+      .eq('student_id', student.id)
+
+    if (delCodeErr) {
+      setRemoveError('Failed to remove claim codes. Try again.')
+      setRemoving(false)
+      return
+    }
+
+    const { error: delStudentErr } = await supabase
+      .from('students')
+      .delete()
+      .eq('id', student.id)
+
+    if (delStudentErr) {
+      setRemoveError('Failed to remove student. Try again.')
+      setRemoving(false)
+      return
+    }
+
+    setStudents(prev => prev.filter(x => x.id !== student.id))
+    setSelectedStudent(null)
+    setConfirmRemoveId(null)
+    setRemoving(false)
   }
 
   function buildRoute(baseRoute: string) {
@@ -219,9 +250,9 @@ function ClassPageInner() {
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 60, background: C.surface, minHeight: '100%' }}>
+    <div id="classhub-page" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 60, background: C.surface, minHeight: '100%' }}>
       <style>{`
-        @keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes shimmer   { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
@@ -231,22 +262,14 @@ function ClassPageInner() {
         <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <button
-            onClick={() => router.push(backRoute)}
-            style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}
-          >←</button>
+          <button onClick={() => router.push(backRoute)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}>←</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isSubject ? (
-              <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>
-                Subject View
-              </div>
+              <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>Subject View</div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {joinRequests > 0 && (
-                  <button
-                    onClick={() => router.push('/teacher/classhub/' + classId + '/requests')}
-                    style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}
-                  >
+                  <button onClick={() => router.push('/teacher/classhub/' + classId + '/requests')} style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>
                     🔔
                     <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.error, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
                   </button>
@@ -275,22 +298,18 @@ function ClassPageInner() {
               </div>
               <div>
                 <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
-                  {isSubject
-                    ? classInfo?.subject
-                    : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}
+                  {isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}
                 </h1>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '3px 0 0' }}>
-                  {isSubject
-                    ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))
-                    : classInfo?.subject}
+                  {isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}
                 </p>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               {[
-                { label: 'Students',                              value: students.length },
-                { label: 'Claimed', value: students.length > 0 && students.filter(s => s.profile_id).length === 0 ? '⚠ 0' : students.filter(s => s.profile_id).length },
-                { label: isSubject ? 'Subject Avg' : 'Avg Score', value: '—' },
+                { label: 'Students', value: students.length },
+                { label: 'Claimed',  value: students.filter(s => s.profile_id).length },
+                { label: 'Avg Score', value: '—' },
               ].map(s => (
                 <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.value}</div>
@@ -309,11 +328,7 @@ function ClassPageInner() {
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 10 }}>
           {actions.map(a => (
-            <button
-              key={a.id}
-              onClick={() => handleAction(a)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 4px', borderRadius: 14, border: 'none', cursor: 'pointer', background: a.bg, fontFamily: 'inherit' }}
-            >
+            <button key={a.id} onClick={() => handleAction(a)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 4px', borderRadius: 14, border: 'none', cursor: 'pointer', background: a.bg, fontFamily: 'inherit' }}>
               <span style={{ fontSize: 22 }}>{a.icon}</span>
               <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>{a.label}</span>
             </button>
@@ -326,16 +341,11 @@ function ClassPageInner() {
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease' }}>
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>
-                {isSubject ? 'Class Students' : 'Student Roster'}
-              </p>
+              <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{isSubject ? 'Class Students' : 'Student Roster'}</p>
               <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{students.length} enrolled</p>
             </div>
             {!isSubject && (
-              <button
-                onClick={() => setShowForm(v => !v)}
-                style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : C.dark, color: showForm ? C.textPrimary : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
+              <button onClick={() => setShowForm(v => !v)} style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : C.dark, color: showForm ? C.textPrimary : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {showForm ? 'Cancel' : '+ Add'}
               </button>
             )}
@@ -354,11 +364,7 @@ function ClassPageInner() {
                 </div>
               </div>
               {error && <p style={{ color: C.error, fontSize: 12, marginTop: 8 }}>{error}</p>}
-              <button
-                onClick={handleAdd}
-                disabled={saving}
-                style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? C.accentLight : C.accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
-              >
+              <button onClick={handleAdd} disabled={saving} style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? C.accentLight : C.accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
                 {saving ? 'Saving…' : 'Add Student'}
               </button>
             </div>
@@ -384,13 +390,10 @@ function ClassPageInner() {
                 const claimed = !!s.profile_id
                 return (
                   <div key={s.id} style={{ padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
-                    <button
-                      onClick={() => setSelectedStudent(s)}
-                      style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
-                    >
+                    <button onClick={() => setSelectedStudent(s)} style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: '50%', background: claimed ? C.accentLight : isSubject ? '#e0f2fe' : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: claimed ? '#065f46' : isSubject ? '#075985' : C.dark, flexShrink: 0 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: '50%', background: claimed ? C.accentLight : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: claimed ? '#065f46' : C.dark, flexShrink: 0 }}>
                             {s.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
@@ -407,7 +410,6 @@ function ClassPageInner() {
                       </div>
                     </button>
 
-                    {/* Claim code section */}
                     {!isSubject && !claimed && (
                       <div style={{ marginTop: 10, padding: '10px 12px', background: C.surface, borderRadius: 10, border: '1px solid #e5e7eb' }}>
                         {code ? (
@@ -417,17 +419,10 @@ function ClassPageInner() {
                               <p style={{ fontSize: 18, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 3, fontFamily: 'monospace' }}>{code}</p>
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
-                              <button
-                                onClick={() => handleCopyCode(s.id, code)}
-                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? C.accentLight : 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
-                              >
+                              <button onClick={() => handleCopyCode(s.id, code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? C.accentLight : 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                                 {copiedId === s.id ? 'Copied!' : 'Copy'}
                               </button>
-                              <button
-                                onClick={() => handleGenerateCode(s.id)}
-                                disabled={generating === s.id}
-                                style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
-                              >
+                              <button onClick={() => handleGenerateCode(s.id)} disabled={generating === s.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                                 {generating === s.id ? '…' : 'New'}
                               </button>
                             </div>
@@ -435,11 +430,7 @@ function ClassPageInner() {
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>No claim code yet</p>
-                            <button
-                              onClick={() => handleGenerateCode(s.id)}
-                              disabled={generating === s.id}
-                              style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                            >
+                            <button onClick={() => handleGenerateCode(s.id)} disabled={generating === s.id} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                               {generating === s.id ? 'Generating…' : 'Generate Code'}
                             </button>
                           </div>
@@ -456,10 +447,7 @@ function ClassPageInner() {
 
       {!isSubject && !showRoster && (
         <div style={{ margin: '14px 16px 0' }}>
-          <button
-            onClick={() => setShowRoster(true)}
-            style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
+          <button onClick={() => setShowRoster(true)} style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
             👥 View Student Roster ({students.length})
           </button>
         </div>
@@ -475,17 +463,13 @@ function ClassPageInner() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '12px 0' }}>
             <span style={{ fontSize: 28 }}>🎒</span>
             <p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>No students yet — add your first student to get started</p>
-            <button onClick={() => { setShowRoster(true); setShowForm(true) }} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-              + Add First Student
-            </button>
+            <button onClick={() => { setShowRoster(true); setShowForm(true) }} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add First Student</button>
           </div>
         ) : students.filter(s => s.profile_id).length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '12px 0' }}>
             <span style={{ fontSize: 28 }}>📲</span>
-            <p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>{students.length} student{students.length > 1 ? "s" : ""} unclaimed — share claim codes with parents to activate accounts</p>
-            <button onClick={() => setShowRoster(true)} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-              View Claim Codes →
-            </button>
+            <p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>{students.length} student{students.length > 1 ? 's' : ''} unclaimed — share claim codes to activate accounts</p>
+            <button onClick={() => setShowRoster(true)} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>View Claim Codes →</button>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
@@ -505,9 +489,9 @@ function ClassPageInner() {
         </p>
         <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { label: 'Attendance Rate',                        value: '—%', icon: '📊' },
-            { label: isSubject ? 'Subject Avg' : 'Avg Score', value: '—',  icon: '🏆' },
-            { label: 'Homework Done',                          value: '—%', icon: '📝' },
+            { label: 'Attendance Rate', value: '—%', icon: '📊' },
+            { label: isSubject ? 'Subject Avg' : 'Avg Score', value: '—', icon: '🏆' },
+            { label: 'Homework Done', value: '—%', icon: '📝' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: 16 }}>{s.icon}</div>
@@ -517,58 +501,60 @@ function ClassPageInner() {
           ))}
         </div>
       </div>
+
       {/* STUDENT PROFILE MODAL */}
-      {selectedStudent && (() => {
-        const s = selectedStudent
-        const code = claimCodes[s.id]
-        const claimed = !!s.profile_id
-        return (
-          <div
-            onClick={e => { if (e.target === e.currentTarget) setSelectedStudent(null) }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }}
-          >
-            <div style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 48px' }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 20px' }} />
-
-              {/* Profile Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: claimed ? C.accentLight : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: claimed ? '#065f46' : C.dark }}>
-                  {s.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h2 style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, margin: 0 }}>{s.name}</h2>
-                  <p style={{ fontSize: 13, color: C.textMuted }}>Adm: {s.admission_number || '—'}</p>
-                </div>
+      {selectedStudent && (
+        <div onClick={e => { if (e.target === e.currentTarget) { setSelectedStudent(null); setConfirmRemoveId(null); setRemoveError('') } }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 48px' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 20px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: selectedStudent.profile_id ? C.accentLight : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: selectedStudent.profile_id ? '#065f46' : C.dark }}>
+                {selectedStudent.name.charAt(0).toUpperCase()}
               </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {!claimed && (
-                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 12, marginBottom: 10 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>Claim Code</p>
-                    <p style={{ fontSize: 24, fontWeight: 900, fontFamily: 'monospace' }}>{code || 'No code'}</p>
-                  </div>
-                )}
-
-                <button
-                  onClick={async () => {
-                    if (!confirm(\`Remove \${s.name} from this class? This cannot be undone.\`)) return
-                    await supabase.from('student_claim_codes').delete().eq('student_id', s.id)
-                    await supabase.from('students').delete().eq('id', s.id)
-                    setStudents(prev => prev.filter(x => x.id !== s.id))
-                    setSelectedStudent(null)
-                  }}
-                  style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fca5a5', background: 'transparent', color: '#dc2626', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
-                >
-                  🗑 Remove Student
-                </button>
-
-                <button onClick={() => setSelectedStudent(null)} style={{ width: '100%', padding: 13, borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700 }}>Close</button>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, margin: 0 }}>{selectedStudent.name}</h2>
+                <p style={{ fontSize: 13, color: C.textMuted }}>Adm: {selectedStudent.admission_number || '—'}</p>
               </div>
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {!selectedStudent.profile_id && (
+                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 12, marginBottom: 10 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>Claim Code</p>
+                  <p style={{ fontSize: 24, fontWeight: 900, fontFamily: 'monospace' }}>{claimCodes[selectedStudent.id] || 'No code'}</p>
+                </div>
+              )}
+
+              {removeError ? (
+                <p style={{ fontSize: 12, color: C.error, textAlign: 'center' }}>{removeError}</p>
+              ) : null}
+
+              {confirmRemoveId === selectedStudent.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <p style={{ fontSize: 13, color: C.textPrimary, textAlign: 'center', margin: 0 }}>Remove <strong>{selectedStudent.name}</strong> from this class? This cannot be undone.</p>
+                  <button
+                    onClick={() => handleRemoveStudent(selectedStudent)}
+                    disabled={removing}
+                    style={{ width: '100%', padding: '13px', borderRadius: 12, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: 14, cursor: removing ? 'not-allowed' : 'pointer' }}
+                  >
+                    {removing ? 'Removing…' : 'Yes, Remove'}
+                  </button>
+                  <button onClick={() => { setConfirmRemoveId(null); setRemoveError('') }} style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textPrimary, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setConfirmRemoveId(selectedStudent.id)}
+                    style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fca5a5', background: 'transparent', color: '#dc2626', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                  >
+                    🗑 Remove Student
+                  </button>
+                  <button onClick={() => { setSelectedStudent(null); setConfirmRemoveId(null); setRemoveError('') }} style={{ width: '100%', padding: 13, borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Close</button>
+                </>
+              )}
+            </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
     </div>
   )
 }
