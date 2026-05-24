@@ -119,6 +119,10 @@ function LessonPlanInner() {
           status:           'scheduled',
           planStatus:       'green',
           attendanceMarked: false,
+          class_id:         s.class_id,
+          subject_id:       s.subject_id,
+          teacher_id:       s.teacher_id,
+          school_id:        s.school_id,
         }
 
         const plan   = planMap.get(`${s.class_id}:${s.day_of_week}`) ?? null
