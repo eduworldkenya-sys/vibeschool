@@ -240,6 +240,22 @@ function LessonPlanInner() {
                 >
                   View
                 </Btn>
+                {plan && (
+                  <Btn small onClick={async () => {
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (!user) return
+                    await supabase.from('teacher_content').insert({
+                      teacher_id:   user.id,
+                      class_id:     slot.class_id,
+                      subject_id:   slot.subject_id,
+                      type:         'notes',
+                      title:        plan.title,
+                      body:         plan.body,
+                      published:    true,
+                      published_at: new Date().toISOString(),
+                    })
+                  }}>📤 Publish</Btn>
+                )}
               </div>
             ))}
           </div>
