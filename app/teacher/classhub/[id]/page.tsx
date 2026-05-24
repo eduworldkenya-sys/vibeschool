@@ -517,6 +517,58 @@ function ClassPageInner() {
           ))}
         </div>
       </div>
+      {/* STUDENT PROFILE MODAL */}
+      {selectedStudent && (() => {
+        const s = selectedStudent
+        const code = claimCodes[s.id]
+        const claimed = !!s.profile_id
+        return (
+          <div
+            onClick={e => { if (e.target === e.currentTarget) setSelectedStudent(null) }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }}
+          >
+            <div style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 48px' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 20px' }} />
+
+              {/* Profile Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: claimed ? C.accentLight : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: claimed ? '#065f46' : C.dark }}>
+                  {s.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, margin: 0 }}>{s.name}</h2>
+                  <p style={{ fontSize: 13, color: C.textMuted }}>Adm: {s.admission_number || '—'}</p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {!claimed && (
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 12, marginBottom: 10 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>Claim Code</p>
+                    <p style={{ fontSize: 24, fontWeight: 900, fontFamily: 'monospace' }}>{code || 'No code'}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={async () => {
+                    if (!confirm(\`Remove \${s.name} from this class? This cannot be undone.\`)) return
+                    await supabase.from('student_claim_codes').delete().eq('student_id', s.id)
+                    await supabase.from('students').delete().eq('id', s.id)
+                    setStudents(prev => prev.filter(x => x.id !== s.id))
+                    setSelectedStudent(null)
+                  }}
+                  style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fca5a5', background: 'transparent', color: '#dc2626', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                >
+                  🗑 Remove Student
+                </button>
+
+                <button onClick={() => setSelectedStudent(null)} style={{ width: '100%', padding: 13, borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700 }}>Close</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
