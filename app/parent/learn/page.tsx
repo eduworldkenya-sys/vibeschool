@@ -447,15 +447,34 @@ export default function ParentLearnPage() {
           (subs ?? []).forEach(s => subjectMap.set(s.id, s.name));
         }
 
-        const finalLessons: LessonItem[] = (plansRes.data ?? [])
-          .filter(p => contentMap.has(p.id))
-          .map(p => ({
-            id:          p.id,
-            title:       p.title,
-            subject:     subjectMap.get(p.subject_id) ?? "Lesson",
-            day_of_week: p.day_of_week,
-            student_copy: contentMap.get(p.id)!,
-          }));
+        // Fetch published notes from teacher_content
+        const { data: publishedNotes } = await supabase
+          .from("teacher_content")
+          .select("id, title, body, subject_id, published_at")
+          .eq("class_id", classId)
+          .eq("published", true)
+          .order("published_at", { ascending: false });
+
+        const publishedLessons: LessonItem[] = (publishedNotes ?? []).map(n => ({
+          id:           n.id,
+          title:        n.title ?? "Lesson Notes",
+          subject:      subjectMap.get(n.subject_id) ?? "Lesson",
+          day_of_week:  new Date(n.published_at).getDay(),
+          student_copy: n.body ?? "",
+        }));
+
+        const finalLessons: LessonItem[] = [
+          ...(plansRes.data ?? [])
+            .filter(p => contentMap.has(p.id))
+            .map(p => ({
+              id:           p.id,
+              title:        p.title,
+              subject:      subjectMap.get(p.subject_id) ?? "Lesson",
+              day_of_week:  p.day_of_week,
+              student_copy: contentMap.get(p.id)!,
+            })),
+          ...publishedLessons,
+        ];
 
         const finalAssessments: AssessmentItem[] = (assessRes.data ?? []).map(a => ({
           id:              a.id,
