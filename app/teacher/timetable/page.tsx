@@ -578,13 +578,24 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {loadError  && <ErrorBanner message={loadError} />}
       {schoolError && <ErrorBanner message={schoolError} />}
 
-      {isWeekend && !loading && activeDow === 1 && (
+      {!loading && (
         <div style={{
           background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12,
           padding: '10px 16px', marginBottom: 14,
-          fontSize: 12, color: '#92400e', fontWeight: 600,
         }}>
-          Today is a weekend — showing Monday&apos;s schedule
+          <div style={{ fontSize: 11, color: '#92400e', fontWeight: 700, marginBottom: 4 }}>
+            {isWeekend ? (todayDow === 0 ? 'Sunday' : 'Saturday') : 'School Day'}
+          </div>
+          <div style={{ fontSize: 12, color: '#78350f', fontStyle: 'italic' }}>
+            {['Every student can learn, just not on the same day.',
+              'Education is not filling a bucket but lighting a fire.',
+              'A good teacher can inspire hope and ignite the imagination.',
+              'Teaching is the greatest act of optimism.',
+              'One child, one teacher, one book can change the world.',
+              'The best teachers teach from the heart, not from the book.',
+              'The art of teaching is the art of assisting discovery.',
+            ][new Date().getDay()]}
+          </div>
         </div>
       )}
 
