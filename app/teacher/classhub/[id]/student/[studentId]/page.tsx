@@ -462,7 +462,7 @@ function JourneyTab({ streaks, goals, skills }: { streaks: Streak[]; goals: Goal
           <div style={{ marginTop: 14, padding: '12px', background: 'rgba(16,185,129,0.1)', borderRadius: 12, border: '1px solid rgba(16,185,129,0.2)' }}>
             <p style={{ fontSize: 11, fontWeight: 800, color: '#10b981', margin: '0 0 4px' }}>🎯 Career Path Signal</p>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0, lineHeight: 1.5 }}>
-              {skills.length} skill{skills.length > 1 ? 's' : ''} recorded across {[...new Set(skills.map(s => s.category))].length} domain{[...new Set(skills.map(s => s.category))].length > 1 ? 's' : ''}. Strongest signal: <strong style={{ color: '#fff' }}>{skills[0].category}</strong>.
+              {skills.length} skill{skills.length > 1 ? 's' : ''} recorded across {Array.from(new Set(skills.map(s => s.category))).length} domain{Array.from(new Set(skills.map(s => s.category))).length > 1 ? 's' : ''}. Strongest signal: <strong style={{ color: '#fff' }}>{skills[0].category}</strong>.
             </p>
           </div>
         )}
