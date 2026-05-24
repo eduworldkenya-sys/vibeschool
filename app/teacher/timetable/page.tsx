@@ -206,7 +206,7 @@ function SlotDrawer({
   const today         = new Date().toISOString().slice(0, 10)
   const attendanceUrl = `/teacher/attendance?classId=${encodeURIComponent(slot.className)}&date=${today}&subject=${encodeURIComponent(slot.subject)}`
   const lessonUrl     = `/teacher/lessonplan?subject=${encodeURIComponent(slot.subject)}&classId=${encodeURIComponent(slot.className)}`
-  const homeworkUrl   = `/teacher/homework?subject=${encodeURIComponent(slot.subject)}&classId=${encodeURIComponent(slot.className)}`
+  const homeworkUrl = `/teacher/classhub/${slot.classId}/homework`;
 
   return (
     <>
