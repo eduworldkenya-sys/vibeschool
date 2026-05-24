@@ -31,6 +31,7 @@ function HomeworkInner() {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
   const [classInfo, setClassInfo] = useState<{ name: string; stream: string; subject: string } | null>(null)
+  const [subjects,  setSubjects]  = useState<{ id: string; name: string }[]>([])
 
   const [form, setForm] = useState({
     title:        '',
@@ -44,15 +45,17 @@ function HomeworkInner() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const [hwRes, clsRes, grpRes] = await Promise.all([
+    const [hwRes, clsRes, grpRes, subjRes] = await Promise.all([
       supabase.from('homework').select('*').eq('class_id', classId).order('created_at', { ascending: false }),
       supabase.from('classes').select('name, stream, subject').eq('id', classId).single(),
       supabase.from('class_groups').select('id, name').eq('class_id', classId),
+      supabase.from('subjects').select('id, name').order('name'),
     ])
 
     setList(hwRes.data ?? [])
     setClassInfo(clsRes.data)
     setGroups(grpRes.data ?? [])
+    setSubjects(subjRes.data ?? [])
     if (clsRes.data?.subject) setForm(f => ({ ...f, subject: clsRes.data!.subject }))
     setLoading(false)
   }
@@ -157,7 +160,10 @@ function HomeworkInner() {
               </div>
               <div>
                 <label style={labelStyle}>Subject</label>
-                <input style={inputStyle} placeholder="e.g. Kiswahili" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
+                <select style={inputStyle} value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}>
+                  <option value="">-- Select subject --</option>
+                  {subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
               </div>
               <div>
                 <label style={labelStyle}>Instructions</label>
