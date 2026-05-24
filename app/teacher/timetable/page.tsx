@@ -448,6 +448,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       const mapped: Slot[] = slots.map((s: {id: string, subject_id: string, class_id: string, room: string, start_time: string, end_time: string, day_of_week: number}) => {
         return {
           id:        s.id,
+          classId:   s.class_id,
+          subjectId: s.subject_id,
           subject:   subjectMap[s.subject_id] ?? 'Unknown',
           className: classMap[s.class_id] ?? '',
           room:      s.room ?? '',
