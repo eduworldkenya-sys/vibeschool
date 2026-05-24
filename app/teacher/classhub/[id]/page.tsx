@@ -65,22 +65,18 @@ function ClassPageInner() {
   const subjectId    = searchParams.get('subjectId') ?? ''
   const isSubject    = mode === 'subject'
 
-  const [classInfo,        setClassInfo]        = useState<ClassInfo | null>(null)
-  const [students,         setStudents]         = useState<Student[]>([])
-  const [loading,          setLoading]          = useState(true)
-  const [showRoster,       setShowRoster]       = useState(false)
-  const [selectedStudent,  setSelectedStudent]  = useState<Student | null>(null)
-  const [confirmRemoveId,  setConfirmRemoveId]  = useState<string | null>(null)
-  const [showForm,         setShowForm]         = useState(false)
-  const [saving,           setSaving]           = useState(false)
-  const [error,            setError]            = useState('')
-  const [form,             setForm]             = useState<FormState>({ name: '', admission_number: '' })
-  const [claimCodes,       setClaimCodes]       = useState<Record<string, string>>({})
-  const [generating,       setGenerating]       = useState<string | null>(null)
-  const [copiedId,         setCopiedId]         = useState<string | null>(null)
-  const [joinRequests,     setJoinRequests]     = useState<number>(0)
-  const [removeError,      setRemoveError]      = useState('')
-  const [removing,         setRemoving]         = useState(false)
+  const [classInfo,    setClassInfo]    = useState<ClassInfo | null>(null)
+  const [students,     setStudents]     = useState<Student[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [showRoster,   setShowRoster]   = useState(false)
+  const [showForm,     setShowForm]     = useState(false)
+  const [saving,       setSaving]       = useState(false)
+  const [error,        setError]        = useState('')
+  const [form,         setForm]         = useState<FormState>({ name: '', admission_number: '' })
+  const [claimCodes,   setClaimCodes]   = useState<Record<string, string>>({})
+  const [generating,   setGenerating]   = useState<string | null>(null)
+  const [copiedId,     setCopiedId]     = useState<string | null>(null)
+  const [joinRequests, setJoinRequests] = useState<number>(0)
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -183,37 +179,6 @@ function ClassPageInner() {
     await navigator.clipboard.writeText(code)
     setCopiedId(studentId)
     setTimeout(() => setCopiedId(null), 2000)
-  }
-
-  async function handleRemoveStudent(student: Student) {
-    setRemoving(true)
-    setRemoveError('')
-    const { error: delCodeErr } = await supabase
-      .from('student_claim_codes')
-      .delete()
-      .eq('student_id', student.id)
-
-    if (delCodeErr) {
-      setRemoveError('Failed to remove claim codes. Try again.')
-      setRemoving(false)
-      return
-    }
-
-    const { error: delStudentErr } = await supabase
-      .from('students')
-      .delete()
-      .eq('id', student.id)
-
-    if (delStudentErr) {
-      setRemoveError('Failed to remove student. Try again.')
-      setRemoving(false)
-      return
-    }
-
-    setStudents(prev => prev.filter(x => x.id !== student.id))
-    setSelectedStudent(null)
-    setConfirmRemoveId(null)
-    setRemoving(false)
   }
 
   function buildRoute(baseRoute: string) {
@@ -390,7 +355,10 @@ function ClassPageInner() {
                 const claimed = !!s.profile_id
                 return (
                   <div key={s.id} style={{ padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
-                    <button onClick={() => setSelectedStudent(s)} style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                    <button
+                      onClick={() => router.push('/teacher/classhub/' + classId + '/student/' + s.id)}
+                      style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div style={{ width: 40, height: 40, borderRadius: '50%', background: claimed ? C.accentLight : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: claimed ? '#065f46' : C.dark, flexShrink: 0 }}>
@@ -501,60 +469,6 @@ function ClassPageInner() {
           ))}
         </div>
       </div>
-
-      {/* STUDENT PROFILE MODAL */}
-      {selectedStudent && (
-        <div onClick={e => { if (e.target === e.currentTarget) { setSelectedStudent(null); setConfirmRemoveId(null); setRemoveError('') } }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: '20px 20px 0 0', padding: '20px 20px 48px' }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 20px' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: selectedStudent.profile_id ? C.accentLight : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 900, color: selectedStudent.profile_id ? '#065f46' : C.dark }}>
-                {selectedStudent.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, margin: 0 }}>{selectedStudent.name}</h2>
-                <p style={{ fontSize: 13, color: C.textMuted }}>Adm: {selectedStudent.admission_number || '—'}</p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {!selectedStudent.profile_id && (
-                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 12, marginBottom: 10 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginBottom: 8 }}>Claim Code</p>
-                  <p style={{ fontSize: 24, fontWeight: 900, fontFamily: 'monospace' }}>{claimCodes[selectedStudent.id] || 'No code'}</p>
-                </div>
-              )}
-
-              {removeError ? (
-                <p style={{ fontSize: 12, color: C.error, textAlign: 'center' }}>{removeError}</p>
-              ) : null}
-
-              {confirmRemoveId === selectedStudent.id ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <p style={{ fontSize: 13, color: C.textPrimary, textAlign: 'center', margin: 0 }}>Remove <strong>{selectedStudent.name}</strong> from this class? This cannot be undone.</p>
-                  <button
-                    onClick={() => handleRemoveStudent(selectedStudent)}
-                    disabled={removing}
-                    style={{ width: '100%', padding: '13px', borderRadius: 12, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: 14, cursor: removing ? 'not-allowed' : 'pointer' }}
-                  >
-                    {removing ? 'Removing…' : 'Yes, Remove'}
-                  </button>
-                  <button onClick={() => { setConfirmRemoveId(null); setRemoveError('') }} style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textPrimary, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setConfirmRemoveId(selectedStudent.id)}
-                    style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fca5a5', background: 'transparent', color: '#dc2626', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
-                  >
-                    🗑 Remove Student
-                  </button>
-                  <button onClick={() => { setSelectedStudent(null); setConfirmRemoveId(null); setRemoveError('') }} style={{ width: '100%', padding: 13, borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Close</button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
