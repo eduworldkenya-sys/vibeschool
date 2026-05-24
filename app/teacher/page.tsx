@@ -108,7 +108,8 @@ export default function TeacherHomePage() {
 
       const uid   = user.id
       const today = new Date().toISOString().split('T')[0]
-      const dow   = new Date().getDay()
+      const rawDow = new Date().getDay()
+      const dow   = rawDow === 0 ? 7 : rawDow
 
 
       const [profileRes, slotsRes, homeClassRes] = await Promise.all([
@@ -120,7 +121,7 @@ export default function TeacherHomePage() {
 
         supabase
           .from('timetable_slots')
-          .select(`id, start_time, end_time, room, subjects ( name ), classes ( name, stream )`)
+          .select(`id, day_of_week, start_time, end_time, room, subjects ( name ), classes ( name, stream )`)
           .eq('teacher_id', uid)
           .order('day_of_week', { ascending: true })
           .order('start_time', { ascending: true }),
@@ -190,7 +191,7 @@ export default function TeacherHomePage() {
       setData({
         fullName, initials,
         school:        (schoolRes.data as { name: string } | null)?.name ?? '',
-        lessonsToday:  mappedSlots.length,
+        lessonsToday:  mappedSlots.filter((_s, i) => (slotsRes.data?.[i] as { day_of_week?: number } | undefined)?.day_of_week === dow).length,
         unreadFlags:   0,
         attendancePct,
         nextLesson,
