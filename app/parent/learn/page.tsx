@@ -65,10 +65,23 @@ interface AssessmentItem {
   academic_year:   number;
 }
 
+interface ExamResultItem {
+  id:        string;
+  examName:  string;
+  examType:  string;
+  term:      number;
+  year:      number;
+  subject:   string;
+  marks:     number;
+  maxMarks:  number;
+  isAbsent:  boolean;
+}
+
 interface CachedData {
   homework:    HomeworkItem[];
   lessons:     LessonItem[];
   assessments: AssessmentItem[];
+  examResults: ExamResultItem[];
   timestamp:   number;
 }
 
@@ -219,6 +232,7 @@ export default function ParentLearnPage() {
   const [homework,        setHomework]        = useState<HomeworkItem[]>([]);
   const [lessons,         setLessons]         = useState<LessonItem[]>([]);
   const [assessments,     setAssessments]     = useState<AssessmentItem[]>([]);
+  const [examResults,     setExamResults]     = useState<ExamResultItem[]>([]);
   const [loadingChildren, setLoadingChildren] = useState<boolean>(true);
   const [loadingContent,  setLoadingContent]  = useState<boolean>(false);
   const [initError,       setInitError]       = useState<string | null>(null);
@@ -312,6 +326,7 @@ export default function ParentLearnPage() {
       setHomework(cached.homework);
       setLessons(cached.lessons);
       setAssessments(cached.assessments);
+      setExamResults(cached.examResults ?? []);
       setContentError(null);
       return;
     }
@@ -331,7 +346,7 @@ export default function ParentLearnPage() {
       setContentError(null);
 
       try {
-        const [hwRes, subRes, plansRes, assessRes] = await Promise.all([
+        const [hwRes, subRes, plansRes, assessRes, examRes] = await Promise.all([
           supabase
             .from("homework")
             .select("id, subject, title, instructions, type, due_date, teacher_id")
@@ -354,6 +369,12 @@ export default function ParentLearnPage() {
             .select("id, subject_id, sub_strand, assessment_type, performance, term, academic_year")
             .eq("student_id", childId)
             .order("academic_year", { ascending: false }),
+
+      supabase
+          .from("exam_results")
+          .select("id, marks, is_absent, subject_id, exam_id, exams(name, term, academic_year, exam_type), exam_subject_config(max_marks)")
+          .eq("student_id", childId)
+          .order("created_at", { ascending: false }),
         ]);
 
         if (!isCurrentFetch) return;
@@ -486,16 +507,30 @@ export default function ParentLearnPage() {
           academic_year:   a.academic_year,
         }));
 
+
+        const finalExamResults: ExamResultItem[] = (examRes.data ?? []).map((r: any) => ({
+          id:        r.id,
+          examName:  r.exams?.name ?? "Exam",
+          examType:  r.exams?.exam_type ?? "written",
+          term:      r.exams?.term ?? 0,
+          year:      r.exams?.academic_year ?? 0,
+          subject:   subjectMap.get(r.subject_id) ?? "Subject",
+          marks:     r.marks ?? 0,
+          maxMarks:  r.exam_subject_config?.max_marks ?? 100,
+          isAbsent:  r.is_absent ?? false,
+        }));
         cache.current.set(childId, { 
           homework: finalHomework, 
           lessons: finalLessons, 
           assessments: finalAssessments,
+          examResults: finalExamResults,
           timestamp: Date.now()
         });
 
         setHomework(finalHomework);
         setLessons(finalLessons);
         setAssessments(finalAssessments);
+        setExamResults(finalExamResults);
       } catch (err: unknown) {
         if (isCurrentFetch) {
           setContentError("An error occurred synchronizing data updates. Check your connection.");
@@ -991,6 +1026,47 @@ export default function ParentLearnPage() {
         </div>
       )}
 
+
+        {/* Exam Results */}
+        {examResults.length > 0 && (
+          <div style={{ marginTop: "8px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", color: "#6b7280", marginBottom: "10px" }}>Exam Results</div>
+            {Array.from(new Set(examResults.map((r: any) => r.examName))).map((examName: any) => {
+              const group = examResults.filter((r: any) => r.examName === examName);
+              const first = group[0];
+              const avg = Math.round(group.reduce((sum: number, r: any) => sum + (r.marks / r.maxMarks) * 100, 0) / group.length);
+              return (
+                <div key={examName} style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e5e7eb", overflow: "hidden", marginBottom: "10px" }}>
+                  <div style={{ background: "linear-gradient(135deg, #1e1b4b, #312e81)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: "13px", fontWeight: "700", color: "#fff" }}>{examName}</div>
+                      <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)", marginTop: "2px" }}>Term {first.term} · {first.year}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontFamily: "monospace", fontSize: "20px", fontWeight: "700", color: avg >= 70 ? "#34d399" : avg >= 50 ? "#fbbf24" : "#f87171" }}>{avg}%</div>
+                      <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)" }}>Average</div>
+                    </div>
+                  </div>
+                  <div style={{ padding: "8px 16px" }}>
+                    {group.map((r: any) => {
+                      const pct = Math.round((r.marks / r.maxMarks) * 100);
+                      const color = pct >= 70 ? "#059669" : pct >= 50 ? "#d97706" : "#dc2626";
+                      return (
+                        <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f3f4f6" }}>
+                          <span style={{ fontSize: "12px", fontWeight: "600", color: "#111827" }}>{r.isAbsent ? "ABS " : ""}{r.subject}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "11px", color: "#6b7280" }}>{r.marks}/{r.maxMarks}</span>
+                            <span style={{ fontFamily: "monospace", fontSize: "13px", fontWeight: "700", color }}>{r.isAbsent ? "ABS" : pct + "%"}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       <BottomSheet open={sheetOpen} onClose={closeSheet}>
         {sheet?.type === "lesson" && (
           <div>
