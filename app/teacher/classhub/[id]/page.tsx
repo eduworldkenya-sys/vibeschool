@@ -137,10 +137,11 @@ function ClassPageInner() {
     if (err || !student) { setSaving(false); setError(err?.message ?? 'Failed to add student'); return }
 
     // Also register in student_classes for assessment compatibility
+    const { data: clsData } = await supabase.from('classes').select('school_id').eq('id', classId).single()
     await supabase.from('student_classes').insert({
       student_id: student.id,
       class_id:   classId,
-      school_id:  schoolId,
+      school_id:  clsData?.school_id ?? null,
       is_current: true,
     })
 
