@@ -65,18 +65,20 @@ function ClassPageInner() {
   const subjectId    = searchParams.get('subjectId') ?? ''
   const isSubject    = mode === 'subject'
 
-  const [classInfo,    setClassInfo]    = useState<ClassInfo | null>(null)
-  const [students,     setStudents]     = useState<Student[]>([])
-  const [loading,      setLoading]      = useState(true)
-  const [showRoster,   setShowRoster]   = useState(false)
-  const [showForm,     setShowForm]     = useState(false)
-  const [saving,       setSaving]       = useState(false)
-  const [error,        setError]        = useState('')
-  const [form,         setForm]         = useState<FormState>({ name: '', admission_number: '' })
-  const [claimCodes,   setClaimCodes]   = useState<Record<string, string>>({})
-  const [generating,   setGenerating]   = useState<string | null>(null)
-  const [copiedId,     setCopiedId]     = useState<string | null>(null)
-  const [joinRequests, setJoinRequests] = useState<number>(0)
+  const [classInfo,      setClassInfo]      = useState<ClassInfo | null>(null)
+  const [students,       setStudents]       = useState<Student[]>([])
+  const [loading,        setLoading]        = useState(true)
+  const [showRoster,     setShowRoster]     = useState(false)
+  const [showForm,       setShowForm]       = useState(false)
+  const [saving,         setSaving]         = useState(false)
+  const [error,          setError]          = useState('')
+  const [form,           setForm]           = useState<FormState>({ name: '', admission_number: '' })
+  const [claimCodes,     setClaimCodes]     = useState<Record<string, string>>({})
+  const [generating,     setGenerating]     = useState<string | null>(null)
+  const [copiedId,       setCopiedId]       = useState<string | null>(null)
+  const [joinRequests,   setJoinRequests]   = useState<number>(0)
+  const [attendanceRate, setAttendanceRate] = useState<string>('—')
+  const [avgScore,       setAvgScore]       = useState<string>('—')
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -114,6 +116,26 @@ function ClassPageInner() {
       setClaimCodes(codes)
     }
 
+    const today = new Date().toISOString().split('T')[0]
+    const [attRes, assessRes] = await Promise.all([
+      supabase.from('attendance').select('status').eq('class_id', classId).eq('date', today),
+      supabase.from('cbc_assessments').select('performance').eq('class_id', classId),
+    ])
+
+    const attRows = attRes.data ?? []
+    if (attRows.length > 0) {
+      const present = attRows.filter(r => r.status === 'present' || r.status === 'late').length
+      setAttendanceRate(Math.round((present / attRows.length) * 100) + '%')
+    }
+
+    const PERF_MAP: Record<string, number> = { BE: 1, AE: 2, ME: 3, EE: 4 }
+    const assessRows = assessRes.data ?? []
+    const scored = assessRows.map(r => PERF_MAP[r.performance]).filter((v): v is number => v !== undefined)
+    if (scored.length > 0) {
+      const avg = scored.reduce((a, b) => a + b, 0) / scored.length
+      setAvgScore(avg.toFixed(1) + '/4')
+    }
+
     setLoading(false)
   }
 
@@ -136,18 +158,11 @@ function ClassPageInner() {
 
     if (err || !student) { setSaving(false); setError(err?.message ?? 'Failed to add student'); return }
 
-    // Also register in student_classes for assessment compatibility
     const { data: clsData } = await supabase.from('classes').select('school_id').eq('id', classId).single()
     await supabase.from('student_classes').insert({
       student_id: student.id,
       class_id:   classId,
       school_id:  clsData?.school_id ?? null,
-      is_current: true,
-    })
-
-    await supabase.from('student_classes').insert({
-      student_id: student.id,
-      class_id:   classId,
       is_current: true,
     })
 
@@ -236,7 +251,6 @@ function ClassPageInner() {
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
-      {/* HERO */}
       <div style={{ background: heroGradient, padding: '20px 16px 28px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
         <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
@@ -287,9 +301,9 @@ function ClassPageInner() {
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               {[
-                { label: 'Students', value: students.length },
-                { label: 'Claimed',  value: students.filter(s => s.profile_id).length },
-                { label: 'Avg Score', value: '—' },
+                { label: 'Students',  value: students.length },
+                { label: 'Claimed',   value: students.filter(s => s.profile_id).length },
+                { label: 'Avg Score', value: avgScore },
               ].map(s => (
                 <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.value}</div>
@@ -301,7 +315,6 @@ function ClassPageInner() {
         )}
       </div>
 
-      {/* QUICK ACTIONS */}
       <div style={{ margin: '16px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>
           {isSubject ? 'Subject Tools' : 'Class Tools'}
@@ -316,7 +329,6 @@ function ClassPageInner() {
         </div>
       </div>
 
-      {/* STUDENT LIST */}
       {(isSubject || showRoster) && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease' }}>
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
@@ -404,7 +416,7 @@ function ClassPageInner() {
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button onClick={() => handleCopyCode(s.id, code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? C.accentLight : 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                                 {copiedId === s.id ? 'Copied!' : 'Copy'}
-                              </button>
+              </button>
                               <button onClick={() => handleGenerateCode(s.id)} disabled={generating === s.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                                 {generating === s.id ? '…' : 'New'}
                               </button>
@@ -436,7 +448,6 @@ function ClassPageInner() {
         </div>
       )}
 
-      {/* CLASS ACTIVITY */}
       <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Class Activity</p>
@@ -465,16 +476,15 @@ function ClassPageInner() {
         )}
       </div>
 
-      {/* PERFORMANCE SNAPSHOT */}
       <div style={{ margin: '14px 16px 0', background: isSubject ? 'linear-gradient(135deg, #075985 0%, #0ea5e9 100%)' : 'linear-gradient(135deg, #065f46 0%, #10b981 100%)', borderRadius: 20, padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
         <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 14px' }}>
           {isSubject ? 'Subject Performance' : 'Performance'}
         </p>
         <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { label: 'Attendance Rate', value: '—%', icon: '📊' },
-            { label: isSubject ? 'Subject Avg' : 'Avg Score', value: '—', icon: '🏆' },
-            { label: 'Homework Done', value: '—%', icon: '📝' },
+            { label: 'Attendance Rate', value: attendanceRate, icon: '📊' },
+            { label: isSubject ? 'Subject Avg' : 'Avg Score', value: avgScore, icon: '🏆' },
+            { label: 'Homework Done', value: '—', icon: '📝' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: 16 }}>{s.icon}</div>
