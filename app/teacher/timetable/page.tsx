@@ -578,7 +578,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {loadError  && <ErrorBanner message={loadError} />}
       {schoolError && <ErrorBanner message={schoolError} />}
 
-      {isWeekend && !loading && (
+      {isWeekend && !loading && activeDow === 1 && (
         <div style={{
           background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12,
           padding: '10px 16px', marginBottom: 14,
