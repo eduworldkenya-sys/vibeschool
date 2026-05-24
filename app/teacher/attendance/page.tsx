@@ -91,7 +91,7 @@ function AttendanceInner() {
           .eq('id', user.id)
           .single(),
 
-        supabase
+        (() => { let q = supabase
           .from('timetable_slots')
           .select(`
             id, room, start_time, end_time, class_id,
@@ -100,7 +100,8 @@ function AttendanceInner() {
           `)
           .eq('teacher_id', user.id)
           .eq('day_of_week', dow === 0 ? 7 : dow)
-          .order('start_time', { ascending: true }),
+          if (urlClassId) q = q.eq('class_id', urlClassId)
+          return q.order('start_time', { ascending: true }) })(),
       ])
 
       setSchoolId(profileRes.data?.school_id ?? null)
