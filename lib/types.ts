@@ -26,8 +26,8 @@ export interface TimetableSlot {
   id:               string;
   class_id:         string;
   subject_id:       string;
-  teacher_id:       string;
-  school_id:        string;
+  teacher_id?:      string;
+  school_id?:       string;
   subject:          string;
   class:            string;
   room:             string;
