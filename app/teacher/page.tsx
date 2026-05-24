@@ -65,15 +65,15 @@ function formatCountdown(mins: number) {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 }
 
-const QUICK_ACTIONS = [
-  { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', route: '/teacher/classhub'   },
-  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: C.accentLight, iconColor: '#065f46', route: '/teacher/timetable'  },
-  { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', route: '/teacher/lessonplan' },
-  { id: 'attendance', label: 'Attendance',   icon: '✅', color: '#dcfce7', iconColor: '#166534', route: '/teacher/attendance' },
-  { id: 'subjecthub', label: 'SubjectHub',   icon: '🔬', color: '#e0f2fe', iconColor: '#075985', route: '/teacher/subjecthub' },
-  { id: 'results',    label: 'Results',      icon: '🏆', color: '#d1fae5', iconColor: '#065f46', route: '/teacher/results'   },
-  { id: 'assessment', label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', route: '/teacher/assessment' },
-  { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', route: '/teacher/schoolhub'  },
+const QUICK_ACTION_DEFS = [
+  { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', base: '/teacher/classhub',   useClass: false   },
+  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: C.accentLight, iconColor: '#065f46', base: '/teacher/timetable',  useClass: true   },
+  { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', base: '/teacher/lessonplan', useClass: true  },
+  { id: 'attendance', label: 'Attendance',   icon: '✅', color: '#dcfce7', iconColor: '#166534', base: '/teacher/attendance', useClass: true  },
+  { id: 'subjecthub', label: 'SubjectHub',   icon: '🔬', color: '#e0f2fe', iconColor: '#075985', base: '/teacher/subjecthub', useClass: false },
+  { id: 'results',    label: 'Results',      icon: '🏆', color: '#d1fae5', iconColor: '#065f46', base: '/teacher/results',    useClass: true    },
+  { id: 'assessment', label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', base: '/teacher/assessment', useClass: true  },
+  { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', base: '/teacher/schoolhub',  useClass: false  },
 ]
 
 function Skeleton({ w = '100%', h = 16, radius = 8 }: { w?: string | number; h?: number; radius?: number }) {
@@ -92,6 +92,7 @@ export default function TeacherHomePage() {
   const router = useRouter()
   const [data,    setData]    = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [myClassId, setMyClassId] = useState<string | null>(null)
 
   const cardBg     = C.bg
   const cardBorder = C.border
@@ -137,6 +138,7 @@ export default function TeacherHomePage() {
       const initials       = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join('')
       const schoolId       = profileRes.data?.school_id ?? null
       const classTeacherId = homeClassRes.data?.class_id ?? null
+      setMyClassId(classTeacherId)
       const slotIds        = (slotsRes.data ?? []).map(s => s.id)
 
       const [schoolRes, attBatchRes, studentCountRes, attTodayRes] = await Promise.all([
@@ -288,8 +290,8 @@ export default function TeacherHomePage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => router.push('/teacher/lessonplan')} style={{ padding: '6px 12px', borderRadius: 10, border: `1.5px solid ${accent}`, background: 'transparent', color: accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Plan</button>
-              <button onClick={() => router.push('/teacher/attendance')} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
+              <button onClick={() => router.push(myClassId ? '/teacher/lessonplan?classId=' + myClassId : '/teacher/lessonplan')} style={{ padding: '6px 12px', borderRadius: 10, border: `1.5px solid ${accent}`, background: 'transparent', color: accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Plan</button>
+              <button onClick={() => router.push(myClassId ? '/teacher/attendance?classId=' + myClassId : '/teacher/attendance')} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
             </div>
           </div>
         )
@@ -299,10 +301,10 @@ export default function TeacherHomePage() {
       <div style={{ background: cardBg, borderRadius: 16, border: `1px solid ${cardBorder}`, padding: '14px 14px', marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: textMuted, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 10 }}>Quick Actions</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-          {QUICK_ACTIONS.map(qa => (
+          {QUICK_ACTION_DEFS.map(qa => (
             <button
               key={qa.id}
-              onClick={() => router.push(qa.route)}
+              onClick={() => router.push(qa.useClass && myClassId ? qa.base + '?classId=' + myClassId : qa.base)}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '10px 4px', borderRadius: 12, border: 'none', cursor: 'pointer', background: qa.color, fontFamily: 'inherit' }}
             >
               <span style={{ fontSize: 20 }}>{qa.icon}</span>
@@ -334,7 +336,7 @@ export default function TeacherHomePage() {
                   <div style={{ fontSize: 11, color: textMuted }}>{formatTime(s.start)}–{formatTime(s.end)} · {s.room}</div>
                 </div>
                 {!s.attendanceMarked && (
-                  <button onClick={() => router.push('/teacher/attendance')} style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
+                  <button onClick={() => router.push(myClassId ? '/teacher/attendance?classId=' + myClassId : '/teacher/attendance')} style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
                 )}
               </div>
             ))}

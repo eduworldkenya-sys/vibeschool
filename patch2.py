@@ -1,24 +1,7 @@
 f = 'app/teacher/page.tsx'
 c = open(f).read()
 
-# 1. Add classTeacherId to state
-old = '''  const [data,    setData]    = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)'''
-new = '''  const [data,    setData]    = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [myClassId, setMyClassId] = useState<string | null>(null)'''
-print('1:', 'found' if old in c else 'NOT FOUND')
-c = c.replace(old, new)
-
-# 2. Save classTeacherId to state after it's fetched
-old = '''      const classTeacherId = homeClassRes.data?.class_id ?? null'''
-new = '''      const classTeacherId = homeClassRes.data?.class_id ?? null
-      setMyClassId(classTeacherId)'''
-print('2:', 'found' if old in c else 'NOT FOUND')
-c = c.replace(old, new)
-
-# 3. Update QUICK_ACTIONS to use dynamic routes via a function
-old = '''const QUICK_ACTIONS = [
+old = """const QUICK_ACTIONS = [
     { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', route: '/teacher/classhub'   },
     { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: C.accentLight, iconColor: '#065f46', route: '/teacher/timetable'  },
     { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', route: '/teacher/lessonplan' },
@@ -27,8 +10,9 @@ old = '''const QUICK_ACTIONS = [
     { id: 'results',    label: 'Results',      icon: '🏆', color: '#d1fae5', iconColor: '#065f46', route: '/teacher/results'   },
     { id: 'assessment', label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', route: '/teacher/assessment' },
     { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', route: '/teacher/schoolhub'  },
-  ]'''
-new = '''const QUICK_ACTION_DEFS = [
+  ]"""
+
+new = """const QUICK_ACTION_DEFS = [
     { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', base: '/teacher/classhub',   useClass: false },
     { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: C.accentLight, iconColor: '#065f46', base: '/teacher/timetable',  useClass: true  },
     { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', base: '/teacher/lessonplan', useClass: true  },
@@ -37,33 +21,9 @@ new = '''const QUICK_ACTION_DEFS = [
     { id: 'results',    label: 'Results',      icon: '🏆', color: '#d1fae5', iconColor: '#065f46', base: '/teacher/results',    useClass: true  },
     { id: 'assessment', label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', base: '/teacher/assessment', useClass: true  },
     { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', base: '/teacher/schoolhub',  useClass: false },
-  ]'''
-print('3:', 'found' if old in c else 'NOT FOUND')
-c = c.replace(old, new)
+  ]"""
 
-# 4. Update quick actions map to build route dynamically
-old = '''          {QUICK_ACTIONS.map(qa => (
-            <button
-              key={qa.id}
-              onClick={() => router.push(qa.route)}'''
-new = '''          {QUICK_ACTION_DEFS.map(qa => (
-            <button
-              key={qa.id}
-              onClick={() => router.push(qa.useClass && myClassId ? qa.base + '?classId=' + myClassId : qa.base)}'''
-print('4:', 'found' if old in c else 'NOT FOUND')
+print('found' if old in c else 'NOT FOUND')
 c = c.replace(old, new)
-
-# 5. Fix Plan button
-old = '''router.push('/teacher/lessonplan')'''
-new = '''router.push(myClassId ? '/teacher/lessonplan?classId=' + myClassId : '/teacher/lessonplan')'''
-print('5:', 'found' if old in c else 'NOT FOUND')
-c = c.replace(old, new)
-
-# 6. Fix Attend button (both occurrences)
-old = '''router.push('/teacher/attendance')'''
-new = '''router.push(myClassId ? '/teacher/attendance?classId=' + myClassId : '/teacher/attendance')'''
-print('6:', 'found' if old in c else 'NOT FOUND')
-c = c.replace(old, new)
-
 open(f, 'w').write(c)
 print('done')
