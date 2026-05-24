@@ -10,8 +10,9 @@ export const useUser = () => useContext(UserContext);
 const NAV_TABS = [
   { id: "home",     label: "Home",     icon: "🏠", href: "/student"           },
   { id: "marks",    label: "Marks",    icon: "📝", href: "/student/marks"     },
-  { id: "homework", label: "Homework", icon: "📚", href: "/student/homework"  },
-  { id: "profile",  label: "Profile",  icon: "👤", href: "/student/profile"   },
+  { id: "homework",  label: "Homework",  icon: "📚", href: "/student/homework"   },
+  { id: "resources", label: "Resources", icon: "📖", href: "/student/resources" },
+  { id: "profile",   label: "Profile",   icon: "👤", href: "/student/profile"    },
 ];
 
 function tabIdFromPath(path: string): string {
