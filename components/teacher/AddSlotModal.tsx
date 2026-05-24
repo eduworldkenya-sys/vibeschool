@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
 
@@ -11,6 +11,13 @@ interface Props {
   onSaved:   () => void
 }
 
+interface ClassOption {
+  id:      string
+  name:    string
+  stream:  string | null
+  subject: string | null
+}
+
 const DAYS = [
   { label: 'Monday',    value: 1 },
   { label: 'Tuesday',   value: 2 },
@@ -19,19 +26,6 @@ const DAYS = [
   { label: 'Friday',    value: 5 },
   { label: 'Saturday',  value: 6 },
   { label: 'Sunday',    value: 7 },
-]
-
-const GRADES = [
-  'PP1','PP2',
-  'Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6',
-  'Grade 7','Grade 8','Grade 9',
-]
-
-const SUBJECTS = [
-  'Mathematics','English','Kiswahili','Science and Technology',
-  'Social Studies','Religious Education','Creative Arts and Sports',
-  'Agriculture and Nutrition','Home Science','Indigenous Languages',
-  'French','German','Arabic','Kenyan Sign Language',
 ]
 
 const inputStyle: React.CSSProperties = {
@@ -58,72 +52,54 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: Props) {
-  const [saving,   setSaving]   = useState(false)
-  const [error,    setError]    = useState<string | null>(null)
+  const [saving,         setSaving]         = useState(false)
+  const [error,          setError]          = useState<string | null>(null)
+  const [classes,        setClasses]        = useState<ClassOption[]>([])
+  const [classesLoading, setClassesLoading] = useState(true)
 
-  const [className,  setClassName]  = useState('')
-  const [subject,    setSubject]    = useState('')
-  const [dayOfWeek,  setDayOfWeek]  = useState('1')
-  const [startTime,  setStartTime]  = useState('08:00')
-  const [endTime,    setEndTime]    = useState('09:00')
-  const [room,       setRoom]       = useState('')
+  const [classId,       setClassId]       = useState('')
+  const [subjectId,     setSubjectId]     = useState<string | null>(null)
+  const [dayOfWeek,     setDayOfWeek]     = useState('1')
+  const [startTime,     setStartTime]     = useState('08:00')
+  const [endTime,       setEndTime]       = useState('09:00')
+  const [room,          setRoom]          = useState('')
   const [effectiveFrom, setEffectiveFrom] = useState('')
+
+  useEffect(() => {
+    async function loadClasses() {
+      const { data } = await supabase
+        .from('classes')
+        .select('id, name, stream, subject')
+        .eq('teacher_id', teacherId)
+        .order('name', { ascending: true })
+      setClasses(data ?? [])
+      setClassesLoading(false)
+    }
+    loadClasses()
+  }, [teacherId])
+
+  async function handleClassChange(id: string) {
+    setClassId(id)
+    if (!id || !schoolId) return
+    const selected = classes.find(c => c.id === id)
+    if (!selected?.subject) return
+    const { data } = await supabase
+      .from('subjects')
+      .select('id')
+      .eq('school_id', schoolId)
+      .eq('name', selected.subject)
+      .maybeSingle()
+    setSubjectId(data?.id ?? null)
+  }
 
   async function save() {
     setError(null)
-    if (!className)  { setError('Select a class.');   return }
-    if (!subject)    { setError('Select a subject.'); return }
-    if (!startTime)  { setError('Enter start time.'); return }
-    if (!endTime)    { setError('Enter end time.');   return }
+    if (!classId)  { setError('Select a class.');   return }
+    if (!startTime){ setError('Enter start time.'); return }
+    if (!endTime)  { setError('Enter end time.');   return }
     if (startTime >= endTime) { setError('End time must be after start time.'); return }
 
     setSaving(true)
-
-    // Find or create class record
-    let classId: string | null = null
-
-    const { data: existingClass } = await supabase
-      .from('classes')
-      .select('id')
-      .eq('teacher_id', teacherId)
-      .eq('name', className)
-      .maybeSingle()
-
-    if (existingClass) {
-      classId = existingClass.id
-    } else {
-      const { data: newClass, error: classErr } = await supabase
-        .from('classes')
-        .insert({ teacher_id: teacherId, school_id: schoolId, name: className, subject })
-        .select('id')
-        .single()
-      if (classErr || !newClass) { setError('Failed to create class: ' + classErr?.message); setSaving(false); return }
-      classId = newClass.id
-    }
-
-    // Find or create subject record
-    let subjectId: string | null = null
-
-    if (schoolId) {
-      const { data: existingSubject } = await supabase
-        .from('subjects')
-        .select('id')
-        .eq('school_id', schoolId)
-        .eq('name', subject)
-        .maybeSingle()
-
-      if (existingSubject) {
-        subjectId = existingSubject.id
-      } else {
-        const { data: newSubject } = await supabase
-          .from('subjects')
-          .insert({ school_id: schoolId, name: subject })
-          .select('id')
-          .single()
-        subjectId = newSubject?.id ?? null
-      }
-    }
-
     const { error: err } = await supabase
       .from('timetable_slots')
       .insert({
@@ -142,6 +118,8 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
     if (err) { setError(err.message); return }
     onSaved()
   }
+
+  const selectedClass = classes.find(c => c.id === classId)
 
   return (
     <div style={{
@@ -171,19 +149,29 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
 
         <div>
           <label style={labelStyle}>Class *</label>
-          <select value={className} onChange={e => setClassName(e.target.value)} style={inputStyle}>
-            <option value="">Select grade</option>
-            {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
+          {classesLoading ? (
+            <div style={{ fontSize: 13, color: C.textMuted }}>Loading classes…</div>
+          ) : classes.length === 0 ? (
+            <div style={{ fontSize: 13, color: C.error }}>
+              No classes found. Please create a class in ClassHub first.
+            </div>
+          ) : (
+            <select value={classId} onChange={e => handleClassChange(e.target.value)} style={inputStyle}>
+              <option value="">Select class</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.stream ? ` ${c.stream}` : ''}{c.subject ? ` — ${c.subject}` : ''}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        <div>
-          <label style={labelStyle}>Subject *</label>
-          <select value={subject} onChange={e => setSubject(e.target.value)} style={inputStyle}>
-            <option value="">Select subject</option>
-            {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
+        {selectedClass && (
+          <div style={{ fontSize: 12, color: C.textMuted, background: C.surface, padding: '8px 12px', borderRadius: 8 }}>
+            Subject: <strong>{selectedClass.subject ?? '—'}</strong>
+          </div>
+        )}
 
         <div>
           <label style={labelStyle}>Day *</label>
@@ -213,7 +201,7 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
           <input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputStyle} />
         </div>
 
-        <Btn onClick={save} disabled={saving}>
+        <Btn onClick={save} disabled={saving || classesLoading || classes.length === 0}>
           {saving ? 'Saving…' : 'Add Slot'}
         </Btn>
       </div>
