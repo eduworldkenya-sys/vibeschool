@@ -524,7 +524,7 @@ function ClassPageInner() {
 export default function ClassPage() {
   return (
     <>
-    <Suspense fallback={
+      <Suspense fallback={
       <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
         {[1, 2, 3, 4].map(i => (
@@ -1183,7 +1183,6 @@ export default function ClassPage() {
           </div>
         )
       })()}
-
-    </div>
+    </>
   )
 }
