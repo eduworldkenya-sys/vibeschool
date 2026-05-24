@@ -53,7 +53,8 @@ function Skeleton({ h = 72 }: { h?: number }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 function LessonPlanInner() {
-  const dow        = new Date().getDay()
+  const rawDow     = new Date().getDay()
+  const dow         = rawDow === 0 || rawDow === 6 ? 1 : rawDow
   const weekStart  = getWeekStart()
   const router       = useRouter()
   const searchParams = useSearchParams()
