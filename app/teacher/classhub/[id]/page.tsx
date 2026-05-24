@@ -77,6 +77,7 @@ function ClassPageInner() {
   const [students,     setStudents]     = useState<Student[]>([])
   const [loading,      setLoading]      = useState(true)
   const [showRoster,   setShowRoster]   = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [showForm,     setShowForm]     = useState(false)
   const [saving,       setSaving]       = useState(false)
   const [deleting,     setDeleting]     = useState<string | null>(null)
@@ -383,31 +384,28 @@ function ClassPageInner() {
                 const claimed = !!s.profile_id
                 return (
                   <div key={s.id} style={{ padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: claimed ? C.accentLight : isSubject ? '#e0f2fe' : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, color: claimed ? '#065f46' : isSubject ? '#075985' : C.dark, flexShrink: 0 }}>
-                          {claimed ? '✓' : i + 1}
-                        </div>
-                        <div>
-                          <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{s.name}</p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                            {s.admission_number && <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>{s.admission_number}</p>}
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>
-                              {claimed ? 'Claimed ✓' : 'Unclaimed'}
-                            </span>
+                    <button
+                      onClick={() => setSelectedStudent(s)}
+                      style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: '50%', background: claimed ? C.accentLight : isSubject ? '#e0f2fe' : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: claimed ? '#065f46' : isSubject ? '#075985' : C.dark, flexShrink: 0 }}>
+                            {s.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{s.name}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                              {s.admission_number && <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>{s.admission_number}</p>}
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>
+                                {claimed ? 'Claimed ✓' : 'Unclaimed'}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                        <span style={{ fontSize: 16, color: C.textMuted }}>›</span>
                       </div>
-                      {!isSubject && !claimed && (
-                        <button
-                          onClick={() => handleDelete(s.id)}
-                          disabled={deleting === s.id}
-                          style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #fca5a5', background: 'transparent', color: C.error, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          {deleting === s.id ? '…' : 'Delete'}
-                        </button>
-                      )}
-                    </div>
+                    </button>
 
                     {/* Claim code section */}
                     {!isSubject && !claimed && (
@@ -535,5 +533,19 @@ export default function ClassPage() {
     }>
       <ClassPageInner />
     </Suspense>
+
+      {/* STUDENT PROFILE MODAL */}
+      {selectedStudent && (
+        <div 
+          onClick={e => { if (e.target === e.currentTarget) setSelectedStudent(null) }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div style={{ width: '100%', background: '#fff', borderRadius: '20px 20px 0 0', padding: 24 }}>
+             <p style={{ fontWeight: 800 }}>{selectedStudent.name}</p>
+             <button onClick={() => setSelectedStudent(null)}>Close</button>
+          </div>
+        </div>
+      )}
+
   )
 }
