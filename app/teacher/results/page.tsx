@@ -625,7 +625,13 @@ function ResultsInner() {
                         <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0a0a0a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {student.name}
                         </p>
-                        {student.class_name && (
+                        {student.class_name {student.class_name && ({student.class_name && ( (
+                          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>{student.class_name}</p>
+                        )}
+                        {activeExam && (
+                          <a href={`/teacher/results/report-card/${student.id}?examId=${activeExam.id}`} style={{ fontSize: 11, color: '#6366f1', fontWeight: 700, textDecoration: 'none' }}>📄 Report Card →</a>
+                        )}
+                        {false && (
                           <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>{student.class_name}</p>
                         )}
                         {!isAbsent && marks >= 0 && !isNaN(marks) && (
