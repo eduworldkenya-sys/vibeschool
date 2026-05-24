@@ -17,11 +17,11 @@ export const TEACHER: Teacher = {
 };
 
 export const TODAY_SLOTS: TimetableSlot[] = [
-  { id: 1, subject: "Mathematics", class: "6B", room: "Room 12", start: "07:30", end: "08:30", period: 1, status: "taught",    planStatus: "green", attendanceMarked: true  },
-  { id: 2, subject: "Mathematics", class: "7A", room: "Room 12", start: "08:30", end: "09:30", period: 2, status: "scheduled", planStatus: "green", attendanceMarked: false },
-  { id: 3, subject: "Mathematics", class: "6B", room: "Lab 2",   start: "10:00", end: "11:00", period: 3, status: "scheduled", planStatus: "amber", attendanceMarked: false },
-  { id: 4, subject: "Mathematics", class: "8C", room: "Room 12", start: "11:00", end: "12:00", period: 4, status: "scheduled", planStatus: "red",   attendanceMarked: false },
-  { id: 5, subject: "Mathematics", class: "6B", room: "Room 12", start: "14:00", end: "15:00", period: 5, status: "scheduled", planStatus: "green", attendanceMarked: false },
+  { id: "1", class_id: "", subject_id: "", teacher_id: "", school_id: "", subject: "Mathematics", class: "6B", room: "Room 12", start: "07:30", end: "08:30", period: 1, status: "taught",    planStatus: "green", attendanceMarked: true  },
+  { id: "2", class_id: "", subject_id: "", teacher_id: "", school_id: "", subject: "Mathematics", class: "7A", room: "Room 12", start: "08:30", end: "09:30", period: 2, status: "scheduled", planStatus: "green", attendanceMarked: false },
+  { id: "3", class_id: "", subject_id: "", teacher_id: "", school_id: "", subject: "Mathematics", class: "6B", room: "Lab 2",   start: "10:00", end: "11:00", period: 3, status: "scheduled", planStatus: "amber", attendanceMarked: false },
+  { id: "4", class_id: "", subject_id: "", teacher_id: "", school_id: "", subject: "Mathematics", class: "8C", room: "Room 12", start: "11:00", end: "12:00", period: 4, status: "scheduled", planStatus: "red",   attendanceMarked: false },
+  { id: "5", class_id: "", subject_id: "", teacher_id: "", school_id: "", subject: "Mathematics", class: "6B", room: "Room 12", start: "14:00", end: "15:00", period: 5, status: "scheduled", planStatus: "green", attendanceMarked: false },
 ];
 
 export const STUDENTS: Student[] = [

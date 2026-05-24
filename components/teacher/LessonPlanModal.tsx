@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Modal, Btn, C } from '@/components/teacher/ui'
+import { C } from '@/components/teacher/ui'
 import type { TimetableSlot } from '@/lib/types'
 
 interface PlanSections {
   objectives:      string
+  resources:       string
   introduction:    string
   development:     string
   consolidation:   string
@@ -20,278 +21,509 @@ interface Props {
   onClose: () => void
 }
 
-const SECTION_LABELS: { key: keyof PlanSections; label: string }[] = [
-  { key: 'objectives',      label: 'Learning Objectives'     },
-  { key: 'introduction',    label: 'Introduction (5–7 min)'  },
-  { key: 'development',     label: 'Development (20–25 min)' },
-  { key: 'consolidation',   label: 'Consolidation (10 min)'  },
-  { key: 'assessmentHook',  label: 'Assessment Hook'         },
-  { key: 'homework',        label: 'Homework'                },
-  { key: 'differentiation', label: 'Differentiation'         },
+interface Context {
+  teacherName:    string
+  schoolName:     string
+  studentCount:   number
+  previousTopics: string[]
+}
+
+const SECTION_LABELS: { key: keyof PlanSections; label: string; icon: string }[] = [
+  { key: "objectives",      label: "Learning Objectives",      icon: "🎯" },
+  { key: "resources",       label: "Resources Needed",         icon: "🗂️" },
+  { key: "introduction",    label: "Introduction (5-7 min)",   icon: "🔥" },
+  { key: "development",     label: "Development (20-25 min)",  icon: "📖" },
+  { key: "consolidation",   label: "Consolidation (8-10 min)", icon: "✅" },
+  { key: "assessmentHook",  label: "Assessment Hook",          icon: "📊" },
+  { key: "homework",        label: "Homework",                 icon: "🏠" },
+  { key: "differentiation", label: "Differentiation",          icon: "⚡" },
 ]
 
 const EMPTY: PlanSections = {
-  objectives:      '',
-  introduction:    '',
-  development:     '',
-  consolidation:   '',
-  assessmentHook:  '',
-  homework:        '',
-  differentiation: '',
+  objectives: "", resources: "", introduction: "", development: "",
+  consolidation: "", assessmentHook: "", homework: "", differentiation: "",
 }
 
 function parsePlan(raw: string): PlanSections {
   const get = (tag: string) => {
-    const m = raw.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`))
-    return m ? m[1].trim() : ''
+    const m = raw.match(new RegExp("<" + tag + ">([\s\S]*?)</" + tag + ">"))
+    return m ? m[1].trim() : ""
   }
   return {
-    objectives:      get('objectives'),
-    introduction:    get('introduction'),
-    development:     get('development'),
-    consolidation:   get('consolidation'),
-    assessmentHook:  get('assessmentHook'),
-    homework:        get('homework'),
-    differentiation: get('differentiation'),
+    objectives:      get("objectives"),
+    resources:       get("resources"),
+    introduction:    get("introduction"),
+    development:     get("development"),
+    consolidation:   get("consolidation"),
+    assessmentHook:  get("assessmentHook"),
+    homework:        get("homework"),
+    differentiation: get("differentiation"),
   }
 }
 
+function Skeleton({ h = 48 }: { h?: number }) {
+  return (
+    <div style={{
+      height: h, borderRadius: 10,
+      background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)",
+      backgroundSize: "200% 100%",
+      animation: "shimmer 1.4s infinite",
+    }} />
+  )
+}
+
 export default function LessonPlanModal({ slot, onClose }: Props) {
-  const [phase,    setPhase]    = useState<'loading' | 'empty' | 'generating' | 'view' | 'edit'>('loading')
+  const [phase,    setPhase]    = useState<"loading" | "form" | "generating" | "view" | "edit">("loading")
   const [sections, setSections] = useState<PlanSections>(EMPTY)
   const [draft,    setDraft]    = useState<PlanSections>(EMPTY)
   const [planId,   setPlanId]   = useState<string | null>(null)
   const [saving,   setSaving]   = useState(false)
-  const [error,    setError]    = useState('')
+  const [error,    setError]    = useState("")
+  const [ctx,      setCtx]      = useState<Context>({ teacherName: "", schoolName: "", studentCount: 0, previousTopics: [] })
+  const [topic,    setTopic]    = useState("")
+  const [focus,    setFocus]    = useState("")
+
+  function getWeekStart() {
+    const d    = new Date()
+    const dow  = d.getDay()
+    const diff = d.getDate() - dow + (dow === 0 ? -6 : 1)
+    return new Date(new Date(d).setDate(diff)).toISOString().split("T")[0]
+  }
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const d         = new Date()
-      const dow       = d.getDay()
-      const diff      = d.getDate() - dow + (dow === 0 ? -6 : 1)
-      const weekStart = new Date(new Date(d).setDate(diff)).toISOString().split('T')[0]
+      const weekStart = getWeekStart()
+      const dow       = new Date().getDay()
 
-      const { data } = await supabase
-        .from('lesson_plans')
-        .select('id, title, body')
-        .eq('teacher_id', user.id)
-        .eq('day_of_week', dow)
-        .eq('week_start',  weekStart)
-        .maybeSingle()
+      const [profileRes, existingRes] = await Promise.all([
+        supabase.from("profiles").select("full_name, school_id").eq("id", user.id).single(),
+        supabase.from("lesson_plans")
+          .select("id, title, body, topic")
+          .eq("teacher_id",  user.id)
+          .eq("class_id",    slot.class_id)
+          .eq("subject_id",  slot.subject_id)
+          .eq("day_of_week", dow)
+          .eq("week_start",  weekStart)
+          .maybeSingle(),
+      ])
 
-      if (data?.body) {
-        const hasSections = data.body.includes('<objectives>')
-        setSections(hasSections ? parsePlan(data.body) : { ...EMPTY, development: data.body, objectives: data.title ?? '' })
-        setPlanId(data.id)
-        setPhase('view')
+      const schoolId = profileRes.data?.school_id ?? null
+
+      const [schoolRes, studentRes, prevRes] = await Promise.all([
+        schoolId
+          ? supabase.from("schools").select("name").eq("id", schoolId).single()
+          : Promise.resolve({ data: null }),
+        supabase.from("students").select("id", { count: "exact", head: true }).eq("class_id", slot.class_id),
+        supabase.from("lesson_plans")
+          .select("topic")
+          .eq("teacher_id", user.id)
+          .eq("class_id",   slot.class_id)
+          .eq("subject_id", slot.subject_id)
+          .not("topic", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ])
+
+      setCtx({
+        teacherName:    profileRes.data?.full_name ?? "Teacher",
+        schoolName:     (schoolRes as { data: { name: string } | null }).data?.name ?? "the school",
+        studentCount:   studentRes.count ?? 0,
+        previousTopics: (prevRes.data ?? []).map((r: { topic: string }) => r.topic).filter(Boolean),
+      })
+
+      if (existingRes.data?.body) {
+        const has = existingRes.data.body.includes("<objectives>")
+        setSections(has ? parsePlan(existingRes.data.body) : { ...EMPTY, development: existingRes.data.body })
+        if (existingRes.data.topic) setTopic(existingRes.data.topic)
+        setPlanId(existingRes.data.id)
+        setPhase("view")
       } else {
-        setPhase('empty')
+        setPhase("form")
       }
     }
     load()
-  }, [slot.id])
+  }, [slot.id, slot.class_id, slot.subject_id])
 
   async function generate() {
-    setPhase('generating')
-    setError('')
-
+    if (!topic.trim()) { setError("Please enter a topic first."); return }
+    setPhase("generating")
+    setError("")
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const profileData = (await supabase.from('profiles').select('full_name, school_id').eq('id', user.id).single()).data
-      const schoolName  = profileData?.school_id
-        ? ((await supabase.from('schools').select('name').eq('id', profileData.school_id).single()).data?.name ?? 'the school')
-        : 'the school'
+      const duration = slot.start && slot.end
+        ? (() => {
+            const [sh, sm] = slot.start.split(":").map(Number)
+            const [eh, em] = slot.end.split(":").map(Number)
+            return ((eh * 60 + em) - (sh * 60 + sm)) + " minutes"
+          })()
+        : "40 minutes"
 
-      const today = new Date().toLocaleDateString('en-KE', { weekday: 'long', month: 'long', day: 'numeric' })
+      const sessionRes = await supabase.auth.getSession()
+      const token      = sessionRes.data.session?.access_token ?? ""
 
-      const prompt = `You are an expert Kenyan CBC curriculum lesson planner. Generate a complete, practical lesson plan.
+      const res = await fetch(
+        process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/generate-lesson-plan",
+        {
+          method:  "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": "Bearer " + token,
+          },
+          body: JSON.stringify({
+            teacher:        ctx.teacherName,
+            school:         ctx.schoolName,
+            subject:        slot.subject,
+            className:      slot.class,
+            studentCount:   ctx.studentCount,
+            duration,
+            topic:          topic.trim(),
+            focus:          focus.trim() || undefined,
+            previousTopics: ctx.previousTopics,
+          }),
+        }
+      )
 
-Subject: ${slot.subject}
-Class: ${slot.class}
-Duration: ${slot.start} to ${slot.end}
-Room: ${slot.room || 'Standard classroom'}
-School: ${schoolName}
-Date: ${today}
+      const json = await res.json()
+      if (!json.plan) { setError("Generation failed. Try again."); setPhase("form"); return }
 
-Return ONLY this exact XML with no other text before or after:
-
-<objectives>
-2-3 clear measurable learning objectives aligned to CBC competency-based outcomes.
-</objectives>
-
-<introduction>
-Specific engaging 5-7 minute hook relevant to Kenyan learners. Include exact teacher talk and student activity.
-</introduction>
-
-<development>
-Detailed 20-25 minute main teaching sequence. Specific activities, examples, teacher moves. Reference CBC strands.
-</development>
-
-<consolidation>
-Focused 10-minute consolidation that checks understanding. Be specific.
-</consolidation>
-
-<assessmentHook>
-One specific formative assessment moment and how to record it.
-</assessmentHook>
-
-<homework>
-Specific achievable homework task aligned to today's lesson.
-</homework>
-
-<differentiation>
-Higher: specific extension task
-On Track: core task description
-Support: scaffolding strategy with specific accommodations
-</differentiation>`
-
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model:      'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages:   [{ role: 'user', content: prompt }],
-        }),
-      })
-
-      const json = await response.json()
-      const raw  = json.content?.[0]?.text ?? ''
-      if (!raw) { setError('Generation failed. Try again.'); setPhase('empty'); return }
-
-      const parsed = parsePlan(raw)
+      const parsed = parsePlan(json.plan)
       setSections(parsed)
 
-      const d         = new Date()
-      const dow       = d.getDay()
-      const diff      = d.getDate() - dow + (dow === 0 ? -6 : 1)
-      const weekStart = new Date(new Date(d).setDate(diff)).toISOString().split('T')[0]
+      const weekStart          = getWeekStart()
+      const dow                = new Date().getDay()
+      const { data: prof }     = await supabase.from("profiles").select("school_id").eq("id", user.id).single()
 
       const payload = {
         teacher_id:   user.id,
-        school_id:    profileData?.school_id ?? null,
-        class_id:     slot.id,
-        subject_id:   null as string | null,
+        school_id:    prof?.school_id ?? null,
+        class_id:     slot.class_id,
+        subject_id:   slot.subject_id,
         week_start:   weekStart,
         day_of_week:  dow,
-        title:        `${slot.subject} — ${slot.class}`,
-        body:         raw,
-        generated_by: 'twin',
+        topic:        topic.trim(),
+        title:        slot.subject + " — " + slot.class + " — " + topic.trim(),
+        body:         json.plan,
+        generated_by: "twin",
       }
 
       if (planId) {
-        await supabase.from('lesson_plans').update(payload).eq('id', planId)
+        await supabase.from("lesson_plans").update(payload).eq("id", planId)
       } else {
-        const { data: ins } = await supabase.from('lesson_plans').insert(payload).select('id').single()
+        const { data: ins } = await supabase.from("lesson_plans").insert(payload).select("id").single()
         if (ins?.id) setPlanId(ins.id)
       }
 
-      setPhase('view')
+      setPhase("view")
     } catch {
-      setError('Something went wrong. Check your connection.')
-      setPhase('empty')
+      setError("Something went wrong. Check your connection.")
+      setPhase("form")
     }
   }
 
   async function saveEdit() {
     setSaving(true)
     const newBody = SECTION_LABELS
-      .map(s => `<${s.key}>\n${draft[s.key]}\n</${s.key}>`)
-      .join('\n\n')
+      .map(s => "<" + s.key + ">\n" + draft[s.key] + "\n</" + s.key + ">")
+      .join("\n\n")
     if (planId) {
-      await supabase.from('lesson_plans')
-        .update({ body: newBody, title: `${slot.subject} — ${slot.class}` })
-        .eq('id', planId)
+      await supabase.from("lesson_plans")
+        .update({ body: newBody, title: slot.subject + " — " + slot.class + " — " + topic })
+        .eq("id", planId)
     }
     setSections(draft)
     setSaving(false)
-    setPhase('view')
+    setPhase("view")
   }
 
   return (
-    <Modal open onClose={onClose} title={`${slot.subject} · ${slot.class}`}>
+    <>
+      <style>{`
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        @keyframes twinPulse { 0%,80%,100%{transform:scale(0.7);opacity:0.5} 40%{transform:scale(1);opacity:1} }
+      `}</style>
 
-      {phase === 'loading' && (
-        <div style={{ padding: '32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', border: `3px solid ${C.accent}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-          <p style={{ fontSize: 13, color: C.textMuted }}>Checking for saved plan…</p>
-        </div>
-      )}
+      <div onClick={onClose} style={{
+        position: "fixed", inset: 0, zIndex: 900,
+        background: "rgba(0,0,0,0.45)",
+      }} />
 
-      {phase === 'empty' && (
-        <div style={{ textAlign: 'center', padding: '24px 0' }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>📋</div>
-          <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No plan yet for this slot</p>
-          <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 20 }}>
-            Generate a full CBC-aligned lesson plan in seconds.
-          </p>
-          {error && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
-          <Btn onClick={generate}>✦ Generate with Twin</Btn>
-        </div>
-      )}
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        zIndex: 910,
+        background: "#fff",
+        borderRadius: "20px 20px 0 0",
+        maxHeight: "90vh",
+        display: "flex",
+        flexDirection: "column",
+        animation: "slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)",
+        boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
+      }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: "14px auto 0" }} />
 
-      {phase === 'generating' && (
-        <div style={{ padding: '32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <style>{`@keyframes twinPulse { 0%,80%,100%{ transform:scale(0.7); opacity:0.5 } 40%{ transform:scale(1); opacity:1 } }`}</style>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(16,185,129,0.12)', border: '1.5px solid rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: C.accent }}>✦</div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>Your Twin is generating…</p>
-            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Building a CBC-aligned plan for {slot.subject} · {slot.class}</p>
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[0, 0.2, 0.4].map(d => (
-              <span key={d} style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: C.accent, animation: `twinPulse 1.4s ease-in-out ${d}s infinite` }} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {phase === 'view' && (
-        <div>
-          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: C.accent }}>✦</span> Generated by Twin · CBC aligned
-          </div>
-          {SECTION_LABELS.map(s => sections[s.key] ? (
-            <div key={s.key} style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 5 }}>{s.label}</div>
-              <div style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{sections[s.key]}</div>
+        <div style={{
+          padding: "16px 20px 12px",
+          borderBottom: "1px solid " + C.border,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{slot.subject}</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
+              {slot.class}{slot.room ? " · " + slot.room : ""}{slot.start ? " · " + slot.start + "–" + slot.end : ""}
             </div>
-          ) : null)}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
-            <Btn variant="ghost" onClick={() => { setDraft({ ...sections }); setPhase('edit') }}>Edit</Btn>
-            <Btn variant="ghost" onClick={generate}>Regenerate</Btn>
-            <Btn variant="ghost" onClick={onClose}>Close</Btn>
           </div>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", fontSize: 20,
+            color: C.textMuted, cursor: "pointer", padding: "4px 8px",
+          }}>✕</button>
         </div>
-      )}
 
-      {phase === 'edit' && (
-        <div>
-          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 14 }}>Edit any section then save.</div>
-          {SECTION_LABELS.map(s => (
-            <div key={s.key} style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>{s.label}</label>
-              <textarea
-                value={draft[s.key]}
-                onChange={e => setDraft(d => ({ ...d, [s.key]: e.target.value }))}
-                rows={4}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 13, color: C.textPrimary, fontFamily: 'inherit', lineHeight: 1.6, resize: 'vertical', outline: 'none', background: '#f9fafb', boxSizing: 'border-box' }}
-              />
+        <div style={{ overflowY: "auto", flex: 1, padding: "20px" }}>
+
+          {phase === "loading" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[80, 56, 120, 200, 80].map((h, i) => <Skeleton key={i} h={h} />)}
             </div>
-          ))}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-            <Btn variant="ghost" onClick={() => setPhase('view')}>Cancel</Btn>
-            <Btn onClick={saveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save Plan'}</Btn>
-          </div>
-        </div>
-      )}
+          )}
 
-    </Modal>
+          {phase === "form" && (
+            <div>
+              {ctx.studentCount > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                  {[ctx.teacherName, ctx.studentCount + " learners", ctx.schoolName].map(b => (
+                    <span key={String(b)} style={{
+                      fontSize: 11, fontWeight: 700,
+                      background: C.accentLight, color: "#065f46",
+                      borderRadius: 20, padding: "3px 10px",
+                    }}>{b}</span>
+                  ))}
+                </div>
+              )}
+
+              {ctx.previousTopics.length > 0 && (
+                <div style={{
+                  background: "#f0fdf4", borderRadius: 10,
+                  padding: "10px 14px", marginBottom: 20,
+                  fontSize: 12, color: "#065f46",
+                }}>
+                  <span style={{ fontWeight: 700 }}>Previously covered: </span>
+                  {ctx.previousTopics.join(" → ")}
+                </div>
+              )}
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{
+                  fontSize: 11, fontWeight: 800, color: C.textMuted,
+                  letterSpacing: 1, textTransform: "uppercase",
+                  display: "block", marginBottom: 6,
+                }}>Topic *</label>
+                <input
+                  value={topic}
+                  onChange={e => setTopic(e.target.value)}
+                  placeholder="e.g. Fractions on a Number Line"
+                  style={{
+                    width: "100%", padding: "12px 14px",
+                    borderRadius: 10, border: "1.5px solid " + (error && !topic.trim() ? C.error : C.border),
+                    fontSize: 14, color: C.textPrimary,
+                    fontFamily: "inherit", outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <label style={{
+                  fontSize: 11, fontWeight: 800, color: C.textMuted,
+                  letterSpacing: 1, textTransform: "uppercase",
+                  display: "block", marginBottom: 6,
+                }}>Specific focus <span style={{ fontWeight: 400 }}>(optional)</span></label>
+                <input
+                  value={focus}
+                  onChange={e => setFocus(e.target.value)}
+                  placeholder="e.g. Struggling learners need visual aids"
+                  style={{
+                    width: "100%", padding: "12px 14px",
+                    borderRadius: 10, border: "1.5px solid " + C.border,
+                    fontSize: 14, color: C.textPrimary,
+                    fontFamily: "inherit", outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              {error && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
+
+              <button
+                onClick={generate}
+                style={{
+                  width: "100%", padding: "14px",
+                  borderRadius: 12, border: "none",
+                  background: C.accent, color: "#fff",
+                  fontSize: 15, fontWeight: 800, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                }}
+              >
+                <span>✦</span> Generate Lesson Plan
+              </button>
+            </div>
+          )}
+
+          {phase === "generating" && (
+            <div style={{
+              padding: "40px 0",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 16,
+            }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: "50%",
+                background: "rgba(16,185,129,0.1)",
+                border: "1.5px solid rgba(16,185,129,0.35)",
+                display: "flex", alignItems: "center",
+                justifyContent: "center", fontSize: 22, color: C.accent,
+              }}>✦</div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, margin: 0 }}>
+                  Building your plan…
+                </p>
+                <p style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
+                  {slot.subject} · {slot.class} · {topic}
+                </p>
+                {ctx.previousTopics.length > 0 && (
+                  <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
+                    Building on {ctx.previousTopics.length} previous lesson{ctx.previousTopics.length > 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[0, 0.2, 0.4].map(d => (
+                  <span key={d} style={{
+                    display: "inline-block", width: 8, height: 8,
+                    borderRadius: "50%", background: C.accent,
+                    animation: "twinPulse 1.4s ease-in-out " + d + "s infinite",
+                  }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {phase === "view" && (
+            <div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                marginBottom: 16, fontSize: 12, color: C.textMuted,
+              }}>
+                <span style={{ color: C.accent }}>✦</span>
+                <span>Generated by Twin · CBC aligned</span>
+                {topic && (
+                  <span style={{
+                    marginLeft: "auto", fontSize: 11, fontWeight: 700,
+                    background: C.accentLight, color: "#065f46",
+                    borderRadius: 20, padding: "2px 10px",
+                  }}>{topic}</span>
+                )}
+              </div>
+
+              {SECTION_LABELS.map(s => sections[s.key] ? (
+                <div key={s.key} style={{
+                  marginBottom: 20,
+                  background: "#fafafa",
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  border: "1px solid " + C.border,
+                }}>
+                  <div style={{
+                    fontSize: 10, fontWeight: 800, color: C.textMuted,
+                    letterSpacing: 1, textTransform: "uppercase",
+                    marginBottom: 8, display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    <span>{s.icon}</span>{s.label}
+                  </div>
+                  <div style={{
+                    fontSize: 13, color: C.textPrimary,
+                    lineHeight: 1.75, whiteSpace: "pre-wrap",
+                  }}>{sections[s.key]}</div>
+                </div>
+              ) : null)}
+
+              <div style={{
+                display: "flex", gap: 10,
+                paddingTop: 16, borderTop: "1px solid " + C.border,
+                marginTop: 8,
+              }}>
+                <button onClick={() => { setDraft({ ...sections }); setPhase("edit") }} style={{
+                  flex: 1, padding: "12px", borderRadius: 10,
+                  border: "1.5px solid " + C.border, background: "#fff",
+                  fontSize: 13, fontWeight: 700, color: C.textPrimary, cursor: "pointer",
+                }}>Edit</button>
+                <button onClick={() => setPhase("form")} style={{
+                  flex: 1, padding: "12px", borderRadius: 10,
+                  border: "1.5px solid " + C.border, background: "#fff",
+                  fontSize: 13, fontWeight: 700, color: C.textPrimary, cursor: "pointer",
+                }}>Regenerate</button>
+                <button onClick={onClose} style={{
+                  flex: 1, padding: "12px", borderRadius: 10,
+                  border: "none", background: C.accent,
+                  fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer",
+                }}>Done</button>
+              </div>
+            </div>
+          )}
+
+          {phase === "edit" && (
+            <div>
+              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 16 }}>
+                Edit any section then save.
+              </div>
+              {SECTION_LABELS.map(s => (
+                <div key={s.key} style={{ marginBottom: 16 }}>
+                  <label style={{
+                    fontSize: 10, fontWeight: 800, color: C.textMuted,
+                    letterSpacing: 1, textTransform: "uppercase",
+                    display: "block", marginBottom: 5,
+                  }}>{s.icon} {s.label}</label>
+                  <textarea
+                    value={draft[s.key]}
+                    onChange={e => setDraft(d => ({ ...d, [s.key]: e.target.value }))}
+                    rows={5}
+                    style={{
+                      width: "100%", padding: "10px 12px",
+                      borderRadius: 10, border: "1.5px solid " + C.border,
+                      fontSize: 13, color: C.textPrimary,
+                      fontFamily: "inherit", lineHeight: 1.6,
+                      resize: "vertical", outline: "none",
+                      background: "#f9fafb", boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+              ))}
+              <div style={{
+                display: "flex", gap: 10,
+                paddingTop: 8, borderTop: "1px solid " + C.border,
+              }}>
+                <button onClick={() => setPhase("view")} style={{
+                  flex: 1, padding: "12px", borderRadius: 10,
+                  border: "1.5px solid " + C.border, background: "#fff",
+                  fontSize: 13, fontWeight: 700, color: C.textPrimary, cursor: "pointer",
+                }}>Cancel</button>
+                <button onClick={saveEdit} disabled={saving} style={{
+                  flex: 1, padding: "12px", borderRadius: 10,
+                  border: "none", background: C.accent,
+                  fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer",
+                  opacity: saving ? 0.7 : 1,
+                }}>
+                  {saving ? "Saving…" : "Save Plan"}
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </>
   )
 }

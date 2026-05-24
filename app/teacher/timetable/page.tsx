@@ -9,6 +9,8 @@ import AddSlotModal from '@/components/teacher/AddSlotModal'
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Slot {
   id:        string
+  classId:   string
+  subjectId: string
   subject:   string
   className: string
   room:      string

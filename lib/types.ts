@@ -23,15 +23,19 @@ export interface Student {
 }
 
 export interface TimetableSlot {
-  id: number;
-  subject: string;
-  class: string;
-  room: string;
-  start: string;
-  end: string;
-  period: number;
-  status: SlotStatus;
-  planStatus: PlanStatus;
+  id:               string;
+  class_id:         string;
+  subject_id:       string;
+  teacher_id:       string;
+  school_id:        string;
+  subject:          string;
+  class:            string;
+  room:             string;
+  start:            string;
+  end:              string;
+  period:           number;
+  status:           SlotStatus;
+  planStatus:       PlanStatus;
   attendanceMarked: boolean;
 }
 
