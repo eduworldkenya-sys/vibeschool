@@ -80,7 +80,7 @@ function AttendanceInner() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const dow = new Date(selectedDate + 'T00:00:00').getDay()
+      const dow = new Date(selectedDate + 'T12:00:00').getDay()
 
       setUid(user.id)
 
