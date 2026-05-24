@@ -1,7 +1,7 @@
 'use client'
 import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
-import React, { useEffect, useState, Suspense } from 'react'
+import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 
@@ -205,14 +205,14 @@ function ClassPageInner() {
   const backRoute    = isSubject ? '/teacher/subjecthub' : '/teacher/classhub'
   const gridCols     = isSubject ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)'
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle: CSSProperties = {
     width: '100%', padding: '11px 14px', borderRadius: 10,
     border: '1px solid #e5e7eb', fontSize: 14, color: C.textPrimary,
     outline: 'none', fontFamily: 'inherit', background: '#f9fafb',
     boxSizing: 'border-box',
   }
 
-  const labelStyle: React.CSSProperties = {
+  const labelStyle: CSSProperties = {
     fontSize: 11, fontWeight: 700, color: C.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.8,
     marginBottom: 6, display: 'block',
