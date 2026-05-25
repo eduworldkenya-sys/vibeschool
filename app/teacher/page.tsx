@@ -106,7 +106,7 @@ export default function TeacherHomePage() {
         supabase.from('profiles').select('full_name, school_id').eq('id', uid).single(),
         supabase
           .from('timetable_slots')
-          .select('id, day_of_week, start_time, end_time, room, subjects ( name ), classes ( name, stream )')
+          .select('id, day_of_week, start_time, end_time, room, class_id, subject_id, subjects ( name ), classes ( name, stream )')
           .eq('teacher_id', uid)
           .order('day_of_week', { ascending: true })
           .order('start_time',  { ascending: true }),
