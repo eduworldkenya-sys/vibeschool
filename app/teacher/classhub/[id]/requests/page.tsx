@@ -1,5 +1,5 @@
 'use client'
-import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
+import { C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
@@ -149,7 +149,7 @@ export default function JoinRequestsPage() {
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", minHeight: '100vh', background: C.surface }}>
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: C.surface }}>
       <style>{`
         @keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideIn  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
