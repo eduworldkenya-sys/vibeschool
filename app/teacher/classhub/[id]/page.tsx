@@ -124,9 +124,10 @@ function ClassPageInner() {
 
     // FIX: 'late' is not a valid status — use status='present' only
     const attRows = attRes.data ?? []
-    if (attRows.length > 0) {
+    const enrolledCount = loadedStudents.length
+    if (enrolledCount > 0) {
       const present = attRows.filter(r => r.status === 'present').length
-      setAttendanceRate(Math.round((present / attRows.length) * 100) + '%')
+      setAttendanceRate(Math.round((present / enrolledCount) * 100) + '%')
     }
 
     const PERF_MAP: Record<string, number> = { BE: 1, AE: 2, ME: 3, EE: 4 }
