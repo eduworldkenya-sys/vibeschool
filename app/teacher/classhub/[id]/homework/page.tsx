@@ -229,7 +229,7 @@ function HomeworkInner() {
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f3f4f6', color: C.textMuted, textTransform: 'capitalize' }}>{h.type}</span>
                       {h.target_group_id && groups.find(g => g.id === h.target_group_id) && (
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#ede9fe', color: '#6d28d9', marginLeft: 6 }}>
-                          Group: {groups.find(g => g.id === h.target_group_id).name}
+                          Group: {groups.find(g => g.id === h.target_group_id)?.name}
                         </span>
                       )}
                   </div>
