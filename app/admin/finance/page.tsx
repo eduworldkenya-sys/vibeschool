@@ -275,7 +275,7 @@ export default function FinancePage() {
       setExpenses(expenseRows)
       setPeriods(periodRows)
       setSummary({ totalInvoiced, totalCollected, totalOutstanding, totalExpenses, overdueCount, cashPosition, collectionRate })
-    } catch (e) { console.error(e); setError('Something went wrong. Please try again.') }
+    } catch (e) { console.error(e); setToast({ msg: 'Something went wrong. Please try again.', type: 'error' }) }
     finally { setLoading(false) }
   }, [currentTerm, currentYear])
 
