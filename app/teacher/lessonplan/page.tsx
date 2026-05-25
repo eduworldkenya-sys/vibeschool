@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
+import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import LessonPlanModal from '@/components/teacher/LessonPlanModal'
 import type { TimetableSlot, PlanStatus } from '@/lib/types'
 
