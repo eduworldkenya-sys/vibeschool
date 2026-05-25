@@ -14,6 +14,8 @@ interface Slot {
   end:              string
   day_of_week:      number
   attendanceMarked: boolean
+  classId:          string
+  subjectId:        string
 }
 
 interface DashboardData {
@@ -148,6 +150,8 @@ export default function TeacherHomePage() {
           end:              slot.end_time,
           day_of_week:      slot.day_of_week as number,
           attendanceMarked: markedSlotIds.has(slot.id),
+          classId:          slot.class_id,
+          subjectId:        slot.subject_id,
         }
       })
 
@@ -262,8 +266,8 @@ export default function TeacherHomePage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => router.push(myClassId ? '/teacher/lessonplan?classId=' + myClassId : '/teacher/lessonplan')} style={{ padding: '6px 12px', borderRadius: 10, border: `1.5px solid ${accent}`, background: 'transparent', color: accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Plan</button>
-              <button onClick={() => router.push(myClassId ? '/teacher/attendance?classId=' + myClassId : '/teacher/attendance')} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
+              <button onClick={() => router.push('/teacher/lessonplan?classId=' + slot.classId + '&subjectId=' + slot.subjectId)} style={{ padding: '6px 12px', borderRadius: 10, border: `1.5px solid ${accent}`, background: 'transparent', color: accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Plan</button>
+              <button onClick={() => router.push('/teacher/attendance?classId=' + slot.classId)} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
             </div>
           </div>
         )
@@ -308,7 +312,7 @@ export default function TeacherHomePage() {
                   <div style={{ fontSize: 11, color: textMuted }}>{formatTime(s.start)}–{formatTime(s.end)} · {s.room}</div>
                 </div>
                 {!s.attendanceMarked && (
-                  <button onClick={() => router.push(myClassId ? '/teacher/attendance?classId=' + myClassId : '/teacher/attendance')} style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
+                  <button onClick={() => router.push('/teacher/attendance?classId=' + s.classId)} style={{ flexShrink: 0, padding: '5px 10px', borderRadius: 8, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Attend</button>
                 )}
               </div>
             ))}

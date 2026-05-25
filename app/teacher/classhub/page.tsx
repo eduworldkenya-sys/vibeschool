@@ -106,7 +106,20 @@ export default function ClassHubPage() {
       ? supabase.from('subjects').select('id, name').or(`school_id.eq.${sid},school_id.is.null`).order('name')
       : supabase.from('subjects').select('id, name').order('name')
 
-    const classQuery = supabase.from('classes').select('*').eq('teacher_id', uid).order('created_at', { ascending: true })
+    // Load class IDs where this teacher is the class teacher
+    const tcClassRes = await supabase
+      .from('teacher_classes')
+      .select('class_id')
+      .eq('teacher_id', uid)
+      .eq('is_class_teacher', true)
+
+    const classIds = Array.from(new Set(
+      (tcClassRes.data ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
+    ))
+
+    const classQuery = classIds.length > 0
+      ? supabase.from('classes').select('*').in('id', classIds).order('created_at', { ascending: true })
+      : supabase.from('classes').select('*').eq('teacher_id', uid).order('created_at', { ascending: true })
 
     const [classRes, subjectRes] = await Promise.all([classQuery, subjectQuery])
 
