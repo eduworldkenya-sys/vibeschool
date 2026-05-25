@@ -584,7 +584,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           padding: '10px 16px', marginBottom: 14,
         }}>
           <div style={{ fontSize: 11, color: '#92400e', fontWeight: 700, marginBottom: 4 }}>
-            {isWeekend ? (todayDow === 0 ? 'Sunday' : 'Saturday') : 'School Day'}
+            {isWeekend ? (todayDow === 7 ? 'Sunday' : 'Saturday') : 'School Day'}
           </div>
           <div style={{ fontSize: 12, color: '#78350f', fontStyle: 'italic' }}>
             {['Every student can learn, just not on the same day.',
