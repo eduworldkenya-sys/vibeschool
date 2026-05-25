@@ -40,6 +40,12 @@ function getWeekStart() {
   return mon.toISOString().split('T')[0]
 }
 
+function offsetWeek(start: string, days: number) {
+  const d = new Date(start + 'T12:00:00')
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
+}
+
 function Skeleton({ h = 72 }: { h?: number }) {
   return (
     <div style={{
@@ -54,7 +60,7 @@ function Skeleton({ h = 72 }: { h?: number }) {
 // ── Page ───────────────────────────────────────────────────────────────────
 function LessonPlanInner() {
 
-  const weekStart  = getWeekStart()
+  const [weekStart, setWeekStart] = useState(getWeekStart())
   const router       = useRouter()
   const searchParams = useSearchParams()
   const urlClassId   = searchParams.get('classId')
@@ -134,7 +140,7 @@ function LessonPlanInner() {
     }
 
     load()
-  }, [])
+  }, [weekStart])
 
   const readyCount   = items.filter(i => i.status === 'green').length
   const missingCount = items.filter(i => i.status === 'red').length
@@ -161,10 +167,17 @@ function LessonPlanInner() {
           Lesson Plans
         </div>
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
-          "Today's Plans"
+          Today's Plans
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
           Week of {weekStart} · Linked to your timetable.
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+          <button onClick={() => setWeekStart(w => offsetWeek(w, -7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Prev</button>
+          <button onClick={() => setWeekStart(getWeekStart())} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Today</button>
+          <button onClick={() => setWeekStart(w => offsetWeek(w, 7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
+        </div>
+        <div style={{ display: 'none' }}>
         </div>
         {urlClassId && (
           <button
