@@ -72,6 +72,14 @@ serve(async (req) => {
       "On track: core task description",
       "Needs support: exact scaffolding strategy with accommodations for this topic",
       "</differentiation>",
+      "",
+      "<student_notes>",
+      "3-5 bullet points in plain English for parents and students. What was learned today written as if explaining to a parent. No teaching jargon. Include CBC strand reference at the end.",
+      "</student_notes>",
+      "",
+      "<parent_message>",
+      "A complete warm professional parent message. Structure: greeting, Today in [subject] your child learned... paragraph, homework section with exact tasks numbered, one practical tip for helping at home, sign-off with " + teacher + " and " + school + ". Ready to send with zero editing needed.",
+      "</parent_message>",
     ].join("\n")
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -83,7 +91,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model:      "claude-haiku-4-5",
-        max_tokens: 2500,
+        max_tokens: 4000,
         messages:   [{ role: "user", content: prompt }],
       }),
     })
