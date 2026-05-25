@@ -163,7 +163,7 @@ function PersonalInfoSection() {
       const [profileRes, memberRes, teacherRes] = await Promise.all([
         supabase.from('profiles').select('full_name,phone,date_of_birth,country_code,gender,bio').eq('id', uid).single(),
         supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
-        supabase.from('teacher_profiles').select('tsc_number,employment_type').eq('profile_id', uid).maybeSingle(),
+        supabase.from('teacher_profiles').select('tsc_number,employment_type,school_id').eq('profile_id', uid).maybeSingle(),
       ])
 
       const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
