@@ -99,7 +99,7 @@ function AttendanceInner() {
             classes  ( name, stream )
           `)
           .eq('teacher_id', user.id)
-          .eq('day_of_week', dow + 1)
+          .eq('day_of_week', dow === 0 ? 7 : dow)
           if (urlClassId) q = q.eq('class_id', urlClassId)
           return q.order('start_time', { ascending: true }) })(),
       ])
