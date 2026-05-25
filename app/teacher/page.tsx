@@ -309,7 +309,7 @@ export default function TeacherHomePage() {
         </div>
         {data.todaySlots.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 28 }}>📅</span>
+            <span style={{ fontSize: 28 }}>🗓️</span>
             <p style={{ fontSize: 13, color: textMuted, margin: 0 }}>No classes scheduled today</p>
             <button onClick={() => router.push('/teacher/timetable')} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
               Set Up Timetable →

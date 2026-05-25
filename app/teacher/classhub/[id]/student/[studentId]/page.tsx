@@ -238,7 +238,7 @@ function AttendanceTab({ records }: { records: AttendanceRecord[] }) {
       <Card>
         <SectionHead title="Attendance Log" />
         {records.length === 0 ? (
-          <EmptyState icon="📅" text="No attendance records yet" />
+          <EmptyState icon="🗓️" text="No attendance records yet" />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {records.slice(0, 30).map(r => {

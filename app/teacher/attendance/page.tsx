@@ -126,7 +126,11 @@ function AttendanceInner() {
       setSlots(mapped)
       setSlotsLoading(false)
       const first = mapped.find(s => !s.marked) ?? mapped[0] ?? null
-      if (first) setActiveSlot(first)
+      if (first) {
+        setActiveSlot(first)
+      } else if (urlClassId) {
+        setActiveSlot({ id: 'no-slot', classId: urlClassId, subject: '', class: '', room: '', start: '', end: '', marked: false })
+      }
     }
     init()
   }, [selectedDate])
@@ -179,8 +183,9 @@ function AttendanceInner() {
     setSaving(true)
     setSaveState('idle')
 
+    const noSlot = activeSlot.id === 'no-slot'
     const rows = students.map(s => ({
-      timetable_slot_id: activeSlot.id,
+      ...(noSlot ? {} : { timetable_slot_id: activeSlot.id }),
       student_id:        s.id,
       class_id:          activeSlot.classId,
       teacher_id:        uid,
@@ -193,7 +198,7 @@ function AttendanceInner() {
 
     const { error } = await supabase
       .from('attendance')
-      .upsert(rows, { onConflict: 'timetable_slot_id,student_id,date' })
+      .upsert(rows, { onConflict: noSlot ? 'class_id,student_id,date' : 'timetable_slot_id,student_id,date' })
 
     if (!error) {
       setSlots(prev => prev.map(s => s.id === activeSlot.id ? { ...s, marked: true } : s))
@@ -226,7 +231,7 @@ function AttendanceInner() {
         )}
       </div>
 
-      <Card>
+      <Card style={{ display: slots.length === 0 && urlClassId ? 'none' : undefined }}>
         <SectionLabel>Select Period</SectionLabel>
         {slotsLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[1,2,3].map(i => <Skeleton key={i} h={56} />)}</div>
@@ -248,7 +253,7 @@ function AttendanceInner() {
       </Card>
 
       {activeSlot && (
-        <Card>
+        <Card style={{ display: slots.length === 0 && urlClassId ? 'none' : undefined }}>
           <SectionLabel>Register — {activeSlot.class} · {formatTime(activeSlot.start)}</SectionLabel>
 
           {!studentsLoading && students.length > 0 && (

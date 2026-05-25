@@ -538,7 +538,7 @@ function ResultsInner() {
       {/* ── Exam info bar ── */}
       {activeExam && (
         <div style={{ margin: '10px 16px 0', padding: '10px 14px', borderRadius: 12, background: '#f8fafc', border: '1px solid #e5e7eb', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: '#6b7280' }}>📅 {TERM_LABELS[activeExam.term - 1]} · {activeExam.academic_year}</span>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>🗓️ {TERM_LABELS[activeExam.term - 1]} · {activeExam.academic_year}</span>
           <span style={{ fontSize: 12, color: '#6b7280' }}>📝 {activeExam.exam_type.charAt(0).toUpperCase() + activeExam.exam_type.slice(1)}</span>
           <span style={{ fontSize: 12, color: '#6b7280' }}>✅ Pass: {activeExam.pass_mark}</span>
           {activeExam.is_locked && <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>🔒 Locked</span>}

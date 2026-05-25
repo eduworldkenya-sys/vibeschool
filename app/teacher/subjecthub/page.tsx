@@ -260,7 +260,7 @@ export default function SubjectHubPage() {
     { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
     { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
     { id: 'scheme',     label: 'Scheme',       icon: '📋', bg: '#075985', route: '/teacher/scheme'     },
-    { id: 'timetable',  label: 'Timetable',    icon: '📅', bg: '#0f766e', route: '/teacher/timetable'  },
+    { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#0f766e', route: '/teacher/timetable'  },
   ]
 
   return (
