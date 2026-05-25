@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import type { CSSProperties } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, C } from '@/components/teacher/ui'
 
@@ -28,7 +29,8 @@ function Skeleton({ h = 56 }: { h?: number }) {
   )
 }
 
-export default function SchemePage() {
+function SchemePageInner() {
+  const searchParams = useSearchParams()
   const [uid,             setUid]             = useState<string | null>(null)
   const [schoolId,        setSchoolId]        = useState<string | null>(null)
   const [loading,         setLoading]         = useState(true)
@@ -85,8 +87,12 @@ export default function SchemePage() {
 
       setClasses(classOptions)
       setSubjects(subjectOptions)
-      if (classOptions.length)   setSelectedClass(classOptions[0].id)
-      if (subjectOptions.length) setSelectedSubject(subjectOptions[0].id)
+      const urlClassId   = searchParams.get('classId')
+      const urlSubjectId = searchParams.get('subjectId')
+      const matchClass   = urlClassId   ? classOptions.find(c => c.id === urlClassId)     : null
+      const matchSubject = urlSubjectId ? subjectOptions.find(s => s.id === urlSubjectId) : null
+      setSelectedClass(matchClass?.id   ?? (classOptions[0]?.id   ?? null))
+      setSelectedSubject(matchSubject?.id ?? (subjectOptions[0]?.id ?? null))
       setLoading(false)
     }
     boot()
@@ -319,5 +325,13 @@ export default function SchemePage() {
         </>
       )}
     </>
+  )
+}
+
+export default function SchemePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13 }}>Loading…</div>}>
+      <SchemePageInner />
+    </Suspense>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSearchParams }                        from 'next/navigation'
 import { supabase }                               from '@/lib/supabase'
 import { Card, C }                                from '@/components/teacher/ui'
@@ -86,6 +87,7 @@ function EmptyState({ icon, message }: { icon: string; message: string }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function AssessmentInner() {
+  const router = useRouter()
   const searchParams = useSearchParams()
 
   const [teacherId,        setTeacherId]        = useState<string | null>(null)
@@ -447,6 +449,14 @@ function AssessmentInner() {
 
       {/* ── Header ── */}
       <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
+        {activeClassId && (
+          <button
+            onClick={() => router.push('/teacher/classhub/' + activeClassId)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10, padding: '6px 14px', borderRadius: 10, background: '#f3f4f6', border: 'none', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            ← View Class
+          </button>
+        )}
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0a0a0a' }}>CBC Assessment</h1>
         <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>
           {activeClass ? `${activeClass.name}${activeClass.stream ? ' ' + activeClass.stream : ''}` : '—'}

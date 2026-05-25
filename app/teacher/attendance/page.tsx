@@ -54,11 +54,12 @@ function Skeleton({ h = 56 }: { h?: number }) {
 }
 
 function AttendanceInner() {
-  const today = new Date().toISOString().split('T')[0]
-  const [selectedDate, setSelectedDate] = useState(today)
   const router       = useRouter()
   const searchParams = useSearchParams()
   const urlClassId   = searchParams.get('classId')
+  const urlDate      = searchParams.get('date')
+  const today        = new Date().toISOString().split('T')[0]
+  const [selectedDate, setSelectedDate] = useState(urlDate ?? today)
 
   const [uid,             setUid]             = useState<string | null>(null)
   const [schoolId,        setSchoolId]        = useState<string | null>(null)
