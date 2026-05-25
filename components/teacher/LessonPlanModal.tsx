@@ -136,7 +136,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           .eq('teacher_id',  user.id)
           .eq('class_id',    slot.class_id)
           .eq('subject_id',  slot.subject_id)
-          .eq('day_of_week', dow)
+          .eq('timetable_slot_id', slot.id)
           .eq('week_start',  weekStart)
           .maybeSingle(),
       ])
@@ -246,6 +246,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         subject_id:   slot.subject_id,
         week_start:   weekStart,
         day_of_week:  dow,
+        timetable_slot_id: slot.id,
         topic:        topic.trim(),
         title:        slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
         body:         json.plan,
