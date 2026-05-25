@@ -12,6 +12,7 @@ interface Homework {
   due_date:     string
   type:         string
   created_at:   string
+  target_group_id: string | null
 }
 
 interface Group {
@@ -40,6 +41,7 @@ function HomeworkInner() {
     instructions: '',
     due_date:     '',
     type:         'general',
+    target_group_id: '',
   })
 
   async function load() {
@@ -82,6 +84,7 @@ function HomeworkInner() {
       instructions: form.instructions.trim(),
       due_date:     form.due_date,
       type:         form.type,
+      target_group_id: form.target_group_id || null,
     })
 
     setSaving(false)
@@ -180,7 +183,14 @@ function HomeworkInner() {
                 </select>
               </div>
             </div>
-            {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
+            <div>
+                <label style={labelStyle}>Assign To</label>
+                <select style={inputStyle} value={form.target_group_id} onChange={e => setForm(f => ({ ...f, target_group_id: e.target.value }))}>
+                  <option value=''>Whole Class</option>
+                  {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+              </div>
+{error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
             <button onClick={handleSubmit} disabled={saving} style={{ marginTop: 16, width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: saving ? '#99f6e4' : '#0f766e', color: '#fff', fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
               {saving ? 'Saving…' : 'Post Homework'}
             </button>
@@ -217,6 +227,11 @@ function HomeworkInner() {
                   </div>
                   <div style={{ marginTop: 10 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f3f4f6', color: C.textMuted, textTransform: 'capitalize' }}>{h.type}</span>
+                      {h.target_group_id && groups.find(g => g.id === h.target_group_id) && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#ede9fe', color: '#6d28d9', marginLeft: 6 }}>
+                          Group: {groups.find(g => g.id === h.target_group_id).name}
+                        </span>
+                      )}
                   </div>
                 </div>
               )
