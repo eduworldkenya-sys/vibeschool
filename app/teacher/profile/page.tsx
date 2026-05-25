@@ -220,7 +220,7 @@ function PersonalInfoSection() {
 
     if (pRes.error) {
       setSaving(false)
-      setError('Save failed. Please try again.')
+      setError(pRes.error.message ?? 'Save failed. Please try again.')
       return
     }
 
@@ -293,7 +293,7 @@ function PersonalInfoSection() {
         </div>
         <div>
           <label style={lbl}>Phone</label>
-          <input style={inp} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="e.g. +254 712 345 678" />
+          <input style={inp} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} onBlur={e => { let v = e.target.value.trim(); if (v.startsWith('07') && v.length === 10) v = '+254' + v.slice(1); else if (v.startsWith('01') && v.length === 10) v = '+254' + v.slice(1); setForm(f => ({ ...f, phone: v })); }} placeholder="e.g. 0712 345 678 or +254 712 345 678" />
         </div>
         <div>
           <label style={lbl}>Date of Birth</label>
