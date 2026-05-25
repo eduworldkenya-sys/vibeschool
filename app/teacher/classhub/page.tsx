@@ -59,11 +59,8 @@ export default function ClassHubPage() {
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
   const [subjects,      setSubjects]      = useState<SubjectOption[]>([])
   const [loading,       setLoading]       = useState(true)
-  const [showForm,      setShowForm]      = useState(false)
-  const [saving,        setSaving]        = useState(false)
   const [deleting,      setDeleting]      = useState<string | null>(null)
   const [error,         setError]         = useState('')
-  const [form,          setForm]          = useState<FormState>({ name: '', stream: '', subject: '' })
   const [userId,        setUserId]        = useState<string | null>(null)
   const [schoolId,      setSchoolId]      = useState<string | null>(null)
 
@@ -139,26 +136,6 @@ export default function ClassHubPage() {
     setLoading(false)
   }
 
-  async function handleCreate() {
-    setError('')
-    if (!form.name.trim())  { setError('Class name is required.'); return }
-    if (!form.subject)      { setError('Subject is required.'); return }
-    if (!userId) return
-
-    setSaving(true)
-    const { error: err } = await supabase.from('classes').insert({
-      teacher_id: userId,
-      school_id:  schoolId,
-      name:       form.name.trim(),
-      stream:     form.stream.trim(),
-      subject:    form.subject.trim(),
-    })
-    setSaving(false)
-    if (err) { setError(err.message); return }
-    setForm({ name: '', stream: '', subject: '' })
-    setShowForm(false)
-    await loadClasses(userId, schoolId)
-  }
 
   async function handleDelete(id: string) {
     if (!window.confirm('Delete this class? This cannot be undone.')) return
@@ -227,43 +204,8 @@ export default function ClassHubPage() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: textMain, margin: 0 }}>ClassHub</h1>
           <p style={{ fontSize: 13, color: textMuted, marginTop: 4 }}>{loading ? '…' : `${classes.length} ${classes.length === 1 ? 'class' : 'classes'}`}</p>
         </div>
-        <button onClick={() => { setShowForm(v => !v); setError('') }} style={{ padding: '10px 18px', borderRadius: 12, background: showForm ? '#f3f4f6' : dark, color: showForm ? textMain : '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-          {showForm ? 'Cancel' : '+ Add Class'}
-        </button>
       </div>
 
-      {showForm && (
-        <div style={{ margin: '0 16px 16px', padding: 20, background: cardBg, borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          <p style={{ fontSize: 15, fontWeight: 800, color: textMain, marginBottom: 16 }}>New Class</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label style={labelStyle}>Class Name *</label>
-              <select style={{ ...inputStyle, appearance: 'none' }} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}>
-                <option value="" disabled>Select grade</option>
-                {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Subject *</label>
-              <select style={{ ...inputStyle, appearance: 'none' }} value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}>
-                <option value="" disabled>Select a subject</option>
-                {subjects.length > 0
-                  ? subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)
-                  : ['Mathematics','English','Kiswahili','Science and Technology','Social Studies','Religious Education','Creative Arts and Sports','Agriculture and Nutrition','Home Science'].map(s => <option key={s} value={s}>{s}</option>)
-                }
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Stream (optional)</label>
-              <input style={inputStyle} placeholder="e.g. East, Blue, A" value={form.stream} onChange={e => setForm(f => ({ ...f, stream: e.target.value }))} />
-            </div>
-          </div>
-          {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
-          <button onClick={handleCreate} disabled={saving} style={{ marginTop: 18, width: '100%', padding: '12px', borderRadius: 12, background: saving ? C.accentLight : accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-            {saving ? 'Saving…' : 'Create Class'}
-          </button>
-        </div>
-      )}
 
       {loading && (
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -271,10 +213,10 @@ export default function ClassHubPage() {
         </div>
       )}
 
-      {!loading && classes.length === 0 && !showForm && (
+      {!loading && classes.length === 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 16px', gap: 12 }}>
           <span style={{ fontSize: 40 }}>🏫</span>
-          <p style={{ fontSize: 14, color: textMuted, textAlign: 'center' }}>No classes yet. Tap <strong>+ Add Class</strong> to get started.</p>
+          <p style={{ fontSize: 14, color: textMuted, textAlign: 'center' }}>No classes yet. Create one from Settings → My Classes.</p>
         </div>
       )}
 
