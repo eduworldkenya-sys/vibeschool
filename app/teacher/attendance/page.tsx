@@ -205,6 +205,7 @@ function AttendanceInner() {
       school_id:         schoolId,
       date:              selectedDate,
       status:            statuses[s.id] ?? 'present',
+      is_late:           false,
       marked_at:         new Date().toISOString(),
     }))
 
