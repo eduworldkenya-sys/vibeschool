@@ -3,6 +3,7 @@ import { C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getSchoolId } from '@/lib/getSchoolId'
 import { useRouter } from 'next/navigation'
 
 interface ClassItem {
@@ -71,14 +72,13 @@ export default function ClassHubPage() {
     if (!user) { router.push('/academy/signin?role=teacher'); return }
     setUserId(user.id)
 
-    const [teacherRes, memberRes, profileRes] = await Promise.all([
-      supabase.from('teacher_profiles').select('designation, school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
+    const [teacherRes, sidResult] = await Promise.all([
+      supabase.from('teacher_profiles').select('designation').eq('profile_id', user.id).maybeSingle(),
+      getSchoolId(user.id),
     ])
 
     const desig = teacherRes.data?.designation ?? null
-    const sid   = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
+    const sid   = sidResult
     setSchoolId(sid)
     setDesignation(desig)
     setCheckingRole(false)
@@ -115,9 +115,7 @@ export default function ClassHubPage() {
       (tcClassRes.data ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
     ))
 
-    const classQuery = classIds.length > 0
-      ? supabase.from('classes').select('*').in('id', classIds).order('created_at', { ascending: true })
-      : supabase.from('classes').select('*').eq('teacher_id', uid).order('created_at', { ascending: true })
+    const classQuery = supabase.from('classes').select('*').in('id', classIds.length > 0 ? classIds : ['']).order('created_at', { ascending: true })
 
     const [classRes, subjectRes] = await Promise.all([classQuery, subjectQuery])
 
