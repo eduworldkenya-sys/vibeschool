@@ -161,7 +161,7 @@ function PersonalInfoSection() {
       setUserId(uid)
 
       const [profileRes, memberRes, teacherRes] = await Promise.all([
-        supabase.from('profiles').select('full_name,phone,date_of_birth,country_code,gender,bio').eq('id', uid).single(),
+        supabase.from('profiles').select('full_name,phone,date_of_birth,country_code,gender,bio,school_id').eq('id', uid).single(),
         supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
         supabase.from('teacher_profiles').select('tsc_number,employment_type,school_id').eq('profile_id', uid).maybeSingle(),
       ])
