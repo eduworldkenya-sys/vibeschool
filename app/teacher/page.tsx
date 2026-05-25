@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getSchoolId } from '@/lib/getSchoolId'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/app/teacher/layout'
 
 interface Slot {
   id:               string
@@ -82,6 +83,7 @@ function Skeleton({ w = '100%', h = 16, radius = 8 }: { w?: string | number; h?:
 
 export default function TeacherHomePage() {
   const router = useRouter()
+  const { showToast } = useToast()
   const [data,      setData]      = useState<DashboardData | null>(null)
   const [loading,   setLoading]   = useState(true)
   const [myClassId, setMyClassId] = useState<string | null>(null)
@@ -285,7 +287,13 @@ export default function TeacherHomePage() {
           {QUICK_ACTION_DEFS.map(qa => (
             <button
               key={qa.id}
-              onClick={() => router.push(qa.useClass && myClassId ? qa.base + '?classId=' + myClassId : qa.base)}
+              onClick={() => {
+                if (qa.useClass && !myClassId) {
+                  showToast('No home class assigned — contact your admin')
+                  return
+                }
+                router.push(qa.useClass ? qa.base + '?classId=' + myClassId : qa.base)
+              }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '10px 4px', borderRadius: 12, border: 'none', cursor: 'pointer', background: qa.color, fontFamily: 'inherit' }}
             >
               <span style={{ fontSize: 20 }}>{qa.icon}</span>
