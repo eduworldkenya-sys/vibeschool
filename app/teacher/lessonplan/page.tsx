@@ -49,12 +49,12 @@ function LessonPlanInner() {
           .select('id,start_time,end_time,room,class_id,subject_id,day_of_week,subjects(name),classes(name,stream)')
           .eq('teacher_id', user.id).order('start_time', { ascending: true }),
         supabase.from('lesson_plans')
-          .select('id,class_id,subject_id,title,body,day_of_week,week_start,status')
+          .select('id,timetable_slot_id,class_id,subject_id,title,body,day_of_week,week_start,status')
           .eq('teacher_id', user.id).eq('week_start', weekStart),
       ])
       const planMap = new Map<string, PlanRow>()
       ;(plansRes.data ?? []).forEach(p => {
-        planMap.set(`${p.class_id}:${p.day_of_week}`, {
+        planMap.set(p.timetable_slot_id ?? `${p.class_id}:${p.day_of_week}`, {
           id: p.id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '',
           dayOfWeek: p.day_of_week, weekStart: p.week_start, status: p.status ?? 'draft',
@@ -68,9 +68,9 @@ function LessonPlanInner() {
           class: cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : '',
           room: s.room ?? '', start: s.start_time, end: s.end_time,
           period: 0, status: 'scheduled', planStatus: 'green',
-          attendanceMarked: false, class_id: s.class_id, subject_id: s.subject_id,
+          attendanceMarked: false, class_id: s.class_id, subject_id: s.subject_id, day_of_week: s.day_of_week,
         }
-        const plan = planMap.get(`${s.class_id}:${s.day_of_week}`) ?? null
+        const plan = planMap.get(s.id) ?? planMap.get(`${s.class_id}:${s.day_of_week}`) ?? null
         return { slot, plan, status: (plan ? 'green' : 'red') as PlanStatus }
       })
       setItems(mapped); setLoading(false)

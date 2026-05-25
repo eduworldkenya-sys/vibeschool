@@ -37,6 +37,7 @@ export interface TimetableSlot {
   status:           SlotStatus;
   planStatus:       PlanStatus;
   attendanceMarked: boolean;
+  day_of_week:      number;
 }
 
 export interface Flag {
@@ -109,6 +110,7 @@ export interface ClassItem {
   studentCount:     number;
   attendancePct:    number;
   attendanceMarked: boolean;
+  day_of_week:      number;
   nextAssessment:   string | null;
 }
 

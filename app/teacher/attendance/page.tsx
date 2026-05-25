@@ -133,7 +133,7 @@ function AttendanceInner() {
       }
     }
     init()
-  }, [selectedDate])
+  }, [selectedDate, urlClassId])
 
   const loadRegister = useCallback(async (slot: TSlot) => {
     setStudentsLoading(true)
@@ -149,7 +149,7 @@ function AttendanceInner() {
       supabase
         .from('attendance')
         .select('student_id, status, is_late')
-        .eq('timetable_slot_id', slot.id)
+        .eq(slot.id === 'no-slot' ? 'class_id' : 'timetable_slot_id', slot.id === 'no-slot' ? slot.classId : slot.id)
         .eq('date', selectedDate),
     ])
 
@@ -172,7 +172,7 @@ function AttendanceInner() {
     setStudents(studs)
     setStatuses(initialStatuses)
     setStudentsLoading(false)
-  }, [selectedDate])
+  }, [selectedDate, urlClassId])
 
   useEffect(() => {
     if (activeSlot) loadRegister(activeSlot)
