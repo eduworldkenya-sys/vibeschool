@@ -92,15 +92,12 @@ export default function SchoolHubPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setError('Not signed in.'); setLoading(false); return }
 
-      const { data: memberData, error: memberErr } = await supabase
-        .from('school_members')
-        .select('school_id')
-        .eq('profile_id', user.id)
-        .maybeSingle()
+      const [memberRes, profileRes] = await Promise.all([
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('profiles').select('school_id').eq('id', user.id).single(),
+      ])
 
-      if (memberErr) { setError(memberErr.message); setLoading(false); return }
-
-      const schoolId = memberData?.school_id ?? null
+      const schoolId = memberRes.data?.school_id ?? profileRes.data?.school_id ?? null
       if (!schoolId) { setLoading(false); return }
 
       // Parallel — school info + all school members
