@@ -120,7 +120,6 @@ export default function TeacherHomePage() {
       const fullName       = profileRes.data?.full_name ?? ''
       const designation    = teacherProfileRes.data?.designation ?? null
       const schoolId       = await getSchoolId(uid)
-      if (designation === null) { router.push('/teacher/classhub'); return }
       if (designation === 'subject_teacher') { router.push('/teacher/subjecthub'); return }
       const classTeacherId = homeClassRes.data?.class_id ?? null
       setMyClassId(classTeacherId)
