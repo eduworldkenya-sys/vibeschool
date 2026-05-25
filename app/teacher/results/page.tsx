@@ -182,8 +182,8 @@ function ResultsInner() {
     setTeacherId(user.id)
 
     // Profile — school_id optional
-    const { data: profile } = await supabase
-from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+    const [teacherRes, memberRes, profileRes] = await Promise.all([
+      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
       supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
       supabase.from('profiles').select('school_id').eq('id', user.id).single(),
     ])
