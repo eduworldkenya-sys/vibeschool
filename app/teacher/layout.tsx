@@ -15,7 +15,7 @@ export const useUser = () => useContext(UserContext);
 
 const NAV_TABS = [
   { id: "home",        label: "Home",        icon: "🏠", href: "/teacher"             },
-  { id: "lessonplan",  label: "Plans",       icon: "📖", href: "/teacher/lessonplan"  },
+  { id: "classhub",    label: "ClassHub",    icon: "🏫", href: "/teacher/classhub"    },
   { id: "vibeconnect", label: "VibeConnect", icon: "💬", href: "/teacher/vibeconnect" },
   { id: "more",        label: "More",        icon: "⋯",  href: "/teacher/more"        },
   { id: "profile",     label: "Profile",     icon: "👤", href: "/teacher/profile"     },
