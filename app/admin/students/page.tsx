@@ -208,7 +208,6 @@ export default function StudentsPage() {
       await loadStudents(schoolId)
     } catch (e) {
       console.error(e)
-      setError('Something went wrong. Please try again.')
     } finally {
       setSaving(false)
     }

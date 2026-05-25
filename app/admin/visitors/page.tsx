@@ -94,7 +94,7 @@ export default function VisitorsPage() {
         .limit(300)
       if (error) throw error
       setVisitors(data ?? [])
-    } catch (e) { console.error(e); setError('Something went wrong. Please try again.') }
+    } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }, [])
   useEffect(() => {
