@@ -52,6 +52,8 @@ function LessonPlanInner() {
           .select('id,timetable_slot_id,class_id,subject_id,title,body,day_of_week,week_start,status')
           .eq('teacher_id', user.id).eq('week_start', weekStart),
       ])
+      console.log("SLOTS:", slotsRes.data, "ERR:", slotsRes.error)
+      console.log("PLANS:", plansRes.data, "ERR:", plansRes.error)
       const planMap = new Map<string, PlanRow>()
       ;(plansRes.data ?? []).forEach(p => {
         planMap.set(p.timetable_slot_id ?? `${p.class_id}:${p.day_of_week}`, {
