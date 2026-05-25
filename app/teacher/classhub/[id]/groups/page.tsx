@@ -36,8 +36,7 @@ function GroupsInner() {
 
   async function load() {
     const [studsRes, groupsRes, membersRes] = await Promise.all([
-      // FIX: removed .is('deleted_at', null) — column does not exist on students table
-      supabase.from('students').select('id, name, admission_number').eq('class_id', classId),
+      supabase.from('students').select('id, name, admission_number').eq('class_id', classId).order('name', { ascending: true }),
       supabase.from('class_groups').select('*').eq('class_id', classId),
       supabase.from('class_group_members').select('group_id, student_id'),
     ])
@@ -68,10 +67,7 @@ function GroupsInner() {
   async function assignStudent(studentId: string, groupId: string) {
     const memberGroupIds = groups.map(g => g.id)
     if (memberGroupIds.length > 0) {
-      await supabase.from('class_group_members')
-        .delete()
-        .eq('student_id', studentId)
-        .in('group_id', memberGroupIds)
+      await supabase.from('class_group_members').delete().eq('student_id', studentId).in('group_id', memberGroupIds)
     }
     await supabase.from('class_group_members').insert({ group_id: groupId, student_id: studentId })
     setMsg('Saved')
@@ -82,10 +78,7 @@ function GroupsInner() {
   async function removeFromGroup(studentId: string) {
     const memberGroupIds = groups.map(g => g.id)
     if (memberGroupIds.length > 0) {
-      await supabase.from('class_group_members')
-        .delete()
-        .eq('student_id', studentId)
-        .in('group_id', memberGroupIds)
+      await supabase.from('class_group_members').delete().eq('student_id', studentId).in('group_id', memberGroupIds)
     }
     load()
   }
@@ -104,7 +97,6 @@ function GroupsInner() {
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: '100%' }}>
       <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }`}</style>
 
-      {/* HEADER */}
       <div style={{ background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)', padding: '20px 16px 28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
@@ -124,12 +116,8 @@ function GroupsInner() {
       </div>
 
       <div style={{ padding: '16px' }}>
-
-        {/* TOAST */}
         {msg && (
-          <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: C.accent, color: '#fff', padding: '8px 20px', borderRadius: 20, fontWeight: 700, fontSize: 13, zIndex: 999 }}>
-            {msg}
-          </div>
+          <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: C.accent, color: '#fff', padding: '8px 20px', borderRadius: 20, fontWeight: 700, fontSize: 13, zIndex: 999 }}>{msg}</div>
         )}
 
         {loading ? (
@@ -138,25 +126,16 @@ function GroupsInner() {
           <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🫂</div>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, margin: '0 0 8px' }}>No groups yet</h2>
-            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px', lineHeight: 1.5 }}>
-              Set up CBC learning groups to assign students by performance level and target homework or activities to specific groups.
-            </p>
-            <button
-              onClick={createPresets}
-              disabled={saving}
-              style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: '#b45309', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
+            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px', lineHeight: 1.5 }}>Set up CBC learning groups to assign students by performance level and target homework or activities to specific groups.</p>
+            <button onClick={createPresets} disabled={saving} style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: '#b45309', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
               {saving ? 'Creating…' : '✨ Create CBC Groups'}
             </button>
           </div>
         ) : (
           <>
-            {/* UNASSIGNED */}
             {unassigned.length > 0 && (
               <div style={{ background: '#fff', borderRadius: 20, padding: '16px', marginBottom: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 12px' }}>
-                  Unassigned ({unassigned.length})
-                </p>
+                <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 12px' }}>Unassigned ({unassigned.length})</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {unassigned.map(s => (
                     <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: C.surface, borderRadius: 12, border: '1px solid #e5e7eb' }}>
@@ -164,11 +143,7 @@ function GroupsInner() {
                         <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{s.name}</p>
                         {s.admission_number && <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{s.admission_number}</p>}
                       </div>
-                      <select
-                        onChange={e => { if (e.target.value) assignStudent(s.id, e.target.value) }}
-                        defaultValue=""
-                        style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', color: C.textPrimary, background: '#fff', cursor: 'pointer' }}
-                      >
+                      <select onChange={e => { if (e.target.value) assignStudent(s.id, e.target.value) }} defaultValue="" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', color: C.textPrimary, background: '#fff', cursor: 'pointer' }}>
                         <option value="" disabled>Assign →</option>
                         {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                       </select>
@@ -178,7 +153,6 @@ function GroupsInner() {
               </div>
             )}
 
-            {/* GROUP CARDS */}
             {groups.map(g => {
               const palette = presetColors[g.color] ?? { bg: '#f3f4f6', text: '#374151' }
               const members = students.filter(s => g.members.includes(s.id))
@@ -190,7 +164,6 @@ function GroupsInner() {
                     </div>
                     <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>{members.length} student{members.length !== 1 ? 's' : ''}</span>
                   </div>
-
                   {members.length === 0 ? (
                     <p style={{ fontSize: 12, color: C.textMuted, textAlign: 'center', padding: '12px 0', margin: 0 }}>No students assigned yet</p>
                   ) : (
@@ -199,17 +172,10 @@ function GroupsInner() {
                         <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: palette.bg, borderRadius: 10 }}>
                           <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{s.name}</p>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <select
-                              onChange={e => { if (e.target.value) assignStudent(s.id, e.target.value) }}
-                              value={g.id}
-                              style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 11, fontFamily: 'inherit', background: '#fff', cursor: 'pointer' }}
-                            >
+                            <select onChange={e => { if (e.target.value) assignStudent(s.id, e.target.value) }} value={g.id} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 11, fontFamily: 'inherit', background: '#fff', cursor: 'pointer' }}>
                               {groups.map(og => <option key={og.id} value={og.id}>{og.name}</option>)}
                             </select>
-                            <button
-                              onClick={() => removeFromGroup(s.id)}
-                              style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #fca5a5', background: 'transparent', color: C.error, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-                            >✕</button>
+                            <button onClick={() => removeFromGroup(s.id)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #fca5a5', background: 'transparent', color: C.error, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
                           </div>
                         </div>
                       ))}
@@ -220,9 +186,7 @@ function GroupsInner() {
             })}
 
             {unassigned.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: C.textMuted }}>
-                ✅ All students assigned to groups
-              </div>
+              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: C.textMuted }}>✅ All students assigned to groups</div>
             )}
           </>
         )}

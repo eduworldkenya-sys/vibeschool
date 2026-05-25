@@ -51,9 +51,9 @@ function Skeleton({ h = 72 }: { h?: number }) {
 export default function ClassHubPage() {
   const router = useRouter()
 
-  const [designation,  setDesignation]  = useState<string | null>(null)
-  const [checkingRole, setCheckingRole] = useState(true)
-  const [savingRole,   setSavingRole]   = useState(false)
+  const [designation,   setDesignation]   = useState<string | null>(null)
+  const [checkingRole,  setCheckingRole]  = useState(true)
+  const [savingRole,    setSavingRole]    = useState(false)
 
   const [classes,       setClasses]       = useState<ClassItem[]>([])
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
@@ -62,7 +62,6 @@ export default function ClassHubPage() {
   const [showForm,      setShowForm]      = useState(false)
   const [saving,        setSaving]        = useState(false)
   const [deleting,      setDeleting]      = useState<string | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [error,         setError]         = useState('')
   const [form,          setForm]          = useState<FormState>({ name: '', stream: '', subject: '' })
   const [userId,        setUserId]        = useState<string | null>(null)
@@ -86,50 +85,28 @@ export default function ClassHubPage() {
     setDesignation(desig)
     setCheckingRole(false)
 
-    if (desig === 'subject_teacher') {
-      router.push('/teacher/subjecthub')
-      return
-    }
-
-    if (desig === 'class_teacher') {
-      await loadClasses(user.id, sid)
-    }
+    if (desig === 'subject_teacher') { router.push('/teacher/subjecthub'); return }
+    if (desig === 'class_teacher') { await loadClasses(user.id, sid) }
   }
 
   async function pickRole(role: 'class_teacher' | 'subject_teacher') {
     if (!userId) return
     setSavingRole(true)
-
-    await supabase.from('teacher_profiles').upsert({
-      profile_id:  userId,
-      designation: role,
-    }, { onConflict: 'profile_id' })
-
+    await supabase.from('teacher_profiles').upsert({ profile_id: userId, designation: role }, { onConflict: 'profile_id' })
     setSavingRole(false)
     setDesignation(role)
-
-    if (role === 'subject_teacher') {
-      router.push('/teacher/subjecthub')
-      return
-    }
-
+    if (role === 'subject_teacher') { router.push('/teacher/subjecthub'); return }
     await loadClasses(userId, schoolId)
   }
 
   async function loadClasses(uid: string, sid: string | null) {
     setLoading(true)
 
-    // FIX: only filter by school_id if it exists — never pass empty string
-    let classQuery = supabase
-      .from('classes')
-      .select('*')
-      .eq('teacher_id', uid)
-      .order('created_at', { ascending: true })
-    if (sid) classQuery = classQuery.eq('school_id', sid)
-
     const subjectQuery = sid
       ? supabase.from('subjects').select('id, name').or(`school_id.eq.${sid},school_id.is.null`).order('name')
       : supabase.from('subjects').select('id, name').order('name')
+
+    const classQuery = supabase.from('classes').select('*').eq('teacher_id', uid).order('created_at', { ascending: true })
 
     const [classRes, subjectRes] = await Promise.all([classQuery, subjectQuery])
 
@@ -141,9 +118,7 @@ export default function ClassHubPage() {
       const ids = cls.map(c => c.id)
       const { data: students } = await supabase.from('students').select('class_id').in('class_id', ids)
       const counts: Record<string, number> = {}
-      for (const s of students ?? []) {
-        counts[s.class_id] = (counts[s.class_id] ?? 0) + 1
-      }
+      for (const s of students ?? []) { counts[s.class_id] = (counts[s.class_id] ?? 0) + 1 }
       setStudentCounts(counts)
     }
 
@@ -172,8 +147,8 @@ export default function ClassHubPage() {
   }
 
   async function handleDelete(id: string) {
+    if (!window.confirm('Delete this class? This cannot be undone.')) return
     setDeleting(id)
-    setConfirmDelete(null)
     await supabase.from('classes').delete().eq('id', id)
     setDeleting(null)
     if (userId) await loadClasses(userId, schoolId)
@@ -192,109 +167,53 @@ export default function ClassHubPage() {
     marginBottom: 6, display: 'block',
   }
 
-  // ── Role checking skeleton ──
   if (checkingRole) {
     return (
       <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: 24 }}>
         <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Skeleton h={28} />
-          <Skeleton h={140} />
-          <Skeleton h={140} />
+          <Skeleton h={28} /><Skeleton h={140} /><Skeleton h={140} />
         </div>
       </div>
     )
   }
 
-  // ── Role picker ──
   if (!designation) {
     return (
       <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: 24, minHeight: '80vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
-
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>👋</div>
           <h1 style={{ fontSize: 22, fontWeight: 900, color: textMain, margin: '0 0 8px' }}>What kind of teacher are you?</h1>
           <p style={{ fontSize: 14, color: textMuted, margin: 0 }}>This helps us set up the right tools for you.</p>
         </div>
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <button
-            onClick={() => pickRole('class_teacher')}
-            disabled={savingRole}
-            style={{ padding: '24px 20px', borderRadius: 20, border: '2px solid #1e1b4b', background: dark, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', opacity: savingRole ? 0.7 : 1 }}
-          >
+          <button onClick={() => pickRole('class_teacher')} disabled={savingRole} style={{ padding: '24px 20px', borderRadius: 20, border: '2px solid #1e1b4b', background: dark, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', opacity: savingRole ? 0.7 : 1 }}>
             <div style={{ fontSize: 28, marginBottom: 10 }}>🏫</div>
             <div style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Class Teacher</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
-              You manage a specific class. Create your class, add students, track attendance, and run the full class ecosystem.
-            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>You manage a specific class. You can create your class, add students, track attendance, and run the full class ecosystem.</div>
           </button>
-
-          <button
-            onClick={() => pickRole('subject_teacher')}
-            disabled={savingRole}
-            style={{ padding: '24px 20px', borderRadius: 20, border: '2px solid #e5e7eb', background: cardBg, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', opacity: savingRole ? 0.7 : 1 }}
-          >
+          <button onClick={() => pickRole('subject_teacher')} disabled={savingRole} style={{ padding: '24px 20px', borderRadius: 20, border: '2px solid #e5e7eb', background: cardBg, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', opacity: savingRole ? 0.7 : 1 }}>
             <div style={{ fontSize: 28, marginBottom: 10 }}>🔬</div>
             <div style={{ fontSize: 17, fontWeight: 900, color: textMain, marginBottom: 6 }}>Subject Teacher</div>
-            <div style={{ fontSize: 13, color: textMuted, lineHeight: 1.5 }}>
-              You teach a subject across multiple classes. Access your SubjectHub, lesson plans, and department tools.
-            </div>
+            <div style={{ fontSize: 13, color: textMuted, lineHeight: 1.5 }}>You teach a subject across multiple classes. Access your SubjectHub, lesson plans, and department tools.</div>
           </button>
         </div>
-
-        {savingRole && (
-          <p style={{ textAlign: 'center', fontSize: 13, color: textMuted, marginTop: 20 }}>Setting up your workspace…</p>
-        )}
+        {savingRole && <p style={{ textAlign: 'center', fontSize: 13, color: textMuted, marginTop: 20 }}>Setting up your workspace…</p>}
       </div>
     )
   }
 
-  // ── ClassHub view ──
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: textMuted, paddingBottom: 32 }}>
       <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
-      {/* Delete confirmation modal */}
-      {confirmDelete && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 320 }}>
-            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>⚠️</div>
-            <h2 style={{ fontSize: 16, fontWeight: 900, color: textMain, textAlign: 'center', margin: '0 0 8px' }}>Delete Class?</h2>
-            <p style={{ fontSize: 13, color: textMuted, textAlign: 'center', margin: '0 0 20px', lineHeight: 1.5 }}>
-              This will permanently delete the class. Student records and attendance data may be affected. This cannot be undone.
-            </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setConfirmDelete(null)}
-                style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', color: textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(confirmDelete)}
-                disabled={deleting === confirmDelete}
-                style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                {deleting === confirmDelete ? '…' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div style={{ padding: '20px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: textMain, margin: 0 }}>ClassHub</h1>
-          <p style={{ fontSize: 13, color: textMuted, marginTop: 4 }}>
-            {loading ? '…' : `${classes.length} ${classes.length === 1 ? 'class' : 'classes'}`}
-          </p>
+          <p style={{ fontSize: 13, color: textMuted, marginTop: 4 }}>{loading ? '…' : `${classes.length} ${classes.length === 1 ? 'class' : 'classes'}`}</p>
         </div>
-        <button
-          onClick={() => { setShowForm(v => !v); setError('') }}
-          style={{ padding: '10px 18px', borderRadius: 12, background: showForm ? '#f3f4f6' : dark, color: showForm ? textMain : '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-        >
+        <button onClick={() => { setShowForm(v => !v); setError('') }} style={{ padding: '10px 18px', borderRadius: 12, background: showForm ? '#f3f4f6' : dark, color: showForm ? textMain : '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
           {showForm ? 'Cancel' : '+ Add Class'}
         </button>
       </div>
@@ -303,7 +222,6 @@ export default function ClassHubPage() {
         <div style={{ margin: '0 16px 16px', padding: 20, background: cardBg, borderRadius: 16, border: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: textMain, marginBottom: 16 }}>New Class</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
             <div>
               <label style={labelStyle}>Class Name *</label>
               <select style={{ ...inputStyle, appearance: 'none' }} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}>
@@ -311,32 +229,23 @@ export default function ClassHubPage() {
                 {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
-
             <div>
               <label style={labelStyle}>Subject *</label>
-              <select
-                style={{ ...inputStyle, appearance: 'none' }}
-                value={form.subject}
-                onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-              >
+              <select style={{ ...inputStyle, appearance: 'none' }} value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}>
                 <option value="" disabled>Select a subject</option>
-                {/* FIX: use DB subjects, not hardcoded array */}
-                {subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                {subjects.length > 0
+                  ? subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)
+                  : ['Mathematics','English','Kiswahili','Science and Technology','Social Studies','Religious Education','Creative Arts and Sports','Agriculture and Nutrition','Home Science'].map(s => <option key={s} value={s}>{s}</option>)
+                }
               </select>
             </div>
-
             <div>
               <label style={labelStyle}>Stream (optional)</label>
               <input style={inputStyle} placeholder="e.g. East, Blue, A" value={form.stream} onChange={e => setForm(f => ({ ...f, stream: e.target.value }))} />
             </div>
-
           </div>
           {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
-          <button
-            onClick={handleCreate}
-            disabled={saving}
-            style={{ marginTop: 18, width: '100%', padding: '12px', borderRadius: 12, background: saving ? C.accentLight : accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
-          >
+          <button onClick={handleCreate} disabled={saving} style={{ marginTop: 18, width: '100%', padding: '12px', borderRadius: 12, background: saving ? C.accentLight : accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
             {saving ? 'Saving…' : 'Create Class'}
           </button>
         </div>
@@ -344,7 +253,7 @@ export default function ClassHubPage() {
 
       {loading && (
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[1, 2, 3].map(i => <Skeleton key={i} />)}
+          {[1,2,3].map(i => <Skeleton key={i} />)}
         </div>
       )}
 
@@ -363,9 +272,7 @@ export default function ClassHubPage() {
               <div key={cls.id} style={{ background: cardBg, border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 16, fontWeight: 700, color: textMain, margin: 0 }}>
-                      {cls.name}{cls.stream ? ' · ' + cls.stream : ''}
-                    </p>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: textMain, margin: 0 }}>{cls.name}{cls.stream ? ' · ' + cls.stream : ''}</p>
                     <p style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>{cls.subject}</p>
                     <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 20, padding: '3px 10px' }}>
                       <span style={{ fontSize: 12 }}>👥</span>
@@ -373,17 +280,8 @@ export default function ClassHubPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
-                    <button
-                      onClick={() => router.push('/teacher/classhub/' + cls.id)}
-                      style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid ' + accent, background: 'transparent', color: accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                      Open
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(cls.id)}
-                      disabled={deleting === cls.id}
-                      style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: C.error, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
+                    <button onClick={() => router.push('/teacher/classhub/' + cls.id)} style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid ' + accent, background: 'transparent', color: accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Open</button>
+                    <button onClick={() => handleDelete(cls.id)} disabled={deleting === cls.id} style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: C.error, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                       {deleting === cls.id ? '…' : 'Delete'}
                     </button>
                   </div>
