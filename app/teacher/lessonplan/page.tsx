@@ -254,15 +254,6 @@ function LessonPlanInner() {
                 >
                   View
                 </Btn>
-                {plan && (
-                  <Btn small onClick={async () => {
-                    const { data: { user } } = await supabase.auth.getUser()
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
       {/* Differentiation summary */}
       <Card>
         <SectionLabel>Differentiation Summary</SectionLabel>

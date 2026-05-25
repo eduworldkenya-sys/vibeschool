@@ -479,7 +479,6 @@ export default function ParentLearnPage() {
               student_copy: contentMap.get(p.id)!,
             })),
         ];
-        ];
 
         const finalAssessments: AssessmentItem[] = (assessRes.data ?? []).map(a => ({
           id:              a.id,
