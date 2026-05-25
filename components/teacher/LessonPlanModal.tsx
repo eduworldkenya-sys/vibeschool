@@ -209,6 +209,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         title:        slot.subject + " — " + slot.class + " — " + topic.trim(),
         body:         json.plan,
         generated_by: "twin",
+        status: "draft",
       }
 
       if (planId) {
