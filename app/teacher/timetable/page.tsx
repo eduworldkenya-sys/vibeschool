@@ -344,10 +344,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const router = useRouter()
 
   // FIX [LOGIC-02]: todayDow in state so it updates after midnight
-  const [todayDow, setTodayDow] = useState<number>(new Date().getDay())
+  const [todayDow, setTodayDow] = useState<number>((() => { const d = new Date().getDay(); return d === 0 ? 7 : d })())
 
-  const isWeekend    = todayDow === 0 || todayDow === 6
-  const effectiveDow = todayDow === 0 ? 7 : todayDow
+  const isWeekend    = todayDow === 6 || todayDow === 7
+  const effectiveDow = todayDow
 
   const [activeDow,       setActiveDow]       = useState(effectiveDow)
   const [allSlots,        setAllSlots]         = useState<Slot[]>([])
@@ -371,7 +371,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   useEffect(() => {
     const id = setInterval(() => {
       setCurMin(currentTimeMin())
-      setTodayDow(new Date().getDay())  // FIX [LOGIC-02]: keep day current
+      const rd = new Date().getDay(); setTodayDow(rd === 0 ? 7 : rd)  // FIX [LOGIC-02]: keep day current
     }, 60_000)
     return () => clearInterval(id)
   }, [])
