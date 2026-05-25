@@ -17,6 +17,7 @@ interface PlanRow {
   body:       string
   dayOfWeek:  number
   weekStart:  string
+  status:     string
 }
 
 interface SlotWithPlan {
@@ -88,7 +89,7 @@ function LessonPlanInner() {
 
         supabase
           .from('lesson_plans')
-          .select('id, class_id, subject_id, title, body, day_of_week, week_start')
+          .select('id, class_id, subject_id, title, body, day_of_week, week_start, status')
           .eq('teacher_id', user.id)
           .eq('week_start', weekStart),
       ])
@@ -105,6 +106,7 @@ function LessonPlanInner() {
           body:      p.body  ?? '',
           dayOfWeek: p.day_of_week,
           weekStart: p.week_start,
+          status:    p.status ?? 'draft',
         })
       })
 
@@ -244,7 +246,7 @@ function LessonPlanInner() {
                     </div>
                   ) : null}
                 </div>
-                <ReadinessChip status={status} />
+                <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '3px 10px', background: plan?.status === 'shared' ? '#dbeafe' : plan?.status === 'published' ? '#d1fae5' : plan ? '#f3f4f6' : '#fee2e2', color: plan?.status === 'shared' ? '#1e40af' : plan?.status === 'published' ? '#065f46' : plan ? '#6b7280' : '#ef4444' }}>{plan?.status === 'shared' ? 'Shared' : plan?.status === 'published' ? 'Published' : plan ? 'Draft' : 'No Plan'}</span>
                 <Btn
                   small
                   variant="ghost"
@@ -255,19 +257,6 @@ function LessonPlanInner() {
                 {plan && (
                   <Btn small onClick={async () => {
                     const { data: { user } } = await supabase.auth.getUser()
-                    if (!user) return
-                    await supabase.from('teacher_content').insert({
-                      teacher_id:   user.id,
-                      class_id:     slot.class_id,
-                      subject_id:   slot.subject_id,
-                      type:         'notes',
-                      title:        plan.title,
-                      body:         plan.body,
-                      published:    true,
-                      published_at: new Date().toISOString(),
-                    })
-                  }}>📤 Publish</Btn>
-                )}
               </div>
             ))}
           </div>
