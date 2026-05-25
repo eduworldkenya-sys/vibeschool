@@ -62,7 +62,12 @@ export default function SchemePage() {
       const classIds   = Array.from(new Set(teacherClasses.map((r: { class_id: string }) => r.class_id)))
       const subjectIds = Array.from(new Set(teacherClasses.map((r: { subject_id: string }) => r.subject_id)))
 
-      if (!sid || classIds.length === 0) { setLoading(false); return }
+      if (!sid || classIds.length === 0) {
+        setLoading(false)
+        setClasses([])
+        setSubjects([])
+        return
+      }
 
       const [clRes, subRes] = await Promise.all([
         supabase.from('classes').select('id,name,stream').in('id', classIds),
@@ -191,6 +196,18 @@ export default function SchemePage() {
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[1,2,3].map(i => <Skeleton key={i} />)}
+        </div>
+      ) : classes.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 8 }}>No classes assigned yet</div>
+          <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, marginBottom: 20 }}>
+            To use the Curriculum Tracker, you need classes and subjects assigned to you.<br/>
+            Go to ClassHub and set up your classes first.
+          </div>
+          <a href="/teacher/classhub" style={{ padding: '10px 24px', borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block' }}>
+            Go to ClassHub →
+          </a>
         </div>
       ) : (
         <>
