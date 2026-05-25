@@ -84,6 +84,7 @@ function MemoryMatchGameCore() {
       setGameState('PLAYING');
     } catch (err) {
       console.error('Fatal initialization halt during match parsing:', err);
+      setError('Failed to load game. Please go back and try again.')
     } finally {
       setDbLoading(false);
     }
@@ -120,6 +121,7 @@ function MemoryMatchGameCore() {
       }]);
     } catch (err) {
       console.error('Failed to commit results transactionally to cloud registry:', err);
+      setError('Failed to save results. Please check your connection.')
     } finally {
       setDbLoading(false);
     }

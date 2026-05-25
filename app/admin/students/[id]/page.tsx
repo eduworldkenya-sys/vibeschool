@@ -234,6 +234,7 @@ export default function StudentDetailPage() {
       await loadInvoices(schoolId)
     } catch (e) {
       console.error(e)
+      setError('Something went wrong. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -263,6 +264,7 @@ export default function StudentDetailPage() {
       await loadInvoices(schoolId)
     } catch (e) {
       console.error(e)
+      setError('Something went wrong. Please try again.')
     } finally {
       setSaving(false)
     }

@@ -79,6 +79,7 @@ export default function AcademicReportPage() {
       generateInsight(mapped)
     } catch (e) {
       console.error(e)
+      setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }

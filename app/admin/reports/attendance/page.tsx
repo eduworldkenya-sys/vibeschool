@@ -92,6 +92,7 @@ export default function AttendanceReportPage() {
       generateInsight(result)
     } catch (e) {
       console.error(e)
+      setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
