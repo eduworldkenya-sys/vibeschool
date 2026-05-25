@@ -123,11 +123,16 @@ export default function ParentMessagesPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/parent'); return }
-      const { data: p } = await supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single()
+      const [pRes, memberRes] = await Promise.all([
+        supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single(),
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      ])
+      const p = pRes.data
+      if (p) p.school_id = memberRes.data?.school_id ?? p.school_id
       if (!p || p.role !== 'parent') { router.push('/parent'); return }
-      setUserId(user.id); setSchoolId(p.school_id)
+      setUserId(user.id); setSchoolId(p?.school_id ?? '')
       try { await ensureVCId(user.id, p.full_name ?? 'Parent') } catch {}
-      await loadAll(user.id, p.school_id)
+      await loadAll(user.id, p?.school_id ?? '')
     } catch { router.push('/parent') } finally { setLoading(false) }
   }
 
