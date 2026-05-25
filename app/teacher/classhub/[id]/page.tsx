@@ -122,9 +122,10 @@ function ClassPageInner() {
       supabase.from('cbc_assessments').select('performance').eq('class_id', classId),
     ])
 
+    // FIX: 'late' is not a valid status — use status='present' only
     const attRows = attRes.data ?? []
     if (attRows.length > 0) {
-      const present = attRows.filter(r => r.status === 'present' || r.status === 'late').length
+      const present = attRows.filter(r => r.status === 'present').length
       setAttendanceRate(Math.round((present / attRows.length) * 100) + '%')
     }
 
@@ -187,18 +188,8 @@ function ClassPageInner() {
   async function handleGenerateCode(studentId: string) {
     setGenerating(studentId)
     const code = generateCode()
-    const { error: delErr } = await supabase
-      .from('student_claim_codes')
-      .delete()
-      .eq('student_id', studentId)
-      .eq('claimed', false)
-
-    if (delErr) { setGenerating(null); return }
-
-    const { error: insErr } = await supabase
-      .from('student_claim_codes')
-      .insert({ student_id: studentId, code, claimed: false })
-
+    await supabase.from('student_claim_codes').delete().eq('student_id', studentId).eq('claimed', false)
+    const { error: insErr } = await supabase.from('student_claim_codes').insert({ student_id: studentId, code, claimed: false })
     if (!insErr) {
       setClaimCodes(prev => ({ ...prev, [studentId]: code }))
     }
@@ -251,25 +242,27 @@ function ClassPageInner() {
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
+      {/* HERO */}
       <div style={{ background: heroGradient, padding: '20px 16px 28px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
         <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <button onClick={() => router.push(backRoute)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}>←</button>
+
+          {/* FIX: settings button wired to class settings, join requests badge shown when pending */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {isSubject ? (
+            {!isSubject && joinRequests > 0 && (
+              <button
+                onClick={() => router.push('/teacher/classhub/' + classId + '/requests')}
+                style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}
+              >
+                🔔
+                <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.error, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
+              </button>
+            )}
+            {isSubject && (
               <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>Subject View</div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {joinRequests > 0 && (
-                  <button onClick={() => router.push('/teacher/classhub/' + classId + '/requests')} style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>
-                    🔔
-                    <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.error, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
-                  </button>
-                )}
-                <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>⚙️</button>
-              </div>
             )}
           </div>
         </div>
@@ -315,6 +308,7 @@ function ClassPageInner() {
         )}
       </div>
 
+      {/* CLASS TOOLS */}
       <div style={{ margin: '16px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>
           {isSubject ? 'Subject Tools' : 'Class Tools'}
@@ -329,6 +323,7 @@ function ClassPageInner() {
         </div>
       </div>
 
+      {/* STUDENT ROSTER */}
       {(isSubject || showRoster) && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease' }}>
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
@@ -416,7 +411,7 @@ function ClassPageInner() {
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button onClick={() => handleCopyCode(s.id, code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? C.accentLight : 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                                 {copiedId === s.id ? 'Copied!' : 'Copy'}
-              </button>
+                              </button>
                               <button onClick={() => handleGenerateCode(s.id)} disabled={generating === s.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                                 {generating === s.id ? '…' : 'New'}
                               </button>
@@ -448,10 +443,10 @@ function ClassPageInner() {
         </div>
       )}
 
+      {/* CLASS ACTIVITY */}
       <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Class Activity</p>
-          <span style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>View all</span>
         </div>
         {students.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '12px 0' }}>
@@ -476,6 +471,7 @@ function ClassPageInner() {
         )}
       </div>
 
+      {/* PERFORMANCE */}
       <div style={{ margin: '14px 16px 0', background: isSubject ? 'linear-gradient(135deg, #075985 0%, #0ea5e9 100%)' : 'linear-gradient(135deg, #065f46 0%, #10b981 100%)', borderRadius: 20, padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
         <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 14px' }}>
           {isSubject ? 'Subject Performance' : 'Performance'}
@@ -494,6 +490,7 @@ function ClassPageInner() {
           ))}
         </div>
       </div>
+
     </div>
   )
 }

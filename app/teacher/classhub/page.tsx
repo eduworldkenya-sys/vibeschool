@@ -1,5 +1,5 @@
 'use client'
-import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
+import { C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -30,13 +30,6 @@ const GRADES = [
   'Grade 7','Grade 8','Grade 9',
 ]
 
-const SUBJECTS = [
-  'Mathematics','English','Kiswahili','Science and Technology',
-  'Social Studies','Religious Education','Creative Arts and Sports',
-  'Agriculture and Nutrition','Home Science','Indigenous Languages',
-  'French','German','Arabic','Kenyan Sign Language',
-]
-
 const accent    = C.accent
 const dark      = C.dark
 const cardBg    = C.bg
@@ -58,9 +51,9 @@ function Skeleton({ h = 72 }: { h?: number }) {
 export default function ClassHubPage() {
   const router = useRouter()
 
-  const [designation,   setDesignation]   = useState<string | null>(null)
-  const [checkingRole,  setCheckingRole]  = useState(true)
-  const [savingRole,    setSavingRole]    = useState(false)
+  const [designation,  setDesignation]  = useState<string | null>(null)
+  const [checkingRole, setCheckingRole] = useState(true)
+  const [savingRole,   setSavingRole]   = useState(false)
 
   const [classes,       setClasses]       = useState<ClassItem[]>([])
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
@@ -69,6 +62,7 @@ export default function ClassHubPage() {
   const [showForm,      setShowForm]      = useState(false)
   const [saving,        setSaving]        = useState(false)
   const [deleting,      setDeleting]      = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [error,         setError]         = useState('')
   const [form,          setForm]          = useState<FormState>({ name: '', stream: '', subject: '' })
   const [userId,        setUserId]        = useState<string | null>(null)
@@ -86,8 +80,8 @@ export default function ClassHubPage() {
       supabase.from('profiles').select('school_id').eq('id', user.id).single(),
     ])
 
-    const desig  = profileRes.data?.designation ?? null
-    const sid    = memberRes.data?.school_id ?? null
+    const desig = profileRes.data?.designation ?? null
+    const sid   = memberRes.data?.school_id ?? null
     setSchoolId(sid)
     setDesignation(desig)
     setCheckingRole(false)
@@ -125,14 +119,19 @@ export default function ClassHubPage() {
   async function loadClasses(uid: string, sid: string | null) {
     setLoading(true)
 
+    // FIX: only filter by school_id if it exists — never pass empty string
+    let classQuery = supabase
+      .from('classes')
+      .select('*')
+      .eq('teacher_id', uid)
+      .order('created_at', { ascending: true })
+    if (sid) classQuery = classQuery.eq('school_id', sid)
+
     const subjectQuery = sid
       ? supabase.from('subjects').select('id, name').or(`school_id.eq.${sid},school_id.is.null`).order('name')
       : supabase.from('subjects').select('id, name').order('name')
 
-    const [classRes, subjectRes] = await Promise.all([
-      supabase.from('classes').select('*').eq('teacher_id', uid).eq('school_id', sid ?? '').order('created_at', { ascending: true }),
-      subjectQuery,
-    ])
+    const [classRes, subjectRes] = await Promise.all([classQuery, subjectQuery])
 
     const cls = classRes.data ?? []
     setClasses(cls)
@@ -153,8 +152,8 @@ export default function ClassHubPage() {
 
   async function handleCreate() {
     setError('')
-    if (!form.name.trim())       { setError('Class name is required.'); return }
-    if (!form.subject)           { setError('Subject is required.'); return }
+    if (!form.name.trim())  { setError('Class name is required.'); return }
+    if (!form.subject)      { setError('Subject is required.'); return }
     if (!userId) return
 
     setSaving(true)
@@ -174,6 +173,7 @@ export default function ClassHubPage() {
 
   async function handleDelete(id: string) {
     setDeleting(id)
+    setConfirmDelete(null)
     await supabase.from('classes').delete().eq('id', id)
     setDeleting(null)
     if (userId) await loadClasses(userId, schoolId)
@@ -192,7 +192,7 @@ export default function ClassHubPage() {
     marginBottom: 6, display: 'block',
   }
 
-  // ── Role picker modal ──
+  // ── Role checking skeleton ──
   if (checkingRole) {
     return (
       <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: 24 }}>
@@ -206,6 +206,7 @@ export default function ClassHubPage() {
     )
   }
 
+  // ── Role picker ──
   if (!designation) {
     return (
       <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: 24, minHeight: '80vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -221,27 +222,19 @@ export default function ClassHubPage() {
           <button
             onClick={() => pickRole('class_teacher')}
             disabled={savingRole}
-            style={{
-              padding: '24px 20px', borderRadius: 20, border: '2px solid #1e1b4b',
-              background: dark, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-              opacity: savingRole ? 0.7 : 1,
-            }}
+            style={{ padding: '24px 20px', borderRadius: 20, border: '2px solid #1e1b4b', background: dark, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', opacity: savingRole ? 0.7 : 1 }}
           >
             <div style={{ fontSize: 28, marginBottom: 10 }}>🏫</div>
             <div style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Class Teacher</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
-              You manage a specific class. You can create your class, add students, track attendance, and run the full class ecosystem.
+              You manage a specific class. Create your class, add students, track attendance, and run the full class ecosystem.
             </div>
           </button>
 
           <button
             onClick={() => pickRole('subject_teacher')}
             disabled={savingRole}
-            style={{
-              padding: '24px 20px', borderRadius: 20, border: '2px solid #e5e7eb',
-              background: cardBg, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-              opacity: savingRole ? 0.7 : 1,
-            }}
+            style={{ padding: '24px 20px', borderRadius: 20, border: '2px solid #e5e7eb', background: cardBg, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', opacity: savingRole ? 0.7 : 1 }}
           >
             <div style={{ fontSize: 28, marginBottom: 10 }}>🔬</div>
             <div style={{ fontSize: 17, fontWeight: 900, color: textMain, marginBottom: 6 }}>Subject Teacher</div>
@@ -258,10 +251,38 @@ export default function ClassHubPage() {
     )
   }
 
-  // ── ClassHub view (class_teacher only) ──
+  // ── ClassHub view ──
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: textMuted, paddingBottom: 32 }}>
       <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 320 }}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>⚠️</div>
+            <h2 style={{ fontSize: 16, fontWeight: 900, color: textMain, textAlign: 'center', margin: '0 0 8px' }}>Delete Class?</h2>
+            <p style={{ fontSize: 13, color: textMuted, textAlign: 'center', margin: '0 0 20px', lineHeight: 1.5 }}>
+              This will permanently delete the class. Student records and attendance data may be affected. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', color: textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(confirmDelete)}
+                disabled={deleting === confirmDelete}
+                style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                {deleting === confirmDelete ? '…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ padding: '20px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -299,7 +320,8 @@ export default function ClassHubPage() {
                 onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
               >
                 <option value="" disabled>Select a subject</option>
-                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                {/* FIX: use DB subjects, not hardcoded array */}
+                {subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
               </select>
             </div>
 
@@ -358,7 +380,7 @@ export default function ClassHubPage() {
                       Open
                     </button>
                     <button
-                      onClick={() => handleDelete(cls.id)}
+                      onClick={() => setConfirmDelete(cls.id)}
                       disabled={deleting === cls.id}
                       style={{ padding: '7px 14px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'transparent', color: C.error, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                     >

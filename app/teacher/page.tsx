@@ -1,5 +1,5 @@
 'use client'
-import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
+import { C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -12,29 +12,18 @@ interface Slot {
   room:             string
   start:            string
   end:              string
-  planStatus:       string
+  day_of_week:      number
   attendanceMarked: boolean
-}
-
-interface Flag {
-  id:       string
-  severity: string
-  message:  string
-  student:  string | null
-  type:     string
 }
 
 interface DashboardData {
   fullName:      string
-  initials:      string
   school:        string
   lessonsToday:  number
-  unreadFlags:   number
   attendancePct: number
   nextLesson:    Slot | null
   currentLesson: Slot | null
-  flags:         Flag[]
-  slots:         Slot[]
+  todaySlots:    Slot[]
 }
 
 function timeToMin(t: string) {
@@ -66,14 +55,14 @@ function formatCountdown(mins: number) {
 }
 
 const QUICK_ACTION_DEFS = [
-  { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', base: '/teacher/classhub',   useClass: false   },
-  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: C.accentLight, iconColor: '#065f46', base: '/teacher/timetable',  useClass: true   },
+  { id: 'classhub',   label: 'ClassHub',     icon: '🏫', color: '#dbeafe', iconColor: '#1d4ed8', base: '/teacher/classhub',   useClass: false },
+  { id: 'timetable',  label: 'Timetable',    icon: '🗓️', color: C.accentLight, iconColor: '#065f46', base: '/teacher/timetable',  useClass: true  },
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', color: '#ede9fe', iconColor: '#6d28d9', base: '/teacher/lessonplan', useClass: true  },
   { id: 'attendance', label: 'Attendance',   icon: '✅', color: '#dcfce7', iconColor: '#166534', base: '/teacher/attendance', useClass: true  },
   { id: 'subjecthub', label: 'SubjectHub',   icon: '🔬', color: '#e0f2fe', iconColor: '#075985', base: '/teacher/subjecthub', useClass: false },
-  { id: 'results',    label: 'Results',      icon: '🏆', color: '#d1fae5', iconColor: '#065f46', base: '/teacher/results',    useClass: true    },
+  { id: 'results',    label: 'Results',      icon: '🏆', color: '#d1fae5', iconColor: '#065f46', base: '/teacher/results',    useClass: true  },
   { id: 'assessment', label: 'Assessment',   icon: '📊', color: '#fef3c7', iconColor: '#92400e', base: '/teacher/assessment', useClass: true  },
-  { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', base: '/teacher/schoolhub',  useClass: false  },
+  { id: 'schoolhub',  label: 'SchoolHub',    icon: '🏛️', color: '#f3e8ff', iconColor: '#7e22ce', base: '/teacher/schoolhub',  useClass: false },
 ]
 
 function Skeleton({ w = '100%', h = 16, radius = 8 }: { w?: string | number; h?: number; radius?: number }) {
@@ -90,53 +79,39 @@ function Skeleton({ w = '100%', h = 16, radius = 8 }: { w?: string | number; h?:
 
 export default function TeacherHomePage() {
   const router = useRouter()
-  const [data,    setData]    = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data,      setData]      = useState<DashboardData | null>(null)
+  const [loading,   setLoading]   = useState(true)
   const [myClassId, setMyClassId] = useState<string | null>(null)
 
-  const cardBg     = C.bg
+  const cardBg    = C.bg
   const cardBorder = C.border
-  const textMuted  = C.textMuted
-  const textMain   = C.textPrimary
-  const accent     = C.accent
-  const dark       = C.dark
+  const textMuted = C.textMuted
+  const textMain  = C.textPrimary
+  const accent    = C.accent
+  const dark      = C.dark
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/academy/signin?role=teacher'); return }
 
-      const uid   = user.id
-      const today = new Date().toISOString().split('T')[0]
+      const uid    = user.id
+      const today  = new Date().toISOString().split('T')[0]
       const rawDow = new Date().getDay()
-      const dow   = rawDow === 0 ? 7 : rawDow
-
+      const dow    = rawDow === 0 ? 7 : rawDow
 
       const [profileRes, slotsRes, homeClassRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('full_name, school_id')
-          .eq('id', uid)
-          .single(),
-
+        supabase.from('profiles').select('full_name, school_id').eq('id', uid).single(),
         supabase
           .from('timetable_slots')
-          .select(`id, day_of_week, start_time, end_time, room, subjects ( name ), classes ( name, stream )`)
+          .select('id, day_of_week, start_time, end_time, room, subjects ( name ), classes ( name, stream )')
           .eq('teacher_id', uid)
           .order('day_of_week', { ascending: true })
-          .order('start_time', { ascending: true }),
-
-        supabase
-          .from('teacher_classes')
-          .select('class_id')
-          .eq('teacher_id', uid)
-          .eq('is_class_teacher', true)
-          .maybeSingle(),
+          .order('start_time',  { ascending: true }),
+        supabase.from('teacher_classes').select('class_id').eq('teacher_id', uid).eq('is_class_teacher', true).maybeSingle(),
       ])
 
       const fullName       = profileRes.data?.full_name ?? ''
-      const parts          = fullName.trim().split(' ').filter(Boolean)
-      const initials       = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join('')
       const schoolId       = profileRes.data?.school_id ?? null
       const classTeacherId = homeClassRes.data?.class_id ?? null
       setMyClassId(classTeacherId)
@@ -146,15 +121,12 @@ export default function TeacherHomePage() {
         schoolId
           ? supabase.from('schools').select('name').eq('id', schoolId).single()
           : Promise.resolve({ data: null }),
-
         slotIds.length > 0
           ? supabase.from('attendance').select('timetable_slot_id').in('timetable_slot_id', slotIds).eq('date', today)
           : Promise.resolve({ data: [] }),
-
         classTeacherId
           ? supabase.from('students').select('id', { count: 'exact', head: true }).eq('class_id', classTeacherId)
           : Promise.resolve({ count: 0, data: null }),
-
         classTeacherId
           ? supabase.from('attendance').select('status').eq('class_id', classTeacherId).eq('date', today)
           : Promise.resolve({ data: [] }),
@@ -164,40 +136,40 @@ export default function TeacherHomePage() {
         (attBatchRes.data ?? []).map((r: { timetable_slot_id: string }) => r.timetable_slot_id)
       )
 
-      const mappedSlots: Slot[] = (slotsRes.data ?? []).map((slot) => {
-        const cls       = slot.classes as unknown as { name: string; stream: string | null } | null
-        const subject   = (slot.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
-        const className = cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : ''
+      const allSlots: Slot[] = (slotsRes.data ?? []).map((slot) => {
+        const cls     = slot.classes as unknown as { name: string; stream: string | null } | null
+        const subject = (slot.subjects as unknown as { name: string } | null)?.name ?? 'Unknown'
         return {
           id:               slot.id,
           subject,
-          class:            className,
+          class:            cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : '',
           room:             slot.room ?? '',
           start:            slot.start_time,
           end:              slot.end_time,
-          planStatus:       'green',
+          day_of_week:      slot.day_of_week as number,
           attendanceMarked: markedSlotIds.has(slot.id),
         }
       })
+
+      // Only today's slots for display, next/current logic
+      const todaySlots = allSlots.filter(s => s.day_of_week === dow)
 
       const total         = studentCountRes.count ?? 0
       const present       = (attTodayRes.data ?? []).filter((r: { status: string }) => r.status === 'present').length
       const attendancePct = total > 0 ? Math.round((present / total) * 100) : 0
 
       const cur           = currentTimeMin()
-      const currentLesson = mappedSlots.find(s => timeToMin(s.start) <= cur && timeToMin(s.end) > cur) ?? null
-      const nextLesson    = mappedSlots.find(s => timeToMin(s.start) > cur) ?? null
+      const currentLesson = todaySlots.find(s => timeToMin(s.start) <= cur && timeToMin(s.end) > cur) ?? null
+      const nextLesson    = todaySlots.find(s => timeToMin(s.start) > cur) ?? null
 
       setData({
-        fullName, initials,
+        fullName,
         school:        (schoolRes.data as { name: string } | null)?.name ?? '',
-        lessonsToday:  mappedSlots.filter((_s, i) => (slotsRes.data?.[i] as { day_of_week?: number } | undefined)?.day_of_week === dow).length,
-        unreadFlags:   0,
+        lessonsToday:  todaySlots.length,
         attendancePct,
         nextLesson,
         currentLesson,
-        flags:         [],
-        slots:         mappedSlots,
+        todaySlots,
       })
       setLoading(false)
     }
@@ -207,7 +179,8 @@ export default function TeacherHomePage() {
   if (loading) {
     return (
       <div style={{ animation: 'fadeIn 0.2s ease' }}>
-        <div style={{ background: `linear-gradient(135deg, ${dark} 0%, #312e81 100%)`, borderRadius: 20, padding: '10px 14px', marginBottom: 12 }}>
+        <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+        <div style={{ background: `linear-gradient(135deg, ${C.dark} 0%, #312e81 100%)`, borderRadius: 20, padding: '10px 14px', marginBottom: 12 }}>
           <Skeleton w={120} h={10} />
           <div style={{ marginTop: 6 }}><Skeleton w={160} h={15} /></div>
           <div style={{ marginTop: 4 }}><Skeleton w={120} h={10} /></div>
@@ -242,14 +215,12 @@ export default function TeacherHomePage() {
 
   return (
     <div style={{ animation: 'slideIn 0.22s ease' }}>
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      {/* ── Hero ── */}
       <div style={{
         background: `linear-gradient(135deg, ${dark} 0%, #312e81 100%)`,
-        borderRadius: 20,
-        padding: '10px 14px',
-        marginBottom: 12,
-        color: '#fff',
+        borderRadius: 20, padding: '10px 14px', marginBottom: 12, color: '#fff',
       }}>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 1 }}>
           {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -260,8 +231,8 @@ export default function TeacherHomePage() {
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{data.school}</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           {[
-            { label: 'Lessons Today', value: data.lessonsToday },
-            { label: 'Flags',         value: data.unreadFlags  },
+            { label: 'Lessons Today', value: data.lessonsToday       },
+            { label: 'Flags',         value: 0                       },
             { label: 'Attendance',    value: `${data.attendancePct}%` },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '5px 8px', textAlign: 'center' }}>
@@ -272,7 +243,7 @@ export default function TeacherHomePage() {
         </div>
       </div>
 
-      {/* ── Next Up / Now ──────────────────────────────────────────────── */}
+      {/* ── Next Up / Now ── */}
       {(data.currentLesson || data.nextLesson) && (() => {
         const slot  = data.currentLesson || data.nextLesson!
         const isNow = !!data.currentLesson
@@ -298,8 +269,8 @@ export default function TeacherHomePage() {
         )
       })()}
 
-      {/* ── Quick Actions ─────────────────────────────────────────────── */}
-      <div style={{ background: cardBg, borderRadius: 16, border: `1px solid ${cardBorder}`, padding: '14px 14px', marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+      {/* ── Quick Actions ── */}
+      <div style={{ background: cardBg, borderRadius: 16, border: `1px solid ${cardBorder}`, padding: '14px', marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: textMuted, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 10 }}>Quick Actions</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {QUICK_ACTION_DEFS.map(qa => (
@@ -315,22 +286,22 @@ export default function TeacherHomePage() {
         </div>
       </div>
 
-      {/* ── Today's Timetable ─────────────────────────────────────────── */}
-      <div style={{ background: cardBg, borderRadius: 16, border: `1px solid ${cardBorder}`, padding: '14px 14px', marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+      {/* ── Today's Timetable ── */}
+      <div style={{ background: cardBg, borderRadius: 16, border: `1px solid ${cardBorder}`, padding: '14px', marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: textMuted, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 10 }}>
           Today's Timetable
         </div>
-        {data.slots.length === 0 ? (
+        {data.todaySlots.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 28 }}>📅</span>
-              <p style={{ fontSize: 13, color: textMuted, margin: 0 }}>No classes scheduled today</p>
-              <button onClick={() => router.push('/teacher/timetable')} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Set Up Timetable →
-              </button>
-            </div>
+            <span style={{ fontSize: 28 }}>📅</span>
+            <p style={{ fontSize: 13, color: textMuted, margin: 0 }}>No classes scheduled today</p>
+            <button onClick={() => router.push('/teacher/timetable')} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Set Up Timetable →
+            </button>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {data.slots.map(s => (
+            {data.todaySlots.map(s => (
               <div key={s.id} style={{ padding: '11px 13px', borderRadius: 12, background: C.surface, border: `1px solid ${cardBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: textMain }}>{s.subject} · <span style={{ color: textMuted }}>{s.class}</span></div>
@@ -344,8 +315,6 @@ export default function TeacherHomePage() {
           </div>
         )}
       </div>
-
-      {/* ── Twin ─────────────────────────────────────────────────────── */}
 
     </div>
   )

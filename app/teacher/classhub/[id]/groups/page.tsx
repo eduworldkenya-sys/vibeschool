@@ -5,39 +5,39 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 
 const CBC_PRESETS = [
-  { name: 'Exceeding Expectation', color: '#065f46', bg: '#d1fae5', emoji: '🟢' },
-  { name: 'Meeting Expectation',   color: '#92400e', bg: '#fef3c7', emoji: '🟡' },
+  { name: 'Exceeding Expectation',   color: '#065f46', bg: '#d1fae5', emoji: '🟢' },
+  { name: 'Meeting Expectation',     color: '#92400e', bg: '#fef3c7', emoji: '🟡' },
   { name: 'Approaching Expectation', color: '#991b1b', bg: '#fee2e2', emoji: '🔴' },
 ]
 
 interface Group {
-  id: string
-  name: string
-  color: string
-  members: string[] // student ids
+  id:      string
+  name:    string
+  color:   string
+  members: string[]
 }
 
 interface Student {
-  id: string
-  name: string
+  id:               string
+  name:             string
   admission_number: string
 }
 
 function GroupsInner() {
-  const router   = useRouter()
-  const params   = useParams()
-  const classId  = params.id as string
+  const router  = useRouter()
+  const params  = useParams()
+  const classId = params.id as string
 
   const [students, setStudents] = useState<Student[]>([])
   const [groups,   setGroups]   = useState<Group[]>([])
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
-  const [dragging, setDragging] = useState<string | null>(null)
   const [msg,      setMsg]      = useState('')
 
   async function load() {
     const [studsRes, groupsRes, membersRes] = await Promise.all([
-      supabase.from('students').select('id, name, admission_number').eq('class_id', classId).is('deleted_at', null),
+      // FIX: removed .is('deleted_at', null) — column does not exist on students table
+      supabase.from('students').select('id, name, admission_number').eq('class_id', classId),
       supabase.from('class_groups').select('*').eq('class_id', classId),
       supabase.from('class_group_members').select('group_id, student_id'),
     ])
@@ -66,7 +66,6 @@ function GroupsInner() {
   }
 
   async function assignStudent(studentId: string, groupId: string) {
-    // Remove from all groups first
     const memberGroupIds = groups.map(g => g.id)
     if (memberGroupIds.length > 0) {
       await supabase.from('class_group_members')
@@ -74,7 +73,6 @@ function GroupsInner() {
         .eq('student_id', studentId)
         .in('group_id', memberGroupIds)
     }
-    // Add to new group
     await supabase.from('class_group_members').insert({ group_id: groupId, student_id: studentId })
     setMsg('Saved')
     setTimeout(() => setMsg(''), 1500)
@@ -92,7 +90,6 @@ function GroupsInner() {
     load()
   }
 
-  // Students not in any group
   const assignedIds = groups.flatMap(g => g.members)
   const unassigned  = students.filter(s => !assignedIds.includes(s.id))
 
@@ -138,7 +135,6 @@ function GroupsInner() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>Loading…</div>
         ) : groups.length === 0 ? (
-          /* EMPTY STATE */
           <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🫂</div>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, margin: '0 0 8px' }}>No groups yet</h2>
@@ -155,7 +151,7 @@ function GroupsInner() {
           </div>
         ) : (
           <>
-            {/* UNASSIGNED STUDENTS */}
+            {/* UNASSIGNED */}
             {unassigned.length > 0 && (
               <div style={{ background: '#fff', borderRadius: 20, padding: '16px', marginBottom: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 12px' }}>
@@ -189,10 +185,8 @@ function GroupsInner() {
               return (
                 <div key={g.id} style={{ background: '#fff', borderRadius: 20, padding: '16px', marginBottom: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: `4px solid ${g.color}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ padding: '4px 10px', borderRadius: 20, background: palette.bg }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: palette.text }}>{g.name}</span>
-                      </div>
+                    <div style={{ padding: '4px 10px', borderRadius: 20, background: palette.bg }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: palette.text }}>{g.name}</span>
                     </div>
                     <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>{members.length} student{members.length !== 1 ? 's' : ''}</span>
                   </div>

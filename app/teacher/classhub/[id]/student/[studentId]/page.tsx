@@ -74,12 +74,11 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
   )
 }
 
-function StatBox({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+function StatBox({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}>
       <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>{value}</div>
       <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginTop: 2, lineHeight: 1.3 }}>{label}</div>
-      {sub && <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{sub}</div>}
     </div>
   )
 }
@@ -88,19 +87,19 @@ function StatBox({ label, value, sub }: { label: string; value: string | number;
 function OverviewTab({ student, classId, claimCode, onReload }: {
   student: Student; classId: string; claimCode: ClaimCode | null; onReload: () => void
 }) {
-  const [editing, setEditing]   = useState(false)
-  const [name, setName]         = useState(student.name)
-  const [adm, setAdm]           = useState(student.admission_number ?? '')
-  const [saving, setSaving]     = useState(false)
-  const [copied, setCopied]     = useState(false)
-  const [genning, setGenning]   = useState(false)
-  const [err, setErr]           = useState('')
+  const [editing, setEditing] = useState(false)
+  const [name,    setName]    = useState(student.name)
+  const [adm,     setAdm]     = useState(student.admission_number ?? '')
+  const [saving,  setSaving]  = useState(false)
+  const [copied,  setCopied]  = useState(false)
+  const [genning, setGenning] = useState(false)
+  const [err,     setErr]     = useState('')
 
   async function handleSave() {
     if (!name.trim()) { setErr('Name required'); return }
     setSaving(true)
     const { error } = await supabase.from('students').update({
-      name: name.trim(),
+      name:             name.trim(),
       admission_number: adm.trim() || null,
     }).eq('id', student.id)
     setSaving(false)
@@ -158,13 +157,13 @@ function OverviewTab({ student, classId, claimCode, onReload }: {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              { label: 'Full Name',         value: student.name },
-              { label: 'Admission No.',     value: student.admission_number || '—' },
-              { label: 'Gender',            value: student.gender || '—' },
-              { label: 'Date of Birth',     value: student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' },
-              { label: 'Autonomy Level',    value: student.autonomy_level != null ? String(student.autonomy_level) : '—' },
-              { label: 'Enrolled',          value: new Date(student.created_at).toLocaleDateString() },
-              { label: 'Account Status',    value: student.profile_id ? 'Claimed ✓' : 'Unclaimed' },
+              { label: 'Full Name',      value: student.name },
+              { label: 'Admission No.',  value: student.admission_number || '—' },
+              { label: 'Gender',         value: student.gender || '—' },
+              { label: 'Date of Birth',  value: student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' },
+              { label: 'Autonomy Level', value: student.autonomy_level != null ? String(student.autonomy_level) : '—' },
+              { label: 'Enrolled',       value: new Date(student.created_at).toLocaleDateString() },
+              { label: 'Account Status', value: student.profile_id ? 'Claimed ✓' : 'Unclaimed' },
             ].map(row => (
               <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid #f3f4f6' }}>
                 <span style={{ fontSize: 12, color: C.textMuted }}>{row.label}</span>
@@ -209,16 +208,16 @@ function OverviewTab({ student, classId, claimCode, onReload }: {
 
 /* ── Attendance Tab ── */
 function AttendanceTab({ records }: { records: AttendanceRecord[] }) {
-  const total    = records.length
-  const present  = records.filter(r => r.status === 'present').length
-  const absent   = records.filter(r => r.status === 'absent').length
-  const late     = records.filter(r => r.is_late).length
-  const rate     = total > 0 ? Math.round((present / total) * 100) : 0
+  const total   = records.length
+  const present = records.filter(r => r.status === 'present').length
+  const absent  = records.filter(r => r.status === 'absent').length
+  const late    = records.filter(r => r.is_late).length
+  const rate    = total > 0 ? Math.round((present / total) * 100) : 0
 
   const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
     present: { bg: '#d1fae5', color: '#065f46', label: 'Present' },
     absent:  { bg: '#fee2e2', color: '#991b1b', label: 'Absent'  },
-    late:    { bg: '#fef3c7', color: '#92400e', label: 'Late'    },
+    excused: { bg: '#e0f2fe', color: '#075985', label: 'Excused' },
   }
 
   return (
@@ -323,9 +322,9 @@ function HomeworkTab({ homework, submissions }: { homework: Homework[]; submissi
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {homework.map(hw => {
-            const sub  = subMap[hw.id]
+            const sub    = subMap[hw.id]
             const status = sub?.status ?? 'pending'
-            const sc   = STATUS_STYLE[status] ?? STATUS_STYLE.pending
+            const sc     = STATUS_STYLE[status] ?? STATUS_STYLE.pending
             return (
               <div key={hw.id} style={{ padding: '10px 0', borderBottom: '1px solid #f3f4f6' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -403,11 +402,11 @@ function ResourcesTab({ resources }: { resources: Resource[] }) {
 /* ── Journey Tab ── */
 function JourneyTab({ streaks, goals, skills }: { streaks: Streak[]; goals: Goal[]; skills: Skill[] }) {
   const SKILL_LEVEL_COLORS: Record<string, { bg: string; color: string }> = {
-    beginner:     { bg: '#fef3c7', color: '#92400e' },
-    developing:   { bg: '#dbeafe', color: '#1d4ed8' },
-    proficient:   { bg: '#d1fae5', color: '#065f46' },
-    advanced:     { bg: '#ede9fe', color: '#6d28d9' },
-    expert:       { bg: '#fce7f3', color: '#9d174d' },
+    beginner:   { bg: '#fef3c7', color: '#92400e' },
+    developing: { bg: '#dbeafe', color: '#1d4ed8' },
+    proficient: { bg: '#d1fae5', color: '#065f46' },
+    advanced:   { bg: '#ede9fe', color: '#6d28d9' },
+    expert:     { bg: '#fce7f3', color: '#9d174d' },
   }
 
   const GOAL_STATUS_COLORS: Record<string, { bg: string; color: string }> = {
@@ -418,8 +417,6 @@ function JourneyTab({ streaks, goals, skills }: { streaks: Streak[]; goals: Goal
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-      {/* STREAKS */}
       <Card>
         <SectionHead title="Learning Streaks" />
         {streaks.length === 0 ? (
@@ -437,7 +434,6 @@ function JourneyTab({ streaks, goals, skills }: { streaks: Streak[]; goals: Goal
         )}
       </Card>
 
-      {/* TALENT PROJECTION */}
       <Card style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #064e3b 100%)' }}>
         <SectionHead title="Talent Projection" />
         {skills.length === 0 ? (
@@ -468,7 +464,6 @@ function JourneyTab({ streaks, goals, skills }: { streaks: Streak[]; goals: Goal
         )}
       </Card>
 
-      {/* GOALS */}
       <Card>
         <SectionHead title="Goals" />
         {goals.length === 0 ? (
@@ -553,9 +548,10 @@ function StudentProfileInner() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/academy/signin?role=teacher'); return }
 
+    // FIX: removed duplicate subjects query — fetch once only
     const [
-      stuRes, codeRes, attRes, asmRes, hwRes, subRes, resRes,
-      strRes, goalRes, skillRes, subjRes,
+      stuRes, codeRes, attRes, asmRes, hwRes, subjRes, resRes,
+      strRes, goalRes, skillRes,
     ] = await Promise.all([
       supabase.from('students').select('*').eq('id', studentId).single(),
       supabase.from('student_claim_codes').select('code, claimed, expires_at').eq('student_id', studentId).eq('claimed', false).maybeSingle(),
@@ -567,7 +563,6 @@ function StudentProfileInner() {
       supabase.from('child_streaks').select('*').eq('student_id', studentId),
       supabase.from('child_goals').select('*').eq('student_id', studentId).is('deleted_at', null).order('created_at', { ascending: false }),
       supabase.from('child_skills').select('*').eq('student_id', studentId).is('deleted_at', null).order('created_at', { ascending: false }),
-      supabase.from('subjects').select('id, name'),
     ])
 
     if (!stuRes.data) { router.push('/teacher/classhub/' + classId); return }
@@ -619,9 +614,9 @@ function StudentProfileInner() {
 
   useEffect(() => { loadAll() }, [studentId, classId])
 
-  const attRate    = attendance.length > 0 ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100) : 0
-  const hwDone     = homework.length > 0 ? submissions.filter(s => s.status === 'submitted' || s.status === 'graded').length : 0
-  const claimed    = !!student?.profile_id
+  const attRate = attendance.length > 0 ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100) : 0
+  const hwDone  = homework.length > 0 ? submissions.filter(s => s.status === 'submitted' || s.status === 'graded').length : 0
+  const claimed = !!student?.profile_id
 
   if (loading || !student) {
     return (
@@ -646,7 +641,6 @@ function StudentProfileInner() {
         <button onClick={() => router.push('/teacher/classhub/' + classId)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18, marginBottom: 20 }}>←</button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-          {/* AVATAR */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: claimed ? 'linear-gradient(135deg, #10b981, #065f46)' : 'linear-gradient(135deg, #6d28d9, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#fff', border: '3px solid rgba(255,255,255,0.2)' }}>
               {student.name.charAt(0).toUpperCase()}
@@ -656,11 +650,7 @@ function StudentProfileInner() {
                 <span style={{ fontSize: 8, color: '#fff' }}>✓</span>
               </div>
             )}
-            <div style={{ position: 'absolute', bottom: -2, right: -2, width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <span style={{ fontSize: 10 }}>📷</span>
-            </div>
           </div>
-
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>{student.name}</h1>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: '3px 0 4px' }}>
@@ -679,12 +669,11 @@ function StudentProfileInner() {
           </div>
         </div>
 
-        {/* STATS */}
         <div style={{ display: 'flex', gap: 8 }}>
-          <StatBox label="Attendance" value={attRate + '%'} />
+          <StatBox label="Attendance"  value={attRate + '%'} />
           <StatBox label="Assessments" value={assessments.length} />
-          <StatBox label="HW Done" value={homework.length > 0 ? hwDone + '/' + homework.length : '—'} />
-          <StatBox label="Badges" value={badges.length} />
+          <StatBox label="HW Done"     value={homework.length > 0 ? hwDone + '/' + homework.length : '—'} />
+          <StatBox label="Badges"      value={badges.length} />
         </div>
       </div>
 
