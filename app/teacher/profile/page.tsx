@@ -232,7 +232,6 @@ function PersonalInfoSection() {
     }, { onConflict: 'profile_id' })
 
     if (selectedSubjectIds.length > 0 && selectedClassId) {
-      await supabase.from('teacher_classes').delete().eq('teacher_id', userId)
       const rows = selectedSubjectIds.map((subId: string) => ({
         teacher_id:       userId,
         class_id:         selectedClassId,
@@ -240,7 +239,7 @@ function PersonalInfoSection() {
         school_id:        schoolId,
         is_class_teacher: false,
       }))
-      const tcRes = await supabase.from('teacher_classes').insert(rows)
+      const tcRes = await supabase.from('teacher_classes').upsert(rows, { onConflict: 'teacher_id,class_id,subject_id' })
       if (tcRes.error) {
         setSaving(false)
         setError('Saved profile but failed to update class assignment.')
