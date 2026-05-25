@@ -185,7 +185,7 @@ function AttendanceInner() {
     setStudents(studs)
     setStatuses(initialStatuses)
     setStudentsLoading(false)
-  }, [today])
+  }, [selectedDate])
 
   useEffect(() => {
     if (activeSlot) loadRegister(activeSlot)
