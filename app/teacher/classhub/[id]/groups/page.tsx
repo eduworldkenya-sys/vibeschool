@@ -36,7 +36,7 @@ function GroupsInner() {
 
   async function load() {
     const [studsRes, groupsRes, membersRes] = await Promise.all([
-      supabase.from('students').select('id, name, admission_number').eq('class_id', classId).order('name', { ascending: true }),
+      supabase.from('students').select('id, name, admission_number').eq('class_id', classId).is('deleted_at', null).order('name', { ascending: true }),
       supabase.from('class_groups').select('*').eq('class_id', classId),
       supabase.from('class_group_members').select('group_id, student_id'),
     ])
