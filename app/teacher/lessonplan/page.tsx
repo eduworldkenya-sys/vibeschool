@@ -129,7 +129,7 @@ function LessonPlanInner() {
         return { slot, plan, status }
       })
 
-      console.log("[LP] slots:", slotsRes.data?.length, "user:", user.id); setItems(mapped)
+      setItems(mapped)
       setLoading(false)
     }
 

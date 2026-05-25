@@ -417,7 +417,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
 
       if (slotsResult.error) {
-        console.error('[TimetablePage] timetable_slots error:', slotsResult.error)
         setLoadError('Could not load your timetable. Please refresh.')
         return
       }
@@ -464,7 +463,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       setTeacherSchoolId(memberResult.data?.school_id ?? null)
 
     } catch (err) {
-      console.error('[TimetablePage] load() fatal:', err)
       if (isMounted.current) {
         setLoadError('Unexpected error loading timetable. Please refresh.')
       }

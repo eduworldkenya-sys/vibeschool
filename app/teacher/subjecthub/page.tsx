@@ -109,7 +109,7 @@ export default function SubjectHubPage() {
     // Load classes for add-subject modal (best-effort, MVP)
     const { data: clData } = await supabase
       .from('classes').select('id,name,stream')
-      .eq('school_id', sid ?? '')
+      .eq('school_id', sid ?? null)
     setAllClasses(clData ?? [])
     setLoading(false)
   }
