@@ -3,6 +3,7 @@ import { C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getSchoolId } from '@/lib/getSchoolId'
 import { useRouter } from 'next/navigation'
 
 interface Slot {
@@ -102,10 +103,9 @@ export default function TeacherHomePage() {
       const rawDow = new Date().getDay()
       const dow    = rawDow === 0 ? 7 : rawDow
 
-      const [profileRes, teacherProfileRes, memberRes, slotsRes, homeClassRes] = await Promise.all([
-        supabase.from('profiles').select('full_name, school_id').eq('id', uid).single(),
-        supabase.from('teacher_profiles').select('school_id').eq('profile_id', uid).maybeSingle(),
-        supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
+      const [profileRes, teacherProfileRes, slotsRes, homeClassRes] = await Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', uid).single(),
+        supabase.from('teacher_profiles').select('designation').eq('profile_id', uid).maybeSingle(),
         supabase
           .from('timetable_slots')
           .select('id, day_of_week, start_time, end_time, room, class_id, subject_id, subjects ( name ), classes ( name, stream )')
@@ -116,7 +116,10 @@ export default function TeacherHomePage() {
       ])
 
       const fullName       = profileRes.data?.full_name ?? ''
-      const schoolId       = memberRes.data?.school_id ?? teacherProfileRes.data?.school_id ?? profileRes.data?.school_id ?? null
+      const designation    = teacherProfileRes.data?.designation ?? null
+      const schoolId       = await getSchoolId(uid)
+      if (designation === null) { router.push('/teacher/classhub'); return }
+      if (designation === 'subject_teacher') { router.push('/teacher/subjecthub'); return }
       const classTeacherId = homeClassRes.data?.class_id ?? null
       setMyClassId(classTeacherId)
       const slotIds        = (slotsRes.data ?? []).map(s => s.id)
