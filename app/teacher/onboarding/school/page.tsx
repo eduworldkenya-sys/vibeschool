@@ -90,7 +90,7 @@ export default function SchoolOnboardingPage() {
     }
     await supabase.from('profiles').update({ school_id: schoolId }).eq('id', user.id)
     setLoading(false)
-    router.push('/teacher')
+    router.push('/teacher/onboarding/class')
   }
 
   async function handleJoin() {
@@ -103,7 +103,7 @@ export default function SchoolOnboardingPage() {
     if (school.status === 'suspended' || school.status === 'closed') { setLoading(false); setError('This school is no longer active.'); return }
     await supabase.from('profiles').update({ school_id: school.id }).eq('id', user.id)
     setLoading(false)
-    router.push('/teacher')
+    router.push('/teacher/onboarding/class')
   }
 
   async function handleManual() {
@@ -116,7 +116,7 @@ export default function SchoolOnboardingPage() {
     if (schoolErr || !school) { setLoading(false); setError(schoolErr?.message ?? 'Failed to create school.'); return }
     await supabase.from('profiles').update({ school_id: school.id }).eq('id', user.id)
     setLoading(false)
-    router.push('/teacher')
+    router.push('/teacher/onboarding/class')
   }
 
   const inp: React.CSSProperties = { width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' }
