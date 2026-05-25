@@ -9,7 +9,7 @@ import LessonPlanModal from '@/components/teacher/LessonPlanModal'
 import type { TimetableSlot, PlanStatus } from '@/lib/types'
 
 interface PlanRow {
-  id: string; classId: string; subjectId: string
+  id: string; timetableSlotId?: string; classId: string; subjectId: string
   title: string; body: string; dayOfWeek: number
   weekStart: string; status: string
 }
@@ -55,7 +55,7 @@ function LessonPlanInner() {
       const planMap = new Map<string, PlanRow>()
       ;(plansRes.data ?? []).forEach(p => {
         planMap.set(p.timetable_slot_id ?? `${p.class_id}:${p.day_of_week}`, {
-          id: p.id, classId: p.class_id, subjectId: p.subject_id,
+          id: p.id, timetableSlotId: p.timetable_slot_id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '',
           dayOfWeek: p.day_of_week, weekStart: p.week_start, status: p.status ?? 'draft',
         })
