@@ -111,7 +111,9 @@ export default function FinanceSettingsPage() {
     setCurrentUserId(user.id)
     const { data: profile } = await supabase
       .from('profiles').select('school_id').eq('id', user.id).single()
-    const sid = profile?.school_id
+    const adminRes3  = await supabase.from('admin_profiles').select('school_id').eq('profile_id', user.id).maybeSingle()
+    const memberRes3 = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle()
+    const sid = memberRes3.data?.school_id ?? adminRes3.data?.school_id ?? profile?.school_id
     setSchoolId(sid)
     const [
       { data: bursarRow },

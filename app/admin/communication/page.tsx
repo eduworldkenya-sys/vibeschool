@@ -211,13 +211,19 @@ export default function AdminCommunicationPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/admin/login'); return }
-      const { data: p } = await supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single()
+      const [pRes, adminRes, memberRes] = await Promise.all([
+        supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single(),
+        supabase.from('admin_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      ])
+      const p = pRes.data
+      if (p) p.school_id = memberRes.data?.school_id ?? adminRes.data?.school_id ?? p.school_id
       if (!p || p.role !== 'admin') { router.push('/admin/login'); return }
       setUserId(user.id)
-      setSchoolId(p.school_id)
+      setSchoolId(p?.school_id ?? '')
       setMyName(p.full_name ?? 'Admin')
       try { await ensureVCId(user.id, p.full_name ?? 'Admin') } catch {}
-      await loadAll(user.id, p.school_id)
+      await loadAll(user.id, p?.school_id ?? '')
     } catch {
       router.push('/admin/login')
     } finally {

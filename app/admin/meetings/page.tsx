@@ -53,9 +53,12 @@ export default function MeetingsPage() {
 
       const { data: p } = await supabase
         .from('profiles').select('school_id').eq('id', user.id).single()
+      const adminRes  = await supabase.from('admin_profiles').select('school_id').eq('profile_id', user.id).maybeSingle()
+      const memberRes = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle()
       if (!p) { router.push('/admin/login'); return }
 
-      await loadMeetings(p.school_id)
+      const resolvedSchoolId = memberRes.data?.school_id ?? adminRes.data?.school_id ?? p?.school_id
+      await loadMeetings(resolvedSchoolId)
     } catch {
       router.push('/admin/login')
     }
