@@ -115,7 +115,7 @@ function AttendanceInner() {
           .from('attendance')
           .select('timetable_slot_id')
           .in('timetable_slot_id', slotIds)
-          .eq('date', today)
+          .eq('date', selectedDate)
 
         markedSet = new Set((attRows ?? []).map(r => r.timetable_slot_id))
       }
@@ -162,7 +162,7 @@ function AttendanceInner() {
         .from('attendance')
         .select('student_id, status')
         .eq('timetable_slot_id', slot.id)
-        .eq('date', today),
+        .eq('date', selectedDate),
     ])
 
     const studs: Student[] = (studentsRes.data ?? []).map(s => ({
@@ -204,8 +204,8 @@ function AttendanceInner() {
       teacher_id:        uid,
       school_id:         schoolId,
       date:              selectedDate,
-      status:            statuses[s.id] ?? 'present',
-      is_late:           false,
+      status:            statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
+      is_late:           statuses[s.id] === 'late',
       marked_at:         new Date().toISOString(),
     }))
 
