@@ -88,12 +88,14 @@ export default function SubjectHubPage() {
     if (!user) { router.push('/academy/signin?role=teacher'); return }
     setCurrentId(user.id)
 
-    const [tcRes, memberRes] = await Promise.all([
+    const [tcRes, teacherRes, memberRes, profileRes] = await Promise.all([
       supabase.from('teacher_classes').select('subject_id').eq('teacher_id', user.id),
+      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
       supabase.from('profiles').select('school_id').eq('id', user.id).single(),
     ])
 
-    const sid = memberRes.data?.school_id ?? null
+    const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
     setSchoolId(sid)
 
     const subjectIds = Array.from(new Set(

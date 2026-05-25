@@ -166,7 +166,7 @@ function PersonalInfoSection() {
         supabase.from('teacher_profiles').select('tsc_number,employment_type').eq('profile_id', uid).maybeSingle(),
       ])
 
-      const sid = memberRes.data?.school_id ?? null
+      const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
       setSchoolId(sid)
 
       const [subjectsRes, classesRes, tcRes] = await Promise.all([

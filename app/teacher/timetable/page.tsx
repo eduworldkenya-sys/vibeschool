@@ -409,7 +409,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
         supabase
           .from('profiles')
-          .select('school_id')
+          .select('school_id')  // timetable existing
           .eq('id', user.id)
           .single(),
       ])
@@ -460,7 +460,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       setAllSlots(mapped)
 
-      setTeacherSchoolId(memberResult.data?.school_id ?? null)
+      setTeacherSchoolId(memberResult.data?.school_id ?? null) // already uses school_members
 
     } catch (err) {
       if (isMounted.current) {

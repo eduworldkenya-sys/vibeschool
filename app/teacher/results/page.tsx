@@ -183,8 +183,11 @@ function ResultsInner() {
 
     // Profile — school_id optional
     const { data: profile } = await supabase
-      .from('profiles').select('school_id').eq('id', user.id).maybeSingle()
-    const sid: string | null = profile?.school_id ?? null
+from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
+    ])
+    const sid: string | null = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
     setSchoolId(sid)
 
     // Detect tier

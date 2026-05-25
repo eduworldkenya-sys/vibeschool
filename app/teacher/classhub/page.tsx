@@ -74,13 +74,14 @@ export default function ClassHubPage() {
     if (!user) { router.push('/academy/signin?role=teacher'); return }
     setUserId(user.id)
 
-    const [profileRes, memberRes] = await Promise.all([
-      supabase.from('teacher_profiles').select('designation').eq('profile_id', user.id).maybeSingle(),
+    const [teacherRes, memberRes, profileRes] = await Promise.all([
+      supabase.from('teacher_profiles').select('designation, school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
       supabase.from('profiles').select('school_id').eq('id', user.id).single(),
     ])
 
-    const desig = profileRes.data?.designation ?? null
-    const sid   = memberRes.data?.school_id ?? null
+    const desig = teacherRes.data?.designation ?? null
+    const sid   = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
     setSchoolId(sid)
     setDesignation(desig)
     setCheckingRole(false)

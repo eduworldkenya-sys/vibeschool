@@ -148,9 +148,13 @@ function AssessmentInner() {
     if (authErr || !user) { setError('Not signed in.'); setLoading(false); return }
     setTeacherId(user.id)
 
-    const profileRes = await supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle()
+    const [profileRes, teacherProfileRes, memberRes] = await Promise.all([
+      supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle(),
+      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+    ])
     if (profileRes.error) { setError(profileRes.error.message); setLoading(false); return }
-    const sid: string | null = profileRes.data?.school_id ?? null
+    const sid: string | null = memberRes.data?.school_id ?? teacherProfileRes.data?.school_id ?? profileRes.data?.school_id ?? null
     setSchoolId(sid)
 
     const tcRes = await supabase.from('teacher_classes').select('class_id, subject_id').eq('teacher_id', user.id)

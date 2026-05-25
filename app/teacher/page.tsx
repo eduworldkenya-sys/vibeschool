@@ -102,8 +102,10 @@ export default function TeacherHomePage() {
       const rawDow = new Date().getDay()
       const dow    = rawDow === 0 ? 7 : rawDow
 
-      const [profileRes, slotsRes, homeClassRes] = await Promise.all([
+      const [profileRes, teacherProfileRes, memberRes, slotsRes, homeClassRes] = await Promise.all([
         supabase.from('profiles').select('full_name, school_id').eq('id', uid).single(),
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', uid).maybeSingle(),
+        supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
         supabase
           .from('timetable_slots')
           .select('id, day_of_week, start_time, end_time, room, class_id, subject_id, subjects ( name ), classes ( name, stream )')
@@ -114,7 +116,7 @@ export default function TeacherHomePage() {
       ])
 
       const fullName       = profileRes.data?.full_name ?? ''
-      const schoolId       = profileRes.data?.school_id ?? null
+      const schoolId       = memberRes.data?.school_id ?? teacherProfileRes.data?.school_id ?? profileRes.data?.school_id ?? null
       const classTeacherId = homeClassRes.data?.class_id ?? null
       setMyClassId(classTeacherId)
       const slotIds        = (slotsRes.data ?? []).map(s => s.id)

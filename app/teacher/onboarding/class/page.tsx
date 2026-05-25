@@ -35,7 +35,12 @@ export default function ClassOnboardingPage() {
     setLoading(true)
     const { data: { user }, error: userErr } = await supabase.auth.getUser()
     if (userErr || !user) { setLoading(false); router.push('/academy/signin?role=teacher'); return }
-    const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
+    const [profileRes, teacherRes, memberRes] = await Promise.all([
+      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
+      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+    ])
+    const profile = { school_id: memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null }
     if (!profile?.school_id) { setLoading(false); router.push('/teacher/onboarding/school'); return }
     const { error: fnErr } = await supabase.rpc('onboard_teacher_class', {
       p_school_id:  profile.school_id,

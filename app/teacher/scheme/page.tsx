@@ -52,12 +52,14 @@ function SchemePageInner() {
       if (!user) return
       setUid(user.id)
 
-      const [profileRes, tcRes] = await Promise.all([
+      const [teacherRes, memberRes, profileRes, tcRes] = await Promise.all([
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
         supabase.from('profiles').select('school_id').eq('id', user.id).single(),
         supabase.from('teacher_classes').select('class_id,subject_id').eq('teacher_id', user.id),
       ])
 
-      const sid = profileRes.data?.school_id ?? null
+      const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
       setSchoolId(sid)
 
       const teacherClasses = tcRes.data ?? []

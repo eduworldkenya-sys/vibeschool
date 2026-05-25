@@ -79,8 +79,10 @@ function AttendanceInner() {
       const dow = new Date(selectedDate + 'T12:00:00').getDay()
       setUid(user.id)
 
-      const [profileRes, slotsRes] = await Promise.all([
+      const [profileRes, teacherProfileRes, memberRes, slotsRes] = await Promise.all([
         supabase.from('profiles').select('school_id').eq('id', user.id).single(),
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
         (() => {
           let q = supabase
             .from('timetable_slots')
@@ -92,7 +94,7 @@ function AttendanceInner() {
         })(),
       ])
 
-      setSchoolId(profileRes.data?.school_id ?? null)
+      setSchoolId(memberRes.data?.school_id ?? teacherProfileRes.data?.school_id ?? profileRes.data?.school_id ?? null)
 
       const slotIds = (slotsRes.data ?? []).map(s => s.id)
       let markedSet = new Set<string>()
