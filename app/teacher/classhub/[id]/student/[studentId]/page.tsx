@@ -175,8 +175,6 @@ function OverviewTab({ student, classId, claimCode, onReload, myGroups }: {
         )}
       </Card>
 
-      </Card>
-
       {myGroups.length > 0 && (
         <Card>
           <SectionHead title="Groups" />
