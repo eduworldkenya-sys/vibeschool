@@ -10,6 +10,12 @@ const LEARNING_PRESETS = [
   { name: 'Approaching Expectation', color: '#991b1b', bg: '#fee2e2', emoji: '🔴' },
 ]
 
+const READING_PRESETS = [
+  { name: 'Fluent Readers',     color: '#1d4ed8', bg: '#dbeafe', emoji: '📖' },
+  { name: 'Developing Readers', color: '#6d28d9', bg: '#ede9fe', emoji: '📝' },
+  { name: 'Emerging Readers',   color: '#9d174d', bg: '#fce7f3', emoji: '🌱' },
+]
+
 const ACTIVITY_COLORS = [
   { color: '#1d4ed8', bg: '#dbeafe' },
   { color: '#065f46', bg: '#d1fae5' },
@@ -19,7 +25,7 @@ const ACTIVITY_COLORS = [
   { color: '#9d174d', bg: '#fce7f3' },
 ]
 
-type TabType = 'learning' | 'activity'
+type TabType = 'learning' | 'activity' | 'reading'
 
 interface Group {
   id:      string
@@ -40,23 +46,29 @@ function GroupsInner() {
   const params  = useParams()
   const classId = params.id as string
 
-  const [tab,      setTab]      = useState<TabType>('learning')
-  const [students, setStudents] = useState<Student[]>([])
-  const [groups,   setGroups]   = useState<Group[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [saving,   setSaving]   = useState(false)
-  const [msg,      setMsg]      = useState('')
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName,  setEditName]  = useState('')
-  const [groupCount, setGroupCount] = useState(3)
+  const [tab,             setTab]             = useState<TabType>('learning')
+  const [students,        setStudents]        = useState<Student[]>([])
+  const [groups,          setGroups]          = useState<Group[]>([])
+  const [grade,           setGrade]           = useState<number>(0)
+  const [loading,         setLoading]         = useState(true)
+  const [saving,          setSaving]          = useState(false)
+  const [msg,             setMsg]             = useState('')
+  const [editingId,       setEditingId]       = useState<string | null>(null)
+  const [editName,        setEditName]        = useState('')
+  const [groupCount,      setGroupCount]      = useState(3)
   const [showCountPicker, setShowCountPicker] = useState(false)
 
   async function load() {
-    const [studsRes, groupsRes, membersRes] = await Promise.all([
+    const [studsRes, classRes, groupsRes, membersRes] = await Promise.all([
       supabase.from('students').select('id, name, admission_number').eq('class_id', classId).is('deleted_at', null).order('name', { ascending: true }),
+      supabase.from('classes').select('name').eq('id', classId).single(),
       supabase.from('class_groups').select('*').eq('class_id', classId),
       supabase.from('class_group_members').select('group_id, student_id'),
     ])
+
+    const className = classRes.data?.name ?? ''
+    const parsedGrade = parseInt(className.match(/\d+/)?.[0] ?? '0')
+    setGrade(parsedGrade)
 
     const fetchedGroups: Group[] = (groupsRes.data ?? []).map(g => ({
       id:      g.id,
@@ -78,10 +90,10 @@ function GroupsInner() {
     setTimeout(() => setMsg(''), 1800)
   }
 
-  async function createLearningPresets() {
+  async function createPresets(presets: { name: string; color: string }[], type: string) {
     setSaving(true)
-    for (const p of LEARNING_PRESETS) {
-      await supabase.from('class_groups').insert({ class_id: classId, name: p.name, color: p.color, type: 'learning' })
+    for (const p of presets) {
+      await supabase.from('class_groups').insert({ class_id: classId, name: p.name, color: p.color, type })
     }
     setSaving(false)
     load()
@@ -89,9 +101,9 @@ function GroupsInner() {
 
   async function createActivityGroups(count: number) {
     setSaving(true)
-    const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+    const letters     = ['A', 'B', 'C', 'D', 'E', 'F']
     const allStudents = students
-    const chunkSize = Math.ceil(allStudents.length / count)
+    const chunkSize   = Math.ceil(allStudents.length / count)
 
     for (let i = 0; i < count; i++) {
       const palette = ACTIVITY_COLORS[i % ACTIVITY_COLORS.length]
@@ -148,18 +160,19 @@ function GroupsInner() {
     load()
   }
 
-  const tabGroups   = groups.filter(g => g.type === tab)
-  const assignedIds = tabGroups.flatMap(g => g.members)
-  const unassigned  = students.filter(s => !assignedIds.includes(s.id))
+  const showReading = grade >= 1 && grade <= 3
 
-  const paletteFor = (color: string) => {
-    const found = ACTIVITY_COLORS.find(c => c.color === color)
-    if (found) return { bg: found.bg, text: color }
-    const map: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2' }
-    return { bg: map[color] ?? '#f3f4f6', text: color }
-  }
+  const TABS: { id: TabType; label: string }[] = [
+    { id: 'learning', label: '🎯 Learning' },
+    { id: 'activity', label: '⚡ Activity' },
+    ...(showReading ? [{ id: 'reading' as TabType, label: '📖 Reading' }] : []),
+  ]
 
-  const TAB_CONFIG = {
+  const TAB_CONFIG: Record<TabType, {
+    label: string; sub: string; gradient: string
+    emptyIcon: string; emptyText: string; emptyBtn: string
+    emptyAction: () => void
+  }> = {
     learning: {
       label:       'Learning Groups',
       sub:         'CBC differentiated instruction',
@@ -167,7 +180,7 @@ function GroupsInner() {
       emptyIcon:   '🫂',
       emptyText:   'Set up CBC learning groups to differentiate instruction by performance level.',
       emptyBtn:    '✨ Create CBC Groups',
-      emptyAction: createLearningPresets,
+      emptyAction: () => createPresets(LEARNING_PRESETS, 'learning'),
     },
     activity: {
       label:       'Activity Groups',
@@ -178,15 +191,39 @@ function GroupsInner() {
       emptyBtn:    '⚡ Create Activity Groups',
       emptyAction: () => setShowCountPicker(true),
     },
+    reading: {
+      label:       'Reading Groups',
+      sub:         'Literacy & fluency tracking',
+      gradient:    'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',
+      emptyIcon:   '📖',
+      emptyText:   'Group students by reading fluency level to target literacy support effectively.',
+      emptyBtn:    '📖 Create Reading Groups',
+      emptyAction: () => createPresets(READING_PRESETS, 'reading'),
+    },
   }
 
-  const cfg = TAB_CONFIG[tab]
+  const cfg         = TAB_CONFIG[tab]
+  const tabGroups   = groups.filter(g => g.type === tab)
+  const assignedIds = tabGroups.flatMap(g => g.members)
+  const unassigned  = students.filter(s => !assignedIds.includes(s.id))
+
+  const paletteFor = (color: string) => {
+    const allColors = [
+      ...ACTIVITY_COLORS,
+      ...READING_PRESETS.map(p => ({ color: p.color, bg: p.bg })),
+    ]
+    const found = allColors.find(c => c.color === color)
+    if (found) return { bg: found.bg, text: color }
+    const map: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2' }
+    return { bg: map[color] ?? '#f3f4f6', text: color }
+  }
 
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: '100%' }}>
       <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} } @keyframes fadeIn { from{opacity:0} to{opacity:1} }`}</style>
 
-      <div style={{ background: cfg.gradient, padding: '20px 16px 24px' }}>
+      {/* HERO */}
+      <div style={{ background: cfg.gradient, padding: '20px 16px 24px', transition: 'background 0.3s ease' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
           <div>
@@ -195,14 +232,15 @@ function GroupsInner() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {(['learning', 'activity'] as TabType[]).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 12, background: tab === t ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: tab === t ? '#1e1b4b' : 'rgba(255,255,255,0.85)', transition: 'all 0.15s' }}>
-              {t === 'learning' ? '🎯 Learning' : '⚡ Activity'}
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => { setTab(t.id); setShowCountPicker(false) }} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 11, background: tab === t.id ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: tab === t.id ? '#1e1b4b' : 'rgba(255,255,255,0.85)', transition: 'all 0.15s' }}>
+              {t.label}
             </button>
           ))}
         </div>
       </div>
 
+      {/* TOAST */}
       {msg && (
         <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: C.accent, color: '#fff', padding: '8px 20px', borderRadius: 20, fontWeight: 700, fontSize: 13, zIndex: 999, animation: 'fadeIn 0.2s ease' }}>{msg}</div>
       )}
@@ -234,7 +272,7 @@ function GroupsInner() {
             <div style={{ fontSize: 40, marginBottom: 12 }}>{cfg.emptyIcon}</div>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1e1b4b', margin: '0 0 8px' }}>No {tab} groups yet</h2>
             <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px', lineHeight: 1.5 }}>{cfg.emptyText}</p>
-            <button onClick={cfg.emptyAction} disabled={saving} style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: tab === 'learning' ? '#b45309' : '#4f46e5', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button onClick={cfg.emptyAction} disabled={saving} style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: tab === 'learning' ? '#b45309' : tab === 'reading' ? '#0f766e' : '#4f46e5', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
               {saving ? 'Creating…' : cfg.emptyBtn}
             </button>
           </div>
@@ -262,8 +300,8 @@ function GroupsInner() {
             )}
 
             {tabGroups.map(g => {
-              const palette = paletteFor(g.color)
-              const members = students.filter(s => g.members.includes(s.id))
+              const palette   = paletteFor(g.color)
+              const members   = students.filter(s => g.members.includes(s.id))
               const isEditing = editingId === g.id
               return (
                 <div key={g.id} style={{ background: '#fff', borderRadius: 20, padding: '16px', marginBottom: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: `4px solid ${g.color}` }}>
