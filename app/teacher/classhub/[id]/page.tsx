@@ -79,6 +79,7 @@ function ClassPageInner() {
   const [joinRequests,   setJoinRequests]   = useState<number>(0)
   const [attendanceRate, setAttendanceRate] = useState<string>('—')
   const [avgScore,       setAvgScore]       = useState<string>('—')
+  const [studentGroups,  setStudentGroups]  = useState<Record<string, { name: string; color: string }>>({})
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -138,6 +139,17 @@ function ClassPageInner() {
       setAvgScore(avg.toFixed(1) + '/4')
     }
 
+    if (loadedStudents.length > 0) {
+      const ids = loadedStudents.map(s => s.id)
+      const { data: grpData } = await supabase.from('class_groups').select('id, name, color').eq('class_id', classId).eq('type', 'learning')
+      const { data: mbrData } = await supabase.from('class_group_members').select('student_id, group_id').in('group_id', (grpData ?? []).map(g => g.id))
+      const sGroups: Record<string, { name: string; color: string }> = {}
+      for (const m of mbrData ?? []) {
+        const grp = (grpData ?? []).find(g => g.id === m.group_id)
+        if (grp) sGroups[m.student_id] = { name: grp.name, color: grp.color }
+      }
+      setStudentGroups(sGroups)
+    }
     setLoading(false)
   }
 
@@ -394,6 +406,11 @@ function ClassPageInner() {
                             <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{s.name}</p>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                               {s.admission_number && <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>{s.admission_number}</p>}
+                              {studentGroups[s.id] && (
+                                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: studentGroups[s.id].color + '22', color: studentGroups[s.id].color, border: '1px solid ' + studentGroups[s.id].color + '44' }}>
+                                  {studentGroups[s.id].name.split(' ')[0]}
+                                </span>
+                              )}
                               <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>
                                 {claimed ? 'Claimed ✓' : 'Unclaimed'}
                               </span>
