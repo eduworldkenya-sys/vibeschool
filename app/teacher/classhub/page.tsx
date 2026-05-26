@@ -503,7 +503,7 @@ export default function ClassHubPage() {
       }
     })
 
-    const todaySlots = allSlots.filter(s => s.day_of_week === dow)
+    const todaySlots = allSlots.filter(s => Number(s.day_of_week) === Number(dow))
 
     // Load class cards
     const classIds = Array.from(new Set(
@@ -753,7 +753,7 @@ export default function ClassHubPage() {
                 </div>
                 <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
                   {(() => {
-                    const tom = data.allSlots.filter(s => s.day_of_week === (new Date().getDay() % 7) + 1)
+                    const tom = data.allSlots.filter(s => Number(s.day_of_week) === (new Date().getDay() % 7) + 1)
                     return tom.length > 0 ? `Tomorrow · ${tom.length} lesson${tom.length !== 1 ? 's' : ''} · starts ${fmt12(tom.reduce((a,b) => toMin(a.start) < toMin(b.start) ? a : b).start)}` : 'No lessons tomorrow'
                   })()}
                 </div>
