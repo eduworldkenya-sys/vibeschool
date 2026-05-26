@@ -171,6 +171,7 @@ function ResultsInner() {
   const [newExamYear,    setNewExamYear]    = useState(new Date().getFullYear())
   const [newExamPass,    setNewExamPass]    = useState(50)
   const [creatingExam,   setCreatingExam]   = useState(false)
+  const [editingExam,    setEditingExam]    = useState(false)
   const [examError,      setExamError]      = useState<string | null>(null)
 
   // ── Students ──
@@ -378,6 +379,23 @@ function ResultsInner() {
     if (!teacherId)          { setExamError('Not signed in');  return }
     setCreatingExam(true); setExamError(null)
 
+    // ── Edit mode ──
+    if (editingExam && activeExam) {
+      const { data, error: uErr } = await supabase
+        .from('exams')
+        .update({ name: newExamName.trim(), exam_type: newExamType, term: newExamTerm, academic_year: newExamYear, pass_mark: newExamPass })
+        .eq('id', activeExam.id)
+        .select('*').single()
+      if (uErr || !data) { setExamError('Could not update exam. Please try again.'); setCreatingExam(false); return }
+      const updated = data as Exam
+      setExams(prev => prev.map(e => e.id === updated.id ? updated : e))
+      setActiveExam(updated)
+      setShowExamSheet(false)
+      setNewExamName(''); setCreatingExam(false); setEditingExam(false)
+      return
+    }
+
+    // ── Create mode ──
     const payload: Record<string, unknown> = {
       name:          newExamName.trim(),
       exam_type:     newExamType,
@@ -397,7 +415,7 @@ function ResultsInner() {
     setExams(prev => [created, ...prev])
     setActiveExam(created)
     setShowExamSheet(false)
-    setNewExamName(''); setCreatingExam(false)
+    setNewExamName(''); setCreatingExam(false); setEditingExam(false)
   }
 
   // ── Add manual student ────────────────────────────────────────────────────
@@ -583,6 +601,33 @@ function ResultsInner() {
           <span style={{ fontSize: 12, color: '#78716c' }}>📝 {activeExam.exam_type.charAt(0).toUpperCase() + activeExam.exam_type.slice(1)}</span>
           <span style={{ fontSize: 12, color: '#78716c' }}>✅ Pass: {activeExam.pass_mark}</span>
           {activeExam.is_locked && <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>🔒 Locked</span>}
+          {/* Edit + Lock buttons */}
+          {!activeExam.is_locked && (
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <button
+                onClick={() => {
+                  setNewExamName(activeExam.name)
+                  setNewExamType(activeExam.exam_type)
+                  setNewExamTerm(activeExam.term)
+                  setNewExamYear(activeExam.academic_year)
+                  setNewExamPass(activeExam.pass_mark)
+                  setEditingExam(true)
+                  setShowExamSheet(true)
+                  setExamError(null)
+                }}
+                style={{ padding: '4px 10px', borderRadius: 12, border: '1px solid #EDE0CE', background: '#FFF8EF', fontSize: 11, fontWeight: 700, color: '#78716c', cursor: 'pointer' }}
+              >✏️ Edit</button>
+              <button
+                onClick={async () => {
+                  if (!activeExam) return
+                  await supabase.from('exams').update({ is_locked: true }).eq('id', activeExam.id)
+                  setExams(prev => prev.map(e => e.id === activeExam.id ? { ...e, is_locked: true } : e))
+                  setActiveExam(prev => prev ? { ...prev, is_locked: true } : prev)
+                }}
+                style={{ padding: '4px 10px', borderRadius: 12, border: '1px solid #EDE0CE', background: '#FFF8EF', fontSize: 11, fontWeight: 700, color: '#991b1b', cursor: 'pointer' }}
+              >🔒 Lock</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -605,7 +650,7 @@ function ResultsInner() {
               : ''
             : ''
           return (
-            <div style={{ margin: '10px 16px 0', padding: '12px 16px', borderRadius: 14, background: done ? '#f0fdf4' : '#f8fafc', border: `1.5px solid ${done ? '#86efac' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.4s ease' }}>
+            <div style={{ margin: '10px 16px 0', padding: '12px 16px', borderRadius: 14, background: done ? '#f0fdf4' : '#FFF8EF', border: `1.5px solid ${done ? '#86efac' : '#EDE0CE'}`, display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.4s ease' }}>
               {/* SVG Ring */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <svg width={72} height={72} style={{ transform: 'rotate(-90deg)' }}>
@@ -700,7 +745,7 @@ function ResultsInner() {
                     <div key={student.id} style={{
                       display: 'flex', alignItems: 'center', gap: 12,
                       padding: '12px 14px', borderRadius: 14, background: '#FFFBF5',
-                      border: `1.5px solid ${isAbsent ? '#fca5a5' : result ? '#d1fae5' : '#f0f0f0'}`,
+                      border: `1.5px solid ${isAbsent ? '#fca5a5' : result ? '#C8A84B44' : '#EDE0CE'}`,
                       opacity: locked ? 0.75 : 1,
                     }}>
 
@@ -951,10 +996,10 @@ function ResultsInner() {
           CREATE EXAM SHEET
       ════════════════════════════════════ */}
       {showExamSheet && (
-        <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) setShowExamSheet(false) }}>
+        <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) { setShowExamSheet(false); setEditingExam(false) } }}>
           <div style={sheetStyle}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
-            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#1c1917' }}>📋 New Exam</p>
+            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#1c1917' }}>{editingExam ? '✏️ Edit Exam' : '📋 New Exam'}</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -998,7 +1043,7 @@ function ResultsInner() {
               {examError && <p style={{ color: '#991b1b', fontSize: 12, margin: 0 }}>⚠️ {examError}</p>}
 
               <button onClick={createExam} disabled={creatingExam} style={{ ...btnPrimary, background: creatingExam ? '#d1d5db' : '#10b981' }}>
-                {creatingExam ? 'Creating…' : 'Create Exam'}
+                {creatingExam ? (editingExam ? 'Saving…' : 'Creating…') : (editingExam ? 'Save Changes' : 'Create Exam')}
               </button>
             </div>
           </div>
