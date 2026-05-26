@@ -279,3 +279,26 @@
     transform: translateY(0);
   }
 }
+/* ─── Global card — disabled state ───────────────────────────── */
+.cardDisabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── Coming soon badge ───────────────────────────────────────── */
+.comingSoon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: monospace;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.38em;
+  color: rgba(196, 149, 48, 0.55);
+  border: 1px solid rgba(196, 149, 48, 0.22);
+  border-radius: 3px;
+  padding: 3px 6px;
+  text-transform: uppercase;
+}

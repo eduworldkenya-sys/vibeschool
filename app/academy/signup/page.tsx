@@ -16,11 +16,6 @@ const COUNTRIES = [
   { code: 'KR', name: 'South Korea' },
 ]
 
-const MIN_DOB = new Date()
-MIN_DOB.setFullYear(MIN_DOB.getFullYear() - 120)
-const MAX_DOB = new Date()
-MAX_DOB.setFullYear(MAX_DOB.getFullYear() - 5)
-
 const ROLE_CONTENT: Record<Role, { descriptor: string }> = {
   teacher: { descriptor: 'Manage classes, lessons and student engagement.' },
   parent:  { descriptor: "Track your child's progress and communications." },
@@ -47,7 +42,6 @@ function AcademySignUpInner() {
   const navTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [fullName,        setFullName]        = useState('')
-  const [dob,             setDob]             = useState('')
   const [country,         setCountry]         = useState('')
   const [email,           setEmail]           = useState('')
   const [password,        setPassword]        = useState('')
@@ -57,6 +51,7 @@ function AcademySignUpInner() {
   const [claimCode,       setClaimCode]       = useState('')
   const [error,           setError]           = useState('')
   const [loading,         setLoading]         = useState(false)
+  const [googleLoading,   setGoogleLoading]   = useState(false)
 
   useEffect(() => {
     return () => { if (navTimer.current) clearTimeout(navTimer.current) }
@@ -69,21 +64,28 @@ function AcademySignUpInner() {
     navTimer.current = setTimeout(() => router.push(destination), 280)
   }
 
+  async function handleGoogle() {
+    setError('')
+    setGoogleLoading(true)
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/academy/complete-profile`,
+      },
+    })
+    if (oauthError) {
+      setGoogleLoading(false)
+      setError(oauthError.message || 'Google sign in failed.')
+    }
+  }
+
   async function handleSubmit() {
     setError('')
 
-    if (!fullName.trim())    { setError('Full name is required.'); return }
-    if (!dob)                { setError('Date of birth is required.'); return }
-
-    const dobDate = new Date(dob)
-    if (isNaN(dobDate.getTime()) || dobDate < MIN_DOB || dobDate > MAX_DOB) {
-      setError('Please enter a valid date of birth.')
-      return
-    }
-
-    if (!country)            { setError('Country is required.'); return }
-    if (!email.trim())       { setError('Email is required.'); return }
-    if (!password)           { setError('Password is required.'); return }
+    if (!fullName.trim())  { setError('Full name is required.'); return }
+    if (!country)          { setError('Country is required.'); return }
+    if (!email.trim())     { setError('Email is required.'); return }
+    if (!password)         { setError('Password is required.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return }
 
@@ -93,7 +95,6 @@ function AcademySignUpInner() {
 
     setLoading(true)
 
-    // 1. Create auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -107,15 +108,13 @@ function AcademySignUpInner() {
 
     const userId = authData.user.id
 
-    // 2. Insert profile
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
-        id:            userId,
-        full_name:     fullName.trim(),
-        date_of_birth: dob,
-        country_code:  country,
-        role:          role,
+        id:           userId,
+        full_name:    fullName.trim(),
+        country_code: country,
+        role:         role,
       })
 
     if (profileError) {
@@ -125,7 +124,6 @@ function AcademySignUpInner() {
       return
     }
 
-    // 3. Student claim flow
     if (role === 'student') {
       const code = claimCode.trim().toUpperCase()
 
@@ -219,6 +217,35 @@ function AcademySignUpInner() {
     color: '#C8A84B', fontSize: 14, padding: 4, lineHeight: 1,
   }
 
+  const dividerStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0',
+  }
+  const dividerLine: React.CSSProperties = {
+    flex: 1, height: 1, background: 'rgba(196,149,48,0.15)',
+  }
+  const dividerText: React.CSSProperties = {
+    fontFamily: 'monospace', fontSize: 9,
+    color: 'rgba(255,255,255,0.22)', letterSpacing: '0.22em', textTransform: 'uppercase',
+  }
+  const googleBtn: React.CSSProperties = {
+    width: '100%', background: '#0A0A1E',
+    border: '1px solid rgba(196,149,48,0.28)', borderRadius: 6,
+    padding: '12px 0', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', gap: 10,
+    cursor: googleLoading ? 'not-allowed' : 'pointer',
+    opacity: googleLoading ? 0.5 : 1,
+    transition: 'border-color 180ms ease-out',
+  }
+  const googleLabel: React.CSSProperties = {
+    fontFamily: 'monospace', fontSize: 11,
+    color: 'rgba(255,255,255,0.72)', letterSpacing: '0.12em', textTransform: 'uppercase',
+  }
+  const legalStyle: React.CSSProperties = {
+    marginTop: 32, fontFamily: 'monospace', fontSize: 9,
+    color: 'rgba(255,255,255,0.22)', letterSpacing: '0.04em',
+    textAlign: 'center', lineHeight: 1.8,
+  }
+
   return (
     <>
       <svg aria-hidden focusable="false" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
@@ -243,18 +270,42 @@ function AcademySignUpInner() {
 
           <div className={styles.form}>
 
+            <div style={dividerStyle} aria-hidden>
+              <div style={dividerLine} />
+              <span style={dividerText}>quick start</span>
+              <div style={dividerLine} />
+            </div>
+
+            <button
+              type="button"
+              style={googleBtn}
+              onClick={handleGoogle}
+              disabled={googleLoading}
+              aria-label="Continue with Google"
+              onMouseEnter={e => { if (!googleLoading) (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(196,149,48,0.62)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(196,149,48,0.28)' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              <span style={googleLabel}>
+                {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+              </span>
+            </button>
+
+            <div style={dividerStyle} aria-hidden>
+              <div style={dividerLine} />
+              <span style={dividerText}>or create manually</span>
+              <div style={dividerLine} />
+            </div>
+
             <div className={styles.field}>
               <label className={styles.label} htmlFor="fullName">FULL NAME</label>
               <input id="fullName" className={styles.input} type="text" autoComplete="name"
                 value={fullName} onChange={e => setFullName(e.target.value)} disabled={loading} />
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="dob">DATE OF BIRTH</label>
-              <input id="dob" className={styles.input} type="date"
-                min={MIN_DOB.toISOString().split('T')[0]}
-                max={MAX_DOB.toISOString().split('T')[0]}
-                value={dob} onChange={e => setDob(e.target.value)} disabled={loading} />
             </div>
 
             <div className={styles.field}>
@@ -330,6 +381,13 @@ function AcademySignUpInner() {
               onKeyDown={e => { if (e.key === 'Enter') fadeOut(`/academy/signin?role=${role}`) }}>
               Sign in
             </span>
+          </p>
+
+          <p style={legalStyle}>
+            By continuing you agree to our{' '}
+            <a href="#" style={{ color: 'rgba(200,168,75,0.45)', textDecoration: 'none' }}>Terms &amp; Conditions</a>
+            {' '}and{' '}
+            <a href="#" style={{ color: 'rgba(200,168,75,0.45)', textDecoration: 'none' }}>Privacy Policy</a>
           </p>
 
         </div>

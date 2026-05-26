@@ -10,7 +10,7 @@ export default function Home() {
     if (!contentRef.current) return
     contentRef.current.style.transition = 'opacity 280ms ease-in'
     contentRef.current.style.opacity = '0'
-    setTimeout(() => router.push('/select'), 280)
+    setTimeout(() => router.push('/academy/select-role'), 280)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -185,10 +185,31 @@ export default function Home() {
           will-change: transform;
           cursor: pointer;
           user-select: none;
+          margin-bottom: 32px;
         }
         @keyframes arrowBounce {
           0%, 100% { transform: translateY(0); }
           50%      { transform: translateY(5px); }
+        }
+        .splash-legal {
+          position: fixed;
+          bottom: 24px;
+          left: 0;
+          width: 100%;
+          text-align: center;
+          z-index: 6;
+          font-family: monospace;
+          font-size: 9px;
+          color: rgba(255, 255, 255, 0.22);
+          letter-spacing: 0.04em;
+        }
+        .splash-legal a {
+          color: rgba(200, 168, 75, 0.45);
+          text-decoration: none;
+          transition: color 180ms ease-out;
+        }
+        .splash-legal a:hover {
+          color: rgba(200, 168, 75, 0.82);
         }
       `}</style>
 
@@ -228,7 +249,7 @@ export default function Home() {
           </svg>
 
           <p className="splash-wordmark">VIBESCHOOL</p>
-          <p className="splash-academy">ACADEMY · GLOBAL</p>
+          <p className="splash-academy">ACADEMY</p>
           <p className="splash-covenant">Built around the teacher.</p>
 
           <span
@@ -238,10 +259,17 @@ export default function Home() {
             onClick={handleEnter}
             onKeyDown={handleKeyDown}
           >
-            ENTER
+            Learn. Explore. Discover.
           </span>
           <span className="splash-arrow" aria-hidden onClick={handleEnter}>↓</span>
         </main>
+
+        <p className="splash-legal">
+          By continuing you agree to our{' '}
+          <a href="#" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a>
+          {' '}and{' '}
+          <a href="#" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+        </p>
       </div>
     </>
   )

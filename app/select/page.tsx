@@ -78,18 +78,19 @@ export default function Select() {
               <span className={styles.chevronAcademy} aria-hidden>›</span>
             </div>
 
-            <div className={`${styles.card} ${styles.cardGlobal}`}
-              role="button" tabIndex={0}
-              aria-label="Enter Global — for international networks and independent learners"
-              onClick={() => fadeOut('/global/signin')}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fadeOut('/global/signin') } }}>
+            <div
+              className={`${styles.card} ${styles.cardGlobal} ${styles.cardDisabled}`}
+              aria-disabled="true"
+              aria-label="Global — coming soon"
+              tabIndex={-1}
+            >
               <div className={styles.cardGlowGlobal} aria-hidden />
               <div className={styles.cardBody}>
                 <p className={styles.cardTitle}>GLOBAL</p>
                 <p className={styles.cardDescriptor}>For international networks and independent learners.</p>
               </div>
               <div className={styles.cardRuleGlobal} />
-              <span className={styles.chevronGlobal} aria-hidden>›</span>
+              <span className={styles.comingSoon}>COMING SOON</span>
             </div>
 
           </div>
