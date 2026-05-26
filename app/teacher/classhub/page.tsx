@@ -796,7 +796,7 @@ export default function ClassHubPage() {
           const attCount    = data.todaySlots.filter(s => s.attendanceMarked).length
           const savedToday  = (attCount * 15) + (markedCount * 5)
           const weekMins    = data.allSlots.length > 0
-            ? (data.allSlots.filter(s => s.attendanceMarked).length * 15) + (data.classes.reduce((a,c) => a + (c.hwDue > 0 ? 20 : 0), 0))
+            ? (data.allSlots.filter(s => s.attendanceMarked).length * 15) + (data.classes.reduce((a,c) => a + (c.homeworkPending > 0 ? 20 : 0), 0))
             : 0
           const todayH      = Math.floor(savedToday / 60)
           const todayM      = savedToday % 60
@@ -998,7 +998,7 @@ export default function ClassHubPage() {
           const attCount    = data.todaySlots.filter(s => s.attendanceMarked).length
           const savedToday  = (attCount * 15) + (markedCount * 5)
           const weekMins    = data.allSlots.length > 0
-            ? (data.allSlots.filter(s => s.attendanceMarked).length * 15) + (data.classes.reduce((a,c) => a + (c.hwDue > 0 ? 20 : 0), 0))
+            ? (data.allSlots.filter(s => s.attendanceMarked).length * 15) + (data.classes.reduce((a,c) => a + (c.homeworkPending > 0 ? 20 : 0), 0))
             : 0
           const todayH      = Math.floor(savedToday / 60)
           const todayM      = savedToday % 60
