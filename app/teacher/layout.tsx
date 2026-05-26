@@ -14,10 +14,10 @@ const UserContext = createContext<UserCtx>({ fullName: '', initials: '', school:
 export const useUser = () => useContext(UserContext);
 
 const NAV_TABS = [
-  { id: "classhub",   label: "ClassHub", icon: "🏫", href: "/teacher/classhub"   },
-  { id: "vibelearn",  label: "Learn",    icon: "🎓", href: "/teacher/vibelearn"  },
-  { id: "lessonplan", label: "Studio",   icon: "🎨", href: "/teacher/lessonplan" },
-  { id: "assessment", label: "Assess",   icon: "📊", href: "/teacher/assessment" },
+  { id: "classhub",   label: "ClassHub", icon: "nav_classhub",   href: "/teacher/classhub"   },
+  { id: "vibelearn",  label: "Learn",    icon: "nav_learn",      href: "/teacher/vibelearn"  },
+  { id: "lessonplan", label: "Studio",   icon: "nav_studio",     href: "/teacher/lessonplan" },
+  { id: "assessment", label: "Assess",   icon: "nav_assess",     href: "/teacher/assessment" },
 ];
 
 const SVG: Record<string, React.ReactNode> = {
@@ -33,6 +33,45 @@ const SVG: Record<string, React.ReactNode> = {
   results:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
   strands:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>,
   exam:       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>,
+
+  nav_classhub: (
+    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
+      <rect x="6" y="20" width="36" height="24" rx="3" fill="#f97316"/>
+      <rect x="14" y="28" width="8" height="10" rx="1.5" fill="#fff7ed"/>
+      <rect x="26" y="28" width="8" height="10" rx="1.5" fill="#fff7ed"/>
+      <polygon points="4,22 24,6 44,22" fill="#1e1b4b"/>
+      <rect x="20" y="6" width="8" height="8" rx="1" fill="#f97316"/>
+      <circle cx="36" cy="14" r="3" fill="#fbbf24"/>
+      <line x1="36" y1="11" x2="36" y2="6" stroke="#fbbf24" strokeWidth="1.5"/>
+    </svg>
+  ),
+  nav_learn: (
+    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
+      <ellipse cx="24" cy="38" rx="14" ry="4" fill="#1e1b4b"/>
+      <path d="M10 26 L24 20 L38 26 L24 32 Z" fill="#1e1b4b"/>
+      <path d="M38 26 L38 34" stroke="#1e1b4b" strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="38" cy="36" r="3" fill="#1e1b4b"/>
+      <path d="M14 28.5 L14 36 Q24 40 34 36 L34 28.5" fill="#4ade80" opacity="0.85"/>
+    </svg>
+  ),
+  nav_studio: (
+    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="26" r="14" fill="#f97316"/>
+      <circle cx="19" cy="21" r="4" fill="#fff"/>
+      <circle cx="29" cy="21" r="4" fill="#ef4444"/>
+      <circle cx="19" cy="31" r="4" fill="#fbbf24"/>
+      <circle cx="29" cy="31" r="4" fill="#22c55e"/>
+      <circle cx="24" cy="26" r="3" fill="#1e1b4b"/>
+      <path d="M24 12 Q28 8 32 10 Q30 14 26 13 Z" fill="#1e1b4b"/>
+    </svg>
+  ),
+  nav_assess: (
+    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
+      <rect x="8" y="28" width="8" height="14" rx="2" fill="#1e1b4b"/>
+      <rect x="20" y="18" width="8" height="24" rx="2" fill="#f97316"/>
+      <rect x="32" y="10" width="8" height="32" rx="2" fill="#22c55e"/>
+    </svg>
+  ),
 };
 
 const NAV_SHEETS: Record<string, { icon: string; label: string; href: string; desc: string }[]> = {
@@ -339,7 +378,7 @@ function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnec
               style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, border:"none", background:"none", cursor:"pointer", padding:"8px 0", color: isActive || isOpen ? C.accent : C.textMuted, transition:"color 0.15s", position:"relative" }}
             >
               {badge > 0 && <span style={{ position:"absolute", top:6, right:"calc(50% - 14px)", width:16, height:16, borderRadius:"50%", background:C.error, color:"#fff", fontSize:9, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{badge}</span>}
-              <span style={{ fontSize:20, lineHeight:1, transition:"transform 0.15s ease", transform: isOpen ? "translateY(-2px)" : "translateY(0)" }}>{t.icon}</span>
+              <span style={{ lineHeight:1, transition:"transform 0.15s ease", transform: isOpen ? "translateY(-2px)" : "translateY(0)", display:"flex", alignItems:"center", justifyContent:"center" }}>{SVG[t.icon]}</span>
               <span style={{ fontSize:10, fontWeight: isActive || isOpen ? 800 : 600, letterSpacing:0.2 }}>{t.label}</span>
               {(isActive || isOpen) && <div style={{ position:"absolute", top:0, width:28, height:2.5, background:C.accent, borderRadius:"0 0 3px 3px" }} />}
             </button>
