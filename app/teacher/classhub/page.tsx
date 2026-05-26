@@ -706,19 +706,76 @@ export default function ClassHubPage() {
         </div>
       )}
 
-      {/* empty state for no lessons */}
+      {/* ── SMART TIMETABLE CARD ───────────────────────────────────────── */}
       {data.todaySlots.length === 0 && (
-        <div style={{ background:'#fff', borderRadius:20, border:'1px solid #f0ece6', padding:'24px 20px', marginBottom:14, textAlign:'center' }}>
-          <div style={{ fontSize:13, color:'#9ca3af', fontWeight:500, marginBottom:12 }}>No lessons scheduled today</div>
+        <div style={{ background:'linear-gradient(135deg,#059669 0%,#047857 100%)', borderRadius:20, padding:'20px 18px', marginBottom:14, position:'relative', overflow:'hidden' }}>
+          <div style={{ position:'absolute', top:-40, right:-30, width:160, height:160, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
+          <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.55)', letterSpacing:1.8, textTransform:'uppercase', marginBottom:4 }}>SmartTimetable</div>
+          <div style={{ fontSize:20, fontWeight:800, color:'#fff', marginBottom:2 }}>No lessons today</div>
+          <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', marginBottom:16 }}>
+            {data.allSlots.length > 0
+              ? `${data.allSlots.length} lesson${data.allSlots.length !== 1 ? 's' : ''} set up this week`
+              : 'Set up your weekly timetable'}
+          </div>
           <button
             className="tap-shrink"
             onClick={() => router.push('/teacher/timetable')}
-            style={{ padding:'10px 20px', borderRadius:12, border:'none', background:'#1e1b4b', color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
+            style={{ padding:'9px 18px', borderRadius:10, border:'none', background:'rgba(255,255,255,0.18)', color:'#fff', fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit', backdropFilter:'blur(4px)' }}
           >
-            Set up timetable
+            + Manage Timetable
           </button>
         </div>
       )}
+      {/* live timetable strip — shown when lessons exist */}
+      {data.todaySlots.length > 0 && (() => {
+        const cur2        = nowMin()
+        const live        = data.todaySlots.find(s => toMin(s.start) <= cur2 && toMin(s.end) > cur2)
+        const upcoming    = data.todaySlots.find(s => toMin(s.start) > cur2)
+        const show        = live ?? upcoming
+        if (!show) return null
+        const isLive2     = live != null
+        return (
+          <div style={{ background:'linear-gradient(135deg,#059669 0%,#047857 100%)', borderRadius:20, padding:'18px 18px', marginBottom:14, position:'relative', overflow:'hidden' }}>
+            <div style={{ position:'absolute', top:-40, right:-30, width:160, height:160, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+              <div>
+                <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.55)', letterSpacing:1.8, textTransform:'uppercase', marginBottom:2 }}>SmartTimetable</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>
+                  {data.todaySlots.length} lesson{data.todaySlots.length !== 1 ? 's' : ''} · {data.classes.length} class{data.classes.length !== 1 ? 'es' : ''} today
+                </div>
+              </div>
+              <button
+                className="tap-shrink"
+                onClick={() => router.push('/teacher/timetable')}
+                style={{ padding:'7px 14px', borderRadius:10, border:'1px solid rgba(255,255,255,0.3)', background:'transparent', color:'#fff', fontWeight:700, fontSize:11, cursor:'pointer', fontFamily:'inherit' }}
+              >
+                + Add Slot
+              </button>
+            </div>
+            <div
+              className="tap-shrink"
+              onClick={() => router.push('/teacher/attendance?classId=' + show.classId)}
+              style={{ background:'rgba(255,255,255,0.15)', borderRadius:14, padding:'12px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', backdropFilter:'blur(4px)' }}
+            >
+              <div>
+                <div style={{ fontSize:9, fontWeight:800, color: isLive2 ? '#6ee7b7' : 'rgba(255,255,255,0.5)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:3 }}>
+                  {isLive2 ? 'NOW' : 'NEXT'}
+                </div>
+                <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>{show.subject} · {show.class}</div>
+                {show.room && <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)', marginTop:1 }}>{show.room}</div>}
+              </div>
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.75)' }}>
+                  {isLive2 ? `ends ${fmt12(show.end)}` : fmt12(show.start)}
+                </div>
+                {!show.attendanceMarked && (
+                  <div style={{ fontSize:10, color:'#fcd34d', fontWeight:600, marginTop:3 }}>Att pending</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── MY CLASSES ────────────────────────────────────────────────────── */}
       {data.classes.length > 0 && (
