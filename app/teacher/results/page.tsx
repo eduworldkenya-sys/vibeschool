@@ -160,6 +160,7 @@ function ResultsInner() {
   const [results,    setResults]    = useState<Result[]>([])
   const [draftMarks, setDraftMarks] = useState<Record<string, string>>({})
   const [savingId,   setSavingId]   = useState<string | null>(null)
+  const [savedId,    setSavedId]    = useState<string | null>(null)
   const [activeTab,  setActiveTab]  = useState<'entry' | 'analysis'>('entry')
 
   // ── Loading ──
@@ -353,7 +354,7 @@ function ResultsInner() {
       .from('exams').insert(payload)
       .select('*').single()
 
-    if (cErr || !data) { setExamError(cErr?.message ?? 'Failed'); setCreatingExam(false); return }
+    if (cErr || !data) { setExamError('Could not create exam. Please try again.'); setCreatingExam(false); return }
     const created = data as Exam
     setExams(prev => [created, ...prev])
     setActiveExam(created)
@@ -425,6 +426,8 @@ function ResultsInner() {
     }
 
     setSavingId(null)
+    setSavedId(student.id)
+    setTimeout(() => setSavedId(null), 2000)
   }
 
   // ── Analysis helpers ──────────────────────────────────────────────────────
@@ -676,7 +679,7 @@ function ResultsInner() {
                             }}
                             title="Mark absent"
                           >
-                            {isSaving ? '…' : isAbsent ? 'ABS' : '○'}
+                            {isSaving ? '…' : savedId === student.id ? '✓' : isAbsent ? 'ABS' : '○'}
                           </button>
                         </div>
                       )}
