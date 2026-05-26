@@ -16,9 +16,30 @@ export const useUser = () => useContext(UserContext);
 const NAV_TABS = [
   { id: "classhub",   label: "ClassHub", icon: "🏫", href: "/teacher/classhub"   },
   { id: "vibelearn",  label: "Learn",    icon: "🎓", href: "/teacher/vibelearn"  },
-  { id: "lessonplan", label: "Plans",    icon: "📖", href: "/teacher/lessonplan" },
+  { id: "lessonplan", label: "Studio",   icon: "🎨", href: "/teacher/lessonplan" },
   { id: "assessment", label: "Assess",   icon: "📊", href: "/teacher/assessment" },
 ];
+
+const NAV_SHEETS: Record<string, { icon: string; label: string; href: string; desc: string }[]> = {
+  classhub: [
+    { icon: "✅", label: "Mark Attendance",  href: "/teacher/attendance",          desc: "Today's register" },
+    { icon: "📝", label: "Set Homework",     href: "/teacher/classhub",            desc: "Assign to a class" },
+    { icon: "👥", label: "My Classes",       href: "/teacher/classhub",            desc: "All classes overview" },
+    { icon: "🔗", label: "Invite Students",  href: "/teacher/classhub",            desc: "Share join codes" },
+  ],
+  lessonplan: [
+    { icon: "⚡", label: "New Lesson Plan",  href: "/teacher/lessonplan",          desc: "AI-powered generator" },
+    { icon: "📅", label: "Scheme of Work",   href: "/teacher/lessonplan",          desc: "Term planner" },
+    { icon: "📒", label: "My Notes",         href: "/teacher/lessonplan",          desc: "Teaching notes" },
+    { icon: "📦", label: "Resources",        href: "/teacher/resources",           desc: "Files & materials" },
+  ],
+  assessment: [
+    { icon: "🎯", label: "Record Assessment",href: "/teacher/assessment",          desc: "CBC performance entry" },
+    { icon: "📈", label: "Class Performance",href: "/teacher/assessment",          desc: "Trends & averages" },
+    { icon: "🧩", label: "CBC Strands",      href: "/teacher/assessment",          desc: "Strand progress" },
+    { icon: "📋", label: "Exam Results",     href: "/teacher/assessment",          desc: "Test scores" },
+  ],
+};
 
 function tabIdFromPath(path: string): string {
   if (path === "/teacher" || path === "/teacher/") return "home";
@@ -213,22 +234,104 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
 }
 
 function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnect: number }) {
-  const router = useRouter();
+  const router   = useRouter();
+  const [sheet, setSheet] = useState<string | null>(null);
+
+  function handleTab(t: typeof NAV_TABS[0]) {
+    if (t.id === "vibelearn") { router.push(t.href); setSheet(null); return; }
+    if (NAV_SHEETS[t.id]) {
+      if (sheet === t.id) { router.push(t.href); setSheet(null); }
+      else { setSheet(t.id); }
+    } else {
+      router.push(t.href); setSheet(null);
+    }
+  }
+
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700, background: "#fff", borderTop: `1px solid ${C.border}`, display: "flex", height: 64, boxShadow: "0 -2px 12px rgba(0,0,0,0.06)" }}>
-      {NAV_TABS.map(t => {
-        const isActive = t.id === activeId;
-        const badge    = t.id === "vibeconnect" ? unreadConnect : 0;
-        return (
-          <button key={t.id} onClick={() => router.push(t.href)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? C.accent : C.textMuted, transition: "color 0.15s", position: "relative" }}>
-            {badge > 0 && <span style={{ position: "absolute", top: 6, right: "calc(50% - 14px)", width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{badge}</span>}
-            <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
-            <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600, letterSpacing: 0.2 }}>{t.label}</span>
-            {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 2.5, background: C.accent, borderRadius: "0 0 3px 3px" }} />}
-          </button>
-        );
-      })}
-    </div>
+    <>
+      {/* ── PEEK SHEET ── */}
+      {sheet && (
+        <>
+          {/* backdrop */}
+          <div
+            onClick={() => setSheet(null)}
+            style={{ position:"fixed", inset:0, zIndex:698, background:"rgba(0,0,0,0.18)", backdropFilter:"blur(2px)", animation:"fadeIn 0.18s ease" }}
+          />
+          {/* sheet */}
+          <div style={{
+            position:"fixed", bottom:64, left:0, right:0, zIndex:699,
+            background:"#fff", borderRadius:"20px 20px 0 0",
+            boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",
+            padding:"8px 0 12px",
+            animation:"sheetUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
+          }}>
+            <style>{`
+              @keyframes sheetUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+              @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+            `}</style>
+            {/* handle */}
+            <div style={{ width:36, height:4, borderRadius:2, background:"#e5e7eb", margin:"4px auto 16px" }} />
+            {/* title */}
+            <div style={{ fontSize:11, fontWeight:800, color:"#9ca3af", letterSpacing:1.6, textTransform:"uppercase", paddingLeft:20, marginBottom:12 }}>
+              {NAV_TABS.find(t => t.id === sheet)?.label}
+            </div>
+            {/* actions grid */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, padding:"0 14px 8px" }}>
+              {(NAV_SHEETS[sheet] ?? []).map(a => (
+                <button
+                  key={a.label}
+                  onClick={() => { router.push(a.href); setSheet(null); }}
+                  style={{
+                    display:"flex", alignItems:"center", gap:12,
+                    padding:"14px 14px", borderRadius:16,
+                    border:"1px solid #f0ece6", background:"#fafaf9",
+                    cursor:"pointer", textAlign:"left", fontFamily:"inherit",
+                    transition:"transform 0.12s ease, background 0.12s ease",
+                  }}
+                  onPointerDown={e => (e.currentTarget.style.transform="scale(0.96)")}
+                  onPointerUp={e => (e.currentTarget.style.transform="scale(1)")}
+                  onPointerLeave={e => (e.currentTarget.style.transform="scale(1)")}
+                >
+                  <span style={{ fontSize:22, lineHeight:1, flexShrink:0 }}>{a.icon}</span>
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:700, color:"#111827", lineHeight:1.2 }}>{a.label}</div>
+                    <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>{a.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            {/* go to full page */}
+            <button
+              onClick={() => { const t = NAV_TABS.find(x => x.id === sheet); if(t) router.push(t.href); setSheet(null); }}
+              style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, width:"calc(100% - 28px)", margin:"4px 14px 0", padding:"12px", borderRadius:14, border:"none", background:"#1e1b4b", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}
+            >
+              Open {NAV_TABS.find(t => t.id === sheet)?.label} <span style={{ fontSize:16 }}>→</span>
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── TAB BAR ── */}
+      <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:700, background:"#fff", borderTop:`1px solid ${C.border}`, display:"flex", height:64, boxShadow:"0 -2px 12px rgba(0,0,0,0.06)" }}>
+        {NAV_TABS.map(t => {
+          const isActive  = t.id === activeId;
+          const isOpen    = sheet === t.id;
+          const badge     = t.id === "vibeconnect" ? unreadConnect : 0;
+          return (
+            <button
+              key={t.id}
+              onClick={() => handleTab(t)}
+              style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, border:"none", background:"none", cursor:"pointer", padding:"8px 0", color: isActive || isOpen ? C.accent : C.textMuted, transition:"color 0.15s", position:"relative" }}
+            >
+              {badge > 0 && <span style={{ position:"absolute", top:6, right:"calc(50% - 14px)", width:16, height:16, borderRadius:"50%", background:C.error, color:"#fff", fontSize:9, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{badge}</span>}
+              <span style={{ fontSize:20, lineHeight:1, transition:"transform 0.15s ease", transform: isOpen ? "translateY(-2px)" : "translateY(0)" }}>{t.icon}</span>
+              <span style={{ fontSize:10, fontWeight: isActive || isOpen ? 800 : 600, letterSpacing:0.2 }}>{t.label}</span>
+              {(isActive || isOpen) && <div style={{ position:"absolute", top:0, width:28, height:2.5, background:C.accent, borderRadius:"0 0 3px 3px" }} />}
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
