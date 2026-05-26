@@ -46,14 +46,29 @@ function LessonPlanInner() {
       if (!user) return
       const [slotsRes, plansRes] = await Promise.all([
         supabase.from('timetable_slots')
-          .select('id,start_time,end_time,room,class_id,subject_id,day_of_week,subjects(name),classes(name,stream)')
+          .select('id,start_time,end_time,room,class_id,subject_id,day_of_week')
           .eq('teacher_id', user.id).order('start_time', { ascending: true }),
         supabase.from('lesson_plans')
           .select('id,timetable_slot_id,class_id,subject_id,title,body,day_of_week,week_start,status')
           .eq('teacher_id', user.id).eq('week_start', weekStart),
       ])
-      console.log("SLOTS:", slotsRes.data, "ERR:", slotsRes.error)
-      console.log("PLANS:", plansRes.data, "ERR:", plansRes.error)
+
+      const slots = slotsRes.data ?? []
+      const subjectIds = Array.from(new Set(slots.map((s: any) => s.subject_id).filter(Boolean)))
+      const classIds   = Array.from(new Set(slots.map((s: any) => s.class_id).filter(Boolean)))
+
+      const [subjRes, clsRes] = await Promise.all([
+        subjectIds.length > 0
+          ? supabase.from('subjects').select('id,name').in('id', subjectIds)
+          : Promise.resolve({ data: [] }),
+        classIds.length > 0
+          ? supabase.from('classes').select('id,name,stream').in('id', classIds)
+          : Promise.resolve({ data: [] }),
+      ])
+
+      const subjMap = Object.fromEntries((subjRes.data ?? []).map((s: any) => [s.id, s.name]))
+      const clsMap  = Object.fromEntries((clsRes.data ?? []).map((c: any) => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]))
+
       const planMap = new Map<string, PlanRow>()
       ;(plansRes.data ?? []).forEach(p => {
         planMap.set(p.timetable_slot_id ?? `${p.class_id}:${p.day_of_week}`, {
@@ -62,12 +77,12 @@ function LessonPlanInner() {
           dayOfWeek: p.day_of_week, weekStart: p.week_start, status: p.status ?? 'draft',
         })
       })
-      const mapped: SlotWithPlan[] = (slotsRes.data ?? []).map(s => {
-        const sub = (s.subjects as any)?.name ?? 'Unknown'
-        const cls = s.classes as any
+
+      const mapped: SlotWithPlan[] = slots.map((s: any) => {
         const slot: TimetableSlot = {
-          id: s.id, subject: sub,
-          class: cls ? cls.name + (cls.stream ? ` ${cls.stream}` : '') : '',
+          id: s.id,
+          subject: subjMap[s.subject_id] ?? 'Unknown',
+          class:   clsMap[s.class_id]   ?? '',
           room: s.room ?? '', start: s.start_time, end: s.end_time,
           period: 0, status: 'scheduled', planStatus: 'green',
           attendanceMarked: false, class_id: s.class_id, subject_id: s.subject_id, day_of_week: s.day_of_week,
