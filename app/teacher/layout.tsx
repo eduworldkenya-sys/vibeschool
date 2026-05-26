@@ -14,11 +14,10 @@ const UserContext = createContext<UserCtx>({ fullName: '', initials: '', school:
 export const useUser = () => useContext(UserContext);
 
 const NAV_TABS = [
-  { id: "home",        label: "Home",        icon: "🏠", href: "/teacher"             },
-  { id: "classhub",    label: "ClassHub",    icon: "🏫", href: "/teacher/classhub"    },
-  { id: "vibeconnect", label: "VibeConnect", icon: "💬", href: "/teacher/vibeconnect" },
-  { id: "more",        label: "More",        icon: "⋯",  href: "/teacher/more"        },
-  { id: "profile",     label: "Profile",     icon: "👤", href: "/teacher/profile"     },
+  { id: "classhub",   label: "ClassHub", icon: "🏫", href: "/teacher/classhub"   },
+  { id: "vibelearn",  label: "Learn",    icon: "🎓", href: "/teacher/vibelearn"  },
+  { id: "lessonplan", label: "Plans",    icon: "📖", href: "/teacher/lessonplan" },
+  { id: "assessment", label: "Assess",   icon: "📊", href: "/teacher/assessment" },
 ];
 
 function tabIdFromPath(path: string): string {
