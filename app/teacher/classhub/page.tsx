@@ -641,19 +641,42 @@ export default function ClassHubPage() {
             const isEvening   = cur2 >= 20 * 60
             const noSlots     = data.todaySlots.length === 0
 
-            // FACE 7 — Rest day
-            if (noSlots) return (
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
-                  {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+            // FACE 7 — No slots today → show next or previous from week
+            if (noSlots) {
+              const todayDow  = new Date().getDay() === 0 ? 7 : new Date().getDay()
+              const nextSlotW = data.allSlots
+                .filter(s => Number(s.day_of_week) > todayDow || (Number(s.day_of_week) === todayDow && toMin(s.start) > cur2))
+                .sort((a,b) => Number(a.day_of_week) - Number(b.day_of_week) || toMin(a.start) - toMin(b.start))[0]
+              const prevSlotW = data.allSlots
+                .filter(s => Number(s.day_of_week) < todayDow || (Number(s.day_of_week) === todayDow && toMin(s.end) <= cur2))
+                .sort((a,b) => Number(b.day_of_week) - Number(a.day_of_week) || toMin(b.start) - toMin(a.start))[0]
+              const showW     = nextSlotW ?? prevSlotW
+              const DNAMES    = ['','Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+              return (
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                    {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                  </div>
+                  {showW ? (
+                    <>
+                      <div style={{ fontSize:11, fontWeight:700, color: nextSlotW ? '#fbbf24' : 'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>
+                        {nextSlotW ? `Next · ${DNAMES[Number(showW.day_of_week)]}` : `Last · ${DNAMES[Number(showW.day_of_week)]}`}
+                      </div>
+                      <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{showW.subject}</div>
+                      <div style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:4 }}>
+                        {showW.class} · {fmt12(showW.start)}{showW.room ? ` · ${showW.room}` : ''}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>Free day</div>
+                      <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{data.school}</div>
+                      <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>No lessons scheduled this week</div>
+                    </>
+                  )}
                 </div>
-                <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>No lessons today</div>
-                <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{data.school}</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
-                  {data.allSlots.length > 0 ? `${data.allSlots.length} lessons set this week` : 'Set up your timetable'}
-                </div>
-              </div>
-            )
+              )
+            }
 
             // FACE 6 — Evening reflection
             if (isEvening) return (
