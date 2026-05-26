@@ -25,12 +25,29 @@ interface Skill { id: string; name: string; category: string; level: string; not
 interface StudentGroup { type: string; name: string; color: string; bg: string }
 interface Badge { id: string; name: string; icon: string; category: string; level: string; description: string; earned_at: string }
 interface Subject { id: string; name: string }
+interface ExamResult {
+  id: string
+  exam_id: string
+  subject_id: string | null
+  marks: number
+  is_absent: boolean
+}
+interface ExamItem {
+  id: string
+  name: string
+  term: number
+  academic_year: number
+  exam_type: string
+  pass_mark: number
+}
+
 interface Resource { id: string; title: string; type: string; subject: string; external_url: string | null; content: string | null; created_at: string }
 
-type Tab = 'overview' | 'attendance' | 'assessments' | 'homework' | 'resources' | 'journey' | 'badges'
+type Tab = 'overview' | 'results' | 'attendance' | 'assessments' | 'homework' | 'resources' | 'journey' | 'badges'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'overview',    label: 'Overview',    icon: '👤' },
+  { id: 'results',     label: 'Results',     icon: '📊' },
   { id: 'attendance',  label: 'Attendance',  icon: '✅' },
   { id: 'assessments', label: 'Assessments', icon: '📊' },
   { id: 'homework',    label: 'Homework',    icon: '📝' },
@@ -536,6 +553,134 @@ function BadgesTab({ badges }: { badges: Badge[] }) {
   )
 }
 
+/* ── Results Tab ── */
+function ResultsTab({ examResults, exams, subjects }: { examResults: ExamResult[]; exams: ExamItem[]; subjects: Subject[] }) {
+  function getGrade(marks: number): string {
+    if (marks >= 80) return 'A'
+    if (marks >= 75) return 'A-'
+    if (marks >= 70) return 'B+'
+    if (marks >= 65) return 'B'
+    if (marks >= 60) return 'B-'
+    if (marks >= 55) return 'C+'
+    if (marks >= 50) return 'C'
+    if (marks >= 45) return 'C-'
+    if (marks >= 40) return 'D+'
+    if (marks >= 35) return 'D'
+    if (marks >= 30) return 'D-'
+    return 'E'
+  }
+  function gradeColor(g: string): { bg: string; color: string } {
+    if (g === 'A')                        return { bg: '#d1fae5', color: '#065f46' }
+    if (g === 'A-' || g === 'B+')        return { bg: '#dbeafe', color: '#1e40af' }
+    if (['B','B-','C+'].includes(g))     return { bg: '#fef3c7', color: '#92400e' }
+    if (['C','C-','D+'].includes(g))     return { bg: '#fed7aa', color: '#9a3412' }
+    return { bg: '#fee2e2', color: '#991b1b' }
+  }
+  function subjectName(id: string | null): string {
+    if (!id) return 'General'
+    return subjects.find(s => s.id === id)?.name ?? 'Unknown'
+  }
+
+  if (exams.length === 0 || examResults.length === 0) {
+    return (
+      <Card>
+        <EmptyState icon="📊" text="No exam results recorded yet" />
+      </Card>
+    )
+  }
+
+  // Overall trend — average per exam
+  const examAverages = exams.map(e => {
+    const ers = examResults.filter(r => r.exam_id === e.id && !r.is_absent)
+    if (ers.length === 0) return null
+    const avg = ers.reduce((a, r) => a + r.marks, 0) / ers.length
+    return { name: e.name, avg: Math.round(avg), pass_mark: e.pass_mark }
+  }).filter(Boolean) as { name: string; avg: number; pass_mark: number }[]
+
+  const trend = examAverages.length >= 2
+    ? examAverages[examAverages.length - 1].avg - examAverages[0].avg
+    : 0
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+      {/* ── Trend summary ── */}
+      <div style={{ background: 'linear-gradient(135deg, #1c1917, #292524)', borderRadius: 20, padding: 16 }}>
+        <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 800, color: '#C8A84B', letterSpacing: 2, textTransform: 'uppercase' }}>📈 Performance Trend</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {examAverages.map((e, i) => {
+            const pct = Math.min(100, Math.round((e.avg / 100) * 100))
+            const passed = e.avg >= e.pass_mark
+            return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: '100%', height: 60, background: 'rgba(255,255,255,0.08)', borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'flex-end' }}>
+                  <div style={{ width: '100%', height: pct + '%', background: passed ? '#C8A84B' : '#ef4444', borderRadius: 8, transition: 'height 0.6s ease' }} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>{e.avg}</span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 1.2 }}>{e.name.split(' ').slice(0,2).join(' ')}</span>
+              </div>
+            )
+          })}
+        </div>
+        {examAverages.length >= 2 && (
+          <p style={{ margin: '12px 0 0', fontSize: 12, fontWeight: 700, color: trend >= 0 ? '#10b981' : '#ef4444' }}>
+            {trend >= 0 ? `↑ Improved by ${trend} marks` : `↓ Dropped by ${Math.abs(trend)} marks`} since first exam
+          </p>
+        )}
+      </div>
+
+      {/* ── Per exam breakdown ── */}
+      {exams.map(exam => {
+        const ers = examResults.filter(r => r.exam_id === exam.id)
+        if (ers.length === 0) return null
+        const total = ers.filter(r => !r.is_absent).reduce((a, r) => a + r.marks, 0)
+        const avg   = ers.filter(r => !r.is_absent).length > 0
+          ? Math.round(total / ers.filter(r => !r.is_absent).length) : 0
+        const passed = avg >= exam.pass_mark
+        return (
+          <Card key={exam.id} style={{ padding: 16 }}>
+            {/* Exam header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{exam.name}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: C.textMuted }}>Term {exam.term} · {exam.academic_year} · {exam.exam_type}</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: passed ? '#065f46' : '#991b1b' }}>{avg}</p>
+                <span style={{ fontSize: 10, fontWeight: 700, color: passed ? '#065f46' : '#991b1b' }}>{passed ? '✓ Pass' : '✗ Fail'}</span>
+              </div>
+            </div>
+
+            {/* Subject rows */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {ers.map(r => {
+                const grade = r.is_absent ? null : getGrade(r.marks)
+                const gc    = grade ? gradeColor(grade) : null
+                return (
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 10, background: '#f9f7f4', border: '1px solid #EDE0CE' }}>
+                    <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 600 }}>{subjectName(r.subject_id)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: r.is_absent ? '#9ca3af' : C.textPrimary }}>
+                        {r.is_absent ? 'ABS' : r.marks}
+                      </span>
+                      {grade && gc && (
+                        <span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 800, background: gc.bg, color: gc.color }}>{grade}</span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Pass mark note */}
+            <p style={{ margin: '10px 0 0', fontSize: 11, color: C.textMuted }}>Pass mark: {exam.pass_mark}</p>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
 /* ── Main Page ── */
 function StudentProfileInner() {
   const router    = useRouter()
@@ -554,6 +699,8 @@ function StudentProfileInner() {
   const [goals,       setGoals]       = useState<Goal[]>([])
   const [skills,      setSkills]      = useState<Skill[]>([])
   const [badges,      setBadges]      = useState<Badge[]>([])
+  const [examResults, setExamResults] = useState<ExamResult[]>([])
+  const [exams,       setExams]       = useState<ExamItem[]>([])
   const [subjects,    setSubjects]    = useState<Subject[]>([])
   const [myGroups,    setMyGroups]    = useState<StudentGroup[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -582,6 +729,24 @@ function StudentProfileInner() {
     ])
 
     if (!stuRes.data) { router.push('/teacher/classhub/' + classId); return }
+
+    // Load exam results for this student
+    const { data: erData } = await supabase
+      .from('exam_results')
+      .select('id, exam_id, subject_id, marks, is_absent')
+      .eq('student_id', studentId)
+    const erRows = (erData ?? []) as ExamResult[]
+    setExamResults(erRows)
+
+    if (erRows.length > 0) {
+      const examIds = Array.from(new Set(erRows.map(r => r.exam_id)))
+      const { data: examData } = await supabase
+        .from('exams')
+        .select('id, name, term, academic_year, exam_type, pass_mark')
+        .in('id', examIds)
+        .order('created_at', { ascending: true })
+      setExams((examData ?? []) as ExamItem[])
+    }
     setStudent(stuRes.data)
     setClaimCode(codeRes.data ?? null)
     setAttendance(attRes.data ?? [])
@@ -713,6 +878,7 @@ function StudentProfileInner() {
       {/* TAB CONTENT */}
       <div style={{ padding: '16px', animation: 'slideDown 0.2s ease' }}>
         {activeTab === 'overview'    && <OverviewTab    student={student} classId={classId} claimCode={claimCode} onReload={loadAll} myGroups={myGroups} />}
+        {activeTab === 'results'     && <ResultsTab     examResults={examResults} exams={exams} subjects={subjects} />}
         {activeTab === 'attendance'  && <AttendanceTab  records={attendance} />}
         {activeTab === 'assessments' && <AssessmentsTab assessments={assessments} subjects={subjects} />}
         {activeTab === 'homework'    && <HomeworkTab    homework={homework} submissions={submissions} />}
