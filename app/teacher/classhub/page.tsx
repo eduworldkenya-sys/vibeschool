@@ -1036,7 +1036,7 @@ export default function ClassHubPage() {
           <div style={{ fontSize:13, color:'#9ca3af', fontWeight:500, marginBottom:12 }}>No classes assigned yet</div>
           <button
             className="tap-shrink"
-            onClick={() => router.push('/teacher/classhub/setup')}
+            onClick={() => router.push('/teacher/onboarding/class')}
             style={{ padding:'10px 20px', borderRadius:12, border:'none', background:'#1e1b4b', color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
           >
             Create a class
