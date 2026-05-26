@@ -22,6 +22,7 @@ interface Submission { homework_id: string; status: string; mark: number | null;
 interface Streak { type: string; current_count: number; longest_count: number; last_recorded: string }
 interface Goal { id: string; title: string; category: string; status: string; target_date: string | null; description: string | null }
 interface Skill { id: string; name: string; category: string; level: string; notes: string | null; endorsed_by: string | null }
+interface StudentGroup { type: string; name: string; color: string; bg: string }
 interface Badge { id: string; name: string; icon: string; category: string; level: string; description: string; earned_at: string }
 interface Subject { id: string; name: string }
 interface Resource { id: string; title: string; type: string; subject: string; external_url: string | null; content: string | null; created_at: string }
@@ -84,8 +85,8 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
 }
 
 /* ── Overview Tab ── */
-function OverviewTab({ student, classId, claimCode, onReload }: {
-  student: Student; classId: string; claimCode: ClaimCode | null; onReload: () => void
+function OverviewTab({ student, classId, claimCode, onReload, myGroups }: {
+  student: Student; classId: string; claimCode: ClaimCode | null; onReload: () => void; myGroups: StudentGroup[]
 }) {
   const [editing, setEditing] = useState(false)
   const [name,    setName]    = useState(student.name)
@@ -173,6 +174,22 @@ function OverviewTab({ student, classId, claimCode, onReload }: {
           </div>
         )}
       </Card>
+
+      </Card>
+
+      {myGroups.length > 0 && (
+        <Card>
+          <SectionHead title="Groups" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {myGroups.map(g => (
+              <div key={g.type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #f3f4f6" }}>
+                <span style={{ fontSize: 12, color: C.textMuted, textTransform: "capitalize" }}>{g.type} Group</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20, background: g.bg, color: g.color }}>{g.name}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {!student.profile_id && (
         <Card>
@@ -540,6 +557,7 @@ function StudentProfileInner() {
   const [skills,      setSkills]      = useState<Skill[]>([])
   const [badges,      setBadges]      = useState<Badge[]>([])
   const [subjects,    setSubjects]    = useState<Subject[]>([])
+  const [myGroups,    setMyGroups]    = useState<StudentGroup[]>([])
   const [loading,     setLoading]     = useState(true)
   const [activeTab,   setActiveTab]   = useState<Tab>('overview')
 
@@ -571,6 +589,12 @@ function StudentProfileInner() {
     setAttendance(attRes.data ?? [])
     setAssessments(asmRes.data ?? [])
     setSubjects(subjRes.data ?? [])
+
+    const { data: grpData } = await supabase.from('class_groups').select('id, name, color, type').eq('class_id', classId)
+    const { data: mbrData } = await supabase.from('class_group_members').select('group_id').eq('student_id', studentId)
+    const myGroupIds = new Set((mbrData ?? []).map(m => m.group_id))
+    const COLOR_BG: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2', '#1d4ed8': '#dbeafe', '#6d28d9': '#ede9fe', '#0f766e': '#ccfbf1', '#9d174d': '#fce7f3' }
+    setMyGroups((grpData ?? []).filter(g => myGroupIds.has(g.id)).map(g => ({ type: g.type, name: g.name, color: g.color, bg: COLOR_BG[g.color] ?? '#f3f4f6' })))
 
     const hw = hwRes.data ?? []
     setHomework(hw)
@@ -690,7 +714,7 @@ function StudentProfileInner() {
 
       {/* TAB CONTENT */}
       <div style={{ padding: '16px', animation: 'slideDown 0.2s ease' }}>
-        {activeTab === 'overview'    && <OverviewTab    student={student} classId={classId} claimCode={claimCode} onReload={loadAll} />}
+        {activeTab === 'overview'    && <OverviewTab    student={student} classId={classId} claimCode={claimCode} onReload={loadAll} myGroups={myGroups} />}
         {activeTab === 'attendance'  && <AttendanceTab  records={attendance} />}
         {activeTab === 'assessments' && <AssessmentsTab assessments={assessments} subjects={subjects} />}
         {activeTab === 'homework'    && <HomeworkTab    homework={homework} submissions={submissions} />}
