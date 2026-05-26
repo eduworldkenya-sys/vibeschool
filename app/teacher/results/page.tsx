@@ -791,21 +791,70 @@ function ResultsInner() {
             )
             : (
               <>
-                {/* Summary cards */}
+                {/* ── Podium Leaderboard ── */}
+                {(() => {
+                  const ranked = students
+                    .map(s => ({ s, r: results.find(x => x.student_id === s.id) }))
+                    .filter(x => x.r && !x.r.is_absent)
+                    .sort((a, b) => b.r!.marks - a.r!.marks)
+                    .slice(0, 3)
+                  if (ranked.length === 0) return null
+                  const medals = ['🥇','🥈','🥉']
+                  const heights = ['80px','64px','52px']
+                  const borders = ['#C8A84B','#9ca3af','#cd7f32']
+                  return (
+                    <div style={{ borderRadius: 16, background: '#0a0a0a', padding: '16px', marginBottom: 4 }}>
+                      <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 700, color: '#C8A84B', letterSpacing: 2, textTransform: 'uppercase' }}>🏆 Class Leaderboard</p>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
+                        {[1,0,2].map(i => {
+                          const item = ranked[i]
+                          if (!item) return <div key={i} style={{ flex: 1 }} />
+                          return (
+                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: i === 0 ? 28 : 22 }}>{medals[i]}</span>
+                              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>{item.s.name.split(' ')[0]}</p>
+                              <div style={{ width: '100%', background: borders[i], borderRadius: '8px 8px 0 0', height: heights[i], display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                                <span style={{ fontSize: 18, fontWeight: 800, color: '#0a0a0a' }}>{item.r!.marks}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#0a0a0a' }}>{getGrade(item.r!.marks)}</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* ── Stats row ── */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   {[
-                    { label: 'Average',  value: analysis.avg.toFixed(1),     icon: '📊', bg: '#dbeafe', color: '#1e40af' },
-                    { label: 'Highest',  value: String(analysis.highest),     icon: '🏆', bg: '#d1fae5', color: '#065f46' },
-                    { label: 'Lowest',   value: String(analysis.lowest),      icon: '📉', bg: '#fee2e2', color: '#991b1b' },
-                    { label: 'Absent',   value: String(analysis.absent),      icon: '🚫', bg: '#f3f4f6', color: '#6b7280' },
+                    { label: 'Average',  value: analysis.avg.toFixed(1), icon: '📊', bg: '#1e1e2e', color: '#C8A84B' },
+                    { label: 'Highest',  value: String(analysis.highest), icon: '🏆', bg: '#f0fdf4', color: '#065f46' },
+                    { label: 'Lowest',   value: String(analysis.lowest),  icon: '📉', bg: '#fff7f7', color: '#991b1b' },
+                    { label: 'Absent',   value: String(analysis.absent),  icon: '🚫', bg: '#f3f4f6', color: '#6b7280' },
                   ].map(c => (
-                    <div key={c.label} style={{ padding: '14px 12px', borderRadius: 14, background: c.bg }}>
+                    <div key={c.label} style={{ padding: '14px 12px', borderRadius: 14, background: c.bg, border: '1px solid rgba(0,0,0,0.06)' }}>
                       <p style={{ margin: 0, fontSize: 11, color: c.color, fontWeight: 600 }}>{c.icon} {c.label}</p>
-                      <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 800, color: c.color }}>{c.value}</p>
+                      <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: c.color }}>{c.value}</p>
                     </div>
                   ))}
                 </div>
 
+                {/* ── Smart Insight ── */}
+                {(() => {
+                  const pct = Math.round((analysis.passed / analysis.total) * 100)
+                  let msg = ''
+                  if (pct === 100) msg = '🌟 Outstanding! Every student passed.'
+                  else if (pct >= 75) msg = `💪 Strong class — ${pct}% passed. Focus on the ${analysis.failed} below pass mark.`
+                  else if (pct >= 50) msg = `⚠️ Half the class needs support — only ${pct}% passed.`
+                  else msg = `🚨 Urgent: ${analysis.failed} students failed. Consider a revision lesson.`
+                  return (
+                    <div style={{ padding: '14px', borderRadius: 14, background: '#fffbeb', border: '1.5px solid #C8A84B' }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#92400e' }}>💡 Teacher Insight</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 13, color: '#78350f', lineHeight: 1.5 }}>{msg}</p>
+                    </div>
+                  )
+                })()}
                 {/* Pass/fail bar */}
                 <div style={{ padding: '14px', borderRadius: 14, background: '#fff', border: '1px solid #f0f0f0' }}>
                   <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#374151' }}>
