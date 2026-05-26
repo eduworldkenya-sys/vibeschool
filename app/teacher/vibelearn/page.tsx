@@ -76,7 +76,7 @@ export default function VibeLearnPage() {
         .maybeSingle(),
     ]);
 
-    if (contentRes.data) setContent(contentRes.data as Content[]);
+    if (contentRes.data) setContent(contentRes.data as unknown as Content[]);
     if (statsRes.data)   setStats(statsRes.data as Stats);
     setLoading(false);
   }, []);
