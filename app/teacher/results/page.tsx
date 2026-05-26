@@ -158,6 +158,7 @@ function ResultsInner() {
 
   // ── Results ──
   const [results,    setResults]    = useState<Result[]>([])
+  const [prevResults, setPrevResults] = useState<Result[]>([])
   const [draftMarks, setDraftMarks] = useState<Record<string, string>>({})
   const [savingId,   setSavingId]   = useState<string | null>(null)
   const [savedId,    setSavedId]    = useState<string | null>(null)
@@ -330,6 +331,19 @@ function ResultsInner() {
       if (!r.is_absent) draft[r.student_id] = String(r.marks)
     }
     setDraftMarks(draft)
+
+    // Load previous exam results for comparison
+    const prevExam = exams[exams.findIndex(e => e.id === activeExam.id) + 1]
+    if (prevExam) {
+      const { data: prevData } = await supabase
+        .from('exam_results')
+        .select('id, student_id, marks, is_absent')
+        .eq('exam_id', prevExam.id)
+        .in('student_id', studentIds)
+      setPrevResults((prevData ?? []) as Result[])
+    } else {
+      setPrevResults([])
+    }
   }
 
   // ── Create exam ───────────────────────────────────────────────────────────
@@ -693,6 +707,17 @@ function ResultsInner() {
                             {marks >= passM ? '✓ Pass' : '✗ Below pass mark'}
                           </p>
                         )}
+                        {!isAbsent && !isNaN(marks) && (() => {
+                          const prev = prevResults.find(r => r.student_id === student.id)
+                          if (!prev || prev.is_absent) return null
+                          const diff = marks - prev.marks
+                          if (diff === 0) return null
+                          return (
+                            <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 700, color: diff > 0 ? '#065f46' : '#991b1b' }}>
+                              {diff > 0 ? `↑ +${diff}` : `↓ ${diff}`} from last exam
+                            </p>
+                          )
+                        })()}
                       </div>
 
                       {/* Mark input */}
