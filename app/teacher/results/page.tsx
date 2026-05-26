@@ -548,6 +548,57 @@ function ResultsInner() {
         </div>
       )}
 
+
+      {/* ── Completion Ring ── */}
+      {activeExam && students.length > 0 && (
+        () => {
+          const total     = students.length
+          const entered   = results.filter(r => !r.is_absent).length + results.filter(r => r.is_absent).length
+          const pct       = Math.round((entered / total) * 100)
+          const radius    = 28
+          const circ      = 2 * Math.PI * radius
+          const dash      = (pct / 100) * circ
+          const done      = entered === total
+          const insight   = done && analysis
+            ? pct === 100 && analysis.passed === total
+              ? '🌟 Whole class passed!'
+              : done
+              ? `📌 ${analysis.failed} student${analysis.failed !== 1 ? 's' : ''} need${analysis.failed === 1 ? 's' : ''} attention · avg ${analysis.avg.toFixed(1)}`
+              : ''
+            : ''
+          return (
+            <div style={{ margin: '10px 16px 0', padding: '12px 16px', borderRadius: 14, background: done ? '#f0fdf4' : '#f8fafc', border: `1.5px solid ${done ? '#86efac' : '#e5e7eb'}`, display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.4s ease' }}>
+              {/* SVG Ring */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <svg width={72} height={72} style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx={36} cy={36} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={6} />
+                  <circle cx={36} cy={36} r={radius} fill="none"
+                    stroke={done ? '#10b981' : '#C8A84B'}
+                    strokeWidth={6}
+                    strokeDasharray={`${dash} ${circ}`}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                  />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: done ? '#065f46' : '#92400e' }}>{pct}%</span>
+                </div>
+              </div>
+              {/* Text */}
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0a0a0a' }}>
+                  {done ? '✅ All marks entered' : `${entered} of ${total} marks entered`}
+                </p>
+                {insight
+                  ? <p style={{ margin: '4px 0 0', fontSize: 12, color: '#065f46', fontWeight: 600 }}>{insight}</p>
+                  : !done && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9ca3af' }}>{total - entered} student{total - entered !== 1 ? 's' : ''} remaining</p>
+                }
+              </div>
+            </div>
+          )
+        }
+      )()}
+
       {/* ── Tabs ── */}
       {activeExam && (
         <div style={{ display: 'flex', gap: 0, margin: '14px 16px 0', borderRadius: 12, background: '#f3f4f6', padding: 4 }}>
