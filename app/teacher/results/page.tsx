@@ -600,7 +600,20 @@ function ResultsInner() {
           <span style={{ fontSize: 12, color: '#78716c' }}>🗓️ {TERM_LABELS[activeExam.term - 1]} · {activeExam.academic_year}</span>
           <span style={{ fontSize: 12, color: '#78716c' }}>📝 {activeExam.exam_type.charAt(0).toUpperCase() + activeExam.exam_type.slice(1)}</span>
           <span style={{ fontSize: 12, color: '#78716c' }}>✅ Pass: {activeExam.pass_mark}</span>
-          {activeExam.is_locked && <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>🔒 Locked</span>}
+          {activeExam.is_locked && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>🔒 Locked</span>
+              <button
+                onClick={async () => {
+                  if (!confirm('Unlock this exam? Marks can be edited again.')) return
+                  await supabase.from('exams').update({ is_locked: false }).eq('id', activeExam.id)
+                  setExams(prev => prev.map(e => e.id === activeExam.id ? { ...e, is_locked: false } : e))
+                  setActiveExam(prev => prev ? { ...prev, is_locked: false } : prev)
+                }}
+                style={{ padding: '4px 10px', borderRadius: 12, border: '1px solid #EDE0CE', background: '#FFF8EF', fontSize: 11, fontWeight: 700, color: '#991b1b', cursor: 'pointer' }}
+              >🔓 Unlock</button>
+            </div>
+          )}
           {/* Edit + Lock buttons */}
           {!activeExam.is_locked && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
