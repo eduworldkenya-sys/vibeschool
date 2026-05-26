@@ -80,10 +80,30 @@ function Skeleton({ h = 56 }: { h?: number }) {
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
+// ─── Warm theme tokens ───────────────────────────────────────────────────────
+const W = {
+  bg:         '#FFFBF5',
+  card:       '#FFF8EF',
+  border:     '#EDE0CE',
+  borderSoft: '#F5ECD9',
+  text:       '#1c1917',
+  textSoft:   '#78716c',
+  textMuted:  '#a8998a',
+  gold:       '#C8A84B',
+  goldLight:  '#FEF3C7',
+  goldDark:   '#92400e',
+  green:      '#16a34a',
+  greenLight: '#f0fdf4',
+  red:        '#dc2626',
+  redLight:   '#fff7f7',
+  font:       'Jost, sans-serif',
+}
+
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
-  border: '1.5px solid #e5e7eb', fontSize: 13, color: '#0a0a0a',
-  background: '#fafafa', outline: 'none', boxSizing: 'border-box',
+  border: `1.5px solid ${W.border}`, fontSize: 13, color: W.text,
+  background: W.card, outline: 'none', boxSizing: 'border-box',
+  fontFamily: W.font,
 }
 
 const selectStyle: React.CSSProperties = {
@@ -92,32 +112,36 @@ const selectStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 600,
-  color: '#374151', marginBottom: 6,
+  color: W.textSoft, marginBottom: 6, fontFamily: W.font,
 }
 
 const btnPrimary: React.CSSProperties = {
   width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
   cursor: 'pointer', fontSize: 14, fontWeight: 700,
-  background: '#10b981', color: '#fff',
+  background: W.gold, color: '#fff', fontFamily: W.font,
+  boxShadow: '0 2px 8px rgba(200,168,75,0.25)',
 }
 
 const overlayStyle: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+  position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.45)',
   zIndex: 1000, display: 'flex', alignItems: 'flex-end',
 }
 
 const sheetStyle: React.CSSProperties = {
   width: '100%', maxHeight: '90vh', overflowY: 'auto',
-  background: '#fff', borderRadius: '20px 20px 0 0',
+  background: W.bg, borderRadius: '24px 24px 0 0',
   padding: '16px 16px 40px',
+  boxShadow: '0 -4px 24px rgba(200,168,75,0.10)',
 }
 
-function pill(active: boolean, accent = '#10b981'): React.CSSProperties {
+function pill(active: boolean, accent = W.gold): React.CSSProperties {
   return {
     flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: 'none',
     cursor: 'pointer', fontSize: 13, fontWeight: 600,
-    background: active ? accent    : '#f3f4f6',
-    color:      active ? '#fff'    : '#374151',
+    fontFamily: W.font,
+    background: active ? accent    : W.borderSoft,
+    color:      active ? '#fff'    : W.textSoft,
+    boxShadow:  active ? '0 2px 6px rgba(200,168,75,0.2)' : 'none',
   }
 }
 
@@ -483,14 +507,14 @@ function ResultsInner() {
   const passM         = activeExam?.pass_mark ?? 50
 
   return (
-    <div style={{ padding: '0 0 80px', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+    <div style={{ padding: '0 0 80px', fontFamily: W.font, background: W.bg, minHeight: '100vh' }}>
 
       {/* ── Header ── */}
-      <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #EDE0CE' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0a0a0a' }}>📊 Results</h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1c1917' }}>📊 Results</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#78716c' }}>
               {tier === 1
                 ? `${activeClass?.name ?? '—'}${activeClass?.stream ? ' ' + activeClass.stream : ''}${activeSubject ? ' · ' + activeSubject.name : ''}`
                 : tier === 2 ? 'School teacher · no class assigned'
@@ -534,7 +558,7 @@ function ResultsInner() {
       <div style={{ padding: '12px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ flex: 1, overflowX: 'auto', display: 'flex', gap: 8 }}>
           {exams.length === 0
-            ? <p style={{ margin: 0, fontSize: 13, color: '#9ca3af' }}>No exams yet</p>
+            ? <p style={{ margin: 0, fontSize: 13, color: '#a8998a' }}>No exams yet</p>
             : exams.map(e => (
                 <button key={e.id} onClick={() => setActiveExam(e)} style={{
                   ...pill(activeExam?.id === e.id, '#0a0a0a'),
@@ -547,17 +571,17 @@ function ResultsInner() {
           }
         </div>
         <button onClick={() => { setShowExamSheet(true); setExamError(null) }} style={{
-          flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1.5px solid #e5e7eb',
-          background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1.5px solid #EDE0CE',
+          background: '#FFFBF5', color: '#78716c', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}>＋ Exam</button>
       </div>
 
       {/* ── Exam info bar ── */}
       {activeExam && (
-        <div style={{ margin: '10px 16px 0', padding: '10px 14px', borderRadius: 12, background: '#f8fafc', border: '1px solid #e5e7eb', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: '#6b7280' }}>🗓️ {TERM_LABELS[activeExam.term - 1]} · {activeExam.academic_year}</span>
-          <span style={{ fontSize: 12, color: '#6b7280' }}>📝 {activeExam.exam_type.charAt(0).toUpperCase() + activeExam.exam_type.slice(1)}</span>
-          <span style={{ fontSize: 12, color: '#6b7280' }}>✅ Pass: {activeExam.pass_mark}</span>
+        <div style={{ margin: '10px 16px 0', padding: '10px 14px', borderRadius: 12, background: '#FFF8EF', border: '1px solid #EDE0CE', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: '#78716c' }}>🗓️ {TERM_LABELS[activeExam.term - 1]} · {activeExam.academic_year}</span>
+          <span style={{ fontSize: 12, color: '#78716c' }}>📝 {activeExam.exam_type.charAt(0).toUpperCase() + activeExam.exam_type.slice(1)}</span>
+          <span style={{ fontSize: 12, color: '#78716c' }}>✅ Pass: {activeExam.pass_mark}</span>
           {activeExam.is_locked && <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>🔒 Locked</span>}
         </div>
       )}
@@ -600,12 +624,12 @@ function ResultsInner() {
               </div>
               {/* Text */}
               <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0a0a0a' }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1c1917' }}>
                   {done ? '✅ All marks entered' : `${entered} of ${total} marks entered`}
                 </p>
                 {insight
                   ? <p style={{ margin: '4px 0 0', fontSize: 12, color: '#065f46', fontWeight: 600 }}>{insight}</p>
-                  : !done && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9ca3af' }}>{total - entered} student{total - entered !== 1 ? 's' : ''} remaining</p>
+                  : !done && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#a8998a' }}>{total - entered} student{total - entered !== 1 ? 's' : ''} remaining</p>
                 }
               </div>
             </div>
@@ -615,7 +639,7 @@ function ResultsInner() {
 
       {/* ── Tabs ── */}
       {activeExam && (
-        <div style={{ display: 'flex', gap: 0, margin: '14px 16px 0', borderRadius: 12, background: '#f3f4f6', padding: 4 }}>
+        <div style={{ display: 'flex', gap: 0, margin: '14px 16px 0', borderRadius: 12, background: '#F5ECD9', padding: 4 }}>
           {(['entry', 'analysis'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               flex: 1, padding: '8px 0', borderRadius: 10, border: 'none',
@@ -638,7 +662,7 @@ function ResultsInner() {
 
           {/* No exam selected */}
           {!activeExam && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af', fontSize: 13 }}>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#a8998a', fontSize: 13 }}>
               <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>📋</span>
               Create or select an exam above to start entering marks.
             </div>
@@ -648,7 +672,7 @@ function ResultsInner() {
           {activeExam && tier !== 1 && (
             <button onClick={() => setShowAddStudent(true)} style={{
               padding: '10px 0', borderRadius: 12, border: '1.5px dashed #d1d5db',
-              background: '#fafafa', color: '#6b7280', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: '#FFF8EF', color: '#78716c', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}>＋ Add student</button>
           )}
 
@@ -657,7 +681,7 @@ function ResultsInner() {
             ? [1,2,3,4].map(i => <Skeleton key={i} h={64} />)
             : students.length === 0
               ? (
-                <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: 13 }}>
+                <div style={{ textAlign: 'center', padding: '32px 0', color: '#a8998a', fontSize: 13 }}>
                   <span style={{ fontSize: 28, display: 'block', marginBottom: 8 }}>👥</span>
                   {tier === 1 ? 'No students enrolled in this class.' : 'No students yet. Tap + Add student above.'}
                 </div>
@@ -675,7 +699,7 @@ function ResultsInner() {
                   return (
                     <div key={student.id} style={{
                       display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 14px', borderRadius: 14, background: '#fff',
+                      padding: '12px 14px', borderRadius: 14, background: '#FFFBF5',
                       border: `1.5px solid ${isAbsent ? '#fca5a5' : result ? '#d1fae5' : '#f0f0f0'}`,
                       opacity: locked ? 0.75 : 1,
                     }}>
@@ -693,11 +717,11 @@ function ResultsInner() {
 
                       {/* Name */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0a0a0a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1c1917', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {student.name}
                         </p>
                         {student.class_name && (
-                          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>{student.class_name}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#a8998a' }}>{student.class_name}</p>
                         )}
                         {activeExam && (
                           <a href={`/teacher/results/report-card/${student.id}?examId=${activeExam.id}`} style={{ fontSize: 11, color: '#6366f1', fontWeight: 700, textDecoration: 'none' }}>📄 Report Card →</a>
@@ -733,8 +757,8 @@ function ResultsInner() {
                             onBlur={() => saveMark(student)}
                             style={{
                               width: 64, padding: '8px 10px', borderRadius: 10,
-                              border: '1.5px solid #e5e7eb', fontSize: 15, fontWeight: 700,
-                              textAlign: 'center', color: '#0a0a0a', background: isAbsent ? '#f9fafb' : '#fff',
+                              border: '1.5px solid #EDE0CE', fontSize: 15, fontWeight: 700,
+                              textAlign: 'center', color: '#1c1917', background: isAbsent ? '#f9fafb' : '#fff',
                               outline: 'none',
                             }}
                           />
@@ -784,7 +808,7 @@ function ResultsInner() {
         <div style={{ padding: '14px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {!analysis
             ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#a8998a', fontSize: 13 }}>
                 <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>📈</span>
                 Enter marks first to see analysis.
               </div>
@@ -814,8 +838,8 @@ function ResultsInner() {
                               <span style={{ fontSize: i === 0 ? 28 : 22 }}>{medals[i]}</span>
                               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>{item.s.name.split(' ')[0]}</p>
                               <div style={{ width: '100%', background: borders[i], borderRadius: '8px 8px 0 0', height: heights[i], display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                                <span style={{ fontSize: 18, fontWeight: 800, color: '#0a0a0a' }}>{item.r!.marks}</span>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: '#0a0a0a' }}>{getGrade(item.r!.marks)}</span>
+                                <span style={{ fontSize: 18, fontWeight: 800, color: '#1c1917' }}>{item.r!.marks}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#1c1917' }}>{getGrade(item.r!.marks)}</span>
                               </div>
                             </div>
                           )
@@ -831,7 +855,7 @@ function ResultsInner() {
                     { label: 'Average',  value: analysis.avg.toFixed(1), icon: '📊', bg: '#1e1e2e', color: '#C8A84B' },
                     { label: 'Highest',  value: String(analysis.highest), icon: '🏆', bg: '#f0fdf4', color: '#065f46' },
                     { label: 'Lowest',   value: String(analysis.lowest),  icon: '📉', bg: '#fff7f7', color: '#991b1b' },
-                    { label: 'Absent',   value: String(analysis.absent),  icon: '🚫', bg: '#f3f4f6', color: '#6b7280' },
+                    { label: 'Absent',   value: String(analysis.absent),  icon: '🚫', bg: '#f3f4f6', color: '#78716c' },
                   ].map(c => (
                     <div key={c.label} style={{ padding: '14px 12px', borderRadius: 14, background: c.bg, border: '1px solid rgba(0,0,0,0.06)' }}>
                       <p style={{ margin: 0, fontSize: 11, color: c.color, fontWeight: 600 }}>{c.icon} {c.label}</p>
@@ -856,8 +880,8 @@ function ResultsInner() {
                   )
                 })()}
                 {/* Pass/fail bar */}
-                <div style={{ padding: '14px', borderRadius: 14, background: '#fff', border: '1px solid #f0f0f0' }}>
-                  <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#374151' }}>
+                <div style={{ padding: '14px', borderRadius: 14, background: '#FFFBF5', border: '1px solid #EDE0CE' }}>
+                  <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#78716c' }}>
                     Pass vs Fail · pass mark {passM}
                   </p>
                   <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 24 }}>
@@ -871,8 +895,8 @@ function ResultsInner() {
                 </div>
 
                 {/* Grade distribution */}
-                <div style={{ padding: '14px', borderRadius: 14, background: '#fff', border: '1px solid #f0f0f0' }}>
-                  <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#374151' }}>Grade distribution</p>
+                <div style={{ padding: '14px', borderRadius: 14, background: '#FFFBF5', border: '1px solid #EDE0CE' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#78716c' }}>Grade distribution</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {['A','A-','B+','B','B-','C+','C','C-','D+','D','D-','E'].map(g => {
                       const count = analysis.grades[g] ?? 0
@@ -882,10 +906,10 @@ function ResultsInner() {
                       return (
                         <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ width: 28, fontSize: 12, fontWeight: 800, color: gc.color, textAlign: 'right' }}>{g}</span>
-                          <div style={{ flex: 1, height: 16, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden' }}>
+                          <div style={{ flex: 1, height: 16, borderRadius: 6, background: '#F5ECD9', overflow: 'hidden' }}>
                             <div style={{ width: `${pct}%`, height: '100%', background: gc.color, borderRadius: 6 }} />
                           </div>
-                          <span style={{ width: 28, fontSize: 12, color: '#6b7280', fontWeight: 600 }}>{count}</span>
+                          <span style={{ width: 28, fontSize: 12, color: '#78716c', fontWeight: 600 }}>{count}</span>
                         </div>
                       )
                     })}
@@ -906,7 +930,7 @@ function ResultsInner() {
                         const gc = gradeColor(getGrade(r.marks))
                         return (
                           <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #fee2e2' }}>
-                            <span style={{ fontSize: 13, color: '#0a0a0a' }}>{s.name}</span>
+                            <span style={{ fontSize: 13, color: '#1c1917' }}>{s.name}</span>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>{r.marks}</span>
                               <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 800, background: gc.bg, color: gc.color }}>{getGrade(r.marks)}</span>
@@ -930,7 +954,7 @@ function ResultsInner() {
         <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) setShowExamSheet(false) }}>
           <div style={sheetStyle}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
-            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>📋 New Exam</p>
+            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#1c1917' }}>📋 New Exam</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -988,7 +1012,7 @@ function ResultsInner() {
         <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) setShowAddStudent(false) }}>
           <div style={sheetStyle}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
-            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>👤 Add Student</p>
+            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#1c1917' }}>👤 Add Student</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
