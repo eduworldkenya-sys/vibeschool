@@ -627,23 +627,146 @@ export default function ClassHubPage() {
 
         {/* top row */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:18, position:'relative' }}>
-          <div>
-            <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)', fontWeight:600, letterSpacing:0.3, marginBottom:6 }}>
-              {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
-            </div>
-            <div style={{ fontSize:26, fontWeight:800, color:'#fff', lineHeight:1.1, letterSpacing:-0.5 }}>
-              {greet()},<br />{firstName}
-            </div>
-            <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)', marginTop:6, fontWeight:500 }}>
-              {data.school}
-            </div>
-          </div>
-          <div style={{ textAlign:'right' }}>
-            <div style={{ fontSize:30, fontWeight:200, color:'rgba(255,255,255,0.88)', fontVariantNumeric:'tabular-nums', letterSpacing:2, lineHeight:1 }}>
+          {/* ── DYNAMIC FACE ── */}
+          {(() => {
+            const cur2        = nowMin()
+            const firstSlot   = data.todaySlots.length > 0 ? data.todaySlots.reduce((a,b) => toMin(a.start) < toMin(b.start) ? a : b) : null
+            const lastSlot    = data.todaySlots.length > 0 ? data.todaySlots.reduce((a,b) => toMin(a.end) > toMin(b.end) ? a : b) : null
+            const liveSlot    = data.todaySlots.find(s => toMin(s.start) <= cur2 && toMin(s.end) > cur2)
+            const nextSlot    = data.todaySlots.find(s => toMin(s.start) > cur2)
+            const minsToFirst = firstSlot ? toMin(firstSlot.start) - cur2 : 999
+            const dayDone     = lastSlot ? cur2 >= toMin(lastSlot.end) : true
+            const lessonsLeft = data.todaySlots.filter(s => toMin(s.end) > cur2).length
+            const lessonsDone = data.todaySlots.filter(s => toMin(s.end) <= cur2).length
+            const isEvening   = cur2 >= 20 * 60
+            const noSlots     = data.todaySlots.length === 0
+
+            // FACE 7 — Rest day
+            if (noSlots) return (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                  {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                </div>
+                <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>No lessons today</div>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{data.school}</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
+                  {data.allSlots.length > 0 ? `${data.allSlots.length} lessons set this week` : 'Set up your timetable'}
+                </div>
+              </div>
+            )
+
+            // FACE 6 — Evening reflection
+            if (isEvening) return (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                  {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                </div>
+                <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>This week</div>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>Week {Math.ceil(new Date().getDate()/7)} · Term 2</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
+                  {data.allSlots.length} lessons · {data.classes.length} classes
+                </div>
+              </div>
+            )
+
+            // FACE 1 — Early morning, >30 mins to first lesson
+            if (firstSlot && minsToFirst > 30 && lessonsDone === 0) return (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                  {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                </div>
+                <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>
+                  First lesson at {fmt12(firstSlot.start)}
+                </div>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>
+                  {data.todaySlots.length} lesson{data.todaySlots.length !== 1 ? 's' : ''} today
+                </div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
+                  {totalStudents} students · {data.classes.length} class{data.classes.length !== 1 ? 'es' : ''}
+                </div>
+              </div>
+            )
+
+            // FACE 2 — Assembly, 30 mins or less to first lesson
+            if (firstSlot && minsToFirst <= 30 && minsToFirst > 0 && lessonsDone === 0) return (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                  {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                </div>
+                <div style={{ fontSize:11, fontWeight:700, color:'#fbbf24', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>
+                  Starting in {minsToFirst} min{minsToFirst !== 1 ? 's' : ''}
+                </div>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>
+                  {firstSlot.subject}
+                </div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:4 }}>
+                  {firstSlot.class}{firstSlot.room ? ` · ${firstSlot.room}` : ''}
+                </div>
+              </div>
+            )
+
+            // FACE 3 — In class (live slot)
+            if (liveSlot) return (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                  {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                  <div style={{ width:7, height:7, borderRadius:'50%', background:'#10b981', animation:'livePulse 2s infinite' }} />
+                  <div style={{ fontSize:11, fontWeight:700, color:'#6ee7b7', letterSpacing:1.4, textTransform:'uppercase' }}>Now in session</div>
+                </div>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{liveSlot.subject}</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:4 }}>
+                  {liveSlot.class}{liveSlot.room ? ` · ${liveSlot.room}` : ''} · ends {fmt12(liveSlot.end)}
+                </div>
+              </div>
+            )
+
+            // FACE 4 — Break (between slots)
+            if (nextSlot && !liveSlot && !dayDone) {
+              const minsToNext = toMin(nextSlot.start) - cur2
+              return (
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                    {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                  </div>
+                  <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>
+                    Break · {minsToNext} min{minsToNext !== 1 ? 's' : ''} to next
+                  </div>
+                  <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{nextSlot.subject}</div>
+                  <div style={{ fontSize:12, color:'rgba(255,255,255,0.55)', marginTop:4 }}>
+                    {nextSlot.class} · {lessonsDone} done · {lessonsLeft} left
+                  </div>
+                </div>
+              )
+            }
+
+            // FACE 5 — Day done
+            return (
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', fontWeight:600, letterSpacing:0.3, marginBottom:8 }}>
+                  {new Date().toLocaleDateString('en-KE',{ weekday:'long', day:'numeric', month:'long' })}
+                </div>
+                <div style={{ fontSize:11, fontWeight:700, color:'#6ee7b7', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>Day complete</div>
+                <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>
+                  {lessonsDone} lesson{lessonsDone !== 1 ? 's' : ''} delivered
+                </div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>
+                  {(() => {
+                    const tom = data.allSlots.filter(s => s.day_of_week === (new Date().getDay() % 7) + 1)
+                    return tom.length > 0 ? `Tomorrow · ${tom.length} lesson${tom.length !== 1 ? 's' : ''} · starts ${fmt12(tom.reduce((a,b) => toMin(a.start) < toMin(b.start) ? a : b).start)}` : 'No lessons tomorrow'
+                  })()}
+                </div>
+              </div>
+            )
+          })()}
+          {/* ── CLOCK (compact) ── */}
+          <div style={{ textAlign:'right', flexShrink:0, alignSelf:'flex-start' }}>
+            <div style={{ fontSize:20, fontWeight:200, color:'rgba(255,255,255,0.75)', fontVariantNumeric:'tabular-nums', letterSpacing:1.5, lineHeight:1 }}>
               {clock}
             </div>
-            <div style={{ fontSize:9, color:'rgba(255,255,255,0.28)', fontWeight:700, marginTop:4, letterSpacing:1, textTransform:'uppercase' }}>
-              {currentLesson ? 'In session' : 'Live'}
+            <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:700, marginTop:3, letterSpacing:1, textTransform:'uppercase' }}>
+              {currentLesson ? 'live' : 'now'}
             </div>
           </div>
         </div>
@@ -667,6 +790,44 @@ export default function ClassHubPage() {
             </div>
           ))}
         </div>
+
+        {/* ── SAVINGS STRIP ─────────────────────────────────────────────── */}
+        {(() => {
+          const attCount    = data.todaySlots.filter(s => s.attendanceMarked).length
+          const savedToday  = (attCount * 15) + (markedCount * 5)
+          const weekMins    = data.allSlots.length > 0
+            ? (data.allSlots.filter(s => s.attendanceMarked).length * 15) + (data.classes.reduce((a,c) => a + (c.hwDue > 0 ? 20 : 0), 0))
+            : 0
+          const todayH      = Math.floor(savedToday / 60)
+          const todayM      = savedToday % 60
+          const weekH       = Math.floor(weekMins / 60)
+          const weekM       = weekMins % 60
+          const weekPct     = Math.min(100, Math.round((weekMins / 480) * 100))
+          if (savedToday === 0 && weekMins === 0) return null
+          return (
+            <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:13 }}>⚡</span>
+                  <div>
+                    <span style={{ fontSize:12, fontWeight:800, color:'#fbbf24' }}>
+                      {savedToday > 0 ? `Saved ${todayH > 0 ? `${todayH}h ` : ''}${todayM}m today` : `Saved ${weekH > 0 ? `${weekH}h ` : ''}${weekM}m this week`}
+                    </span>
+                    {weekMins > 0 && savedToday > 0 && (
+                      <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginLeft:6 }}>
+                        {weekH > 0 ? `${weekH}h ` : ''}{weekM}m this week
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.35)' }}>vs manual</div>
+              </div>
+              <div style={{ height:4, borderRadius:4, background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${weekPct}%`, borderRadius:4, background:'linear-gradient(90deg,#f59e0b,#fbbf24)', transition:'width 1s ease' }} />
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── TODAY'S LESSONS — SWIPEABLE SLIDES ───────────────────────────── */}
@@ -831,6 +992,44 @@ export default function ClassHubPage() {
             </button>
           ))}
         </div>
+
+        {/* ── SAVINGS STRIP ─────────────────────────────────────────────── */}
+        {(() => {
+          const attCount    = data.todaySlots.filter(s => s.attendanceMarked).length
+          const savedToday  = (attCount * 15) + (markedCount * 5)
+          const weekMins    = data.allSlots.length > 0
+            ? (data.allSlots.filter(s => s.attendanceMarked).length * 15) + (data.classes.reduce((a,c) => a + (c.hwDue > 0 ? 20 : 0), 0))
+            : 0
+          const todayH      = Math.floor(savedToday / 60)
+          const todayM      = savedToday % 60
+          const weekH       = Math.floor(weekMins / 60)
+          const weekM       = weekMins % 60
+          const weekPct     = Math.min(100, Math.round((weekMins / 480) * 100))
+          if (savedToday === 0 && weekMins === 0) return null
+          return (
+            <div style={{ marginTop:14, paddingTop:12, borderTop:'1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:13 }}>⚡</span>
+                  <div>
+                    <span style={{ fontSize:12, fontWeight:800, color:'#fbbf24' }}>
+                      {savedToday > 0 ? `Saved ${todayH > 0 ? `${todayH}h ` : ''}${todayM}m today` : `Saved ${weekH > 0 ? `${weekH}h ` : ''}${weekM}m this week`}
+                    </span>
+                    {weekMins > 0 && savedToday > 0 && (
+                      <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginLeft:6 }}>
+                        {weekH > 0 ? `${weekH}h ` : ''}{weekM}m this week
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.35)' }}>vs manual</div>
+              </div>
+              <div style={{ height:4, borderRadius:4, background:'rgba(255,255,255,0.08)', overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${weekPct}%`, borderRadius:4, background:'linear-gradient(90deg,#f59e0b,#fbbf24)', transition:'width 1s ease' }} />
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* ── SCHOOL PULSE ──────────────────────────────────────────────────── */}
