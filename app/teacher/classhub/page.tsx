@@ -513,15 +513,14 @@ export default function ClassHubPage() {
     let classes: ClassCard[] = []
 
     if (classIds.length > 0) {
-      const [classRes, studentRes, attTodayRes, hwRes, assessRes, claimRes] = await Promise.all([
+      const [classRes, studentRes, attTodayRes, hwRes, assessRes] = await Promise.all([
         supabase.from('classes').select('*').in('id', classIds),
         supabase.from('students').select('class_id,id').in('class_id', classIds),
         supabase.from('attendance').select('class_id,status').in('class_id', classIds).eq('date', today),
         supabase.from('homework').select('class_id,status').in('class_id', classIds).eq('status', 'pending'),
         supabase.from('cbc_assessments').select('class_id,performance').in('class_id', classIds),
-        supabase.from('student_claim_codes').select('student_id,claimed').eq('claimed', false)
-          .in('student_id', (studentRes?.data ?? []).map((s: any) => s.id)),
       ])
+      const claimRes = await supabase.from('student_claim_codes').select('student_id,claimed').eq('claimed', false).in('student_id', (studentRes?.data ?? []).map((s: any) => s.id))
 
       const studentMap: Record<string, number>   = {}
       const studentIds: Record<string, string[]> = {}
