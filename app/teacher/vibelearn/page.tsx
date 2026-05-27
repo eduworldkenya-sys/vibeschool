@@ -1,734 +1,706 @@
 "use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
 
-/* ── types ─────────────────────────────────────────────────── */
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface Content {
-  id:           string;
-  title:        string;
-  description:  string | null;
-  type:         string;
-  url:          string;
-  tags:         string[];
-  view_count:   number;
-  earnings_ksh: number;
-  status:       string;
-  created_at:   string;
+  id:          string;
+  title:       string;
+  description: string;
+  type:        "epage" | "ebook";
+  source:      string;        // subject text (workaround)
+  external_url: string | null;
+  tags:        string[];
+  is_published: boolean;
+  view_count:  number;
+  created_at:  string;
+  estimated_earnings: number;
 }
-interface TeacherStats {
-  teacher_id:        string;
-  content_count:     number;
-  live_count:        number;
-  draft_count:       number;
+
+interface Stats {
   total_views:       number;
   total_earnings_ksh: number;
-  teacher_rank:      number;
+  live_count:        number;
+  teacher_rank:      number | null;
+  top_content:       { title: string; view_count: number }[];
 }
 
-/* ── constants ──────────────────────────────────────────────── */
-const DARK   = C.dark;
-const ACCENT = C.accent;
-const MUTED  = C.textMuted;
-const BORDER = C.border;
-const RED    = C.error;
-const GOLD   = C.warning;
-const BG     = C.bg;
-const SURF   = C.surface;
-
-const TABS = ["Content", "Create", "Stats"] as const;
-type Tab = typeof TABS[number];
+type Tab = "content" | "create" | "stats" | "discover";
 
 const SUBJECTS = [
-  { value: "maths",         label: "Maths"          },
-  { value: "english",       label: "English"         },
-  { value: "kiswahili",     label: "Kiswahili"       },
-  { value: "science",       label: "Science"         },
-  { value: "social_studies",label: "Social Studies"  },
-  { value: "general",       label: "General"         },
+  "Mathematics", "English", "Kiswahili", "Biology", "Chemistry",
+  "Physics", "History", "Geography", "CRE", "IRE", "Business Studies",
+  "Agriculture", "Computer Studies", "Art & Design", "Music", "French",
 ];
 
-/* ── helpers ────────────────────────────────────────────────── */
-function fmt(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}k`;
-  return String(n);
-}
-function ksh(n: number) {
-  return `KSh ${Number(n).toLocaleString("en-KE", { minimumFractionDigits: 0 })}`;
-}
-function relativeDate(iso: string) {
+const TAGS_PRESET = [
+  "KCSE", "KCPE", "Form 1", "Form 2", "Form 3", "Form 4",
+  "Grade 7", "Grade 8", "Grade 9", "Revision", "Notes", "Practicals",
+  "Essays", "Past Papers", "Short Notes", "Diagrams",
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function relativeDate(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
-  const d = Math.floor(diff / 86_400_000);
-  if (d === 0) return "Today";
-  if (d === 1) return "Yesterday";
-  if (d < 30)  return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short" });
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7)  return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return `${Math.floor(days / 30)}mo ago`;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   MAIN
-══════════════════════════════════════════════════════════════ */
+function isValidUrl(url: string): boolean {
+  try { return ["http:", "https:"].includes(new URL(url).protocol); }
+  catch { return false; }
+}
+
+function Shimmer({ w = "100%", h = 16, r = 8 }: { w?: string | number; h?: number; r?: number }) {
+  return (
+    <div style={{
+      width: w, height: h, borderRadius: r,
+      background: "linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%)",
+      backgroundSize: "200% 100%",
+      animation: "shimmer 1.4s infinite",
+    }} />
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function VibeLearnPage() {
-  const router  = useRouter();
-  const [tab,     setTab]     = useState<Tab>("Content");
-  const [stats,   setStats]   = useState<TeacherStats | null>(null);
-  const [content, setContent] = useState<Content[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userId,  setUserId]  = useState<string | null>(null);
+  const router = useRouter();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace("/teacher/login"); return; }
-      setUserId(user.id);
+  const [tab,         setTab]         = useState<Tab>("content");
+  const [userId,      setUserId]      = useState<string | null>(null);
+  const [content,     setContent]     = useState<Content[]>([]);
+  const [stats,       setStats]       = useState<Stats | null>(null);
+  const [loadingPage, setLoadingPage] = useState(true);
+  const [loadingStats,setLoadingStats]= useState(true);
+  const [expandedId,  setExpandedId]  = useState<string | null>(null);
+  const [deletingId,  setDeletingId]  = useState<string | null>(null);
+  const [togglingId,  setTogglingId]  = useState<string | null>(null);
+  const [pageError,   setPageError]   = useState("");
 
-      const [cRes, sRes] = await Promise.all([
-        supabase
-          .from("vibelearn_content")
-          .select("id,title,description,type,url,tags,view_count,earnings_ksh,status,created_at")
-          .eq("submitted_by", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("vibelearn_teacher_stats")
-          .select("*")
-          .eq("teacher_id", user.id)
-          .maybeSingle(),
-      ]);
+  // Create form
+  const [cType,       setCType]       = useState<"epage" | "ebook">("epage");
+  const [cTitle,      setCTitle]      = useState("");
+  const [cDesc,       setCDesc]       = useState("");
+  const [cSubject,    setCSubject]    = useState(SUBJECTS[0]);
+  const [cUrl,        setCUrl]        = useState("");
+  const [cUrlError,   setCUrlError]   = useState("");
+  const [cTags,       setCTags]       = useState<string[]>([]);
+  const [cTagInput,   setCTagInput]   = useState("");
+  const [publishing,  setPublishing]  = useState(false);
+  const [publishError,setPublishError]= useState("");
+  const [publishOk,   setPublishOk]   = useState(false);
 
-      if (cRes.data)  setContent(cRes.data as Content[]);
-      if (sRes.data)  setStats(sRes.data as TeacherStats);
-    } finally {
-      setLoading(false);
+  // ── Auth + load ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    async function init() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.replace("/teacher/login"); return; }
+        setUserId(user.id);
+        await Promise.all([loadContent(user.id), loadStats(user.id)]);
+      } catch (e) {
+        setPageError("Failed to load. Check your connection.");
+      } finally {
+        setLoadingPage(false);
+      }
     }
-  }, [router]);
+    init();
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const loadContent = useCallback(async (uid: string) => {
+    const { data, error } = await supabase
+      .from("vibelearn_content")
+      .select("id, title, description, type, source, external_url, tags, is_published, view_count, created_at, estimated_earnings")
+      .eq("submitted_by", uid)
+      .order("created_at", { ascending: false });
+    if (!error && data) setContent(data as Content[]);
+  }, []);
+
+  const loadStats = useCallback(async (uid: string) => {
+    setLoadingStats(true);
+    try {
+      const { data } = await supabase
+        .from("vibelearn_teacher_stats")
+        .select("*")
+        .eq("submitted_by", uid)
+        .maybeSingle();
+
+      const { data: top } = await supabase
+        .from("vibelearn_content")
+        .select("title, view_count")
+        .eq("submitted_by", uid)
+        .eq("is_published", true)
+        .order("view_count", { ascending: false })
+        .limit(3);
+
+      setStats({
+        total_views:        data?.total_views        ?? 0,
+        total_earnings_ksh: data?.total_earnings_ksh ?? 0,
+        live_count:         data?.live_count         ?? 0,
+        teacher_rank:       data?.teacher_rank       ?? null,
+        top_content:        (top ?? []) as { title: string; view_count: number }[],
+      });
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  // ── Toggle publish ───────────────────────────────────────────────────────
+  async function togglePublish(item: Content) {
+    if (togglingId) return;
+    setTogglingId(item.id);
+    try {
+      const { error } = await supabase
+        .from("vibelearn_content")
+        .update({ is_published: !item.is_published })
+        .eq("id", item.id)
+        .eq("submitted_by", userId!);
+      if (!error) {
+        setContent(prev => prev.map(c => c.id === item.id ? { ...c, is_published: !c.is_published } : c));
+        if (userId) loadStats(userId);
+      }
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  // ── Delete ───────────────────────────────────────────────────────────────
+  async function deleteContent(id: string) {
+    if (deletingId) return;
+    setDeletingId(id);
+    try {
+      const { error } = await supabase
+        .from("vibelearn_content")
+        .delete()
+        .eq("id", id)
+        .eq("submitted_by", userId!);
+      if (!error) {
+        setContent(prev => prev.filter(c => c.id !== id));
+        setExpandedId(null);
+        if (userId) loadStats(userId);
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  // ── Publish ──────────────────────────────────────────────────────────────
+  async function handlePublish() {
+    setPublishError("");
+    if (!cTitle.trim())             { setPublishError("Title is required."); return; }
+    if (!cDesc.trim())              { setPublishError("Description is required."); return; }
+    if (!cUrl.trim())               { setPublishError("Content URL is required."); return; }
+    if (!isValidUrl(cUrl.trim()))   { setPublishError("Enter a valid https:// URL."); return; }
+
+    setPublishing(true);
+    try {
+      const { error } = await supabase.from("vibelearn_content").insert({
+        title:        cTitle.trim(),
+        description:  cDesc.trim(),
+        type:         cType,
+        source:       cSubject,
+        external_url: cUrl.trim(),
+        tags:         cTags,
+        is_published: true,
+        submitted_by: userId!,
+        view_count:   0,
+        estimated_earnings: 0,
+      });
+      if (error) throw error;
+      // Reset form
+      setCTitle(""); setCDesc(""); setCUrl(""); setCTags([]); setCTagInput(""); setCUrlError("");
+      setPublishOk(true);
+      setTimeout(() => setPublishOk(false), 3000);
+      if (userId) { await loadContent(userId); await loadStats(userId); }
+      setTab("content");
+    } catch (e: unknown) {
+      setPublishError((e as Error).message ?? "Publish failed. Try again.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  function addTag(t: string) {
+    const clean = t.trim().slice(0, 30);
+    if (!clean || cTags.includes(clean) || cTags.length >= 10) return;
+    setCTags(prev => [...prev, clean]);
+  }
+
+  function removeTag(t: string) {
+    setCTags(prev => prev.filter(x => x !== t));
+  }
+
+  // ── Shared style helpers ─────────────────────────────────────────────────
+  const card: React.CSSProperties = {
+    background: C.bg, borderRadius: 16,
+    border: `1px solid ${C.border}`,
+    padding: "16px 18px", marginBottom: 14,
+    boxShadow: "0 1px 3px rgba(0,0,0,0.07)",
+  };
+
+  const pill = (active: boolean): React.CSSProperties => ({
+    padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+    border: active ? "none" : `1.5px solid ${C.border}`,
+    background: active ? C.accent : "transparent",
+    color: active ? "#fff" : C.textMuted,
+    cursor: "pointer", transition: "all 0.15s",
+  });
+
+  if (loadingPage) {
+    return (
+      <div style={{ animation: "fadeIn 0.2s ease" }}>
+        {/* Hero skeleton */}
+        <div style={{ background: "linear-gradient(135deg, #065f46 0%, #1e1b4b 100%)", borderRadius: 20, padding: "20px", marginBottom: 14 }}>
+          <Shimmer w={80}  h={10} />
+          <div style={{ marginTop: 8 }}><Shimmer w={160} h={22} /></div>
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} style={{ flex: 1, background: "rgba(255,255,255,0.1)", borderRadius: 12, padding: 12 }}>
+                <Shimmer w="60%" h={18} /><div style={{ marginTop: 6 }}><Shimmer w="80%" h={9} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Tab skeleton */}
+        <div style={{ ...card }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>{[1,2,3].map(i => <Shimmer key={i} w={70} h={32} r={20} />)}</div>
+          {[1,2,3].map(i => <div key={i} style={{ marginBottom: 12 }}><Shimmer h={68} r={12} /></div>)}
+        </div>
+      </div>
+    );
+  }
+
+  if (pageError) {
+    return (
+      <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
+        <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
+        <div style={{ fontSize: 14, color: C.textMuted }}>{pageError}</div>
+        <button onClick={() => window.location.reload()} style={{ marginTop: 16, padding: "10px 20px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Retry</button>
+      </div>
+    );
+  }
+
+  const liveCount  = content.filter(c => c.is_published).length;
+  const draftCount = content.filter(c => !c.is_published).length;
 
   return (
-    <div style={{ background: BG, minHeight: "100vh", paddingBottom: 88 }}>
-      <style>{`
-        @keyframes fadeUp {
-          from { opacity:0; transform:translateY(10px) }
-          to   { opacity:1; transform:translateY(0)    }
-        }
-        @keyframes shimmer {
-          0%   { background-position: 200% 0  }
-          100% { background-position: -200% 0 }
-        }
-        .vl-up   { animation: fadeUp 0.24s ease both }
-        .vl-btn:active  { transform: scale(0.97) }
-        .vl-card:active { transform: scale(0.988) }
-      `}</style>
+    <div style={{ animation: "slideIn 0.22s ease" }}>
 
-      <Hero stats={stats} loading={loading} />
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <div style={{
+        background:    "linear-gradient(135deg, #065f46 0%, #1e1b4b 100%)",
+        borderRadius:  20, padding: "18px 20px",
+        marginBottom:  14, color: "#fff", position: "relative", overflow: "hidden",
+      }}>
+        {/* glow orb */}
+        <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,0.25), transparent 70%)", pointerEvents: "none" }} />
 
-      {/* tab bar */}
-      <div style={{ padding: "18px 20px 0" }}>
-        <div style={{
-          display: "flex", background: SURF, borderRadius: 14,
-          padding: 4, border: `1px solid ${BORDER}`,
-        }}>
-          {TABS.map(t => (
-            <button
-              key={t}
-              className="vl-btn"
-              onClick={() => setTab(t)}
-              style={{
-                flex: 1, padding: "10px 0", border: "none", borderRadius: 10,
-                fontSize: 13, fontWeight: 700, cursor: "pointer",
-                fontFamily: "inherit", transition: "all 0.15s",
-                background: tab === t ? DARK : "transparent",
-                color:      tab === t ? "#fff" : MUTED,
-                boxShadow:  tab === t ? "0 2px 8px rgba(30,27,75,0.2)" : "none",
-              }}
-            >{t}</button>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn</div>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Publish. Earn. Grow.</div>
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginBottom: 16 }}>
+          Your content earns ad revenue every time a student reads it.
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display: "flex", gap: 8 }}>
+          {[
+            { label: "Earnings (KSH)",  value: loadingStats ? "…" : `${(stats?.total_earnings_ksh ?? 0).toLocaleString()}`, color: "#6ee7b7" },
+            { label: "Total Views",     value: loadingStats ? "…" : `${(stats?.total_views ?? 0).toLocaleString()}`,        color: "#93c5fd" },
+            { label: "Live",            value: loadingStats ? "…" : `${stats?.live_count ?? 0}`,                             color: "#fde68a" },
+            { label: "Rank",            value: loadingStats ? "…" : stats?.teacher_rank ? `#${stats.teacher_rank}` : "—",   color: "#f9a8d4" },
+          ].map(s => (
+            <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginTop: 2, fontWeight: 600 }}>{s.label}</div>
+            </div>
           ))}
         </div>
       </div>
 
-      <div style={{ padding: "20px 20px 0" }}>
-        {tab === "Content" && (
-          <ContentTab
-            items={content}
-            loading={loading}
-            userId={userId}
-            onRefresh={load}
-            onCreate={() => setTab("Create")}
-          />
-        )}
-        {tab === "Create" && (
-          <CreateTab
-            userId={userId}
-            onSuccess={() => { load(); setTab("Content"); }}
-          />
-        )}
-        {tab === "Stats" && (
-          <StatsTab stats={stats} items={content} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════
-   HERO
-══════════════════════════════════════════════════════════════ */
-function Hero({ stats, loading }: { stats: TeacherStats | null; loading: boolean }) {
-  const shimmer = {
-    background: "linear-gradient(90deg,rgba(255,255,255,0.06) 25%,rgba(255,255,255,0.12) 50%,rgba(255,255,255,0.06) 75%)",
-    backgroundSize: "200% 100%",
-    animation: "shimmer 1.4s infinite",
-    borderRadius: 10,
-  };
-
-  return (
-    <div style={{
-      background: `linear-gradient(140deg, ${DARK} 0%, #312e81 55%, #1e3a5f 100%)`,
-      padding: "28px 24px 24px",
-      position: "relative", overflow: "hidden",
-    }}>
-      <div style={{ position:"absolute", top:-50, right:-50, width:180, height:180, borderRadius:"50%", background:"rgba(16,185,129,0.10)", pointerEvents:"none" }} />
-      <div style={{ position:"absolute", bottom:-40, left:-20, width:140, height:140, borderRadius:"50%", background:"rgba(255,255,255,0.03)", pointerEvents:"none" }} />
-
-      <div style={{ fontSize:10, color:"rgba(255,255,255,0.4)", fontWeight:800, letterSpacing:2.5, textTransform:"uppercase", marginBottom:8 }}>
-        VibeLearn Studio
-      </div>
-
-      {loading ? (
-        <>
-          <div style={{ ...shimmer, height:48, marginBottom:8 }} />
-          <div style={{ ...shimmer, height:16, width:"50%" }} />
-        </>
-      ) : (
-        <>
-          <div style={{ fontSize:40, fontWeight:900, color:"#fff", lineHeight:1, letterSpacing:-1 }}>
-            <span style={{ fontSize:18, fontWeight:500, color:"rgba(255,255,255,0.5)", marginRight:4 }}>KSh</span>
-            {Number(stats?.total_earnings_ksh ?? 0).toLocaleString("en-KE")}
-          </div>
-          <div style={{ fontSize:11, color: ACCENT, marginTop:6, fontWeight:600, letterSpacing:0.3 }}>
-            Total earnings from your content
-          </div>
-        </>
-      )}
-
-      <div style={{ display:"flex", gap:10, marginTop:20 }}>
-        {[
-          { val: loading ? null : fmt(Number(stats?.total_views ?? 0)), label:"Views"     },
-          { val: loading ? null : String(stats?.content_count ?? 0),    label:"Published" },
-          { val: loading ? null : `#${stats?.teacher_rank ?? "—"}`,     label:"Rank", gold:true },
-        ].map(s => (
-          <div key={s.label} style={{
-            flex:1, background:"rgba(255,255,255,0.07)", borderRadius:12,
-            padding:"12px 8px", textAlign:"center",
-            border:"1px solid rgba(255,255,255,0.09)",
-          }}>
-            {s.val === null
-              ? <div style={{ ...shimmer, height:24, marginBottom:4 }} />
-              : <div style={{ fontSize:20, fontWeight:800, color: s.gold ? GOLD : "#fff" }}>{s.val}</div>
-            }
-            <div style={{ fontSize:9, color:"rgba(255,255,255,0.4)", marginTop:3, fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>
-              {s.label}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════
-   CONTENT TAB
-══════════════════════════════════════════════════════════════ */
-function ContentTab({
-  items, loading, userId, onRefresh, onCreate,
-}: {
-  items: Content[]; loading: boolean; userId: string | null;
-  onRefresh: () => void; onCreate: () => void;
-}) {
-  if (loading) return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      {[1,2,3].map(i => (
-        <div key={i} style={{
-          height: 88, borderRadius: 16,
-          background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)",
-          backgroundSize: "200% 100%",
-          animation: "shimmer 1.4s infinite",
-          animationDelay: `${i * 0.1}s`,
-        }} />
-      ))}
-    </div>
-  );
-
-  if (items.length === 0) return (
-    <div className="vl-up" style={{ textAlign:"center", padding:"52px 24px" }}>
-      <div style={{ fontSize:52, marginBottom:16 }}>📭</div>
-      <div style={{ fontSize:17, fontWeight:800, color:DARK, marginBottom:8 }}>
-        No content yet
-      </div>
-      <div style={{ fontSize:13, color:MUTED, lineHeight:1.6, marginBottom:24 }}>
-        Publish your first ebook or epage and start earning from your knowledge.
-      </div>
-      <button
-        className="vl-btn"
-        onClick={onCreate}
-        style={{
-          padding:"13px 32px", borderRadius:12, border:"none",
-          background:DARK, color:"#fff", fontSize:14, fontWeight:700,
-          cursor:"pointer", fontFamily:"inherit",
-          boxShadow:"0 4px 14px rgba(30,27,75,0.25)",
-        }}
-      >
-        Create your first content →
-      </button>
-    </div>
-  );
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      {items.map((item, i) => (
-        <ContentCard
-          key={item.id}
-          item={item}
-          idx={i}
-          userId={userId}
-          onRefresh={onRefresh}
-        />
-      ))}
-    </div>
-  );
-}
-
-/* ── content card ── */
-function ContentCard({
-  item, idx, userId, onRefresh,
-}: {
-  item: Content; idx: number; userId: string | null; onRefresh: () => void;
-}) {
-  const [open,     setOpen]     = useState(false);
-  const [toggling, setToggling] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [confirm,  setConfirm]  = useState(false);
-
-  const isLive = item.status === "live";
-
-  async function toggleStatus() {
-    if (!userId) return;
-    setToggling(true);
-    try {
-      await supabase
-        .from("vibelearn_content")
-        .update({ status: isLive ? "draft" : "live", updated_at: new Date().toISOString() })
-        .eq("id", item.id)
-        .eq("submitted_by", userId);
-    } finally {
-      setToggling(false);
-      onRefresh();
-    }
-  }
-
-  async function deleteContent() {
-    if (!userId) return;
-    setDeleting(true);
-    try {
-      await supabase
-        .from("vibelearn_content")
-        .delete()
-        .eq("id", item.id)
-        .eq("submitted_by", userId);
-    } finally {
-      setDeleting(false);
-      onRefresh();
-    }
-  }
-
-  return (
-    <div
-      className="vl-up vl-card"
-      style={{
-        background:"#fff", borderRadius:16, border:`1px solid ${BORDER}`,
-        overflow:"hidden", cursor:"pointer",
-        boxShadow: C.shadow,
-        animationDelay:`${Math.min(idx * 0.05, 0.3)}s`,
-        transition:"box-shadow 0.15s",
-      }}
-      onClick={() => setOpen(o => !o)}
-    >
-      <div style={{ padding:"16px 16px 14px", display:"flex", gap:12, alignItems:"flex-start" }}>
-        <div style={{
-          width:44, height:44, borderRadius:12, flexShrink:0,
-          display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize:20,
-          background: item.type === "ebook"
-            ? "linear-gradient(135deg,#312e81,#1e1b4b)"
-            : "linear-gradient(135deg,#064e3b,#065f46)",
-        }}>
-          {item.type === "ebook" ? "📖" : "📄"}
-        </div>
-
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{
-            fontSize:14, fontWeight:700, color:DARK, lineHeight:1.3, marginBottom:3,
-            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-          }}>
-            {item.title}
-          </div>
-          <div style={{ fontSize:11, color:MUTED, marginBottom:6 }}>
-            {item.type.toUpperCase()} · {relativeDate(item.created_at)}
-          </div>
-          <span style={{
-            fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:20,
-            background: isLive ? "rgba(16,185,129,0.1)" : "rgba(107,114,128,0.1)",
-            color:      isLive ? ACCENT : MUTED,
-          }}>
-            {isLive ? "● LIVE" : "DRAFT"}
-          </span>
-        </div>
-
-        <div style={{ textAlign:"right", flexShrink:0 }}>
-          <div style={{ fontSize:14, fontWeight:800, color:ACCENT }}>{ksh(item.earnings_ksh)}</div>
-          <div style={{ fontSize:10, color:MUTED, marginTop:2 }}>{fmt(item.view_count)} views</div>
-        </div>
-      </div>
-
-      {open && (
-        <div
-          style={{ borderTop:`1px solid ${BORDER}`, padding:"12px 16px" }}
-          onClick={e => e.stopPropagation()}
-        >
-          {confirm ? (
-            <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-              <span style={{ flex:1, fontSize:12, color:MUTED }}>Delete this content?</span>
-              <button
-                onClick={() => setConfirm(false)}
-                style={{ padding:"8px 14px", borderRadius:8, border:`1px solid ${BORDER}`, background:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"inherit", color:MUTED }}
-              >Cancel</button>
-              <button
-                onClick={deleteContent}
-                disabled={deleting}
-                style={{ padding:"8px 14px", borderRadius:8, border:"none", background:RED, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}
-              >{deleting ? "…" : "Delete"}</button>
-            </div>
-          ) : (
-            <div style={{ display:"flex", gap:8 }}>
-              <a
-                href={item.url} target="_blank" rel="noreferrer"
-                style={{
-                  flex:1, padding:"10px 0", borderRadius:10, border:`1px solid ${BORDER}`,
-                  fontSize:12, fontWeight:700, color:DARK, textAlign:"center",
-                  textDecoration:"none", background:SURF,
-                }}
-              >Open ↗</a>
-              <button
-                onClick={toggleStatus} disabled={toggling}
-                style={{
-                  flex:1, padding:"10px 0", borderRadius:10, border:"none",
-                  fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
-                  background: isLive ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)",
-                  color:      isLive ? RED : ACCENT,
-                }}
-              >{toggling ? "…" : isLive ? "Set Draft" : "Go Live"}</button>
-              <button
-                onClick={() => setConfirm(true)}
-                style={{
-                  width:40, borderRadius:10, border:`1px solid ${BORDER}`,
-                  background:"#fff", fontSize:16, cursor:"pointer", color:MUTED,
-                }}
-              >🗑</button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════
-   CREATE TAB
-══════════════════════════════════════════════════════════════ */
-function CreateTab({ userId, onSuccess }: { userId: string | null; onSuccess: () => void }) {
-  const [type,    setType]    = useState<"epage"|"ebook">("epage");
-  const [title,   setTitle]   = useState("");
-  const [desc,    setDesc]    = useState("");
-  const [url,     setUrl]     = useState("");
-  const [tags,    setTags]    = useState("");
-  const [subject, setSubject] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string|null>(null);
-  const [urlErr,  setUrlErr]  = useState<string|null>(null);
-
-  function validateUrl(): boolean {
-    const val = url.trim();
-    if (!val) { setUrlErr("URL is required"); return false; }
-    try {
-      const u = new URL(val);
-      if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error();
-      setUrlErr(null); return true;
-    } catch {
-      setUrlErr("Enter a valid URL (https://…)");
-      return false;
-    }
-  }
-
-  async function publish() {
-    setError(null);
-    if (!title.trim())  { setError("Title is required"); return; }
-    if (!validateUrl()) return;
-    if (!userId)        { setError("Not signed in"); return; }
-
-    const rawTags = tags.split(",").map(t => t.trim()).filter(Boolean);
-    if (rawTags.length > 10) { setError("Maximum 10 tags"); return; }
-    if (rawTags.some(t => t.length > 30)) { setError("Each tag must be under 30 characters"); return; }
-
-    setLoading(true);
-    try {
-      const { error: err } = await supabase.from("vibelearn_content").insert({
-        title:        title.trim(),
-        description:  desc.trim() || null,
-        url:          url.trim(),
-        type,
-        tags:         rawTags,
-        source:       subject || null,
-        submitted_by: userId,
-        view_count:   0,
-        earnings_ksh: 0,
-        status:       "live",
-      });
-      if (err) { setError(err.message); return; }
-      onSuccess();
-    } catch {
-      setError("Network error — please try again");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const field: React.CSSProperties = {
-    width:"100%", boxSizing:"border-box",
-    background:"#fff", border:`1px solid ${BORDER}`,
-    borderRadius:12, padding:"13px 16px",
-    fontSize:13, color:DARK, outline:"none",
-    fontFamily:"inherit", appearance:"none",
-  };
-  const label: React.CSSProperties = {
-    fontSize:10, color:MUTED, fontWeight:800,
-    letterSpacing:1.2, textTransform:"uppercase",
-    display:"block", marginBottom:7,
-  };
-
-  return (
-    <div className="vl-up" style={{ display:"flex", flexDirection:"column", gap:16, paddingBottom:8 }}>
-
-      {/* type toggle */}
-      <div style={{ display:"flex", background:SURF, borderRadius:12, padding:4, border:`1px solid ${BORDER}` }}>
-        {(["epage","ebook"] as const).map(t => (
-          <button key={t} onClick={() => setType(t)} className="vl-btn" style={{
-            flex:1, padding:"10px 0", border:"none", borderRadius:9,
-            fontSize:12, fontWeight:800, cursor:"pointer", fontFamily:"inherit",
-            background: type === t ? DARK : "transparent",
-            color:      type === t ? "#fff" : MUTED,
-            transition: "all 0.15s",
-          }}>
-            {t === "epage" ? "📄  Epage" : "📖  Ebook"}
+      {/* ── Tab bar ───────────────────────────────────────────────────────── */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto", paddingBottom: 2 }}>
+        {(["content", "create", "stats", "discover"] as Tab[]).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={pill(tab === t)}>
+            {{ content: `📄 Content${liveCount > 0 ? ` (${liveCount})` : ""}`, create: "✦ Create", stats: "📊 Stats", discover: "🔍 Discover" }[t]}
           </button>
         ))}
       </div>
 
-      <div>
-        <label htmlFor="vl-title" style={label}>Title *</label>
-        <input
-          id="vl-title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="e.g. Grade 8 Algebra Notes"
-          style={field}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="vl-desc" style={label}>Description</label>
-        <textarea
-          id="vl-desc"
-          value={desc}
-          onChange={e => setDesc(e.target.value)}
-          placeholder="What will students learn?"
-          style={{ ...field, resize:"none", minHeight:80 }}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="vl-subject" style={label}>Subject</label>
-        <div style={{ position:"relative" }}>
-          <select
-            id="vl-subject"
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            style={{ ...field, paddingRight:36 }}
-          >
-            <option value="">— Select subject —</option>
-            {SUBJECTS.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-          <span style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", pointerEvents:"none", fontSize:11, color:MUTED }}>▾</span>
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="vl-url" style={label}>Content URL *</label>
-        <input
-          id="vl-url"
-          value={url}
-          onChange={e => { setUrl(e.target.value); setUrlErr(null); }}
-          onBlur={validateUrl}
-          placeholder="https://docs.google.com/…"
-          style={{ ...field, borderColor: urlErr ? RED : BORDER }}
-        />
-        {urlErr && <div style={{ fontSize:11, color:RED, marginTop:5 }}>{urlErr}</div>}
-      </div>
-
-      <div>
-        <label htmlFor="vl-tags" style={label}>Tags <span style={{ fontWeight:400, textTransform:"none", letterSpacing:0 }}>(max 10, comma separated)</span></label>
-        <input
-          id="vl-tags"
-          value={tags}
-          onChange={e => setTags(e.target.value)}
-          placeholder="algebra, grade8, kcse"
-          style={field}
-        />
-      </div>
-
-      {error && (
-        <div style={{
-          background:"rgba(239,68,68,0.06)", border:`1px solid rgba(239,68,68,0.2)`,
-          borderRadius:10, padding:"12px 14px", fontSize:12, color:RED, lineHeight:1.5,
-        }}>
-          {error}
+      {/* ── SUCCESS BANNER ────────────────────────────────────────────────── */}
+      {publishOk && (
+        <div style={{ ...card, background: "#d1fae5", border: "1px solid #6ee7b7", padding: "12px 16px", marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Published! Your content is now live and earning.</div>
         </div>
       )}
 
-      <button
-        onClick={publish}
-        disabled={loading}
-        className="vl-btn"
-        style={{
-          width:"100%", padding:"15px 0", borderRadius:13, border:"none",
-          background: loading ? "rgba(30,27,75,0.35)" : DARK,
-          color:"#fff", fontSize:15, fontWeight:800,
-          cursor: loading ? "not-allowed" : "pointer",
-          fontFamily:"inherit",
-          boxShadow: loading ? "none" : "0 4px 14px rgba(30,27,75,0.28)",
-          transition:"all 0.15s",
-        }}
-      >
-        {loading ? "Publishing…" : "Publish to VibeLearn →"}
-      </button>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════
-   STATS TAB
-══════════════════════════════════════════════════════════════ */
-function StatsTab({ stats, items }: { stats: TeacherStats | null; items: Content[] }) {
-  const hasContent = items.length > 0;
-  const liveCount  = items.filter(i => i.status === "live").length;
-  const topContent = [...items].sort((a, b) => b.view_count - a.view_count).slice(0, 3);
-
-  if (!hasContent) return (
-    <div className="vl-up" style={{ textAlign:"center", padding:"52px 24px" }}>
-      <div style={{ fontSize:52, marginBottom:16 }}>📊</div>
-      <div style={{ fontSize:17, fontWeight:800, color:DARK, marginBottom:8 }}>
-        No stats yet
-      </div>
-      <div style={{ fontSize:13, color:MUTED, lineHeight:1.6 }}>
-        Publish content first. Views, earnings and ranking will appear here once students start engaging.
-      </div>
-    </div>
-  );
-
-  const totalViews    = Number(stats?.total_views ?? 0);
-  const totalEarnings = Number(stats?.total_earnings_ksh ?? 0);
-  const rank          = stats?.teacher_rank ?? null;
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-
-      {/* summary row */}
-      <div className="vl-up" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        {[
-          { label:"Total Views",    val: fmt(totalViews),     color:ACCENT, icon:"👁" },
-          { label:"Total Earnings", val: ksh(totalEarnings),  color:DARK,   icon:"💰" },
-          { label:"Live Content",   val: String(liveCount),   color:"#8b5cf6", icon:"✅" },
-          { label:"Teacher Rank",   val: rank ? `#${rank}` : "—", color:GOLD, icon:"🏆" },
-        ].map((s, i) => (
-          <div key={s.label} className="vl-up" style={{
-            background:"#fff", borderRadius:16, padding:"16px 14px",
-            border:`1px solid ${BORDER}`, boxShadow:C.shadow,
-            animationDelay:`${i * 0.06}s`,
-          }}>
-            <div style={{ fontSize:20, marginBottom:8 }}>{s.icon}</div>
-            <div style={{ fontSize:20, fontWeight:800, color:s.color, lineHeight:1 }}>{s.val}</div>
-            <div style={{ fontSize:10, color:MUTED, marginTop:4, fontWeight:600, letterSpacing:0.5 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* top content */}
-      {topContent.length > 0 && (
-        <div className="vl-up" style={{
-          background:"#fff", borderRadius:16, border:`1px solid ${BORDER}`,
-          overflow:"hidden", animationDelay:"0.1s",
-        }}>
-          <div style={{ padding:"14px 16px 10px", fontSize:10, fontWeight:800, color:MUTED, letterSpacing:1.4, textTransform:"uppercase" }}>
-            Top Content by Views
-          </div>
-          {topContent.map((item, i) => (
-            <div key={item.id} style={{
-              display:"flex", alignItems:"center", gap:12,
-              padding:"12px 16px",
-              borderTop:`1px solid ${BORDER}`,
-            }}>
-              <div style={{
-                width:28, height:28, borderRadius:8, flexShrink:0,
-                background: item.type === "ebook"
-                  ? "linear-gradient(135deg,#312e81,#1e1b4b)"
-                  : "linear-gradient(135deg,#064e3b,#065f46)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:14,
-              }}>
-                {item.type === "ebook" ? "📖" : "📄"}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* CONTENT TAB                                                        */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {tab === "content" && (
+        <div>
+          {content.length === 0 ? (
+            <div style={{ ...card, textAlign: "center", padding: "48px 24px" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No content yet</div>
+              <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>
+                Publish your first EPAGE or EBOOK and start earning from ad revenue every time a student reads it.
               </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:700, color:DARK, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                  {item.title}
-                </div>
-                <div style={{ fontSize:10, color:MUTED, marginTop:2 }}>{fmt(item.view_count)} views · {ksh(item.earnings_ksh)}</div>
-              </div>
-              <div style={{
-                fontSize:11, fontWeight:800, color: i === 0 ? GOLD : MUTED,
-                minWidth:20, textAlign:"right",
-              }}>
-                #{i + 1}
-              </div>
+              <button
+                onClick={() => setTab("create")}
+                style={{ padding: "12px 28px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Create your first content →
+              </button>
             </div>
-          ))}
+          ) : (
+            <>
+              {/* Live / Draft counts */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1, ...card, padding: "12px 14px", marginBottom: 0, textAlign: "center" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: C.accent }}>{liveCount}</div>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>LIVE</div>
+                </div>
+                <div style={{ flex: 1, ...card, padding: "12px 14px", marginBottom: 0, textAlign: "center" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: C.textMuted }}>{draftCount}</div>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>DRAFTS</div>
+                </div>
+              </div>
+
+              {content.map((item, idx) => {
+                const isExpanded = expandedId === item.id;
+                const isDeleting = deletingId === item.id;
+                const isToggling = togglingId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    style={{ ...card, cursor: "pointer", transition: "box-shadow 0.15s", animationDelay: `${Math.min(idx * 0.05, 0.3)}s`, animation: "slideIn 0.22s ease both" }}
+                    onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                  >
+                    {/* Row */}
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      {/* Type icon */}
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                        background: item.type === "ebook" ? "#ede9fe" : "#dbeafe",
+                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+                      }}>
+                        {item.type === "ebook" ? "📚" : "📄"}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, lineHeight: 1.3 }}>{item.title}</div>
+                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>
+                          {item.source} · {relativeDate(item.created_at)}
+                        </div>
+                        {/* Tags */}
+                        {item.tags?.length > 0 && (
+                          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+                            {item.tags.slice(0, 4).map(tag => (
+                              <span key={tag} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted }}>{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right column */}
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{
+                          display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+                          background: item.is_published ? "#d1fae5" : "#f3f4f6",
+                          color:      item.is_published ? "#065f46"  : C.textMuted,
+                        }}>
+                          {item.is_published ? "● Live" : "Draft"}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginTop: 6 }}>
+                          {item.view_count.toLocaleString()} views
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded actions */}
+                    {isExpanded && (
+                      <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                        {item.description && (
+                          <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 12, lineHeight: 1.6 }}>{item.description}</div>
+                        )}
+                        {item.external_url && (
+                          <a href={item.external_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.accent, display: "block", marginBottom: 14, wordBreak: "break-all" }}>
+                            🔗 {item.external_url}
+                          </a>
+                        )}
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            disabled={isToggling}
+                            onClick={() => togglePublish(item)}
+                            style={{ padding: "8px 16px", borderRadius: 10, border: `1.5px solid ${C.accent}`, background: "transparent", color: C.accent, fontWeight: 700, fontSize: 12, cursor: isToggling ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isToggling ? 0.6 : 1 }}
+                          >
+                            {isToggling ? "…" : item.is_published ? "Unpublish" : "Publish"}
+                          </button>
+                          <button
+                            disabled={isDeleting}
+                            onClick={() => {
+                              if (window.confirm(`Delete "${item.title}"? This cannot be undone.`)) deleteContent(item.id);
+                            }}
+                            style={{ padding: "8px 16px", borderRadius: 10, border: `1.5px solid ${C.error}`, background: "transparent", color: C.error, fontWeight: 700, fontSize: 12, cursor: isDeleting ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isDeleting ? 0.6 : 1 }}
+                          >
+                            {isDeleting ? "Deleting…" : "Delete"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <button
+                onClick={() => setTab("create")}
+                style={{ width: "100%", padding: "14px", borderRadius: 14, border: `2px dashed ${C.border}`, background: "transparent", color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}
+              >
+                + Add more content
+              </button>
+            </>
+          )}
         </div>
       )}
 
-      {/* no views yet nudge */}
-      {totalViews === 0 && (
-        <div className="vl-up" style={{
-          background:SURF, borderRadius:16, padding:"20px 18px",
-          border:`1px solid ${BORDER}`, animationDelay:"0.15s",
-        }}>
-          <div style={{ fontSize:14, fontWeight:700, color:DARK, marginBottom:6 }}>
-            No views yet
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* CREATE TAB                                                         */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {tab === "create" && (
+        <div style={card}>
+          {/* Type toggle */}
+          <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 12, padding: 4, marginBottom: 18 }}>
+            {(["epage", "ebook"] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setCType(t)}
+                style={{
+                  flex: 1, padding: "10px", borderRadius: 9, border: "none", fontFamily: "inherit",
+                  fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.15s",
+                  background: cType === t ? "#fff" : "transparent",
+                  color:      cType === t ? C.textPrimary : C.textMuted,
+                  boxShadow:  cType === t ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+                }}
+              >
+                {t === "epage" ? "📄 EPAGE" : "📚 EBOOK"}
+              </button>
+            ))}
           </div>
-          <div style={{ fontSize:12, color:MUTED, lineHeight:1.6 }}>
-            Share your content links with students directly, or post them in your class group. Views and earnings update as students open your content.
+
+          {/* Title */}
+          <div style={{ marginBottom: 14 }}>
+            <label htmlFor="vl-title" style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 }}>Title *</label>
+            <input
+              id="vl-title"
+              value={cTitle}
+              onChange={e => setCTitle(e.target.value)}
+              placeholder="e.g. Quadratic Equations — Form 3"
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", color: C.textPrimary, outline: "none", background: C.bg }}
+            />
+          </div>
+
+          {/* Description */}
+          <div style={{ marginBottom: 14 }}>
+            <label htmlFor="vl-desc" style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 }}>Description *</label>
+            <textarea
+              id="vl-desc"
+              value={cDesc}
+              onChange={e => setCDesc(e.target.value)}
+              placeholder="What will students learn from this content?"
+              rows={3}
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", color: C.textPrimary, outline: "none", background: C.bg, resize: "none", lineHeight: 1.6 }}
+            />
+          </div>
+
+          {/* Subject */}
+          <div style={{ marginBottom: 14, position: "relative" }}>
+            <label htmlFor="vl-subject" style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 }}>Subject</label>
+            <div style={{ position: "relative" }}>
+              <select
+                id="vl-subject"
+                value={cSubject}
+                onChange={e => setCSubject(e.target.value)}
+                style={{ width: "100%", padding: "12px 36px 12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", color: C.textPrimary, background: C.bg, appearance: "none", outline: "none", cursor: "pointer" }}
+              >
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", fontSize: 12, color: C.textMuted }}>▾</div>
+            </div>
+          </div>
+
+          {/* URL */}
+          <div style={{ marginBottom: 14 }}>
+            <label htmlFor="vl-url" style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 6 }}>Content URL *</label>
+            <input
+              id="vl-url"
+              type="url"
+              value={cUrl}
+              onChange={e => { setCUrl(e.target.value); setCUrlError(""); }}
+              onBlur={() => { if (cUrl && !isValidUrl(cUrl)) setCUrlError("Enter a valid https:// URL"); }}
+              placeholder="https://docs.google.com/..."
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${cUrlError ? C.error : C.border}`, fontSize: 14, fontFamily: "inherit", color: C.textPrimary, outline: "none", background: C.bg }}
+            />
+            {cUrlError && <div style={{ fontSize: 12, color: C.error, marginTop: 4 }}>{cUrlError}</div>}
+          </div>
+
+          {/* Tags */}
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 8 }}>
+              Tags <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>({cTags.length}/10)</span>
+            </label>
+            {/* Preset chips */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+              {TAGS_PRESET.map(t => {
+                const sel = cTags.includes(t);
+                return (
+                  <button
+                    key={t}
+                    onClick={() => sel ? removeTag(t) : addTag(t)}
+                    style={{ padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", background: sel ? C.accent : "#f3f4f6", color: sel ? "#fff" : C.textMuted, transition: "all 0.15s" }}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Custom tag input */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={cTagInput}
+                onChange={e => setCTagInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag(cTagInput); setCTagInput(""); } }}
+                placeholder="Custom tag, press Enter"
+                maxLength={30}
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", outline: "none", background: C.bg, color: C.textPrimary }}
+              />
+              <button
+                onClick={() => { addTag(cTagInput); setCTagInput(""); }}
+                style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Add
+              </button>
+            </div>
+            {/* Selected custom tags */}
+            {cTags.filter(t => !TAGS_PRESET.includes(t)).length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                {cTags.filter(t => !TAGS_PRESET.includes(t)).map(t => (
+                  <span key={t} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, background: "#ede9fe", color: "#6d28d9", display: "flex", alignItems: "center", gap: 4 }}>
+                    {t}
+                    <button onClick={() => removeTag(t)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 12, color: "#6d28d9", lineHeight: 1, padding: 0 }}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Error */}
+          {publishError && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: C.error, marginBottom: 14 }}>
+              {publishError}
+            </div>
+          )}
+
+          {/* Publish button */}
+          <button
+            onClick={handlePublish}
+            disabled={publishing}
+            style={{ width: "100%", padding: "15px", borderRadius: 14, border: "none", background: publishing ? "#d1fae5" : C.accent, color: "#fff", fontWeight: 800, fontSize: 15, cursor: publishing ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.2s", boxShadow: publishing ? "none" : "0 4px 16px rgba(16,185,129,0.35)" }}
+          >
+            {publishing ? "Publishing…" : "Publish & Start Earning ✦"}
+          </button>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* STATS TAB                                                          */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {tab === "stats" && (
+        <div>
+          {loadingStats ? (
+            <div style={card}>{[1,2,3,4].map(i => <div key={i} style={{ marginBottom: 12 }}><Shimmer h={52} r={12} /></div>)}</div>
+          ) : content.length === 0 ? (
+            <div style={{ ...card, textAlign: "center", padding: "48px 24px" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📊</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No stats yet</div>
+              <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6 }}>Publish content first, then your views and earnings will appear here.</div>
+            </div>
+          ) : (
+            <>
+              {/* Key metrics */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                {[
+                  { label: "Total Views",      value: (stats?.total_views ?? 0).toLocaleString(),       color: C.accent,    bg: "#d1fae5" },
+                  { label: "Earnings (KSH)",   value: (stats?.total_earnings_ksh ?? 0).toLocaleString(), color: "#7c3aed",  bg: "#ede9fe" },
+                  { label: "Live Content",     value: String(stats?.live_count ?? 0),                    color: "#0284c7",  bg: "#dbeafe" },
+                  { label: "Teacher Rank",     value: stats?.teacher_rank ? `#${stats.teacher_rank}` : "—", color: "#b45309", bg: "#fef3c7" },
+                ].map(s => (
+                  <div key={s.label} style={{ background: s.bg, borderRadius: 14, padding: "16px 14px", border: "none" }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: 10, color: s.color, fontWeight: 600, marginTop: 3, opacity: 0.7, textTransform: "uppercase", letterSpacing: 0.8 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Top content */}
+              {stats?.top_content && stats.top_content.length > 0 && (
+                <div style={card}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>Top Performing Content</div>
+                  {stats.top_content.map((c, i) => (
+                    <div key={c.title} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < stats.top_content.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: i === 0 ? "#fef3c7" : i === 1 ? "#f3f4f6" : "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>
+                        {["🥇","🥈","🥉"][i]}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, flexShrink: 0 }}>{c.view_count.toLocaleString()} views</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* No views nudge */}
+              {(stats?.total_views ?? 0) === 0 && content.filter(c => c.is_published).length > 0 && (
+                <div style={{ ...card, background: "#fffbeb", border: "1px solid #fde68a" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#92400e", marginBottom: 6 }}>⚡ No views yet — here's why</div>
+                  <div style={{ fontSize: 12, color: "#92400e", lineHeight: 1.7, opacity: 0.85 }}>
+                    Students need to discover your content. Make sure your tags match what students search for, and share your content link with your class directly.
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* DISCOVER TAB                                                       */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {tab === "discover" && (
+        <div>
+          <div style={{ ...card, background: "linear-gradient(135deg, #ede9fe, #dbeafe)", border: "none", textAlign: "center", padding: "32px 20px" }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#1e1b4b", marginBottom: 6 }}>Discover is coming soon</div>
+            <div style={{ fontSize: 13, color: "#4c1d95", lineHeight: 1.6 }}>
+              Browse and read content from other teachers. Recommendations based on your subject and teaching level.
+            </div>
+          </div>
+
+          {/* Nudge — see your own content */}
+          <div style={{ ...card, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setTab("content")}>
+            <div style={{ fontSize: 24 }}>📚</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>View your published content</div>
+              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>See what's live and earning right now</div>
+            </div>
+            <div style={{ marginLeft: "auto", color: C.textMuted, fontSize: 18 }}>›</div>
           </div>
         </div>
       )}
@@ -736,3 +708,4 @@ function StatsTab({ stats, items }: { stats: TeacherStats | null; items: Content
     </div>
   );
 }
+

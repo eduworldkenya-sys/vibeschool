@@ -4,12 +4,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
-import {
-  School, BookOpen, Palette, BarChart2,
-  CheckSquare, FileText, Users, Link2,
-  Zap, Calendar, BookMarked, Folder,
-  Target, TrendingUp, Layers, ClipboardList,
-} from "lucide-react";
 
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
@@ -19,66 +13,78 @@ interface UserCtx { fullName: string; initials: string; school: string }
 const UserContext = createContext<UserCtx>({ fullName: '', initials: '', school: '' });
 export const useUser = () => useContext(UserContext);
 
+// ── Nav config — single source of truth ──────────────────────────────────────
 const NAV_TABS = [
-  { id: "classhub",   label: "ClassHub", icon: "nav_classhub",   href: "/teacher/classhub"   },
-  { id: "vibelearn",  label: "Learn",    icon: "nav_learn",      href: "/teacher/vibelearn"  },
-  { id: "lessonplan", label: "Studio",   icon: "nav_studio",     href: "/teacher/lessonplan" },
-  { id: "assessment", label: "Assess",   icon: "nav_assess",     href: "/teacher/assessment" },
-];
+  { id: "classhub",   label: "ClassHub",  href: "/teacher/classhub"   },
+  { id: "vibelearn",  label: "VibeLearn", href: "/teacher/vibelearn"  },
+  { id: "lessonplan", label: "Plans",     href: "/teacher/lessonplan" },
+  { id: "assessment", label: "Assess",    href: "/teacher/assessment" },
+  { id: "more",       label: "More",      href: "/teacher/more"       },
+] as const;
 
-const SVG: Record<string, React.ReactNode> = {
-  // ── nav bar ──────────────────────────────────────────────
-  nav_classhub: <School  size={24} strokeWidth={1.8} />,
-  nav_learn:    <BookOpen size={24} strokeWidth={1.8} />,
-  nav_studio:   <Palette  size={24} strokeWidth={1.8} />,
-  nav_assess:   <BarChart2 size={24} strokeWidth={1.8} />,
+type TabId = typeof NAV_TABS[number]["id"];
 
-  // ── classhub sheet ───────────────────────────────────────
-  attendance: <CheckSquare size={20} strokeWidth={1.8} />,
-  homework:   <FileText    size={20} strokeWidth={1.8} />,
-  classes:    <Users       size={20} strokeWidth={1.8} />,
-  invite:     <Link2       size={20} strokeWidth={1.8} />,
-
-  // ── studio sheet ─────────────────────────────────────────
-  lesson:     <Zap         size={20} strokeWidth={1.8} />,
-  scheme:     <Calendar    size={20} strokeWidth={1.8} />,
-  notes:      <BookMarked  size={20} strokeWidth={1.8} />,
-  resources:  <Folder      size={20} strokeWidth={1.8} />,
-
-  // ── assessment sheet ─────────────────────────────────────
-  assess:     <Target        size={20} strokeWidth={1.8} />,
-  results:    <TrendingUp    size={20} strokeWidth={1.8} />,
-  strands:    <Layers        size={20} strokeWidth={1.8} />,
-  exam:       <ClipboardList size={20} strokeWidth={1.8} />,
-};
-
-const NAV_SHEETS: Record<string, { icon: string; label: string; href: string; desc: string }[]> = {
-  classhub: [
-    { icon: "attendance", label: "Mark Attendance",  href: "/teacher/attendance",  desc: "Today's register" },
-    { icon: "homework",   label: "Set Homework",     href: "/teacher/classhub",    desc: "Assign to a class" },
-    { icon: "classes",    label: "My Classes",       href: "/teacher/classhub",    desc: "All classes overview" },
-    { icon: "invite",     label: "Invite Students",  href: "/teacher/classhub",    desc: "Share join codes" },
-  ],
-  lessonplan: [
-    { icon: "lesson",     label: "New Lesson Plan",  href: "/teacher/lessonplan",  desc: "AI-powered generator" },
-    { icon: "scheme",     label: "Scheme of Work",   href: "/teacher/lessonplan",  desc: "Term planner" },
-    { icon: "notes",      label: "My Notes",         href: "/teacher/lessonplan",  desc: "Teaching notes" },
-    { icon: "resources",  label: "Resources",        href: "/teacher/resources",   desc: "Files & materials" },
-  ],
-  assessment: [
-    { icon: "assess",     label: "Record Assessment",href: "/teacher/assessment",  desc: "CBC performance entry" },
-    { icon: "results",    label: "Class Performance",href: "/teacher/assessment",  desc: "Trends & averages" },
-    { icon: "strands",    label: "CBC Strands",      href: "/teacher/assessment",  desc: "Strand progress" },
-    { icon: "exam",       label: "Exam Results",     href: "/teacher/assessment",  desc: "Test scores" },
-  ],
-};
-
-function tabIdFromPath(path: string): string {
-  if (path === "/teacher" || path === "/teacher/") return "home";
-  const match = NAV_TABS.find(t => t.href !== "/teacher" && path.startsWith(t.href));
-  return match?.id ?? "home";
+function tabIdFromPath(path: string): TabId {
+  // /teacher root → classhub is home
+  if (path === "/teacher" || path === "/teacher/") return "classhub";
+  const match = NAV_TABS.find(t => path.startsWith(t.href));
+  return (match?.id ?? "classhub") as TabId;
 }
 
+// ── SVG icons — currentColor, no hardcoded fills ─────────────────────────────
+function IconClassHub({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  );
+}
+function IconVibeLearn({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      <line x1="12" y1="6" x2="16" y2="6"/><line x1="12" y1="10" x2="16" y2="10"/>
+      <line x1="8" y1="14" x2="16" y2="14"/>
+    </svg>
+  );
+}
+function IconPlans({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  );
+}
+function IconAssess({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6"  y1="20" x2="6"  y2="14"/>
+    </svg>
+  );
+}
+function IconMore({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="5"  cy="12" r="1.2" fill="currentColor" stroke="none"/>
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+      <circle cx="19" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+
+const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
+  classhub:   (a) => <IconClassHub  size={a ? 23 : 21} />,
+  vibelearn:  (a) => <IconVibeLearn size={a ? 23 : 21} />,
+  lessonplan: (a) => <IconPlans     size={a ? 23 : 21} />,
+  assessment: (a) => <IconAssess    size={a ? 23 : 21} />,
+  more:       (a) => <IconMore      size={a ? 23 : 21} />,
+};
+
+// ── TwinPill ─────────────────────────────────────────────────────────────────
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -265,143 +271,238 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   )
 }
 
-function BottomNav({ activeId, unreadConnect }: { activeId: string; unreadConnect: number }) {
-  const router   = useRouter();
-  const [sheet, setSheet] = useState<string | null>(null);
-
-  function handleTab(t: typeof NAV_TABS[0]) {
-    if (t.id === "vibelearn") { router.push(t.href); setSheet(null); return; }
-    if (NAV_SHEETS[t.id]) {
-      if (sheet === t.id) { router.push(t.href); setSheet(null); }
-      else { setSheet(t.id); }
-    } else {
-      router.push(t.href); setSheet(null);
-    }
-  }
+// ── BottomNav ─────────────────────────────────────────────────────────────────
+function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLearn?: number }) {
+  const router = useRouter();
 
   return (
-    <>
-      {/* ── PEEK SHEET ── */}
-      {sheet && (
-        <>
-          {/* backdrop */}
-          <div
-            onClick={() => setSheet(null)}
-            style={{ position:"fixed", inset:0, zIndex:698, background:"rgba(0,0,0,0.18)", backdropFilter:"blur(2px)", animation:"fadeIn 0.18s ease" }}
-          />
-          {/* sheet */}
-          <div style={{
-            position:"fixed", bottom:64, left:0, right:0, zIndex:699,
-            background:"#fff", borderRadius:"20px 20px 0 0",
-            boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",
-            padding:"8px 0 12px",
-            animation:"sheetUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
-          }}>
-            <style>{`
-              @keyframes sheetUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
-              @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
-            `}</style>
-            {/* handle */}
-            <div style={{ width:36, height:4, borderRadius:2, background:"#e5e7eb", margin:"4px auto 16px" }} />
-            {/* title */}
-            <div style={{ fontSize:11, fontWeight:800, color:"#9ca3af", letterSpacing:1.6, textTransform:"uppercase", paddingLeft:20, marginBottom:12 }}>
-              {NAV_TABS.find(t => t.id === sheet)?.label}
-            </div>
-            {/* actions grid */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, padding:"0 14px 8px" }}>
-              {(NAV_SHEETS[sheet] ?? []).map(a => (
-                <button
-                  key={a.label}
-                  onClick={() => { router.push(a.href); setSheet(null); }}
-                  style={{
-                    display:"flex", alignItems:"center", gap:12,
-                    padding:"14px 14px", borderRadius:16,
-                    border:"1px solid #f0ece6", background:"#fafaf9",
-                    cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-                    transition:"transform 0.12s ease, background 0.12s ease",
-                  }}
-                  onPointerDown={e => (e.currentTarget.style.transform="scale(0.96)")}
-                  onPointerUp={e => (e.currentTarget.style.transform="scale(1)")}
-                  onPointerLeave={e => (e.currentTarget.style.transform="scale(1)")}
-                >
-                  <span style={{ color:"#1e1b4b", flexShrink:0, display:"flex", alignItems:"center" }}>{SVG[a.icon]}</span>
-                  <div>
-                    <div style={{ fontSize:12, fontWeight:700, color:"#111827", lineHeight:1.2 }}>{a.label}</div>
-                    <div style={{ fontSize:10, color:"#9ca3af", marginTop:2 }}>{a.desc}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-            {/* go to full page */}
-            <button
-              onClick={() => { const t = NAV_TABS.find(x => x.id === sheet); if(t) router.push(t.href); setSheet(null); }}
-              style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, width:"calc(100% - 28px)", margin:"4px 14px 0", padding:"12px", borderRadius:14, border:"none", background:"#1e1b4b", color:"#fff", fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}
-            >
-              Open {NAV_TABS.find(t => t.id === sheet)?.label} <span style={{ fontSize:16 }}>→</span>
-            </button>
-          </div>
-        </>
-      )}
+    <div style={{
+      position:    "fixed",
+      bottom:      0,
+      left:        0,
+      right:       0,
+      zIndex:      700,
+      background:  "#fff",
+      borderTop:   `1px solid ${C.border}`,
+      display:     "flex",
+      height:      64,
+      boxShadow:   "0 -4px 20px rgba(0,0,0,0.07)",
+      paddingBottom: "env(safe-area-inset-bottom)",
+    }}>
+      {NAV_TABS.map(t => {
+        const isActive  = t.id === activeId;
+        const showBadge = t.id === "vibelearn" && unreadLearn > 0;
 
-      {/* ── TAB BAR ── */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:700, background:"#fff", borderTop:`1px solid ${C.border}`, display:"flex", height:64, boxShadow:"0 -2px 12px rgba(0,0,0,0.06)" }}>
-        {NAV_TABS.map(t => {
-          const isActive  = t.id === activeId;
-          const isOpen    = sheet === t.id;
-          const badge     = t.id === "vibeconnect" ? unreadConnect : 0;
-          return (
-            <button
-              key={t.id}
-              onClick={() => handleTab(t)}
-              style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:3, border:"none", background:"none", cursor:"pointer", padding:"8px 0", color: isActive || isOpen ? C.accent : C.textMuted, transition:"color 0.15s", position:"relative" }}
-            >
-              {badge > 0 && <span style={{ position:"absolute", top:6, right:"calc(50% - 14px)", width:16, height:16, borderRadius:"50%", background:C.error, color:"#fff", fontSize:9, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>{badge}</span>}
-              <span style={{ lineHeight:1, transition:"transform 0.15s ease", transform: isOpen ? "translateY(-2px)" : "translateY(0)", display:"flex", alignItems:"center", justifyContent:"center" }}>{SVG[t.icon]}</span>
-              <span style={{ fontSize:10, fontWeight: isActive || isOpen ? 800 : 600, letterSpacing:0.2 }}>{t.label}</span>
-              {(isActive || isOpen) && <div style={{ position:"absolute", top:0, width:28, height:2.5, background:C.accent, borderRadius:"0 0 3px 3px" }} />}
-            </button>
-          );
-        })}
-      </div>
-    </>
+        return (
+          <button
+            key={t.id}
+            onClick={() => router.push(t.href)}
+            style={{
+              flex:           1,
+              display:        "flex",
+              flexDirection:  "column",
+              alignItems:     "center",
+              justifyContent: "center",
+              gap:            3,
+              border:         "none",
+              background:     "none",
+              cursor:         "pointer",
+              padding:        "8px 0",
+              color:          isActive ? C.accent : C.textMuted,
+              transition:     "color 0.15s",
+              position:       "relative",
+            }}
+          >
+            {/* Top active pill */}
+            {isActive && (
+              <div style={{
+                position:     "absolute",
+                top:          0,
+                width:        28,
+                height:       3,
+                background:   C.accent,
+                borderRadius: "0 0 4px 4px",
+              }} />
+            )}
+
+            {/* VibeLearn active glow bg */}
+            {t.id === "vibelearn" && isActive && (
+              <div style={{
+                position:      "absolute",
+                width:         44,
+                height:        44,
+                borderRadius:  "50%",
+                background:    "rgba(16,185,129,0.08)",
+                top:           "50%",
+                left:          "50%",
+                transform:     "translate(-50%, -50%)",
+                pointerEvents: "none",
+              }} />
+            )}
+
+            {/* Unread badge */}
+            {showBadge && (
+              <span style={{
+                position:     "absolute",
+                top:          6,
+                right:        "calc(50% - 18px)",
+                width:        16,
+                height:       16,
+                borderRadius: "50%",
+                background:   C.error,
+                color:        "#fff",
+                fontSize:     9,
+                fontWeight:   800,
+                display:      "flex",
+                alignItems:   "center",
+                justifyContent: "center",
+                border:       "2px solid #fff",
+              }}>
+                {unreadLearn}
+              </span>
+            )}
+
+            <span style={{ lineHeight: 1 }}>
+              {NAV_ICONS[t.id]?.(isActive)}
+            </span>
+            <span style={{
+              fontSize:   10,
+              fontWeight: isActive ? 800 : 500,
+              letterSpacing: 0.1,
+              marginTop:  1,
+            }}>
+              {t.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
+// ── TopBar — VibeConnect icon + Avatar only ───────────────────────────────────
 function TopBar({ school, initials, unreadConnect }: { school: string; initials: string; unreadConnect: number }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const isHome   = pathname === "/teacher" || pathname === "/teacher/";
+  const isRoot   = pathname === "/teacher" || pathname === "/teacher/" || pathname === "/teacher/classhub";
+
   return (
-    <div style={{ background: C.dark, color: "#fff", padding: "0 20px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 600, boxShadow: "0 2px 12px rgba(0,0,0,0.18)" }}>
+    <div style={{
+      background:      C.dark,
+      color:           "#fff",
+      padding:         "0 20px",
+      height:          56,
+      display:         "flex",
+      alignItems:      "center",
+      justifyContent:  "space-between",
+      position:        "sticky",
+      top:             0,
+      zIndex:          600,
+      boxShadow:       "0 2px 12px rgba(0,0,0,0.18)",
+    }}>
+      {/* Left — back chevron or logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {!isHome && (
-          <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}>‹</div>
+        {!isRoot && (
+          <div
+            onClick={() => router.back()}
+            style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}
+          >
+            ‹
+          </div>
         )}
-        <div onClick={() => router.push("/teacher")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-          <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
+        <div
+          onClick={() => router.push("/teacher/classhub")}
+          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+        >
+          <div style={{
+            width: 30, height: 30, borderRadius: 9,
+            background: C.accent,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 15, fontWeight: 900, color: "#fff",
+          }}>
+            V
+          </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>{school || "Independent"}</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>
+              {school || "Independent"}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Right — VibeConnect + Avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        {unreadConnect > 0 && (
-          <div style={{ position: "relative", cursor: "pointer" }} onClick={() => router.push("/teacher/vibeconnect")}>
-            <span style={{ fontSize: 20 }}>💬</span>
-            <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadConnect}</span>
-          </div>
-        )}
-        <Avatar initials={initials || "…"} size={34} onClick={() => router.push("/teacher/profile")} style={{ cursor: "pointer" }} />
+        {/* VibeConnect — always visible, badge only when unread */}
+        <div
+          style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }}
+          onClick={() => router.push("/teacher/vibeconnect")}
+        >
+          <svg
+            width="22" height="22" viewBox="0 0 24 24"
+            fill="none" stroke="rgba(255,255,255,0.75)"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          {unreadConnect > 0 && (
+            <span style={{
+              position:     "absolute",
+              top:          -4,
+              right:        -4,
+              width:        16,
+              height:       16,
+              borderRadius: "50%",
+              background:   C.error,
+              color:        "#fff",
+              fontSize:     9,
+              fontWeight:   800,
+              display:      "flex",
+              alignItems:   "center",
+              justifyContent: "center",
+              border:       `2px solid ${C.dark}`,
+            }}>
+              {unreadConnect}
+            </span>
+          )}
+        </div>
+
+        {/* Avatar → Profile */}
+        <Avatar
+          initials={initials || "…"}
+          size={34}
+          onClick={() => router.push("/teacher/profile")}
+          style={{ cursor: "pointer" }}
+        />
       </div>
     </div>
   );
 }
 
 function Toast({ msg }: { msg: string }) {
-  return <div style={{ position: "fixed", bottom: 140, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "11px 22px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, animation: "fadeIn 0.2s ease", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}>{msg}</div>;
+  return (
+    <div style={{
+      position:   "fixed",
+      bottom:     140,
+      left:       "50%",
+      transform:  "translateX(-50%)",
+      background: C.dark,
+      color:      "#fff",
+      padding:    "11px 22px",
+      borderRadius: 12,
+      fontSize:   13,
+      fontWeight: 600,
+      zIndex:     9999,
+      animation:  "fadeIn 0.2s ease",
+      boxShadow:  "0 8px 24px rgba(0,0,0,0.18)",
+      whiteSpace: "nowrap",
+    }}>
+      {msg}
+    </div>
+  );
 }
 
+// ── Root layout ───────────────────────────────────────────────────────────────
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const activeId = tabIdFromPath(pathname);
@@ -442,18 +543,19 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           .single();
         setSchool(schoolData?.name ?? "");
       }
+      // Unread VibeConnect count
       const { data: participation } = await supabase
         .from('vc_participants')
         .select('thread_id, last_read_at')
-        .eq('profile_id', user.id)
+        .eq('profile_id', user.id);
 
-      const threadIds = (participation ?? []).map((p: { thread_id: string }) => p.thread_id)
-      let unread = 0
+      const threadIds = (participation ?? []).map((p: { thread_id: string }) => p.thread_id);
+      let unread = 0;
       if (threadIds.length > 0) {
-        const readMap: Record<string, string> = {}
-        ;(participation ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => {
-          readMap[p.thread_id] = p.last_read_at ?? '1970-01-01T00:00:00Z'
-        })
+        const readMap: Record<string, string> = {};
+        (participation ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => {
+          readMap[p.thread_id] = p.last_read_at ?? '1970-01-01T00:00:00Z';
+        });
         const counts = await Promise.all(
           threadIds.map(async (tid: string) => {
             const { count } = await supabase
@@ -461,13 +563,13 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
               .select('id', { count: 'exact', head: true })
               .eq('thread_id', tid)
               .neq('sender_id', user.id)
-              .gt('created_at', readMap[tid])
-            return (count ?? 0) > 0 ? 1 : 0
+              .gt('created_at', readMap[tid]);
+            return (count ?? 0) > 0 ? 1 : 0;
           })
-        )
-        unread = counts.reduce((a: number, b: number) => a + b, 0)
+        );
+        unread = counts.reduce((a: number, b: number) => a + b, 0);
       }
-      setUnreadConnect(unread)
+      setUnreadConnect(unread);
     }
     fetchProfile();
   }, [pathname]);
@@ -501,10 +603,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
-          <BottomNav activeId={activeId} unreadConnect={unreadConnect} />
+          <BottomNav activeId={activeId} />
           {toast && <Toast msg={toast} />}
         </div>
       </UserContext.Provider>
     </ToastContext.Provider>
   );
 }
+
