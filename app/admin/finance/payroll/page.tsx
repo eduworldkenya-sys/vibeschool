@@ -154,7 +154,7 @@ export default function PayrollPage() {
       .from("profiles")
       .select("id, full_name, role")
       .eq("school_id", sid)
-      .eq("role", "teacher")
+      
     setStaffProfiles(data ?? [])
   }, [])
 
