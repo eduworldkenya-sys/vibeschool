@@ -534,7 +534,11 @@ export default function VibeLearnShellWrapper({
   const handleOpen = useCallback(async (item: VibeContent) => {
     setOpenContent(item)
     try {
-      await supabase.rpc('increment_view_count', { content_id: item.id })
+      const { data: { user: viewer } } = await supabase.auth.getUser()
+await supabase.rpc('increment_view_count', {
+  content_id: item.id,
+  viewer_id: viewer?.id ?? null
+})
       const { data: { user } } = await supabase.auth.getUser()
       if (user) await awardPoints(user.id, 'content_viewed', item.id)
     } catch {
