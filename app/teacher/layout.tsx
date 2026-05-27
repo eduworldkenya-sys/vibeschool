@@ -4,6 +4,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
+import {
+  School, BookOpen, Palette, BarChart2,
+  CheckSquare, FileText, Users, Link2,
+  Zap, Calendar, BookMarked, Folder,
+  Target, TrendingUp, Layers, ClipboardList,
+} from "lucide-react";
 
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
@@ -21,57 +27,29 @@ const NAV_TABS = [
 ];
 
 const SVG: Record<string, React.ReactNode> = {
-  attendance: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
-  homework:   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-  classes:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
-  invite:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>,
-  lesson:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-  scheme:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  notes:      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-  resources:  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>,
-  assess:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-  results:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-  strands:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>,
-  exam:       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>,
+  // ── nav bar ──────────────────────────────────────────────
+  nav_classhub: <School  size={24} strokeWidth={1.8} />,
+  nav_learn:    <BookOpen size={24} strokeWidth={1.8} />,
+  nav_studio:   <Palette  size={24} strokeWidth={1.8} />,
+  nav_assess:   <BarChart2 size={24} strokeWidth={1.8} />,
 
-  nav_classhub: (
-    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
-      <rect x="6" y="20" width="36" height="24" rx="3" fill="#f97316"/>
-      <rect x="14" y="28" width="8" height="10" rx="1.5" fill="#fff7ed"/>
-      <rect x="26" y="28" width="8" height="10" rx="1.5" fill="#fff7ed"/>
-      <polygon points="4,22 24,6 44,22" fill="#1e1b4b"/>
-      <rect x="20" y="6" width="8" height="8" rx="1" fill="#f97316"/>
-      <circle cx="36" cy="14" r="3" fill="#fbbf24"/>
-      <line x1="36" y1="11" x2="36" y2="6" stroke="#fbbf24" strokeWidth="1.5"/>
-    </svg>
-  ),
-  nav_learn: (
-    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
-      <ellipse cx="24" cy="38" rx="14" ry="4" fill="#1e1b4b"/>
-      <path d="M10 26 L24 20 L38 26 L24 32 Z" fill="#1e1b4b"/>
-      <path d="M38 26 L38 34" stroke="#1e1b4b" strokeWidth="2.5" strokeLinecap="round"/>
-      <circle cx="38" cy="36" r="3" fill="#1e1b4b"/>
-      <path d="M14 28.5 L14 36 Q24 40 34 36 L34 28.5" fill="#4ade80" opacity="0.85"/>
-    </svg>
-  ),
-  nav_studio: (
-    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
-      <circle cx="24" cy="26" r="14" fill="#f97316"/>
-      <circle cx="19" cy="21" r="4" fill="#fff"/>
-      <circle cx="29" cy="21" r="4" fill="#ef4444"/>
-      <circle cx="19" cy="31" r="4" fill="#fbbf24"/>
-      <circle cx="29" cy="31" r="4" fill="#22c55e"/>
-      <circle cx="24" cy="26" r="3" fill="#1e1b4b"/>
-      <path d="M24 12 Q28 8 32 10 Q30 14 26 13 Z" fill="#1e1b4b"/>
-    </svg>
-  ),
-  nav_assess: (
-    <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
-      <rect x="8" y="28" width="8" height="14" rx="2" fill="#1e1b4b"/>
-      <rect x="20" y="18" width="8" height="24" rx="2" fill="#f97316"/>
-      <rect x="32" y="10" width="8" height="32" rx="2" fill="#22c55e"/>
-    </svg>
-  ),
+  // ── classhub sheet ───────────────────────────────────────
+  attendance: <CheckSquare size={20} strokeWidth={1.8} />,
+  homework:   <FileText    size={20} strokeWidth={1.8} />,
+  classes:    <Users       size={20} strokeWidth={1.8} />,
+  invite:     <Link2       size={20} strokeWidth={1.8} />,
+
+  // ── studio sheet ─────────────────────────────────────────
+  lesson:     <Zap         size={20} strokeWidth={1.8} />,
+  scheme:     <Calendar    size={20} strokeWidth={1.8} />,
+  notes:      <BookMarked  size={20} strokeWidth={1.8} />,
+  resources:  <Folder      size={20} strokeWidth={1.8} />,
+
+  // ── assessment sheet ─────────────────────────────────────
+  assess:     <Target        size={20} strokeWidth={1.8} />,
+  results:    <TrendingUp    size={20} strokeWidth={1.8} />,
+  strands:    <Layers        size={20} strokeWidth={1.8} />,
+  exam:       <ClipboardList size={20} strokeWidth={1.8} />,
 };
 
 const NAV_SHEETS: Record<string, { icon: string; label: string; href: string; desc: string }[]> = {
