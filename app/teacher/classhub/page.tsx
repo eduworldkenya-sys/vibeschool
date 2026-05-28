@@ -435,6 +435,7 @@ export default function ClassHubPage() {
   const [data,    setData]    = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [clock,   setClock]   = useState('')
+  const [weather, setWeather] = useState<{temp:number,icon:string,desc:string} | null>(null)
   const slideRef              = useRef<HTMLDivElement>(null)
   const [activeSlide, setActiveSlide] = useState(0)
 
@@ -446,6 +447,21 @@ export default function ClassHubPage() {
     tick()
     const id = setInterval(tick, 15000)
     return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude: lat, longitude: lon } = pos.coords
+      try {
+        const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
+        const d = await r.json()
+        const code = d.current_weather.weathercode
+        const temp = Math.round(d.current_weather.temperature)
+        const icons: Record<number,string> = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'}
+        const descs: Record<number,string> = {0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Drizzle',53:'Drizzle',55:'Drizzle',61:'Rain',63:'Rain',65:'Heavy rain',71:'Snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Thunderstorm',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'}
+        setWeather({ temp, icon: icons[code] ?? '🌡️', desc: descs[code] ?? 'Weather' })
+      } catch {}
+    })
   }, [])
 
   useEffect(() => { load() }, [])
@@ -783,14 +799,22 @@ export default function ClassHubPage() {
               </div>
             )
           })()}
-          {/* ── CLOCK (compact) ── */}
+          {/* ── WEATHER (compact) ── */}
           <div style={{ textAlign:'right', flexShrink:0, alignSelf:'flex-start' }}>
-            <div style={{ fontSize:20, fontWeight:200, color:'rgba(255,255,255,0.75)', fontVariantNumeric:'tabular-nums', letterSpacing:1.5, lineHeight:1 }}>
-              {clock}
-            </div>
-            <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:700, marginTop:3, letterSpacing:1, textTransform:'uppercase' }}>
-              {currentLesson ? 'live' : 'now'}
-            </div>
+            {weather ? (
+              <>
+                <div style={{ fontSize:20, fontWeight:200, color:'rgba(255,255,255,0.75)', lineHeight:1 }}>
+                  {weather.icon} {weather.temp}°
+                </div>
+                <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:700, marginTop:3, letterSpacing:1, textTransform:'uppercase' }}>
+                  {weather.desc}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>
+                {clock}
+              </div>
+            )}
           </div>
         </div>
 
