@@ -124,7 +124,7 @@ Today: ${new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeri
         position:      "fixed",
         left:          "50%",
         transform:     "translateX(-50%)",
-        bottom:        open ? 130 : -520,
+        bottom:        open ? 80 : -520,
         zIndex:        790,
         width:         "calc(100% - 32px)",
         maxWidth:      600,
