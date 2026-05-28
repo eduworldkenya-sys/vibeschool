@@ -206,7 +206,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       const token      = sessionRes.data.session?.access_token ?? ''
 
       const res = await fetch(
-        process.env.NEXT_PUBLIC_SUPABASE_URL + '/functions/v1/generate-lesson-plan',
+        process.env.NEXT_PUBLIC_SUPABASE_URL + '/functions/v1/swift-processor',
         {
           method:  'POST',
           headers: {
