@@ -522,13 +522,13 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     async function fetchProfile() {
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) return;
+      if (userErr || !user) { router.push("/academy/signin"); return; }
       const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
-        .select("full_name, school_id")
+        .select("full_name, school_id, role")
         .eq("id", user.id)
         .single();
-      if (profileErr || !profileData) return;
+      if (profileErr || !profileData || profileData.role !== "teacher") { router.push("/academy/signin"); return; }
       const name  = profileData.full_name ?? "";
       setFullName(name);
       const parts   = name.trim().split(" ").filter(Boolean);
