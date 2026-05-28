@@ -34,10 +34,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(`/academy/signin?role=${role}`, req.url))
   }
 
-  if (user && (pathname.startsWith('/academy/signin') || pathname.startsWith('/academy/signup'))) {
-    return NextResponse.redirect(new URL('/', req.url))
-  }
-
   return res
 }
 
