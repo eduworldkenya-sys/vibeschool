@@ -6,6 +6,7 @@ const PUBLIC_PATHS = [
   '/academy/signup',
   '/academy/complete-profile',
   '/academy/select-role',
+  '/admin/login',
   '/select',
   '/',
 ]
