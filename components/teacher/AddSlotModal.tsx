@@ -80,15 +80,11 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
 
   async function handleClassChange(id: string) {
     setClassId(id)
-    if (!id || !schoolId) return
     const selected = classes.find(c => c.id === id)
     if (!selected?.subject) return
-    const { data } = await supabase
-      .from('subjects')
-      .select('id')
-      .eq('school_id', schoolId)
-      .eq('name', selected.subject)
-      .maybeSingle()
+    let query = supabase.from('subjects').select('id').eq('name', selected.subject)
+    if (schoolId) query = query.eq('school_id', schoolId)
+    const { data } = await query.maybeSingle()
     setSubjectId(data?.id ?? null)
   }
 
