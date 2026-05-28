@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/teacher/layout'
+import SmartTimetablePreview from '@/components/teacher/SmartTimetablePreview'
 
 interface Slot {
   id:               string
@@ -845,6 +846,9 @@ export default function TeacherDashboard() {
           </button>
         </div>
       )}
+
+      {/* ── SMART TIMETABLE PREVIEW ── */}
+      <SmartTimetablePreview />
 
       {/* ── SCHOOL PULSE ── */}
       <div style={{ textAlign:'center', padding:'4px 0 2px' }}>
