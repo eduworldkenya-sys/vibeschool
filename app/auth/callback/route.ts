@@ -4,9 +4,9 @@ import { cookies } from 'next/headers'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const code = searchParams.get('code')
-  const next = searchParams.get('next')
-  const role = searchParams.get('role') ?? 'teacher'
+  const code      = searchParams.get('code')
+  const next      = searchParams.get('next')
+  const role      = searchParams.get('role') ?? searchParams.get('role_hint') ?? 'teacher'
 
   if (code) {
     const cookieStore = cookies()
@@ -28,10 +28,8 @@ export async function GET(req: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // If explicit next param, honour it
       if (next) return NextResponse.redirect(new URL(next, req.url))
 
-      // Look up profile role
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: profile } = await supabase
@@ -50,7 +48,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.redirect(new URL(destinations[profile.role] ?? '/teacher', req.url))
         }
 
-        // New user — send to complete profile with role hint
+        // New Google user — send to complete profile with role hint
         return NextResponse.redirect(
           new URL(`/academy/complete-profile?role=${role}`, req.url)
         )
@@ -58,5 +56,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL('/academy/signin?error=auth', req.url))
+  // All failures go back to login
+  return NextResponse.redirect(new URL('/academy', req.url))
 }
