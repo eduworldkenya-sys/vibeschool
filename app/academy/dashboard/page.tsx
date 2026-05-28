@@ -15,14 +15,14 @@ export default function AcademyDashboard() {
   useEffect(() => {
     async function checkSession() {
       const { data: { user }, error } = await supabase.auth.getUser()
-      if (error || !user) { router.replace('/academy/select-role'); return }
+      if (error || !user) { window.location.href = '/academy/select-role'; return }
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, role')
         .eq('id', user.id)
         .single()
       if (!profile || profile.role !== 'teacher') {
-        router.replace('/academy/select-role'); return
+        window.location.href = '/academy/select-role'; return
       }
       setUserName(profile.full_name ?? user.email ?? null)
       setLoading(false)
@@ -32,7 +32,7 @@ export default function AcademyDashboard() {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    router.replace('/academy/select-role')
+    window.location.href = '/academy/select-role'
   }
 
   if (loading) {

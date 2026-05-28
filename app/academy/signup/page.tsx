@@ -61,7 +61,7 @@ function AcademySignUpInner() {
     if (!contentRef.current) return
     contentRef.current.style.transition = 'opacity 280ms ease-in'
     contentRef.current.style.opacity    = '0'
-    navTimer.current = setTimeout(() => router.push(destination), 280)
+    navTimer.current = setTimeout(() => { window.location.href = destination }, 280)
   }
 
   async function handleGoogle() {
