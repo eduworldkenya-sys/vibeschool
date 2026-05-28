@@ -123,7 +123,7 @@ ${childLines.join("\n\n")}`;
         content: m.text,
       }));
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/super-action", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ Never say you are Claude or made by Anthropic. You are simply "Your Twin".`,
       });
 
       const data  = await response.json();
-      const reply = data.content?.[0]?.text ?? "I could not process that. Please try again.";
+      const reply = data.reply ?? "I could not process that. Please try again.";
       setMessages(m => [...m, { role: "twin", text: reply }]);
     } catch {
       setMessages(m => [...m, { role: "twin", text: "Something went wrong. Check your connection and try again." }]);
