@@ -12,7 +12,7 @@ const PUBLIC_PATHS = [
 ]
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  let res = NextResponse.next({ request: { headers: req.headers } })
   const { pathname } = req.nextUrl
 
   const supabase = createServerClient(
@@ -22,18 +22,18 @@ export async function middleware(req: NextRequest) {
       cookies: {
         getAll() { return req.cookies.getAll() },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            req.cookies.set(name, value)
-            res.cookies.set(name, value, options)
-          })
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          res = NextResponse.next({ request: { headers: req.headers } })
+          cookiesToSet.forEach(({ name, value, options }) => res.cookies.set(name, value, options))
         },
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  await supabase.auth.getUser()
 
   const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user && !isPublic) {
     const redirectUrl = req.nextUrl.clone()
