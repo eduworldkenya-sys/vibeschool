@@ -10,7 +10,7 @@ export async function middleware(req: NextRequest) {
     {
       cookies: {
         getAll() { return req.cookies.getAll() },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           cookiesToSet.forEach(({ name, value, options }) =>
             res.cookies.set(name, value, options)
           )
@@ -22,7 +22,6 @@ export async function middleware(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = req.nextUrl
 
-  // Protected routes — redirect to signin if no session
   const protectedPrefixes = ['/teacher', '/admin', '/parent', '/student', '/select']
   const isProtected = protectedPrefixes.some(p => pathname.startsWith(p))
 
@@ -35,22 +34,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(`/academy/signin?role=${role}`, req.url))
   }
 
-  // Already signed in — don't let them see signin/signup pages
-  if (user && (pathname.startsWith('/academy/signin') || pathname.startsWith('/academy/signup') || pathname.startsWith('/global/signin'))) {
-    return NextResponse.redirect(new URL('/academy/complete-profile', req.url))
+  if (user && (pathname.startsWith('/academy/signin') || pathname.startsWith('/academy/signup'))) {
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
   return res
 }
 
 export const config = {
-  matcher: [
-    '/teacher/:path*',
-    '/academy/:path*',
-    '/global/:path*',
-    '/admin/:path*',
-    '/parent/:path*',
-    '/student/:path*',
-    '/select/:path*',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
 }
