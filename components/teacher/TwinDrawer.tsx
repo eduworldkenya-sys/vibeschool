@@ -88,7 +88,7 @@ Today: ${new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeri
 
       const sessionRes = await supabase.auth.getSession()
       const token = sessionRes.data.session?.access_token ?? ""
-      const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/twin-chat", {
+      const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/super-action", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ context, firstName,  context, firstName, 
