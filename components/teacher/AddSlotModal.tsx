@@ -111,7 +111,7 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
       })
 
     setSaving(false)
-    if (err) { setError(err.message.includes("overlap") ? "This time slot overlaps with an existing class. Choose a different time." : "Failed to add slot. Please try again."); return }
+    if (err) { setError(err.message || err.code || JSON.stringify(err)); return }
     onSaved()
   }
 
