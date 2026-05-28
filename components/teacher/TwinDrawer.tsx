@@ -86,12 +86,14 @@ Today: ${new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeri
         content: m.text,
       }));
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const sessionRes = await supabase.auth.getSession()
+      const token = sessionRes.data.session?.access_token ?? ""
+      const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/twin-chat", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model:      "claude-sonnet-4-20250514",
-          max_tokens: 1000,
+        body: JSON.stringify({ context, firstName,  context, firstName, 
+          
+          
           system: `You are the teacher's Twin — an intelligent AI assistant embedded in VibeSchool, a Kenyan school management platform following the CBC curriculum.
 
 You know this teacher's context:
