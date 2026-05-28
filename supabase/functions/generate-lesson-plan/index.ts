@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? ""
+const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? ""
+const TAVILY_KEY = Deno.env.get("TAVILY_API_KEY") ?? ""
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -12,6 +13,25 @@ serve(async (req) => {
 
   try {
     const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics } = await req.json()
+
+    // 1. Tavily search for curriculum resources
+    let tavilyContext = ""
+    if (TAVILY_KEY) {
+      const tavilyRes = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: TAVILY_KEY,
+          query: `${subject} ${topic} Kenya CBC curriculum lesson resources grade`,
+          max_results: 4,
+          include_answer: true,
+        }),
+      })
+      const tavilyData = await tavilyRes.json()
+      tavilyContext = tavilyData.results
+        ?.map((r: any) => `- ${r.title}: ${r.content}`)
+        .join("\n") ?? ""
+    }
 
     const prevList = previousTopics?.length
       ? "Previously covered: " + previousTopics.join(", ") + "."
@@ -29,6 +49,7 @@ serve(async (req) => {
       "Topic: " + topic,
       focus ? "Teacher focus: " + focus : "",
       prevList,
+      tavilyContext ? "\nWeb resources for context:\n" + tavilyContext : "",
       "",
       "Return ONLY this exact XML with no other text before or after:",
       "",
@@ -82,24 +103,23 @@ serve(async (req) => {
       "</parent_message>",
     ].join("\n")
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type":      "application/json",
-        "x-api-key":         ANTHROPIC_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model:      "claude-haiku-4-5",
-        max_tokens: 4000,
-        messages:   [{ role: "user", content: prompt }],
-      }),
-    })
+    // 2. Gemini generation
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 4000, temperature: 0.3 },
+        }),
+      }
+    )
 
-    const json = await res.json()
-    const text = json.content?.[0]?.text ?? ""
+    const geminiData = await geminiRes.json()
+    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
 
-    if (!text) return new Response(JSON.stringify({ error: "Empty response from model" }), {
+    if (!text) return new Response(JSON.stringify({ error: "Empty response from Gemini" }), {
       status: 500, headers: { ...CORS, "Content-Type": "application/json" }
     })
 
