@@ -450,7 +450,7 @@ export default function ClassHubPage() {
   }, [])
 
   useEffect(() => {
-    async function fetchWeather(lat: number, lon: number) {
+    async function fetchWeather(lat: number, lon: number, city: string) {
       try {
         const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
         const d = await r.json()
@@ -458,22 +458,22 @@ export default function ClassHubPage() {
         const temp = Math.round(d.current_weather.temperature)
         const icons: Record<number,string> = {0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌧️",61:"🌧️",63:"🌧️",65:"🌧️",71:"🌨️",73:"🌨️",75:"🌨️",80:"🌦️",81:"🌧️",82:"⛈️",95:"⛈️",96:"⛈️",99:"⛈️"}
         const descs: Record<number,string> = {0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Foggy",48:"Foggy",51:"Drizzle",53:"Drizzle",55:"Drizzle",61:"Rain",63:"Rain",65:"Heavy rain",71:"Snow",73:"Snow",75:"Heavy snow",80:"Showers",81:"Showers",82:"Thunderstorm",95:"Thunderstorm",96:"Thunderstorm",99:"Thunderstorm"}
-        setWeather({ temp, icon: icons[code] ?? "🌡️", desc: descs[code] ?? "Weather" })
+        setWeather({ temp, icon: icons[code] ?? "🌡️", desc: `${city} · ${descs[code] ?? "Weather"}` })
       } catch {}
     }
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        async () => {
-          // fallback: Nairobi default
-          await fetchWeather(-1.2921, 36.8219)
-        }
-      )
-    } else {
-      fetchWeather(-1.2921, 36.8219)
+    async function init() {
+      try {
+        const ip = await fetch("https://ipapi.co/json/")
+        const loc = await ip.json()
+        const city = loc.city ?? "Nairobi"
+        const lat = loc.latitude ?? -1.2921
+        const lon = loc.longitude ?? 36.8219
+        await fetchWeather(lat, lon, city)
+      } catch {
+        fetchWeather(-1.2921, 36.8219, "Nairobi")
+      }
     }
-    const { latitude: lat, longitude: lon } = { latitude: 0, longitude: 0 }
-    void lat; void lon
+    init()
   }, [])
 
   useEffect(() => { load() }, [])
