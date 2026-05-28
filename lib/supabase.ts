@@ -19,7 +19,7 @@ export async function getTeacherProfile(userId: string) {
 
   return {
     name:   profile?.full_name ?? '',
-    school: (profile?.schools as { name: string } | null)?.name ?? '',
+    school: (profile?.schools as unknown as { name: string } | null)?.name ?? '',
     phone:  profile?.phone ?? '',
   }
 }
