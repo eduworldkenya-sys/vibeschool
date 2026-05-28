@@ -266,112 +266,257 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
 }
 
 // ── BottomNav ─────────────────────────────────────────────────────────────────
+// ── Tray-item SVG icons ───────────────────────────────────────────────────
+function IconAttendance({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <polyline points="16 11 18 13 22 9"/>
+    </svg>
+  )
+}
+function IconTimetable({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8"  y1="2" x2="8"  y2="6"/>
+      <line x1="3"  y1="10" x2="21" y2="10"/>
+    </svg>
+  )
+}
+function IconSchoolHub({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    </svg>
+  )
+}
+function IconIndexer({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      <line x1="11" y1="8"  x2="11"   y2="14"/>
+      <line x1="8"  y1="11" x2="14"   y2="11"/>
+    </svg>
+  )
+}
+function IconResources({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    </svg>
+  )
+}
+function IconVibeConnect({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  )
+}
+function IconScheme({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8"  y1="6"  x2="21" y2="6"/>
+      <line x1="8"  y1="12" x2="21" y2="12"/>
+      <line x1="8"  y1="18" x2="21" y2="18"/>
+      <line x1="3"  y1="6"  x2="3.01" y2="6"/>
+      <line x1="3"  y1="12" x2="3.01" y2="12"/>
+      <line x1="3"  y1="18" x2="3.01" y2="18"/>
+    </svg>
+  )
+}
+function IconSubjectHub({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+  )
+}
+function IconResults({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  )
+}
+function IconReportCard({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="9" y1="13" x2="15" y2="13"/>
+      <line x1="9" y1="17" x2="15" y2="17"/>
+    </svg>
+  )
+}
+function IconProfile({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  )
+}
+function IconSettings({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  )
+}
+function IconHelp({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  )
+}
+
+// ── Tray config ────────────────────────────────────────────────────────────
+interface TrayItem { label: string; icon: React.ReactNode; href: string }
+
+const TRAY_ITEMS: Record<string, TrayItem[]> = {
+  classhub: [
+    { label: "Classes",    icon: <IconClassHub   size={24} />, href: "/teacher/classhub"   },
+    { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance" },
+    { label: "Timetable",  icon: <IconTimetable  size={24} />, href: "/teacher/timetable"  },
+    { label: "SchoolHub",  icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub"  },
+  ],
+  vibelearn: [
+    { label: "VibeLearn",   icon: <IconVibeLearn   size={24} />, href: "/teacher/vibelearn"         },
+    { label: "Indexer",     icon: <IconIndexer     size={24} />, href: "/teacher/vibelearn/indexer" },
+    { label: "Resources",   icon: <IconResources   size={24} />, href: "/teacher/resources"         },
+    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect"       },
+  ],
+  lessonplan: [
+    { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan" },
+    { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"     },
+    { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub" },
+  ],
+  assessment: [
+    { label: "Assessment",   icon: <IconAssess     size={24} />, href: "/teacher/assessment"              },
+    { label: "Results",      icon: <IconResults    size={24} />, href: "/teacher/results"                 },
+    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card/all" },
+  ],
+  more: [
+    { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
+    { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
+    { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
+  ],
+}
+
+// ── BottomNav ─────────────────────────────────────────────────────────────
 function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLearn?: number }) {
-  const router = useRouter();
+  const router   = useRouter()
+  const pathname = usePathname()
+  const [openTray, setOpenTray] = useState<string | null>(null)
+
+  useEffect(() => { setOpenTray(null) }, [pathname])
+
+  function handleTab(t: typeof NAV_TABS[number]) {
+    setOpenTray(prev => prev === t.id ? null : t.id)
+  }
+
+  function handleTrayItem(href: string) {
+    setOpenTray(null)
+    router.push(href)
+  }
+
+  const trayItems = openTray ? TRAY_ITEMS[openTray] : null
 
   return (
-    <div style={{
-      position:    "fixed",
-      bottom:      0,
-      left:        0,
-      right:       0,
-      zIndex:      700,
-      background:  "#fff",
-      borderTop:   `1px solid ${C.border}`,
-      display:     "flex",
-      height:      64,
-      boxShadow:   "0 -4px 20px rgba(0,0,0,0.07)",
-      paddingBottom: "env(safe-area-inset-bottom)",
-    }}>
-      {NAV_TABS.map(t => {
-        const isActive  = t.id === activeId;
-        const showBadge = t.id === "vibelearn" && unreadLearn > 0;
-
-        return (
-          <button
-            key={t.id}
-            onClick={() => router.push(t.href)}
-            style={{
-              flex:           1,
-              display:        "flex",
-              flexDirection:  "column",
-              alignItems:     "center",
-              justifyContent: "center",
-              gap:            3,
-              border:         "none",
-              background:     "none",
-              cursor:         "pointer",
-              padding:        "8px 0",
-              color:          isActive ? C.accent : C.textMuted,
-              transition:     "color 0.15s",
-              position:       "relative",
-            }}
-          >
-            {/* Top active pill */}
-            {isActive && (
-              <div style={{
-                position:     "absolute",
-                top:          0,
-                width:        28,
-                height:       3,
-                background:   C.accent,
-                borderRadius: "0 0 4px 4px",
-              }} />
-            )}
-
-            {/* VibeLearn active glow bg */}
-            {t.id === "vibelearn" && isActive && (
-              <div style={{
-                position:      "absolute",
-                width:         44,
-                height:        44,
-                borderRadius:  "50%",
-                background:    "rgba(16,185,129,0.08)",
-                top:           "50%",
-                left:          "50%",
-                transform:     "translate(-50%, -50%)",
-                pointerEvents: "none",
-              }} />
-            )}
-
-            {/* Unread badge */}
-            {showBadge && (
-              <span style={{
-                position:     "absolute",
-                top:          6,
-                right:        "calc(50% - 18px)",
-                width:        16,
-                height:       16,
-                borderRadius: "50%",
-                background:   C.error,
-                color:        "#fff",
-                fontSize:     9,
-                fontWeight:   800,
-                display:      "flex",
-                alignItems:   "center",
-                justifyContent: "center",
-                border:       "2px solid #fff",
-              }}>
-                {unreadLearn}
+    <>
+      {openTray && (
+        <div
+          onClick={() => setOpenTray(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 690, background: "rgba(0,0,0,0.2)" }}
+        />
+      )}
+      <div style={{
+        position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 695,
+        background: "#fff", borderRadius: "20px 20px 0 0",
+        boxShadow: "0 -4px 24px rgba(0,0,0,0.10)", padding: "10px 20px 16px",
+        transform: openTray ? "translateY(0)" : "translateY(110%)",
+        transition: "transform 0.28s cubic-bezier(0.32,0.72,0,1)",
+      }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 14px" }} />
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 12px 2px" }}>
+          {NAV_TABS.find(t => t.id === openTray)?.label}
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${trayItems?.length ?? 4}, 1fr)`, gap: 8 }}>
+          {trayItems?.map(item => (
+            <button
+              key={item.href}
+              onClick={() => handleTrayItem(item.href)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                gap: 8, padding: "14px 6px", border: "none", borderRadius: 14,
+                background: pathname.startsWith(item.href) ? "rgba(16,185,129,0.08)" : "#f9fafb",
+                cursor: "pointer", fontFamily: "inherit",
+                color: pathname.startsWith(item.href) ? C.accent : "#374151",
+                transition: "background 0.15s",
+              }}
+            >
+              {item.icon}
+              <span style={{ fontSize: 10, fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>
+                {item.label}
               </span>
-            )}
-
-            <span style={{ lineHeight: 1 }}>
-              {NAV_ICONS[t.id]?.(isActive)}
-            </span>
-            <span style={{
-              fontSize:   10,
-              fontWeight: isActive ? 800 : 500,
-              letterSpacing: 0.1,
-              marginTop:  1,
-            }}>
-              {t.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700,
+        background: "#fff", borderTop: `1px solid ${C.border}`,
+        display: "flex", height: 64, boxShadow: "0 -4px 20px rgba(0,0,0,0.07)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}>
+        {NAV_TABS.map(t => {
+          const isActive  = t.id === activeId || openTray === t.id
+          const showBadge = t.id === "vibelearn" && unreadLearn > 0
+          return (
+            <button
+              key={t.id}
+              onClick={() => handleTab(t)}
+              style={{
+                flex: 1, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 3,
+                border: "none", background: "none", cursor: "pointer",
+                padding: "8px 0", color: isActive ? C.accent : C.textMuted,
+                transition: "color 0.15s", position: "relative",
+              }}
+            >
+              {isActive && (
+                <div style={{ position: "absolute", top: 0, width: 28, height: 3, background: C.accent, borderRadius: "0 0 4px 4px" }} />
+              )}
+              {t.id === "vibelearn" && isActive && (
+                <div style={{ position: "absolute", width: 44, height: 44, borderRadius: "50%", background: "rgba(16,185,129,0.08)", top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
+              )}
+              {showBadge && (
+                <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>
+                  {unreadLearn}
+                </span>
+              )}
+              <span style={{ lineHeight: 1 }}>{NAV_ICONS[t.id]?.(isActive)}</span>
+              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1 }}>
+                {t.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </>
+  )
 }
 
 // ── TopBar — VibeConnect icon + Avatar only ───────────────────────────────────
