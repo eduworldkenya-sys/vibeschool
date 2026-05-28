@@ -505,6 +505,7 @@ function Toast({ msg }: { msg: string }) {
 // ── Root layout ───────────────────────────────────────────────────────────────
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const activeId = tabIdFromPath(pathname);
 
   const [twinOpen,      setTwinOpen]      = useState(false);
