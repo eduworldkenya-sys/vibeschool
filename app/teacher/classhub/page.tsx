@@ -462,15 +462,45 @@ export default function ClassHubPage() {
       } catch {}
     }
     async function init() {
-      try {
-        const ip = await fetch("https://ipapi.co/json/")
-        const loc = await ip.json()
-        const city = loc.city ?? "Nairobi"
-        const lat = loc.latitude ?? -1.2921
-        const lon = loc.longitude ?? 36.8219
-        await fetchWeather(lat, lon, city)
-      } catch {
-        fetchWeather(-1.2921, 36.8219, "Nairobi")
+      const stored = localStorage.getItem("wx_loc")
+      if (stored) {
+        const s = JSON.parse(stored)
+        await fetchWeather(s.lat, s.lon, s.city)
+        return
+      }
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              const r = await fetch(`http://ip-api.com/json/`)
+              const loc = await r.json()
+              const city = loc.city ?? "My Location"
+              const lat = pos.coords.latitude
+              const lon = pos.coords.longitude
+              localStorage.setItem("wx_loc", JSON.stringify({ lat, lon, city }))
+              await fetchWeather(lat, lon, city)
+            } catch {
+              await fetchWeather(pos.coords.latitude, pos.coords.longitude, "My Location")
+            }
+          },
+          async () => {
+            try {
+              const r = await fetch("http://ip-api.com/json/")
+              const loc = await r.json()
+              await fetchWeather(loc.lat ?? -1.2921, loc.lon ?? 36.8219, loc.city ?? "Nairobi")
+            } catch {
+              await fetchWeather(-1.2921, 36.8219, "Nairobi")
+            }
+          }
+        )
+      } else {
+        try {
+          const r = await fetch("http://ip-api.com/json/")
+          const loc = await r.json()
+          await fetchWeather(loc.lat ?? -1.2921, loc.lon ?? 36.8219, loc.city ?? "Nairobi")
+        } catch {
+          await fetchWeather(-1.2921, 36.8219, "Nairobi")
+        }
       }
     }
     init()
