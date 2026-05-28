@@ -37,14 +37,15 @@ function AcademySignInInner() {
   }
 
   async function routeByProfile(userId: string) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', userId)
       .single()
 
-    if (!profile) {
-      fadeOut('/academy/complete-profile')
+    if (profileErr || !profile) {
+      setError('Could not load your profile. Please try again.')
+      setLoading(false)
       return
     }
 
