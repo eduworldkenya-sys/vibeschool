@@ -53,7 +53,7 @@ function CompleteProfileInner() {
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
-        router.replace('/academy/signin')
+        window.location.href = '/academy/signin'
         return
       }
 
@@ -66,7 +66,7 @@ function CompleteProfileInner() {
       if (profile) {
         // Profile already complete — route them normally
         const r = profile.role as Role
-        router.replace(ROLE_DESTINATIONS[r] ?? '/academy/select-role')
+        window.location.href = ROLE_DESTINATIONS[r] ?? '/academy/select-role'
         return
       }
 
@@ -101,7 +101,7 @@ function CompleteProfileInner() {
     if (!session) {
       setLoading(false)
       setError('Session expired. Please sign in again.')
-      router.replace('/academy/signin')
+      window.location.href = '/academy/signin'
       return
     }
 
