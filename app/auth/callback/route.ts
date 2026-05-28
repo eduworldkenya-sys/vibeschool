@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next')
+  const role = searchParams.get('role') ?? 'teacher'
 
   if (code) {
     const cookieStore = cookies()
@@ -27,9 +28,10 @@ export async function GET(req: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
+      // If explicit next param, honour it
       if (next) return NextResponse.redirect(new URL(next, req.url))
 
-      // Look up role and route accordingly
+      // Look up profile role
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: profile } = await supabase
@@ -38,14 +40,20 @@ export async function GET(req: NextRequest) {
           .eq('id', user.id)
           .maybeSingle()
 
-        const role = profile?.role ?? 'teacher'
-        const destinations: Record<string, string> = {
-          teacher: '/teacher',
-          admin:   '/admin',
-          parent:  '/parent',
-          student: '/student',
+        if (profile?.role) {
+          const destinations: Record<string, string> = {
+            teacher: '/teacher',
+            admin:   '/admin',
+            parent:  '/parent',
+            student: '/student',
+          }
+          return NextResponse.redirect(new URL(destinations[profile.role] ?? '/teacher', req.url))
         }
-        return NextResponse.redirect(new URL(destinations[role] ?? '/teacher', req.url))
+
+        // New user — send to complete profile with role hint
+        return NextResponse.redirect(
+          new URL(`/academy/complete-profile?role=${role}`, req.url)
+        )
       }
     }
   }
