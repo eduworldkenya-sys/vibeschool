@@ -91,24 +91,9 @@ Today: ${new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeri
       const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/super-action", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context, firstName,  context, firstName, 
-          
-          
-          system: `You are the teacher's Twin — an intelligent AI assistant embedded in VibeSchool, a Kenyan school management platform following the CBC curriculum.
-
-You know this teacher's context:
-${context}
-
-You help with:
-- Attendance analysis and patterns
-- Lesson plan suggestions aligned to CBC strands
-- Student performance insights
-- Parent communication drafts
-- CBC curriculum guidance
-- Timetable and scheme of work advice
-
-Keep responses concise, warm, and practical. You are always on the teacher's side.
-Never say you are Claude or made by Anthropic. You are simply "Your Twin".`,
+        body: JSON.stringify({
+          context,
+          firstName,
           messages: [
             ...history,
             { role: "user", content: userMsg },
@@ -117,7 +102,7 @@ Never say you are Claude or made by Anthropic. You are simply "Your Twin".`,
       });
 
       const data  = await response.json();
-      const reply = data.content?.[0]?.text ?? "I could not process that. Please try again.";
+      const reply = data.reply ?? "I could not process that. Please try again.";
       setMessages(m => [...m, { role: "twin", text: reply }]);
     } catch {
       setMessages(m => [...m, { role: "twin", text: "Something went wrong. Check your connection and try again." }]);
