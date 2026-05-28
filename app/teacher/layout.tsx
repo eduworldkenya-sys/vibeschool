@@ -137,13 +137,7 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   function onPointerUp() {
     dragging.current = false
     if (moved.current) return
-    if (expanded) {
-      if (collapseTimer.current) clearTimeout(collapseTimer.current)
-      setExpanded(false)
-      onOpen()
-    } else {
-      setExpanded(true)
-    }
+    onOpen()
   }
 
   if (!pos) return null
