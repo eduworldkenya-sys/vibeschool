@@ -3,6 +3,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { ParentNavTab } from "@/lib/types";
+import OfflineBar from "@/components/teacher/OfflineBar";
 import VibeLearnShellWrapper from "@/components/student/VibeLearnShellWrapper";
 
 interface UserCtx { fullName: string; initials: string }
@@ -225,6 +226,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
       `}</style>
       <TopBar initials={initials} />
+      <OfflineBar />
       <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px", background: "#f0f2f5" }}>
         {children}
       </main>

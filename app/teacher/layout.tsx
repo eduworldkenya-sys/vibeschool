@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
+import OfflineBar from "@/components/teacher/OfflineBar";
 
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
@@ -732,6 +733,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         `}</style>
         <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
+              <OfflineBar />
           <main style={{
             maxWidth:      768,
             margin:        "0 auto",

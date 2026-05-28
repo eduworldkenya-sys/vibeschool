@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import OfflineBar from "@/components/teacher/OfflineBar"
 
 const C = {
   hero:    "#0a1628",
@@ -404,6 +405,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </span>
         </div>
       </header>
+      <OfflineBar />
 
       {/* ── MAIN ─────────────────────────────────────────────────────────── */}
       <main style={{
