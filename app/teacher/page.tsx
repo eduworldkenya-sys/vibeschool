@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/app/teacher/layout'
 import SmartTimetablePreview from '@/components/teacher/SmartTimetablePreview'
+import SmartInsightSlides from '@/components/teacher/SmartInsightSlides'
 
 interface Slot {
   id:               string
@@ -849,6 +850,7 @@ export default function TeacherDashboard() {
 
       {/* ── SMART TIMETABLE PREVIEW ── */}
       <SmartTimetablePreview />
+      <SmartInsightSlides />
 
       {/* ── SCHOOL PULSE ── */}
       <div style={{ textAlign:'center', padding:'4px 0 2px' }}>
