@@ -12,25 +12,14 @@ export const supabase = createSupabaseClient()
 export async function getTeacherProfile(userId: string) {
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
-    .select('full_name, phone, school_id')
+    .select('full_name, phone, school_id, schools(name)')
     .eq('id', userId)
     .single()
   if (profileErr) { console.error('getTeacherProfile error:', profileErr); return null }
 
-  const schoolId = profile?.school_id ?? null
-  let schoolName = ''
-  if (schoolId) {
-    const { data: school } = await supabase
-      .from('schools')
-      .select('name')
-      .eq('id', schoolId)
-      .single()
-    schoolName = school?.name ?? ''
-  }
-
   return {
     name:   profile?.full_name ?? '',
-    school: schoolName,
+    school: (profile?.schools as { name: string } | null)?.name ?? '',
     phone:  profile?.phone ?? '',
   }
 }

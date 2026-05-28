@@ -102,50 +102,44 @@ function ClassPageInner() {
     setStudents(loadedStudents)
     setJoinRequests(requestsRes.data?.length ?? 0)
 
-    if (loadedStudents.length > 0) {
-      const ids = loadedStudents.map(s => s.id)
-      const { data: codesData } = await supabase
-        .from('student_claim_codes')
-        .select('student_id, code')
-        .eq('claimed', false)
-        .in('student_id', ids)
-
-      const codes: Record<string, string> = {}
-      for (const c of codesData ?? []) {
-        codes[c.student_id] = c.code
-      }
-      setClaimCodes(codes)
-    }
 
     const today = new Date().toISOString().split('T')[0]
-    const [attRes, assessRes] = await Promise.all([
+    const ids = loadedStudents.map(s => s.id)
+
+    const [codesRes, attRes, assessRes, grpRes] = await Promise.all([
+      loadedStudents.length > 0
+        ? supabase.from('student_claim_codes').select('student_id, code').eq('claimed', false).in('student_id', ids)
+        : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('status').eq('class_id', classId).eq('date', today),
       supabase.from('cbc_assessments').select('performance').eq('class_id', classId),
+      loadedStudents.length > 0
+        ? supabase.from('class_groups').select('id, name, color').eq('class_id', classId).eq('type', 'learning')
+        : Promise.resolve({ data: [] }),
     ])
 
-    // FIX: 'late' is not a valid status — use status='present' only
+    const codes: Record<string, string> = {}
+    for (const c of (codesRes.data ?? [])) { codes[(c as {student_id:string;code:string}).student_id] = (c as {student_id:string;code:string}).code }
+    setClaimCodes(codes)
+
     const attRows = attRes.data ?? []
-    const enrolledCount = loadedStudents.length
-    if (enrolledCount > 0) {
-      const present = attRows.filter(r => r.status === 'present').length
-      setAttendanceRate(Math.round((present / enrolledCount) * 100) + '%')
+    if (loadedStudents.length > 0) {
+      const present = attRows.filter((r: {status:string}) => r.status === 'present').length
+      setAttendanceRate(Math.round((present / loadedStudents.length) * 100) + '%')
     }
 
     const PERF_MAP: Record<string, number> = { BE: 1, AE: 2, ME: 3, EE: 4 }
-    const assessRows = assessRes.data ?? []
-    const scored = assessRows.map(r => PERF_MAP[r.performance]).filter((v): v is number => v !== undefined)
+    const scored = (assessRes.data ?? []).map((r: {performance:string}) => PERF_MAP[r.performance]).filter((v): v is number => v !== undefined)
     if (scored.length > 0) {
       const avg = scored.reduce((a, b) => a + b, 0) / scored.length
       setAvgScore(avg.toFixed(1) + '/4')
     }
 
     if (loadedStudents.length > 0) {
-      const ids = loadedStudents.map(s => s.id)
-      const { data: grpData } = await supabase.from('class_groups').select('id, name, color').eq('class_id', classId).eq('type', 'learning')
-      const { data: mbrData } = await supabase.from('class_group_members').select('student_id, group_id').in('group_id', (grpData ?? []).map(g => g.id))
+      const grpData = grpRes.data ?? []
+      const { data: mbrData } = await supabase.from('class_group_members').select('student_id, group_id').in('group_id', grpData.map((g: {id:string}) => g.id))
       const sGroups: Record<string, { name: string; color: string }> = {}
       for (const m of mbrData ?? []) {
-        const grp = (grpData ?? []).find(g => g.id === m.group_id)
+        const grp = grpData.find((g: {id:string;name:string;color:string}) => g.id === m.group_id)
         if (grp) sGroups[m.student_id] = { name: grp.name, color: grp.color }
       }
       setStudentGroups(sGroups)

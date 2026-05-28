@@ -731,69 +731,57 @@ function StudentProfileInner() {
     if (!stuRes.data) { router.push('/teacher/classhub/' + classId); return }
 
     // Load exam results for this student
-    const { data: erData } = await supabase
-      .from('exam_results')
-      .select('id, exam_id, subject_id, marks, is_absent')
-      .eq('student_id', studentId)
-    const erRows = (erData ?? []) as ExamResult[]
-    setExamResults(erRows)
 
-    if (erRows.length > 0) {
-      const examIds = Array.from(new Set(erRows.map(r => r.exam_id)))
-      const { data: examData } = await supabase
-        .from('exams')
-        .select('id, name, term, academic_year, exam_type, pass_mark')
-        .in('id', examIds)
-        .order('created_at', { ascending: true })
-      setExams((examData ?? []) as ExamItem[])
-    }
+    // Parallel wave 2 — all independent of wave 1 results
+    const [erRes, grpRes, cbRes] = await Promise.all([
+      supabase.from('exam_results').select('id, exam_id, subject_id, marks, is_absent').eq('student_id', studentId),
+      supabase.from('class_groups').select('id, name, color, type').eq('class_id', classId),
+      supabase.from('child_badges').select('id, badge_id, earned_at, awarded_by, created_at').eq('student_id', studentId),
+    ])
+
+    // Wave 3 — depends on wave 2
+    const erRows = (erRes.data ?? []) as ExamResult[]
+    const grpData = grpRes.data ?? []
+    const cb = cbRes.data ?? []
+
+    const [examData, mbrData, subsData, bdgsData] = await Promise.all([
+      erRows.length > 0
+        ? supabase.from('exams').select('id, name, term, academic_year, exam_type, pass_mark').in('id', Array.from(new Set(erRows.map(r => r.exam_id)))).order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] }),
+      supabase.from('class_group_members').select('group_id').eq('student_id', studentId),
+      hwRes.data && hwRes.data.length > 0
+        ? supabase.from('homework_submissions').select('*').eq('student_id', studentId).in('homework_id', hwRes.data.map((h: Homework) => h.id))
+        : Promise.resolve({ data: [] }),
+      cb.length > 0
+        ? supabase.from('badges').select('*').in('id', cb.map((b: { badge_id: string }) => b.badge_id))
+        : Promise.resolve({ data: [] }),
+    ])
+
+    setExamResults(erRows)
+    setExams((examData.data ?? []) as ExamItem[])
+
+    const myGroupIds = new Set((mbrData.data ?? []).map((m: { group_id: string }) => m.group_id))
+    const COLOR_BG: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2', '#1d4ed8': '#dbeafe', '#6d28d9': '#ede9fe', '#0f766e': '#ccfbf1', '#9d174d': '#fce7f3' }
+    setMyGroups(grpData.filter((g: { id: string }) => myGroupIds.has(g.id)).map((g: { type: string; name: string; color: string }) => ({ type: g.type, name: g.name, color: g.color, bg: COLOR_BG[g.color] ?? '#f3f4f6' })))
+
     setStudent(stuRes.data)
     setClaimCode(codeRes.data ?? null)
     setAttendance(attRes.data ?? [])
     setAssessments(asmRes.data ?? [])
     setSubjects(subjRes.data ?? [])
-
-    const { data: grpData } = await supabase.from('class_groups').select('id, name, color, type').eq('class_id', classId)
-    const { data: mbrData } = await supabase.from('class_group_members').select('group_id').eq('student_id', studentId)
-    const myGroupIds = new Set((mbrData ?? []).map(m => m.group_id))
-    const COLOR_BG: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2', '#1d4ed8': '#dbeafe', '#6d28d9': '#ede9fe', '#0f766e': '#ccfbf1', '#9d174d': '#fce7f3' }
-    setMyGroups((grpData ?? []).filter(g => myGroupIds.has(g.id)).map(g => ({ type: g.type, name: g.name, color: g.color, bg: COLOR_BG[g.color] ?? '#f3f4f6' })))
-
-    const hw = hwRes.data ?? []
-    setHomework(hw)
-
-    if (hw.length > 0) {
-      const { data: subs } = await supabase
-        .from('homework_submissions')
-        .select('*')
-        .eq('student_id', studentId)
-        .in('homework_id', hw.map((h: Homework) => h.id))
-      setSubmissions(subs ?? [])
-    }
-
+    setHomework(hwRes.data ?? [])
+    setSubmissions(subsData.data ?? [])
     setResources(resRes.data ?? [])
     setStreaks(strRes.data ?? [])
     setGoals(goalRes.data ?? [])
     setSkills(skillRes.data ?? [])
 
-    if (stuRes.data) {
-      const { data: cb } = await supabase
-        .from('child_badges')
-        .select('id, badge_id, earned_at, awarded_by, created_at')
-        .eq('student_id', studentId)
-
-      if (cb && cb.length > 0) {
-        const { data: bdgs } = await supabase
-          .from('badges')
-          .select('*')
-          .in('id', cb.map((b: { badge_id: string }) => b.badge_id))
-
-        const merged: Badge[] = (bdgs ?? []).map((b: { id: string; name: string; icon: string; category: string; level: string; description: string }) => ({
-          ...b,
-          earned_at: cb.find((c: { badge_id: string; earned_at: string }) => c.badge_id === b.id)?.earned_at ?? '',
-        }))
-        setBadges(merged)
-      }
+    if (cb.length > 0) {
+      const merged: Badge[] = (bdgsData.data ?? []).map((b: { id: string; name: string; icon: string; category: string; level: string; description: string }) => ({
+        ...b,
+        earned_at: cb.find((c: { badge_id: string; earned_at: string }) => c.badge_id === b.id)?.earned_at ?? '',
+      }))
+      setBadges(merged)
     }
 
     setLoading(false)

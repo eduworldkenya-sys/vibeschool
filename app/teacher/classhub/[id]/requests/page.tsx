@@ -86,25 +86,16 @@ export default function JoinRequestsPage() {
   async function handleApprove(req: JoinRequest) {
     setActing(req.id)
 
-    // 1. Get school_id from class
+    // 1. Get school_id first
     const { data: cls } = await supabase
       .from('classes')
       .select('school_id')
       .eq('id', classId)
       .single()
 
-    // 2. Insert into student_classes
-    await supabase
-      .from('student_classes')
-      .insert({
-        school_id:  cls?.school_id ?? null,
-        student_id: req.student_id,
-        class_id:   classId,
-        joined_at:  new Date().toISOString(),
-        is_current: true,
-      })
+    const schoolId = cls?.school_id ?? null
 
-    // 3. Insert parent_student_link if not exists
+    // 2. Check existing link
     const { data: existing } = await supabase
       .from('parent_student_links')
       .select('id')
@@ -112,25 +103,26 @@ export default function JoinRequestsPage() {
       .eq('student_id', req.student_id)
       .single()
 
-    if (!existing) {
-      await supabase
-        .from('parent_student_links')
-        .insert({
-          parent_id:       req.parent_id,
-          student_id:      req.student_id,
-          school_id:       cls?.school_id ?? null,
-          relationship:    'parent',
-          is_primary:      true,
-          can_pickup:      true,
-          receives_alerts: true,
-        })
-    }
-
-    // 4. Update request status
-    await supabase
-      .from('class_join_requests')
-      .update({ status: 'approved' })
-      .eq('id', req.id)
+    // 3. Run all writes in parallel
+    await Promise.all([
+      supabase.from('student_classes').insert({
+        school_id:  schoolId,
+        student_id: req.student_id,
+        class_id:   classId,
+        joined_at:  new Date().toISOString(),
+        is_current: true,
+      }),
+      existing ? Promise.resolve() : supabase.from('parent_student_links').insert({
+        parent_id:       req.parent_id,
+        student_id:      req.student_id,
+        school_id:       schoolId,
+        relationship:    'parent',
+        is_primary:      true,
+        can_pickup:      true,
+        receives_alerts: true,
+      }),
+      supabase.from('class_join_requests').update({ status: 'approved' }).eq('id', req.id),
+    ])
 
     setActing(null)
     setRequests(prev => prev.filter(r => r.id !== req.id))
