@@ -15,7 +15,7 @@ export const useUser = () => useContext(UserContext);
 
 // ── Nav config — single source of truth ──────────────────────────────────────
 const NAV_TABS = [
-  { id: "classhub",   label: "ClassHub",  href: "/teacher/classhub"   },
+  { id: "classhub",   label: "ClassHub",  href: "/teacher" },
   { id: "vibelearn",  label: "VibeLearn", href: "/teacher/vibelearn"  },
   { id: "lessonplan", label: "Plans",     href: "/teacher/lessonplan" },
   { id: "assessment", label: "Assess",    href: "/teacher/assessment" },
@@ -387,7 +387,7 @@ interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
 const TRAY_ITEMS: Record<string, TrayItem[]> = {
   classhub: [
-    { label: "Classes",    icon: <IconClassHub   size={24} />, href: "/teacher/classhub"   },
+    { label: "Classes",    icon: <IconClassHub   size={24} />, href: "/teacher"   },
     { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance" },
     { label: "Timetable",  icon: <IconTimetable  size={24} />, href: "/teacher/timetable"  },
     { label: "SchoolHub",  icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub"  },
@@ -523,7 +523,7 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
 function TopBar({ school, initials, unreadConnect }: { school: string; initials: string; unreadConnect: number }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const isRoot   = pathname === "/teacher" || pathname === "/teacher/" || pathname === "/teacher/classhub";
+  const isRoot   = pathname === "/teacher" || pathname === "/teacher/" || pathname === "/teacher";
 
   return (
     <div style={{
@@ -550,7 +550,7 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
           </div>
         )}
         <div
-          onClick={() => router.push("/teacher/classhub")}
+          onClick={() => router.push("/teacher")}
           style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
         >
           <div style={{
