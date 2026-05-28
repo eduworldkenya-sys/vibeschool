@@ -450,18 +450,30 @@ export default function ClassHubPage() {
   }, [])
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude: lat, longitude: lon } = pos.coords
+    async function fetchWeather(lat: number, lon: number) {
       try {
         const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
         const d = await r.json()
         const code = d.current_weather.weathercode
         const temp = Math.round(d.current_weather.temperature)
-        const icons: Record<number,string> = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'}
-        const descs: Record<number,string> = {0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Drizzle',53:'Drizzle',55:'Drizzle',61:'Rain',63:'Rain',65:'Heavy rain',71:'Snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Thunderstorm',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'}
-        setWeather({ temp, icon: icons[code] ?? '🌡️', desc: descs[code] ?? 'Weather' })
+        const icons: Record<number,string> = {0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌧️",61:"🌧️",63:"🌧️",65:"🌧️",71:"🌨️",73:"🌨️",75:"🌨️",80:"🌦️",81:"🌧️",82:"⛈️",95:"⛈️",96:"⛈️",99:"⛈️"}
+        const descs: Record<number,string> = {0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Foggy",48:"Foggy",51:"Drizzle",53:"Drizzle",55:"Drizzle",61:"Rain",63:"Rain",65:"Heavy rain",71:"Snow",73:"Snow",75:"Heavy snow",80:"Showers",81:"Showers",82:"Thunderstorm",95:"Thunderstorm",96:"Thunderstorm",99:"Thunderstorm"}
+        setWeather({ temp, icon: icons[code] ?? "🌡️", desc: descs[code] ?? "Weather" })
       } catch {}
-    })
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        async () => {
+          // fallback: Nairobi default
+          await fetchWeather(-1.2921, 36.8219)
+        }
+      )
+    } else {
+      fetchWeather(-1.2921, 36.8219)
+    }
+    const { latitude: lat, longitude: lon } = { latitude: 0, longitude: 0 }
+    void lat; void lon
   }, [])
 
   useEffect(() => { load() }, [])
@@ -801,20 +813,12 @@ export default function ClassHubPage() {
           })()}
           {/* ── WEATHER (compact) ── */}
           <div style={{ textAlign:'right', flexShrink:0, alignSelf:'flex-start' }}>
-            {weather ? (
-              <>
-                <div style={{ fontSize:20, fontWeight:200, color:'rgba(255,255,255,0.75)', lineHeight:1 }}>
-                  {weather.icon} {weather.temp}°
-                </div>
-                <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:700, marginTop:3, letterSpacing:1, textTransform:'uppercase' }}>
-                  {weather.desc}
-                </div>
-              </>
-            ) : (
-              <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>
-                {clock}
-              </div>
-            )}
+            <div style={{ fontSize:20, fontWeight:200, color:'rgba(255,255,255,0.75)', lineHeight:1 }}>
+              {weather ? `${weather.icon} ${weather.temp}°` : '🌡️ --°'}
+            </div>
+            <div style={{ fontSize:9, color:'rgba(255,255,255,0.25)', fontWeight:700, marginTop:3, letterSpacing:1, textTransform:'uppercase' }}>
+              {weather ? weather.desc : 'weather'}
+            </div>
           </div>
         </div>
 
