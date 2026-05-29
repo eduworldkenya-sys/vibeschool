@@ -388,17 +388,12 @@ export default function SubjectHubPage() {
       {/* ── HERO ── */}
       <div style={{
         background: 'linear-gradient(135deg, #075985 0%, #0ea5e9 80%, #10b981 150%)',
-        padding: '20px 16px 28px',
+        padding: '14px 16px 18px',
         position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
-        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(16,185,129,0.1)' }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.2, textTransform: 'uppercase' }}>SubjectHub</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>🔔</button>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.4, textTransform: 'uppercase' }}>SubjectHub</div>
+          <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13 }}>🔔</button>
         </div>
 
         {loading ? (
@@ -502,15 +497,19 @@ export default function SubjectHubPage() {
 
           {/* Impact Score + Streak */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, background: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)', borderRadius: 20, padding: '16px', boxShadow: '0 4px 12px rgba(67,56,202,0.3)' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 }}>Impact Score</div>
-              <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{impactScore}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>pts this term</div>
+            <div style={{ flex: 1, background: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)', borderRadius: 16, padding: '12px', boxShadow: '0 4px 12px rgba(67,56,202,0.3)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{impactScore}</div>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase' }}>Impact</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>pts this term</div>
+              </div>
             </div>
-            <div style={{ flex: 1, background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)', borderRadius: 20, padding: '16px', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6 }}>Teaching Streak</div>
-              <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{streak} 🔥</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>{streak === 0 ? 'Start today' : streak === 1 ? 'day active' : 'days active'}</div>
+            <div style={{ flex: 1, background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)', borderRadius: 16, padding: '12px', boxShadow: '0 4px 12px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{streak}🔥</div>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase' }}>Streak</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>{streak === 0 ? 'Start today' : 'days active'}</div>
+              </div>
             </div>
           </div>
 
