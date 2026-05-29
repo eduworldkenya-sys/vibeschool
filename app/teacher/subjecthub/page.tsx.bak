@@ -84,7 +84,6 @@ export default function SubjectHubPage() {
   useEffect(() => { init() }, [])
 
   async function init() {
-    try {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/academy/signin?role=teacher'); return }
     setCurrentId(user.id)
@@ -115,11 +114,7 @@ export default function SubjectHubPage() {
       .from('classes').select('id,name,stream')
       .eq('school_id', sid ?? null)
     setAllClasses(clData ?? [])
-    } catch (err) {
-      setError('Failed to load. Please refresh.')
-    } finally {
-      setLoading(false)
-    }
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -129,7 +124,7 @@ export default function SubjectHubPage() {
   }, [subjects, activeIdx, schoolId, currentId])
 
   async function loadClassesForSubject(subjectId: string) {
-    if (!subjectId || !currentId) { setClassLoading(false); return }
+    if (!subjectId || !currentId) return
     setClassLoading(true)
 
     const { data: tcData } = await supabase
@@ -164,7 +159,7 @@ export default function SubjectHubPage() {
   }
 
   async function loadTeamForSubject(subjectId: string) {
-    if (!subjectId) { setTeammates([]); setTeamLoading(false); return }
+    if (!subjectId || !schoolId) { setTeammates([]); return }
     setTeamLoading(true)
 
     const { data: tcData } = await supabase
