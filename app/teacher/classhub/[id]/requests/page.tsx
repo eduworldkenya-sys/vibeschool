@@ -31,6 +31,7 @@ export default function JoinRequestsPage() {
   const [requests,  setRequests]  = useState<JoinRequest[]>([])
   const [loading,   setLoading]   = useState(true)
   const [acting,    setActing]    = useState<string | null>(null)
+  const [actingErr, setActingErr] = useState<string | null>(null)
   const [className, setClassName] = useState('')
 
   async function loadRequests() {
@@ -85,17 +86,57 @@ export default function JoinRequestsPage() {
 
   async function handleApprove(req: JoinRequest) {
     setActing(req.id)
+    setActingErr(null)
 
-    // 1. Get school_id first
-    const { data: cls } = await supabase
+    // 1. Get school_id from class
+    const { data: cls, error: clsErr } = await supabase
       .from('classes')
       .select('school_id')
       .eq('id', classId)
       .single()
 
-    const schoolId = cls?.school_id ?? null
+    if (clsErr || !cls) {
+      console.error('Failed to fetch class:', clsErr)
+      setActingErr('Failed to fetch class info.')
+      setActing(null)
+      return
+    }
 
-    // 2. Check existing link
+    const schoolId = cls.school_id ?? null
+
+    // 2. Update students.class_id — the missing piece
+    const { error: stuErr } = await supabase
+      .from('students')
+      .update({ class_id: classId })
+      .eq('id', req.student_id)
+
+    if (stuErr) {
+      console.error('Failed to update student class_id:', stuErr)
+      setActingErr('Failed to assign student to class.')
+      setActing(null)
+      return
+    }
+
+    // 3. Upsert student_classes (safe — won't duplicate)
+    const { error: scErr } = await supabase
+      .from('student_classes')
+      .upsert({
+        school_id:  schoolId,
+        student_id: req.student_id,
+        class_id:   classId,
+        joined_at:  new Date().toISOString(),
+        is_current: true,
+      }, { onConflict: 'student_id,class_id' })
+
+    if (scErr) {
+      console.error('Failed to upsert student_classes:', scErr)
+      setActingErr('Failed to enrol student in class.')
+      setActing(null)
+      return
+    }
+
+    // 4. Update existing parent_student_links with real school_id
+    //    or insert if somehow missing
     const { data: existing } = await supabase
       .from('parent_student_links')
       .select('id')
@@ -103,26 +144,51 @@ export default function JoinRequestsPage() {
       .eq('student_id', req.student_id)
       .single()
 
-    // 3. Run all writes in parallel
-    await Promise.all([
-      supabase.from('student_classes').insert({
-        school_id:  schoolId,
-        student_id: req.student_id,
-        class_id:   classId,
-        joined_at:  new Date().toISOString(),
-        is_current: true,
-      }),
-      existing ? Promise.resolve() : supabase.from('parent_student_links').insert({
-        parent_id:       req.parent_id,
-        student_id:      req.student_id,
-        school_id:       schoolId,
-        relationship:    'parent',
-        is_primary:      true,
-        can_pickup:      true,
-        receives_alerts: true,
-      }),
-      supabase.from('class_join_requests').update({ status: 'approved' }).eq('id', req.id),
-    ])
+    if (existing) {
+      const { error: linkErr } = await supabase
+        .from('parent_student_links')
+        .update({ school_id: schoolId })
+        .eq('id', existing.id)
+
+      if (linkErr) {
+        console.error('Failed to update parent link school_id:', linkErr)
+        setActingErr('Failed to update parent link.')
+        setActing(null)
+        return
+      }
+    } else {
+      const { error: linkErr } = await supabase
+        .from('parent_student_links')
+        .insert({
+          parent_id:       req.parent_id,
+          student_id:      req.student_id,
+          school_id:       schoolId,
+          relationship:    'parent',
+          is_primary:      true,
+          can_pickup:      true,
+          receives_alerts: true,
+        })
+
+      if (linkErr) {
+        console.error('Failed to insert parent link:', linkErr)
+        setActingErr('Failed to link parent.')
+        setActing(null)
+        return
+      }
+    }
+
+    // 5. Mark request approved — only after all writes succeed
+    const { error: reqErr } = await supabase
+      .from('class_join_requests')
+      .update({ status: 'approved' })
+      .eq('id', req.id)
+
+    if (reqErr) {
+      console.error('Failed to mark request approved:', reqErr)
+      setActingErr('Student enrolled but request status failed to update.')
+      setActing(null)
+      return
+    }
 
     setActing(null)
     setRequests(prev => prev.filter(r => r.id !== req.id))
@@ -130,14 +196,21 @@ export default function JoinRequestsPage() {
 
   async function handleReject(reqId: string) {
     setActing(reqId)
+    setActingErr(null)
 
-    await supabase
+    const { error } = await supabase
       .from('class_join_requests')
       .update({ status: 'rejected' })
       .eq('id', reqId)
 
+    if (error) {
+      console.error('Failed to reject request:', error)
+      setActingErr('Failed to reject request.')
+    } else {
+      setRequests(prev => prev.filter(r => r.id !== reqId))
+    }
+
     setActing(null)
-    setRequests(prev => prev.filter(r => r.id !== reqId))
   }
 
   return (
@@ -177,6 +250,12 @@ export default function JoinRequestsPage() {
 
       {/* Content */}
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, animation: 'slideIn 0.22s ease' }}>
+
+        {actingErr && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, padding: '12px 16px', fontSize: 13, fontWeight: 600, color: C.error }}>
+            ⚠️ {actingErr}
+          </div>
+        )}
 
         {loading ? (
           <>
