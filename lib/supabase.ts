@@ -7,10 +7,22 @@ export function createSupabaseClient() {
   )
 }
 
-export const supabase = createSupabaseClient()
+// Safe singleton — only created once on client side
+let client: ReturnType<typeof createBrowserClient> | null = null
+
+export function getSupabaseClient() {
+  if (!client) {
+    client = createSupabaseClient()
+  }
+  return client
+}
+
+// Keep named export for backward compat but route through safe getter
+export const supabase = getSupabaseClient()
 
 export async function getTeacherProfile(userId: string) {
-  const { data: profile, error: profileErr } = await supabase
+  const sb = getSupabaseClient()
+  const { data: profile, error: profileErr } = await sb
     .from('profiles')
     .select('full_name, phone, school_id, schools(name)')
     .eq('id', userId)
@@ -28,7 +40,8 @@ export async function updateTeacherProfile(userId: string, updates: {
   name?: string
   phone?: string
 }) {
-  const { data, error } = await supabase
+  const sb = getSupabaseClient()
+  const { data, error } = await sb
     .from('profiles')
     .update({
       full_name: updates.name,
