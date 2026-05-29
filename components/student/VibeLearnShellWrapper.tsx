@@ -194,7 +194,7 @@ function FeedTab({
       <div style={{ marginBottom: 16 }}><VibeProgress /></div>
       <EmptyState
         icon="📭"
-        title="Feed is empty"
+        title="No Vibes Yet"
         body="Be the first to add educational content. Anyone on VibeSchool can contribute."
       />
     </div>
@@ -209,7 +209,7 @@ function FeedTab({
         fontSize: 11, color: MUTED, fontWeight: 700,
         letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16,
       }}>
-        🔥 Trending Content
+        🔥 Vibe Rising
       </div>
       {items.map(item => (
         <ContentCard
@@ -391,7 +391,7 @@ function LibraryTab({
   if (items.length === 0) return (
     <EmptyState
       icon="📚"
-      title="Your library is empty"
+      title="No Saved Vibes Yet"
       body="Save ebooks and epages from the Feed or Indexer and they will appear here."
     />
   )
@@ -402,7 +402,7 @@ function LibraryTab({
         fontSize: 11, color: MUTED, fontWeight: 700,
         letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16,
       }}>
-        📚 Saved Content
+        📚 Your Vibes
       </div>
       {items.map(item => (
         <ContentCard
@@ -547,9 +547,9 @@ await supabase.rpc('increment_view_count', {
   }, [])
 
   const tabs: { id: VibeTab; label: string; icon: string }[] = [
-    { id: 'feed',    label: 'Feed',    icon: '🔥' },
-    { id: 'indexer', label: 'Indexer', icon: '🔍' },
-    { id: 'library', label: 'Library', icon: '📚' },
+    { id: 'feed',    label: 'Vibe Feed',    icon: '🔥' },
+    { id: 'indexer', label: 'Vibe Check', icon: '🔍' },
+    { id: 'library', label: 'My Vibes', icon: '📚' },
   ]
 
   return (
@@ -620,7 +620,7 @@ await supabase.rpc('increment_view_count', {
               minWidth: 72,
             }}
           >
-            + Submit
+            Drop a Vibe
           </button>
         </header>
 

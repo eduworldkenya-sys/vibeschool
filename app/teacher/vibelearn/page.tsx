@@ -472,7 +472,7 @@ export default function VibeLearnPage() {
 
         {publishOk && (
           <div style={{ ...S.card, background: "#d1fae5", border: "1px solid #6ee7b7", padding: "12px 16px", marginBottom: 14, animation: "fadeIn 0.3s ease" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Published! Your content is now live and earning.</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Vibe dropped. You are now earning.</div>
           </div>
         )}
 
@@ -482,10 +482,10 @@ export default function VibeLearnPage() {
             {content.length === 0 ? (
               <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No content yet</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No Vibes Dropped Yet</div>
                 <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>Publish your first EPAGE or EBOOK and start earning from ad revenue every time a student reads it.</div>
                 <button onClick={() => setTab("create")} style={S.btnPrimary(false)}>
-                  Create your first content →
+                  Drop Your First Vibe →
                 </button>
               </div>
             ) : (
@@ -596,7 +596,7 @@ export default function VibeLearnPage() {
                 })}
 
                 <button onClick={() => setTab("create")} style={{ width: "100%", padding: 14, borderRadius: 14, border: `2px dashed ${C.border}`, background: "transparent", color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}>
-                  + Add more content
+                  + Drop Another Vibe
                 </button>
               </>
             )}
@@ -682,7 +682,7 @@ export default function VibeLearnPage() {
             )}
 
             <button onClick={handlePublish} disabled={publishing} style={S.btnPrimary(publishing)}>
-              {publishing ? "Publishing…" : "Publish & Start Earning ✦"}
+              {publishing ? "Publishing…" : "Drop a Vibe ✦"}
             </button>
           </div>
         )}
