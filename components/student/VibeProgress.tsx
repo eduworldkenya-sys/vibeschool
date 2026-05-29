@@ -28,13 +28,13 @@ interface CompletedRow {
 }
 
 const LEVELS = [
-  { min: 0,    name: 'Newcomer'   },
-  { min: 50,   name: 'Explorer'   },
-  { min: 150,  name: 'Learner'    },
-  { min: 300,  name: 'Scholar'    },
-  { min: 600,  name: 'Achiever'   },
-  { min: 1000, name: 'Master'     },
-  { min: 2000, name: 'Legend'     },
+  { min: 0,    name: 'Fresh Vibe'   },
+  { min: 50,   name: 'Vibe Curious'   },
+  { min: 150,  name: 'Vibe Learner'    },
+  { min: 300,  name: 'Vibe Scholar'    },
+  { min: 600,  name: 'Vibe Achiever'   },
+  { min: 1000, name: 'Vibe Master'     },
+  { min: 2000, name: 'Vibe Legend'     },
 ]
 
 function getLevel(points: number): { level: number; levelName: string; nextLevel: number } {
@@ -66,7 +66,7 @@ function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
 export default function VibeProgress() {
   const [stats, setStats]     = useState<Stats>({
     total: 0, ebooks: 0, epages: 0,
-    points: 0, level: 0, levelName: 'Newcomer',
+    points: 0, level: 0, levelName: 'Fresh Vibe',
     nextLevel: 50, streak: 0, longestStreak: 0,
   })
   const [loading, setLoading] = useState(true)
@@ -100,7 +100,7 @@ export default function VibeProgress() {
 
       const next: Stats = {
         total: 0, ebooks: 0, epages: 0,
-        points: 0, level: 0, levelName: 'Newcomer',
+        points: 0, level: 0, levelName: 'Fresh Vibe',
         nextLevel: 50, streak: 0, longestStreak: 0,
       }
 
@@ -173,15 +173,15 @@ export default function VibeProgress() {
           <div style={{ fontSize: 20, fontWeight: 800, color: ORANGE }}>
             🔥 {stats.streak}
           </div>
-          <div style={{ fontSize: 10, color: MUTED }}>day streak</div>
+          <div style={{ fontSize: 10, color: MUTED }}>Vibe Streak</div>
         </div>
       </div>
 
       {/* XP bar */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 11, color: MUTED }}>{stats.points} pts</span>
-          <span style={{ fontSize: 11, color: MUTED }}>{stats.nextLevel} pts</span>
+          <span style={{ fontSize: 11, color: MUTED }}>{stats.points} Vibe pts</span>
+          <span style={{ fontSize: 11, color: MUTED }}>{stats.nextLevel} Vibe pts</span>
         </div>
         <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 999, height: 6, overflow: 'hidden' }}>
           <div style={{
@@ -197,10 +197,10 @@ export default function VibeProgress() {
       {/* Stats row */}
       <div style={{ display: 'flex', gap: 0 }}>
         {([
-          { label: 'Completed', val: stats.total,         color: ACCENT  },
+          { label: 'Vibed Out', val: stats.total,         color: ACCENT  },
           { label: 'Ebooks',    val: stats.ebooks,        color: ACCENT  },
           { label: 'Epages',    val: stats.epages,        color: GREEN   },
-          { label: 'Best',      val: stats.longestStreak, color: ORANGE  },
+          { label: 'Best Streak',      val: stats.longestStreak, color: ORANGE  },
         ] as const).map((s, i) => (
           <div key={s.label} style={{
             flex: 1, textAlign: 'center',
