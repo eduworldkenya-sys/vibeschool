@@ -68,45 +68,25 @@ export default function CreateChildPage() {
     return true;
   }
 
-    async function handleSkip() {
+  async function handleSkip() {
     if (!validateDetails()) return;
     setLoading(true);
+    setError("");
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/academy/signin?role=parent"); return; }
 
-    const { data: student, error: stuErr } = await supabase
-      .from("students")
-      .insert({
-        name:             childName.trim(),
-        profile_id:       null,
-        class_id:         null,
-        admission_number: null,
-      })
-      .select("id")
-      .single();
-
-    if (stuErr || !student) {
-      setLoading(false);
-      setError("Failed to create child. Please try again.");
-      return;
-    }
-
-    const { error: linkErr } = await supabase
-      .from("parent_student_links")
-      .insert({
-        parent_id:       user.id,
-        student_id:      student.id,
-        school_id:       null,
-        relationship:    "parent",
-        is_primary:      true,
-        can_pickup:      true,
-        receives_alerts: true,
+    const { data: studentId, error: stuErr } = await supabase
+      .rpc("create_child_for_parent", {
+        p_name:     childName.trim(),
+        p_dob:      childDob,
+        p_class_id: null,
       });
 
-    if (linkErr) {
+    if (stuErr || !studentId) {
+      console.error("handleSkip error:", stuErr);
       setLoading(false);
-      setError("Failed to link child. Please try again.");
+      setError("Failed to create child. Please try again.");
       return;
     }
 
@@ -114,7 +94,6 @@ export default function CreateChildPage() {
     setDoneMsg(`${childName.trim()} has been added to your account. You can link them to a school later.`);
     setStep("done");
   }
-
 
   function handleAddToSchool() {
     if (!validateDetails()) return;
@@ -134,7 +113,7 @@ export default function CreateChildPage() {
 
     if (!school) {
       setLoading(false);
-      setError("School not found. Check the code with your child\"s teacher.");
+      setError("School not found. Check the code with your child's teacher.");
       return;
     }
 
@@ -151,7 +130,7 @@ export default function CreateChildPage() {
     setStep("class");
   }
 
-    async function handleSubmit() {
+  async function handleSubmit() {
     setError("");
     if (!classId) { setError("Please select a class."); return; }
     setLoading(true);
@@ -159,51 +138,31 @@ export default function CreateChildPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/academy/signin?role=parent"); return; }
 
-    const { data: student, error: stuErr } = await supabase
-      .from("students")
-      .insert({
-        name:             childName.trim(),
-        profile_id:       null,
-        class_id:         classId,
-        admission_number: null,
-      })
-      .select("id")
-      .single();
-
-    if (stuErr || !student) {
-      setLoading(false);
-      setError("Failed to create child. Please try again.");
-      return;
-    }
-
-    const { error: linkErr } = await supabase
-      .from("parent_student_links")
-      .insert({
-        parent_id:       user.id,
-        student_id:      student.id,
-        school_id:       schoolId,
-        relationship:    "parent",
-        is_primary:      true,
-        can_pickup:      true,
-        receives_alerts: true,
+    const { data: studentId, error: stuErr } = await supabase
+      .rpc("create_child_for_parent", {
+        p_name:     childName.trim(),
+        p_dob:      childDob,
+        p_class_id: classId,
       });
 
-    if (linkErr) {
+    if (stuErr || !studentId) {
+      console.error("handleSubmit error:", stuErr);
       setLoading(false);
-      setError("Failed to link child. Please try again.");
+      setError("Failed to create child. Please try again.");
       return;
     }
 
     const { error: reqErr } = await supabase
       .from("class_join_requests")
       .insert({
-        student_id: student.id,
+        student_id: studentId,
         class_id:   classId,
         parent_id:  user.id,
         status:     "pending",
       });
 
     if (reqErr) {
+      console.error("join request error:", reqErr);
       setLoading(false);
       setError("Failed to send join request. Please try again.");
       return;
@@ -213,7 +172,6 @@ export default function CreateChildPage() {
     setDoneMsg(`Join request sent. Once the teacher approves, ${childName.trim()} will appear on your dashboard.`);
     setStep("done");
   }
-
 
   function handleBack() {
     if (step === "details" || step === "done") { router.push("/parent"); return; }
