@@ -321,7 +321,7 @@ export default function RootPage() {
       }
 
       if (isDbRole(profile?.role)) {
-        router.replace(DASHBOARD[profile.role])
+        router.replace(DASHBOARD[profile.role as DbRole])
         return
       }
 
@@ -454,7 +454,7 @@ export default function RootPage() {
       }
 
       navigated = true
-      router.replace(DASHBOARD[profile.role])
+      router.replace(DASHBOARD[profile.role as DbRole])
     } finally {
       inflightRef.current = false
       if (!navigated) setLoading(false)
