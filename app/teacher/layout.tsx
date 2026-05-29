@@ -1,3 +1,4 @@
+import { useState } from 'react'
 "use client";
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -135,7 +136,7 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
     })
   }
 
-  const [greeted, setGreeted] = React.useState(false)
+  const [greeted, setGreeted] = useState(false)
 
   function vibeSpeak(text: string) {
     if (typeof window === 'undefined') return
