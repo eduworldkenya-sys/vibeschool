@@ -75,7 +75,7 @@ async function ensureVCId(userId: string, fullName: string) {
   return vcId
 }
 
-async function findOrCreateThread(schoolId: string, currentUserId: string, otherUserId: string, contextTag = 'general'): Promise<string> {
+async function findOrCreateThread(schoolId: string | null, currentUserId: string, otherUserId: string, contextTag = 'general'): Promise<string> {
   const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
   const myThreadIds = (myThreads ?? []).map((t: { thread_id: string }) => t.thread_id)
   if (myThreadIds.length > 0) {
@@ -104,7 +104,7 @@ export default function TeacherVibeConnectPage() {
   const router = useRouter()
 
   const [userId,   setUserId]   = useState('')
-  const [schoolId, setSchoolId] = useState('')
+  const [schoolId, setSchoolId] = useState<string | null>(null)
   const [loading,  setLoading]  = useState(true)
   const [tab, setTab] = useState<'threads' | 'circulars'>('threads')
 
@@ -141,7 +141,7 @@ export default function TeacherVibeConnectPage() {
       const p = pRes.data
       if (p) p.school_id = mRes.data?.school_id ?? tRes.data?.school_id ?? p.school_id
       if (!p || p.role !== 'teacher') { router.push('/teacher'); return }
-      setUserId(user.id); setSchoolId(p?.school_id ?? '')
+      setUserId(user.id); setSchoolId(p?.school_id ?? null)
       try { await ensureVCId(user.id, p.full_name ?? 'Teacher') } catch {}
       await loadAll(user.id, p?.school_id ?? '')
     } catch { router.push('/teacher') } finally { setLoading(false) }
@@ -232,8 +232,7 @@ export default function TeacherVibeConnectPage() {
 
   async function acknowledgeCircular(recipientId: string, circularId: string) {
     setAcking(circularId)
-    await supabase.from('vc_circular_recipients').update({ ack_at: new Date().toISOString() }).eq('id', recipientId)
-    setCirculars(prev => prev.map(c => c.id === circularId ? { ...c, acked: true } : c))
+    const { error } = await supabase.from('vc_circular_recipients').update({ ack_at: new Date().toISOString() }).eq('id', recipientId)
     setAcking(null)
   }
 
