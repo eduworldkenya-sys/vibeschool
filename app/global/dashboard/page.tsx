@@ -101,6 +101,16 @@ export default function VibeGlobalDashboard() {
   const [cOk,      setCOk]      = useState(false)
   const [dropping, setDropping] = useState(false)
 
+  const loadFeed = useCallback(async () => {
+    const { data } = await supabase
+      .from('vibelearn_content')
+      .select('id,title,description,type,source,url,tags,status,view_count,vibe_count,earnings_ksh,created_at,submitted_by')
+      .eq('status', 'live')
+      .order('view_count', { ascending: false })
+      .limit(30)
+    setFeed((data ?? []) as VibeContent[])
+  }, [])
+
   useEffect(() => {
     async function init() {
       const { data: { user: u } } = await supabase.auth.getUser()
@@ -116,16 +126,6 @@ export default function VibeGlobalDashboard() {
     }
     init()
   }, [loadFeed])
-
-  const loadFeed = useCallback(async () => {
-    const { data } = await supabase
-      .from('vibelearn_content')
-      .select('id,title,description,type,source,url,tags,status,view_count,vibe_count,earnings_ksh,created_at,submitted_by')
-      .eq('status', 'live')
-      .order('view_count', { ascending: false })
-      .limit(30)
-    setFeed((data ?? []) as VibeContent[])
-  }, [])
 
   async function handleVibe(item: VibeContent) {
     if (vibing || !user) return
@@ -148,7 +148,7 @@ export default function VibeGlobalDashboard() {
         viewer_id:  user.id,
       })
     }
-    window.open(item.url, '_blank', 'noopener')
+    router.push(`/global/read/${item.id}`)
   }
 
   function handleListen(item: VibeContent) {
