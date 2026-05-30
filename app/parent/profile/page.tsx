@@ -219,6 +219,7 @@ export default function ParentProfilePage() {
           class_name:     l.students.class_id      ?? '',
           attendance_pct: 0,
           school_name:    '',
+          pending_approval: l.pending_approval ?? false,
         }))
       setChildren(mapped)
     }
