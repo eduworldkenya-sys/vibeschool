@@ -365,6 +365,7 @@ export default function AdminCommunicationPage() {
   }
 
   async function startThread(other: ProfileRow) {
+    if (!schoolId || !userId) return
     setComposeOpen(false)
     setSearchQuery('')
     setSearchResults([])
