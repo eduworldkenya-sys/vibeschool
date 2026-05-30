@@ -48,6 +48,7 @@ function ChildCard({ child, onTap }: { child: LinkedChild; onTap: () => void }) 
   const initial  = child.name.trim()[0]?.toUpperCase() ?? "?";
   const hasAtt   = child.attendance_pct > 0;
   const attColor = attendanceColor(child.attendance_pct);
+  const isPending = child.pending_approval && child.class_name === "—";
 
   // Warm one-liner
   const h = new Date().getHours();
@@ -105,6 +106,12 @@ function ChildCard({ child, onTap }: { child: LinkedChild; onTap: () => void }) 
           <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {child.school_name !== "—" ? child.school_name : "School not linked"}
           </div>
+          {isPending && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, background: "#fef3c7", border: "1px solid #f59e0b", borderRadius: 20, padding: "2px 10px" }}>
+              <span style={{ fontSize: 10 }}>⏳</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#92400e" }}>Waiting for teacher approval</span>
+            </div>
+          )}
         </div>
 
         {/* Chevron */}
@@ -238,30 +245,40 @@ export default function ParentStudentsPage() {
       .select("id, name")
       .in("id", schoolIds);
 
-    // Attendance per student
+    // Attendance — single query for all students
+    const { data: allAtt } = await supabase
+      .from("attendance")
+      .select("student_id, status")
+      .in("student_id", studentIds);
+
     const attMap: Record<string, number> = {};
-    await Promise.all(
-      studentIds.map(async (sid: string) => {
-        const { data: att } = await supabase
-          .from("attendance")
-          .select("id, status")
-          .eq("student_id", sid);
-        const total   = att?.length ?? 0;
-        const present = att?.filter((r: { status: string }) => r.status === "present").length ?? 0;
-        attMap[sid] = total > 0 ? Math.round((present / total) * 100) : 0;
-      })
-    );
+    for (const sid of studentIds) {
+      const rows    = (allAtt ?? []).filter((r: { student_id: string }) => r.student_id === sid);
+      const total   = rows.length;
+      const present = rows.filter((r: { status: string }) => r.status === "present").length;
+      attMap[sid]   = total > 0 ? Math.round((present / total) * 100) : 0;
+    }
+
+    // Pending join requests
+    const { data: pendingReqs } = await supabase
+      .from("class_join_requests")
+      .select("student_id")
+      .in("student_id", studentIds)
+      .eq("status", "pending");
+
+    const pendingSet = new Set((pendingReqs ?? []).map((r: { student_id: string }) => r.student_id));
 
     const assembled: LinkedChild[] = students.map((s: { id: string; name: string; class_id: string }) => {
       const cls    = (classes ?? []).find((c: { id: string }) => c.id === s.class_id);
       const school = (schools ?? []).find((sc: { id: string }) => sc.id === cls?.school_id);
       const className = cls ? cls.name + (cls.stream ? " " + cls.stream : "") : "—";
       return {
-        student_id:     s.id,
-        name:           s.name,
-        class_name:     className,
-        attendance_pct: attMap[s.id] ?? 0,
-        school_name:    school?.name ?? "—",
+        student_id:       s.id,
+        name:             s.name,
+        class_name:       className,
+        attendance_pct:   attMap[s.id] ?? 0,
+        school_name:      school?.name ?? "—",
+        pending_approval: pendingSet.has(s.id),
       };
     });
 

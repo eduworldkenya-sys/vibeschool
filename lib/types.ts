@@ -213,11 +213,12 @@ export interface Message {
 // ─── Derived / UI Types ──────────────────────────────────────────────────────
 
 export interface LinkedChild {
-  student_id:     string;
-  name:           string;
-  class_name:     string;
-  attendance_pct: number;
-  school_name:    string;
+  student_id:       string;
+  name:             string;
+  class_name:       string;
+  attendance_pct:   number;
+  school_name:      string;
+  pending_approval: boolean;
 }
 
 // ─── Parent Nav ───────────────────────────────────────────────────────────────
