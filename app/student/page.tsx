@@ -64,25 +64,25 @@ export default function StudentHomePage() {
         return
       }
 
-      // Class
-      const { data: cls } = await supabase
+      // Class — null-safe
+      const cls = student.class_id ? (await supabase
         .from('classes')
         .select('id, name, stream, school_id')
         .eq('id', student.class_id)
-        .single()
+        .single()).data : null
 
-      // School
-      const { data: school } = await supabase
+      // School — null-safe
+      const school = cls?.school_id ? (await supabase
         .from('schools')
         .select('name')
-        .eq('id', cls?.school_id ?? '')
-        .single()
+        .eq('id', cls.school_id)
+        .single()).data : null
 
-      // Attendance
+      // Attendance — by student_id not class_id
       const { data: att } = await supabase
         .from('attendance')
         .select('status')
-        .eq('class_id', student.class_id)
+        .eq('student_id', student.id)
 
       const totalDays    = att?.length ?? 0
       const totalPresent = att?.filter(a => a.status === 'present').length ?? 0
@@ -226,12 +226,13 @@ export default function StudentHomePage() {
       {/* Quick links */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         {[
-          { label: 'My Marks',    icon: '📝', href: '/student/marks'    },
-          { label: 'Homework',    icon: '📚', href: '/student/homework'  },
-          { label: 'Timetable',   icon: '🗓', href: '/student/timetable' },
-          { label: 'My Profile',  icon: '👤', href: '/student/profile'   },
+          { label: 'My Marks',    icon: '📝', href: '/student/learn'     },
+          { label: 'Resources',   icon: '📚', href: '/student/resources'  },
+          { label: 'Timetable',   icon: '🗓', href: null                  },
+          { label: 'My Profile',  icon: '👤', href: null                  },
         ].map(q => (
-          <button key={q.label} onClick={() => router.push(q.href)}
+          <button key={q.label} onClick={() => q.href ? router.push(q.href) : null}
+            style={{ opacity: q.href ? 1 : 0.45 }}
             style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '16px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <span style={{ fontSize: 22 }}>{q.icon}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: dark }}>{q.label}</span>

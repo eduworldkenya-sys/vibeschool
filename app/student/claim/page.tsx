@@ -63,37 +63,56 @@ export default function StudentClaimPage() {
       return
     }
 
-    const { data: cls } = await supabase
-      .from('classes')
-      .select('school_id')
-      .eq('id', student.class_id)
-      .single()
+    // Null-safe class fetch
+    const schoolId = student.class_id
+      ? ((await supabase
+          .from('classes')
+          .select('school_id')
+          .eq('id', student.class_id)
+          .single()).data?.school_id ?? null)
+      : null
 
-    await supabase
+    // 1. Update student profile_id
+    const { error: stuErr } = await supabase
       .from('students')
       .update({ profile_id: user.id })
       .eq('id', student.id)
 
-    await supabase
+    if (stuErr) {
+      setLoading(false)
+      setError('Failed to link account. Please try again.')
+      return
+    }
+
+    // 2. Upsert student_profiles — safe on retry
+    const { error: spErr } = await supabase
       .from('student_profiles')
-      .insert({
+      .upsert({
         profile_id:   user.id,
-        school_id:    cls?.school_id ?? null,
+        school_id:    schoolId,
         admission_no: student.admission_number ?? '',
         gender:       null,
-      })
+      }, { onConflict: 'profile_id' })
 
-    await supabase
-      .from('student_claim_codes')
-      .update({ claimed: true })
-      .eq('id', codeRow.id)
+    if (spErr) {
+      setLoading(false)
+      setError('Failed to create student profile. Please try again.')
+      return
+    }
 
-    if (cls?.school_id) {
+    // 3. Update profiles.school_id if available
+    if (schoolId) {
       await supabase
         .from('profiles')
-        .update({ school_id: cls.school_id })
+        .update({ school_id: schoolId })
         .eq('id', user.id)
     }
+
+    // 4. Mark claimed only after all writes succeed
+    await supabase
+      .from('student_claim_codes')
+      .update({ claimed: true, claimed_by: user.id })
+      .eq('id', codeRow.id)
 
     setLoading(false)
     setSuccess('Account linked! Taking you to your dashboard…')
