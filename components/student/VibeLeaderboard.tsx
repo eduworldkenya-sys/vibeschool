@@ -80,8 +80,8 @@ export default function VibeLeaderboard() {
   if (rows.length === 0) return (
     <div style={{ textAlign: 'center', padding: '60px 24px' }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: TEXT, marginBottom: 8 }}>No rankings yet</div>
-      <div style={{ fontSize: 13, color: MUTED }}>Complete content to appear on the leaderboard.</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: TEXT, marginBottom: 8 }}>No Vibes Yet</div>
+      <div style={{ fontSize: 13, color: MUTED }}>Drop vibes and complete content to appear on the Vibe Board.</div>
     </div>
   )
 
@@ -91,7 +91,7 @@ export default function VibeLeaderboard() {
         fontSize: 11, color: MUTED, fontWeight: 700,
         letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16,
       }}>
-        🏆 Top Learners
+        ✦ Vibe Board
       </div>
       {rows.map((row, i) => {
         const isMe    = row.id === myId
@@ -125,7 +125,7 @@ export default function VibeLeaderboard() {
                 {row.full_name ?? 'Anonymous'}{isMe ? ' (You)' : ''}
               </div>
               <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                {row.completions} completed
+                {row.completions} vibes out
               </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -133,7 +133,7 @@ export default function VibeLeaderboard() {
                 {row.total_points}
               </div>
               <div style={{ fontSize: 9, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                pts
+                Vibe pts
               </div>
             </div>
           </div>
