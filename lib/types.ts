@@ -153,7 +153,7 @@ export interface StudentClaimCode {
 
 export interface StudentProfile {
   profile_id:   string;
-  school_id:    string;
+  school_id:    string | null;
   admission_no: string;
   gender:       string | null;
 }
@@ -168,7 +168,7 @@ export interface ParentStudentLink {
   id:              string;
   parent_id:       string;
   student_id:      string;
-  school_id:       string;
+  school_id:       string | null;
   relationship:    string;
   is_primary:      boolean;
   can_pickup:      boolean;
@@ -185,7 +185,7 @@ export interface ClassJoinRequest {
 
 export interface StudentClass {
   id:         string;
-  school_id:  string;
+  school_id:  string | null;
   student_id: string;
   class_id:   string;
   joined_at:  string;
@@ -387,7 +387,7 @@ export interface HealthVaccination {
 
 export interface VCThread {
   id:                   string;
-  school_id:            string;
+  school_id:            string | null;
   type:                 'direct' | 'circular';
   subject:              string | null;
   created_by:           string;
@@ -400,7 +400,7 @@ export interface VCParticipant {
   id:           string;
   thread_id:    string;
   profile_id:   string;
-  school_id:    string;
+  school_id:    string | null;
   joined_at:    string;
   left_at:      string | null;
   last_read_at: string | null;
@@ -409,7 +409,7 @@ export interface VCParticipant {
 export interface VCMessage {
   id:         string;
   thread_id:  string;
-  school_id:  string;
+  school_id:  string | null;
   sender_id:  string;
   body:       string;
   created_at: string;
@@ -418,7 +418,7 @@ export interface VCMessage {
 
 export interface VCCircular {
   id:            string;
-  school_id:     string;
+  school_id:     string | null;
   title:         string;
   body:          string;
   audience_type: 'all_staff' | 'all_parents' | 'everyone';
