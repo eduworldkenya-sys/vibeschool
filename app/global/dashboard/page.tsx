@@ -156,7 +156,7 @@ export default function VibeGlobalDashboard() {
       window.speechSynthesis?.cancel()
       setSpeaking(false)
       setTtsItem(null)
-      return
+      if (ttsItem?.id === item.id) return
     }
     setTtsItem(item)
     setSpeaking(true)
