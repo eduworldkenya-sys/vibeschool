@@ -43,6 +43,7 @@ interface InvoiceRow {
 }
 
 interface PaymentRow {
+  invoice_id:  string
   id:          string
   amount:      number
   method:      string
@@ -694,9 +695,7 @@ export default function StudentDetailPage() {
             </div>
           ) : (
             invoices.map(inv => {
-              const invPayments = payments.filter(p =>
-                payments.find(pp => pp.id === p.id)
-              )
+              const invPayments = payments.filter(p => p.invoice_id === inv.id)
               return (
                 <div key={inv.id} style={{
                   background:    "#ffffff",

@@ -179,29 +179,18 @@ export default function StudentsPage() {
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      const { data: student, error } = await supabase
-        .from("students")
-        .insert({
-          name:             form.name.trim(),
-          admission_number: form.admission_number || null,
-          gender:           form.gender || null,
-          date_of_birth:    form.date_of_birth || null,
-          class_id:         form.class_id || null,
+      const { data: studentId, error } = await supabase
+        .rpc("admin_add_student", {
+          p_name:             form.name.trim(),
+          p_admission_number: form.admission_number || null,
+          p_gender:           form.gender || null,
+          p_date_of_birth:    form.date_of_birth || null,
+          p_class_id:         form.class_id || null,
+          p_school_id:        schoolId || null,
         })
-        .select("id")
-        .single()
 
-      if (error || !student) throw error
+      if (error || !studentId) throw error
 
-      if (form.class_id && schoolId) {
-        await supabase.from("student_classes").insert({
-          student_id: student.id,
-          class_id:   form.class_id,
-          school_id:  schoolId,
-          is_current: true,
-          joined_at:  new Date().toISOString(),
-        })
-      }
 
       setShowModal(false)
       setForm({ name: "", admission_number: "", class_id: "", gender: "", date_of_birth: "" })
