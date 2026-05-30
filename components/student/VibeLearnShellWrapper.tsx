@@ -430,6 +430,34 @@ export default function VibeLearnShellWrapper({
   const [openContent, setOpenContent]   = useState<VibeContent | null>(null)
   const [completing, setCompleting]     = useState(false)
   const [submitOpen, setSubmitOpen]     = useState(false)
+  const [vibeLock,   setVibeLock]       = useState(false)
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null)
+
+  function vibeSpeak(text: string) {
+    if (typeof window === 'undefined') return
+    window.speechSynthesis?.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.rate  = 0.88
+    u.pitch = 1.05
+    window.speechSynthesis?.speak(u)
+  }
+
+  async function toggleVibeLock() {
+    if (!vibeLock) {
+      setVibeLock(true)
+      vibeSpeak('Vibe lock. Focus mode on.')
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock?.request('screen')
+      } catch { /* not supported */ }
+    } else {
+      setVibeLock(false)
+      vibeSpeak('Vibe out. Good session.')
+      try {
+        await wakeLockRef.current?.release()
+        wakeLockRef.current = null
+      } catch { /* not supported */ }
+    }
+  }
 
   useEffect(() => {
     if (!isOpen) return
@@ -584,7 +612,9 @@ await supabase.rpc('increment_view_count', {
         }}>
           <button
             onClick={
-              openContent
+              vibeLock
+                ? undefined
+                : openContent
                 ? () => setOpenContent(null)
                 : submitOpen
                 ? () => setSubmitOpen(false)
@@ -606,22 +636,40 @@ await supabase.rpc('increment_view_count', {
             color: ACCENT, fontWeight: 800, fontSize: 13,
             letterSpacing: '0.1em', textTransform: 'uppercase',
           }}>
-            VibeLearn
+            {vibeLock ? '🔒 VIBE LOCK' : 'VibeLearn'}
           </span>
-          <button
-            onClick={() => setSubmitOpen(true)}
-            aria-label="Submit content"
-            style={{
-              background: 'rgba(204,255,0,0.1)',
-              border: '1px solid rgba(204,255,0,0.2)',
-              borderRadius: 10, padding: '7px 12px',
-              color: ACCENT, fontSize: 11, fontWeight: 800,
-              cursor: 'pointer', letterSpacing: 0.4,
-              minWidth: 72,
-            }}
-          >
-            Drop a Vibe
-          </button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              onClick={toggleVibeLock}
+              aria-label={vibeLock ? 'Exit Vibe Lock' : 'Enter Vibe Lock'}
+              style={{
+                background: vibeLock ? 'rgba(204,255,0,0.15)' : 'rgba(255,255,255,0.05)',
+                border: vibeLock ? '1px solid rgba(204,255,0,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 10, padding: '7px 10px',
+                color: vibeLock ? ACCENT : 'rgba(255,255,255,0.4)',
+                fontSize: 14, fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              🔒
+            </button>
+            {!vibeLock && (
+              <button
+                onClick={() => setSubmitOpen(true)}
+                aria-label="Submit content"
+                style={{
+                  background: 'rgba(204,255,0,0.1)',
+                  border: '1px solid rgba(204,255,0,0.2)',
+                  borderRadius: 10, padding: '7px 12px',
+                  color: ACCENT, fontSize: 11, fontWeight: 800,
+                  cursor: 'pointer', letterSpacing: 0.4,
+                  minWidth: 72,
+                }}
+              >
+                Drop a Vibe
+              </button>
+            )}
+          </div>
         </header>
 
         {/* Submit overlay */}
