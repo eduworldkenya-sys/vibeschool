@@ -29,6 +29,7 @@ interface VibeContent {
   earnings_ksh: number
   created_at:  string
   submitted_by: string
+  body?: string | null
 }
 
 interface UserProfile {

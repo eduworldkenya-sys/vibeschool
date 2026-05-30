@@ -48,7 +48,7 @@ export default function ReaderPage() {
 
       const { data, error: err } = await supabase
         .from('vibelearn_content')
-        .select('id,title,description,type,source,url,tags,status,view_count,vibe_count,earnings_ksh,created_at,submitted_by')
+        .select('id,title,description,body,type,source,url,tags,status,view_count,vibe_count,earnings_ksh,created_at,submitted_by')
         .eq('id', id)
         .maybeSingle()
 

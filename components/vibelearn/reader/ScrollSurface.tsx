@@ -48,20 +48,38 @@ export default function ScrollSurface({ content, active }: Props) {
         {content.tags?.length > 0 && ' · ' + content.tags.slice(0, 3).join(', ')}
       </div>
 
-      {/* Description */}
-      {content.description && (
+      {/* Body text — extracted from PDF or written directly */}
+      {content.body ? (
+        <div style={{ fontSize: 16, color: TEXT, lineHeight: 1.9, marginBottom: 24 }}>
+          {content.body.split('\n\n').map((para, i) => (
+            <p key={i} style={{ marginBottom: 16 }}>{para}</p>
+          ))}
+        </div>
+      ) : (
         <p style={{ fontSize: 16, color: TEXT, lineHeight: 1.8, marginBottom: 24 }}>
           {content.description}
         </p>
       )}
 
-      {/* File embed — PDF or image */}
-      {content.url && content.url.match(/\.(pdf)$/i) && (
-        <iframe
-          src={content.url}
-          style={{ width: '100%', height: '80vh', border: 'none', borderRadius: 12 }}
-          title={content.title}
-        />
+      {/* PDF download link */}
+      {content.url && /\.pdf$/i.test(content.url) && (
+        <a
+          href={content.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '16px 20px', borderRadius: 14, textDecoration: 'none',
+            background: 'rgba(204,255,0,0.06)', border: '1px solid rgba(204,255,0,0.15)',
+            marginBottom: 24,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#CCFF00' }}>📄 View Full PDF</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Opens in browser</div>
+          </div>
+          <div style={{ fontSize: 20, color: '#CCFF00' }}>↗</div>
+        </a>
       )}
 
       {content.url && content.url.match(/\.(png|jpg|jpeg|webp)$/i) && (
