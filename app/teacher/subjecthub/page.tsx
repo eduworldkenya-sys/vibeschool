@@ -79,7 +79,7 @@ export default function SubjectHubPage() {
   const [newSubjectClassId, setNewSubjectClassId] = useState('')
   const [addingSubject,     setAddingSubject]     = useState(false)
   const [addSubjectError,   setAddSubjectError]   = useState<string | null>(null)
-  const [allClasses,        setAllClasses]        = useState<{id: string; name: string; stream: string | null}[]>([])
+  const [allClasses,        setAllClasses]        = useState<{id: string; name: string; stream: string | null; school_id: string | null}[]>([])
   const [impactScore,      setImpactScore]      = useState<number>(0)
   const [streak,           setStreak]           = useState<number>(0)
   const [lessonCount,      setLessonCount]      = useState<number>(0)
