@@ -10,10 +10,11 @@ const violet    = "#8b5cf6"
 
 export default function AdminLoginPage() {
   const router = useRouter()
-  const [email, setEmail]       = useState("")
+  const [email,    setEmail]    = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError]       = useState("")
-  const [loading, setLoading]   = useState(false)
+  const [error,    setError]    = useState("")
+  const [loading,  setLoading]  = useState(false)
+  const [showPass, setShowPass] = useState(false)
 
   async function handleLogin() {
     setError("")
@@ -22,30 +23,21 @@ export default function AdminLoginPage() {
       return
     }
     setLoading(true)
-
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email:    email.trim().toLowerCase(),
         password,
       })
-
       if (authError || !data?.user) {
         setError("Invalid email or password.")
         setLoading(false)
         return
       }
-
-      // Go straight to dashboard — no role check for now
       router.replace("/admin")
-
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.")
       setLoading(false)
     }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") handleLogin()
   }
 
   return (
@@ -58,15 +50,14 @@ export default function AdminLoginPage() {
       fontFamily:     "'Inter', sans-serif",
       padding:        "24px",
     }}>
-
       <div style={{
-        position:      "fixed",
-        top:           "-20%",
-        left:          "50%",
-        transform:     "translateX(-50%)",
-        width:         "600px",
-        height:        "600px",
-        background:    `radial-gradient(circle, ${violet}18 0%, transparent 70%)`,
+        position:   "fixed",
+        top:        "-20%",
+        left:       "50%",
+        transform:  "translateX(-50%)",
+        width:      "600px",
+        height:     "600px",
+        background: `radial-gradient(circle, ${violet}18 0%, transparent 70%)`,
         pointerEvents: "none",
       }} />
 
@@ -81,7 +72,6 @@ export default function AdminLoginPage() {
         position:       "relative",
         zIndex:         1,
       }}>
-
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{
             width:          "56px",
@@ -96,22 +86,12 @@ export default function AdminLoginPage() {
           }}>
             🏫
           </div>
-          <h1 style={{
-            color:         "#ffffff",
-            fontSize:      "22px",
-            fontWeight:    "700",
-            margin:        "0 0 6px",
-            letterSpacing: "-0.5px",
-          }}>
+          <h1 style={{ color: "#ffffff", fontSize: "22px", fontWeight: "700", margin: "0 0 6px", letterSpacing: "-0.5px" }}>
             VibeSchool Admin
           </h1>
-          <p style={{
-            color:    "rgba(255,255,255,0.4)",
-            fontSize: "13px",
-            margin:   0,
-          }}>
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", margin: 0 }}>
             Principal & Headteacher Portal
-  
+          </p>
         </div>
 
         {error && (
@@ -145,7 +125,7 @@ export default function AdminLoginPage() {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={e => { if (e.key === "Enter") handleLogin() }}
             placeholder="principal@school.ac.ke"
             autoComplete="email"
             style={{
@@ -174,43 +154,60 @@ export default function AdminLoginPage() {
           }}>
             Password
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="••••••••"
-            autoComplete="current-password"
-            style={{
-              width:        "100%",
-              background:   "rgba(255,255,255,0.05)",
-              border:       "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "10px",
-              padding:      "14px 16px",
-              color:        "#ffffff",
-              fontSize:     "15px",
-              outline:      "none",
-              boxSizing:    "border-box",
-            }}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPass ? "text" : "password"}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleLogin() }}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              style={{
+                width:        "100%",
+                background:   "rgba(255,255,255,0.05)",
+                border:       "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "10px",
+                padding:      "14px 48px 14px 16px",
+                color:        "#ffffff",
+                fontSize:     "15px",
+                outline:      "none",
+                boxSizing:    "border-box",
+              }}
+            />
+            <button
+              onClick={() => setShowPass(s => !s)}
+              style={{
+                position:  "absolute",
+                right:     "14px",
+                top:       "50%",
+                transform: "translateY(-50%)",
+                background:"none",
+                border:    "none",
+                color:     "rgba(255,255,255,0.4)",
+                fontSize:  "18px",
+                cursor:    "pointer",
+                padding:   0,
+              }}
+            >
+              {showPass ? "🙈" : "👁"}
+            </button>
+          </div>
         </div>
 
         <button
           onClick={handleLogin}
           disabled={loading}
           style={{
-            width:         "100%",
-            background:    loading
-              ? "rgba(16,185,129,0.4)"
-              : `linear-gradient(135deg, ${accent}, #059669)`,
-            border:        "none",
-            borderRadius:  "10px",
-            padding:       "15px",
-            color:         "#ffffff",
-            fontSize:      "15px",
-            fontWeight:    "700",
-            cursor:        loading ? "not-allowed" : "pointer",
-            letterSpacing: "0.3px",
+            width:        "100%",
+            background:   loading ? "rgba(16,185,129,0.4)" : `linear-gradient(135deg, ${accent}, #059669)`,
+            border:       "none",
+            borderRadius: "10px",
+            padding:      "15px",
+            color:        "#ffffff",
+            fontSize:     "15px",
+            fontWeight:   "700",
+            cursor:       loading ? "not-allowed" : "pointer",
+            letterSpacing:"0.3px",
           }}
         >
           {loading ? "Signing in..." : "Enter Command Center"}
@@ -232,7 +229,7 @@ export default function AdminLoginPage() {
             style={{ color: "rgba(255,255,255,0.35)", fontSize: "13px", cursor: "pointer" }}
           >
             New admin?{" "}
-            <span style={{ color: "#10b981" }}>Register here</span>
+            <span style={{ color: accent }}>Register here</span>
           </span>
         </p>
 
