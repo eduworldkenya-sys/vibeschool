@@ -360,8 +360,9 @@ export default function ParentLearnPage() {
 
           supabase
             .from("lesson_plans")
-            .select("id, title, subject_id, day_of_week")
+            .select("id, title, subject_id, day_of_week, body")
             .eq("class_id", classId)
+            .eq("status", "published")
             .order("day_of_week", { ascending: true }),
 
           supabase
@@ -437,20 +438,19 @@ export default function ParentLearnPage() {
           }
         );
 
-        const planIds = (plansRes.data ?? []).map(p => p.id);
-        const contentMap = new Map<string, string>();
-        
-        if (planIds.length > 0) {
-          const { data: content, error: contentError } = await supabase
-            .from("lesson_content")
-            .select("lesson_plan_id, student_copy")
-            .in("lesson_plan_id", planIds);
-            
-          if (contentError) throw new Error(contentError.message);
-          (content ?? []).forEach(c =>
-            contentMap.set(c.lesson_plan_id, c.student_copy)
-          );
-        }
+        // Read parent summary directly from lesson_plans.body
+        const contentMap = new Map<string, string>()
+        ;(plansRes.data ?? []).forEach((p: any) => {
+          if (p.body) {
+            const obj = p.body.match(/<objectives>([\s\S]*?)<\/objectives>/)
+            const dev = p.body.match(/<development>([\s\S]*?)<\/development>/)
+            const summary = [
+              obj ? 'What we learned:\n' + obj[1].trim() : '',
+              dev ? '\nClassroom activity:\n' + dev[1].trim().slice(0, 300) + '...' : '',
+            ].filter(Boolean).join('\n')
+            contentMap.set(p.id, summary)
+          }
+        })
 
         const subjectIds = Array.from(new Set([
           ...(plansRes.data ?? []).map(p => p.subject_id),
@@ -470,7 +470,6 @@ export default function ParentLearnPage() {
 
         const finalLessons: LessonItem[] = [
           ...(plansRes.data ?? [])
-            .filter(p => contentMap.has(p.id))
             .map(p => ({
               id:           p.id,
               title:        p.title,
