@@ -79,12 +79,12 @@ export default function SchoolOnboardingPage() {
     const selected = schools.find(s => s.id === selectedId)
     if (!selected) { setLoading(false); setError('School not found.'); return }
     let schoolId: string
-    const { data: existing } = await supabase.from('schools').select('id').ilike('name', selected.name).maybeSingle()
+    const { data: existing } = await supabase.from('schools').select('id').ilike('name', selected.name).eq('status', 'active').maybeSingle()
     if (existing) {
       schoolId = existing.id
     } else {
       const subdomain = selected.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) + '-' + Date.now().toString().slice(-4)
-      const { data: created, error: createErr } = await supabase.from('schools').insert({ name: selected.name, subdomain, timezone: 'Africa/Nairobi', country_code: 'KE', status: 'active', created_by: user.id, requires_dual_approval: false }).select('id').single()
+      const { data: created, error: createErr } = await supabase.from('schools').insert({ name: selected.name, subdomain, timezone: 'Africa/Nairobi', country_code: 'KE', status: 'active', created_by: user.id, requires_dual_approval: false, name_normalized: selected.name.toLowerCase().replace(/[^a-z0-9]/g, '') }).select('id').single()
       if (createErr || !created) { setLoading(false); setError(createErr?.message ?? 'Failed to create school.'); return }
       schoolId = created.id
     }
@@ -111,8 +111,31 @@ export default function SchoolOnboardingPage() {
     setError(''); setLoading(true)
     const user = await getUser()
     if (!user) return
+
+    const normalized = manualName.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+
+    // Check by normalized name against active schools only
+    const { data: existing } = await supabase
+      .from('schools')
+      .select('id')
+      .eq('name_normalized', normalized)
+      .eq('status', 'active')
+      .maybeSingle()
+
+    if (existing) {
+      await supabase.from('profiles').update({ school_id: existing.id }).eq('id', user.id)
+      setLoading(false)
+      router.push('/teacher/onboarding/class')
+      return
+    }
+
     const subdomain = manualName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) + '-' + Date.now().toString().slice(-4)
-    const { data: school, error: schoolErr } = await supabase.from('schools').insert({ name: manualName.trim(), subdomain, timezone: 'Africa/Nairobi', country_code: 'KE', status: 'active', created_by: user.id, requires_dual_approval: false }).select('id').single()
+    const { data: school, error: schoolErr } = await supabase
+      .from('schools')
+      .insert({ name: manualName.trim(), subdomain, timezone: 'Africa/Nairobi', country_code: 'KE', status: 'active', created_by: user.id, requires_dual_approval: false, name_normalized: normalized })
+      .select('id')
+      .single()
+
     if (schoolErr || !school) { setLoading(false); setError(schoolErr?.message ?? 'Failed to create school.'); return }
     await supabase.from('profiles').update({ school_id: school.id }).eq('id', user.id)
     setLoading(false)
@@ -134,8 +157,7 @@ export default function SchoolOnboardingPage() {
         <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
           {[1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i === 1 ? accent : C.border }} />)}
         </div>
-        
-        
+
         <button onClick={() => router.push('/teacher')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: '0 0 16px', textAlign: 'left' }}>
           Skip for now →
         </button>
@@ -148,6 +170,7 @@ export default function SchoolOnboardingPage() {
             <button onClick={() => setMode('manual')} style={{ ...btn('transparent', C.textMuted), border: '1.5px solid #e5e7eb', fontSize: 13 }}>✏️ Type school name manually</button>
           </div>
         )}
+
         {mode === 'search' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
@@ -187,6 +210,7 @@ export default function SchoolOnboardingPage() {
             </button>
           </div>
         )}
+
         {mode === 'join' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
@@ -201,6 +225,7 @@ export default function SchoolOnboardingPage() {
             </button>
           </div>
         )}
+
         {mode === 'manual' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <button onClick={() => { setMode('choose'); setError('') }} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontFamily: 'inherit', padding: 0 }}>← Back</button>
@@ -215,6 +240,7 @@ export default function SchoolOnboardingPage() {
             </button>
           </div>
         )}
+
       </div>
     </div>
   )
