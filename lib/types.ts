@@ -449,3 +449,20 @@ export interface VCThreadUI {
 
 // ─── VibeConnect ──────────────────────────────────────────────────────────────
 
+
+export interface VibeContent {
+  id:           string
+  title:        string
+  description:  string | null
+  body:         string | null
+  type:         'epage' | 'ebook'
+  source:       string | null
+  url:          string
+  tags:         string[]
+  status:       string
+  view_count:   number
+  vibe_count:   number
+  earnings_ksh: number
+  created_at:   string
+  submitted_by: string
+}

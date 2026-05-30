@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { VibeContent } from '@/lib/types'
 import VibeTwin from '@/components/student/VibeTwin'
 
 const BG      = '#090D16'
@@ -14,23 +15,6 @@ const TEXT    = '#ffffff'
 const GREEN   = '#10b981'
 
 type GlobalTab = 'feed' | 'create' | 'listen' | 'profile'
-
-interface VibeContent {
-  id:          string
-  title:       string
-  description: string | null
-  type:        'epage' | 'ebook'
-  source:      string | null
-  url:         string
-  tags:        string[]
-  status:      string
-  view_count:  number
-  vibe_count:  number
-  earnings_ksh: number
-  created_at:  string
-  submitted_by: string
-  body?: string | null
-}
 
 interface UserProfile {
   id:        string

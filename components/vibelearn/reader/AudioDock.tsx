@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { VibeContent } from '@/app/global/read/[id]/page'
+import { VibeContent } from '@/lib/types'
 
 const SURFACE = '#111827'
 const ACCENT  = '#CCFF00'
