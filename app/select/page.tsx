@@ -79,18 +79,19 @@ export default function Select() {
             </div>
 
             <div
-              className={`${styles.card} ${styles.cardGlobal} ${styles.cardDisabled}`}
-              aria-disabled="true"
-              aria-label="Global — coming soon"
-              tabIndex={-1}
+              className={`${styles.card} ${styles.cardGlobal}`}
+              aria-label="VibeGlobal — For everyone"
+              tabIndex={0}
+              onClick={() => fadeOut('/global/signin')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fadeOut('/global/signin') } }}
             >
               <div className={styles.cardGlowGlobal} aria-hidden />
               <div className={styles.cardBody}>
                 <p className={styles.cardTitle}>GLOBAL</p>
-                <p className={styles.cardDescriptor}>For international networks and independent learners.</p>
+                <p className={styles.cardDescriptor}>For everyone. Learn, earn, and vibe freely.</p>
               </div>
               <div className={styles.cardRuleGlobal} />
-              <span className={styles.comingSoon}>COMING SOON</span>
+              <span style={{ fontSize: 11, color: 'rgba(200,168,75,0.7)', letterSpacing: '0.15em' }}>ENTER →</span>
             </div>
 
           </div>
