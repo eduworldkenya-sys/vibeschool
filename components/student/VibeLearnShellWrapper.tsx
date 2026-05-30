@@ -119,13 +119,7 @@ function ContentCard({
       >
         Open →
       </button>
-    <VibeTwin
-        isOpen={twinOpen}
-        onClose={() => setTwinOpen(false)}
-        userName={userName}
-        userId={userId}
-      />
-    </div>
+        </div>
   )
 }
 
@@ -420,6 +414,7 @@ function LibraryTab({
           onOpen={onOpen}
         />
       ))}
+
     </div>
   )
 }
@@ -892,6 +887,12 @@ await supabase.rpc('increment_view_count', {
           })}
         </nav>
       </div>
+      <VibeTwin
+        isOpen={twinOpen}
+        onClose={() => setTwinOpen(false)}
+        userName={userName}
+        userId={userId}
+      />
     </>
   )
 }
