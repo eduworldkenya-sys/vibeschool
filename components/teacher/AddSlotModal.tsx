@@ -1,21 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
 
 interface Props {
   teacherId: string
-  schoolId:  string | null
   onClose:   () => void
   onSaved:   () => void
 }
 
 interface ClassOption {
-  id:      string
-  name:    string
-  stream:  string | null
-  subject: string | null
+  id:        string
+  name:      string
+  stream:    string | null
+  subject:   string | null
+  school_id: string | null
 }
 
 const DAYS = [
@@ -51,7 +51,7 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 
-export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: Props) {
+export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
   const [saving,         setSaving]         = useState(false)
   const [error,          setError]          = useState<string | null>(null)
   const [classes,        setClasses]        = useState<ClassOption[]>([])
@@ -59,6 +59,7 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
 
   const [classId,       setClassId]       = useState('')
   const [subjectId,     setSubjectId]     = useState<string | null>(null)
+  const [classSchoolId, setClassSchoolId] = useState<string | null>(null)
   const [dayOfWeek,     setDayOfWeek]     = useState('1')
   const [startTime,     setStartTime]     = useState('08:00')
   const [endTime,       setEndTime]       = useState('09:00')
@@ -67,11 +68,14 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
 
   useEffect(() => {
     async function loadClasses() {
-      const { data } = await supabase
+      const { data, error: err } = await supabase
         .from('classes')
-        .select('id, name, stream, subject')
+        .select('id, name, stream, subject, school_id')
         .eq('teacher_id', teacherId)
         .order('name', { ascending: true })
+      if (err) {
+        setError('Failed to load classes. Please close and try again.')
+      }
       setClasses(data ?? [])
       setClassesLoading(false)
     }
@@ -80,30 +84,44 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
 
   async function handleClassChange(id: string) {
     setClassId(id)
+    setSubjectId(null)
+    setClassSchoolId(null)
+
     const selected = classes.find(c => c.id === id)
-    if (!selected?.subject) return
-    let query = supabase.from('subjects').select('id').eq('name', selected.subject)
-    if (schoolId) query = query.eq('school_id', schoolId)
-    const { data } = await query.maybeSingle()
+    if (!selected) return
+
+    // Always use the class's own school_id — never the teacher's profile school_id
+    setClassSchoolId(selected.school_id)
+
+    if (!selected.subject) return
+
+    // Look up subject using the class's school_id
+    const { data } = await supabase
+      .from('subjects')
+      .select('id')
+      .eq('name', selected.subject)
+      .eq('school_id', selected.school_id)
+      .maybeSingle()
+
     setSubjectId(data?.id ?? null)
   }
 
   async function save() {
     setError(null)
-    if (!classId)  { setError('Select a class.');   return }
-    if (!startTime){ setError('Enter start time.'); return }
-    if (!endTime)  { setError('Enter end time.');   return }
+    if (!classId)   { setError('Select a class.');             return }
+    if (!startTime) { setError('Enter start time.');           return }
+    if (!endTime)   { setError('Enter end time.');             return }
     if (startTime >= endTime) { setError('End time must be after start time.'); return }
 
     setSaving(true)
     const { error: err } = await supabase
       .from('timetable_slots')
       .insert({
-        school_id:      schoolId,
+        school_id:      classSchoolId,   // from the class, not teacher profile
         teacher_id:     teacherId,
         class_id:       classId,
         subject_id:     subjectId,
-        day_of_week:    parseInt(dayOfWeek),
+        day_of_week:    parseInt(dayOfWeek) || 1,
         start_time:     startTime,
         end_time:       endTime,
         room:           room.trim() || null,
@@ -122,7 +140,9 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
       position: 'fixed', inset: 0, zIndex: 200,
       background: 'rgba(0,0,0,0.45)',
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    }}>
+    }}
+      onClick={onClose}
+    >
       <div style={{
         background: C.bg,
         borderRadius: '20px 20px 0 0',
@@ -130,7 +150,9 @@ export default function AddSlotModal({ teacherId, schoolId, onClose, onSaved }: 
         width: '100%', maxWidth: 480,
         display: 'flex', flexDirection: 'column', gap: 16,
         maxHeight: '90vh', overflowY: 'auto',
-      }}>
+      }}
+        onClick={e => e.stopPropagation()}
+      >
         <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>Add Timetable Slot</div>
