@@ -356,7 +356,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
   const [selected,        setSelected]         = useState<Slot | null>(null)
   const [showAddSlot,     setShowAddSlot]      = useState(false)
-  const [teacherSchoolId, setTeacherSchoolId]  = useState<string | null>(null)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
@@ -460,7 +459,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       setAllSlots(mapped)
 
-      setTeacherSchoolId(memberResult.data?.school_id ?? null) // already uses school_members
 
     } catch (err) {
       if (isMounted.current) {
@@ -510,7 +508,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     [allSlots, todayDow, isWeekend]
   )
 
-  // FIX [FATAL-01]: disable Add Slot button during load to prevent race on teacherSchoolId
+  
   const canAddSlot = !loading && teacherId !== null
 
   return (
@@ -622,7 +620,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <button
             type="button"
             onClick={() => canAddSlot && setShowAddSlot(true)}
-            disabled={!canAddSlot}  // FIX [FATAL-01]: disabled during load — prevents race on teacherSchoolId
+            disabled={!canAddSlot}  
             style={{
               padding: '8px 18px', borderRadius: 20, border: 'none',
               cursor:     canAddSlot ? 'pointer' : 'not-allowed',
