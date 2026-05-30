@@ -339,10 +339,14 @@ export default function SubjectHubPage() {
     setAddingSubject(true)
     setAddSubjectError(null)
 
+    // Derive school_id from selected class — not teacher profile
+    const selectedClass = allClasses.find(c => c.id === newSubjectClassId)
+    const classSchoolId = selectedClass?.school_id ?? null
+
     // Deduplicate — no unique constraint on subjects.name
     const dedupBase = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
     const { data: existing } = await (
-      schoolId ? dedupBase.eq('school_id', schoolId ?? '') : dedupBase.is('school_id', null)
+      classSchoolId ? dedupBase.eq('school_id', classSchoolId) : dedupBase.is('school_id', null)
     ).maybeSingle()
 
     let subjectId: string
@@ -351,7 +355,7 @@ export default function SubjectHubPage() {
     } else {
       const { data: newSub, error: subErr } = await supabase
         .from('subjects')
-        .insert({ name: newSubjectName.trim(), school_id: schoolId ?? null })
+        .insert({ name: newSubjectName.trim(), school_id: classSchoolId })
         .select('id')
         .single()
       if (subErr || !newSub) { setAddSubjectError('Failed to create subject'); setAddingSubject(false); return }
@@ -362,7 +366,7 @@ export default function SubjectHubPage() {
       teacher_id:       currentId,
       subject_id:       subjectId,
       class_id:         newSubjectClassId || null,
-      school_id:        schoolId ?? null,
+      school_id:        classSchoolId,
       is_class_teacher: false,
     })
     if (tcErr) { setAddSubjectError('Failed to link subject'); setAddingSubject(false); return }
