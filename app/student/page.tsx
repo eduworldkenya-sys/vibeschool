@@ -232,8 +232,7 @@ export default function StudentHomePage() {
           { label: 'My Profile',  icon: '👤', href: null                  },
         ].map(q => (
           <button key={q.label} onClick={() => q.href ? router.push(q.href) : null}
-            style={{ opacity: q.href ? 1 : 0.45 }}
-            style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '16px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            style={{ opacity: q.href ? 1 : 0.45, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '16px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <span style={{ fontSize: 22 }}>{q.icon}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: dark }}>{q.label}</span>
           </button>
