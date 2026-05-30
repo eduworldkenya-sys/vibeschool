@@ -238,7 +238,7 @@ function ProfileSection({ index }: { index: number }) {
     <ProfessionalInfoSection key="Professional Info" />,
     <QualificationsSection key="Qualifications" />,
     <ProfessionalDevSection key="Professional Development" />,
-    <ComingSoon key="Teaching Style & Twin"    title="Teaching Style & Twin"    sub="Your preferences and Twin observations" />,
+    <TeachingStyleSection key="Teaching Style & Twin" />,
     <ComingSoon key="Attendance & Leave"       title="Attendance & Leave"       sub="Daily attendance and leave balances" />,
     <ComingSoon key="Performance & Appraisal"  title="Performance & Appraisal"  sub="TSC appraisal cycle and performance signals" />,
     <ComingSoon key="Messages"                 title="Messages"                 sub="Linked to VibeConnect module" />,
@@ -1137,6 +1137,219 @@ function ProfessionalDevSection() {
         cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
       }}>
         {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save PD Records'}
+      </button>
+    </div>
+  )
+}
+
+// ─── Teaching Style & Twin ────────────────────────────────────────────────────
+
+const CBC_ACTIVITIES = [
+  'Project-Based Learning',
+  'Group Discussions',
+  'Role Play',
+  'Field Trips',
+  'Story Telling',
+  'Experiments',
+  'Art & Craft',
+  'Music & Movement',
+  'Digital Learning',
+  'Peer Teaching',
+]
+
+interface TeachingStyleForm {
+  teaching_style: string
+  approach:       string
+  activities:     string[]
+  twin_notes:     string
+}
+
+function TeachingStyleSection() {
+  const { userId, schoolId, loading, pageError } = useTeacherData()
+  const [form,      setForm]      = useState<TeachingStyleForm>({
+    teaching_style: '', approach: '', activities: [], twin_notes: '',
+  })
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    async function load() {
+      const { data } = await supabase
+        .from('teacher_profiles')
+        .select('teaching_style,twin_notes')
+        .eq('profile_id', userId)
+        .single()
+      if (!data) return
+      try {
+        const parsed = data.teaching_style ? JSON.parse(data.teaching_style) : {}
+        setForm({
+          teaching_style: parsed.teaching_style ?? '',
+          approach:       parsed.approach       ?? '',
+          activities:     parsed.activities     ?? [],
+          twin_notes:     data.twin_notes       ?? '',
+        })
+      } catch {
+        setForm(f => ({ ...f, twin_notes: data.twin_notes ?? '' }))
+      }
+    }
+    load()
+  }, [userId])
+
+  function toggleActivity(a: string) {
+    setForm(f => ({
+      ...f,
+      activities: f.activities.includes(a)
+        ? f.activities.filter(x => x !== a)
+        : [...f.activities, a],
+    }))
+  }
+
+  async function handleSave() {
+    if (!userId) return
+    setSaving(true)
+    setSaveError(null)
+
+    const stylePayload = JSON.stringify({
+      teaching_style: form.teaching_style,
+      approach:       form.approach,
+      activities:     form.activities,
+    })
+
+    const { error } = await supabase.from('teacher_profiles').upsert({
+      profile_id:     userId,
+      school_id:      schoolId,
+      teaching_style: stylePayload,
+    }, { onConflict: 'profile_id' })
+
+    if (error) {
+      setSaving(false)
+      setSaveError('Failed to save. ' + error.message)
+      return
+    }
+
+    setSaving(false)
+    setSaved(true)
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => setSaved(false), 2500)
+  }
+
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
+
+  const inp: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', background: C.bg,
+    border: `1px solid ${C.border}`, borderRadius: 10,
+    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
+  }
+  const lbl: React.CSSProperties = {
+    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
+    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
+  }
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  return (
+    <div>
+      <SectionHeader title="Teaching Style & Twin" sub="Your preferences and Twin observations" />
+
+      {saveError && <ErrorBox msg={saveError} />}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        <div>
+          <label htmlFor="teaching_style" style={lbl}>Teaching Style</label>
+          <select id="teaching_style" style={inp} value={form.teaching_style}
+            onChange={e => setForm(f => ({ ...f, teaching_style: e.target.value }))}>
+            <option value="">Select your style</option>
+            <option value="visual">Visual — diagrams, charts, demonstrations</option>
+            <option value="auditory">Auditory — discussions, lectures, audio</option>
+            <option value="kinesthetic">Kinesthetic — hands-on, movement, experiments</option>
+            <option value="mixed">Mixed — combination of styles</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="approach" style={lbl}>Classroom Approach</label>
+          <select id="approach" style={inp} value={form.approach}
+            onChange={e => setForm(f => ({ ...f, approach: e.target.value }))}>
+            <option value="">Select approach</option>
+            <option value="teacher_led">Teacher-Led</option>
+            <option value="learner_centred">Learner-Centred</option>
+            <option value="collaborative">Collaborative</option>
+            <option value="inquiry_based">Inquiry-Based</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={lbl}>Favourite CBC Learning Activities</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {CBC_ACTIVITIES.map(a => {
+              const checked = form.activities.includes(a)
+              return (
+                <button
+                  key={a}
+                  onClick={() => toggleActivity(a)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 99, fontSize: 13,
+                    fontWeight: checked ? 600 : 400,
+                    color: checked ? C.accent : C.textMuted,
+                    background: checked ? C.accentLight : C.surface,
+                    border: `1px solid ${checked ? C.accent : C.border}`,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                >
+                  {a}
+                </button>
+              )
+            })}
+          </div>
+          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>
+            Select all that apply
+          </p>
+        </div>
+
+        <div style={{
+          padding: 16, borderRadius: 12,
+          border: `1px solid ${C.border}`,
+          background: C.surface,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 18 }}>🤖</span>
+            <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, margin: 0 }}>
+              Twin Observations
+            </p>
+            <span style={{
+              fontSize: 10, fontWeight: 600, color: C.accent,
+              background: C.accentLight, padding: '2px 8px', borderRadius: 99,
+              border: `1px solid ${C.accent}`,
+            }}>
+              AI Generated
+            </span>
+          </div>
+          {form.twin_notes ? (
+            <p style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.6, margin: 0 }}>
+              {form.twin_notes}
+            </p>
+          ) : (
+            <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
+              No Twin observations yet. Twin will add notes as it learns your teaching patterns.
+            </p>
+          )}
+        </div>
+
+      </div>
+
+      <button onClick={handleSave} disabled={saving} style={{
+        marginTop: 28, padding: '12px 28px', borderRadius: 12,
+        background: saved ? C.accentLight : C.accent,
+        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
+        border: `1px solid ${saved ? C.accent : 'transparent'}`,
+        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
+      }}>
+        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Teaching Style'}
       </button>
     </div>
   )
