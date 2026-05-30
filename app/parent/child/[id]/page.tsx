@@ -178,19 +178,19 @@ export default function ChildDetailPage() {
 
     if (!student) { setLoading(false); return; }
 
-    // Class
-    const { data: cls } = await supabase
+    // Class — only fetch if class_id exists
+    const cls = student.class_id ? (await supabase
       .from("classes")
       .select("id, name, stream, school_id")
       .eq("id", student.class_id)
-      .single();
+      .single()).data : null;
 
-    // School
-    const { data: school } = await supabase
+    // School — only fetch if school_id exists
+    const school = cls?.school_id ? (await supabase
       .from("schools")
       .select("id, name")
-      .eq("id", cls?.school_id ?? "")
-      .single();
+      .eq("id", cls.school_id)
+      .single()).data : null;
 
     const className = cls
       ? cls.name + (cls.stream ? " " + cls.stream : "")
@@ -301,7 +301,7 @@ export default function ChildDetailPage() {
               { label: "💬 Message Teacher", onClick: () => router.push("/parent/connect") },
               { label: "📚 View Homework",   onClick: () => showToast("Homework coming soon") },
               { label: "❤️ Encouragement",   onClick: () => setShowEncouragement(true) },
-              { label: "📞 Call School",     onClick: () => { window.location.href = "tel:"; } },
+              { label: "📞 Call School",     onClick: () => showToast("Contact details in school profile") },
             ].map(a => (
               <button
                 key={a.label}
@@ -368,7 +368,7 @@ export default function ChildDetailPage() {
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: "20px 16px", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 800, color: dark }}>{"Today's Attendance"}</p>
             <p style={{ margin: 0, fontSize: 13, color: "#9ca3af", lineHeight: 1.6 }}>
-              {first}"s attendance hasn"t been recorded yet today. Check back after school starts.
+              {first}'s attendance hasn't been recorded yet today. Check back after school starts.
             </p>
           </div>
         )}
@@ -408,7 +408,7 @@ export default function ChildDetailPage() {
 
         {/* ── CHILD HUB ── */}
         <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: "16px", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <p style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 800, color: dark }}>{first}"s Hub</p>
+          <p style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 800, color: dark }}>{first}'s Hub</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             {HUB_TABS.map(tab => (
               <button

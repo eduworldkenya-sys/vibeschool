@@ -44,46 +44,78 @@ export default function LinkChildPage() {
       return
     }
 
-    // Transfer ownership
-    await supabase
-      .from('students')
-      .update({ profile_id: user.id })
-      .eq('id', codeRow.student_id)
-
+    // 1. Fetch student first
     const { data: student } = await supabase
       .from('students')
       .select('class_id, name')
       .eq('id', codeRow.student_id)
       .single()
 
-    const { data: classRow } = await supabase
-      .from('classes')
-      .select('school_id')
-      .eq('id', student?.class_id)
+    if (!student) {
+      setLoading(false)
+      setError('Student record not found. Contact the school.')
+      return
+    }
+
+    // 2. Fetch school_id only if class exists
+    const schoolId = student.class_id
+      ? ((await supabase
+          .from('classes')
+          .select('school_id')
+          .eq('id', student.class_id)
+          .single()).data?.school_id ?? null)
+      : null
+
+    // 3. Transfer ownership
+    const { error: stuErr } = await supabase
+      .from('students')
+      .update({ profile_id: user.id })
+      .eq('id', codeRow.student_id)
+
+    if (stuErr) {
+      setLoading(false)
+      setError('Failed to link child. Please try again.')
+      return
+    }
+
+    // 4. Link parent — check for existing link first
+    const { data: existing } = await supabase
+      .from('parent_student_links')
+      .select('id')
+      .eq('parent_id', user.id)
+      .eq('student_id', codeRow.student_id)
       .single()
 
-    await supabase.from('parent_student_links').insert({
-      parent_id:       user.id,
-      student_id:      codeRow.student_id,
-      school_id:       classRow?.school_id,
-      relationship:    'parent',
-      is_primary:      true,
-      can_pickup:      true,
-      receives_alerts: true,
-    })
+    if (!existing) {
+      const { error: linkErr } = await supabase.from('parent_student_links').insert({
+        parent_id:       user.id,
+        student_id:      codeRow.student_id,
+        school_id:       schoolId,
+        relationship:    'parent',
+        is_primary:      true,
+        can_pickup:      true,
+        receives_alerts: true,
+      })
+      if (linkErr) {
+        setLoading(false)
+        setError('Failed to link child. Please try again.')
+        return
+      }
+    }
 
+    // 5. Mark claimed only after all writes succeed
     await supabase
       .from('student_claim_codes')
-      .update({ claimed: true })
+      .update({ claimed: true, claimed_by: user.id })
       .eq('id', codeRow.id)
 
     setLoading(false)
-    setSuccess(`${student?.name ?? 'Child'} linked successfully!`)
+    setSuccess(`${student.name} linked successfully!`)
     setTimeout(() => router.push('/parent'), 1500)
   }
 
   return (
-    <div style={{ background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 420, background: '#fff', borderRadius: 20, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
 
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
