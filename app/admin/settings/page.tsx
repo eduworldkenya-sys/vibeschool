@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 export default function SettingsPage() {
   const router = useRouter()
   const items = [
+    { label: "School Profile", desc: "Name, motto, KNEC code, county, contacts", icon: "🏫", href: "/admin/settings/school" },
     { label: "Finance & Bursar", desc: "Appoint bursar, dual-approval rules", icon: "💰", href: "/admin/settings/finance" },
   ]
   return (
