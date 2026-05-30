@@ -1,36 +1,66 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? ""
 const TAVILY_KEY = Deno.env.get("TAVILY_API_KEY") ?? ""
+const SUPABASE_URL     = Deno.env.get("SUPABASE_URL") ?? ""
+const SUPABASE_SERVICE  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 
 const CORS = {
-  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Origin":  Deno.env.get("ALLOWED_ORIGIN") ?? "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+}
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
+  })
 }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
-  try {
-    const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics } = await req.json()
+  // G1: verify JWT before anything else
+  const authHeader = req.headers.get("authorization") ?? ""
+  const token = authHeader.replace("Bearer ", "").trim()
+  if (!token) return json({ error: "Missing auth token" }, 401)
 
-    // 1. Tavily search for curriculum resources
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE)
+  const { data: { user }, error: authError } = await adminClient.auth.getUser(token)
+  if (authError || !user) return json({ error: "Unauthorized" }, 401)
+
+  try {
+    const body = await req.json()
+    const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics } = body
+
+    // G7: input validation — reject early if required fields missing
+    if (!topic || !subject || !className) {
+      return json({ error: "Missing required fields: topic, subject, className" }, 400)
+    }
+
+    // Tavily — G4: wrapped in own try/catch, failure is non-fatal
     let tavilyContext = ""
     if (TAVILY_KEY) {
-      const tavilyRes = await fetch("https://api.tavily.com/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: TAVILY_KEY,
-          query: `${subject} ${topic} Kenya CBC curriculum lesson resources grade`,
-          max_results: 4,
-          include_answer: true,
-        }),
-      })
-      const tavilyData = await tavilyRes.json()
-      tavilyContext = tavilyData.results
-        ?.map((r: any) => `- ${r.title}: ${r.content}`)
-        .join("\n") ?? ""
+      try {
+        const tavilyRes = await fetch("https://api.tavily.com/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            api_key: TAVILY_KEY,
+            query: subject + " " + topic + " Kenya CBC curriculum lesson resources grade",
+            max_results: 4,
+            include_answer: true,
+          }),
+        })
+        const tavilyData = await tavilyRes.json()
+        tavilyContext = (tavilyData.results ?? [])
+          .map((r: any) => "- " + r.title + ": " + r.content)
+          .join("\n")
+      } catch (tavilyErr) {
+        // non-fatal — continue without enrichment
+        console.warn("[generate-lesson-plan] Tavily failed:", tavilyErr)
+      }
     }
 
     const prevList = previousTopics?.length
@@ -51,61 +81,51 @@ serve(async (req) => {
       prevList,
       tavilyContext ? "\nWeb resources for context:\n" + tavilyContext : "",
       "",
-      "Return ONLY this exact XML with no other text before or after:",
+      "Return ONLY the XML below. No text before or after. No markdown. No code fences.",
       "",
       "<objectives>",
       "3 clear measurable CBC competency-based learning objectives for this specific topic.",
       "</objectives>",
       "",
       "<resources>",
-      "Specific materials needed: textbook pages manipulatives chalk diagrams locally available items.",
+      "Specific materials needed: textbook pages, manipulatives, chalk, diagrams, locally available items.",
       "</resources>",
       "",
       "<introduction>",
-      "Exact 5-7 minute hook. Write the actual words the teacher says. Connect to learners daily Kenyan life. Reference the " + studentCount + " learners specifically in grouping instructions.",
+      "Exact 5-7 minute hook. Write the actual words the teacher says. Connect to learners daily Kenyan life.",
       "</introduction>",
       "",
       "<development>",
       "Detailed 20-25 minute main teaching sequence written as a script:",
       "- Exact teacher talk at each stage",
       "- What to write or draw on the board",
-      "- Specific questions to ask the class with expected answers",
-      "- Actual exercises or examples with answers provided for the teacher",
+      "- Specific questions to ask with expected answers",
+      "- Actual exercises with answers provided for the teacher",
       "- Common mistakes to watch for",
-      "- How to group the " + studentCount + " learners for activities",
       "Build explicitly on: " + prevList,
       "</development>",
       "",
       "<consolidation>",
-      "Focused 8-10 minute wrap-up script. Specific cold-call questions to check understanding. Exact words to use.",
+      "Focused 8-10 minute wrap-up script. Specific cold-call questions. Exact words to use.",
       "</consolidation>",
       "",
       "<assessmentHook>",
-      "One specific formative assessment moment during the lesson what to look for and how to record it quickly.",
+      "One specific formative assessment moment during the lesson — what to look for and how to record it quickly.",
       "</assessmentHook>",
       "",
       "<homework>",
-      "Specific achievable homework task with exact questions or instructions written out. Must directly reinforce todays topic.",
+      "Specific achievable homework task with exact questions written out. Must reinforce today's topic.",
       "</homework>",
       "",
       "<differentiation>",
-      "Higher achievers: specific extension task with exact instructions",
+      "Higher achievers: specific extension task",
       "On track: core task description",
-      "Needs support: exact scaffolding strategy with accommodations for this topic",
+      "Needs support: exact scaffolding strategy for this topic",
       "</differentiation>",
-      "",
-      "<student_notes>",
-      "3-5 bullet points in plain English for parents and students. What was learned today written as if explaining to a parent. No teaching jargon. Include CBC strand reference at the end.",
-      "</student_notes>",
-      "",
-      "<parent_message>",
-      "A complete warm professional parent message. Structure: greeting, Today in [subject] your child learned... paragraph, homework section with exact tasks numbered, one practical tip for helping at home, sign-off with " + teacher + " and " + school + ". Ready to send with zero editing needed.",
-      "</parent_message>",
-    ].join("\n")
+    ].filter(Boolean).join("\n")
 
-    // 2. Gemini generation
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_KEY,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,19 +137,24 @@ serve(async (req) => {
     )
 
     const geminiData = await geminiRes.json()
+
+    // G3: surface Gemini errors clearly
+    if (!geminiRes.ok || !geminiData.candidates) {
+      console.error("[generate-lesson-plan] Gemini error:", JSON.stringify(geminiData))
+      return json({ error: "Gemini generation failed", detail: geminiData?.promptFeedback ?? geminiData }, 502)
+    }
+
     const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+    if (!text) {
+      console.error("[generate-lesson-plan] Empty Gemini response:", JSON.stringify(geminiData))
+      return json({ error: "Empty response from Gemini" }, 502)
+    }
 
-    if (!text) return new Response(JSON.stringify({ error: "Empty response from Gemini" }), {
-      status: 500, headers: { ...CORS, "Content-Type": "application/json" }
-    })
-
-    return new Response(JSON.stringify({ plan: text }), {
-      headers: { ...CORS, "Content-Type": "application/json" }
-    })
+    return json({ plan: text })
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, "Content-Type": "application/json" }
-    })
+    // G7: no silent swallows
+    console.error("[generate-lesson-plan] Unhandled error:", err)
+    return json({ error: String(err) }, 500)
   }
 })
