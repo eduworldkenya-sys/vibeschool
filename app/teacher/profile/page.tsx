@@ -239,7 +239,7 @@ function ProfileSection({ index }: { index: number }) {
     <QualificationsSection key="Qualifications" />,
     <ProfessionalDevSection key="Professional Development" />,
     <TeachingStyleSection key="Teaching Style & Twin" />,
-    <ComingSoon key="Attendance & Leave"       title="Attendance & Leave"       sub="Daily attendance and leave balances" />,
+    <AttendanceLeaveSection key="Attendance & Leave" />,
     <ComingSoon key="Performance & Appraisal"  title="Performance & Appraisal"  sub="TSC appraisal cycle and performance signals" />,
     <ComingSoon key="Messages"                 title="Messages"                 sub="Linked to VibeConnect module" />,
     <ComingSoon key="Documents"                title="Documents"                sub="Upload and track required documents" />,
@@ -1351,6 +1351,63 @@ function TeachingStyleSection() {
       }}>
         {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Teaching Style'}
       </button>
+    </div>
+  )
+}
+
+// ─── Attendance & Leave ───────────────────────────────────────────────────────
+
+function AttendanceLeaveSection() {
+  const { userId, loading, pageError } = useTeacherData()
+  const [leaveBalance, setLeaveBalance] = useState<number | null>(null)
+  const [loadingLeave, setLoadingLeave] = useState(true)
+
+  useEffect(() => {
+    if (!userId) return
+    async function load() {
+      const { data } = await supabase
+        .from('teacher_profiles')
+        .select('leave_balance')
+        .eq('profile_id', userId)
+        .single()
+      setLeaveBalance(data?.leave_balance ?? null)
+      setLoadingLeave(false)
+    }
+    load()
+  }, [userId])
+
+  if (loading || loadingLeave) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  return (
+    <div>
+      <SectionHeader title="Attendance & Leave" sub="Your leave balance and attendance overview" />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div style={{ padding: 20, borderRadius: 12, background: C.accentLight, border: `1px solid ${C.accent}`, textAlign: 'center' }}>
+          <p style={{ fontSize: 32, fontWeight: 800, color: C.accent, margin: 0 }}>
+            {leaveBalance ?? '—'}
+          </p>
+          <p style={{ fontSize: 12, color: C.accent, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Leave Days Remaining
+          </p>
+        </div>
+        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+          <p style={{ fontSize: 32, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
+          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Days Attended
+          </p>
+        </div>
+      </div>
+
+      <div style={{
+        padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`,
+        background: C.surface, textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
+          Full attendance history and leave requests will be available in the Attendance module.
+        </p>
+      </div>
     </div>
   )
 }
