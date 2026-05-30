@@ -791,7 +791,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {showAddSlot && teacherId != null && (
         <AddSlotModal
           teacherId={teacherId}
-          schoolId={teacherSchoolId}
           onClose={() => setShowAddSlot(false)}
           onSaved={() => { setShowAddSlot(false); load() }}
         />
