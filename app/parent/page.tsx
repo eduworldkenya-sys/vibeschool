@@ -13,6 +13,7 @@ interface ChildData {
   school:           string
   attendancePct:    number
   recentMarks:      number | null
+  pendingApproval:  boolean
 }
 
 function greeting() {
@@ -73,37 +74,50 @@ export default function ParentHomePage() {
 
       if (!students || students.length === 0) {
         setNoChild(true)
+        setChildren([])
         setLoading(false)
         return
       }
 
-      const classIds = students.map(s => s.class_id)
+      // Null-safe classIds
+      const classIds = students.map(s => s.class_id).filter(Boolean) as string[]
 
-      const { data: classes } = await supabase
+      const { data: classes } = classIds.length > 0 ? await supabase
         .from('classes')
         .select('id, name, stream, school_id')
         .in('id', classIds)
+        : { data: [] }
 
       const schoolIds = Array.from(new Set((classes ?? []).map(c => c.school_id).filter(Boolean))) as string[]
 
-      const { data: schools } = await supabase
+      const { data: schools } = schoolIds.length > 0 ? await supabase
         .from('schools')
         .select('id, name')
         .in('id', schoolIds)
+        : { data: [] }
 
-      const childData: ChildData[] = await Promise.all(students.map(async s => {
-        const cls    = classes?.find(c => c.id === s.class_id)
-        const school = schools?.find(sc => sc.id === cls?.school_id)
+      // Single attendance query for all students
+      const { data: allAtt } = await supabase
+        .from('attendance')
+        .select('student_id, status')
+        .in('student_id', studentIds)
 
-        const { data: att } = await supabase
-          .from('attendance')
-          .select('status')
-          .eq('student_id', s.id)
-        .eq('class_id', s.class_id)
+      // Pending join requests
+      const { data: pendingReqs } = await supabase
+        .from('class_join_requests')
+        .select('student_id')
+        .in('student_id', studentIds)
+        .eq('status', 'pending')
 
-        const total     = att?.length ?? 0
-        const present   = att?.filter(a => a.status === 'present').length ?? 0
-        const attPct    = total > 0 ? Math.round((present / total) * 100) : 0
+      const pendingSet = new Set((pendingReqs ?? []).map(r => r.student_id))
+
+      const childData: ChildData[] = students.map(s => {
+        const cls    = (classes ?? []).find(c => c.id === s.class_id)
+        const school = (schools ?? []).find(sc => sc.id === cls?.school_id)
+        const rows    = (allAtt ?? []).filter(a => a.student_id === s.id)
+        const total   = rows.length
+        const present = rows.filter(a => a.status === 'present').length
+        const attPct  = total > 0 ? Math.round((present / total) * 100) : 0
         const className = cls ? cls.name + (cls.stream ? ' ' + cls.stream : '') : '—'
 
         return {
@@ -114,8 +128,9 @@ export default function ParentHomePage() {
           school:           school?.name ?? '—',
           attendancePct:    attPct,
           recentMarks:      null,
+          pendingApproval:  pendingSet.has(s.id) && !s.class_id,
         }
-      }))
+      })
 
       setChildren(childData)
       setLoading(false)
@@ -181,6 +196,12 @@ export default function ParentHomePage() {
               <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{child.name}</div>
               <div style={{ fontSize: 12, color: '#6b7280' }}>{child.className} · {child.school}</div>
               {child.admission_number && <div style={{ fontSize: 11, color: '#9ca3af' }}>{child.admission_number}</div>}
+              {child.pendingApproval && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 20, padding: '2px 10px' }}>
+                  <span style={{ fontSize: 10 }}>⏳</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#92400e' }}>Waiting for teacher approval</span>
+                </div>
+              )}
             </div>
           </div>
 
