@@ -82,6 +82,7 @@ export default function GlobalSignIn() {
     }
 
     const { error: profileError } = await supabase.from('profiles').insert({
+      role:          'global_user',
       id:            authData.user.id,
       full_name:     fullName.trim(),
       date_of_birth: dob,
