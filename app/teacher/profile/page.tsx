@@ -236,7 +236,7 @@ function ProfileSection({ index }: { index: number }) {
   const sections = [
     <PersonalInfoSection    key="Personal Information" />,
     <ProfessionalInfoSection key="Professional Info" />,
-    <ComingSoon key="Qualifications"           title="Qualifications"           sub="Academic qualifications and certificates" />,
+    <QualificationsSection key="Qualifications" />,
     <ComingSoon key="Professional Development" title="Professional Development" sub="Training history and PD hours" />,
     <ComingSoon key="Teaching Style & Twin"    title="Teaching Style & Twin"    sub="Your preferences and Twin observations" />,
     <ComingSoon key="Attendance & Leave"       title="Attendance & Leave"       sub="Daily attendance and leave balances" />,
@@ -761,6 +761,190 @@ function ProfessionalInfoSection() {
         cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
       }}>
         {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Professional Info'}
+      </button>
+    </div>
+  )
+}
+
+// ─── Qualifications ───────────────────────────────────────────────────────────
+
+interface Qualification {
+  id:         string
+  level:      string
+  field:      string
+  institution: string
+  year:       string
+}
+
+function QualificationsSection() {
+  const { userId, schoolId, loading, pageError } = useTeacherData()
+  const [quals,     setQuals]     = useState<Qualification[]>([])
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    async function loadQuals() {
+      const { data } = await supabase
+        .from('teacher_profiles')
+        .select('qualifications')
+        .eq('profile_id', userId)
+        .single()
+      if (data?.qualifications) setQuals(data.qualifications as Qualification[])
+    }
+    loadQuals()
+  }, [userId])
+
+  function addRow() {
+    setQuals(q => [...q, { id: Date.now().toString(), level: '', field: '', institution: '', year: '' }])
+  }
+
+  function updateRow(id: string, key: keyof Qualification, value: string) {
+    setQuals(q => q.map(r => r.id === id ? { ...r, [key]: value } : r))
+  }
+
+  function removeRow(id: string) {
+    setQuals(q => q.filter(r => r.id !== id))
+  }
+
+  function validate(): string | null {
+    for (const q of quals) {
+      if (!q.level.trim())       return 'All entries need a qualification level.'
+      if (!q.institution.trim()) return 'All entries need an institution name.'
+      if (!q.year.trim())        return 'All entries need a year.'
+      if (!/^\d{4}$/.test(q.year.trim())) return 'Year must be 4 digits e.g. 2018.'
+    }
+    return null
+  }
+
+  async function handleSave() {
+    if (!userId) return
+    const err = validate()
+    if (err) { setSaveError(err); return }
+
+    setSaving(true)
+    setSaveError(null)
+
+    const { error } = await supabase.from('teacher_profiles').upsert({
+      profile_id:     userId,
+      school_id:      schoolId,
+      qualifications: quals,
+    }, { onConflict: 'profile_id' })
+
+    if (error) {
+      setSaving(false)
+      setSaveError('Failed to save. ' + error.message)
+      return
+    }
+
+    setSaving(false)
+    setSaved(true)
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => setSaved(false), 2500)
+  }
+
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
+
+  const inp: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', background: C.bg,
+    border: `1px solid ${C.border}`, borderRadius: 10,
+    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
+  }
+  const lbl: React.CSSProperties = {
+    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
+    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
+  }
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  return (
+    <div>
+      <SectionHeader title="Qualifications" sub="Your academic qualifications and certificates" />
+
+      {saveError && <ErrorBox msg={saveError} />}
+
+      {quals.length === 0 && (
+        <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>
+          No qualifications added yet. Click below to add one.
+        </p>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {quals.map((q, idx) => (
+          <div key={q.id} style={{
+            padding: 16, borderRadius: 12, border: `1px solid ${C.border}`,
+            background: C.surface, position: 'relative',
+          }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+              Qualification {idx + 1}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Level</label>
+                <select style={inp} value={q.level} onChange={e => updateRow(q.id, 'level', e.target.value)}>
+                  <option value="">Select level</option>
+                  <option value="certificate">Certificate</option>
+                  <option value="diploma">Diploma</option>
+                  <option value="degree">Bachelor's Degree</option>
+                  <option value="pgde">PGDE</option>
+                  <option value="masters">Master's Degree</option>
+                  <option value="phd">PhD</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Field of Study</label>
+                <input style={inp} value={q.field}
+                  onChange={e => updateRow(q.id, 'field', e.target.value)}
+                  placeholder="e.g. Education, Mathematics" />
+              </div>
+              <div>
+                <label style={lbl}>Institution</label>
+                <input style={inp} value={q.institution}
+                  onChange={e => updateRow(q.id, 'institution', e.target.value)}
+                  placeholder="e.g. University of Nairobi" />
+              </div>
+              <div>
+                <label style={lbl}>Year Completed</label>
+                <input style={inp} value={q.year}
+                  onChange={e => updateRow(q.id, 'year', e.target.value)}
+                  placeholder="e.g. 2018" maxLength={4} />
+              </div>
+            </div>
+
+            <button onClick={() => removeRow(q.id)} style={{
+              position: 'absolute', top: 12, right: 12,
+              background: '#fef2f2', border: '1px solid #fecaca',
+              color: C.error, borderRadius: 8, padding: '4px 10px',
+              fontSize: 12, cursor: 'pointer', fontWeight: 600,
+            }}>
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={addRow} style={{
+        marginTop: 16, padding: '10px 20px', borderRadius: 10,
+        background: C.surface, border: `1px dashed ${C.accent}`,
+        color: C.accent, fontWeight: 600, fontSize: 13,
+        cursor: 'pointer', width: '100%',
+      }}>
+        + Add Qualification
+      </button>
+
+      <button onClick={handleSave} disabled={saving} style={{
+        marginTop: 12, padding: '12px 28px', borderRadius: 12,
+        background: saved ? C.accentLight : C.accent,
+        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
+        border: `1px solid ${saved ? C.accent : 'transparent'}`,
+        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
+      }}>
+        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Qualifications'}
       </button>
     </div>
   )
