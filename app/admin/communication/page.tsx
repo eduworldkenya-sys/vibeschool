@@ -494,7 +494,7 @@ export default function AdminCommunicationPage() {
       <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 120px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <button
-            onClick={() => { setActiveThread(null); if (pollRef.current) clearInterval(pollRef.current); loadAll(userId, schoolId) }}
+            onClick={() => { setActiveThread(null); if (pollRef.current) clearInterval(pollRef.current); if (schoolId) loadAll(userId, schoolId) }}
             style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}
           >←</button>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>

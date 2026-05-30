@@ -164,7 +164,7 @@ export default function ParentConnectPage() {
     }
   }
 
-  async function loadAll(uid: string, sid: string) {
+  async function loadAll(uid: string, sid: string | null) {
     const [{ data: parts }, { data: circRecips }] = await Promise.all([
       supabase.from('vc_participants').select('thread_id, last_read_at').eq('profile_id', uid),
       supabase.from('vc_circular_recipients').select('id, circular_id, ack_at').eq('profile_id', uid),
