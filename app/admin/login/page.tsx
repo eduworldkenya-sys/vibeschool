@@ -223,7 +223,12 @@ export default function AdminLoginPage() {
           marginTop:    "28px",
           marginBottom: 0,
         }}>
-          VibeSchool · School Management System
+          VibeSchool · School Management System</p>
+        <p style={{ textAlign: "center", marginTop: "16px", marginBottom: 0 }}>
+          <span onClick={() => router.push("/admin/signup")} style={{ color: "rgba(255,255,255,0.35)", fontSize: "13px", cursor: "pointer" }}>
+            New admin?{" "}<span style={{ color: "#10b981" }}>Register here</span>
+          </span>
+        </p>
         </p>
 
       </div>
