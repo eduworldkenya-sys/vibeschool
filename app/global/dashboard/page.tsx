@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import VibeTwin from '@/components/student/VibeTwin'
 
-const BG      = '#f5f2ee'
-const SURFACE = '#ffffff'
-const CARD    = '#ffffff'
-const ACCENT  = '#f0b429'
-const MUTED   = '#6b6b6b'
-const TEXT    = '#1a1a1a'
-const GREEN   = '#003826'
-const GOLD    = '#f0b429'
+const BG      = '#090D16'
+const SURFACE = '#111827'
+const CARD    = '#1a2235'
+const ACCENT  = '#CCFF00'
+const MUTED   = 'rgba(255,255,255,0.4)'
+const TEXT    = '#ffffff'
+const GREEN   = '#10b981'
+const GOLD    = '#f59e0b'
 
 type GlobalTab = 'feed' | 'create' | 'listen' | 'profile'
 
@@ -97,7 +97,6 @@ export default function VibeGlobalDashboard() {
   const [cUrl,     setCUrl]     = useState('')
   const [cFile,    setCFile]    = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [uploadPct, setUploadPct] = useState(0)
   const [cTags,    setCTags]    = useState<string[]>([])
   const [cErr,     setCErr]     = useState('')
   const [cOk,      setCOk]      = useState(false)
