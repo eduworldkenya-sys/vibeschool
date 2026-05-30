@@ -1,8 +1,9 @@
 'use client'
-import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { C } from '@/components/teacher/ui'
+import { generateSchoolCode, codeToSubdomain } from '@/lib/schoolCode'
 
 const dark   = C.dark
 const accent = C.accent
@@ -79,12 +80,23 @@ export default function SchoolOnboardingPage() {
     const selected = schools.find(s => s.id === selectedId)
     if (!selected) { setLoading(false); setError('School not found.'); return }
     let schoolId: string
-    const { data: existing } = await supabase.from('schools').select('id').ilike('name', selected.name).eq('status', 'active').maybeSingle()
+    const normalized = selected.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const { data: existing } = await supabase
+      .from('schools')
+      .select('id')
+      .eq('name_normalized', normalized)
+      .eq('status', 'active')
+      .maybeSingle()
     if (existing) {
       schoolId = existing.id
     } else {
-      const subdomain = selected.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) + '-' + Date.now().toString().slice(-4)
-      const { data: created, error: createErr } = await supabase.from('schools').insert({ name: selected.name, subdomain, timezone: 'Africa/Nairobi', country_code: 'KE', status: 'active', created_by: user.id, requires_dual_approval: false, name_normalized: selected.name.toLowerCase().replace(/[^a-z0-9]/g, '') }).select('id').single()
+      const code      = generateSchoolCode(selected.name)
+      const subdomain = codeToSubdomain(code)
+      const { data: created, error: createErr } = await supabase
+        .from('schools')
+        .insert({ name: selected.name, subdomain, timezone: 'Africa/Nairobi', country_code: 'KE', status: 'active', created_by: user.id, requires_dual_approval: false, name_normalized: normalized })
+        .select('id')
+        .single()
       if (createErr || !created) { setLoading(false); setError(createErr?.message ?? 'Failed to create school.'); return }
       schoolId = created.id
     }
@@ -98,7 +110,11 @@ export default function SchoolOnboardingPage() {
     setError(''); setLoading(true)
     const user = await getUser()
     if (!user) return
-    const { data: school, error: schoolErr } = await supabase.from('schools').select('id, status').eq('subdomain', joinCode.trim().toLowerCase()).single()
+    const { data: school, error: schoolErr } = await supabase
+      .from('schools')
+      .select('id, status')
+      .eq('subdomain', joinCode.trim().toLowerCase())
+      .single()
     if (schoolErr || !school) { setLoading(false); setError('School not found. Check the code and try again.'); return }
     if (school.status === 'suspended' || school.status === 'closed') { setLoading(false); setError('This school is no longer active.'); return }
     await supabase.from('profiles').update({ school_id: school.id }).eq('id', user.id)
@@ -111,31 +127,26 @@ export default function SchoolOnboardingPage() {
     setError(''); setLoading(true)
     const user = await getUser()
     if (!user) return
-
     const normalized = manualName.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
-
-    // Check by normalized name against active schools only
     const { data: existing } = await supabase
       .from('schools')
       .select('id')
       .eq('name_normalized', normalized)
       .eq('status', 'active')
       .maybeSingle()
-
     if (existing) {
       await supabase.from('profiles').update({ school_id: existing.id }).eq('id', user.id)
       setLoading(false)
       router.push('/teacher/onboarding/class')
       return
     }
-
-    const subdomain = manualName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) + '-' + Date.now().toString().slice(-4)
+    const code      = generateSchoolCode(manualName.trim())
+    const subdomain = codeToSubdomain(code)
     const { data: school, error: schoolErr } = await supabase
       .from('schools')
       .insert({ name: manualName.trim(), subdomain, timezone: 'Africa/Nairobi', country_code: 'KE', status: 'active', created_by: user.id, requires_dual_approval: false, name_normalized: normalized })
       .select('id')
       .single()
-
     if (schoolErr || !school) { setLoading(false); setError(schoolErr?.message ?? 'Failed to create school.'); return }
     await supabase.from('profiles').update({ school_id: school.id }).eq('id', user.id)
     setLoading(false)
@@ -217,7 +228,14 @@ export default function SchoolOnboardingPage() {
             <p style={{ fontSize: 14, color: '#374151' }}>Ask your school admin for the school code.</p>
             <div>
               <label style={lbl}>School Code</label>
-              <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="st-marys-nairobi-1234" disabled={loading} style={inp} />
+              <input
+                type="text"
+                value={joinCode}
+                onChange={e => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
+                placeholder="KWI-4821"
+                disabled={loading}
+                style={{ ...inp, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, fontSize: 16 }}
+              />
             </div>
             {error && <p style={{ color: C.error, fontSize: 13, fontWeight: 600 }}>{error}</p>}
             <button onClick={handleJoin} disabled={loading} style={btn(loading ? '#9ca3af' : accent)}>
