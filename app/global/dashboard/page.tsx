@@ -436,7 +436,7 @@ export default function VibeGlobalDashboard() {
               </div>
 
               {[
-                { id: 'vg-title', label: 'TITLE *', value: cTitle, set: setCTitle, ph: 'e.g. How Kenya's Economy Works', type: 'text' },
+                { id: 'vg-title', label: 'TITLE *', value: cTitle, set: setCTitle, ph: "e.g. How Kenya's Economy Works", type: 'text' },
                 { id: 'vg-url',   label: 'CONTENT URL *', value: cUrl,   set: setCUrl,   ph: 'https://...', type: 'url' },
               ].map(f => (
                 <div key={f.id} style={{ marginBottom: 12 }}>
