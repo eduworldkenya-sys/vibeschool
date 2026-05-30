@@ -351,6 +351,7 @@ export default function AdminCommunicationPage() {
   async function searchPeople(q: string) {
     setSearchQuery(q)
     if (q.length < 2) { setSearchResults([]); return }
+    if (!schoolId) { setSearchResults([]); return }
     setSearching(true)
     const { data } = await supabase
       .from('profiles')
@@ -415,7 +416,7 @@ export default function AdminCommunicationPage() {
       const { data: circ, error } = await supabase
         .from('vc_circulars')
         .insert({
-          school_id:            schoolId,
+          school_id:            schoolId ?? null,
           title:                memoSubject.trim(),
           body:                 memoBody.trim(),
           audience_type:        'all_staff',
@@ -452,8 +453,8 @@ export default function AdminCommunicationPage() {
   async function sendCircular() {
     if (!circTitle.trim() || !circBody.trim()) return
     setCircSending(true)
-    const { data: circ } = await supabase.from('vc_circulars').insert({
-      school_id:     schoolId,
+    const { data: circ, error: circErr } = await supabase.from('vc_circulars').insert({
+      school_id:     schoolId ?? null,
       title:         circTitle.trim(),
       body:          circBody.trim(),
       audience_type: circAudience,
@@ -462,6 +463,7 @@ export default function AdminCommunicationPage() {
       sent_by:       userId,
     }).select().single()
 
+    if (circErr || !circ) { setCircSending(false); showToast('Failed to send circular', 'error'); return }
     if (circ) {
       let roleFilter: string[] = []
       if (circAudience === 'all_staff')   roleFilter = ['teacher', 'admin']
