@@ -65,7 +65,7 @@ async function ensureVCId(userId: string, fullName: string) {
   return vcId
 }
 
-async function findOrCreateThread(schoolId: string, currentUserId: string, otherUserId: string, contextTag = 'general'): Promise<string> {
+async function findOrCreateThread(schoolId: string | null, currentUserId: string, otherUserId: string, contextTag = 'general'): Promise<string> {
   const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
   const myThreadIds = (myThreads ?? []).map((t: { thread_id: string }) => t.thread_id)
   if (myThreadIds.length > 0) {
@@ -94,7 +94,7 @@ export default function ParentMessagesPage() {
   const router = useRouter()
 
   const [userId,   setUserId]   = useState('')
-  const [schoolId, setSchoolId] = useState('')
+  const [schoolId, setSchoolId] = useState<string | null>(null)
   const [loading,  setLoading]  = useState(true)
   const [tab, setTab] = useState<'threads' | 'notices'>('threads')
 
@@ -130,7 +130,7 @@ export default function ParentMessagesPage() {
       const p = pRes.data
       if (p) p.school_id = memberRes.data?.school_id ?? p.school_id
       if (!p || p.role !== 'parent') { router.push('/parent'); return }
-      setUserId(user.id); setSchoolId(p?.school_id ?? '')
+      setUserId(user.id); setSchoolId(p?.school_id ?? null)
       try { await ensureVCId(user.id, p.full_name ?? 'Parent') } catch {}
       await loadAll(user.id, p?.school_id ?? '')
     } catch { router.push('/parent') } finally { setLoading(false) }
@@ -197,7 +197,8 @@ export default function ParentMessagesPage() {
   async function sendMessage() {
     if (!msgBody.trim() || !activeThread) return
     setSending(true); const body = msgBody.trim(); setMsgBody('')
-    await supabase.from('vc_messages').insert({ thread_id: activeThread.threadId, school_id: schoolId, sender_id: userId, body })
+    const { error: msgErr } = await supabase.from('vc_messages').insert({ thread_id: activeThread.threadId, school_id: schoolId ?? null, sender_id: userId, body })
+    if (msgErr) { setSending(false); setMsgBody(body); return }
     await supabase.from('vc_threads').update({ last_message_at: new Date().toISOString(), last_message_preview: body.slice(0, 80) }).eq('id', activeThread.threadId)
     await loadMessages(activeThread.threadId); setSending(false)
   }

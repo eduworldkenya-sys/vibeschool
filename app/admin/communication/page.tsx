@@ -145,7 +145,7 @@ export default function AdminCommunicationPage() {
   const router = useRouter()
 
   const [userId,   setUserId]   = useState('')
-  const [schoolId, setSchoolId] = useState('')
+  const [schoolId, setSchoolId] = useState<string | null>(null)
   const [myName,   setMyName]   = useState('')
   const [loading,  setLoading]  = useState(true)
 
@@ -220,7 +220,7 @@ export default function AdminCommunicationPage() {
       if (p) p.school_id = memberRes.data?.school_id ?? adminRes.data?.school_id ?? p.school_id
       if (!p || p.role !== 'admin') { router.push('/admin/login'); return }
       setUserId(user.id)
-      setSchoolId(p?.school_id ?? '')
+      setSchoolId(p?.school_id ?? null)
       setMyName(p.full_name ?? 'Admin')
       try { await ensureVCId(user.id, p.full_name ?? 'Admin') } catch {}
       await loadAll(user.id, p?.school_id ?? '')
