@@ -96,7 +96,7 @@ export default function SubjectHubPage() {
   async function init() {
     try {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=teacher'); return }
+    if (!user) { router.push('/global/signin'); return }
     setCurrentId(user.id)
 
     const [tcRes, teacherRes, memberRes, profileRes] = await Promise.all([
@@ -121,8 +121,8 @@ export default function SubjectHubPage() {
     setSubjects(subData ?? [])
 
     // Load classes for add-subject modal (best-effort, MVP)
-    const clQuery = supabase.from('classes').select('id,name,stream')
-    const { data: clData } = await (sid ? clQuery.eq('school_id', sid) : clQuery.is('school_id', null))
+    const clQuery = supabase.from('classes').select('id,name,stream,school_id')
+    const { data: clData } = await clQuery.eq('teacher_id', user.id)
     setAllClasses(clData ?? [])
     } catch (err) {
       setError('Failed to load. Please refresh.')
@@ -182,7 +182,7 @@ export default function SubjectHubPage() {
       .from('teacher_classes')
       .select('teacher_id')
       .eq('subject_id', subjectId)
-      .eq('school_id', schoolId)
+      .eq('school_id', schoolId ?? '')
 
     const teacherIds = Array.from(new Set(
       (tcData ?? []).map((r: { teacher_id: string }) => r.teacher_id)
@@ -342,7 +342,7 @@ export default function SubjectHubPage() {
     // Deduplicate — no unique constraint on subjects.name
     const dedupBase = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
     const { data: existing } = await (
-      schoolId ? dedupBase.eq('school_id', schoolId) : dedupBase.is('school_id', null)
+      schoolId ? dedupBase.eq('school_id', schoolId ?? '') : dedupBase.is('school_id', null)
     ).maybeSingle()
 
     let subjectId: string
