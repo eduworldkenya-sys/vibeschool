@@ -117,7 +117,7 @@ export default function AdminHub() {
       s9, s10, s11, s12,
       s13, s14,
     ] = await Promise.all([
-      supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", sid).is("deleted_at", null),
+      supabase.from("student_classes").select("student_id", { count: "exact", head: true }).eq("school_id", sid).eq("is_current", true),
       supabase.from("staff").select("id", { count: "exact", head: true }).eq("school_id", sid).is("deleted_at", null),
       supabase.from("classes").select("id", { count: "exact", head: true }).eq("school_id", sid).is("deleted_at", null),
       supabase.from("parent_student_links").select("id", { count: "exact", head: true }).eq("school_id", sid),
