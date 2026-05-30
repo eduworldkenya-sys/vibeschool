@@ -12,7 +12,6 @@ const ACCENT  = '#CCFF00'
 const MUTED   = 'rgba(255,255,255,0.4)'
 const TEXT    = '#ffffff'
 const GREEN   = '#10b981'
-const GOLD    = '#f59e0b'
 
 type GlobalTab = 'feed' | 'create' | 'listen' | 'profile'
 
@@ -116,7 +115,7 @@ export default function VibeGlobalDashboard() {
       setLoading(false)
     }
     init()
-  }, [])
+  }, [loadFeed])
 
   const loadFeed = useCallback(async () => {
     const { data } = await supabase
@@ -462,13 +461,13 @@ export default function VibeGlobalDashboard() {
               ))}
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 10, fontWeight: 800, color: '#6b6b6b', letterSpacing: 1, display: 'block', marginBottom: 6, textTransform: 'uppercase' as const }}>UPLOAD FILE *</label>
+                <label style={{ fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: 1, display: 'block', marginBottom: 6, textTransform: 'uppercase' as const }}>UPLOAD FILE *</label>
                 <label htmlFor="vg-file" style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                   width: '100%', padding: '20px 0', borderRadius: 12, cursor: 'pointer',
                   border: '2px dashed rgba(0,56,38,0.25)',
-                  background: cFile ? 'rgba(0,56,38,0.06)' : '#f9f9f9',
-                  color: cFile ? '#003826' : '#6b6b6b', fontWeight: 700, fontSize: 13,
+                  background: cFile ? 'rgba(204,255,0,0.06)' : SURFACE,
+                  color: cFile ? ACCENT : MUTED, fontWeight: 700, fontSize: 13,
                 }}>
                   <span style={{ fontSize: 22 }}>{cFile ? '📄' : '⬆️'}</span>
                   {cFile ? cFile.name : 'Tap to choose PDF, DOC, image…'}
@@ -477,7 +476,7 @@ export default function VibeGlobalDashboard() {
                   onChange={e => setCFile(e.target.files?.[0] ?? null)}
                   style={{ display: 'none' }} />
                 {uploading && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: '#003826', fontWeight: 700 }}>Uploading…</div>
+                  <div style={{ marginTop: 8, fontSize: 11, color: GREEN, fontWeight: 700 }}>Uploading…</div>
                 )}
               </div>
 
