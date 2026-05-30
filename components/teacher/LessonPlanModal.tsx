@@ -22,7 +22,7 @@ interface PlanSections {
 interface Student {
   id:           string
   name:         string
-  auth_user_id: string
+  id: string
 }
 
 interface Ctx {
@@ -149,9 +149,9 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       schoolId
         ? supabase.from('schools').select('name').eq('id', schoolId).single()
         : Promise.resolve({ data: null }),
-      // G6: always select auth_user_id explicitly — never assume id === auth id
+      // G6: always select id explicitly — never assume id === auth id
       supabase.from('students')
-        .select('id, name, auth_user_id')
+        .select('id, name, id')
         .eq('class_id', slot.class_id),
       supabase.from('lesson_plans')
         .select('topic')
@@ -341,8 +341,8 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         await supabase.from('notifications').insert(
           ctx.students.map(s => ({
             school_id:  ctx.schoolId || null,
-            // G6: auth_user_id not table PK
-            user_id:    s.auth_user_id,
+            // G6: id not table PK
+            user_id:    s.id,
             title:      'New Lesson: ' + topic,
             body:       slot.subject + ' lesson plan published by ' + ctx.teacherName,
             type:       'lesson_plan',
