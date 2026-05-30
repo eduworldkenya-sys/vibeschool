@@ -442,7 +442,7 @@ export default function AdminCommunicationPage() {
       setMemoBody('')
       setMemoAck(false)
       showToast(`Memo sent to ${memoRecipient.full_name}`)
-      await loadAll(userId, schoolId)
+      if (schoolId) await loadAll(userId, schoolId)
     } catch (err) {
       console.error('Memo send failed:', err)
       showToast('Failed to send memo', 'error')
@@ -485,7 +485,7 @@ export default function AdminCommunicationPage() {
     setCircAck(true)
     setCircDeadline('')
     setCircSending(false)
-    await loadAll(userId, schoolId)
+    if (schoolId) await loadAll(userId, schoolId)
   }
 
   // ── Conversation view ──────────────────────────
