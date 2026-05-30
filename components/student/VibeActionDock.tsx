@@ -78,6 +78,19 @@ export default function VibeActionDock({
     onToggleSave(contentId)
   }, [contentId, onToggleSave])
 
+  const handleVibePass = useCallback(() => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Vibe Pass',
+        text:  'Vibe — check this out on VibeLearn',
+        url:   window.location.href,
+      }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+        .catch(() => {})
+    }
+  }, [])
+
   const handleComplete = useCallback(() => {
     if (isCompleted) return
     onComplete(contentId)
@@ -159,6 +172,26 @@ export default function VibeActionDock({
         <span style={{ fontSize: 20 }}>{isCompleted ? '✅' : '☑️'}</span>
         <span style={{ fontSize: 10, fontWeight: 700, color: isCompleted ? GREEN : MUTED, letterSpacing: 0.4 }}>
           {isCompleted ? 'Vibe Out' : 'Complete'}
+        </span>
+      </button>
+
+      {/* Vibe Pass */}
+      <button
+        onClick={handleVibePass}
+        aria-label="Share this content"
+        style={{
+          flex: 1,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: 4, border: 'none',
+          borderLeft: '1px solid rgba(255,255,255,0.06)',
+          background: 'none',
+          cursor: 'pointer', padding: 0,
+        }}
+      >
+        <span style={{ fontSize: 20 }}>↗</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: 0.4 }}>
+          Vibe Pass
         </span>
       </button>
 
