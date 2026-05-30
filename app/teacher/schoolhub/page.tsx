@@ -12,6 +12,19 @@ interface SchoolInfo {
   country_code: string
   status: string
   subdomain: string
+  motto: string | null
+  vision: string | null
+  knec_code: string | null
+  nemis_code: string | null
+  county: string | null
+  sub_county: string | null
+  ward: string | null
+  postal_address: string | null
+  phone: string | null
+  school_type: string | null
+  school_category: string | null
+  established_year: number | null
+  logo_url: string | null
 }
 
 interface StaffMember {
@@ -60,6 +73,19 @@ function Skeleton({ h = 56 }: { h?: number }) {
   )
 }
 
+function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+      padding: '9px 0', borderBottom: `1px solid ${C.border}`,
+    }}>
+      <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600, flexShrink: 0, marginRight: 12 }}>{label}</span>
+      <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 600, textAlign: 'right' }}>{value}</span>
+    </div>
+  )
+}
+
 // ─── Static content ───────────────────────────────────────────────────────────
 
 const POLICIES = [
@@ -100,11 +126,10 @@ export default function SchoolHubPage() {
       const schoolId = memberRes.data?.school_id ?? profileRes.data?.school_id ?? null
       if (!schoolId) { setLoading(false); return }
 
-      // Parallel — school info + all school members
       const [schoolRes, membersRes] = await Promise.all([
         supabase
           .from('schools')
-          .select('name, timezone, country_code, status, subdomain')
+          .select('name, timezone, country_code, status, subdomain, motto, vision, knec_code, nemis_code, county, sub_county, ward, postal_address, phone, school_type, school_category, established_year, logo_url')
           .eq('id', schoolId)
           .maybeSingle(),
         supabase
@@ -174,19 +199,29 @@ export default function SchoolHubPage() {
           <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
             {loading ? 'Loading…' : school?.name ?? 'Your School'}
           </div>
+          {school?.motto && (
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', marginTop: 4, fontStyle: 'italic' }}>
+              {school.motto}
+            </div>
+          )}
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
             School-wide admin, governance, and notices.
           </div>
           {school && (
             <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-              {school.timezone && (
+              {school.school_category && (
                 <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                  {school.timezone}
+                  {school.school_category}
                 </div>
               )}
-              {school.country_code && (
+              {school.county && (
                 <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                  {school.country_code}
+                  {school.county}
+                </div>
+              )}
+              {school.established_year && (
+                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                  Est. {school.established_year}
                 </div>
               )}
               <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
@@ -212,7 +247,28 @@ export default function SchoolHubPage() {
           </div>
         )}
 
-        {/* Notices — announcements table does not exist, show placeholder */}
+        {/* School Profile — new fields */}
+        {!loading && school && (
+          <Card>
+            <SectionLabel>School Profile</SectionLabel>
+            <InfoRow label="KNEC Code"    value={school.knec_code} />
+            <InfoRow label="NEMIS Code"   value={school.nemis_code} />
+            <InfoRow label="Type"         value={school.school_type} />
+            <InfoRow label="County"       value={school.county} />
+            <InfoRow label="Sub-County"   value={school.sub_county} />
+            <InfoRow label="Ward"         value={school.ward} />
+            <InfoRow label="Phone"        value={school.phone} />
+            <InfoRow label="Address"      value={school.postal_address} />
+            <InfoRow label="Timezone"     value={school.timezone} />
+            {!school.knec_code && !school.county && !school.phone && (
+              <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: C.textMuted }}>
+                No profile details added yet.
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Notices */}
         {!loading && (
           <Card>
             <SectionLabel>Pinned Notices</SectionLabel>
