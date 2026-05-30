@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
+import { formatJoinCode } from '@/lib/schoolCode'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,7 @@ export default function SchoolHubPage() {
   const [staff, setStaff]     = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
+  const [copied, setCopied]   = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -175,6 +177,13 @@ export default function SchoolHubPage() {
 
     load()
   }, [])
+
+  function handleCopy(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -247,19 +256,46 @@ export default function SchoolHubPage() {
           </div>
         )}
 
-        {/* School Profile — new fields */}
+        {/* Join Code */}
+        {!loading && school?.subdomain && (
+          <Card>
+            <SectionLabel>School Join Code</SectionLabel>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{
+                  fontSize: 28, fontWeight: 900, letterSpacing: 4,
+                  color: C.textPrimary, fontFamily: 'monospace',
+                }}>
+                  {formatJoinCode(school.subdomain)}
+                </div>
+                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>
+                  Share this code with your staff to join this school.
+                </div>
+              </div>
+              <Btn
+                small
+                variant={copied ? 'primary' : 'ghost'}
+                onClick={() => handleCopy(formatJoinCode(school.subdomain))}
+              >
+                {copied ? '✓ Copied' : 'Copy'}
+              </Btn>
+            </div>
+          </Card>
+        )}
+
+        {/* School Profile */}
         {!loading && school && (
           <Card>
             <SectionLabel>School Profile</SectionLabel>
-            <InfoRow label="KNEC Code"    value={school.knec_code} />
-            <InfoRow label="NEMIS Code"   value={school.nemis_code} />
-            <InfoRow label="Type"         value={school.school_type} />
-            <InfoRow label="County"       value={school.county} />
-            <InfoRow label="Sub-County"   value={school.sub_county} />
-            <InfoRow label="Ward"         value={school.ward} />
-            <InfoRow label="Phone"        value={school.phone} />
-            <InfoRow label="Address"      value={school.postal_address} />
-            <InfoRow label="Timezone"     value={school.timezone} />
+            <InfoRow label="KNEC Code"   value={school.knec_code} />
+            <InfoRow label="NEMIS Code"  value={school.nemis_code} />
+            <InfoRow label="Type"        value={school.school_type} />
+            <InfoRow label="County"      value={school.county} />
+            <InfoRow label="Sub-County"  value={school.sub_county} />
+            <InfoRow label="Ward"        value={school.ward} />
+            <InfoRow label="Phone"       value={school.phone} />
+            <InfoRow label="Address"     value={school.postal_address} />
+            <InfoRow label="Timezone"    value={school.timezone} />
             {!school.knec_code && !school.county && !school.phone && (
               <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: C.textMuted }}>
                 No profile details added yet.
@@ -307,7 +343,7 @@ export default function SchoolHubPage() {
           </Card>
         )}
 
-        {/* School policies — static */}
+        {/* School policies */}
         {!loading && (
           <Card>
             <SectionLabel>School Policies</SectionLabel>
@@ -330,7 +366,7 @@ export default function SchoolHubPage() {
           </Card>
         )}
 
-        {/* Calendar — static */}
+        {/* Calendar */}
         {!loading && (
           <Card>
             <SectionLabel>School Calendar</SectionLabel>
