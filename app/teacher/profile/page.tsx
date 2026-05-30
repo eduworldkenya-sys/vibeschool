@@ -237,7 +237,7 @@ function ProfileSection({ index }: { index: number }) {
     <PersonalInfoSection    key="Personal Information" />,
     <ProfessionalInfoSection key="Professional Info" />,
     <QualificationsSection key="Qualifications" />,
-    <ComingSoon key="Professional Development" title="Professional Development" sub="Training history and PD hours" />,
+    <ProfessionalDevSection key="Professional Development" />,
     <ComingSoon key="Teaching Style & Twin"    title="Teaching Style & Twin"    sub="Your preferences and Twin observations" />,
     <ComingSoon key="Attendance & Leave"       title="Attendance & Leave"       sub="Daily attendance and leave balances" />,
     <ComingSoon key="Performance & Appraisal"  title="Performance & Appraisal"  sub="TSC appraisal cycle and performance signals" />,
@@ -945,6 +945,198 @@ function QualificationsSection() {
         cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
       }}>
         {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Qualifications'}
+      </button>
+    </div>
+  )
+}
+
+// ─── Professional Development ─────────────────────────────────────────────────
+
+interface PDEntry {
+  id:          string
+  name:        string
+  provider:    string
+  date:        string
+  hours:       string
+  certificate: boolean
+}
+
+function ProfessionalDevSection() {
+  const { userId, schoolId, loading, pageError } = useTeacherData()
+  const [entries,   setEntries]   = useState<PDEntry[]>([])
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    async function load() {
+      const { data } = await supabase
+        .from('teacher_profiles')
+        .select('professional_dev')
+        .eq('profile_id', userId)
+        .single()
+      if (data?.professional_dev) setEntries(data.professional_dev as PDEntry[])
+    }
+    load()
+  }, [userId])
+
+  function addRow() {
+    setEntries(e => [...e, { id: Date.now().toString(), name: '', provider: '', date: '', hours: '', certificate: false }])
+  }
+
+  function updateRow(id: string, key: keyof PDEntry, value: string | boolean) {
+    setEntries(e => e.map(r => r.id === id ? { ...r, [key]: value } : r))
+  }
+
+  function removeRow(id: string) {
+    setEntries(e => e.filter(r => r.id !== id))
+  }
+
+  function validate(): string | null {
+    for (const e of entries) {
+      if (!e.name.trim())     return 'All entries need a training name.'
+      if (!e.provider.trim()) return 'All entries need a provider.'
+      if (!e.date.trim())     return 'All entries need a date.'
+      if (e.hours && isNaN(Number(e.hours))) return 'Hours must be a number.'
+    }
+    return null
+  }
+
+  async function handleSave() {
+    if (!userId) return
+    const err = validate()
+    if (err) { setSaveError(err); return }
+
+    setSaving(true)
+    setSaveError(null)
+
+    const { error } = await supabase.from('teacher_profiles').upsert({
+      profile_id:       userId,
+      school_id:        schoolId,
+      professional_dev: entries,
+    }, { onConflict: 'profile_id' })
+
+    if (error) {
+      setSaving(false)
+      setSaveError('Failed to save. ' + error.message)
+      return
+    }
+
+    setSaving(false)
+    setSaved(true)
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => setSaved(false), 2500)
+  }
+
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
+
+  const inp: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', background: C.bg,
+    border: `1px solid ${C.border}`, borderRadius: 10,
+    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
+  }
+  const lbl: React.CSSProperties = {
+    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
+    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
+  }
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  return (
+    <div>
+      <SectionHeader title="Professional Development" sub="Training, workshops, and PD hours attended" />
+
+      {saveError && <ErrorBox msg={saveError} />}
+
+      {entries.length === 0 && (
+        <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>
+          No training records added yet. Click below to add one.
+        </p>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {entries.map((e, idx) => (
+          <div key={e.id} style={{
+            padding: 16, borderRadius: 12, border: `1px solid ${C.border}`,
+            background: C.surface, position: 'relative',
+          }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
+              Training {idx + 1}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Training / Workshop Name</label>
+                <input style={inp} value={e.name}
+                  onChange={ev => updateRow(e.id, 'name', ev.target.value)}
+                  placeholder="e.g. CBC Implementation Workshop" />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={lbl}>Provider / Organiser</label>
+                <input style={inp} value={e.provider}
+                  onChange={ev => updateRow(e.id, 'provider', ev.target.value)}
+                  placeholder="e.g. Kenya Institute of Curriculum Development" />
+              </div>
+              <div>
+                <label style={lbl}>Date Attended</label>
+                <input style={inp} type="date" value={e.date}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={ev => updateRow(e.id, 'date', ev.target.value)} />
+              </div>
+              <div>
+                <label style={lbl}>Hours / CPD Points</label>
+                <input style={inp} value={e.hours}
+                  onChange={ev => updateRow(e.id, 'hours', ev.target.value)}
+                  placeholder="e.g. 8" />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  cursor: 'pointer', fontSize: 13, color: C.textPrimary,
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={e.certificate}
+                    onChange={ev => updateRow(e.id, 'certificate', ev.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: C.accent, cursor: 'pointer' }}
+                  />
+                  Certificate received
+                </label>
+              </div>
+            </div>
+
+            <button onClick={() => removeRow(e.id)} style={{
+              position: 'absolute', top: 12, right: 12,
+              background: '#fef2f2', border: '1px solid #fecaca',
+              color: C.error, borderRadius: 8, padding: '4px 10px',
+              fontSize: 12, cursor: 'pointer', fontWeight: 600,
+            }}>
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={addRow} style={{
+        marginTop: 16, padding: '10px 20px', borderRadius: 10,
+        background: C.surface, border: `1px dashed ${C.accent}`,
+        color: C.accent, fontWeight: 600, fontSize: 13,
+        cursor: 'pointer', width: '100%',
+      }}>
+        + Add Training Record
+      </button>
+
+      <button onClick={handleSave} disabled={saving} style={{
+        marginTop: 12, padding: '12px 28px', borderRadius: 12,
+        background: saved ? C.accentLight : C.accent,
+        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
+        border: `1px solid ${saved ? C.accent : 'transparent'}`,
+        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
+      }}>
+        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save PD Records'}
       </button>
     </div>
   )
