@@ -6,6 +6,7 @@ import VibeActionDock from '@/components/student/VibeActionDock'
 import VibeSubmitContent from '@/components/student/VibeSubmitContent'
 import VibeProgress from '@/components/student/VibeProgress'
 import { awardPoints, updateStreak } from '@/lib/vibelearn-points'
+import VibeTwin from '@/components/student/VibeTwin'
 
 type VibeTab = 'feed' | 'indexer' | 'library'
 type ContentType = 'ebook' | 'epage'
@@ -118,6 +119,12 @@ function ContentCard({
       >
         Open →
       </button>
+    <VibeTwin
+        isOpen={twinOpen}
+        onClose={() => setTwinOpen(false)}
+        userName={userName}
+        userId={userId}
+      />
     </div>
   )
 }
@@ -431,6 +438,9 @@ export default function VibeLearnShellWrapper({
   const [completing, setCompleting]     = useState(false)
   const [submitOpen, setSubmitOpen]     = useState(false)
   const [vibeLock,   setVibeLock]       = useState(false)
+  const [twinOpen,   setTwinOpen]       = useState(false)
+  const [userId,     setUserId]         = useState('')
+  const [userName,   setUserName]       = useState('Learner')
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
 
   function vibeSpeak(text: string) {
@@ -465,6 +475,15 @@ export default function VibeLearnShellWrapper({
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
+        setUserId(user.id)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .maybeSingle()
+        if (profile?.full_name) {
+          setUserName(profile.full_name.split(' ')[0])
+        }
         const [savedRes, completedRes] = await Promise.all([
           supabase.from('vibelearn_saved').select('content_id').eq('student_id', user.id),
           supabase.from('vibelearn_completed').select('content_id').eq('student_id', user.id),
@@ -639,6 +658,19 @@ await supabase.rpc('increment_view_count', {
             {vibeLock ? '🔒 VIBE LOCK' : 'VibeLearn'}
           </span>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              onClick={() => setTwinOpen(true)}
+              aria-label="Open Vibe Twin"
+              style={{
+                background: 'rgba(204,255,0,0.08)',
+                border: '1px solid rgba(204,255,0,0.2)',
+                borderRadius: 10, padding: '7px 10px',
+                color: '#CCFF00', fontSize: 14, fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              ✦
+            </button>
             <button
               onClick={toggleVibeLock}
               aria-label={vibeLock ? 'Exit Vibe Lock' : 'Enter Vibe Lock'}
