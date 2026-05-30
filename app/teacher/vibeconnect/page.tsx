@@ -210,7 +210,8 @@ export default function TeacherVibeConnectPage() {
   async function sendMessage() {
     if (!msgBody.trim() || !activeThread) return
     setSending(true); const body = msgBody.trim(); setMsgBody('')
-    await supabase.from('vc_messages').insert({ thread_id: activeThread.threadId, school_id: schoolId, sender_id: userId, body })
+    const { error: msgErr } = await supabase.from('vc_messages').insert({ thread_id: activeThread.threadId, school_id: schoolId ?? null, sender_id: userId, body })
+    if (msgErr) { setSending(false); setMsgBody(body); return }
     await supabase.from('vc_threads').update({ last_message_at: new Date().toISOString(), last_message_preview: body.slice(0, 80) }).eq('id', activeThread.threadId)
     await loadMessages(activeThread.threadId); setSending(false)
   }
