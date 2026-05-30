@@ -7,6 +7,24 @@ const TEXT  = '#e8e6e0'
 const MUTED = 'rgba(255,255,255,0.4)'
 const ACCENT = '#CCFF00'
 
+export interface VibeContent {
+  id:           string
+  title:        string
+  description:  string | null
+  body:         string | null
+  type:         'epage' | 'ebook'
+  source:       string | null
+  url:          string
+  tags:         string[]
+  status:       string
+  view_count:   number
+  vibe_count:   number
+  earnings_ksh: number
+  created_at:   string
+  submitted_by: string
+}
+
+
 interface Props {
   content: VibeContent
   active:  boolean
