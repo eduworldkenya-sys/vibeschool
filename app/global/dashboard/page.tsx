@@ -95,6 +95,9 @@ export default function VibeGlobalDashboard() {
   const [cDesc,    setCDesc]    = useState('')
   const [cSubject, setCSubject] = useState(SUBJECTS[0])
   const [cUrl,     setCUrl]     = useState('')
+  const [cFile,    setCFile]    = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadPct, setUploadPct] = useState(0)
   const [cTags,    setCTags]    = useState<string[]>([])
   const [cErr,     setCErr]     = useState('')
   const [cOk,      setCOk]      = useState(false)
@@ -177,17 +180,30 @@ export default function VibeGlobalDashboard() {
     setCErr('')
     if (!cTitle.trim())           { setCErr('Title required.'); return }
     if (!cDesc.trim())            { setCErr('Description required.'); return }
-    if (!cUrl.trim())             { setCErr('URL required.'); return }
-    if (!isValidUrl(cUrl.trim())) { setCErr('Enter a valid https:// URL.'); return }
+    if (!cFile)                   { setCErr('Please select a file.'); return }
+    
     if (!user) return
     setDropping(true)
+    setUploading(true)
     try {
+      // Upload file to Supabase Storage
+      const ext = cFile!.name.split('.').pop()
+      const path = `${user.id}/${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('vibelearn-content')
+        .upload(path, cFile!, { upsert: false })
+      if (upErr) throw upErr
+      const { data: urlData } = supabase.storage
+        .from('vibelearn-content')
+        .getPublicUrl(path)
+      const publicUrl = urlData.publicUrl
+
       const { error } = await supabase.from('vibelearn_content').insert({
         title:        cTitle.trim(),
         description:  cDesc.trim(),
         type:         cType,
         source:       cSubject,
-        url:          cUrl.trim(),
+        url:          publicUrl,
         tags:         cTags,
         status:       'live',
         submitted_by: user.id,
@@ -196,7 +212,7 @@ export default function VibeGlobalDashboard() {
         earnings_ksh: 0,
       })
       if (error) throw error
-      setCTitle(''); setCDesc(''); setCUrl(''); setCTags([])
+      setCTitle(''); setCDesc(''); setCUrl(''); setCTags([]); setCFile(null)
       setCOk(true)
       setTimeout(() => setCOk(false), 3000)
       await loadFeed()
@@ -205,6 +221,7 @@ export default function VibeGlobalDashboard() {
       setCErr((e as Error).message ?? 'Failed to drop vibe.')
     } finally {
       setDropping(false)
+      setUploading(false)
     }
   }
 
@@ -437,7 +454,6 @@ export default function VibeGlobalDashboard() {
 
               {[
                 { id: 'vg-title', label: 'TITLE *', value: cTitle, set: setCTitle, ph: "e.g. How Kenya's Economy Works", type: 'text' },
-                { id: 'vg-url',   label: 'CONTENT URL *', value: cUrl,   set: setCUrl,   ph: 'https://...', type: 'url' },
               ].map(f => (
                 <div key={f.id} style={{ marginBottom: 12 }}>
                   <label htmlFor={f.id} style={{ fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: 1, display: 'block', marginBottom: 6, textTransform: 'uppercase' as const }}>{f.label}</label>
@@ -445,6 +461,26 @@ export default function VibeGlobalDashboard() {
                     style={{ width: '100%', background: SURFACE, border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: TEXT, outline: 'none' }} />
                 </div>
               ))}
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 10, fontWeight: 800, color: '#6b6b6b', letterSpacing: 1, display: 'block', marginBottom: 6, textTransform: 'uppercase' as const }}>UPLOAD FILE *</label>
+                <label htmlFor="vg-file" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  width: '100%', padding: '20px 0', borderRadius: 12, cursor: 'pointer',
+                  border: '2px dashed rgba(0,56,38,0.25)',
+                  background: cFile ? 'rgba(0,56,38,0.06)' : '#f9f9f9',
+                  color: cFile ? '#003826' : '#6b6b6b', fontWeight: 700, fontSize: 13,
+                }}>
+                  <span style={{ fontSize: 22 }}>{cFile ? '📄' : '⬆️'}</span>
+                  {cFile ? cFile.name : 'Tap to choose PDF, DOC, image…'}
+                </label>
+                <input id="vg-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.epub"
+                  onChange={e => setCFile(e.target.files?.[0] ?? null)}
+                  style={{ display: 'none' }} />
+                {uploading && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: '#003826', fontWeight: 700 }}>Uploading…</div>
+                )}
+              </div>
 
               <div style={{ marginBottom: 12 }}>
                 <label htmlFor="vg-desc" style={{ fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: 1, display: 'block', marginBottom: 6, textTransform: 'uppercase' as const }}>DESCRIPTION *</label>
