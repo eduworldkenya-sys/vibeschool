@@ -240,7 +240,7 @@ function ProfileSection({ index }: { index: number }) {
     <ProfessionalDevSection key="Professional Development" />,
     <TeachingStyleSection key="Teaching Style & Twin" />,
     <AttendanceLeaveSection key="Attendance & Leave" />,
-    <ComingSoon key="Performance & Appraisal"  title="Performance & Appraisal"  sub="TSC appraisal cycle and performance signals" />,
+    <PerformanceAppraisalSection key="Performance & Appraisal" />,
     <ComingSoon key="Messages"                 title="Messages"                 sub="Linked to VibeConnect module" />,
     <ComingSoon key="Documents"                title="Documents"                sub="Upload and track required documents" />,
     <ComingSoon key="Finance Reference"        title="Finance Reference"        sub="Payroll reference — managed in Finance module" />,
@@ -1406,6 +1406,77 @@ function AttendanceLeaveSection() {
       }}>
         <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
           Full attendance history and leave requests will be available in the Attendance module.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Performance & Appraisal ──────────────────────────────────────────────────
+
+function PerformanceAppraisalSection() {
+  const { userId, loading, pageError } = useTeacherData()
+  const [appraisal, setAppraisal] = useState<{ score: number | null; notes: string }>({ score: null, notes: '' })
+  const [loadingData, setLoadingData] = useState(true)
+
+  useEffect(() => {
+    if (!userId) return
+    async function load() {
+      const { data } = await supabase
+        .from('teacher_profiles')
+        .select('appraisal_score,appraisal_notes')
+        .eq('profile_id', userId)
+        .single()
+      setAppraisal({
+        score: data?.appraisal_score ?? null,
+        notes: data?.appraisal_notes ?? '',
+      })
+      setLoadingData(false)
+    }
+    load()
+  }, [userId])
+
+  if (loading || loadingData) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  const score = appraisal.score
+  const scoreColor = score === null ? C.textMuted : score >= 80 ? C.accent : score >= 60 ? C.warning : C.error
+
+  return (
+    <div>
+      <SectionHeader title="Performance & Appraisal" sub="TSC appraisal cycle and performance signals" />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+          <p style={{ fontSize: 40, fontWeight: 800, color: scoreColor, margin: 0 }}>
+            {score !== null ? score + '%' : '—'}
+          </p>
+          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Appraisal Score
+          </p>
+        </div>
+        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+          <p style={{ fontSize: 32, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
+          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+            TSC Cycle
+          </p>
+        </div>
+      </div>
+
+      {appraisal.notes ? (
+        <div style={{ padding: 16, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            Appraisal Notes
+          </p>
+          <p style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.6, margin: 0 }}>
+            {appraisal.notes}
+          </p>
+        </div>
+      ) : null}
+
+      <div style={{ padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center' }}>
+        <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
+          Appraisal scores and TSC cycle details are managed by your school admin.
         </p>
       </div>
     </div>
