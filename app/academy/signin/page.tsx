@@ -87,7 +87,7 @@ function AcademySignInInner() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?role=${role}`,
+        redirectTo: `${window.location.origin}/auth/callback?role=${role}${searchParams.get('next') ? '&next=' + encodeURIComponent(searchParams.get('next')!) : ''}`,
       },
     })
 
