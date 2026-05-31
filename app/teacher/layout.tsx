@@ -410,6 +410,16 @@ function IconHelp({ size = 22 }: { size?: number }) {
   )
 }
 
+
+function IconTPAD({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  )
+}
+
 // ── Tray config ────────────────────────────────────────────────────────────
 interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
@@ -440,6 +450,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
     { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
     { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
+    { label: "TPAD",     icon: <IconTPAD     size={24} />, href: "/teacher/tpad"     },
   ],
 }
 
