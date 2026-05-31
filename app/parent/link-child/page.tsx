@@ -28,8 +28,9 @@ export default function LinkChildPage() {
 
     const { data: codeRow } = await supabase
       .from('student_claim_codes')
-      .select('id, student_id, claimed')
+      .select('id, student_id, claimed, role')
       .eq('code', claimCode.trim().toUpperCase())
+          .eq('role', 'parent')
       .single()
 
     if (!codeRow) {

@@ -29,8 +29,9 @@ export default function StudentClaimPage() {
 
     const { data: codeRow } = await supabase
       .from('student_claim_codes')
-      .select('id, student_id, claimed, expires_at')
+      .select('id, student_id, claimed, expires_at, role')
       .eq('code', code)
+          .eq('role', 'student')
       .single()
 
     if (!codeRow) {
