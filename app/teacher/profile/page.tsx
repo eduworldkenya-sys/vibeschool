@@ -241,7 +241,7 @@ function ProfileSection({ index }: { index: number }) {
     <TeachingStyleSection key="Teaching Style & Twin" />,
     <AttendanceLeaveSection key="Attendance & Leave" />,
     <PerformanceAppraisalSection key="Performance & Appraisal" />,
-    <ComingSoon key="Messages"                 title="Messages"                 sub="Linked to VibeConnect module" />,
+    <MessagesSection key="Messages" />,
     <ComingSoon key="Documents"                title="Documents"                sub="Upload and track required documents" />,
     <ComingSoon key="Finance Reference"        title="Finance Reference"        sub="Payroll reference — managed in Finance module" />,
   ]
@@ -1478,6 +1478,45 @@ function PerformanceAppraisalSection() {
         <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
           Appraisal scores and TSC cycle details are managed by your school admin.
         </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+function MessagesSection() {
+  const { loading, pageError } = useTeacherData()
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  return (
+    <div>
+      <SectionHeader title="Messages" sub="Communication via VibeConnect" />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>💬</div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Parent Messages</p>
+            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Message parents directly via VibeConnect</p>
+          </div>
+        </div>
+
+        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📢</div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Announcements</p>
+            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Send class-wide announcements to parents</p>
+          </div>
+        </div>
+
+        <div style={{ padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center', marginTop: 8 }}>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
+            Full messaging will be available when VibeConnect module launches.
+          </p>
+        </div>
       </div>
     </div>
   )
