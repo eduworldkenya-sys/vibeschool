@@ -453,7 +453,40 @@ export default function TeacherVibeConnectPage() {
             </div>
             <div style={{ overflowY: 'auto', flex: 1, padding: '16px' }}>
               <input value={searchQuery} onChange={e => searchPeople(e.target.value)} placeholder="Search parents, teachers, admin..." style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+
+              {!searchQuery && (
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: C.muted, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    {pendingTag === 'colleague' ? 'Your Colleagues' : 'Parents in Your Classes'}
+                  </div>
+                  {suggestionsLoading ? (
+                    <div style={{ fontSize: '13px', color: C.muted, padding: '8px 0' }}>Loading...</div>
+                  ) : suggestedContacts.length === 0 ? (
+                    <div style={{ fontSize: '13px', color: C.muted, padding: '8px 0' }}>
+                      {pendingTag === 'colleague'
+                        ? 'No colleagues found. Join a school to connect with staff.'
+                        : 'No parents found. Parents appear here once they link their child to your class.'}
+                    </div>
+                  ) : suggestedContacts.map(p => (
+                    <button key={p.id} onClick={() => startThread(p)} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: '#f9fafb', cursor: 'pointer', textAlign: 'left', marginBottom: '4px' }}>
+                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>{initials(p.full_name)}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '600', fontSize: '14px', color: C.text }}>{p.full_name}</div>
+                        <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{p.role}</div>
+                      </div>
+                      <span style={{ fontSize: '18px', color: C.muted }}>›</span>
+                    </button>
+                  ))}
+                  {suggestedContacts.length > 0 && (
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: C.muted, letterSpacing: '0.8px', textTransform: 'uppercase', margin: '16px 0 8px' }}>Or Search</div>
+                  )}
+                </div>
+              )}
+
               {searching && <div style={{ textAlign: 'center', padding: '16px', color: C.muted, fontSize: '13px' }}>Searching...</div>}
+              {searchQuery && searchResults.length === 0 && !searching && (
+                <div style={{ textAlign: 'center', padding: '16px', color: C.muted, fontSize: '13px' }}>No results found</div>
+              )}
               {searchResults.map(p => (
                 <button key={p.id} onClick={() => startThread(p)} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', marginTop: '4px' }}>
                   <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '13px', flexShrink: 0 }}>{initials(p.full_name)}</div>
@@ -461,6 +494,9 @@ export default function TeacherVibeConnectPage() {
                     <div style={{ fontWeight: '600', fontSize: '14px', color: C.text }}>{p.full_name}</div>
                     <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{p.role}</div>
                   </div>
+                </button>
+              ))}
+              </div>
                 </button>
               ))}
             </div>
