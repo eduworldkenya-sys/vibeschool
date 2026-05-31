@@ -268,6 +268,27 @@ export default function CreateChildPage() {
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+              {/* Guidance */}
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#065f46", marginBottom: 8 }}>📌 How to add your child</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {[
+                    { icon: "🔗", title: "Already enrolled?", body: "If your child is already in the school system, go back and use Link with Claim Code instead. Ask the teacher for the Parent Code." },
+                    { icon: "🏫", title: "New to the school?", body: "Enter your child's name and date of birth, then tap Add to School. The teacher will approve your request." },
+                    { icon: "⏩", title: "Not sure yet?", body: "Tap Skip for now to save your child's details and link them to a school later." },
+                  ].map(g => (
+                    <div key={g.title} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <span style={{ fontSize: 16, flexShrink: 0 }}>{g.icon}</span>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#065f46" }}>{g.title}</div>
+                        <div style={{ fontSize: 11, color: "#047857", lineHeight: 1.5, marginTop: 2 }}>{g.body}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <button onClick={handleAddToSchool} style={primaryBtn(loading)}>
                 🏫 Add to School
               </button>

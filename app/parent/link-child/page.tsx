@@ -127,6 +127,26 @@ export default function LinkChildPage() {
           </div>
         </div>
 
+        {/* Guidance */}
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: "#1e40af", marginBottom: 8 }}>📌 Where to get the Parent Code</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              { icon: "👩‍🏫", title: "Ask the teacher", body: "Your child's class teacher has a Parent Code. Ask them to share it via WhatsApp or SMS." },
+              { icon: "🔢", title: "Enter the 6-character code", body: "The code looks like CAMEEN or XR42BT. Type it exactly as given." },
+              { icon: "⚠️", title: "Don't use the Student Code", body: "There are two codes — one for the student, one for you. Make sure you use the Parent Code." },
+            ].map(g => (
+              <div key={g.title} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{g.icon}</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>{g.title}</div>
+                  <div style={{ fontSize: 11, color: "#1d4ed8", lineHeight: 1.5, marginTop: 2 }}>{g.body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
             Claim Code

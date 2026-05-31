@@ -190,6 +190,36 @@ export default function JoinRequestsPage() {
       return
     }
 
+    // Auto-generate student + parent claim codes
+    const studentCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const parentCode  = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const expiry = new Date()
+    expiry.setDate(expiry.getDate() + 30)
+    const expiresAt = expiry.toISOString()
+
+    await supabase
+      .from('student_claim_codes')
+      .delete()
+      .eq('student_id', req.student_id)
+      .eq('claimed', false)
+
+    await Promise.all([
+      supabase.from('student_claim_codes').insert({
+        student_id: req.student_id,
+        code:       studentCode,
+        claimed:    false,
+        role:       'student',
+        expires_at: expiresAt,
+      }),
+      supabase.from('student_claim_codes').insert({
+        student_id: req.student_id,
+        code:       parentCode,
+        claimed:    false,
+        role:       'parent',
+        expires_at: expiresAt,
+      }),
+    ])
+
     setActing(null)
     setRequests(prev => prev.filter(r => r.id !== req.id))
   }
