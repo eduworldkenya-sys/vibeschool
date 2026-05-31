@@ -891,7 +891,7 @@ await supabase.rpc('increment_view_count', {
         isOpen={twinOpen}
         onClose={() => setTwinOpen(false)}
         userName={userName}
-        userId={userId}
+
       />
     </>
   )

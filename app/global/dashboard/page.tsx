@@ -648,7 +648,7 @@ export default function VibeGlobalDashboard() {
         isOpen={twinOpen}
         onClose={() => setTwinOpen(false)}
         userName={firstName}
-        userId={user?.id ?? ''}
+
       />
     </div>
   )

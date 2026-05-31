@@ -245,13 +245,13 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>👨‍👩‍👧 Parent Link</p>
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
-                <p style={{ fontSize: 11, color: '#065f46', margin: 0, wordBreak: 'break-all', fontFamily: 'monospace' }}>vibeschool.vercel.app/parent/harmonize?sid={student.id}</p>
+                <p style={{ fontSize: 11, color: '#065f46', margin: 0, wordBreak: 'break-all', fontFamily: 'monospace' }}>vibeschool.vercel.app/parent/harmonize?sid={student.id}{parentCode ? "&token=" + parentCode.code : ""}</p>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => handleCopy("https://vibeschool.vercel.app/parent/harmonize?sid=" + student.id)} style={{ flex: 1, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <button onClick={() => handleCopy("https://vibeschool.vercel.app/parent/harmonize?sid=" + student.id + (parentCode ? "&token=" + parentCode.code : ""))} style={{ flex: 1, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Copy Link
                 </button>
-                <a href={`https://wa.me/?text=${encodeURIComponent("Hi! Use this link to connect with " + student.name + " on VibeSchool: https://vibeschool.vercel.app/parent/harmonize?sid=" + student.id)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #25D366', background: 'transparent', color: '#25D366', fontWeight: 700, fontSize: 11, cursor: 'pointer', textDecoration: 'none', textAlign: 'center' }}>
+                <a href={`https://wa.me/?text=${encodeURIComponent("Hi! Use this link to connect with " + student.name + " on VibeSchool: https://vibeschool.vercel.app/parent/harmonize?sid=" + student.id + (parentCode ? "&token=" + parentCode.code : ""))}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #25D366', background: 'transparent', color: '#25D366', fontWeight: 700, fontSize: 11, cursor: 'pointer', textDecoration: 'none', textAlign: 'center' }}>
                   WhatsApp
                 </a>
               </div>
