@@ -20,9 +20,8 @@ interface PlanSections {
 }
 
 interface Student {
-  id:           string
-  name:         string
-  id: string
+  id:   string
+  name: string
 }
 
 interface Ctx {
