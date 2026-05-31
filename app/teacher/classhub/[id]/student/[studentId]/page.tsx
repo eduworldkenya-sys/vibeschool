@@ -10,7 +10,7 @@ interface Student {
   profile_id: string | null; date_of_birth: string | null
   gender: string | null; autonomy_level: number | null; created_at: string
 }
-interface ClaimCode { code: string; claimed: boolean; expires_at: string | null }
+interface ClaimCode { code: string; claimed: boolean; expires_at: string | null; role: string }
 interface AttendanceRecord { id: string; date: string; status: string; is_late: boolean; notes: string | null }
 interface Assessment {
   id: string; subject_id: string; strand_id: string | null; sub_strand: string | null
@@ -102,8 +102,8 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
 }
 
 /* ── Overview Tab ── */
-function OverviewTab({ student, classId, claimCode, onReload, myGroups }: {
-  student: Student; classId: string; claimCode: ClaimCode | null; onReload: () => void; myGroups: StudentGroup[]
+function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGroups }: {
+  student: Student; classId: string; studentCode: ClaimCode | null; parentCode: ClaimCode | null; onReload: () => void; myGroups: StudentGroup[]
 }) {
   const [editing, setEditing] = useState(false)
   const [name,    setName]    = useState(student.name)
@@ -128,9 +128,13 @@ function OverviewTab({ student, classId, claimCode, onReload, myGroups }: {
 
   async function handleGenCode() {
     setGenning(true)
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const studentCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const parentCode  = Math.random().toString(36).substring(2, 8).toUpperCase()
     await supabase.from('student_claim_codes').delete().eq('student_id', student.id).eq('claimed', false)
-    await supabase.from('student_claim_codes').insert({ student_id: student.id, code, claimed: false })
+    await Promise.all([
+      supabase.from('student_claim_codes').insert({ student_id: student.id, code: studentCode, claimed: false, role: 'student' }),
+      supabase.from('student_claim_codes').insert({ student_id: student.id, code: parentCode,  claimed: false, role: 'parent'  }),
+    ])
     setGenning(false)
     onReload()
   }
@@ -206,34 +210,49 @@ function OverviewTab({ student, classId, claimCode, onReload, myGroups }: {
         </Card>
       )}
 
-      {!student.profile_id && (
-        <Card>
-          <SectionHead title="Claim Code" />
-          {claimCode ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div>
-                <p style={{ fontSize: 28, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 4, fontFamily: 'monospace' }}>{claimCode.code}</p>
-                {claimCode.expires_at && <p style={{ fontSize: 11, color: C.textMuted, margin: '4px 0 0' }}>Expires {new Date(claimCode.expires_at).toLocaleDateString()}</p>}
+      <Card>
+        <SectionHead title="Claim Codes" />
+        {(studentCode || parentCode) ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              { label: 'Student Code', code: studentCode, emoji: '🎒' },
+              { label: 'Parent Code',  code: parentCode,  emoji: '👨‍👩‍👧' },
+            ].map(({ label, code, emoji }) => (
+              <div key={label}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>{emoji} {label}</p>
+                {code ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div>
+                      <p style={{ fontSize: 26, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 4, fontFamily: 'monospace' }}>{code.code}</p>
+                      {code.expires_at && <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>Expires {new Date(code.expires_at).toLocaleDateString()}</p>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <button onClick={() => handleCopy(code.code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        Copy
+                      </button>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(`VibeSchool ${label} for ${student.name}: ${code.code}`)}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #25D366', background: 'transparent', color: '#25D366', fontWeight: 700, fontSize: 11, cursor: 'pointer', textDecoration: 'none', textAlign: 'center' }}>
+                        WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>Not generated</p>
+                )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <button onClick={() => handleCopy(claimCode.code)} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #10b981', background: copied ? C.accentLight : 'transparent', color: C.accent, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-                <button onClick={handleGenCode} disabled={genning} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {genning ? '…' : 'New'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>No claim code yet</p>
-              <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {genning ? 'Generating…' : 'Generate Code'}
-              </button>
-            </div>
-          )}
-        </Card>
-      )}
+            ))}
+            <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {genning ? 'Generating…' : '🔄 Regenerate Both Codes'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>No claim codes yet</p>
+            <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {genning ? 'Generating…' : 'Generate Codes'}
+            </button>
+          </div>
+        )}
+      </Card>
     </div>
   )
 }
@@ -689,7 +708,8 @@ function StudentProfileInner() {
   const studentId = params.studentId as string
 
   const [student,     setStudent]     = useState<Student | null>(null)
-  const [claimCode,   setClaimCode]   = useState<ClaimCode | null>(null)
+  const [studentCode, setStudentCode] = useState<ClaimCode | null>(null)
+  const [parentCode,  setParentCode]  = useState<ClaimCode | null>(null)
   const [attendance,  setAttendance]  = useState<AttendanceRecord[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
   const [homework,    setHomework]    = useState<Homework[]>([])
@@ -765,7 +785,9 @@ function StudentProfileInner() {
     setMyGroups(grpData.filter((g: { id: string }) => myGroupIds.has(g.id)).map((g: { type: string; name: string; color: string }) => ({ type: g.type, name: g.name, color: g.color, bg: COLOR_BG[g.color] ?? '#f3f4f6' })))
 
     setStudent(stuRes.data)
-    setClaimCode(codeRes.data ?? null)
+        const codes = (codeRes.data ?? []) as ClaimCode[]
+        setStudentCode(codes.find(c => c.role === 'student') ?? null)
+        setParentCode(codes.find(c => c.role === 'parent') ?? null)
     setAttendance(attRes.data ?? [])
     setAssessments(asmRes.data ?? [])
     setSubjects(subjRes.data ?? [])
@@ -865,7 +887,7 @@ function StudentProfileInner() {
 
       {/* TAB CONTENT */}
       <div style={{ padding: '16px', animation: 'slideDown 0.2s ease' }}>
-        {activeTab === 'overview'    && <OverviewTab    student={student} classId={classId} claimCode={claimCode} onReload={loadAll} myGroups={myGroups} />}
+        {activeTab === 'overview'    && <OverviewTab    student={student} classId={classId} studentCode={studentCode} parentCode={parentCode} onReload={loadAll} myGroups={myGroups} />}
         {activeTab === 'results'     && <ResultsTab     examResults={examResults} exams={exams} subjects={subjects} />}
         {activeTab === 'attendance'  && <AttendanceTab  records={attendance} />}
         {activeTab === 'assessments' && <AssessmentsTab assessments={assessments} subjects={subjects} />}
