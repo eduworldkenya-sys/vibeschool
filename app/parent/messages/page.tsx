@@ -206,6 +206,7 @@ export default function ParentMessagesPage() {
   async function searchPeople(q: string) {
     setSearchQuery(q)
     if (q.length < 2) { setSearchResults([]); return }
+    if (!schoolId) { setSearchResults([]); return }
     setSearching(true)
     const { data } = await supabase.from('profiles').select('id, full_name, role').eq('school_id', schoolId).neq('id', userId).in('role', ['teacher', 'admin']).ilike('full_name', `%${q}%`).limit(10)
     setSearchResults(data ?? []); setSearching(false)
@@ -219,8 +220,8 @@ export default function ParentMessagesPage() {
 
   async function acknowledgeNotice(recipientId: string, circularId: string) {
     setAcking(circularId)
-    await supabase.from('vc_circular_recipients').update({ ack_at: new Date().toISOString() }).eq('id', recipientId)
-    setNotices(prev => prev.map(c => c.id === circularId ? { ...c, acked: true } : c))
+    const { error: ackErr } = await supabase.from('vc_circular_recipients').update({ ack_at: new Date().toISOString() }).eq('id', recipientId)
+    if (!ackErr) setNotices(prev => prev.map(c => c.id === circularId ? { ...c, acked: true } : c))
     setAcking(null)
   }
 
