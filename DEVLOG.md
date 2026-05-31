@@ -53,3 +53,7 @@
 ## [2026-05-31 10:58] 60d5ef0
 **What:** feat: Phase 6 Vibe Pass VibeActionDock complete
 **Status:** ✅ pushed
+
+## [2026-05-31 12:05] 94e242c
+**What:** feat: dual claim codes (student+parent) with WhatsApp share
+**Status:** ✅ pushed
