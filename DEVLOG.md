@@ -37,3 +37,7 @@
 ## [2026-05-31 10:35] 68766f2
 **What:** fix: add missing suggestionsLoading and suggestedContacts state in teacher vibeconnect
 **Status:** ✅ pushed
+
+## [2026-05-31 10:48] 27eb353
+**What:** feat: Phase 5 VibeLearnShellWrapper + fix ModeSwitcher and AudioDock props
+**Status:** ✅ pushed
