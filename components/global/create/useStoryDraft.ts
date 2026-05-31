@@ -1,5 +1,4 @@
 'use client'
-
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import {
@@ -8,11 +7,6 @@ import {
   emptyStory,
   emptyPage,
 } from '@/lib/storyTypes'
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const AUTOSAVE_MS = 3000
 
@@ -64,6 +58,11 @@ export function useStoryDraft(authorId: string) {
   pagesRef.current = pages
 
   useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
     async function loadDraft() {
       try {
         const { data: existing, error: fetchErr } = await supabase
@@ -135,6 +134,10 @@ export function useStoryDraft(authorId: string) {
   }, [authorId])
 
   const persistDraft = useCallback(async () => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
     const s          = storyRef.current
     const p          = pagesRef.current
     const deletedIds = [...deletedPageIdsRef.current]
@@ -180,13 +183,8 @@ export function useStoryDraft(authorId: string) {
     scheduleSave()
   }, [scheduleSave])
 
-  const updatePage = useCallback((index: number, patch: Partial<StoryPage>) => {
-    setPages(prev => {
-      const next = [...prev]
-      if (!next[index]) return prev
-      next[index] = { ...next[index], ...patch }
-      return next
-    })
+  const updatePage = useCallback((id: string, patch: Partial<StoryPage>) => {
+    setPages(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p))
     scheduleSave()
   }, [scheduleSave])
 
@@ -200,14 +198,15 @@ export function useStoryDraft(authorId: string) {
     scheduleSave()
   }, [scheduleSave])
 
-  const deletePage = useCallback((index: number) => {
+  const deletePage = useCallback((id: string) => {
     const current = pagesRef.current
     if (current.length <= 1) return
-    const target = current[index]
-    if (target) deletedPageIdsRef.current.push(target.id)
+    const index = current.findIndex(p => p.id === id)
+    if (index === -1) return
+    deletedPageIdsRef.current.push(id)
     setPages(prev =>
       prev
-        .filter((_, i) => i !== index)
+        .filter(p => p.id !== id)
         .map((p, i) => ({ ...p, pageNumber: i + 1 }))
     )
     setActiveIndex(prev => Math.max(0, Math.min(prev, current.length - 2)))
@@ -227,6 +226,10 @@ export function useStoryDraft(authorId: string) {
   }, [scheduleSave])
 
   const publishStory = useCallback(async (): Promise<boolean> => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
     if (timerRef.current) clearTimeout(timerRef.current)
     await persistDraft()
     const { error: pubErr } = await supabase
@@ -258,8 +261,8 @@ export function useStoryDraft(authorId: string) {
     error,
     updateStory,
     updatePage,
-    addPage,
     deletePage,
+    addPage,
     movePage,
     setActiveIndex,
     publishStory,
