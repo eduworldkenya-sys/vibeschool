@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { VibeTwinProps, TwinState } from './types'
+import type { VibeTwinProps, TwinMode, TwinState } from './types'
 import { classifyIntent, extractTopic, conversationalReply } from './lib/intent'
 import { vibeSearch } from './lib/search'
 import { useTwinMemory } from './hooks/useTwinMemory'
@@ -17,6 +17,7 @@ import { T } from './ui/TwinHeader'
 
 export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
   const [input, setInput] = useState('')
+  const [mode,  setMode]  = useState<TwinMode>('text')
 
   const { saveToMemory }                                = useTwinMemory()
   const {
@@ -25,6 +26,15 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
     addMessage, acquireProcessing, releaseProcessing,
   }                                                     = useTwinSession(isOpen)
   const { speak, cancel: cancelSpeech }                 = useTwinSpeech()
+
+  // Reset mode on close
+  useEffect(() => {
+    if (!isOpen) {
+      setMode('text')
+      setInput('')
+      cancelSpeech()
+    }
+  }, [isOpen, cancelSpeech])
 
   // Greeting on open
   useEffect(() => {
@@ -36,18 +46,10 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
     return () => clearTimeout(t)
   }, [isOpen, userName, greeted, setGreeted, addMessage, speak])
 
-  // Cancel speech on close
-  useEffect(() => {
-    if (!isOpen) {
-      cancelSpeech()
-      setInput('')
-    }
-  }, [isOpen, cancelSpeech])
-
-  function finish(response: string, state: TwinState = 'idle') {
+  function finish(response: string, shouldSpeak = false) {
     addMessage('twin', response)
     releaseProcessing()
-    if (state === 'speaking') {
+    if (shouldSpeak || mode === 'audio') {
       setTwinState('speaking')
       speak(response, () => setTwinState('idle'))
     } else {
@@ -78,7 +80,7 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
     }
 
     try {
-      // NEWS / QUESTION / GENERAL — external search
+      // NEWS / QUESTION / GENERAL — chained search
       if (intent === 'NEWS' || intent === 'QUESTION' || intent === 'GENERAL') {
         const data = await vibeSearch(q)
 
@@ -89,7 +91,7 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
             if (data.results.length > 1) {
               response += ` I also found ${data.results.length - 1} more result${data.results.length > 2 ? 's' : ''}. Want me to go deeper?`
             }
-            finish(response, 'speaking')
+            finish(response, true)
           } else {
             finish(`I found something on "${q}" but details are thin. Try rephrasing — like "explain ${topic}".`)
           }
@@ -100,7 +102,6 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
       }
 
       // LESSON — search VibeGlobal content library
-      // vibelearn_content is a global table — no school_id scope
       if (intent === 'LESSON') {
         const { data, error } = await supabase
           .from('vibelearn_content')
@@ -118,7 +119,7 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
           let response = `I found a lesson on "${top.title}" by ${top.source || 'a teacher'}. `
           response += top.description ? top.description.slice(0, 120) + '. ' : ''
           response += `Want me to open it?`
-          finish(response, 'speaking')
+          finish(response, true)
         } else {
           finish(`No lessons found for "${topic}" on VibeGlobal yet. Try searching the Vibe Feed tab.`)
         }
@@ -167,11 +168,13 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
       }}
     >
       <TwinHeader
-        mode={twinState === 'listening' || twinState === 'speaking'
-          ? (messages.length > 0 ? 'audio' : 'text')
-          : input.length > 0 ? 'text' : 'text'
-        }
-        onMode={() => {}}
+        mode={mode}
+        onMode={(m: TwinMode) => {
+          cancelSpeech()
+          recognition.abort()
+          setTwinState('idle')
+          setMode(m)
+        }}
         onClose={() => {
           cancelSpeech()
           recognition.abort()
@@ -185,7 +188,7 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
       />
 
       <TwinInput
-        mode="text"
+        mode={mode}
         twinState={twinState}
         input={input}
         onInput={setInput}
