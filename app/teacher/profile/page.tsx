@@ -242,7 +242,7 @@ function ProfileSection({ index }: { index: number }) {
     <AttendanceLeaveSection key="Attendance & Leave" />,
     <PerformanceAppraisalSection key="Performance & Appraisal" />,
     <MessagesSection key="Messages" />,
-    <ComingSoon key="Documents"                title="Documents"                sub="Upload and track required documents" />,
+    <DocumentsSection key="Documents" />,
     <ComingSoon key="Finance Reference"        title="Finance Reference"        sub="Payroll reference — managed in Finance module" />,
   ]
   return sections[index] ?? null
@@ -1518,6 +1518,148 @@ function MessagesSection() {
           </p>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+interface TeacherDocument {
+  id:         string
+  name:       string
+  url:        string
+  uploaded_at: string
+}
+
+function DocumentsSection() {
+  const { userId, loading, pageError } = useTeacherData()
+  const [docs,        setDocs]        = useState<TeacherDocument[]>([])
+  const [uploading,   setUploading]   = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [saving,      setSaving]      = useState(false)
+  const [saved,       setSaved]       = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    async function load() {
+      const { data } = await supabase
+        .from('teacher_profiles')
+        .select('documents')
+        .eq('profile_id', userId)
+        .single()
+      if (data?.documents) setDocs(data.documents as TeacherDocument[])
+    }
+    load()
+  }, [userId])
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+    if (file.size > 5 * 1024 * 1024) { setUploadError('File must be under 5MB.'); return }
+
+    setUploading(true)
+    setUploadError(null)
+
+    const path = `documents/${userId}/${Date.now()}_${file.name}`
+    const { error: uploadErr } = await supabase.storage
+      .from('teacher-docs')
+      .upload(path, file, { upsert: false })
+
+    if (uploadErr) {
+      setUploading(false)
+      setUploadError('Upload failed: ' + uploadErr.message)
+      return
+    }
+
+    const { data: urlData } = supabase.storage.from('teacher-docs').getPublicUrl(path)
+
+    const newDoc: TeacherDocument = {
+      id:          Date.now().toString(),
+      name:        file.name,
+      url:         urlData.publicUrl,
+      uploaded_at: new Date().toISOString(),
+    }
+
+    const updatedDocs = [...docs, newDoc]
+    setDocs(updatedDocs)
+    setUploading(false)
+
+    setSaving(true)
+    const { error } = await supabase.from('teacher_profiles').upsert({
+      profile_id: userId,
+      documents:  updatedDocs,
+    }, { onConflict: 'profile_id' })
+
+    setSaving(false)
+    if (error) { setUploadError('Uploaded but failed to save record. ' + error.message); return }
+
+    setSaved(true)
+    if (savedTimer.current) clearTimeout(savedTimer.current)
+    savedTimer.current = setTimeout(() => setSaved(false), 2500)
+  }
+
+  async function removeDoc(id: string) {
+    if (!userId) return
+    const updatedDocs = docs.filter(d => d.id !== id)
+    setDocs(updatedDocs)
+    await supabase.from('teacher_profiles').upsert({
+      profile_id: userId,
+      documents:  updatedDocs,
+    }, { onConflict: 'profile_id' })
+  }
+
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
+
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  return (
+    <div>
+      <SectionHeader title="Documents" sub="Upload and track your required documents" />
+
+      {uploadError && <ErrorBox msg={uploadError} />}
+
+      {docs.length === 0 ? (
+        <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>
+          No documents uploaded yet.
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          {docs.map(d => (
+            <div key={d.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 16px', borderRadius: 10,
+              background: C.surface, border: `1px solid ${C.border}`,
+            }}>
+              <span style={{ fontSize: 20 }}>📄</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</p>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
+                  {new Date(d.uploaded_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+              <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.accent, fontWeight: 600, textDecoration: 'none' }}>View</a>
+              <button onClick={() => removeDoc(d.id)} style={{
+                background: '#fef2f2', border: '1px solid #fecaca',
+                color: C.error, borderRadius: 8, padding: '4px 10px',
+                fontSize: 12, cursor: 'pointer', fontWeight: 600,
+              }}>Remove</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button onClick={() => fileRef.current?.click()} disabled={uploading || saving} style={{
+        padding: '10px 20px', borderRadius: 10, width: '100%',
+        background: C.surface, border: `1px dashed ${C.accent}`,
+        color: C.accent, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+      }}>
+        {uploading ? 'Uploading...' : saving ? 'Saving...' : saved ? '✓ Saved' : '+ Upload Document'}
+      </button>
+      <p style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>PDF, JPG, PNG — max 5MB</p>
+      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={handleFile} />
     </div>
   )
 }
