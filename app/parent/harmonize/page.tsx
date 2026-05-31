@@ -36,6 +36,7 @@ function HarmonizeInner() {
   const [className,    setClassName]    = useState('')
   const [schoolName,   setSchoolName]   = useState('')
   const [alreadyLinked, setAlreadyLinked] = useState(false)
+  const [existingParentCount, setExistingParentCount] = useState(0)
 
   useEffect(() => {
     if (!sid) { setError("Invalid link. No student ID found."); setLoading(false); return }
@@ -59,6 +60,19 @@ function HarmonizeInner() {
     setStudent(stuRes.data)
 
     if ((linkRes.data ?? []).length > 0) { setAlreadyLinked(true); setLoading(false); return }
+
+    // Check how many parents already linked
+    const { data: existingLinks } = await supabase
+      .from('parent_student_links')
+      .select('parent_id')
+      .eq('student_id', sid)
+    const existingCount = (existingLinks ?? []).length
+    setExistingParentCount(existingCount)
+    if (existingCount >= 2) {
+      setError("This student already has 2 parents linked. Contact the school if you need to make changes.")
+      setLoading(false)
+      return
+    }
 
     if (stuRes.data.class_id) {
       const { data: cls } = await supabase.from('classes').select('name, school_id').eq('id', stuRes.data.class_id).single()
@@ -160,6 +174,15 @@ function HarmonizeInner() {
             </div>
           ))}
         </div>
+
+        {existingParentCount === 1 && (
+          <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 16, padding: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#92400e', marginBottom: 6 }}>👥 Another parent is already connected</div>
+            <div style={{ fontSize: 12, color: '#b45309', lineHeight: 1.6 }}>
+              One parent account is already linked to this child. You will be the second parent. Both of you will have full visibility of this child.
+            </div>
+          </div>
+        )}
 
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 16, padding: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#065f46', marginBottom: 6 }}>✅ Confirm connection</div>
