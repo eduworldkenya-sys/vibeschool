@@ -86,6 +86,7 @@ export default function VibeGlobalDashboard() {
   const [cErr,     setCErr]     = useState('')
   const [cOk,      setCOk]      = useState(false)
   const [dropping, setDropping] = useState(false)
+  const [extractProgress, setExtractProgress] = useState<{ cur: number; tot: number } | null>(null)
 
   const loadFeed = useCallback(async () => {
     const { data } = await supabase
@@ -177,9 +178,11 @@ export default function VibeGlobalDashboard() {
             let extractedBody: string | null = null
             if (cFile!.type === 'application/pdf' || cFile!.name.endsWith('.pdf')) {
               try {
+                setExtractProgress({ cur: 0, tot: 0 })
                 extractedBody = await extractPdfText(cFile!, (cur, tot) => {
-                  console.log(`Extracting: ${cur}/${tot}`)
+                  setExtractProgress({ cur, tot })
                 })
+                setExtractProgress(null)
               } catch { extractedBody = null }
             }
 
@@ -472,7 +475,23 @@ export default function VibeGlobalDashboard() {
                 <input id="vg-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.epub"
                   onChange={e => setCFile(e.target.files?.[0] ?? null)}
                   style={{ display: 'none' }} />
-                {uploading && (
+                {extractProgress && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: 4 }}>
+                      <div style={{
+                        height: '100%',
+                        width: extractProgress.tot > 0 ? `${Math.round((extractProgress.cur / extractProgress.tot) * 100)}%` : '5%',
+                        background: ACCENT, borderRadius: 2, transition: 'width 0.2s',
+                      }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: ACCENT, fontWeight: 700 }}>
+                      {extractProgress.tot > 0
+                        ? `Reading PDF… ${extractProgress.cur}/${extractProgress.tot} pages`
+                        : 'Reading PDF…'}
+                    </div>
+                  </div>
+                )}
+                {uploading && !extractProgress && (
                   <div style={{ marginTop: 8, fontSize: 11, color: GREEN, fontWeight: 700 }}>Uploading…</div>
                 )}
               </div>
