@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { ReadMode } from '@/app/global/read/[id]/page'
+type ReadMode = 'scroll' | 'listen'
 
 const SURFACE = '#111827'
 const ACCENT  = '#CCFF00'

@@ -11,6 +11,7 @@ const GREEN   = '#10b981'
 
 interface Props {
   content: VibeContent
+  active?: boolean
 }
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2]
