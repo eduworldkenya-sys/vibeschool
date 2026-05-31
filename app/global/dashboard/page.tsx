@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { VibeContent } from '@/lib/types'
 import VibeTwin from '@/components/student/VibeTwin'
 import { extractPdfText } from '@/lib/extractPdfText'
+import { extractDocxText } from '@/lib/extractDocxText'
 
 const BG      = '#090D16'
 const SURFACE = '#111827'
@@ -183,6 +184,15 @@ export default function VibeGlobalDashboard() {
                   setExtractProgress({ cur, tot })
                 })
                 setExtractProgress(null)
+              } catch { extractedBody = null }
+            } else if (
+              cFile!.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+              cFile!.type === 'application/msword' ||
+              cFile!.name.toLowerCase().endsWith('.docx') ||
+              cFile!.name.toLowerCase().endsWith('.doc')
+            ) {
+              try {
+                extractedBody = await extractDocxText(cFile!)
               } catch { extractedBody = null }
             }
 
