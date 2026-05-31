@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { VibeContent } from '@/lib/types'
 import ScrollSurface from '@/components/vibelearn/reader/ScrollSurface'
+import VibeActionDock from '@/components/vibelearn/VibeActionDock'
 import AudioDock from '@/components/vibelearn/reader/AudioDock'
 import ModeSwitcher from '@/components/vibelearn/reader/ModeSwitcher'
 
@@ -254,6 +255,8 @@ export default function VibeLearnShellWrapper({ contentId }: Props) {
             </div>
           )}
         </div>
+
+        {userId && <VibeActionDock contentId={content.id} userId={userId} progress={progress} />}
 
         {/* ── Bottom dock ── */}
         <div style={{
