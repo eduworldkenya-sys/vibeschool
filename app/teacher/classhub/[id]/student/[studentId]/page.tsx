@@ -218,32 +218,44 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
         <SectionHead title="Claim Codes" />
         {(studentCode || parentCode) ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {[
-              { label: 'Student Code', code: studentCode, emoji: '🎒' },
-              { label: 'Parent Code',  code: parentCode,  emoji: '👨‍👩‍👧' },
-            ].map(({ label, code, emoji }) => (
-              <div key={label}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>{emoji} {label}</p>
-                {code ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <div>
-                      <p style={{ fontSize: 26, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 4, fontFamily: 'monospace' }}>{code.code}</p>
-                      {code.expires_at && <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>Expires {new Date(code.expires_at).toLocaleDateString()}</p>}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <button onClick={() => handleCopy(code.code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                        Copy
-                      </button>
-                      <a href={`https://wa.me/?text=${encodeURIComponent(`VibeSchool ${label} for ${student.name}: ${code.code}`)}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #25D366', background: 'transparent', color: '#25D366', fontWeight: 700, fontSize: 11, cursor: 'pointer', textDecoration: 'none', textAlign: 'center' }}>
-                        WhatsApp
-                      </a>
-                    </div>
+            {/* Student Code */}
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>🎒 Student Code</p>
+              {studentCode ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div>
+                    <p style={{ fontSize: 26, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 4, fontFamily: 'monospace' }}>{studentCode.code}</p>
+                    {studentCode.expires_at && <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>Expires {new Date(studentCode.expires_at).toLocaleDateString()}</p>}
                   </div>
-                ) : (
-                  <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>Not generated</p>
-                )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <button onClick={() => handleCopy(studentCode.code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Copy
+                    </button>
+                    <a href={`https://wa.me/?text=${encodeURIComponent("VibeSchool Student Code for " + student.name + ": " + studentCode.code + ". Go to vibeschool.vercel.app/student/claim and enter this code.")}`} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #25D366', background: 'transparent', color: '#25D366', fontWeight: 700, fontSize: 11, cursor: 'pointer', textDecoration: 'none', textAlign: 'center' }}>
+                      WhatsApp
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>Not generated</p>
+              )}
+            </div>
+
+            {/* Parent Magic Link */}
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>👨‍👩‍👧 Parent Link</p>
+              <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+                <p style={{ fontSize: 11, color: '#065f46', margin: 0, wordBreak: 'break-all', fontFamily: 'monospace' }}>vibeschool.vercel.app/parent/harmonize?sid={student.id}</p>
               </div>
-            ))}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => handleCopy("https://vibeschool.vercel.app/parent/harmonize?sid=" + student.id)} style={{ flex: 1, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Copy Link
+                </button>
+                <a href={`https://wa.me/?text=${encodeURIComponent("Hi! Use this link to connect with " + student.name + " on VibeSchool: https://vibeschool.vercel.app/parent/harmonize?sid=" + student.id)}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #25D366', background: 'transparent', color: '#25D366', fontWeight: 700, fontSize: 11, cursor: 'pointer', textDecoration: 'none', textAlign: 'center' }}>
+                  WhatsApp
+                </a>
+              </div>
+            </div>
             <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
               {genning ? 'Generating…' : '🔄 Regenerate Both Codes'}
             </button>
