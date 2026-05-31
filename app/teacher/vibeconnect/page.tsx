@@ -124,10 +124,16 @@ export default function TeacherVibeConnectPage() {
   const [searchResults,   setSearchResults]   = useState<ProfileRow[]>([])
   const [searching,       setSearching]       = useState(false)
 
+  const [suggestedContacts,   setSuggestedContacts]   = useState<ProfileRow[]>([])
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
   const [circulars, setCirculars] = useState<CircularUI[]>([])
   const [acking,    setAcking]    = useState<string | null>(null)
 
   useEffect(() => { loadUser(); return () => { if (pollRef.current) clearInterval(pollRef.current) } }, [])
+
+  useEffect(() => {
+    if (composeOpen) loadSuggestedContacts(pendingTag)
+  }, [composeOpen, pendingTag])
 
   async function loadUser() {
     try {
@@ -235,6 +241,57 @@ export default function TeacherVibeConnectPage() {
     setAcking(circularId)
     const { error } = await supabase.from('vc_circular_recipients').update({ ack_at: new Date().toISOString() }).eq('id', recipientId)
     setAcking(null)
+  }
+
+  async function loadSuggestedContacts(tag: string) {
+    if (!userId) return
+    setSuggestionsLoading(true)
+    setSuggestedContacts([])
+    try {
+      if (tag === 'colleague') {
+        // Suggest teachers and admin in same school
+        if (!schoolId) { setSuggestionsLoading(false); return }
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .eq('school_id', schoolId)
+          .neq('id', userId)
+          .in('role', ['teacher', 'admin'])
+          .limit(20)
+        setSuggestedContacts(data ?? [])
+      } else {
+        // Suggest parents of students in teacher's classes
+        const [classRes, tcRes] = await Promise.all([
+          supabase.from('classes').select('id').eq('teacher_id', userId),
+          supabase.from('teacher_classes').select('class_id').eq('teacher_id', userId),
+        ])
+        const classIds = Array.from(new Set([
+          ...(classRes.data ?? []).map((c: { id: string }) => c.id),
+          ...(tcRes.data ?? []).map((t: { class_id: string }) => t.class_id),
+        ].filter(Boolean)))
+        if (classIds.length === 0) { setSuggestionsLoading(false); return }
+        const { data: students } = await supabase
+          .from('students')
+          .select('profile_id')
+          .in('class_id', classIds)
+          .not('profile_id', 'is', null)
+        const parentIds = Array.from(new Set(
+          (students ?? []).map((s: { profile_id: string }) => s.profile_id).filter(Boolean)
+        ))
+        if (parentIds.length === 0) { setSuggestionsLoading(false); return }
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .in('id', parentIds)
+          .neq('id', userId)
+          .limit(20)
+        setSuggestedContacts(data ?? [])
+      }
+    } catch {
+      setSuggestedContacts([])
+    } finally {
+      setSuggestionsLoading(false)
+    }
   }
 
   // ── Conversation view ──────────────────────────
