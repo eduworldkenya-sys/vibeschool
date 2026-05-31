@@ -495,7 +495,6 @@ export default function TeacherVibeConnectPage() {
                     <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{p.role}</div>
                   </div>
                 </button>
-              </div>
               ))}
             </div>
             <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}` }}>
