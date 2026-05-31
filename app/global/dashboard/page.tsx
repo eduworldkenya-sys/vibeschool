@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { VibeContent } from '@/lib/types'
 import VibeTwin from '@/components/student/VibeTwin'
+import { extractPdfText } from '@/lib/extractPdfText'
 
 const BG      = '#090D16'
 const SURFACE = '#111827'
@@ -172,7 +173,17 @@ export default function VibeGlobalDashboard() {
       // Upload file to Supabase Storage
       const ext = cFile!.name.split('.').pop()
       const path = `${user.id}/${Date.now()}.${ext}`
-      const { error: upErr } = await supabase.storage
+      // Extract text from PDF before upload
+            let extractedBody: string | null = null
+            if (cFile!.type === 'application/pdf' || cFile!.name.endsWith('.pdf')) {
+              try {
+                extractedBody = await extractPdfText(cFile!, (cur, tot) => {
+                  console.log(`Extracting: ${cur}/${tot}`)
+                })
+              } catch { extractedBody = null }
+            }
+
+            const { error: upErr } = await supabase.storage
         .from('vibelearn-content')
         .upload(path, cFile!, { upsert: false })
       if (upErr) throw upErr
@@ -187,6 +198,7 @@ export default function VibeGlobalDashboard() {
         type:         cType,
         source:       cSubject,
         url:          publicUrl,
+                      body:         extractedBody,
         tags:         cTags,
         status:       'live',
         submitted_by: user.id,
