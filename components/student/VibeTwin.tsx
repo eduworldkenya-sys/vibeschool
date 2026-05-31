@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const BG     = '#090D16'
@@ -11,16 +11,18 @@ const TEXT   = '#ffffff'
 
 type TwinMode   = 'text' | 'audio'
 type TwinState  = 'idle' | 'listening' | 'processing' | 'speaking'
-type VibeIntent = 'NEWS' | 'QUESTION' | 'READ' | 'LESSON' | 'GENERAL'
+type VibeIntent = 'NEWS' | 'QUESTION' | 'READ' | 'LESSON' | 'CONVERSATIONAL' | 'GENERAL'
 
 interface Message {
-  role:    'twin' | 'user'
-  text:    string
-  time:    Date
+  role: 'twin' | 'user'
+  text: string
+  time: Date
 }
 
+// ── Intent classifier ──────────────────────────────────────────────────────────
 function classifyIntent(text: string): VibeIntent {
-  const t = text.toLowerCase()
+  const t = text.toLowerCase().trim()
+  if (/(^hi$|^hey$|^hello$|^sup$|^hola$|how are you|you okay|you good|are you fine|who are you|what are you|what can you do|thank|thanks|asante|bye|goodbye|later|see you)/i.test(t)) return 'CONVERSATIONAL'
   if (/(news|today|happened|latest|headline|breaking)/i.test(t)) return 'NEWS'
   if (/(what is|explain|who is|how does|define|tell me about)/i.test(t)) return 'QUESTION'
   if (/(read me|listen|play|open|read it)/i.test(t)) return 'READ'
@@ -28,34 +30,75 @@ function classifyIntent(text: string): VibeIntent {
   return 'GENERAL'
 }
 
+// ── Strip filler before saving topic ──────────────────────────────────────────
+function extractTopic(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/^(what is|explain|who is|how does|define|tell me about|lesson on|notes on|study for)\s+/i, '')
+    .trim()
+    .split(' ')
+    .slice(0, 3)
+    .join(' ') || 'general'
+}
+
+// ── Conversational responses — zero API cost ───────────────────────────────────
+function conversationalReply(query: string, userName: string): string {
+  const t = query.toLowerCase()
+  if (/(how are you|you okay|you good|are you fine)/.test(t))
+    return `Vibing and ready to learn! What topic are we exploring today, ${userName}?`
+  if (/(^hi$|^hey$|^hello$|^sup$|^hola$)/.test(t))
+    return `Hey ${userName}! Ask me about news, lessons, science, history — anything. What are we learning?`
+  if (/(who are you|what are you|what can you do)/.test(t))
+    return `I am Vibe Twin — your learning companion. Ask me news, questions, or say "open biology notes" and I will find it for you.`
+  if (/(thank|thanks|asante)/.test(t))
+    return `Anytime, ${userName}! Keep vibing. What else do you want to know?`
+  if (/(bye|goodbye|later|see you)/.test(t))
+    return `Stay curious, ${userName}. Come back when you are ready to learn more. ✦`
+  return `Vibe, ${userName}. Try asking me a question like "what is climate change" or "Kenya news today".`
+}
+
+// ── Free TTS — sentence by sentence ───────────────────────────────────────────
 function vibeSpeak(text: string, onEnd?: () => void) {
-  if (typeof window === 'undefined') return
-  window.speechSynthesis?.cancel()
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text]
+  if (typeof window === 'undefined' || !window.speechSynthesis) { onEnd?.(); return }
+  window.speechSynthesis.cancel()
+
+  const sentences = text.match(/[^.!?]+[.!?]+/g) ?? [text]
   let idx = 0
+
   function speakNext() {
     if (idx >= sentences.length) { onEnd?.(); return }
-    const u = new SpeechSynthesisUtterance(sentences[idx++])
-    u.rate   = 0.9
-    u.pitch  = 1.05
-    u.onend  = speakNext
+    const raw = sentences[idx++].trim()
+    if (!raw) { speakNext(); return }
+
+    const u = new SpeechSynthesisUtterance(raw)
+    u.rate  = 1.0
+    u.pitch = 1.05
+    u.onend   = speakNext
+    u.onerror = () => onEnd?.()
+
     const voices = window.speechSynthesis.getVoices()
     const voice  = voices.find(v =>
       v.name.includes('Google UK English Female') ||
       v.name.includes('Microsoft Zira') ||
       v.lang === 'en-GB'
-    )
+    ) ?? voices.find(v => v.lang.startsWith('en-')) ?? null
     if (voice) u.voice = voice
-    window.speechSynthesis?.speak(u)
+
+    window.speechSynthesis.speak(u)
   }
-  speakNext()
+
+  // Voices may not be loaded yet on first call
+  if (window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.onvoiceschanged = () => { speakNext() }
+  } else {
+    speakNext()
+  }
 }
 
-async function saveToMemory(userId: string, type: string, content: string, subject = '') {
+// ── Supabase memory (silent) ───────────────────────────────────────────────────
+async function saveToMemory(userId: string, type: string, content: string, subject: string) {
   try {
-    await supabase.from('twin_memory').insert({
-      user_id: userId, type, content, subject,
-    })
+    await supabase.from('twin_memory').insert({ user_id: userId, type, content, subject })
   } catch { /* silent */ }
 }
 
@@ -67,24 +110,17 @@ async function updateProfile(userId: string, subject: string) {
       .eq('user_id', userId)
       .maybeSingle()
     const existing: string[] = data?.top_subjects ?? []
-    if (!existing.includes(subject)) {
-      const updated = [subject, ...existing].slice(0, 5)
-      await supabase.from('twin_profile').upsert({
-        user_id:      userId,
-        top_subjects: updated,
-        last_topic:   subject,
-        updated_at:   new Date().toISOString(),
-      })
-    } else {
-      await supabase.from('twin_profile').upsert({
-        user_id:    userId,
-        last_topic: subject,
-        updated_at: new Date().toISOString(),
-      })
-    }
+    const updated = existing.includes(subject)
+      ? existing
+      : [subject, ...existing].slice(0, 5)
+    await supabase.from('twin_profile').upsert({
+      user_id: userId, top_subjects: updated,
+      last_topic: subject, updated_at: new Date().toISOString(),
+    })
   } catch { /* silent */ }
 }
 
+// ── Props ──────────────────────────────────────────────────────────────────────
 interface VibeTwinProps {
   isOpen:   boolean
   onClose:  () => void
@@ -93,134 +129,180 @@ interface VibeTwinProps {
 }
 
 export default function VibeTwin({ isOpen, onClose, userName, userId }: VibeTwinProps) {
-  const [mode,       setMode]       = useState<TwinMode>('text')
-  const [twinState,  setTwinState]  = useState<TwinState>('idle')
-  const [messages,   setMessages]   = useState<Message[]>([])
-  const [input,      setInput]      = useState('')
-  const [greeted,    setGreeted]    = useState(false)
-  const scrollRef                   = useRef<HTMLDivElement>(null)
-  const recognitionRef              = useRef<unknown>(null)
+  const [mode,      setMode]      = useState<TwinMode>('text')
+  const [twinState, setTwinState] = useState<TwinState>('idle')
+  const [messages,  setMessages]  = useState<Message[]>([])
+  const [input,     setInput]     = useState('')
+  const [greeted,   setGreeted]   = useState(false)
+
+  const scrollRef      = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const stateRef       = useRef<TwinState>('idle')
+  const modeRef        = useRef<TwinMode>('text')
+
+  // Keep refs in sync — avoids stale closures in recognition callbacks
+  useEffect(() => { stateRef.current = twinState }, [twinState])
+  useEffect(() => { modeRef.current  = mode       }, [mode])
+
+  // Cleanup on close
+  useEffect(() => {
+    if (!isOpen) {
+      window.speechSynthesis?.cancel()
+      recognitionRef.current?.abort()
+    }
+    return () => { window.speechSynthesis?.cancel() }
+  }, [isOpen])
 
   // Greeting on open
   useEffect(() => {
-    if (!isOpen) return
-    if (greeted) return
+    if (!isOpen || greeted) return
     setGreeted(true)
     const greeting = `Vibe, ${userName}. What are we learning today?`
     addMessage('twin', greeting)
-    setTimeout(() => vibeSpeak(greeting), 400)
+    const t = setTimeout(() => vibeSpeak(greeting), 400)
+    return () => clearTimeout(t)
   }, [isOpen, userName, greeted])
 
   // Auto scroll
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages])
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, twinState])
 
   function addMessage(role: 'twin' | 'user', text: string) {
     setMessages(prev => [...prev, { role, text, time: new Date() }])
   }
 
-  async function handleQuery(query: string) {
-    if (!query.trim()) return
-    addMessage('user', query)
-    setInput('')
-    setTwinState('processing')
-
-    const intent  = classifyIntent(query)
-    let response  = ''
-
-    // Save to memory silently
-    if (userId) {
-      saveToMemory(userId, intent.toLowerCase(), query, query.split(' ').slice(0, 3).join(' '))
-      updateProfile(userId, query.split(' ').slice(0, 2).join(' '))
-    }
-
-    try {
-      if (intent === 'NEWS' || intent === 'QUESTION' || intent === 'GENERAL') {
-        // Search DuckDuckGo
-        const res  = await fetch(`/api/vibe-search?q=${encodeURIComponent(query)}`)
-        const data = await res.json()
-
-        if (data.results && data.results.length > 0) {
-          const top = data.results[0]
-          if (top.snippet && top.snippet.length > 20) {
-            response = `${top.title}. ${top.snippet}`
-            if (data.results.length > 1) {
-              response += ` I also found ${data.results.length - 1} more results. Want me to go deeper?`
-            }
-          } else {
-            response = `I found something on "${query}" but the details are thin. Try asking differently.`
-          }
-        } else {
-          response = `I searched for "${query}" but found nothing strong. Try different words.`
-        }
-
-      } else if (intent === 'LESSON') {
-        // Search VibeLearn content
-        const { data } = await supabase
-          .from('vibelearn_content')
-          .select('title, description, url, source')
-          .textSearch('search_vector', query, { type: 'websearch', config: 'english' })
-          .eq('status', 'live')
-          .limit(3)
-
-        if (data && data.length > 0) {
-          const top = data[0]
-          response  = `I found a vibe on "${top.title}" by ${top.source || 'a teacher'}. `
-          response += top.description ? top.description.slice(0, 120) + '.' : ''
-          response += ` Want me to open it?`
-        } else {
-          response = `No lessons found for "${query}" on VibeLearn yet. Try searching the Vibe Check tab.`
-        }
-
-      } else {
-        response = `Vibe. I heard you say "${query}". Try asking me about news, lessons, or any topic you want to explore.`
-      }
-
-    } catch {
-      response = `Something went wrong searching for "${query}". Check your connection and try again.`
-    }
-
+  function finish(response: string) {
     addMessage('twin', response)
-    setTwinState('speaking')
-
-    if (mode === 'audio') {
+    if (modeRef.current === 'audio') {
+      setTwinState('speaking')
       vibeSpeak(response, () => setTwinState('idle'))
     } else {
       setTwinState('idle')
     }
   }
 
+  async function handleQuery(query: string) {
+    const q = query.trim()
+    if (!q) return
+
+    addMessage('user', q)
+    setInput('')
+    setTwinState('processing')
+
+    const intent = classifyIntent(q)
+    const topic  = extractTopic(q)
+
+    if (userId) {
+      saveToMemory(userId, intent.toLowerCase(), q, topic)
+      updateProfile(userId, topic)
+    }
+
+    // ── CONVERSATIONAL — zero cost, instant ──
+    if (intent === 'CONVERSATIONAL') {
+      finish(conversationalReply(q, userName))
+      return
+    }
+
+    try {
+      // ── NEWS / QUESTION / GENERAL — free Google search via proxy ──
+      if (intent === 'NEWS' || intent === 'QUESTION' || intent === 'GENERAL') {
+        const res  = await fetch(`/api/vibe-search?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+
+        if (data.results && data.results.length > 0) {
+          const top = data.results[0]
+          if (top.snippet && top.snippet.length > 20) {
+            let response = `${top.title}. ${top.snippet}`
+            if (data.results.length > 1) {
+              response += ` I also found ${data.results.length - 1} more result${data.results.length > 2 ? 's' : ''}. Want me to go deeper?`
+            }
+            finish(response)
+          } else {
+            finish(`I found something on "${q}" but details are thin. Try rephrasing — like "explain ${topic}" or "${topic} Kenya news".`)
+          }
+        } else {
+          finish(`I searched for "${q}" but got no results. Try different keywords — be specific.`)
+        }
+        return
+      }
+
+      // ── LESSON — search VibeGlobal content library ──
+      if (intent === 'LESSON') {
+        const { data } = await supabase
+          .from('vibelearn_content')
+          .select('title, description, source')
+          .textSearch('search_vector', q, { type: 'websearch', config: 'english' })
+          .eq('status', 'live')
+          .limit(3)
+
+        if (data && data.length > 0) {
+          const top = data[0]
+          let response = `I found a lesson on "${top.title}" by ${top.source || 'a teacher'}. `
+          response += top.description ? top.description.slice(0, 120) + '. ' : ''
+          response += `Want me to open it?`
+          finish(response)
+        } else {
+          finish(`No lessons found for "${q}" on VibeGlobal yet. Try searching the Vibe Feed tab.`)
+        }
+        return
+      }
+
+      // ── READ — prompt user to navigate ──
+      if (intent === 'READ') {
+        finish(`Go to Vibe Feed and tap "Vibe In" on any content to open the reader. I can search for a specific topic if you name it.`)
+        return
+      }
+
+    } catch {
+      finish(`Something went wrong. Check your connection and try again.`)
+    }
+  }
+
+  // ── Voice input ───────────────────────────────────────────────────────────────
   function startListening() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) {
+    const SR = (window as Window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition
+             ?? (window as Window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+
+    if (!SR) {
       addMessage('twin', 'Voice input is not supported on this browser. Type your vibe instead.')
       return
     }
-    const recognition = new SpeechRecognition()
-    recognition.lang            = 'en-KE'
-    recognition.continuous      = false
-    recognition.interimResults  = false
-    recognition.onstart         = () => setTwinState('listening')
-    recognition.onresult        = (e: any) => {
+
+    window.speechSynthesis?.cancel()
+
+    const recognition = new SR()
+    recognition.lang           = 'en-KE'
+    recognition.continuous     = false
+    recognition.interimResults = false
+
+    recognition.onstart  = () => setTwinState('listening')
+
+    recognition.onresult = (e: SpeechRecognitionEvent) => {
       const transcript = e.results[0][0].transcript
       setTwinState('processing')
       handleQuery(transcript)
     }
-    recognition.onerror         = () => {
-      setTwinState('idle')
-      addMessage('twin', 'Could not hear you clearly. Try again.')
+
+    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+      if (e.error !== 'aborted') {
+        setTwinState('idle')
+        addMessage('twin', 'Could not hear you clearly. Try again.')
+      }
     }
-    recognition.onend           = () => {
-      if (twinState === 'listening') setTwinState('idle')
+
+    recognition.onend = () => {
+      if (stateRef.current === 'listening') setTwinState('idle')
     }
+
     recognitionRef.current = recognition
     recognition.start()
   }
 
   function stopListening() {
-    (recognitionRef.current as any)?.stop()
-    setTwinState('idle')
+    recognitionRef.current?.stop()
   }
 
   function stopSpeaking() {
@@ -233,32 +315,28 @@ export default function VibeTwin({ isOpen, onClose, userName, userId }: VibeTwin
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
-      background: BG,
-      display: 'flex', flexDirection: 'column',
+      background: BG, display: 'flex', flexDirection: 'column',
       animation: 'vl-slide-up 300ms cubic-bezier(0.34,1.56,0.64,1)',
     }}>
 
       {/* Header */}
       <div style={{
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '16px 20px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0, height: 60,
       }}>
         <button onClick={onClose} style={{
           background: 'rgba(255,255,255,0.05)', border: 'none',
           color: TEXT, padding: '8px 14px', borderRadius: 10,
           cursor: 'pointer', fontSize: 13, fontWeight: 600,
-        }}>
-          ← Back
-        </button>
+        }}>← Back</button>
+
         <span style={{ color: ACCENT, fontWeight: 800, fontSize: 13, letterSpacing: '0.1em' }}>
           ✦ VIBE TWIN
         </span>
-        {/* Mode toggle */}
+
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 3 }}>
-          {(['text','audio'] as TwinMode[]).map(m => (
+          {(['text', 'audio'] as TwinMode[]).map(m => (
             <button key={m} onClick={() => setMode(m)} style={{
               padding: '5px 10px', borderRadius: 8, border: 'none',
               background: mode === m ? ACCENT : 'transparent',
@@ -285,8 +363,7 @@ export default function VibeTwin({ isOpen, onClose, userName, userId }: VibeTwin
             {msg.role === 'twin' && (
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                background: 'rgba(204,255,0,0.1)',
-                border: '1px solid rgba(204,255,0,0.3)',
+                background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 12, marginRight: 8, marginTop: 2,
               }}>✦</div>
@@ -298,35 +375,51 @@ export default function VibeTwin({ isOpen, onClose, userName, userId }: VibeTwin
                 ? '1px solid rgba(255,255,255,0.06)'
                 : '1px solid rgba(204,255,0,0.25)',
               borderRadius: msg.role === 'twin' ? '4px 16px 16px 16px' : '16px 4px 16px 16px',
-              padding: '10px 14px',
-              fontSize: 13, color: TEXT, lineHeight: 1.6,
+              padding: '10px 14px', fontSize: 13, color: TEXT, lineHeight: 1.6,
             }}>
               {msg.text}
             </div>
           </div>
         ))}
 
-        {/* State indicators */}
         {twinState === 'listening' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✦</div>
-            <div style={{ background: CARD, borderRadius: '4px 16px 16px 16px', padding: '10px 14px', display: 'flex', gap: 4, alignItems: 'center' }}>
-              {[0,0.2,0.4].map(d => (
-                <div key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: ACCENT, animation: `twinDot 1.2s ${d}s ease-in-out infinite` }} />
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
+            }}>✦</div>
+            <div style={{
+              background: CARD, borderRadius: '4px 16px 16px 16px',
+              padding: '10px 14px', display: 'flex', gap: 4, alignItems: 'center',
+            }}>
+              {[0, 0.2, 0.4].map(d => (
+                <div key={d} style={{
+                  width: 6, height: 6, borderRadius: '50%', background: ACCENT,
+                  animation: `twinDot 1.2s ${d}s ease-in-out infinite`,
+                }} />
               ))}
               <span style={{ fontSize: 11, color: MUTED, marginLeft: 6 }}>Listening...</span>
             </div>
           </div>
         )}
+
         {twinState === 'processing' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✦</div>
-            <div style={{ background: CARD, borderRadius: '4px 16px 16px 16px', padding: '10px 14px', fontSize: 11, color: MUTED }}>Finding your vibe...</div>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
+            }}>✦</div>
+            <div style={{
+              background: CARD, borderRadius: '4px 16px 16px 16px',
+              padding: '10px 14px', fontSize: 11, color: MUTED,
+            }}>Finding your vibe...</div>
           </div>
         )}
       </div>
 
-      {/* Input area */}
+      {/* Input */}
       <div style={{
         padding: '12px 16px 24px',
         borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -337,7 +430,12 @@ export default function VibeTwin({ isOpen, onClose, userName, userId }: VibeTwin
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleQuery(input) } }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleQuery(input)
+                }
+              }}
               placeholder="Type your vibe..."
               disabled={twinState === 'processing'}
               style={{
@@ -351,14 +449,13 @@ export default function VibeTwin({ isOpen, onClose, userName, userId }: VibeTwin
               onClick={() => handleQuery(input)}
               disabled={!input.trim() || twinState === 'processing'}
               style={{
-                background: input.trim() ? ACCENT : 'rgba(255,255,255,0.05)',
-                border: 'none', borderRadius: 14,
-                padding: '12px 18px', color: input.trim() ? '#000' : MUTED,
-                fontSize: 13, fontWeight: 800, cursor: input.trim() ? 'pointer' : 'default',
+                background: input.trim() && twinState !== 'processing' ? ACCENT : 'rgba(255,255,255,0.05)',
+                border: 'none', borderRadius: 14, padding: '12px 18px',
+                color: input.trim() && twinState !== 'processing' ? '#000' : MUTED,
+                fontSize: 13, fontWeight: 800,
+                cursor: input.trim() && twinState !== 'processing' ? 'pointer' : 'default',
               }}
-            >
-              ✦
-            </button>
+            >✦</button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -383,15 +480,13 @@ export default function VibeTwin({ isOpen, onClose, userName, userId }: VibeTwin
                     : 'none',
                   transition: 'all 0.2s',
                 }}
-              >
-                🎙
-              </button>
+              >🎙</button>
             )}
             <span style={{ fontSize: 11, color: MUTED }}>
-              {twinState === 'listening' ? 'Release to send'
-                : twinState === 'processing' ? 'Finding your vibe...'
-                : twinState === 'speaking' ? 'Twin is speaking...'
-                : 'Hold to speak'}
+              {twinState === 'listening'   ? 'Release to send'
+               : twinState === 'processing' ? 'Finding your vibe...'
+               : twinState === 'speaking'   ? 'Twin is speaking...'
+               : 'Hold to speak'}
             </span>
           </div>
         )}
