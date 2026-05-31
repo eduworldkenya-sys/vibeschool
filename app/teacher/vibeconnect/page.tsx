@@ -123,6 +123,8 @@ export default function TeacherVibeConnectPage() {
   const [searchQuery,     setSearchQuery]     = useState('')
   const [searchResults,   setSearchResults]   = useState<ProfileRow[]>([])
   const [searching,       setSearching]       = useState(false)
+  const [suggestedContacts,  setSuggestedContacts]  = useState<ProfileRow[]>([])
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
 
   const [circulars, setCirculars] = useState<CircularUI[]>([])
   const [acking,    setAcking]    = useState<string | null>(null)
