@@ -29,3 +29,7 @@
 ## [2026-05-31 10:24] fcd6677
 **What:** feat: teacher vibelearn page and indexer
 **Status:** ✅ pushed
+
+## [2026-05-31 10:28] c2a9daa
+**What:** fix: null guard on loadAll in teacher vibeconnect
+**Status:** ✅ pushed
