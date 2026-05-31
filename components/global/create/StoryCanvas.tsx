@@ -230,7 +230,7 @@ export function StoryCanvas({ authorId }: StoryCanvasProps) {
           characters={characters}
           onAddCharacter={() => setCharacterDrawerOpen(true)}
           onSave={saveNow}
-          onPublish={() => setPublishDrawerOpen(true)}
+          onPublish={() => { setPublishDrawerOpen(true); return Promise.resolve(true) }}
           saving={saving}
         />
         <StoryPageNav
