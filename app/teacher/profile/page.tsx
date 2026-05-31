@@ -243,7 +243,7 @@ function ProfileSection({ index }: { index: number }) {
     <PerformanceAppraisalSection key="Performance & Appraisal" />,
     <MessagesSection key="Messages" />,
     <DocumentsSection key="Documents" />,
-    <ComingSoon key="Finance Reference"        title="Finance Reference"        sub="Payroll reference — managed in Finance module" />,
+    <FinanceReferenceSection key="Finance Reference" />,
   ]
   return sections[index] ?? null
 }
@@ -1660,6 +1660,65 @@ function DocumentsSection() {
       </button>
       <p style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>PDF, JPG, PNG — max 5MB</p>
       <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={handleFile} />
+    </div>
+  )
+}
+
+// ─── Finance Reference ────────────────────────────────────────────────────────
+
+function FinanceReferenceSection() {
+  const { userId, loading, pageError } = useTeacherData()
+  const [financeRef,   setFinanceRef]   = useState<string>('')
+  const [loadingData,  setLoadingData]  = useState(true)
+
+  useEffect(() => {
+    if (!userId) return
+    async function load() {
+      const { data } = await supabase
+        .from('teacher_profiles')
+        .select('finance_ref')
+        .eq('profile_id', userId)
+        .single()
+      setFinanceRef(data?.finance_ref ?? '')
+      setLoadingData(false)
+    }
+    load()
+  }, [userId])
+
+  if (loading || loadingData) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2].map(i => <Skeleton key={i} />)}</div>
+  if (pageError) return <ErrorBox msg={pageError} />
+
+  return (
+    <div>
+      <SectionHeader title="Finance Reference" sub="Payroll reference — managed by your school admin" />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}` }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+            Payroll Reference Number
+          </p>
+          <p style={{ fontSize: 22, fontWeight: 800, color: C.textPrimary, margin: 0 }}>
+            {financeRef || '—'}
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ padding: 16, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
+            <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Bank Name</p>
+          </div>
+          <div style={{ padding: 16, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
+            <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Account Number</p>
+          </div>
+        </div>
+
+        <div style={{ padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
+            Finance details are managed by your school admin in the Finance module. Contact your admin to update payroll information.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
