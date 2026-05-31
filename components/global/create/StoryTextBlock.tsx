@@ -99,7 +99,7 @@ export function StoryTextBlock({
           contentEditable
           suppressContentEditableWarning
           onBlur={handleBlur}
-          placeholder="Tap to add text…"
+          data-placeholder="Tap to add text…"
           className="vibe-editable"
           style={{
             outline:    'none',

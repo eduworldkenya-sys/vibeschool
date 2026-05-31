@@ -30,3 +30,9 @@ html, body {
   color: #aaa;
   pointer-events: none;
 }
+
+.vibe-editable:empty::before {
+  content: attr(data-placeholder);
+  color: #aaa;
+  pointer-events: none;
+}
