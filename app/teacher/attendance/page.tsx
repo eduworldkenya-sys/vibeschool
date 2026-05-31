@@ -21,9 +21,10 @@ interface TSlot {
 }
 
 interface ClassOption {
-  id:     string
-  name:   string
-  stream: string | null
+  id:       string
+  name:     string
+  stream:   string | null
+  schoolId: string | null
 }
 
 interface Student {
@@ -99,7 +100,7 @@ function AttendanceInner() {
       const [profileRes, memberRes, classesRes, slotsRes] = await Promise.all([
         supabase.from('profiles').select('school_id').eq('id', user.id).single(),
         supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('classes').select('id, name, stream').eq('teacher_id', user.id).order('name', { ascending: true }),
+        supabase.from('classes').select('id, name, stream, school_id').eq('teacher_id', user.id).order('name', { ascending: true }),
         supabase.from('timetable_slots')
           .select('id, room, start_time, end_time, class_id, subject_id, day_of_week')
           .eq('teacher_id', user.id)
@@ -110,9 +111,10 @@ function AttendanceInner() {
       setSchoolId(memberRes.data?.school_id ?? profileRes.data?.school_id ?? null)
 
       const loadedClasses: ClassOption[] = (classesRes.data ?? []).map(c => ({
-        id:     c.id,
-        name:   c.name,
-        stream: c.stream,
+        id:       c.id,
+        name:     c.name,
+        stream:   c.stream,
+        schoolId: c.school_id ?? null,
       }))
       setClasses(loadedClasses)
       setClassesLoading(false)
@@ -237,11 +239,14 @@ function AttendanceInner() {
     setSaveState('idle')
 
     const isLesson = mode === 'lesson'
+    const classSchoolId = isLesson
+      ? classes.find(c => c.id === activeSlot!.classId)?.schoolId ?? schoolId
+      : classes.find(c => c.id === activeClassId)?.schoolId ?? schoolId
     const rows = students.map(s => ({
       student_id: s.id,
       class_id:   isLesson ? activeSlot!.classId : activeClassId!,
       teacher_id: uid,
-      school_id:  schoolId,
+      school_id:  classSchoolId,
       date:       selectedDate,
       status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
       is_late:    statuses[s.id] === 'late',
