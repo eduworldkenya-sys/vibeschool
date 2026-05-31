@@ -57,3 +57,7 @@
 ## [2026-05-31 12:05] 94e242c
 **What:** feat: dual claim codes (student+parent) with WhatsApp share
 **Status:** ✅ pushed
+
+## [2026-05-31 12:11] e4e360e
+**What:** fix: role-based claim code validation for student and parent
+**Status:** ✅ pushed
