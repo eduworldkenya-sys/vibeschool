@@ -1,11 +1,11 @@
 'use client'
 
 import React from 'react'
+
 type ReadMode = 'scroll' | 'listen'
 
-const SURFACE = '#111827'
-const ACCENT  = '#CCFF00'
-const MUTED   = 'rgba(255,255,255,0.4)'
+const ACCENT = '#CCFF00'
+const MUTED  = 'rgba(255,255,255,0.4)'
 
 interface Props {
   mode:     ReadMode
@@ -27,8 +27,9 @@ export default function ModeSwitcher({ mode, onChange }: Props) {
           style={{
             padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
             background: mode === m.id ? ACCENT : 'rgba(255,255,255,0.06)',
-            color: mode === m.id ? '#000' : MUTED,
+            color:      mode === m.id ? '#000'  : MUTED,
             fontSize: 11, fontWeight: 800,
+            transition: 'background 0.15s',
           }}
         >
           {m.icon} {m.label}
