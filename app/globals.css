@@ -24,3 +24,9 @@ html, body {
 .admin-page-root {
   background: transparent !important;
 }
+
+.vibe-bubble-edit:empty::before {
+  content: attr(data-placeholder);
+  color: #aaa;
+  pointer-events: none;
+}

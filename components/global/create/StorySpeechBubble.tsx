@@ -150,7 +150,7 @@ export function StorySpeechBubble({
             contentEditable
             suppressContentEditableWarning
             onBlur={handleBlur}
-            placeholder="Type dialogue…"
+            data-placeholder="Type dialogue…"
             className="vibe-bubble-edit"
             style={{
               outline:    'none',
