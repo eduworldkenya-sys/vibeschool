@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -23,7 +23,7 @@ interface StudentRow {
   school_id:        string | null
 }
 
-export default function HarmonizePage() {
+function HarmonizeInner() {
   const router  = useRouter()
   const params  = useSearchParams()
   const sid     = params.get('sid')
@@ -184,5 +184,13 @@ export default function HarmonizePage() {
 
       </div>
     </div>
+  )
+}
+
+export default function HarmonizePage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#64748b' }}>Loading…</div>}>
+      <HarmonizeInner />
+    </Suspense>
   )
 }
