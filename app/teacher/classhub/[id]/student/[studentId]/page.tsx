@@ -103,7 +103,7 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
 
 /* ── Overview Tab ── */
 function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGroups }: {
-  student: Student; classId: string; studentCode: ClaimCode | null; parentCode: ClaimCode | null; onReload: () => void; myGroups: StudentGroup[]
+  student: Student; classId: string; studentCode: ClaimCode | null; parentCode: ClaimCode | null; onReload: () => Promise<void>; myGroups: StudentGroup[]
 }) {
   const [editing, setEditing] = useState(false)
   const [name,    setName]    = useState(student.name)
@@ -123,7 +123,7 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
     setSaving(false)
     if (error) { setErr(error.message); return }
     setEditing(false)
-    onReload()
+    await onReload()
   }
 
   async function handleGenCode() {
@@ -131,12 +131,16 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
     const studentCode = Math.random().toString(36).substring(2, 8).toUpperCase()
     const parentCode  = Math.random().toString(36).substring(2, 8).toUpperCase()
     await supabase.from('student_claim_codes').delete().eq('student_id', student.id).eq('claimed', false)
+    const expiry = new Date()
+    expiry.setDate(expiry.getDate() + 30)
+    const expiresAt = expiry.toISOString()
+
     await Promise.all([
-      supabase.from('student_claim_codes').insert({ student_id: student.id, code: studentCode, claimed: false, role: 'student' }),
-      supabase.from('student_claim_codes').insert({ student_id: student.id, code: parentCode,  claimed: false, role: 'parent'  }),
+      supabase.from('student_claim_codes').insert({ student_id: student.id, code: studentCode, claimed: false, role: 'student', expires_at: expiresAt }),
+      supabase.from('student_claim_codes').insert({ student_id: student.id, code: parentCode,  claimed: false, role: 'parent',  expires_at: expiresAt }),
     ])
     setGenning(false)
-    onReload()
+    await onReload()
   }
 
   async function handleCopy(code: string) {
@@ -737,7 +741,7 @@ function StudentProfileInner() {
       strRes, goalRes, skillRes,
     ] = await Promise.all([
       supabase.from('students').select('*').eq('id', studentId).single(),
-      supabase.from('student_claim_codes').select('code, claimed, expires_at').eq('student_id', studentId).eq('claimed', false).maybeSingle(),
+      supabase.from('student_claim_codes').select('code, role, claimed, expires_at').eq('student_id', studentId).eq('claimed', false),
       supabase.from('attendance').select('*').eq('student_id', studentId).eq('class_id', classId).order('date', { ascending: false }),
       supabase.from('cbc_assessments').select('*').eq('student_id', studentId).eq('class_id', classId).order('created_at', { ascending: false }),
       supabase.from('homework').select('*').eq('class_id', classId).order('due_date', { ascending: false }),
