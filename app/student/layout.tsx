@@ -8,11 +8,11 @@ const UserContext = createContext<UserCtx>({ fullName: '', initials: '' });
 export const useUser = () => useContext(UserContext);
 
 const NAV_TABS = [
-  { id: "home",     label: "Home",     icon: "🏠", href: "/student"           },
-  { id: "marks",    label: "Marks",    icon: "📝", href: "/student/marks"     },
+  { id: "home",      label: "Home",      icon: "🏠", href: "/student"            },
+  { id: "marks",     label: "Marks",     icon: "📝", href: "/student/marks"      },
+  { id: "vibelearn", label: "VibeLearn", icon: "⚡", href: "/student/vibelearn"  },
   { id: "homework",  label: "Homework",  icon: "📚", href: "/student/homework"   },
-  { id: "resources", label: "Resources", icon: "📖", href: "/student/resources" },
-  { id: "profile",   label: "Profile",   icon: "👤", href: "/student/profile"    },
+  { id: "resources", label: "Resources", icon: "📖", href: "/student/resources"  },
 ];
 
 function tabIdFromPath(path: string): string {
@@ -26,10 +26,52 @@ function BottomNav({ activeId }: { activeId: string }) {
   return (
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700, background: "#fff", borderTop: "1px solid #e5e7eb", display: "flex", height: 64, boxShadow: "0 -2px 12px rgba(0,0,0,0.06)" }}>
       {NAV_TABS.map(t => {
-        const isActive = t.id === activeId;
+        const isActive  = t.id === activeId;
+        const isCenter  = t.id === "vibelearn";
+        if (isCenter) {
+          return (
+            <button
+              key={t.id}
+              onClick={() => router.push(t.href)}
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 3,
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+                padding: "8px 0",
+                position: "relative",
+              }}
+            >
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                background: isActive ? "#CCFF00" : "#090D16",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                boxShadow: isActive ? "0 4px 16px rgba(204,255,0,0.4)" : "0 4px 16px rgba(0,0,0,0.3)",
+                marginTop: -20,
+                border: "3px solid #fff",
+              }}>
+                {t.icon}
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: isActive ? "#090D16" : "#6b7280", marginTop: 2 }}>{t.label}</span>
+            </button>
+          );
+        }
         return (
-          <button key={t.id} onClick={() => router.push(t.href)}
-            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? "#6366f1" : "#6b7280", position: "relative" }}>
+          <button
+            key={t.id}
+            onClick={() => router.push(t.href)}
+            style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? "#6366f1" : "#6b7280", position: "relative" }}
+          >
             <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
             <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600 }}>{t.label}</span>
             {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 2.5, background: "#6366f1", borderRadius: "0 0 3px 3px" }} />}
@@ -40,7 +82,7 @@ function BottomNav({ activeId }: { activeId: string }) {
   );
 }
 
-function TopBar({ initials }: { initials: string }) {
+function TopBar({ initials, fullName }: { initials: string; fullName: string }) {
   const router   = useRouter();
   const pathname = usePathname();
   const isHome   = pathname === "/student" || pathname === "/student/";
@@ -58,9 +100,18 @@ function TopBar({ initials }: { initials: string }) {
           </div>
         </div>
       </div>
-      <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer" }}
-        onClick={() => router.push("/student/profile")}>
-        {initials || "…"}
+      <div
+        onClick={() => router.push("/student/profile")}
+        style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+      >
+        {fullName && (
+          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {fullName.split(" ")[0]}
+          </span>
+        )}
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>
+          {initials || "…"}
+        </div>
       </div>
     </div>
   );
@@ -87,7 +138,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
       if (data?.role !== "student") { router.push("/academy/signin?role=student"); return }
 
-      // Guard: must have student_profiles row (claim completed)
       const { data: sp } = await supabase
         .from("student_profiles")
         .select("profile_id")
@@ -114,7 +164,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
       `}</style>
       <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-        <TopBar initials={initials} />
+        <TopBar initials={initials} fullName={fullName} />
         <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 0", paddingBottom: 160, minHeight: "calc(100vh - 120px)" }}>
           {children}
         </main>
