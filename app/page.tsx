@@ -516,6 +516,7 @@ export default function RootPage() {
         Vibe<span style={S.gold}>School</span>
       </div>
       <p style={S.tagline}>FREEDOM · LEARN · EXPLORE</p>
+      <a href="/global" style={{ fontSize: 11, color: 'rgba(200,168,75,0.7)', letterSpacing: '0.15em', textDecoration: 'none', marginBottom: 24, display: 'block', textAlign: 'center' }}>EXPLORE FREE — NO ACCOUNT NEEDED →</a>
 
       <div style={S.card}>
 
