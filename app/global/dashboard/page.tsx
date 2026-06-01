@@ -626,7 +626,7 @@ export default function VibeGlobalDashboard() {
         ] as const).map(t => {
           const isActive = tab === t.id
           return (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
+            <button key={t.id} onClick={() => { if (t.id === 'create') { router.push('/global/create'); return; } setTab(t.id); }} style={{
               flex: 1, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               gap: 3, border: 'none', background: 'none', cursor: 'pointer',
