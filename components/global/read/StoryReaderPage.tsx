@@ -11,6 +11,7 @@ interface StoryReaderPageProps {
   onNext: () => void
   onPrev: () => void
   onToggleChrome: () => void
+  fontScale?: 1 | 1.2 | 1.4
 }
 
 const ENTRY_RIGHT = '@keyframes entryFromRight { from { transform: translateX(100%); } to { transform: translateX(0); } }'
@@ -25,6 +26,7 @@ export function StoryReaderPage({
   onNext,
   onPrev,
   onToggleChrome,
+  fontScale = 1,
 }: StoryReaderPageProps) {
   if (!isActive) return null
 
