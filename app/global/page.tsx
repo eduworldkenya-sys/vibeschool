@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
-import { useGlobalAuth } from '@/app/global/layout'
+import { useGlobalAuth } from '@/components/global/shared/GlobalAuthContext'
 import { TrendingRow } from '@/components/global/home/TrendingRow'
 import { FeaturedSection } from '@/components/global/home/FeaturedSection'
 import { StoryFeedCard } from '@/components/global/feed/StoryFeedCard'

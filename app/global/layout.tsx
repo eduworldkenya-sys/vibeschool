@@ -2,25 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { GlobalAuthContext } from '@/components/global/shared/GlobalAuthContext'
 import { GlobalHeader } from '@/components/global/layout/GlobalHeader'
 import { GlobalBottomNav } from '@/components/global/layout/GlobalBottomNav'
 import { AuthPromptSheet } from '@/components/global/shared/AuthPromptSheet'
 
-interface GlobalAuthContextType {
-  isLoggedIn: boolean
-  userId: string | null
-  userName: string | null
-  triggerAuthPrompt: (action: 'write' | 'vibe' | 'save' | 'create') => void
-}
 
-const GlobalAuthContext = createContext<GlobalAuthContextType>({
   isLoggedIn: false,
   userId: null,
   userName: null,
   triggerAuthPrompt: () => {},
 })
 
-export const useGlobalAuth = () => useContext(GlobalAuthContext)
 
 export default function GlobalLayout({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useGlobalAuth } from '@/app/global/layout'
+import { useGlobalAuth } from '@/components/global/shared/GlobalAuthContext'
 import { VibesFeed } from '@/components/global/vibes/VibesFeed'
 import { AuthPromptSheet } from '@/components/global/shared/AuthPromptSheet'
 
