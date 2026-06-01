@@ -53,3 +53,5 @@ export async function updateTeacherProfile(userId: string, updates: {
   if (error) console.error('updateTeacherProfile error:', error)
   return data
 }
+
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!

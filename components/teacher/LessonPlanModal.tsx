@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, SUPABASE_URL } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 import { getServerWeek } from '@/lib/time'
 import type { TimetableSlot } from '@/lib/types'
@@ -234,7 +234,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       if (user == null) return
 
       const res = await fetch(
-        supabase.supabaseUrl + '/functions/v1/generate-lesson-plan',
+        SUPABASE_URL + '/functions/v1/generate-lesson-plan',
         {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
