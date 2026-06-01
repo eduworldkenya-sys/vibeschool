@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 
@@ -333,6 +334,7 @@ function useTeacherData() {
 
 function PersonalInfoSection() {
   const { userId, schoolId, profile, setProfile, teacher, setTeacher, loading, pageError } = useTeacherData()
+  const router = useRouter()
   const [subjects,           setSubjects]           = useState<SubjectOption[]>([])
   const [classes,            setClasses]            = useState<ClassOption[]>([])
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([])
