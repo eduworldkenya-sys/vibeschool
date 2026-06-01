@@ -22,7 +22,7 @@ export function FeaturedSection() {
       .order('view_count', { ascending: false })
       .limit(4)
       .then(({ data }) => {
-        if (data) setContent(data as VibeContent[])
+        if (data) setContent(data as unknown as VibeContent[])
         setLoading(false)
       })
   }, [])
