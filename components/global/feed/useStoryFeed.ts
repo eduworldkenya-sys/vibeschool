@@ -30,6 +30,7 @@ export function useStoryFeed() {
   const [error, setError] = useState<string | null>(null)
   const [ageFilter, setAgeFilter] = useState<AgeRange | 'all'>('all')
   const [langFilter, setLangFilter] = useState<StoryLanguage | 'all'>('all')
+  const [search, setSearch] = useState<string>('')
   const [page, setPage] = useState<number>(1)
   const [hasMore, setHasMore] = useState<boolean>(true)
 
@@ -59,6 +60,7 @@ export function useStoryFeed() {
     currentPage: number,
     currentAge: AgeRange | 'all',
     currentLang: StoryLanguage | 'all',
+    currentSearch: string,
     shouldAppend: boolean
   ) => {
     setLoading(true)
@@ -82,6 +84,7 @@ export function useStoryFeed() {
 
       if (currentAge !== 'all')  query = query.eq('age_range', currentAge)
       if (currentLang !== 'all') query = query.eq('language', currentLang)
+      if (currentSearch.trim()) query = query.ilike('title', '%' + currentSearch.trim() + '%')
 
       const { data, error: fetchErr } = await query
       if (fetchErr) throw fetchErr
@@ -101,14 +104,14 @@ export function useStoryFeed() {
   useEffect(() => {
     setPage(1)
     setHasMore(true)
-    fetchStoriesPage(1, ageFilter, langFilter, false)
-  }, [ageFilter, langFilter, fetchStoriesPage])
+    fetchStoriesPage(1, ageFilter, langFilter, search, false)
+  }, [ageFilter, langFilter, search, fetchStoriesPage])
 
   const loadMore = () => {
     if (loading || !hasMore) return
     const nextPage = page + 1
     setPage(nextPage)
-    fetchStoriesPage(nextPage, ageFilter, langFilter, true)
+    fetchStoriesPage(nextPage, ageFilter, langFilter, search, true)
   }
 
   return {
@@ -120,6 +123,8 @@ export function useStoryFeed() {
     setAgeFilter,
     langFilter,
     setLangFilter,
+    search,
+    setSearch,
     loadMore,
   }
 }

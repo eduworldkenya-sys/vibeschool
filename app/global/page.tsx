@@ -11,6 +11,7 @@ export default function GlobalFeedPage() {
     stories, loading, error, hasMore,
     ageFilter, setAgeFilter,
     langFilter, setLangFilter,
+    search, setSearch,
     loadMore,
   } = useStoryFeed()
 
