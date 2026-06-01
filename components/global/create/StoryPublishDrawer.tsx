@@ -240,8 +240,6 @@ export function StoryPublishDrawer({
                 </>
               )}
             </div>
-
-            </div>
             {/* Description */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={labelStyle}>Description</label>
