@@ -1,19 +1,11 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { GlobalAuthContext } from '@/components/global/shared/GlobalAuthContext'
 import { GlobalHeader } from '@/components/global/layout/GlobalHeader'
 import { GlobalBottomNav } from '@/components/global/layout/GlobalBottomNav'
 import { AuthPromptSheet } from '@/components/global/shared/AuthPromptSheet'
-
-
-  isLoggedIn: false,
-  userId: null,
-  userName: null,
-  triggerAuthPrompt: () => {},
-})
-
 
 export default function GlobalLayout({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
