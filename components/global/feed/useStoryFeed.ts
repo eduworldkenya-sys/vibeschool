@@ -38,7 +38,7 @@ export function useStoryFeed() {
     return {
       id: record.id,
       title: record.title || 'Untitled Masterpiece',
-      status: record.status || 'draft',
+      status: (record.status as StoryStatus) || 'draft',
       ageRange: (record.age_range as AgeRange) || '4-8',
       language: (record.language as StoryLanguage) || 'en',
       coverImageUrl: record.cover_image_url || null,
