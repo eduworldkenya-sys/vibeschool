@@ -96,7 +96,7 @@ export default function VibeGlobalDashboard() {
       .eq('status', 'live')
       .order('view_count', { ascending: false })
       .limit(30)
-    setFeed((data ?? []) as VibeContent[])
+    setFeed((data ?? []) as unknown as VibeContent[])
   }, [])
 
   useEffect(() => {

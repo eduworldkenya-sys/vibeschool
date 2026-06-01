@@ -39,7 +39,7 @@ export function VibesFeed({ isLoggedIn, onAuthPrompt }: VibesFeedProps) {
     if (currentFilter !== 'all') query = query.eq('type', currentFilter)
 
     const { data } = await query
-    const rows = (data || []) as VibeContent[]
+    const rows = (data || []) as unknown as VibeContent[]
     setItems((prev) => reset ? rows : [...prev, ...rows])
     setHasMore(rows.length === PAGE_SIZE)
     setLoading(false)
