@@ -12,6 +12,7 @@ interface DatabaseStory {
   language: string | null
   cover_image_url: string | null
   author_id: string | null
+  description: string | null
   page_count: number | null
   view_count: number | null
   vibe_count: number | null
@@ -43,6 +44,7 @@ export function useStoryFeed() {
       language: (record.language as StoryLanguage) || 'en',
       coverImageUrl: record.cover_image_url || null,
       authorId: record.author_id || '',
+      description: record.description || null,
       pageCount: record.page_count || 0,
       viewCount: record.view_count || 0,
       vibeCount: record.vibe_count || 0,
