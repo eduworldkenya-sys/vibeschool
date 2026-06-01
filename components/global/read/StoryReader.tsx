@@ -6,6 +6,7 @@ import { useStoryReader } from '@/components/global/read/useStoryReader'
 import { StoryReaderCover } from '@/components/global/read/StoryReaderCover'
 import { StoryReaderPage } from '@/components/global/read/StoryReaderPage'
 import { StoryReaderEnd } from '@/components/global/read/StoryReaderEnd'
+import { useReadAloud } from '@/components/global/read/useReadAloud'
 
 interface StoryReaderProps {
   storyId: string
@@ -21,6 +22,9 @@ export function StoryReader({ storyId }: StoryReaderProps) {
   const [showEnd,    setShowEnd]    = useState(false)
   const [chromeVisible, setChromeVisible] = useState(true)
   const [direction,  setDirection]  = useState<'left' | 'right' | 'none'>('none')
+
+  const activePage = pages[activeIndex] || null
+  const { status: readStatus, toggle: toggleRead } = useReadAloud(currentPage)
 
   const chromeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const touchStartXRef = useRef<number>(0)
@@ -171,9 +175,9 @@ export function StoryReader({ storyId }: StoryReaderProps) {
         overflow:        'hidden',
       }}
     >
-      {currentPage && (
+      {activePage && (
         <StoryReaderPage
-          page={currentPage}
+          page={activePage}
           characters={story.characters}
           isActive={true}
           direction={direction}
@@ -229,7 +233,20 @@ export function StoryReader({ storyId }: StoryReaderProps) {
           <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: 700 }}>
             {(activeIndex + 1) + ' of ' + pages.length}
           </div>
-          <div style={{ color: '#CCFF00', fontSize: 16, opacity: 0.4 }}>🔊</div>
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleRead() }}
+            style={{
+              backgroundColor: 'transparent',
+              border:          'none',
+              fontSize:        16,
+              cursor:          readStatus === 'unsupported' ? 'not-allowed' : 'pointer',
+              opacity:         readStatus === 'unsupported' ? 0.2 : 1,
+              color:           readStatus === 'playing' ? '#CCFF00' : 'rgba(255,255,255,0.6)',
+              padding:         0,
+            }}
+          >
+            {readStatus === 'playing' ? '⏸' : readStatus === 'paused' ? '▶️' : '🔊'}
+          </button>
         </div>
       </div>
 
