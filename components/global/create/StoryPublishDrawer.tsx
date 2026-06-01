@@ -191,6 +191,25 @@ export function StoryPublishDrawer({
                 Copy
               </button>
             </div>
+
+            <button
+              onClick={() => { if (typeof window !== 'undefined') window.location.href = '/global/read/story/' + story.id }}
+              style={{
+                width:           '100%',
+                backgroundColor: '#CCFF00',
+                color:           '#090D16',
+                border:          'none',
+                borderRadius:    12,
+                paddingTop:      14,
+                paddingBottom:   14,
+                fontSize:        14,
+                fontWeight:      900,
+                cursor:          'pointer',
+                marginTop:       12,
+              }}
+            >
+              📖 Read Story
+            </button>
           </div>
         ) : (
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 24 }}>
