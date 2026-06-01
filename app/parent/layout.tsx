@@ -8,7 +8,7 @@ import VibeLearnShellWrapper from "@/components/student/VibeLearnShellWrapper";
 
 interface UserCtx { fullName: string; initials: string }
 const UserContext = createContext<UserCtx>({ fullName: "", initials: "" });
-export const useUser = () => useContext(UserContext);
+const useUser = () => useContext(UserContext);
 
 const NAV_TABS: ParentNavTab[] = [
   { id: "home",      label: "Home",      icon: "🏠", href: "/parent"            },
