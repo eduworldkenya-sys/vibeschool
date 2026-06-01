@@ -234,7 +234,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       if (user == null) return
 
       const res = await fetch(
-        process.env.NEXT_PUBLIC_SUPABASE_URL + '/functions/v1/generate-lesson-plan',
+        supabase.supabaseUrl + '/functions/v1/generate-lesson-plan',
         {
           method:  'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
