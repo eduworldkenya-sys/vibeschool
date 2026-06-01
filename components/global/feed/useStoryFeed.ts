@@ -48,7 +48,7 @@ export function useStoryFeed() {
       vibeCount: record.vibe_count || 0,
       earningsKsh: record.earnings_ksh || 0,
       tags: record.tags || [],
-      characters: record.characters || [],
+      characters: (record.characters || []) as StoryCharacter[],
       createdAt: record.created_at || '',
       updatedAt: record.updated_at || '',
       publishedAt: record.published_at || null,
