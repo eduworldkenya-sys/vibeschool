@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { VibeStory, AgeRange, StoryLanguage } from '@/lib/storyTypes'
+import { VibeStory, AgeRange, StoryLanguage, StoryStatus } from '@/lib/storyTypes'
 
 interface DatabaseStory {
   id: string
