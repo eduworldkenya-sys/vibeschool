@@ -18,7 +18,7 @@ interface DatabaseStory {
   vibe_count: number | null
   earnings_ksh: number | null
   tags: string[] | null
-  characters: Record<string, unknown>[] | null
+  characters: unknown[] | null
   created_at: string | null
   updated_at: string | null
   published_at: string | null
@@ -35,27 +35,25 @@ export function useStoryFeed() {
 
   const PAGE_SIZE = 12
 
-  const mapDatabaseRecord = (record: DatabaseStory): VibeStory => {
-    return {
-      id: record.id,
-      title: record.title || 'Untitled Masterpiece',
-      status: (record.status as StoryStatus) || 'draft',
-      ageRange: (record.age_range as AgeRange) || '4-8',
-      language: (record.language as StoryLanguage) || 'en',
-      coverImageUrl: record.cover_image_url || null,
-      authorId: record.author_id || '',
-      description: record.description || null,
-      pageCount: record.page_count || 0,
-      viewCount: record.view_count || 0,
-      vibeCount: record.vibe_count || 0,
-      earningsKsh: record.earnings_ksh || 0,
-      tags: record.tags || [],
-      characters: (record.characters || []) as StoryCharacter[],
-      createdAt: record.created_at || '',
-      updatedAt: record.updated_at || '',
-      publishedAt: record.published_at || null,
-    }
-  }
+  const mapDatabaseRecord = (record: DatabaseStory): VibeStory => ({
+    id:            record.id,
+    title:         record.title || 'Untitled',
+    status:        (record.status as StoryStatus) || 'draft',
+    ageRange:      (record.age_range as AgeRange) || '4-8',
+    language:      (record.language as StoryLanguage) || 'en',
+    coverImageUrl: record.cover_image_url || null,
+    authorId:      record.author_id || '',
+    description:   record.description || null,
+    pageCount:     record.page_count || 0,
+    viewCount:     record.view_count || 0,
+    vibeCount:     record.vibe_count || 0,
+    earningsKsh:   record.earnings_ksh || 0,
+    tags:          record.tags || [],
+    characters:    (record.characters || []) as unknown as StoryCharacter[],
+    createdAt:     record.created_at || '',
+    updatedAt:     record.updated_at || '',
+    publishedAt:   record.published_at || null,
+  })
 
   const fetchStoriesPage = useCallback(async (
     currentPage: number,
@@ -73,7 +71,7 @@ export function useStoryFeed() {
 
     try {
       const fromRange = (currentPage - 1) * PAGE_SIZE
-      const toRange = fromRange + PAGE_SIZE - 1
+      const toRange   = fromRange + PAGE_SIZE - 1
 
       let query = supabase
         .from('vibe_stories')
@@ -82,26 +80,19 @@ export function useStoryFeed() {
         .order('published_at', { ascending: false })
         .range(fromRange, toRange)
 
-      if (currentAge !== 'all') {
-        query = query.eq('age_range', currentAge)
-      }
-
-      if (currentLang !== 'all') {
-        query = query.eq('language', currentLang)
-      }
+      if (currentAge !== 'all')  query = query.eq('age_range', currentAge)
+      if (currentLang !== 'all') query = query.eq('language', currentLang)
 
       const { data, error: fetchErr } = await query
-
       if (fetchErr) throw fetchErr
 
-      const dbRecords = (data || []) as DatabaseStory[]
-      const cleanStories = dbRecords.map(mapDatabaseRecord)
+      const records = (data || []) as DatabaseStory[]
+      const mapped  = records.map(mapDatabaseRecord)
 
-      setStories((prev) => shouldAppend ? [...prev, ...cleanStories] : cleanStories)
-      setHasMore(dbRecords.length === PAGE_SIZE)
+      setStories((prev) => shouldAppend ? [...prev, ...mapped] : mapped)
+      setHasMore(records.length === PAGE_SIZE)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load stories.'
-      setError(msg)
+      setError(err instanceof Error ? err.message : 'Failed to load stories.')
     } finally {
       setLoading(false)
     }
