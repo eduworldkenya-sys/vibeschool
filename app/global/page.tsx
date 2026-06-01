@@ -2,18 +2,19 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
+import { VibeStory } from '@/lib/storyTypes'
 import { useStoryFeed } from '@/components/global/feed/useStoryFeed'
 import { StoryFeedCard } from '@/components/global/feed/StoryFeedCard'
 
 export default function GlobalFeedPage() {
   const router = useRouter()
-  const [trending, setTrending] = React.useState<import('@/lib/storyTypes').VibeStory[]>([])
+  const [trending, setTrending] = React.useState<VibeStory[]>([])
 
   React.useEffect(() => {
-    const { createBrowserClient } = require('@supabase/ssr')
     const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     supabase
       .from('vibe_stories')
@@ -21,10 +22,11 @@ export default function GlobalFeedPage() {
       .eq('status', 'published')
       .order('vibe_count', { ascending: false })
       .limit(3)
-      .then(({ data }: { data: unknown[] | null }) => {
-        if (data) setTrending(data as import('@/lib/storyTypes').VibeStory[])
+      .then(({ data }: { data: VibeStory[] | null }) => {
+        if (data) setTrending(data)
       })
   }, [])
+
   const {
     stories, loading, error, hasMore,
     ageFilter, setAgeFilter,
