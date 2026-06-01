@@ -298,24 +298,23 @@ export function StoryCanvas({ authorId }: StoryCanvasProps) {
 
             {hints.illustration && !activePage.illustrationUrl && (
               <div style={{
-                position:        'absolute',
-                top:             '50%',
-                left:            '50%',
-                transform:       'translate(-50%, -50%)',
-                backgroundColor: 'rgba(204,255,0,0.96)',
-                color:           '#090D16',
-                padding:         '12px 16px',
-                borderRadius:    8,
-                fontSize:        12,
-                fontWeight:      700,
-                textAlign:       'center',
-                boxShadow:       '0 16px 40px rgba(0,0,0,0.6)',
-                zIndex:          50,
-                pointerEvents:   'none',
-                width:           '75%',
+                marginTop:       12,
+                width:           '100%',
+                backgroundColor: 'rgba(204,255,0,0.08)',
+                border:          '1px dashed rgba(204,255,0,0.4)',
+                borderRadius:    12,
+                padding:         '14px 16px',
+                display:         'flex',
+                alignItems:      'center',
+                gap:             12,
+                boxSizing:       'border-box',
                 animation:       'slideInUp 0.3s ease forwards',
               }}>
-                📸 Tap the canvas to upload your illustration
+                <span style={{ fontSize: 22, flexShrink: 0 }}>🎨</span>
+                <div>
+                  <div style={{ color: '#CCFF00', fontSize: 12, fontWeight: 700 }}>Add an illustration</div>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 3 }}>Tap the palette above to upload a drawing or photo for this page</div>
+                </div>
               </div>
             )}
           </div>
