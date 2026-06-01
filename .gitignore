@@ -59,3 +59,5 @@ env.local*.bak
 fix_*.sh
 env.local
 .env*
+*.bak
+*.bak2
