@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 interface UserCtx { fullName: string; initials: string }
 const UserContext = createContext<UserCtx>({ fullName: '', initials: '' });
-export const useUser = () => useContext(UserContext);
+const useUser = () => useContext(UserContext);
 
 const NAV_TABS = [
   { id: "home",      label: "Home",      icon: "🏠", href: "/student"            },
