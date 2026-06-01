@@ -24,7 +24,7 @@ export function StoryReader({ storyId }: StoryReaderProps) {
   const [direction,  setDirection]  = useState<'left' | 'right' | 'none'>('none')
 
   const activePage = pages[activeIndex] || null
-  const { status: readStatus, toggle: toggleRead } = useReadAloud(currentPage)
+  const { status: readStatus, toggle: toggleRead } = useReadAloud(activePage)
 
   const chromeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const touchStartXRef = useRef<number>(0)
