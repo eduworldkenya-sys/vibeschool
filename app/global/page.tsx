@@ -7,6 +7,24 @@ import { StoryFeedCard } from '@/components/global/feed/StoryFeedCard'
 
 export default function GlobalFeedPage() {
   const router = useRouter()
+  const [trending, setTrending] = React.useState<import('@/lib/storyTypes').VibeStory[]>([])
+
+  React.useEffect(() => {
+    const { createBrowserClient } = require('@supabase/ssr')
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+    supabase
+      .from('vibe_stories')
+      .select('*')
+      .eq('status', 'published')
+      .order('vibe_count', { ascending: false })
+      .limit(3)
+      .then(({ data }: { data: unknown[] | null }) => {
+        if (data) setTrending(data as import('@/lib/storyTypes').VibeStory[])
+      })
+  }, [])
   const {
     stories, loading, error, hasMore,
     ageFilter, setAgeFilter,
@@ -126,6 +144,53 @@ export default function GlobalFeedPage() {
             marginBottom: 16,
           }}>
             {error}
+          </div>
+        )}
+
+        {trending.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ color: '#CCFF00', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              🔥 Vibe Rising
+            </div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: 4 }}>
+              {trending.map((story) => (
+                <div
+                  key={story.id}
+                  onClick={() => router.push('/global/read/story/' + story.id)}
+                  style={{
+                    minWidth:        160,
+                    backgroundColor: '#1a2235',
+                    borderRadius:    12,
+                    overflow:        'hidden',
+                    cursor:          'pointer',
+                    flexShrink:      0,
+                    border:          '1px solid rgba(204,255,0,0.15)',
+                  }}
+                >
+                  <div style={{
+                    height:          90,
+                    backgroundColor: '#111827',
+                    display:         'flex',
+                    alignItems:      'center',
+                    justifyContent:  'center',
+                    fontSize:        28,
+                    position:        'relative',
+                  }}>
+                    {story.coverImageUrl ? (
+                      <img src={story.coverImageUrl} alt={story.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+                    ) : '📖'}
+                  </div>
+                  <div style={{ padding: '8px 10px' }}>
+                    <div style={{ color: '#ffffff', fontSize: 12, fontWeight: 800, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {story.title}
+                    </div>
+                    <div style={{ color: '#CCFF00', fontSize: 11, marginTop: 3 }}>
+                      ⭐ {story.vibeCount || 0}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
