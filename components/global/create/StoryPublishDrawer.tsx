@@ -34,17 +34,16 @@ export function StoryPublishDrawer({
   const [success,    setSuccess]    = useState(false)
   const [tagInput,   setTagInput]   = useState('')
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
   if (!isOpen) return null
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
     try {
       const ext  = file.name.split('.').pop() || 'jpg'
       const path = 'stories/' + story.id + '/cover.' + ext
@@ -116,7 +115,7 @@ export function StoryPublishDrawer({
 
   return (
     <>
-      <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
+      <style dangerouslySetInnerHTML={{ __html: '@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}' }} />
 
       <div
         onClick={onClose}
@@ -242,6 +241,7 @@ export function StoryPublishDrawer({
               )}
             </div>
 
+            </div>
             {/* Description */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={labelStyle}>Description</label>
