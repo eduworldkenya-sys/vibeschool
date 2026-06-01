@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { useUser } from "@/app/parent/layout";
+import { useUser } from "@/lib/parent-context";
 
 // ── Colour tokens ─────────────────────────────────────────────────────────────
 const C = {
