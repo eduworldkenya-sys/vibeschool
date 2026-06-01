@@ -246,7 +246,7 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>👨‍👩‍👧 Parent Link</p>
               <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
-                <p style={{ fontSize: 11, color: '#065f46', margin: 0, wordBreak: 'break-all', fontFamily: 'monospace' }}>vibeschool.vercel.app/parent/harmonize?sid={student.id}{parentCode ? "&token=" + parentCode.code : ""}</p>
+                <p style={{ fontSize: 11, color: '#065f46', margin: 0, fontFamily: 'monospace' }}>vibeschool.vercel.app/parent/harmonize?sid=••••••••{parentCode ? "&token=" + parentCode.code.substring(0,2) + "••••" : ""}</p>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => handleCopy("https://vibeschool.vercel.app/parent/harmonize?sid=" + student.id + (parentCode ? "&token=" + parentCode.code : ""))} style={{ flex: 1, padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
