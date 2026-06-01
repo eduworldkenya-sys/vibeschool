@@ -27,6 +27,7 @@ function HarmonizeInner() {
   const router  = useRouter()
   const params  = useSearchParams()
   const sid     = params.get('sid')
+  const token   = params.get('token')
 
   const [loading,      setLoading]      = useState(true)
   const [linking,      setLinking]      = useState(false)
@@ -74,6 +75,33 @@ function HarmonizeInner() {
       return
     }
 
+    // Gap 4: validate token expiry
+    if (token) {
+      const { data: tokenRow } = await supabase
+        .from('student_claim_codes')
+        .select('id, claimed, expires_at, role')
+        .eq('student_id', sid)
+        .eq('code', token)
+        .eq('role', 'parent')
+        .single()
+
+      if (!tokenRow) {
+        setError("This link is invalid. Ask the teacher to generate a new one.")
+        setLoading(false)
+        return
+      }
+      if (tokenRow.claimed) {
+        setError("This link has already been used. Ask the teacher to generate a new one.")
+        setLoading(false)
+        return
+      }
+      if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
+        setError("This link has expired. Ask the teacher to generate a new one.")
+        setLoading(false)
+        return
+      }
+    }
+
     if (stuRes.data.class_id) {
       const { data: cls } = await supabase.from('classes').select('name, school_id').eq('id', stuRes.data.class_id).single()
       if (cls) {
@@ -94,6 +122,22 @@ function HarmonizeInner() {
     setError('')
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/academy/signin?role=parent'); return }
+
+    // Mark token as claimed
+    if (token) {
+      await supabase
+        .from('student_claim_codes')
+        .update({ claimed: true })
+        .eq('student_id', sid)
+        .eq('code', token)
+        .eq('role', 'parent')
+    }
+
+    // Gap 5: stamp student record so teacher sees parent linked
+    await supabase
+      .from('students')
+      .update({ parent_linked_at: new Date().toISOString() })
+      .eq('id', sid)
 
     const { error: linkErr } = await supabase.from('parent_student_links').insert({
       parent_id:  user.id,

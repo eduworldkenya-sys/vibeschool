@@ -190,6 +190,7 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
               { label: 'Autonomy Level', value: student.autonomy_level != null ? String(student.autonomy_level) : '—' },
               { label: 'Enrolled',       value: new Date(student.created_at).toLocaleDateString() },
               { label: 'Account Status', value: student.profile_id ? 'Claimed ✓' : 'Unclaimed' },
+              { label: 'Parent Status', value: student.parent_linked_at ? '👨‍👩‍👧 Parent Linked ✓' : 'No Parent Linked' },
             ].map(row => (
               <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid #f3f4f6' }}>
                 <span style={{ fontSize: 12, color: C.textMuted }}>{row.label}</span>
