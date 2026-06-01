@@ -7,7 +7,7 @@ import { useRouter, useParams } from 'next/navigation'
 /* ── Types ── */
 interface Student {
   id: string; name: string; admission_number: string | null
-  profile_id: string | null; date_of_birth: string | null
+  profile_id: string | null; date_of_birth: string | null; parent_linked_at: string | null
   gender: string | null; autonomy_level: number | null; created_at: string
 }
 interface ClaimCode { code: string; claimed: boolean; expires_at: string | null; role: string }
