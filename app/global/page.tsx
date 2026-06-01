@@ -118,10 +118,10 @@ export default function GlobalFeedPage() {
           scrollbarWidth: 'none',
         }}>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setAgeFilter('all')}   style={pillStyle(ageFilter === 'all')}>All Ages</button>
-            <button onClick={() => setAgeFilter('4-8')}   style={pillStyle(ageFilter === '4-8')}>4-8</button>
-            <button onClick={() => setAgeFilter('9-12')}  style={pillStyle(ageFilter === '9-12')}>9-12</button>
-            <button onClick={() => setAgeFilter('13+')}   style={pillStyle(ageFilter === '13+')}>13+</button>
+            <button onClick={() => setAgeFilter('all')}  style={pillStyle(ageFilter === 'all')}>All Ages</button>
+            <button onClick={() => setAgeFilter('4-8')}  style={pillStyle(ageFilter === '4-8')}>4-8</button>
+            <button onClick={() => setAgeFilter('9-12')} style={pillStyle(ageFilter === '9-12')}>9-12</button>
+            <button onClick={() => setAgeFilter('13+')}  style={pillStyle(ageFilter === '13+')}>13+</button>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setLangFilter('all')}   style={pillStyle(langFilter === 'all')}>All Langs</button>
@@ -160,23 +160,23 @@ export default function GlobalFeedPage() {
                   key={story.id}
                   onClick={() => router.push('/global/read/story/' + story.id)}
                   style={{
-                    minWidth:        160,
+                    minWidth: 160,
                     backgroundColor: '#1a2235',
-                    borderRadius:    12,
-                    overflow:        'hidden',
-                    cursor:          'pointer',
-                    flexShrink:      0,
-                    border:          '1px solid rgba(204,255,0,0.15)',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    border: '1px solid rgba(204,255,0,0.15)',
                   }}
                 >
                   <div style={{
-                    height:          90,
+                    height: 90,
                     backgroundColor: '#111827',
-                    display:         'flex',
-                    alignItems:      'center',
-                    justifyContent:  'center',
-                    fontSize:        28,
-                    position:        'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 28,
+                    position: 'relative',
                   }}>
                     {story.coverImageUrl ? (
                       <img src={story.coverImageUrl} alt={story.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
@@ -249,6 +249,31 @@ export default function GlobalFeedPage() {
           </div>
         )}
       </main>
+
+      <button
+        onClick={() => router.push('/global/create/story')}
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 20,
+          zIndex: 200,
+          backgroundColor: '#CCFF00',
+          color: '#090D16',
+          borderRadius: 28,
+          border: 'none',
+          paddingTop: 14,
+          paddingBottom: 14,
+          paddingLeft: 20,
+          paddingRight: 20,
+          fontSize: 14,
+          fontWeight: 900,
+          boxShadow: '0 4px 20px rgba(204,255,0,0.3)',
+          cursor: 'pointer',
+        }}
+      >
+        ✏️ Write Story
+      </button>
+
     </div>
   )
 }

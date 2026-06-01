@@ -42,42 +42,36 @@ export default function StoryEditorEntryPage() {
 
   if (session.loading || !session.userId) {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: '#090D16',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          zIndex: 9999,
-        }}
-      >
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: '#090D16',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        zIndex: 9999,
+      }}>
         <style dangerouslySetInnerHTML={{ __html: '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }' }} />
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderWidth: 3,
-            borderStyle: 'solid',
-            borderColor: '#1a2235',
-            borderTopColor: '#CCFF00',
-            borderRadius: '50%',
-            animationName: 'spin',
-            animationDuration: '1s',
-            animationTimingFunction: 'linear',
-            animationIterationCount: 'infinite',
-          }}
-        />
-        <div
-          style={{
-            color: 'rgba(255,255,255,0.4)',
-            fontSize: 13,
-            fontWeight: 500,
-          }}
-        >
+        <div style={{
+          width: 32,
+          height: 32,
+          borderWidth: 3,
+          borderStyle: 'solid',
+          borderColor: '#1a2235',
+          borderTopColor: '#CCFF00',
+          borderRadius: '50%',
+          animationName: 'spin',
+          animationDuration: '1s',
+          animationTimingFunction: 'linear',
+          animationIterationCount: 'infinite',
+        }} />
+        <div style={{
+          color: 'rgba(255,255,255,0.4)',
+          fontSize: 13,
+          fontWeight: 500,
+        }}>
           Loading editor…
         </div>
       </div>
