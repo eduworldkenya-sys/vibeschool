@@ -91,14 +91,14 @@ function ClassPageInner() {
 
     const [clsRes, studsRes, requestsRes] = await Promise.all([
       classQuery,
-      supabase.from('students').select('*').eq('class_id', classId).order('created_at', { ascending: true }),
+      supabase.from('student_classes').select('student_id, students(id, name, admission_number, profile_id, created_at)').eq('class_id', classId).eq('is_current', true),
       supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
     ])
 
     if (!clsRes.data) { router.push(isSubject ? '/teacher/subjecthub' : '/teacher/classhub'); return }
     setClassInfo(clsRes.data)
 
-    const loadedStudents = studsRes.data ?? []
+    const loadedStudents = (studsRes.data ?? []).map((r: any) => r.students).filter(Boolean)
     setStudents(loadedStudents)
     setJoinRequests(requestsRes.data?.length ?? 0)
 
@@ -154,37 +154,17 @@ function ClassPageInner() {
     if (!form.name.trim()) { setError('Student name is required.'); return }
     setSaving(true)
 
-    const { data: student, error: err } = await supabase
-      .from('students')
-      .insert({
-        class_id:         classId,
-        name:             form.name.trim(),
-        admission_number: form.admission_number.trim() || null,
-      })
-      .select('id')
-      .single()
-
-    if (err || !student) { setSaving(false); setError(err?.message ?? 'Failed to add student'); return }
-
     const { data: clsData } = await supabase.from('classes').select('school_id').eq('id', classId).single()
-    await supabase.from('student_classes').insert({
-      student_id: student.id,
-      class_id:   classId,
-      school_id:  clsData?.school_id ?? null,
-      is_current: true,
-    })
 
-    const code = generateCode()
-    const { error: codeErr } = await supabase
-      .from('student_claim_codes')
-      .insert({ student_id: student.id, code, claimed: false })
+    const { data: studentId, error: err } = await supabase
+      .rpc('teacher_add_student', {
+        p_name:             form.name.trim(),
+        p_admission_number: form.admission_number.trim() || null,
+        p_class_id:         classId,
+        p_school_id:        clsData?.school_id ?? null,
+      })
 
-    if (codeErr) {
-      setSaving(false)
-      setError('Student added but claim code failed. Reload and generate code manually.')
-      loadData()
-      return
-    }
+    if (err || !studentId) { setSaving(false); setError(err?.message ?? 'Failed to add student'); return }
 
     setSaving(false)
     setForm({ name: '', admission_number: '' })

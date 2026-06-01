@@ -583,7 +583,17 @@ function PersonalInfoSection() {
               </option>
             ))}
           </select>
-          {!schoolId && <p style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>No school linked. Contact your admin.</p>}
+          {!schoolId && (
+            <div style={{ marginTop: 8 }}>
+              <p style={{ fontSize: 11, color: C.warning, margin: '0 0 8px' }}>No school linked yet.</p>
+              <button
+                onClick={() => router.push('/teacher/onboarding/school')}
+                style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                🏫 Link School
+              </button>
+            </div>
+          )}
           {schoolId && classes.length === 0 && <p style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>No classes found. Ask your admin to add classes.</p>}
         </div>
 

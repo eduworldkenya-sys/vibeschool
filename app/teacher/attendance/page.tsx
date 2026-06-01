@@ -175,11 +175,11 @@ function AttendanceInner() {
     setStatuses({})
 
     const [studentsRes, attRes] = await Promise.all([
-      supabase.from('students').select('id, name, admission_number').eq('class_id', classId).order('name', { ascending: true }),
+      supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', classId).eq('is_current', true),
       supabase.from('attendance').select('student_id, status, is_late').eq('class_id', classId).eq('date', selectedDate).is('timetable_slot_id', null),
     ])
 
-    const studs: Student[] = (studentsRes.data ?? []).map((s: any) => ({
+    const studs: Student[] = (studentsRes.data ?? []).map((r: any) => r.students).filter(Boolean).map((s: any) => ({
       id: s.id, name: s.name, admNo: s.admission_number ?? '',
     }))
 
@@ -202,11 +202,11 @@ function AttendanceInner() {
     setStatuses({})
 
     const [studentsRes, attRes] = await Promise.all([
-      supabase.from('students').select('id, name, admission_number').eq('class_id', slot.classId).order('name', { ascending: true }),
+      supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', slot.classId).eq('is_current', true),
       supabase.from('attendance').select('student_id, status, is_late').eq('timetable_slot_id', slot.id).eq('date', selectedDate),
     ])
 
-    const studs: Student[] = (studentsRes.data ?? []).map((s: any) => ({
+    const studs: Student[] = (studentsRes.data ?? []).map((r: any) => r.students).filter(Boolean).map((s: any) => ({
       id: s.id, name: s.name, admNo: s.admission_number ?? '',
     }))
 
