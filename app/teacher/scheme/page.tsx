@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
