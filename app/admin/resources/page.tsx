@@ -699,11 +699,8 @@ export default function AdminResourcesPage() {
     }).eq('id', returnTarget.id)
     if (e1) { toast('Return failed: ' + e1.message, 'error'); setLibActionLoading(false); return }
 
-    const book = books.find(b => b.id === returnTarget.book_id)
-    if (book) {
-      await supabase.from('library_books')
-        .update({ available_copies: book.available_copies + 1 })
-        .eq('id', book.id)
+    if (returnTarget.book_id) {
+      await supabase.rpc('increment_available_copies', { book_id: returnTarget.book_id })
     }
 
     toast('Book returned.')

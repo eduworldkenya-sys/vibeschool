@@ -6,10 +6,15 @@ const nextConfig = {
   experimental: {
     forceSwcTransforms: false,
   },
-  webpack: (config) => {
+  webpack: (config, { defaultLoaders }) => {
     config.resolve.fallback = { fs: false };
+    config.module.rules.push({
+      test: /\.(js|jsx|ts|tsx)$/,
+      exclude: /node_modules/,
+      use: [defaultLoaders.babel],
+    });
     return config;
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
