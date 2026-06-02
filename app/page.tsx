@@ -1,279 +1,313 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { JetBrains_Mono } from 'next/font/google'
 import { supabase } from '@/lib/supabase'
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  display: 'swap',
-})
+// ── Constants ────────────────────────────────────────────────────────────────
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-const ROLES = ['Teacher', 'Parent', 'Student', 'Admin'] as const
+const ROLES = ['Teacher', 'Parent', 'Student', 'Admin', 'Global'] as const
 type Role = typeof ROLES[number]
-type DbRole = 'teacher' | 'parent' | 'student' | 'admin'
 
-const ROLE_DB: Record<Role, DbRole> = {
+const DASHBOARDS: Record<string, string> = {
+  teacher:     '/teacher',
+  parent:      '/parent',
+  student:     '/student',
+  admin:       '/admin',
+  global_user: '/global',
+}
+
+const ROLE_DB: Record<Role, string> = {
   Teacher: 'teacher',
   Parent:  'parent',
   Student: 'student',
   Admin:   'admin',
+  Global:  'global_user',
 }
 
-const ALLOWED_ROLES = new Set<DbRole>(['teacher', 'parent', 'student', 'admin'])
-
-const DASHBOARD: Record<DbRole, string> = {
-  teacher: '/teacher',
-  parent:  '/parent',
-  student: '/student',
-  admin:   '/admin',
+const SIGNUP_DESTINATIONS: Record<Role, string> = {
+  Teacher: '/teacher/onboarding/school',
+  Parent:  '/parent',
+  Student: '/student',
+  Admin:   '/admin',
+  Global:  '/global',
 }
 
-function isDbRole(r: unknown): r is DbRole {
-  return typeof r === 'string' && ALLOWED_ROLES.has(r as DbRole)
-}
+const COUNTRIES = [
+  { code: 'KE', name: 'Kenya' },
+  { code: 'UG', name: 'Uganda' },
+  { code: 'TZ', name: 'Tanzania' },
+  { code: 'RW', name: 'Rwanda' },
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'JP', name: 'Japan' },
+]
 
-// ── Auth errors ──────────────────────────────────────────────────────────────
-
-const SAFE_AUTH_ERRORS: Record<string, string> = {
+const AUTH_ERRORS: Record<string, string> = {
   'Invalid login credentials': 'Incorrect email or password.',
-  'Email not confirmed':       'Please confirm your email before signing in.',
+  'Email not confirmed':       'Please confirm your email first.',
   'User not found':            'No account found with that email.',
-  'Too many requests':         'Too many attempts. Please wait and try again.',
+  'Too many requests':         'Too many attempts. Wait and try again.',
 }
 
-function friendlyAuthError(msg: string): string {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return 'No internet connection. Check your network.'
-  }
-  for (const [key, friendly] of Object.entries(SAFE_AUTH_ERRORS)) {
-    if (msg.includes(key)) return friendly
-  }
-  return 'Sign in failed. Please try again.'
+function friendlyError(msg: string): string {
+  if (typeof navigator !== 'undefined' && !navigator.onLine)
+    return 'No internet connection.'
+  for (const [k, v] of Object.entries(AUTH_ERRORS))
+    if (msg.includes(k)) return v
+  return 'Something went wrong. Please try again.'
 }
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
-const S = {
+const S: Record<string, React.CSSProperties> = {
   root: {
+    position: 'relative',
+    isolation: 'isolate',
     minHeight: '100dvh',
-    background: '#0d0d1f',
+    width: '100%',
+    background: '#05050F',
     display: 'flex',
-    flexDirection: 'column' as const,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '24px 20px',
+    padding: '48px 20px',
+    overflowX: 'hidden',
+  },
+  glow: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 1,
+    pointerEvents: 'none',
+    background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(196,149,48,0.08) 0%, transparent 70%)',
+  },
+  wrap: {
+    position: 'relative',
+    zIndex: 3,
+    width: '100%',
+    maxWidth: 400,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    animation: 'fadeUp 260ms ease-out both',
   },
   wordmark: {
-    fontSize: 32,
+    fontFamily: 'var(--font-display), sans-serif',
     fontWeight: 800,
+    fontSize: 30,
     color: '#fff',
-    letterSpacing: -1,
+    letterSpacing: '-0.5px',
     marginBottom: 4,
-    fontFamily: 'sans-serif',
   },
   gold: { color: '#C8A84B' },
   tagline: {
-    fontSize: 10,
-    letterSpacing: '0.3em',
-    color: 'rgba(255,255,255,0.3)',
-    marginBottom: 32,
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 9,
+    letterSpacing: '0.35em',
+    color: 'rgba(255,255,255,0.22)',
+    marginBottom: 6,
+    textTransform: 'uppercase',
   },
-  card: {
+  exploreLink: {
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 9,
+    letterSpacing: '0.18em',
+    color: 'rgba(200,168,75,0.55)',
+    textDecoration: 'none',
+    marginBottom: 28,
+    textTransform: 'uppercase',
+    display: 'block',
+  },
+  box: {
     width: '100%',
-    maxWidth: 420,
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(200,168,75,0.15)',
-    borderRadius: 16,
-    padding: '28px 24px',
+    background: 'rgba(255,255,255,0.025)',
+    border: '1px solid rgba(196,149,48,0.18)',
+    borderRadius: 12,
+    padding: '28px 22px',
   },
   tabs: {
     display: 'flex',
-    background: 'rgba(0,0,0,0.3)',
-    borderRadius: 10,
-    padding: 4,
+    border: '1px solid rgba(196,149,48,0.22)',
+    borderRadius: 6,
+    overflow: 'hidden',
     marginBottom: 24,
-    gap: 4,
   },
-  tabNote: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.25)',
+  roleLabel: {
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 8,
+    letterSpacing: '0.35em',
+    color: 'rgba(255,255,255,0.28)',
+    textTransform: 'uppercase',
     marginBottom: 10,
-    letterSpacing: '0.1em',
   },
-  label: {
-    fontSize: 9,
-    letterSpacing: '0.2em',
-    color: 'rgba(255,255,255,0.35)',
-    marginBottom: 10,
-    display: 'block',
-  },
-  roleRow: {
+  roles: {
     display: 'flex',
     flexWrap: 'wrap' as const,
-    gap: 8,
-    marginBottom: 20,
+    gap: 7,
+    marginBottom: 22,
   },
-  inputBase: {
+  fieldLabel: {
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 8,
+    letterSpacing: '0.35em',
+    color: 'rgba(255,255,255,0.32)',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    display: 'block',
+  },
+  input: {
     width: '100%',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(200,168,75,0.2)',
-    borderRadius: 8,
-    padding: '13px 14px',
-    color: '#fff',
+    background: '#0A0A1E',
+    border: '1px solid rgba(196,149,48,0.25)',
+    borderRadius: 6,
+    padding: '12px 14px',
+    fontFamily: 'var(--font-display), sans-serif',
     fontSize: 14,
+    color: '#fff',
     outline: 'none',
     boxSizing: 'border-box' as const,
     marginBottom: 14,
+    transition: 'border-color 180ms ease',
+    WebkitAppearance: 'none',
+    appearance: 'none' as const,
   },
-  pwWrap: { position: 'relative' as const },
-  eye: {
+  inputWrap: { position: 'relative' as const, marginBottom: 14 },
+  eyeBtn: {
     position: 'absolute' as const,
-    right: 14,
-    top: '50%',
+    right: 12, top: '50%',
     transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    color: '#C8A84B',
-    cursor: 'pointer',
-    padding: 4,
-    lineHeight: 1,
-    display: 'flex',
-    alignItems: 'center',
+    background: 'none', border: 'none',
+    color: 'rgba(200,168,75,0.7)',
+    cursor: 'pointer', padding: 4,
+    fontSize: 14, lineHeight: 1,
   },
   forgotRow: {
     display: 'flex',
     justifyContent: 'flex-end',
     marginBottom: 16,
+    marginTop: -6,
   },
   forgot: {
-    fontSize: 10,
-    color: '#C8A84B',
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 9,
+    color: 'rgba(200,168,75,0.6)',
     letterSpacing: '0.1em',
-    cursor: 'pointer',
-    background: 'none',
-    border: 'none',
-    textDecoration: 'underline' as const,
+    background: 'none', border: 'none',
+    cursor: 'pointer', textDecoration: 'underline',
   },
-  primaryBtn: {
+  submit: {
     width: '100%',
-    padding: '14px 0',
-    borderRadius: 8,
-    border: 'none',
-    background: '#C8A84B',
-    color: '#0d0d1f',
-    fontSize: 14,
-    fontWeight: 800,
+    background: 'transparent',
+    border: '1px solid rgba(196,149,48,0.55)',
+    borderRadius: 6,
+    padding: '13px 0',
+    fontFamily: 'var(--font-display), sans-serif',
+    fontWeight: 600,
+    fontSize: 11,
+    color: 'rgba(196,149,48,0.9)',
+    letterSpacing: '0.35em',
+    textTransform: 'uppercase' as const,
     cursor: 'pointer',
-    letterSpacing: '0.08em',
     marginBottom: 16,
+    transition: 'border-color 180ms ease, color 180ms ease',
   },
   divider: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
+    display: 'flex', alignItems: 'center',
+    gap: 10, marginBottom: 14,
   },
-  divLine: {
-    flex: 1,
-    height: 1,
-    background: 'rgba(255,255,255,0.08)',
-  },
+  divLine: { flex: 1, height: 1, background: 'rgba(196,149,48,0.15)' },
   divText: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.25)',
-    letterSpacing: '0.2em',
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 8, color: 'rgba(255,255,255,0.2)',
+    letterSpacing: '0.25em',
   },
   googleBtn: {
     width: '100%',
-    padding: '13px 0',
-    borderRadius: 8,
-    border: '1px solid rgba(200,168,75,0.25)',
     background: 'transparent',
-    color: 'rgba(255,255,255,0.7)',
+    border: '1px solid rgba(196,149,48,0.28)',
+    borderRadius: 6,
+    padding: '12px 0',
+    display: 'flex', alignItems: 'center',
+    justifyContent: 'center', gap: 10,
+    fontFamily: 'var(--font-display), sans-serif',
     fontSize: 12,
-    fontWeight: 600,
-    letterSpacing: '0.1em',
+    color: 'rgba(255,255,255,0.65)',
+    letterSpacing: '0.08em',
     cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    transition: 'border-color 180ms ease, color 180ms ease',
   },
   error: {
-    color: '#f87171',
-    fontSize: 12,
-    marginBottom: 12,
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 10,
+    color: 'rgba(220,80,80,0.9)',
+    letterSpacing: '0.04em',
+    marginBottom: 14,
+    padding: '10px 12px',
+    background: 'rgba(220,80,80,0.07)',
+    border: '1px solid rgba(220,80,80,0.2)',
+    borderRadius: 6,
+  },
+  signupNote: {
+    fontFamily: 'var(--font-serif), serif',
+    fontStyle: 'italic',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.3)',
     textAlign: 'center' as const,
+    marginBottom: 18,
+    lineHeight: 1.6,
+  },
+  legal: {
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.18)',
+    textAlign: 'center' as const,
+    marginTop: 20,
+    letterSpacing: '0.04em',
+    lineHeight: 1.8,
   },
   loader: {
     minHeight: '100dvh',
-    background: '#0d0d1f',
+    background: '#05050F',
     display: 'flex',
-    flexDirection: 'column' as const,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
   },
   loaderText: {
-    color: 'rgba(255,255,255,0.3)',
-    fontSize: 12,
-    letterSpacing: '0.2em',
-  },
-  trapped: {
-    color: '#f87171',
-    fontSize: 13,
-    textAlign: 'center' as const,
-    lineHeight: 1.7,
-  },
-  signupNote: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-    textAlign: 'center' as const,
-    marginBottom: 20,
-    lineHeight: 1.6,
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 10,
+    letterSpacing: '0.35em',
+    color: 'rgba(255,255,255,0.2)',
+    textTransform: 'uppercase' as const,
+    animation: 'pulse 1.6s ease-in-out infinite',
   },
 }
 
-function busyStyle(base: React.CSSProperties): React.CSSProperties {
-  return { ...base, opacity: 0.5, cursor: 'not-allowed' }
+function tabStyle(active: boolean): React.CSSProperties {
+  return {
+    flex: 1, padding: '10px 0', border: 'none',
+    fontFamily: 'var(--font-mono), monospace',
+    fontSize: 9, fontWeight: 400,
+    letterSpacing: '0.3em', textTransform: 'uppercase',
+    cursor: 'pointer', transition: 'all 180ms ease',
+    background: active ? 'rgba(196,149,48,0.1)' : 'transparent',
+    color: active ? 'rgba(196,149,48,0.9)' : 'rgba(255,255,255,0.25)',
+    borderRight: '1px solid rgba(196,149,48,0.22)',
+  }
 }
 
-// ── Icons ────────────────────────────────────────────────────────────────────
-
-function EyeOpenIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  )
-}
-
-function EyeOffIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
-    </svg>
-  )
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-    </svg>
-  )
+function pillStyle(active: boolean, busy: boolean): React.CSSProperties {
+  return {
+    padding: '7px 14px',
+    borderRadius: 20,
+    border: '1px solid',
+    borderColor: active ? '#C8A84B' : 'rgba(255,255,255,0.12)',
+    background: active ? 'rgba(200,168,75,0.1)' : 'transparent',
+    color: active ? '#C8A84B' : 'rgba(255,255,255,0.4)',
+    fontFamily: 'var(--font-display), sans-serif',
+    fontSize: 13, fontWeight: 500,
+    cursor: busy ? 'not-allowed' : 'pointer',
+    opacity: busy ? 0.5 : 1,
+    transition: 'all 150ms ease',
+  }
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -282,23 +316,29 @@ export default function RootPage() {
   const router = useRouter()
 
   const [initialising, setInitialising] = useState(true)
-  const [trappedRole,  setTrappedRole]  = useState(false)
-  const [authMode,     setAuthMode]     = useState<'signin' | 'signup'>('signin')
+  const [tab,          setTab]          = useState<'signin' | 'signup'>('signin')
   const [role,         setRole]         = useState<Role>('Teacher')
-  const [email,        setEmail]        = useState('')
-  const [password,     setPassword]     = useState('')
-  const [showPw,       setShowPw]       = useState(false)
   const [error,        setError]        = useState('')
   const [loading,      setLoading]      = useState(false)
   const [gLoading,     setGLoading]     = useState(false)
+  const [showPw,       setShowPw]       = useState(false)
+  const [showConfirm,  setShowConfirm]  = useState(false)
 
-  const passwordRef  = useRef<HTMLInputElement>(null)
+  // fields
+  const [email,           setEmail]           = useState('')
+  const [password,        setPassword]        = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [fullName,        setFullName]        = useState('')
+  const [country,         setCountry]         = useState('')
+  const [dob,             setDob]             = useState('')
+  const [claimCode,       setClaimCode]       = useState('')
+  const [joinCode,        setJoinCode]        = useState('')
+
   const inflightRef  = useRef(false)
   const gInflightRef = useRef(false)
-
   const isBusy = loading || gLoading
 
-  // ── Session check ──────────────────────────────────────────────────────────
+  // ── Session check ──────────────────────────────────────────────
   useEffect(() => {
     let alive = true
     async function check() {
@@ -306,7 +346,7 @@ export default function RootPage() {
       if (!alive) return
       if (!user) { setInitialising(false); return }
 
-      const { data: profile, error: profileErr } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
@@ -314,147 +354,210 @@ export default function RootPage() {
 
       if (!alive) return
 
-      if (profileErr) {
-        console.error('[auth] profile fetch:', profileErr)
-        setInitialising(false)
-        return
-      }
+      const dest = DASHBOARDS[profile?.role ?? '']
+      if (dest) { router.replace(dest); return }
 
-      if (isDbRole(profile?.role)) {
-        router.replace(DASHBOARD[profile.role as DbRole])
-        return
-      }
-
-      if (profile?.role) setTrappedRole(true)
       setInitialising(false)
     }
     check()
     return () => { alive = false }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line
 
-  // ── Early returns ──────────────────────────────────────────────────────────
   if (initialising) {
     return (
-      <div style={S.loader} className={jetbrainsMono.className}>
-        <style>{`@keyframes pulse{0%,100%{opacity:.25}50%{opacity:.9}}`}</style>
-        <span style={{ ...S.loaderText, animation: 'pulse 1.6s ease-in-out infinite' }}>
-          LOADING…
-        </span>
+      <div style={S.loader}>
+        <style>{`
+          @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:.8} }
+          @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        `}</style>
+        <span style={S.loaderText}>Loading…</span>
       </div>
     )
   }
 
-  if (trappedRole) {
-    return (
-      <div style={S.loader} className={jetbrainsMono.className}>
-        <p style={S.trapped}>
-          Your account role is not recognised.<br />
-          Please contact support.
-        </p>
-      </div>
-    )
-  }
-
-  // ── Style helpers (depend on isBusy) ───────────────────────────────────────
-  function tabStyle(active: boolean): React.CSSProperties {
-    return {
-      flex: 1,
-      padding: '10px 0',
-      borderRadius: 8,
-      border: 'none',
-      fontSize: 12,
-      fontWeight: 700,
-      letterSpacing: '0.12em',
-      cursor: 'pointer',
-      background: active ? '#C8A84B' : 'transparent',
-      color: active ? '#0d0d1f' : 'rgba(255,255,255,0.4)',
-      transition: 'all 0.18s ease',
-    }
-  }
-
-  function pillStyle(active: boolean): React.CSSProperties {
-    return {
-      padding: '8px 16px',
-      borderRadius: 20,
-      border: '1px solid',
-      borderColor: active ? '#C8A84B' : 'rgba(255,255,255,0.15)',
-      background: active ? 'rgba(200,168,75,0.12)' : 'transparent',
-      color: active ? '#C8A84B' : 'rgba(255,255,255,0.5)',
-      fontSize: 13,
-      fontWeight: 600,
-      cursor: isBusy ? 'not-allowed' : 'pointer',
-      transition: 'all 0.15s ease',
-      opacity: isBusy ? 0.5 : 1,
-    }
-  }
-
-  // ── Keyboard navigation ────────────────────────────────────────────────────
-  function handleTabKey(e: React.KeyboardEvent) {
-    if (e.key === 'ArrowRight') { e.preventDefault(); switchMode('signup') }
-    if (e.key === 'ArrowLeft')  { e.preventDefault(); switchMode('signin') }
-  }
-
-  function handleRoleKey(e: React.KeyboardEvent, idx: number) {
-    if (isBusy) return
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault()
-      setRole(ROLES[(idx + 1) % ROLES.length])
-    }
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault()
-      setRole(ROLES[(idx - 1 + ROLES.length) % ROLES.length])
-    }
-  }
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
-  function switchMode(m: 'signin' | 'signup') {
-    setAuthMode(m)
-    setError('')
-  }
+  // ── Handlers ───────────────────────────────────────────────────
 
   async function handleSignIn() {
     if (inflightRef.current) return
     setError('')
-    if (!email.trim()) { setError('Email is required.');    return }
+    if (!email.trim()) { setError('Email is required.'); return }
     if (!password)     { setError('Password is required.'); return }
 
-    // Grab and clear password immediately — never hold it in state
     const pw = password
     setPassword('')
-
     inflightRef.current = true
     setLoading(true)
     let navigated = false
 
     try {
       const { data, error: authErr } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: pw,
+        email: email.trim(), password: pw,
       })
       if (authErr || !data.user) {
-        setError(friendlyAuthError(authErr?.message ?? ''))
+        setError(friendlyError(authErr?.message ?? ''))
         return
       }
 
-      const { data: profile, error: profileErr } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
         .single()
 
-      if (profileErr || !profile) {
-        console.error('[auth] profile fetch:', profileErr)
-        setError('Could not load your profile. Please try again.')
+      const dest = DASHBOARDS[profile?.role ?? '']
+      if (!dest) { setError('Unknown role. Contact support.'); return }
+
+      navigated = true
+      router.replace(dest)
+    } finally {
+      inflightRef.current = false
+      if (!navigated) setLoading(false)
+    }
+  }
+
+  async function handleSignUp() {
+    if (inflightRef.current) return
+    setError('')
+
+    // Validation
+    if (!fullName.trim())  { setError('Full name is required.'); return }
+    if (!email.trim())     { setError('Email is required.'); return }
+    if (!password)         { setError('Password is required.'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return }
+    if ((role === 'Teacher' || role === 'Parent' || role === 'Global') && !country) {
+      setError('Country is required.'); return
+    }
+    if (role === 'Global' && !dob) { setError('Date of birth is required.'); return }
+    if (role === 'Student' && !claimCode.trim()) { setError('Claim code is required.'); return }
+    if (role === 'Admin' && !joinCode.trim()) { setError('School join code is required.'); return }
+
+    inflightRef.current = true
+    setLoading(true)
+    let navigated = false
+
+    try {
+      // Admin — validate join code first
+      let schoolId: string | null = null
+      let schoolName = ''
+
+      if (role === 'Admin') {
+        const { data: school, error: schoolErr } = await supabase
+          .from('schools')
+          .select('id, name')
+          .eq('subdomain', joinCode.trim().toLowerCase())
+          .single()
+
+        if (schoolErr || !school) {
+          setError('Invalid school join code.')
+          return
+        }
+        schoolId = school.id
+        schoolName = school.name
+      }
+
+      // Create auth user
+      const { data: authData, error: authErr } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      })
+
+      if (authErr || !authData.user) {
+        setError(friendlyError(authErr?.message ?? ''))
         return
       }
 
-      if (!isDbRole(profile.role)) {
-        setError('Unknown account role. Please contact support.')
+      const userId = authData.user.id
+      const dbRole = ROLE_DB[role]
+
+      // Insert profile
+      const profilePayload: Record<string, unknown> = {
+        id:        userId,
+        full_name: fullName.trim(),
+        role:      role === 'Admin' ? 'pending_admin' : dbRole,
+        ...(country && { country_code: country }),
+        ...(dob     && { date_of_birth: dob }),
+        ...(schoolId && { school_id: schoolId }),
+      }
+
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .insert(profilePayload)
+
+      if (profileErr) {
+        await supabase.auth.signOut()
+        setError('Account setup failed. Please try again.')
+        return
+      }
+
+      // Student — validate and link claim code
+      if (role === 'Student') {
+        const code = claimCode.trim().toUpperCase()
+        const { data: codeRow } = await supabase
+          .from('student_claim_codes')
+          .select('id, student_id, claimed, expires_at')
+          .eq('code', code)
+          .single()
+
+        if (!codeRow) {
+          await supabase.auth.signOut()
+          setError('Claim code not found. Check with your teacher.')
+          return
+        }
+        if (codeRow.claimed) {
+          await supabase.auth.signOut()
+          setError('This claim code has already been used.')
+          return
+        }
+        if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
+          await supabase.auth.signOut()
+          setError('Claim code expired. Ask your teacher for a new one.')
+          return
+        }
+
+        const { data: student } = await supabase
+          .from('students')
+          .select('id, class_id, admission_number')
+          .eq('id', codeRow.student_id)
+          .single()
+
+        if (!student) {
+          await supabase.auth.signOut()
+          setError('Student record not found. Contact your teacher.')
+          return
+        }
+
+        const { data: cls } = await supabase
+          .from('classes')
+          .select('school_id')
+          .eq('id', student.class_id)
+          .single()
+
+        await supabase.from('students').update({ profile_id: userId }).eq('id', student.id)
+        await supabase.from('student_profiles').insert({
+          profile_id:   userId,
+          school_id:    cls?.school_id ?? null,
+          admission_no: student.admission_number ?? '',
+          gender:       null,
+        })
+        await supabase.from('student_claim_codes').update({ claimed: true }).eq('id', codeRow.id)
+        if (cls?.school_id) {
+          await supabase.from('profiles').update({ school_id: cls.school_id }).eq('id', userId)
+        }
+      }
+
+      // Admin pending — show WhatsApp/email prompt
+      if (role === 'Admin') {
+        const waText = encodeURIComponent(
+          `Hello, I just registered as a VibeSchool admin and need approval.\nName: ${fullName}\nEmail: ${email}\nSchool: ${schoolName}`
+        )
+        router.replace(`/admin/pending?name=${encodeURIComponent(fullName)}&email=${encodeURIComponent(email)}&school=${encodeURIComponent(schoolName)}&wa=${waText}`)
+        navigated = true
         return
       }
 
       navigated = true
-      router.replace(DASHBOARD[profile.role as DbRole])
+      router.replace(SIGNUP_DESTINATIONS[role])
     } finally {
       inflightRef.current = false
       if (!navigated) setLoading(false)
@@ -464,19 +567,14 @@ export default function RootPage() {
   async function handleGoogle() {
     if (gInflightRef.current) return
     setError('')
-
-    const safeRole = ROLE_DB[role]
-
     gInflightRef.current = true
     setGLoading(true)
 
-    // IMPORTANT: /academy/complete-profile MUST validate role server-side.
-    // This URL param is a hint only — never trust it to write DB roles directly.
     const redirectTo =
       window.location.origin +
-      '/academy/complete-profile' +
-      '?intent=' + authMode +
-      '&role='   + encodeURIComponent(safeRole)
+      '/auth/callback' +
+      '?intent=' + tab +
+      '&role='   + encodeURIComponent(ROLE_DB[role])
 
     const { error: oauthErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -487,228 +585,267 @@ export default function RootPage() {
       setError(oauthErr.message || 'Google sign in failed.')
       setGLoading(false)
       gInflightRef.current = false
-      return
     }
-
-    // Reset if popup blocked or user cancels — auth state change fires on success
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        setGLoading(false)
-        gInflightRef.current = false
-        subscription.unsubscribe()
-      }
-    })
-
-    // Hard fallback in case listener never fires
-    setTimeout(() => {
-      if (gInflightRef.current) {
-        setGLoading(false)
-        gInflightRef.current = false
-        subscription.unsubscribe()
-      }
-    }, 10000)
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────
+
+  const ROLE_NOTES: Record<Role, string> = {
+    Teacher: 'Manage your classes, lessons and students.',
+    Parent:  "Track your child's progress and communications.",
+    Student: 'View your timetable, marks and homework.',
+    Admin:   'Manage your school operations.',
+    Global:  'Join the global learning community.',
+  }
+
   return (
-    <div style={S.root} className={jetbrainsMono.className}>
-      <div style={S.wordmark}>
-        Vibe<span style={S.gold}>School</span>
+    <>
+      <style>{`
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse  { 0%,100%{opacity:.2} 50%{opacity:.8} }
+        input::placeholder { color: rgba(255,255,255,0.18); }
+        select option { background: #0A0A1E; color: #fff; }
+        a:hover { color: rgba(200,168,75,0.8) !important; }
+      `}</style>
+
+      <div style={S.root}>
+        <div style={S.glow} />
+
+        <div style={S.wrap}>
+
+          {/* Wordmark */}
+          <div style={S.wordmark}>
+            Vibe<span style={S.gold}>School</span>
+          </div>
+          <p style={S.tagline}>Freedom · Learn · Explore</p>
+          <a href="/global" style={S.exploreLink}>
+            Explore free — no account needed →
+          </a>
+
+          <div style={S.box}>
+
+            {/* Tabs */}
+            <div style={S.tabs}>
+              <button style={tabStyle(tab === 'signin')} onClick={() => { setTab('signin'); setError('') }}>
+                Sign In
+              </button>
+              <button style={{ ...tabStyle(tab === 'signup'), borderRight: 'none' }} onClick={() => { setTab('signup'); setError('') }}>
+                Sign Up
+              </button>
+            </div>
+
+            {/* Role pills */}
+            <p style={S.roleLabel}>{tab === 'signin' ? 'I am a' : 'Sign up as'}</p>
+            <div style={S.roles}>
+              {ROLES.map(r => (
+                <button
+                  key={r}
+                  style={pillStyle(role === r, isBusy)}
+                  onClick={() => { if (!isBusy) { setRole(r); setError('') } }}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            {/* Error */}
+            {error && <div style={S.error}>{error}</div>}
+
+            {/* ── SIGN IN ── */}
+            {tab === 'signin' && (
+              <>
+                <label style={S.fieldLabel}>Email</label>
+                <input
+                  style={S.input}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  disabled={isBusy}
+                />
+
+                <label style={S.fieldLabel}>Password</label>
+                <div style={S.inputWrap}>
+                  <input
+                    style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                    type={showPw ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="••••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSignIn() }}
+                    disabled={isBusy}
+                  />
+                  <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>
+                    {showPw ? '🙈' : '👁'}
+                  </button>
+                </div>
+
+                <div style={S.forgotRow}>
+                  <button style={S.forgot} onClick={() => router.push('/academy/forgot-password')}>
+                    Forgot password?
+                  </button>
+                </div>
+
+                <button
+                  style={{ ...S.submit, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleSignIn}
+                  disabled={isBusy}
+                >
+                  {loading ? 'Signing in…' : 'Sign In'}
+                </button>
+
+                <div style={S.divider}>
+                  <div style={S.divLine} />
+                  <span style={S.divText}>or</span>
+                  <div style={S.divLine} />
+                </div>
+
+                <button
+                  style={{ ...S.googleBtn, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleGoogle}
+                  disabled={isBusy}
+                >
+                  <GoogleIcon />
+                  {gLoading ? 'Connecting…' : 'Continue with Google'}
+                </button>
+              </>
+            )}
+
+            {/* ── SIGN UP ── */}
+            {tab === 'signup' && (
+              <>
+                <p style={S.signupNote}>{ROLE_NOTES[role]}</p>
+
+                <label style={S.fieldLabel}>Full Name</label>
+                <input style={S.input} type="text" autoComplete="name"
+                  placeholder="Your full name"
+                  value={fullName} onChange={e => setFullName(e.target.value)} disabled={isBusy} />
+
+                <label style={S.fieldLabel}>Email</label>
+                <input style={S.input} type="email" autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email} onChange={e => setEmail(e.target.value)} disabled={isBusy} />
+
+                <label style={S.fieldLabel}>Password</label>
+                <div style={S.inputWrap}>
+                  <input
+                    style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                    type={showPw ? 'text' : 'password'}
+                    autoComplete="new-password" placeholder="Min 8 characters"
+                    value={password} onChange={e => setPassword(e.target.value)} disabled={isBusy}
+                  />
+                  <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>
+                    {showPw ? '🙈' : '👁'}
+                  </button>
+                </div>
+
+                <label style={{ ...S.fieldLabel, marginTop: 14 }}>Confirm Password</label>
+                <div style={S.inputWrap}>
+                  <input
+                    style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                    type={showConfirm ? 'text' : 'password'}
+                    autoComplete="new-password" placeholder="Repeat password"
+                    value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={isBusy}
+                  />
+                  <button style={S.eyeBtn} type="button" onClick={() => setShowConfirm(v => !v)}>
+                    {showConfirm ? '🙈' : '👁'}
+                  </button>
+                </div>
+
+                {/* Country — Teacher, Parent, Global */}
+                {(role === 'Teacher' || role === 'Parent' || role === 'Global') && (
+                  <>
+                    <label style={{ ...S.fieldLabel, marginTop: 14 }}>Country</label>
+                    <select style={S.input} value={country} onChange={e => setCountry(e.target.value)} disabled={isBusy}>
+                      <option value="" disabled>Select country</option>
+                      {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                    </select>
+                  </>
+                )}
+
+                {/* DOB — Global only */}
+                {role === 'Global' && (
+                  <>
+                    <label style={{ ...S.fieldLabel, marginTop: 0 }}>Date of Birth</label>
+                    <input style={S.input} type="date"
+                      value={dob} onChange={e => setDob(e.target.value)} disabled={isBusy} />
+                  </>
+                )}
+
+                {/* Claim code — Student */}
+                {role === 'Student' && (
+                  <>
+                    <label style={{ ...S.fieldLabel, marginTop: 14 }}>Claim Code</label>
+                    <input style={S.input} type="text"
+                      placeholder="Code from your teacher"
+                      value={claimCode}
+                      onChange={e => setClaimCode(e.target.value.toUpperCase())}
+                      disabled={isBusy} />
+                  </>
+                )}
+
+                {/* Join code — Admin */}
+                {role === 'Admin' && (
+                  <>
+                    <label style={{ ...S.fieldLabel, marginTop: 14 }}>School Join Code</label>
+                    <input style={S.input} type="text"
+                      placeholder="e.g. kwi-4821"
+                      value={joinCode}
+                      onChange={e => setJoinCode(e.target.value)}
+                      disabled={isBusy} />
+                  </>
+                )}
+
+                <button
+                  style={{ ...S.submit, marginTop: 8, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleSignUp}
+                  disabled={isBusy}
+                >
+                  {loading ? 'Creating account…' : 'Create Account'}
+                </button>
+
+                <div style={S.divider}>
+                  <div style={S.divLine} />
+                  <span style={S.divText}>or</span>
+                  <div style={S.divLine} />
+                </div>
+
+                <button
+                  style={{ ...S.googleBtn, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleGoogle}
+                  disabled={isBusy}
+                >
+                  <GoogleIcon />
+                  {gLoading ? 'Connecting…' : 'Continue with Google'}
+                </button>
+              </>
+            )}
+
+          </div>
+
+          {/* Legal */}
+          <p style={S.legal}>
+            By continuing you agree to our{' '}
+            <a href="/legal/terms" style={{ color: 'rgba(200,168,75,0.4)', textDecoration: 'none' }}>Terms</a>
+            {' '}and{' '}
+            <a href="/legal/privacy" style={{ color: 'rgba(200,168,75,0.4)', textDecoration: 'none' }}>Privacy Policy</a>
+          </p>
+
+        </div>
       </div>
-      <p style={S.tagline}>FREEDOM · LEARN · EXPLORE</p>
-      <a href="/global" style={{ fontSize: 11, color: 'rgba(200,168,75,0.7)', letterSpacing: '0.15em', textDecoration: 'none', marginBottom: 24, display: 'block', textAlign: 'center' }}>EXPLORE FREE — NO ACCOUNT NEEDED →</a>
+    </>
+  )
+}
 
-      <div style={S.card}>
-
-        {/* ── Tabs ── */}
-        <div
-          style={S.tabs}
-          role="tablist"
-          aria-label="Authentication mode"
-          onKeyDown={handleTabKey}
-        >
-          <button
-            id="tab-signin"
-            role="tab"
-            aria-selected={authMode === 'signin'}
-            aria-controls="panel-signin"
-            tabIndex={authMode === 'signin' ? 0 : -1}
-            style={tabStyle(authMode === 'signin')}
-            onClick={() => switchMode('signin')}
-          >
-            SIGN IN
-          </button>
-          <button
-            id="tab-signup"
-            role="tab"
-            aria-selected={authMode === 'signup'}
-            aria-controls="panel-signup"
-            tabIndex={authMode === 'signup' ? 0 : -1}
-            style={tabStyle(authMode === 'signup')}
-            onClick={() => switchMode('signup')}
-          >
-            SIGN UP
-          </button>
-        </div>
-
-        {authMode === 'signin' && (
-          <p style={S.tabNote}>
-            Role selector applies to sign-up. Sign in works across all roles.
-          </p>
-        )}
-
-        {/* ── Role pills ── */}
-        <div role="radiogroup" aria-label="Select your role" style={S.roleRow}>
-          {ROLES.map((r, idx) => (
-            <button
-              key={r}
-              role="radio"
-              aria-checked={role === r}
-              tabIndex={role === r ? 0 : -1}
-              style={pillStyle(role === r)}
-              onClick={() => !isBusy && setRole(r)}
-              onKeyDown={e => handleRoleKey(e, idx)}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Error ── */}
-        {error && (
-          <p style={S.error} role="alert" aria-live="polite">
-            {error}
-          </p>
-        )}
-
-        {/* ── Sign in panel ── */}
-        <div
-          id="panel-signin"
-          role="tabpanel"
-          aria-labelledby="tab-signin"
-          hidden={authMode !== 'signin'}
-        >
-          <label htmlFor="signin-email" style={S.label}>EMAIL</label>
-          <input
-            id="signin-email"
-            name="email"
-            style={S.inputBase}
-            type="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            autoCorrect="off"
-            placeholder="you@example.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); passwordRef.current?.focus() }
-            }}
-            disabled={isBusy}
-          />
-
-          <label htmlFor="signin-password" style={S.label}>PASSWORD</label>
-          <div style={S.pwWrap}>
-            <input
-              id="signin-password"
-              name="password"
-              ref={passwordRef}
-              style={{ ...S.inputBase, paddingRight: 44 }}
-              type={showPw ? 'text' : 'password'}
-              autoComplete="current-password"
-              placeholder="••••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { e.preventDefault(); handleSignIn() }
-              }}
-              disabled={isBusy}
-            />
-            <button
-              style={S.eye}
-              type="button"
-              aria-label={showPw ? 'Hide password' : 'Show password'}
-              onClick={() => setShowPw(v => !v)}
-            >
-              {showPw ? <EyeOffIcon /> : <EyeOpenIcon />}
-            </button>
-          </div>
-
-          <div style={S.forgotRow}>
-            <a
-              href={`/academy/forgot-password${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ''}`}
-              style={S.forgot}
-            >
-              FORGOT PASSWORD?
-            </a>
-          </div>
-
-          <button
-            style={isBusy ? busyStyle(S.primaryBtn) : S.primaryBtn}
-            type="button"
-            aria-busy={loading}
-            disabled={isBusy}
-            onClick={handleSignIn}
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-
-          <div style={S.divider}>
-            <div style={S.divLine} />
-            <span style={S.divText}>OR</span>
-            <div style={S.divLine} />
-          </div>
-
-          <button
-            style={isBusy ? busyStyle(S.googleBtn) : S.googleBtn}
-            type="button"
-            aria-busy={gLoading}
-            disabled={isBusy}
-            onClick={handleGoogle}
-          >
-            <GoogleIcon />
-            {gLoading ? 'CONNECTING…' : 'CONTINUE WITH GOOGLE'}
-          </button>
-        </div>
-
-        {/* ── Sign up panel ── */}
-        <div
-          id="panel-signup"
-          role="tabpanel"
-          aria-labelledby="tab-signup"
-          hidden={authMode !== 'signup'}
-        >
-          <p style={S.signupNote}>
-            You'll be taken to the {role} sign-up page to complete your account.
-          </p>
-
-          <button
-            style={isBusy ? busyStyle(S.primaryBtn) : S.primaryBtn}
-            type="button"
-            disabled={isBusy}
-            onClick={() => router.push(`/academy/signup?role=${ROLE_DB[role]}`)}
-          >
-            Create {role} Account →
-          </button>
-
-          <div style={S.divider}>
-            <div style={S.divLine} />
-            <span style={S.divText}>OR</span>
-            <div style={S.divLine} />
-          </div>
-
-          <button
-            style={isBusy ? busyStyle(S.googleBtn) : S.googleBtn}
-            type="button"
-            aria-busy={gLoading}
-            disabled={isBusy}
-            onClick={handleGoogle}
-          >
-            <GoogleIcon />
-            {gLoading ? 'CONNECTING…' : 'CONTINUE WITH GOOGLE'}
-          </button>
-        </div>
-
-      </div>
-    </div>
+function GoogleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
   )
 }

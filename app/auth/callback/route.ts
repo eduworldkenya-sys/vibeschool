@@ -2,11 +2,19 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
+const DASHBOARDS: Record<string, string> = {
+  teacher:     '/teacher',
+  parent:      '/parent',
+  student:     '/student',
+  admin:       '/admin',
+  global_user: '/global',
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const code      = searchParams.get('code')
-  const next      = searchParams.get('next')
-  const role      = searchParams.get('role') ?? searchParams.get('role_hint') ?? 'teacher'
+  const code = searchParams.get('code')
+  const next = searchParams.get('next')
+  const role = searchParams.get('role') ?? 'teacher'
 
   if (code) {
     const cookieStore = cookies()
@@ -38,14 +46,9 @@ export async function GET(req: NextRequest) {
           .eq('id', user.id)
           .maybeSingle()
 
-        if (profile?.role) {
-          const destinations: Record<string, string> = {
-            teacher: '/teacher',
-            admin:   '/admin',
-            parent:  '/parent',
-            student: '/student',
-          }
-          return NextResponse.redirect(new URL(destinations[profile.role] ?? '/teacher', req.url))
+        // Existing user — go to their dashboard
+        if (profile?.role && DASHBOARDS[profile.role]) {
+          return NextResponse.redirect(new URL(DASHBOARDS[profile.role], req.url))
         }
 
         // New Google user — send to complete profile with role hint
@@ -56,6 +59,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // All failures go back to login
-  return NextResponse.redirect(new URL('/academy', req.url))
+  // All failures → root
+  return NextResponse.redirect(new URL('/', req.url))
 }
