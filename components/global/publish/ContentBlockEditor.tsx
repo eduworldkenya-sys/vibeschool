@@ -14,29 +14,43 @@ const ACCENT = '#CCFF00'
 const SURF   = '#111827'
 const BORDER = 'rgba(255,255,255,0.06)'
 
+type AnySpeechRecognition = {
+  continuous:     boolean
+  interimResults: boolean
+  lang:           string
+  start:          () => void
+  stop:           () => void
+  onresult:       ((e: { results: { [k: number]: { [k: number]: { transcript: string } } } }) => void) | null
+  onend:          (() => void) | null
+  onerror:        (() => void) | null
+}
+
+type WindowWithSpeech = Window & {
+  webkitSpeechRecognition?: new () => AnySpeechRecognition
+  SpeechRecognition?:       new () => AnySpeechRecognition
+}
+
 interface Props {
-  block:    ContentBlock
-  format:   string
-  readOnly?: boolean
-  onUpdate: (updated: ContentBlock) => void
-  onFocus:  () => void
-  onDelete: () => void
-  onMoveUp: () => void
+  block:      ContentBlock
+  format:     string
+  readOnly?:  boolean
+  isFocused:  boolean
+  onUpdate:   (updated: ContentBlock) => void
+  onFocus:    () => void
+  onDelete:   () => void
+  onMoveUp:   () => void
   onMoveDown: () => void
 }
 
 export function ContentBlockEditor({
-  block, format, readOnly = false,
+  block, format, readOnly = false, isFocused,
   onUpdate, onFocus, onDelete, onMoveUp, onMoveDown,
 }: Props) {
-  const [isFocused,   setIsFocused]   = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [uploading,   setUploading]   = useState(false)
   const fileRef        = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-  const isInitialMount = useRef(true)
+  const recognitionRef = useRef<AnySpeechRecognition | null>(null)
 
-  // ── Tiptap for paragraph only ────────────────────────────────────────────
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -64,41 +78,30 @@ export function ContentBlockEditor({
     },
   })
 
-  // Sync external content changes into Tiptap WITHOUT resetting cursor.
-  // Only runs when content changes from outside (e.g. load from DB),
-  // not on every keystroke — guarded by isInitialMount ref.
-  useEffect(() => {
-    if (!editor || block.type !== 'paragraph') return
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      return
-    }
-    const current = editor.getHTML()
-    if (current !== block.content) {
-      editor.commands.setContent(block.content, false, { preserveWhitespace: 'full' })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // intentionally empty — only runs on mount
+  const getSR = (): (new () => AnySpeechRecognition) | undefined => {
+    const w = window as WindowWithSpeech
+    return w.webkitSpeechRecognition ?? w.SpeechRecognition
+  }
 
-  // ── Web Speech API — instance per component, not module-level ────────────
   const startSpeech = useCallback(() => {
     if (typeof window === 'undefined') return
-    if (!('webkitSpeechRecognition' in window)) return
-    const SpeechRecognition = (window as Window & { webkitSpeechRecognition: typeof SpeechRecognition }).webkitSpeechRecognition
-    const rec = new SpeechRecognition()
-    rec.continuous      = false
-    rec.interimResults  = false
-    rec.lang            = 'en-KE'
-    rec.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[0][0].transcript
+    const SR = getSR()
+    if (!SR) return
+    const rec = new SR()
+    rec.continuous     = false
+    rec.interimResults = false
+    rec.lang           = 'en-KE'
+    rec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript
       if (editor) editor.commands.insertContent(' ' + transcript)
       setIsListening(false)
     }
-    rec.onend  = () => setIsListening(false)
+    rec.onend   = () => setIsListening(false)
     rec.onerror = () => setIsListening(false)
     recognitionRef.current = rec
     rec.start()
     setIsListening(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor])
 
   const stopSpeech = useCallback(() => {
@@ -110,84 +113,60 @@ export function ContentBlockEditor({
     return () => { recognitionRef.current?.stop() }
   }, [])
 
-  // ── Image upload ──────────────────────────────────────────────────────────
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const rawExt = file.name.includes('.') ? file.name.split('.').pop() : undefined
     const ext    = rawExt ? rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') : 'png'
-    if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return
+    if (!['jpg','jpeg','png','gif','webp'].includes(ext)) return
     setUploading(true)
     try {
-      const sb   = createBrowserClient(
+      const sb = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const path = `pub_blocks/${crypto.randomUUID()}.${ext}`
-      const { error: ue } = await sb.storage
-        .from('vibe-publication-images')
-        .upload(path, file)
+      const { error: ue } = await sb.storage.from('vibe-publication-images').upload(path, file)
       if (ue) return
-      const { data } = sb.storage
-        .from('vibe-publication-images')
-        .getPublicUrl(path)
+      const { data } = sb.storage.from('vibe-publication-images').getPublicUrl(path)
       onUpdate({ ...block, content: data.publicUrl })
     } finally {
       setUploading(false)
     }
   }
 
-  // ── Shared input style ────────────────────────────────────────────────────
   const base: React.CSSProperties = {
-    width:       '100%',
-    background:  'transparent',
-    border:      'none',
-    color:       TEXT,
-    outline:     'none',
-    fontFamily:  'system-ui,-apple-system,sans-serif',
-    fontSize:    '16px',
-    lineHeight:  '1.8',
-    resize:      'none',
-    padding:     0,
-    boxSizing:   'border-box',
+    width: '100%', background: 'transparent', border: 'none',
+    color: TEXT, outline: 'none',
+    fontFamily: 'system-ui,-apple-system,sans-serif',
+    fontSize: '16px', lineHeight: '1.8', resize: 'none',
+    padding: 0, boxSizing: 'border-box',
   }
 
-  // ── Block renderer ────────────────────────────────────────────────────────
+  const hasSpeech = typeof window !== 'undefined' && !!getSR()
+
   const renderBlock = () => {
     switch (block.type) {
-
       case 'paragraph':
         return (
           <div style={{ position: 'relative' }}>
             {readOnly
-              ? <div
-                  style={{ ...base, minHeight: 24 }}
-                  dangerouslySetInnerHTML={{ __html: block.content }}
-                />
+              ? <div style={{ ...base, minHeight: 24 }} dangerouslySetInnerHTML={{ __html: block.content }} />
               : <EditorContent editor={editor} />
             }
-            {!readOnly && isFocused && typeof window !== 'undefined' && 'webkitSpeechRecognition' in window && (
+            {!readOnly && isFocused && hasSpeech && (
               <button
                 onClick={isListening ? stopSpeech : startSpeech}
                 style={{
-                  position:    'absolute',
-                  right:       0,
-                  top:         4,
-                  background:  isListening ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
-                  border:      isListening ? '1px solid rgba(239,68,68,0.6)' : '1px solid ' + BORDER,
-                  borderRadius: '50%',
-                  width:       30,
-                  height:      30,
-                  display:     'flex',
-                  alignItems:  'center',
-                  justifyContent: 'center',
-                  cursor:      'pointer',
-                  fontSize:    14,
-                  animation:   isListening ? 'micPulse 1.5s infinite' : 'none',
+                  position: 'absolute', right: 0, top: 4,
+                  background: isListening ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: isListening ? '1px solid rgba(239,68,68,0.6)' : '1px solid ' + BORDER,
+                  borderRadius: '50%', width: 30, height: 30,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: 14,
+                  animation: isListening ? 'micPulse 1.5s infinite' : 'none',
                 }}
-              >
-                🎤
-              </button>
+              >🎤</button>
             )}
           </div>
         )
@@ -270,11 +249,7 @@ export function ContentBlockEditor({
 
       case 'callout':
         return (
-          <div style={{
-            background: SURF, borderLeft: '3px solid ' + ACCENT,
-            borderRadius: 10, padding: 12,
-            display: 'flex', gap: 10, alignItems: 'flex-start',
-          }}>
+          <div style={{ background: SURF, borderLeft: '3px solid ' + ACCENT, borderRadius: 10, padding: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 18 }}>💡</span>
             {readOnly
               ? <p style={{ fontSize: 14, color: TEXT, margin: 0, lineHeight: 1.6 }}>{block.content}</p>
@@ -337,39 +312,19 @@ export function ContentBlockEditor({
     <>
       <style dangerouslySetInnerHTML={{ __html: '@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}' }} />
       <div
-        onFocus={() => { setIsFocused(true); onFocus() }}
-        onBlur={() => setIsFocused(false)}
+        onFocus={onFocus}
         style={{
-          position:   'relative',
-          borderRadius: 10,
-          padding:    '8px 10px',
-          border:     '1px solid ' + (isFocused ? 'rgba(204,255,0,0.2)' : BORDER),
+          position: 'relative', borderRadius: 10, padding: '8px 10px',
+          border: '1px solid ' + (isFocused ? 'rgba(204,255,0,0.2)' : BORDER),
           background: isFocused ? 'rgba(204,255,0,0.02)' : 'transparent',
-          transition: 'border-color 0.15s',
-          marginBottom: 4,
+          transition: 'border-color 0.15s', marginBottom: 4,
         }}
       >
         {!readOnly && isFocused && (
-          <div style={{
-            position: 'absolute', top: 6, right: 6,
-            display: 'flex', gap: 4, zIndex: 10,
-          }}>
-            <button onClick={onMoveUp} style={{
-              background: SURF, border: '1px solid ' + BORDER,
-              color: MUTED, borderRadius: 5,
-              padding: '2px 6px', fontSize: 10, cursor: 'pointer',
-            }}>↑</button>
-            <button onClick={onMoveDown} style={{
-              background: SURF, border: '1px solid ' + BORDER,
-              color: MUTED, borderRadius: 5,
-              padding: '2px 6px', fontSize: 10, cursor: 'pointer',
-            }}>↓</button>
-            <button onClick={onDelete} style={{
-              background: 'rgba(239,68,68,0.1)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              color: '#ef4444', borderRadius: 5,
-              padding: '2px 6px', fontSize: 10, cursor: 'pointer',
-            }}>✕</button>
+          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4, zIndex: 10 }}>
+            <button onClick={onMoveUp} style={{ background: SURF, border: '1px solid ' + BORDER, color: MUTED, borderRadius: 5, padding: '2px 6px', fontSize: 10, cursor: 'pointer' }}>↑</button>
+            <button onClick={onMoveDown} style={{ background: SURF, border: '1px solid ' + BORDER, color: MUTED, borderRadius: 5, padding: '2px 6px', fontSize: 10, cursor: 'pointer' }}>↓</button>
+            <button onClick={onDelete} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: 5, padding: '2px 6px', fontSize: 10, cursor: 'pointer' }}>✕</button>
           </div>
         )}
         <div style={{ paddingRight: isFocused && !readOnly ? 76 : 0 }}>
