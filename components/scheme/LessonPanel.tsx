@@ -113,7 +113,7 @@ function QuestionSet({ label, color, items }: {
 function TeacherView({ grade, subject, term, week }: {
   grade: Grade; subject: Subject; term: Term; week: number
 }) {
-  const ctx = getLessonContext(CBC_CURRICULUM, { grade, subject, term, week })
+  const ctx = getLessonContext(CBC_CURRICULUM as Record<string, never>, { grade, subject, term, week })
 
   if (!ctx) return (
     <div style={{ textAlign: 'center', padding: '32px 20px', color: C.text3, fontSize: 13 }}>
@@ -248,7 +248,7 @@ function TeacherView({ grade, subject, term, week }: {
 function ParentView({ grade, subject, term, week }: {
   grade: Grade; subject: Subject; term: Term; week: number
 }) {
-  const brief = getParentBrief(CBC_CURRICULUM, { grade, subject, term, week })
+  const brief = getParentBrief(CBC_CURRICULUM as Record<string, never>, { grade, subject, term, week })
 
   if (!brief) return (
     <div style={{ textAlign: 'center', padding: '32px 20px', color: C.text3, fontSize: 13 }}>
