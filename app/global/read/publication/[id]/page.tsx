@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { VibePublication, VibeChapter, FORMAT_META } from '@/lib/publishTypes'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
-import { useGlobalAuth } from '@/components/global/shared/GlobalAuthContext'
 
 const BG     = '#090D16'
 const SURF   = '#111827'
@@ -14,6 +13,19 @@ const ACCENT = '#CCFF00'
 const TEXT   = '#ffffff'
 const MUTED  = 'rgba(255,255,255,0.4)'
 const BORDER = 'rgba(255,255,255,0.06)'
+
+const COVER_GRADIENTS = [
+  'linear-gradient(135deg,#1a2235,#2d3748)',
+  'linear-gradient(135deg,#0f2027,#203a43,#2c5364)',
+  'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)',
+  'linear-gradient(135deg,#0d0d0d,#1a1a1a,#333)',
+  'linear-gradient(135deg,#0a0a0a,#1a2235)',
+]
+
+function coverGradient(id: string): string {
+  const idx = id.charCodeAt(0) % COVER_GRADIENTS.length
+  return COVER_GRADIENTS[idx]
+}
 
 function fmtDate(iso: string) {
   try {
@@ -26,7 +38,6 @@ function fmtDate(iso: string) {
 export default function ReadPublicationPage() {
   const params = useParams()
   const router = useRouter()
-  const { isLoggedIn, triggerAuthPrompt } = useGlobalAuth()
   const id = typeof params.id === 'string' ? params.id : ''
 
   const [publication,  setPublication]  = useState<VibePublication | null>(null)
@@ -35,6 +46,7 @@ export default function ReadPublicationPage() {
   const [authorName,   setAuthorName]   = useState('')
   const [loading,      setLoading]      = useState(true)
   const [notFound,     setNotFound]     = useState(false)
+  const [isLoggedIn,   setIsLoggedIn]   = useState(false)
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return }
@@ -43,6 +55,9 @@ export default function ReadPublicationPage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     async function load() {
+      const { data: { user } } = await sb.auth.getUser()
+      setIsLoggedIn(!!user)
+
       const { data: pub, error: pe } = await sb
         .from('vibe_publications')
         .select('*')
@@ -52,7 +67,6 @@ export default function ReadPublicationPage() {
       if (pe || !pub) { setNotFound(true); setLoading(false); return }
       setPublication(pub as VibePublication)
 
-      // Read counter — once per session
       const key = 'read_' + id
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1')
@@ -98,6 +112,7 @@ export default function ReadPublicationPage() {
 
   const meta          = FORMAT_META[publication.format]
   const activeChapter = chapters[activeIndex] ?? null
+  const gradient      = coverGradient(publication.id)
 
   const canReadChapter = (): boolean => {
     if (!activeChapter) return false
@@ -112,30 +127,33 @@ export default function ReadPublicationPage() {
   return (
     <div style={{ minHeight: '100dvh', background: BG, fontFamily: 'system-ui,-apple-system,sans-serif' }}>
 
-      {publication.cover_url && (
-        <div style={{ position: 'relative', height: 260, overflow: 'hidden' }}>
-          <img src={publication.cover_url} alt={publication.title || ''}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top,rgba(9,13,22,1) 0%,rgba(9,13,22,0.3) 70%,transparent 100%)' }} />
-          <button onClick={() => router.back()} style={{
-            position: 'absolute', top: 16, left: 16,
-            background: 'rgba(9,13,22,0.8)', border: '1px solid ' + BORDER,
-            borderRadius: 10, padding: '6px 14px',
-            color: TEXT, fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', backdropFilter: 'blur(8px)',
-          }}>← Back</button>
-        </div>
-      )}
+      {/* Hero — always shown, gradient fallback if no cover */}
+      <div style={{ position: 'relative', height: 240, overflow: 'hidden' }}>
+        {publication.cover_url
+          ? <img
+              src={publication.cover_url}
+              alt={publication.title || ''}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          : <div style={{
+              width: '100%', height: '100%',
+              background: gradient,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 56, opacity: 0.4 }}>{meta.icon}</span>
+            </div>
+        }
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top,rgba(9,13,22,1) 0%,rgba(9,13,22,0.3) 70%,transparent 100%)' }} />
+        <button onClick={() => router.back()} style={{
+          position: 'absolute', top: 16, left: 16,
+          background: 'rgba(9,13,22,0.7)', border: '1px solid ' + BORDER,
+          borderRadius: 10, padding: '6px 14px',
+          color: TEXT, fontSize: 13, fontWeight: 600,
+          cursor: 'pointer', backdropFilter: 'blur(8px)',
+        }}>← Back</button>
+      </div>
 
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 80px', boxSizing: 'border-box' }}>
-
-        {!publication.cover_url && (
-          <button onClick={() => router.back()} style={{
-            background: 'none', border: 'none', color: MUTED,
-            fontSize: 22, cursor: 'pointer', marginBottom: 16,
-            display: 'block', padding: '4px 8px',
-          }}>‹ Back</button>
-        )}
 
         {/* Publication header */}
         <span style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 24, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: MUTED }}>
@@ -243,11 +261,11 @@ export default function ReadPublicationPage() {
                     : publication.pricing.type === 'paid'
                     ? `Purchase for KSh ${publication.pricing.priceKsh}.`
                     : publication.pricing.type === 'school_license'
-                    ? "Available via school license."
-                    : "This content requires purchase."}
+                    ? 'Available via school license.'
+                    : 'This content requires purchase.'}
                 </p>
                 <button
-                  onClick={() => isLoggedIn ? alert('M-Pesa coming soon') : triggerAuthPrompt('create')}
+                  onClick={() => isLoggedIn ? alert('M-Pesa coming soon') : router.push('/global/signin')}
                   style={{
                     background: ACCENT, color: '#090D16', border: 'none',
                     borderRadius: 12, padding: '13px 28px',
