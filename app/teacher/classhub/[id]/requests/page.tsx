@@ -1,5 +1,4 @@
 "use client";
-'use client'
 import { C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'

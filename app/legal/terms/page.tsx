@@ -1,5 +1,4 @@
 "use client";
-'use client'
 import { useRouter } from 'next/navigation'
 import styles from '../legal.module.css'
 

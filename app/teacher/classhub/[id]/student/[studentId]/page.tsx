@@ -1,5 +1,4 @@
 "use client";
-'use client'
 import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
 import { C } from '@/components/teacher/ui'
 import { supabase } from '@/lib/supabase'

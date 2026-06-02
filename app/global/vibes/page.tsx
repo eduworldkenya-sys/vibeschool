@@ -1,5 +1,4 @@
 "use client";
-'use client'
 
 import React, { useState } from 'react'
 import { useGlobalAuth } from '@/components/global/shared/GlobalAuthContext'
