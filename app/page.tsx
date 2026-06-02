@@ -1,4 +1,5 @@
 'use client'
+import type { CSSProperties } from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -60,7 +61,7 @@ function friendlyError(msg: string): string {
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
-const S: Record<string, React.CSSProperties> = {
+const S: Record<string, CSSProperties> = {
   root: {
     position: 'relative',
     isolation: 'isolate',
@@ -281,7 +282,7 @@ const S: Record<string, React.CSSProperties> = {
   },
 }
 
-function tabStyle(active: boolean): React.CSSProperties {
+function tabStyle(active: boolean): CSSProperties {
   return {
     flex: 1, padding: '10px 0', border: 'none',
     fontFamily: 'var(--font-mono), monospace',
@@ -294,7 +295,7 @@ function tabStyle(active: boolean): React.CSSProperties {
   }
 }
 
-function pillStyle(active: boolean, busy: boolean): React.CSSProperties {
+function pillStyle(active: boolean, busy: boolean): CSSProperties {
   return {
     padding: '7px 14px',
     borderRadius: 20,
