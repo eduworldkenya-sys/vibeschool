@@ -1,4 +1,3 @@
-'use client'
 
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
 
