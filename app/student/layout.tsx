@@ -1,3 +1,4 @@
+"use client";
 'use client'
 import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";

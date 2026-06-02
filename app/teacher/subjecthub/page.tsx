@@ -1,3 +1,4 @@
+"use client";
 'use client'
 import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 

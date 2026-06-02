@@ -1,3 +1,4 @@
+"use client";
 'use client'
 import { supabase } from '@/lib/supabase'
 
