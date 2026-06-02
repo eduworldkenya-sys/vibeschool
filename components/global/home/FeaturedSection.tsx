@@ -1,31 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { VibeContent } from '@/lib/types'
 
-export function FeaturedSection() {
-  const router = useRouter()
-  const [content, setContent] = useState<VibeContent[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
+interface Props {
+  content: VibeContent[]
+  loading: boolean
+}
 
-  useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    supabase
-      .from('vibelearn_content')
-      .select('id,title,description,subject_id,type,url,thumbnail_url,tags,source,view_count,created_at')
-      .eq('status', 'live')
-      .order('view_count', { ascending: false })
-      .limit(4)
-      .then(({ data }) => {
-        if (data) setContent(data as unknown as VibeContent[])
-        setLoading(false)
-      })
-  }, [])
+export function FeaturedSection({ content, loading }: Props) {
+  const router = useRouter()
 
   if (!loading && content.length === 0) return null
 

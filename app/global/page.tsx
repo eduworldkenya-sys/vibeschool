@@ -9,6 +9,7 @@ import { FeaturedSection } from '@/components/global/home/FeaturedSection'
 import { StoryFeedCard } from '@/components/global/feed/StoryFeedCard'
 import { SkeletonGrid } from '@/components/global/shared/SkeletonGrid'
 import { VibeStory, AgeRange, StoryLanguage, StoryStatus, StoryCharacter } from '@/lib/storyTypes'
+import { VibeContent } from '@/lib/types'
 
 interface DatabaseStory {
   id: string
@@ -55,24 +56,26 @@ function mapStory(row: DatabaseStory): VibeStory {
 export default function GlobalHomePage() {
   const { isLoggedIn, userName } = useGlobalAuth()
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [trendingStories, setTrendingStories] = useState<VibeStory[]>([])
+  const [featuredContent, setFeaturedContent] = useState<VibeContent[]>([])
   const [latestStories, setLatestStories] = useState<VibeStory[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
-    const supabase = createBrowserClient(
+    const sb = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    supabase
-      .from('vibe_stories')
-      .select('*')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false })
-      .limit(4)
-      .then(({ data }) => {
-        if (data) setLatestStories((data as DatabaseStory[]).map(mapStory))
-        setLoading(false)
-      })
+    Promise.all([
+      sb.from('vibe_stories').select('*').eq('status', 'published').order('vibe_count', { ascending: false }).limit(3),
+      sb.from('vibelearn_content').select('id,title,description,subject_id,type,url,thumbnail_url,tags,source,view_count,created_at').eq('status', 'live').order('view_count', { ascending: false }).limit(4),
+      sb.from('vibe_stories').select('*').eq('status', 'published').order('published_at', { ascending: false }).limit(4),
+    ]).then(([trending, featured, latest]) => {
+      if (trending.data) setTrendingStories((trending.data as DatabaseStory[]).map(mapStory))
+      if (featured.data) setFeaturedContent(featured.data as unknown as VibeContent[])
+      if (latest.data)   setLatestStories((latest.data as DatabaseStory[]).map(mapStory))
+      setLoading(false)
+    })
   }, [])
 
   const firstName = userName ? userName.split(' ')[0] : ''
@@ -88,8 +91,8 @@ export default function GlobalHomePage() {
         </p>
       </section>
 
-      <TrendingRow />
-      <FeaturedSection />
+      <TrendingRow stories={trendingStories} loading={loading} />
+      <FeaturedSection content={featuredContent} loading={loading} />
 
       <section>
         <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 12px 0', color: '#ffffff' }}>📖 Latest Stories</h2>

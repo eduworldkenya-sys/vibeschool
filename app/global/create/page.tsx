@@ -30,7 +30,8 @@ const FORMAT_CARDS: FormatCardConfig[] = [
     subtitle:    'Magazine & Articles',
     description: 'Long-form articles, revision guides, and editorial content',
     accentColor: '#4ECDC4',
-    isActive:    false,
+    isActive:    true,
+    route:       '/global/create/press',
   },
   {
     icon:        '🎙️',

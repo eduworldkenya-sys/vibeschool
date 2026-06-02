@@ -280,10 +280,10 @@ export function usePublicationDraft(
   const mutateActiveChapter = useCallback((
     fn: (blocks: ContentBlock[]) => ContentBlock[]
   ) => {
+    const targetId = activeChapterId
     setChapters(prev => {
       const next = prev.map(c => {
-        if (c.id !== chapRef.current.find(x => x.id === activeChapterId)?.id
-          && c.id !== activeChapterId) return c
+        if (c.id !== targetId) return c
         const blocks = fn(c.blocks)
         return {
           ...c,

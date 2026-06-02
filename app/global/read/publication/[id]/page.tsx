@@ -70,10 +70,7 @@ export default function ReadPublicationPage() {
       const key = 'read_' + id
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1')
-        await sb
-          .from('vibe_publications')
-          .update({ total_reads: (pub.total_reads || 0) + 1 })
-          .eq('id', id)
+        await sb.rpc('increment_publication_reads', { pub_id: id })
       }
 
       const { data: chaps } = await sb

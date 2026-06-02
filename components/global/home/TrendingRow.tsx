@@ -1,73 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import React from 'react'
 import { useRouter } from 'next/navigation'
-import { VibeStory, AgeRange, StoryLanguage, StoryStatus, StoryCharacter } from '@/lib/storyTypes'
+import { VibeStory } from '@/lib/storyTypes'
 
-interface DatabaseStory {
-  id: string
-  author_id: string | null
-  title: string | null
-  cover_image_url: string | null
-  description: string | null
-  language: string | null
-  age_range: string | null
-  tags: string[] | null
-  characters: unknown[] | null
-  status: string | null
-  page_count: number | null
-  view_count: number | null
-  vibe_count: number | null
-  earnings_ksh: number | null
-  created_at: string | null
-  updated_at: string | null
-  published_at: string | null
+interface Props {
+  stories: VibeStory[]
+  loading: boolean
 }
 
-function mapStory(row: DatabaseStory): VibeStory {
-  return {
-    id: row.id,
-    authorId: row.author_id || '',
-    title: row.title || 'Untitled',
-    coverImageUrl: row.cover_image_url || null,
-    description: row.description || null,
-    language: (row.language as StoryLanguage) || 'en',
-    ageRange: (row.age_range as AgeRange) || '4-8',
-    tags: row.tags || [],
-    characters: (row.characters || []) as StoryCharacter[],
-    status: (row.status as StoryStatus) || 'published',
-    pageCount: row.page_count || 0,
-    viewCount: row.view_count || 0,
-    vibeCount: row.vibe_count || 0,
-    earningsKsh: row.earnings_ksh || 0,
-    createdAt: row.created_at || '',
-    updatedAt: row.updated_at || '',
-    publishedAt: row.published_at || null,
-  }
-}
-
-export function TrendingRow() {
+export function TrendingRow({ stories, loading }: Props) {
   const router = useRouter()
-  const [stories, setStories] = useState<VibeStory[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-
-  useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    supabase
-      .from('vibe_stories')
-      .select('*')
-      .eq('status', 'published')
-      .order('vibe_count', { ascending: false })
-      .limit(3)
-      .then(({ data }) => {
-        if (data) setStories((data as DatabaseStory[]).map(mapStory))
-        setLoading(false)
-      })
-  }, [])
 
   return (
     <div>
