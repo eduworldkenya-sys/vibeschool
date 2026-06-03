@@ -1,4 +1,6 @@
+// app/global/layout.tsx
 import { Metadata } from 'next'
+import { GlobalShellProvider } from '@/components/global/layout/GlobalShellProvider'
 
 export const metadata: Metadata = {
   title: 'VibeGlobal — Free Kenyan Educational Content',
@@ -14,5 +16,5 @@ export const metadata: Metadata = {
 }
 
 export default function GlobalLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return <GlobalShellProvider>{children}</GlobalShellProvider>
 }
