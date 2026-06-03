@@ -65,3 +65,7 @@
 ## [2026-06-03 15:26] f80ba87
 **What:** fix: prefer-const ESLint errors blocking build
 **Status:** ✅ pushed
+
+## [2026-06-03 15:30] 84d7cd9
+**What:** fix: revert frameId1 to let with eslint-disable
+**Status:** ✅ pushed
