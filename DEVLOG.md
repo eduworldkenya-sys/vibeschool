@@ -61,3 +61,7 @@
 ## [2026-05-31 12:11] e4e360e
 **What:** fix: role-based claim code validation for student and parent
 **Status:** ✅ pushed
+
+## [2026-06-03 15:26] f80ba87
+**What:** fix: prefer-const ESLint errors blocking build
+**Status:** ✅ pushed
