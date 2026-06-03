@@ -323,6 +323,8 @@ function GameScreen({ cards, levelConfig, onFinish }: { cards: any[], levelConfi
         executeTerminalStateFlush(false);
       }, 500);
       return () => clearTimeout(delayVictoryTrigger);
+    } else {
+      return undefined;
     }
   }, [matchedPairIds, totalPairsCount, cards.length, executeTerminalStateFlush]);
 
