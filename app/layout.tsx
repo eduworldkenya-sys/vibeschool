@@ -25,8 +25,21 @@ const cormorant = Cormorant_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: 'VibeSchool',
-  description: 'Built around the teacher.',
+  metadataBase: new URL('https://www.vibeschool.co.ke'),
+  title: {
+    default: 'VibeSchool — Free CBC & Secondary Ebooks, Past Papers Kenya',
+    template: '%s | VibeSchool',
+  },
+  description: 'Free CBC and Secondary school ebooks, past papers and exam materials for Kenyan students. Curriculum-aligned study resources from Grade 1 to Form 4.',
+  keywords: ['free CBC ebooks Kenya', 'KCSE past papers', 'KCPE past papers', 'CBC study materials', 'Kenya secondary school notes', 'free study materials Kenya'],
+  openGraph: {
+    title: 'VibeSchool — Free CBC & Secondary Ebooks Kenya',
+    description: 'Free curriculum-aligned ebooks, past papers and exam materials for Kenyan students from Grade 1 to Form 4.',
+    url: 'https://www.vibeschool.co.ke',
+    siteName: 'VibeSchool',
+    locale: 'en_KE',
+    type: 'website',
+  },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
