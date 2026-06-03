@@ -62,3 +62,4 @@ env.local
 *.bak
 *.bak2
 .babelrc
+.github/workflows/
