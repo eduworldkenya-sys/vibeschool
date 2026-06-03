@@ -14,6 +14,8 @@
 
 html, body {
   height: 100%;
+  background-color: #05050F;
+  color: #ffffff;
 }
 
 /* VibeSchool Admin — Force dark theme across all admin pages */
