@@ -1,3 +1,4 @@
+"use client";
 // components/student/VibeTwin/ui/TwinMessages.tsx
 'use client'
 

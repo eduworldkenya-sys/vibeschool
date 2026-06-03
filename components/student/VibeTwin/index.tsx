@@ -1,3 +1,4 @@
+"use client";
 // components/student/VibeTwin/index.tsx
 'use client'
 
