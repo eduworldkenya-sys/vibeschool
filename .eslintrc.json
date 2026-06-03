@@ -5,9 +5,8 @@
     "react-hooks/exhaustive-deps": "warn",
     "@next/next/no-html-link-for-pages": "error",
     "no-console": "warn",
-    "prefer-const": "warn",
-    "react/no-unescaped-entities": "warn",
-    "@next/next/no-img-element": "warn",
-    "@next/next/next-script-for-ga": "warn"
+    "prefer-const": "error",
+    "react/no-unescaped-entities": "off",
+    "@next/next/no-img-element": "warn"
   }
 }

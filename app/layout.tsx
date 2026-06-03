@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { Jost, DM_Mono, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 
@@ -98,17 +99,7 @@ export default function RootLayout({
       className={`${jost.variable} ${dmMono.variable} ${cormorant.variable}`}
     >
       <body>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-VKBSGBYKKF" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-VKBSGBYKKF');
-            `,
-          }}
-        />
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
@@ -125,6 +116,18 @@ export default function RootLayout({
             `,
           }}
         />
+      <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-VKBSGBYKKF"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-VKBSGBYKKF');
+          `}
+        </Script>
       </body>
     </html>
   )
