@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
