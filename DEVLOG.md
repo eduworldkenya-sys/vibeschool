@@ -85,3 +85,7 @@
 ## [2026-06-03 15:48] 2d89853
 **What:** fix: useEffect missing return path in match page
 **Status:** ✅ pushed
+
+## [2026-06-03 15:58] 46bc8e6
+**What:** fix: useEffect missing return path in match page
+**Status:** ✅ pushed
