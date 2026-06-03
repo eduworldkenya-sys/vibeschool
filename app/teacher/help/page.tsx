@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 import { useState } from "react";
 import { Card, SectionLabel, Btn, C } from "@/components/teacher/ui";
 
