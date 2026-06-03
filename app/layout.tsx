@@ -55,6 +55,18 @@ export const metadata: Metadata = {
     siteName: 'VibeSchool',
     locale: 'en_KE',
     type: 'website',
+    images: [{
+      url: 'https://www.vibeschool.co.ke/icons/icon-512.svg',
+      width: 512,
+      height: 512,
+      alt: 'VibeSchool — Free CBC and Secondary Ebooks Kenya',
+    }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'VibeSchool — Free CBC & Secondary Ebooks Kenya',
+    description: 'Free curriculum-aligned ebooks, past papers and exam materials for Kenyan students from Grade 1 to Form 4.',
+    images: ['https://www.vibeschool.co.ke/icons/icon-512.svg'],
   },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
