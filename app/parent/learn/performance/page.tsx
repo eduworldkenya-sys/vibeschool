@@ -93,10 +93,9 @@ export default function BulletproofPerformancePortfolio() {
 
   // Fix Bug #6: Use a proper double requestAnimationFrame loop to ensure the DOM is painted safely on all devices
   useEffect(() => {
-    let frameId1: number; // eslint-disable-line prefer-const
     let frameId2: number;
 
-    frameId1 = requestAnimationFrame(() => {
+    const frameId1 = requestAnimationFrame(() => {
       frameId2 = requestAnimationFrame(() => {
         setExpandedSubject("math");
         setAnimatedSubjectIds({ math: true });
