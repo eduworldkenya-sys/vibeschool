@@ -1,5 +1,5 @@
-// components/global/layout/GlobalShellProvider.tsx
 'use client'
+// components/global/layout/GlobalShellProvider.tsx
 
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
