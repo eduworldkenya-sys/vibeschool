@@ -24,6 +24,22 @@ const cormorant = Cormorant_Garamond({
   variable: '--font-serif',
 })
 
+
+const schemaOrg = {
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  "name": "VibeSchool",
+  "url": "https://www.vibeschool.co.ke",
+  "description": "Free CBC and Secondary school ebooks, past papers and exam materials for Kenyan students.",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "KE"
+  },
+  "areaServed": "Kenya",
+  "educationalLevel": ["Primary", "Secondary", "CBC"],
+  "availableLanguage": "English"
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.vibeschool.co.ke'),
   title: {
@@ -70,6 +86,10 @@ export default function RootLayout({
       className={`${jost.variable} ${dmMono.variable} ${cormorant.variable}`}
     >
       <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
+        />
         {children}
         <script
           dangerouslySetInnerHTML={{
