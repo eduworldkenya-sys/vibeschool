@@ -40,7 +40,8 @@ const FORMAT_CARDS: FormatCardConfig[] = [
     subtitle:    'Audio-First Learning',
     description: 'Chaptered audio lessons, pods, and voice stories',
     accentColor: '#45B7D1',
-    isActive:    false,
+    isActive:    true,
+    route:       '/global/create/vibevoice',
   },
   {
     icon:        '🔬',

@@ -466,3 +466,143 @@ export interface VibeContent {
   created_at:   string
   submitted_by: string
 }
+
+// ─── VibeVoice ────────────────────────────────────────────────
+export type VVTier       = 'human' | 'ai'
+export type VVStatus     = 'pending' | 'approved' | 'live'
+export type VVQStatus    = 'open' | 'claimed' | 'complete'
+export type VVRoomStatus = 'active' | 'ended'
+export type VVLang       = 'swahili' | 'english' | 'kikuyu' | 'dholuo' | 'sheng'
+
+export interface VVNarration {
+  id:           string
+  title:        string
+  excerpt:      string | null
+  script:       string
+  language:     VVLang
+  subject:      string
+  tier:         VVTier
+  narrator_id:  string | null
+  trust_score:  number
+  play_count:   number
+  duration_sec: number
+  status:       VVStatus
+  created_at:   string
+}
+
+export interface VVQueueItem {
+  id:         string
+  title:      string
+  language:   VVLang
+  subject:    string
+  paragraphs: string[]
+  status:     VVQStatus
+  claimed_by: string | null
+  claimed_at: string | null
+  created_at: string
+}
+
+export interface VVReview {
+  id:           string
+  narration_id: string
+  reviewer_id:  string | null
+  approved:     boolean
+  asr_score:    number | null
+  created_at:   string
+}
+
+export interface VVLiveRoom {
+  id:         string
+  room_code:  string
+  topic:      string
+  language:   VVLang
+  host_id:    string
+  status:     VVRoomStatus
+  created_at: string
+  ended_at:   string | null
+}
+
+export interface VVScriptResponse {
+  script:     string
+  paragraphs: string[]
+}
+
+export interface VVTranslateResponse {
+  translation: string
+}
+
+export interface VVQuestionResponse {
+  question: string
+  options:  string[]
+  correct:  number
+}
+
+// ─── VibeVoice ────────────────────────────────────────────────
+export type VVTier       = 'human' | 'ai'
+export type VVStatus     = 'pending' | 'approved' | 'live'
+export type VVQStatus    = 'open' | 'claimed' | 'complete'
+export type VVRoomStatus = 'active' | 'ended'
+export type VVLang       = 'swahili' | 'english' | 'kikuyu' | 'dholuo' | 'sheng'
+
+export interface VVNarration {
+  id:           string
+  title:        string
+  excerpt:      string | null
+  script:       string
+  language:     VVLang
+  subject:      string
+  tier:         VVTier
+  narrator_id:  string | null
+  trust_score:  number
+  play_count:   number
+  duration_sec: number
+  status:       VVStatus
+  created_at:   string
+}
+
+export interface VVQueueItem {
+  id:         string
+  title:      string
+  language:   VVLang
+  subject:    string
+  paragraphs: string[]
+  status:     VVQStatus
+  claimed_by: string | null
+  claimed_at: string | null
+  created_at: string
+}
+
+export interface VVReview {
+  id:           string
+  narration_id: string
+  reviewer_id:  string | null
+  approved:     boolean
+  asr_score:    number | null
+  created_at:   string
+}
+
+export interface VVLiveRoom {
+  id:         string
+  room_code:  string
+  topic:      string
+  language:   VVLang
+  host_id:    string
+  status:     VVRoomStatus
+  created_at: string
+  ended_at:   string | null
+}
+
+export interface VVScriptResponse {
+  script:     string
+  paragraphs: string[]
+}
+
+export interface VVTranslateResponse {
+  translation: string
+}
+
+export interface VVQuestionResponse {
+  question: string
+  options:  string[]
+  correct:  number
+}
