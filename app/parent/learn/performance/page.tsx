@@ -93,7 +93,7 @@ export default function BulletproofPerformancePortfolio() {
 
   // Fix Bug #6: Use a proper double requestAnimationFrame loop to ensure the DOM is painted safely on all devices
   useEffect(() => {
-    let frameId1: number;
+    const frameId1: number;
     let frameId2: number;
 
     frameId1 = requestAnimationFrame(() => {

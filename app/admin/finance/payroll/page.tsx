@@ -172,7 +172,7 @@ export default function PayrollPage() {
     }
 
     const staffIds = Array.from(new Set(lines.map((l: PayrollLine) => l.staff_id).filter(Boolean)))
-    let nameMap: Record<string, string> = {}
+    const nameMap: Record<string, string> = {}
     if (staffIds.length > 0) {
       const { data: profiles } = await supabase
         .from("profiles")

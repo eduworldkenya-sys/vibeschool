@@ -231,7 +231,7 @@ export default function FinancePage() {
         ...rawPay.map((p: { student_id: string }) => p.student_id),
       ])).filter(Boolean)
 
-      let studentMap: Record<string, string> = {}
+      const studentMap: Record<string, string> = {}
       if (studentIds.length > 0) {
         const { data: studs } = await supabase.from("students").select("id,name").in("id", studentIds)
         ;(studs ?? []).forEach((s: { id: string; name: string }) => { studentMap[s.id] = s.name })

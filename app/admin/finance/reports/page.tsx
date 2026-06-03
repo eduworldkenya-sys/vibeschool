@@ -223,7 +223,7 @@ export default function ReportsPage() {
       const expByAccount: Record<string, { name: string; amount: number }> = {}
       const accountIds = Array.from(new Set(expList.map((e: { account_id: string }) => e.account_id).filter(Boolean)))
 
-      let accountNames: Record<string, string> = {}
+      const accountNames: Record<string, string> = {}
       if (accountIds.length > 0) {
         const { data: accs } = await supabase
           .from("finance_accounts")
@@ -266,7 +266,7 @@ export default function ReportsPage() {
 
       const accountIds = Array.from(new Set((budgets ?? []).map((b: { account_id: string }) => b.account_id).filter(Boolean)))
 
-      let accountNames: Record<string, string> = {}
+      const accountNames: Record<string, string> = {}
       if (accountIds.length > 0) {
         const { data: accs } = await supabase
           .from("finance_accounts")
