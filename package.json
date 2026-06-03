@@ -31,7 +31,6 @@
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@babel/plugin-transform-private-methods": "^7.29.7",
-    "@next/swc-wasm-nodejs": "^16.2.7",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
