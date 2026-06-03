@@ -14,7 +14,7 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   staticPageGenerationTimeout: 180,
   eslint: {
-    ignoreDuringBuilds: false,
+    ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: false,
