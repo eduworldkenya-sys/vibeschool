@@ -1,9 +1,25 @@
 /** @type {import('next').NextConfig} */
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ⚠️  VIBESCHOOL BUILD SAFETY RULES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NEVER add defaultLoaders.babel to webpack config
+// NEVER add @next/swc-wasm-nodejs to dependencies
+// NEVER commit .babelrc to this repo
+// NEVER disable SWC — it handles "use client" detection
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 const nextConfig = {
   compress: true,
   productionBrowserSourceMaps: false,
   swcMinify: false,
   staticPageGenerationTimeout: 180,
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
 };
 
 module.exports = nextConfig;
