@@ -81,3 +81,7 @@
 ## [2026-06-03 15:45] 93a1f47
 **What:** chore: ignore ESLint during builds to unblock Vercel
 **Status:** ✅ pushed
+
+## [2026-06-03 15:48] 2d89853
+**What:** fix: useEffect missing return path in match page
+**Status:** ✅ pushed
