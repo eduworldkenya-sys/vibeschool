@@ -8,7 +8,7 @@ import { GlobalHeader } from '@/components/global/layout/GlobalHeader'
 import { GlobalBottomNav } from '@/components/global/layout/GlobalBottomNav'
 
 const HIDE_SHELL_PATHS = [
-  '/global/signin',
+  '/global/signup',
   '/global/signup',
 ]
 
@@ -57,7 +57,7 @@ export function GlobalShellProvider({ children }: { children: React.ReactNode })
   }, [])
 
   const triggerAuthPrompt = (_action: 'write' | 'vibe' | 'save' | 'create') => {
-    router.push('/global/signin')
+    router.push('/global/signup')
   }
 
   const hideShell = HIDE_SHELL_PATHS.some(p => pathname.startsWith(p))
