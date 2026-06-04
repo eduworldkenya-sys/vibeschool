@@ -106,7 +106,7 @@ export default function GlobalSignUp() {
         <div id="scan-line" aria-hidden />
         <div className={styles.content} ref={contentRef}>
 
-          <button className={styles.back} onClick={() => fadeOut('/global/signin')} aria-label="Back to sign in">←</button>
+          <button className={styles.back} onClick={() => fadeOut('/')} aria-label="Back to sign in">←</button>
 
           <p className={styles.world}>GLOBAL</p>
           <p className={styles.heading}>CREATE ACCOUNT</p>
@@ -154,8 +154,8 @@ export default function GlobalSignUp() {
           <p className={styles.switch}>
             Already have an account?{' '}
             <span className={styles.switchLink} role="button" tabIndex={0}
-              onClick={() => fadeOut('/global/signin')}
-              onKeyDown={e => { if (e.key === 'Enter') fadeOut('/global/signin') }}>
+              onClick={() => fadeOut('/')}
+              onKeyDown={e => { if (e.key === 'Enter') fadeOut('/') }}>
               Sign in
             </span>
           </p>
