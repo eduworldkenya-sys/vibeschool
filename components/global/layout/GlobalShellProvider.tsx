@@ -1,5 +1,4 @@
 "use client"
-// components/global/layout/GlobalShellProvider.tsx
 
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
@@ -11,8 +10,6 @@ import { GlobalBottomNav } from '@/components/global/layout/GlobalBottomNav'
 const HIDE_SHELL_PATHS = [
   '/global/signin',
   '/global/signup',
-  '/global/read',
-  '/global/create',
 ]
 
 export function GlobalShellProvider({ children }: { children: React.ReactNode }) {
