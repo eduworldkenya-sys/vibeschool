@@ -1,4 +1,3 @@
-"use client";
 'use client'
 
 import React from 'react'
@@ -21,11 +20,11 @@ export function GlobalBottomNav({ isLoggedIn, onAuthPrompt }: GlobalBottomNavPro
   const router = useRouter()
 
   const tabs: NavTab[] = [
-    { label: 'Home',     path: '/global',            icon: '🏠' },
-    { label: 'Read',     path: '/global/chronicles',  icon: '📖' },
-    { label: 'Create',   path: '/global/create',      icon: '➕', isCenter: true },
-    { label: 'Vibes',    path: '/global/vibes',        icon: '📄' },
-    { label: 'Profile',  path: '/global/profile',      icon: '👤' },
+    { label: 'Home',    path: '/global/dashboard', icon: '🏠' },
+    { label: 'Read',    path: '/global/read',       icon: '📖' },
+    { label: 'Create',  path: '/global/create',     icon: '➕', isCenter: true },
+    { label: 'Vibes',   path: '/global/vibes',      icon: '✦' },
+    { label: 'Profile', path: '/global/profile',    icon: '👤' },
   ]
 
   const handleTabClick = (tab: NavTab) => {
@@ -34,10 +33,17 @@ export function GlobalBottomNav({ isLoggedIn, onAuthPrompt }: GlobalBottomNavPro
       return
     }
     if (tab.path === '/global/profile' && !isLoggedIn) {
-      router.push('/global/signin')
+      router.push('/global/signup')
       return
     }
     router.push(tab.path)
+  }
+
+  const isTabActive = (tab: NavTab) => {
+    if (tab.path === '/global/dashboard') {
+      return pathname === '/global/dashboard' || pathname === '/global'
+    }
+    return pathname.startsWith(tab.path)
   }
 
   return (
@@ -49,7 +55,8 @@ export function GlobalBottomNav({ isLoggedIn, onAuthPrompt }: GlobalBottomNavPro
       zIndex: 90, boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
     }}>
       {tabs.map((tab) => {
-        const isActive = pathname === tab.path || (tab.path !== '/global' && pathname.startsWith(tab.path))
+        const isActive = isTabActive(tab)
+
         if (tab.isCenter) {
           return (
             <div
@@ -66,6 +73,7 @@ export function GlobalBottomNav({ isLoggedIn, onAuthPrompt }: GlobalBottomNavPro
             </div>
           )
         }
+
         return (
           <div
             key={tab.label}
@@ -82,7 +90,9 @@ export function GlobalBottomNav({ isLoggedIn, onAuthPrompt }: GlobalBottomNavPro
                 backgroundColor: '#CCFF00', borderRadius: '0 0 2px 2px',
               }} />
             )}
-            <span style={{ fontSize: 18, opacity: isActive ? 1 : 0.5 }}>{tab.icon}</span>
+            <span style={{ fontSize: 18, opacity: isActive ? 1 : 0.5 }}>
+              {tab.icon}
+            </span>
             <span style={{
               fontSize: 10, marginTop: 2,
               color: isActive ? '#CCFF00' : 'rgba(255,255,255,0.4)',
