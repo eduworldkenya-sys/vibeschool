@@ -101,3 +101,7 @@
 ## [2026-06-05 11:50] 933d1b8
 **What:** fix: remove ghost nav routes from teacher layout
 **Status:** ✅ pushed
+
+## [2026-06-05 12:13] a0bc70b
+**What:** fix: remove ghost routes from teacher tray nav
+**Status:** ✅ pushed
