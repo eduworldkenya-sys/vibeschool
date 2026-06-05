@@ -105,3 +105,7 @@
 ## [2026-06-05 12:13] a0bc70b
 **What:** fix: remove ghost routes from teacher tray nav
 **Status:** ✅ pushed
+
+## [2026-06-05 12:18] 85a846a
+**What:** fix: restore full teacher tray nav — all real pages linked
+**Status:** ✅ pushed
