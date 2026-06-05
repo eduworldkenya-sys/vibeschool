@@ -212,7 +212,7 @@ export default function ParentStudentsPage() {
 
   const fetchChildren = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/academy/signin?role=parent"); return; }
+    if (!user) { router.push("/admin/login"); return; }
 
     const { data: links } = await supabase
       .from("parent_student_links")

@@ -49,7 +49,7 @@ function HarmonizeInner() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/academy/signin?role=parent&next=/parent/harmonize?sid=' + sid)
+      router.push('/admin/login&next=/parent/harmonize?sid=' + sid)
       return
     }
 
@@ -122,7 +122,7 @@ function HarmonizeInner() {
     setLinking(true)
     setError('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=parent'); return }
+    if (!user) { router.push('/admin/login'); return }
 
     // Mark token as claimed
     if (token) {

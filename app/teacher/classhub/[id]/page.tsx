@@ -84,7 +84,7 @@ function ClassPageInner() {
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=teacher'); return }
+    if (!user) { router.push('/admin/login'); return }
 
     const classQuery = isSubject
       ? supabase.from('classes').select('name, stream, subject').eq('id', classId).single()

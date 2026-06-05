@@ -24,7 +24,7 @@ export default function StudentClaimPage() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=student'); return }
+    if (!user) { router.push('/admin/login'); return }
 
     const code = claimCode.trim().toUpperCase()
 

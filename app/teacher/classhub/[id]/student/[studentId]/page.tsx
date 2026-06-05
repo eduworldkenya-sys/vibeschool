@@ -747,7 +747,7 @@ function StudentProfileInner() {
   async function loadAll() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=teacher'); return }
+    if (!user) { router.push('/admin/login'); return }
 
     // FIX: removed duplicate subjects query — fetch once only
     const [

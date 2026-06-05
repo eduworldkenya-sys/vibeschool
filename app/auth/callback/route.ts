@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
         // New Google user — send to complete profile with role hint
         return NextResponse.redirect(
-          new URL(`/academy/complete-profile?role=${role}`, req.url)
+          new URL("/", req.url)
         )
       }
     }

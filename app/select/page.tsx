@@ -67,8 +67,8 @@ export default function Select() {
             <div className={`${styles.card} ${styles.cardAcademy}`}
               role="button" tabIndex={0}
               aria-label="Enter Academy — for schools, teachers and institutions"
-              onClick={() => fadeOut('/academy/select-role')}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fadeOut('/academy/select-role') } }}>
+              onClick={() => fadeOut('/admin/login')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fadeOut('/admin/login') } }}>
               <div className={styles.cardGlowAcademy} aria-hidden />
               <div className={styles.cardBody}>
                 <p className={styles.cardTitle}>ACADEMY</p>

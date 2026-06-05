@@ -174,7 +174,7 @@ export default function ParentProfilePage() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=parent'); return }
+    if (!user) { router.push('/admin/login'); return }
 
     const [profileRes, parentRes, linksRes] = await Promise.all([
       supabase
@@ -269,7 +269,7 @@ export default function ParentProfilePage() {
   // ─── Sign out ──────────────────────────────────────────────────────────────
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut()
-    router.push('/academy/signin?role=parent')
+    router.push('/admin/login')
   }, [router])
 
   // ─── Render ────────────────────────────────────────────────────────────────

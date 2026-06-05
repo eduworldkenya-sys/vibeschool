@@ -143,7 +143,7 @@ export default function SettingsPage() {
   }, []);
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/academy/signin?role=teacher')
+    router.push('/admin/login')
   }
 
   // ── Save ──────────────────────────────────────────────────────────────

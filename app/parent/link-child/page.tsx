@@ -25,7 +25,7 @@ export default function LinkChildPage() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=parent'); return }
+    if (!user) { router.push('/admin/login'); return }
 
     const { data: codeRow } = await supabase
       .from('student_claim_codes')

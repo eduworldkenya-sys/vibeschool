@@ -685,7 +685,7 @@ export default function RootPage() {
                 </div>
 
                 <div style={S.forgotRow}>
-                  <button style={S.forgot} onClick={() => router.push('/academy/forgot-password')}>
+                  <button style={S.forgot} onClick={() => router.push('/admin/login')}>
                     Forgot password?
                   </button>
                 </div>

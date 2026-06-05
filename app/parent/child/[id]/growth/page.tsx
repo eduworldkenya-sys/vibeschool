@@ -144,7 +144,7 @@ export default function GrowthPage() {
     if (!id) return;
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/academy/signin?role=parent"); return; }
+    if (!user) { router.push("/admin/login"); return; }
     setUserId(user.id);
     const { data: student } = await supabase.from("students").select("name").eq("id", id).single();
     setChildName(student?.name ?? "");

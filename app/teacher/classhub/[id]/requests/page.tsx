@@ -37,7 +37,7 @@ export default function JoinRequestsPage() {
 
   async function loadRequests() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/academy/signin?role=teacher'); return }
+    if (!user) { router.push('/admin/login'); return }
 
     const { data: cls } = await supabase
       .from('classes')

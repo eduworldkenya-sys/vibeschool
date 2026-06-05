@@ -168,7 +168,7 @@ export default function ChildDetailPage() {
   const fetchAll = useCallback(async () => {
     if (!id) return;
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/academy/signin?role=parent"); return; }
+    if (!user) { router.push("/admin/login"); return; }
 
     // Student
     const { data: student } = await supabase

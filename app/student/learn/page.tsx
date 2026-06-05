@@ -103,7 +103,7 @@ export default function LearnPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/academy/signin?role=student'); return }
+      if (!user) { router.push('/admin/login'); return }
 
       const [profileRes, studentRes] = await Promise.all([
         supabase.from('profiles').select('full_name').eq('id', user.id).single(),

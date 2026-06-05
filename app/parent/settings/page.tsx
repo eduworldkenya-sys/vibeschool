@@ -185,7 +185,7 @@ export default function ParentSettingsPage() {
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
     await supabase.auth.signOut();
-    router.push("/academy/signin?role=parent");
+    router.push("/admin/login");
   }, [router]);
 
   // ── Toggle notif ──────────────────────────────────────────────────────────
