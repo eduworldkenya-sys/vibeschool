@@ -56,7 +56,7 @@ export default function AcademicReportPage() {
           score,
           grade,
           subjects(name),
-          students(full_name, admission_number),
+          students(name, admission_number),
           classes(name)
         `)
         .eq('term_id', selectedTerm)
@@ -67,7 +67,7 @@ export default function AcademicReportPage() {
       if (error) throw error
 
       const mapped: GradeSummary[] = (data || []).map((r: any) => ({
-        student_name: r.students?.full_name ?? '—',
+        student_name: r.students?.name ?? '—',
         admission_number: r.students?.admission_number ?? '—',
         class_name: r.classes?.name ?? '—',
         subject: r.subjects?.name ?? '—',

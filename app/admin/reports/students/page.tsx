@@ -94,12 +94,12 @@ export default function StudentsReportPage() {
   async function fetchHealth() {
     const { data, error } = await supabase
       .from('health_records')
-      .select('*, students(full_name)')
+      .select('*, students(name)')
       .order('created_at', { ascending: false })
       .limit(200)
     if (error) { console.error(error); return }
     const rows: HealthRow[] = (data || []).map((r: any) => ({
-      student_name: r.students?.full_name ?? '—',
+      student_name: r.students?.name ?? '—',
       condition: r.condition ?? r.diagnosis ?? '—',
       diagnosed_date: r.diagnosed_date ?? r.date ?? '—',
       notes: r.notes ?? '—',
@@ -111,12 +111,12 @@ export default function StudentsReportPage() {
   async function fetchLibrary() {
     const { data, error } = await supabase
       .from('library_borrowings')
-      .select('*, library_books(title), students(full_name)')
+      .select('*, library_books(title), students(name)')
       .order('borrowed_date', { ascending: false })
       .limit(200)
     if (error) { console.error(error); return }
     const rows: LibraryRow[] = (data || []).map((r: any) => ({
-      student_name: r.students?.full_name ?? '—',
+      student_name: r.students?.name ?? '—',
       book_title: r.library_books?.title ?? '—',
       borrowed_date: r.borrowed_date ?? '—',
       return_date: r.return_date ?? '—',
@@ -130,12 +130,12 @@ export default function StudentsReportPage() {
   async function fetchBadges() {
     const { data, error } = await supabase
       .from('child_badges')
-      .select('*, badges(name), students(full_name)')
+      .select('*, badges(name), students(name)')
       .order('awarded_date', { ascending: false })
       .limit(200)
     if (error) { console.error(error); return }
     const rows: BadgeRow[] = (data || []).map((r: any) => ({
-      student_name: r.students?.full_name ?? '—',
+      student_name: r.students?.name ?? '—',
       badge_name: r.badges?.name ?? r.badge_name ?? '—',
       awarded_date: r.awarded_date ?? '—',
     }))

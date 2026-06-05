@@ -58,7 +58,7 @@ export default function FinanceReportPage() {
         total_amount,
         amount_paid,
         status,
-        students(full_name, admission_number),
+        students(name, admission_number),
         classes(name)
       `)
       .limit(300)
@@ -66,7 +66,7 @@ export default function FinanceReportPage() {
     if (error) { console.error(error); return }
 
     const rows: FeeRow[] = (data || []).map((r: any) => ({
-      student_name: r.students?.full_name ?? '—',
+      student_name: r.students?.name ?? '—',
       admission_number: r.students?.admission_number ?? '—',
       class_name: r.classes?.name ?? '—',
       invoiced: Number(r.total_amount ?? 0),

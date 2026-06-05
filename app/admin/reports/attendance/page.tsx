@@ -54,7 +54,7 @@ export default function AttendanceReportPage() {
         .from('attendance')
         .select(`
           status,
-          students(full_name, admission_number),
+          students(name, admission_number),
           classes(name)
         `)
         .eq('term_id', selectedTerm)
@@ -70,7 +70,7 @@ export default function AttendanceReportPage() {
         const key = (r.students as any)?.admission_number ?? 'unknown'
         if (!map[key]) {
           map[key] = {
-            student_name: (r.students as any)?.full_name ?? '—',
+            student_name: (r.students as any)?.name ?? '—',
             admission_number: key,
             class_name: (r.classes as any)?.name ?? '—',
             present: 0, absent: 0, late: 0, total: 0, rate: 0,
