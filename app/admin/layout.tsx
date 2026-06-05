@@ -191,8 +191,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         schoolId:   p.school_id,
         logoUrl:    schoolData?.logo_url ?? null,
       })
-    } catch {
-      router.push("/admin/login")
+    } catch (err) { console.error("AdminLayout error:", err)
+
     } finally {
       setLoading(false)
     }
