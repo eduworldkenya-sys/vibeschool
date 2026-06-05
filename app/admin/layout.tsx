@@ -172,7 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   async function loadProfile() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession(); const user = session?.user
       if (!user) { router.push("/admin/login"); return }
 
       const { data: p, error: pError } = await supabase
