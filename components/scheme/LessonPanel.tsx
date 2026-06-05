@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
 import { CBC_CURRICULUM, getLessonContext, getParentBrief } from '@/lib/curriculum'
