@@ -176,7 +176,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .eq("id", user.id)
         .single()
 
-      if (pError || !p || p.role !== "admin") { router.push("/admin/login"); return }
+      if (pError) { console.error("LAYOUT_PERROR:", JSON.stringify(pError)); router.push("/admin/login"); return }
+      if (!p) { console.error("LAYOUT_NOPROFILE: no profile row"); router.push("/admin/login"); return }
+      if (p.role !== "admin") { console.error("LAYOUT_ROLE:", p.role); router.push("/admin/login"); return }
 
       const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
 
@@ -186,7 +188,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         schoolId:   p.school_id,
         logoUrl:    schoolData?.logo_url ?? null,
       })
-    } catch {
+    } catch (err) {
+      console.error("LAYOUT_CATCH:", err)
       router.push("/admin/login")
     } finally {
       setLoading(false)
