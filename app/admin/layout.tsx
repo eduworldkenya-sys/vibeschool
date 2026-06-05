@@ -22,102 +22,97 @@ interface AdminProfile {
   logoUrl:    string | null
 }
 
-function SvgHome({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
-}
-function SvgStudents({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-}
-function SvgStaff({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-}
-function SvgFinance({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h2M10 15h4"/></svg>
-}
-function SvgAcademics({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-}
-function SvgAttendance({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-}
-function SvgMeetings({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-}
-function SvgVisitors({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-}
-function SvgProjects({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-}
-function SvgConnect({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-}
-function SvgResources({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-}
-function SvgReports({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-}
-function SvgSettings({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-}
-function SvgSignOut({ col }: { col: string }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-}
-
-function IconHome({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? C.emerald : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
-}
-function IconStudents({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? C.emerald : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-}
-function IconFinance({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? C.emerald : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h2M10 15h4"/></svg>
-}
-function IconAcademics({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? C.emerald : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-}
-function IconMore({ active }: { active: boolean }) {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? C.emerald : "#94a3b8"} strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-}
-
 const NAV_GROUPS = [
   {
     label: "Main",
     items: [
-      { id: "dashboard",  label: "School Hub",  Icon: SvgHome,       href: "/admin"               },
-      { id: "students",   label: "Students",    Icon: SvgStudents,   href: "/admin/students"      },
-      { id: "staff",      label: "Staff",       Icon: SvgStaff,      href: "/admin/staff"         },
-      { id: "finance",    label: "Finance",     Icon: SvgFinance,    href: "/admin/finance"       },
-      { id: "academics",  label: "Academics",   Icon: SvgAcademics,  href: "/admin/academics"     },
+      { id: "dashboard",  label: "School Hub",  icon: "🏠", href: "/admin"               },
+      { id: "students",   label: "Students",    icon: "🎓", href: "/admin/students"      },
+      { id: "staff",      label: "Staff",       icon: "👥", href: "/admin/staff"         },
+      { id: "finance",    label: "Finance",     icon: "💰", href: "/admin/finance"       },
+      { id: "academics",  label: "Academics",   icon: "📚", href: "/admin/academics"     },
     ],
   },
   {
     label: "Daily Ops",
     items: [
-      { id: "attendance", label: "Attendance",  Icon: SvgAttendance, href: "/admin/attendance"    },
-      { id: "meetings",   label: "Meetings",    Icon: SvgMeetings,   href: "/admin/meetings"      },
-      { id: "visitors",   label: "Visitors",    Icon: SvgVisitors,   href: "/admin/visitors"      },
+      { id: "attendance", label: "Attendance",  icon: "📋", href: "/admin/attendance"    },
+      { id: "meetings",   label: "Meetings",    icon: "🗓️", href: "/admin/meetings"      },
+      { id: "visitors",   label: "Visitors",    icon: "🚪", href: "/admin/visitors"      },
     ],
   },
   {
     label: "Management",
     items: [
-      { id: "projects",      label: "Projects",    Icon: SvgProjects,  href: "/admin/projects"      },
-      { id: "communication", label: "VibeConnect", Icon: SvgConnect,   href: "/admin/communication" },
-      { id: "resources",     label: "Resources",   Icon: SvgResources, href: "/admin/resources"     },
-      { id: "reports",       label: "Reports",     Icon: SvgReports,   href: "/admin/reports"       },
+      { id: "projects",      label: "Projects",    icon: "🚀", href: "/admin/projects"      },
+      { id: "communication", label: "VibeConnect", icon: "💬", href: "/admin/communication" },
+      { id: "resources",     label: "Resources",   icon: "🏫", href: "/admin/resources"     },
+      { id: "reports",       label: "Reports",     icon: "📊", href: "/admin/reports"       },
     ],
   },
   {
     label: "System",
     items: [
-      { id: "settings", label: "Settings", Icon: SvgSettings, href: "/admin/settings" },
+      { id: "settings", label: "Settings", icon: "⚙️", href: "/admin/settings" },
     ],
   },
 ]
 
 const NAV_ITEMS = NAV_GROUPS.flatMap(g => g.items)
+
+function IconHome({ active }: { active: boolean }) {
+  const col = active ? C.emerald : "#94a3b8"
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+  )
+}
+
+function IconStudents({ active }: { active: boolean }) {
+  const col = active ? C.emerald : "#94a3b8"
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+      <path d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  )
+}
+
+function IconFinance({ active }: { active: boolean }) {
+  const col = active ? C.emerald : "#94a3b8"
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"/>
+      <path d="M2 10h20"/>
+      <path d="M6 15h2M10 15h4"/>
+    </svg>
+  )
+}
+
+function IconAcademics({ active }: { active: boolean }) {
+  const col = active ? C.emerald : "#94a3b8"
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+    </svg>
+  )
+}
+
+function IconMore({ active }: { active: boolean }) {
+  const col = active ? C.emerald : "#94a3b8"
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  )
+}
 
 const BOTTOM_NAV = [
   { label: "Home",      Icon: IconHome,      href: "/admin"           },
@@ -177,24 +172,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       const { data: p, error: pError } = await supabase
         .from("profiles")
-        .select(`
-          full_name,
-          school_id,
-          role,
-          schools (
-            name,
-            logo_url
-          )
-        `)
+        .select(`full_name, school_id, role, schools ( name, logo_url )`)
         .eq("id", user.id)
         .single()
 
-      if (pError || !p || p.role !== "admin") {
-        router.push("/admin/login")
-        return
-      }
+      if (pError || !p || p.role !== "admin") { router.push("/admin/login"); return }
 
-      const schoolData: any = p.schools
+      const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
 
       setProfile({
         name:       p.full_name ?? "Principal",
@@ -223,7 +207,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div style={{ width: "48px", height: "48px", border: `3px solid rgba(16,185,129,0.2)`, borderTop: `3px solid ${C.emerald}`, borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
           <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "13px" }}>Loading...</p>
         </div>
-        <style>{\`@keyframes spin { to { transform: rotate(360deg) } }\`}</style>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
   }
@@ -244,15 +228,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div onClick={() => setSidebar(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40, backdropFilter: "blur(4px)" }} />
       )}
 
+      {/* SIDEBAR */}
       <aside style={{
         position: "fixed", top: 0, left: 0,
         transform: sidebarOpen ? "translateX(0)" : "translateX(-280px)",
         width: "270px", height: "100vh",
-        background: \`linear-gradient(180deg, \${C.hero} 0%, \${C.heroMid} 100%)\`,
+        background: `linear-gradient(180deg, ${C.hero} 0%, ${C.heroMid} 100%)`,
         zIndex: 50, display: "flex", flexDirection: "column",
-        transition: "transform 0.3s cubic-bezier(.4,0,.2,1)",
+        transition: "transform 0.3s cubic-bezier(.4,0,.2,1)", overflowY: "auto",
       }}>
-        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", position: "relative", flexShrink: 0 }}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", position: "relative" }}>
           <button
             onClick={() => setSidebar(false)}
             style={{
@@ -260,7 +245,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               width: "30px", height: "30px", borderRadius: "8px",
               background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)",
               color: "rgba(255,255,255,0.6)", fontSize: "16px", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
+              display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
             }}
           >✕</button>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -272,32 +257,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <nav style={{ padding: "10px 12px", flex: 1, overflowY: "auto" }}>
+        <nav style={{ padding: "10px 12px", flex: 1 }}>
           {NAV_GROUPS.map((group, gi) => (
-            <div key={group.label} style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? "4px" : 0 }}>
+            <div key={group.label} style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? "6px" : 0 }}>
               <div style={{ color: "rgba(255,255,255,0.28)", fontSize: "10px", fontWeight: "700", letterSpacing: "1.1px", textTransform: "uppercase", padding: "10px 12px 6px" }}>
                 {group.label}
               </div>
               {group.items.map(item => {
                 const active = isActive(item.href)
-                const iconCol = active ? C.emerald : "rgba(255,255,255,0.6)"
                 return (
                   <button
                     key={item.id}
                     onClick={() => { router.push(item.href); setSidebar(false) }}
                     style={{
                       width: "100%", display: "flex", alignItems: "center", gap: "12px",
-                      padding: "10px 12px", borderRadius: "10px", border: "none",
-                      borderLeft: active ? \`3px solid \${C.emerald}\` : "3px solid transparent",
+                      padding: "11px 14px", borderRadius: "10px", border: "none",
+                      borderLeft: active ? `3px solid ${C.emerald}` : "3px solid transparent",
                       background: active ? "rgba(16,185,129,0.13)" : "transparent",
                       color: active ? C.emerald : "rgba(255,255,255,0.88)",
                       fontSize: "13.5px", fontWeight: active ? "700" : "500",
                       cursor: "pointer", textAlign: "left", marginBottom: "1px", transition: "all 0.15s ease",
                     }}
                   >
-                    <span style={{ width: "22px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <item.Icon col={iconCol} />
-                    </span>
+                    <span style={{ fontSize: "16px", width: "22px", textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
                     <span style={{ flex: 1 }}>{item.label}</span>
                     {active && <span style={{ color: C.emerald, fontSize: "16px", opacity: 0.8 }}>›</span>}
                   </button>
@@ -310,26 +292,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        <div style={{ padding: "12px 16px 24px", borderTop: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+        <div style={{ padding: "12px 12px 16px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
           <button
             onClick={handleSignOut}
             style={{
-              width: "100%", padding: "13px 16px", borderRadius: "12px",
-              border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.12)",
-              color: "#f87171", fontSize: "14px", fontWeight: "700", cursor: "pointer",
+              width: "100%", padding: "12px 14px", borderRadius: "10px",
+              border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.08)",
+              color: "#ef4444", fontSize: "13px", fontWeight: "600", cursor: "pointer",
               display: "flex", alignItems: "center", gap: "10px",
-              transition: "background 0.15s ease",
             }}
           >
-            <SvgSignOut col="#f87171" />
-            Sign Out
+            <span>🚪</span> Sign Out
           </button>
         </div>
       </aside>
 
+      {/* TOP HEADER */}
       <header style={{
         position: "sticky", top: 0, zIndex: 30,
-        background: \`linear-gradient(135deg, \${C.hero} 0%, \${C.heroMid} 100%)\`,
+        background: `linear-gradient(135deg, ${C.hero} 0%, ${C.heroMid} 100%)`,
         borderBottom: "1px solid rgba(255,255,255,0.07)",
         padding: "0 16px", height: "60px",
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
@@ -370,6 +351,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </header>
       <OfflineBar />
 
+      {/* MAIN */}
       <main style={{
         flex: 1, padding: "20px 16px 90px", overflowX: "hidden",
         width: "100%", maxWidth: "900px", margin: "0 auto",
@@ -378,9 +360,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
 
+      {/* BOTTOM NAV */}
       <nav style={{
         position: "fixed", bottom: 0, left: 0, right: 0, height: "64px",
-        background: "#ffffff", borderTop: \`1px solid \${C.border}\`,
+        background: "#ffffff", borderTop: `1px solid ${C.border}`,
         display: "flex", zIndex: 30, boxShadow: "0 -2px 16px rgba(0,0,0,0.07)",
       }}>
         {BOTTOM_NAV.map((n, i) => {
@@ -411,17 +394,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         })}
       </nav>
 
-      <style>{\`
+      <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
         * { box-sizing: border-box; margin: 0; }
         html, body { overflow-x: hidden; max-width: 100vw; }
         button:active { transform: scale(0.97); }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
         input::placeholder { color: rgba(255,255,255,0.3); }
         select option { background: #1e293b; color: #fff; }
-      \`}</style>
+      `}</style>
     </div>
   )
 }
