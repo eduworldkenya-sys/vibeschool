@@ -426,12 +426,12 @@ interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
 const TRAY_ITEMS: Record<string, TrayItem[]> = {
   classhub: [
-    { label: "Classes",    icon: <IconClassHub   size={24} />, href: "/teacher"   },
+    { label: "Classes",    icon: <IconClassHub   size={24} />, href: "/teacher"            },
     { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance" },
   ],
   vibelearn: [
-    { label: "VibeLearn",   icon: <IconVibeLearn   size={24} />, href: "/teacher/vibelearn"         },
-    { label: "Resources",   icon: <IconResources   size={24} />, href: "/teacher/resources"         },
+    { label: "VibeLearn", icon: <IconVibeLearn size={24} />, href: "/teacher/vibelearn" },
+    { label: "Resources", icon: <IconResources size={24} />, href: "/teacher/resources" },
   ],
   lessonplan: [
     { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan" },
@@ -440,10 +440,11 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
   assessment: [
     { label: "Assessment",   icon: <IconAssess     size={24} />, href: "/teacher/assessment"              },
     { label: "Results",      icon: <IconResults    size={24} />, href: "/teacher/results"                 },
+    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card/all" },
   ],
   more: [
-    { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
-    { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
+    { label: "Profile", icon: <IconProfile size={24} />, href: "/teacher/profile" },
+    { label: "Help",    icon: <IconHelp    size={24} />, href: "/teacher/help"    },
   ],
 }
 
