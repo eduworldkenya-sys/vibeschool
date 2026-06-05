@@ -272,7 +272,7 @@ export default function SmartInsightSlides() {
 
               <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                 <button
-                  onClick={() => router.push('/teacher/students')}
+                  onClick={() => router.push('/teacher/classhub')}
                   style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: '1.5px solid rgba(96,200,245,0.4)', background: 'rgba(96,200,245,0.1)', color: '#60c8f5', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   View Profile →

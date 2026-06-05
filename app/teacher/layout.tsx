@@ -428,30 +428,22 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
   classhub: [
     { label: "Classes",    icon: <IconClassHub   size={24} />, href: "/teacher"   },
     { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance" },
-    { label: "Timetable",  icon: <IconTimetable  size={24} />, href: "/teacher/timetable"  },
-    { label: "SchoolHub",  icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub"  },
   ],
   vibelearn: [
     { label: "VibeLearn",   icon: <IconVibeLearn   size={24} />, href: "/teacher/vibelearn"         },
-    { label: "Indexer",     icon: <IconIndexer     size={24} />, href: "/teacher/vibelearn/indexer" },
     { label: "Resources",   icon: <IconResources   size={24} />, href: "/teacher/resources"         },
-    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect"       },
   ],
   lessonplan: [
     { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan" },
-    { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"     },
     { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub" },
   ],
   assessment: [
     { label: "Assessment",   icon: <IconAssess     size={24} />, href: "/teacher/assessment"              },
     { label: "Results",      icon: <IconResults    size={24} />, href: "/teacher/results"                 },
-    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card/all" },
   ],
   more: [
     { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
-    { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
     { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
-    { label: "TPAD",     icon: <IconTPAD     size={24} />, href: "/teacher/tpad"     },
   ],
 }
 
@@ -615,7 +607,7 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
         {/* VibeConnect — always visible, badge only when unread */}
         <div
           style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }}
-          onClick={() => router.push("/teacher/vibeconnect")}
+          onClick={() => router.push("/teacher/vibelearn")}
         >
           <svg
             width="22" height="22" viewBox="0 0 24 24"

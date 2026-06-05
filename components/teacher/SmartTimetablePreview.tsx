@@ -320,7 +320,7 @@ export default function SmartTimetablePreview() {
             <StatRow label="First lesson" value={firstLesson ? `${firstLesson.subject} · ${formatTime(firstLesson.startTime)}` : '—'} accent="#60c8f5" />
             <StatRow label="Lessons remaining" value={pendingLessons > 0 ? `${pendingLessons} to go` : doneLessons > 0 ? 'All done ✓' : '—'} accent={pendingLessons === 0 && doneLessons > 0 ? '#34d399' : '#fff'} />
             <StatRow label="This week" value={`${totalWeek} total`} />
-            <button onClick={() => router.push('/teacher/timetable')} style={{ marginTop: 14, width: '100%', padding: '10px 0', borderRadius: 12, border: '1.5px solid rgba(96,200,245,0.4)', background: 'rgba(96,200,245,0.1)', color: '#60c8f5', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button onClick={() => router.push('/teacher/classhub')} style={{ marginTop: 14, width: '100%', padding: '10px 0', borderRadius: 12, border: '1.5px solid rgba(96,200,245,0.4)', background: 'rgba(96,200,245,0.1)', color: '#60c8f5', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
               View Full Timetable →
             </button>
           </>
