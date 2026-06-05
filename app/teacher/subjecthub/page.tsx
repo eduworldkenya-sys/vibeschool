@@ -245,7 +245,7 @@ export default function SubjectHubPage() {
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id' , currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).gte('date', weekAgo),
-      supabase.from('timetable_slots').select('id, start_time, end_time, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
+      supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
       supabase.from('resources').select('id').eq('subject_id', subjectId).eq('teacher_id', currentId),
     ])
 
