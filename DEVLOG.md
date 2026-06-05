@@ -93,3 +93,7 @@
 ## [2026-06-05 10:10] 5e7f2fd
 **What:** ci: add Supabase edge functions auto-deploy workflow
 **Status:** ✅ pushed
+
+## [2026-06-05 11:41] 886a912
+**What:** fix: students full_name -> name in admin reports (4 files)
+**Status:** ✅ pushed
