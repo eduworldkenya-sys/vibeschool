@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
           '/parent/',
           '/student/claim',
           '/student/vibelearn',
-          ,
+
           '/select',
           '/global/create/',
           '/global/dashboard',
