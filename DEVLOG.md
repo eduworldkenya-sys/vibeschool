@@ -89,3 +89,7 @@
 ## [2026-06-03 15:58] 46bc8e6
 **What:** fix: useEffect missing return path in match page
 **Status:** ✅ pushed
+
+## [2026-06-05 10:10] 5e7f2fd
+**What:** ci: add Supabase edge functions auto-deploy workflow
+**Status:** ✅ pushed
