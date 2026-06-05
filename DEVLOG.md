@@ -97,3 +97,7 @@
 ## [2026-06-05 11:41] 886a912
 **What:** fix: students full_name -> name in admin reports (4 files)
 **Status:** ✅ pushed
+
+## [2026-06-05 11:50] 933d1b8
+**What:** fix: remove ghost nav routes from teacher layout
+**Status:** ✅ pushed
