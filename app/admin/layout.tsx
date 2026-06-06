@@ -167,13 +167,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     setMounted(true)
     if (isLoginPage) { setLoading(false); return }
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) { router.push("/admin/login"); return }
-      if (!profile) loadProfile()
-    })
-    if (!profile) loadProfile()
-    return () => subscription.unsubscribe()
-  }, [isLoginPage])
+    loadProfile()
+  }, [])
 
   async function loadProfile() {
     try {
