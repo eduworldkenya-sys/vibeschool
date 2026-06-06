@@ -78,8 +78,8 @@ export default function AdminHub() {
 
   async function boot() {
     try {
-      const { data: { session } } = await supabase.auth.getSession(); const user = session?.user
-      if (!session?.user) { setLoading(false); return }
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
 
       const { data: p, error: pError } = await supabase
         .from("profiles")
@@ -87,7 +87,7 @@ export default function AdminHub() {
         .eq("id", user.id)
         .single()
 
-      if (!p?.school_id) { setLoading(false); return }
+      if (!p) { setLoading(false); return }
 
       const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
 
