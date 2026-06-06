@@ -87,7 +87,6 @@ export default function StudentsPage() {
       .from("classes")
       .select("id, name, stream")
       .eq("school_id", sid)
-      .is("deleted_at", null)
       .order("name")
 
     setClasses(data ?? [])
