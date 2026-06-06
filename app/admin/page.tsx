@@ -79,7 +79,7 @@ export default function AdminHub() {
   async function boot() {
     try {
       const { data: { session } } = await supabase.auth.getSession(); const user = session?.user
-      if (!user) { router.push("/admin/login"); return }
+      if (!session?.user) { setLoading(false); return }
 
       const { data: p, error: pError } = await supabase
         .from("profiles")
@@ -87,13 +87,13 @@ export default function AdminHub() {
         .eq("id", user.id)
         .single()
 
-      if (pError || !p?.school_id) { router.push("/admin/login"); return }
+      if (!p?.school_id) { setLoading(false); return }
 
       const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
 
       await loadDash(p.school_id, p.full_name ?? "Principal", schoolData)
-    } catch {
-      router.push("/admin/login")
+    } catch (err) {
+      console.error("Admin boot error:", err)
     } finally {
       setLoading(false)
     }
