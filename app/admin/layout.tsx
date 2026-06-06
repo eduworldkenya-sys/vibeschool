@@ -173,8 +173,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   async function loadProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      console.log("[LAYOUT] getUser result:", user?.id ?? "NULL")
-      if (!user) { console.log("[LAYOUT] no user → redirecting"); router.push("/admin/login"); return }
+      if (!user) { router.push("/admin/login"); return }
 
       const { data: p, error: pError } = await supabase
         .from("profiles")
@@ -182,8 +181,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .eq("id", user.id)
         .single()
 
-      console.log("[LAYOUT] profile:", JSON.stringify(p), "error:", pError?.message ?? "none")
-      if (pError || !p || p.role !== "admin") { console.log("[LAYOUT] profile check failed → redirecting"); router.push("/admin/login"); return }
+      if (pError || !p || p.role !== "admin") { router.push("/admin/login"); return }
 
       const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
 
