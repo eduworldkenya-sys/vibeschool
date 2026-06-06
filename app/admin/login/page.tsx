@@ -49,7 +49,6 @@ export default function AdminLoginPage() {
         setLoading(false)
         return
       }
-      setLoading(false)
       router.replace("/admin")
       return
     } catch {

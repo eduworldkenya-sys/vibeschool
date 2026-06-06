@@ -91,7 +91,7 @@ export default function AdminHub() {
 
       const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
 
-      await loadDash(p.school_id, p.full_name ?? "Principal", schoolData)
+      await loadDash(p.school_id ?? "", p.full_name ?? "Principal", schoolData)
     } catch (err) {
       console.error("Admin boot error:", err)
     } finally {
