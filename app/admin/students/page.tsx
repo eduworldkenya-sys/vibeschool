@@ -195,8 +195,9 @@ export default function StudentsPage() {
       setShowModal(false)
       setForm({ name: "", admission_number: "", class_id: "", gender: "", date_of_birth: "" })
       await loadStudents(schoolId)
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
+      alert(e?.message ?? JSON.stringify(e))
     } finally {
       setSaving(false)
     }
