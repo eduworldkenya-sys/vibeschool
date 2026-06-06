@@ -172,7 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   async function loadProfile() {
     try {
-      const { data: { session } } = await supabase.auth.getSession(); const user = session?.user
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/admin/login"); return }
 
       const { data: p, error: pError } = await supabase
@@ -187,8 +187,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       setProfile({
         name:       p.full_name ?? "Principal",
-        schoolName: schoolData?.name ?? "School",
-        schoolId:   p.school_id,
+        schoolName: schoolData?.name ?? "VibeSchool Admin",
+        schoolId:   p.school_id ?? "",
         logoUrl:    schoolData?.logo_url ?? null,
       })
     } catch (err) { console.error("AdminLayout error:", err)
