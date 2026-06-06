@@ -167,7 +167,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     setMounted(true)
     if (isLoginPage) { setLoading(false); return }
-    loadProfile()
+    if (!profile) loadProfile()
   }, [isLoginPage])
 
   async function loadProfile() {
