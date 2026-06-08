@@ -58,23 +58,17 @@ export default function AdminSignupPage() {
       const uid = authData.user.id
       const subdomain = slugify(newSchoolName) + "-" + Math.random().toString(36).slice(2,6)
 
-      // 2. Create school
-      const { data: school, error: schoolErr } = await supabase.from("schools").insert({
-        name: newSchoolName.trim(), subdomain, timezone: "Africa/Nairobi",
-        status: "active", country_code: "KE", requires_dual_approval: false,
-        created_by: uid, county: county.trim() || null,
-        name_normalized: newSchoolName.trim().toLowerCase(),
-      }).select("id, name").single()
-
-      if (schoolErr || !school) throw new Error(schoolErr?.message ?? "School creation failed")
-
-      // 3. Create profile
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: uid, full_name: fullName.trim(), school_id: school.id, role: "admin",
+      // 2. Create school + profile + school_members via RPC
+      const { data: schoolId, error: rpcErr } = await supabase.rpc("create_school_with_admin", {
+        p_user_id:    uid,
+        p_school_name: newSchoolName.trim(),
+        p_subdomain:  subdomain,
+        p_county:     county.trim() || null,
       })
-      if (profileError) throw new Error(profileError.message)
 
-      setSchoolName(school.name)
+      if (rpcErr) throw new Error(rpcErr.message)
+
+      setSchoolName(newSchoolName.trim())
       setMode("pending")
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong")
