@@ -61,6 +61,7 @@ export default function AdminSignupPage() {
       // 2. Create school + profile + school_members via RPC
       const { data: schoolId, error: rpcErr } = await supabase.rpc("create_school_with_admin", {
         p_user_id:    uid,
+        p_full_name:  fullName.trim(),
         p_school_name: newSchoolName.trim(),
         p_subdomain:  subdomain,
         p_county:     county.trim() || null,
