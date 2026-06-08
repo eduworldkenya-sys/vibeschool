@@ -82,7 +82,8 @@ export default function ClassesSettingsPage() {
           <option value="">Select Grade / Level</option>
           {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
-        <input value={stream} onChange={e => setStream(e.target.value)} placeholder="Stream (optional) e.g. Blue, East, A" style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: `1px solid ${C.border}`, fontSize: "14px", color: C.text, background: C.card, outline: "none", boxSizing: "border-box" }} />
+        <input value={stream} onChange={e => setStream(e.target.value)} placeholder="Stream name e.g. Blue, East, A (optional)" style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: `1px solid ${C.border}`, fontSize: "14px", color: C.text, background: C.card, outline: "none", boxSizing: "border-box" }} />
+        <p style={{ fontSize: "11px", color: C.muted, margin: "-4px 0 0", paddingLeft: "4px" }}>Stream is optional — use it if you have multiple classes per grade (e.g. Grade 4 Blue, Grade 4 Red)</p>
         {error && <p style={{ color: C.red, fontSize: "13px", margin: 0 }}>{error}</p>}
         <button onClick={addClass} disabled={saving} style={{ background: C.emerald, border: "none", borderRadius: "10px", padding: "13px", color: "#fff", fontSize: "14px", fontWeight: "700", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
           {saving ? "Adding..." : "+ Add Class"}
@@ -97,10 +98,11 @@ export default function ClassesSettingsPage() {
           </div>
         ) : classes.map(cls => (
           <div key={cls.id} style={{ background: C.card, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
+            <button onClick={() => router.push("/admin/students")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
               <p style={{ fontSize: "15px", fontWeight: "600", color: C.text, margin: 0 }}>{cls.name}{cls.stream ? ` ${cls.stream}` : ""}</p>
               {cls.stream && <p style={{ fontSize: "12px", color: C.muted, margin: "2px 0 0" }}>Stream: {cls.stream}</p>}
-            </div>
+              <p style={{ fontSize: "11px", color: C.emerald, margin: "4px 0 0", fontWeight: "600" }}>View students →</p>
+            </button>
             <button onClick={() => deleteClass(cls.id)} disabled={deleting === cls.id} style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "6px 12px", color: C.red, fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
               {deleting === cls.id ? "..." : "Delete"}
             </button>
