@@ -99,8 +99,6 @@ export default function StudentsPage() {
       .eq("school_id", sid)
       .eq("is_current", true)
 
-    console.log("[STUDENTS] scRows count:", scRows?.length, "error would show above")
-    alert("[STUDENTS] scRows count: " + (scRows?.length ?? "NULL"))
     if (!scRows || scRows.length === 0) {
       setStudents([])
       setStats({ total: 0, withParent: 0, withoutParent: 0, owing: 0 })
@@ -199,7 +197,6 @@ export default function StudentsPage() {
       await loadStudents(schoolId)
     } catch (e: any) {
       console.error(e)
-      alert(e?.message ?? JSON.stringify(e))
     } finally {
       setSaving(false)
     }
