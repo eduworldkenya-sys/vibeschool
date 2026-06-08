@@ -7,6 +7,7 @@ export default function SettingsPage() {
   const items = [
     { label: "School Profile", desc: "Name, motto, KNEC code, county, contacts", icon: "🏫", href: "/admin/settings/school" },
     { label: "Classes", desc: "Add and manage classes and streams", icon: "📚", href: "/admin/settings/classes" },
+    { label: "Academic Terms", desc: "Set Term 1, 2, 3 dates and activate current term", icon: "📅", href: "/admin/settings/term" },
     { label: "Finance & Bursar", desc: "Appoint bursar, dual-approval rules", icon: "💰", href: "/admin/settings/finance" },
   ]
   return (
