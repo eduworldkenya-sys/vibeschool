@@ -59,18 +59,18 @@ export default function StudentsOnboardingPage() {
       return
     }
 
-    const { error: insertErr } = await supabase
-      .from('students')
-      .insert(valid.map(s => ({
-        class_id:         tcData.class_id,
-        name:             s.name.trim(),
-        admission_number: s.admission_number.trim() || null,
-      })))
-
-    if (insertErr) {
-      setLoading(false)
-      setError(insertErr.message)
-      return
+    for (const s of valid) {
+      const { error: insertErr } = await supabase.rpc('teacher_add_student', {
+        p_name:             s.name.trim(),
+        p_admission_number: s.admission_number.trim() || null,
+        p_class_id:         tcData.class_id,
+        p_school_id:        tcData.school_id,
+      })
+      if (insertErr) {
+        setLoading(false)
+        setError(insertErr.message)
+        return
+      }
     }
 
     setLoading(false)
