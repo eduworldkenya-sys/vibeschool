@@ -82,31 +82,42 @@ export default function SchoolOnboardingPage() {
   }
 
   async function saveSchoolToProfile(userId: string, schoolId: string): Promise<boolean> {
-    const { error } = await supabase
+    // 1. Update profiles.school_id
+    const { error: profileErr } = await supabase
       .from('profiles')
       .update({ school_id: schoolId })
       .eq('id', userId)
-    if (error) {
+    if (profileErr) {
       setError('Failed to save your school. Please try again.')
       return false
     }
+
+    // 2. Ensure teacher is in school_members — critical for RLS
+    const { error: memberErr } = await supabase
+      .from('school_members')
+      .upsert(
+        { school_id: schoolId, profile_id: userId, role: 'teacher' },
+        { onConflict: 'school_id,profile_id', ignoreDuplicates: true }
+      )
+    if (memberErr) {
+      setError('Failed to register you in the school. Please try again.')
+      return false
+    }
+
     return true
   }
 
   async function findOrCreateSchool(name: string, createdBy: string): Promise<string | null> {
-    // Query only schools with similar name — let DB filter first
     const { data: candidates } = await supabase
       .from('schools')
       .select('id, name')
       .ilike('name', name.trim())
 
-    // Normalize locally to catch punctuation differences
     const existing = (candidates ?? []).find(
       (s: {id:string, name:string}) => normalize(s.name) === normalize(name)
     )
     if (existing) return existing.id
 
-    // No match — create new school
     const subdomain = codeToSubdomain(generateSchoolCode(name))
     const { data: created, error: createErr } = await supabase
       .from('schools')
@@ -242,12 +253,7 @@ export default function SchoolOnboardingPage() {
 
             <div>
               <label style={lbl}>County</label>
-              <select
-                value={county}
-                onChange={e => setCounty(e.target.value)}
-                disabled={loadingSubs}
-                style={inp}
-              >
+              <select value={county} onChange={e => setCounty(e.target.value)} disabled={loadingSubs} style={inp}>
                 <option value="">Select county</option>
                 {COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
