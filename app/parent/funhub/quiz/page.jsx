@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { saveFunHubSession } from '@/lib/useFunHubSession';
 
 const CRIMSON = '#dc2626';
 const CRIMSON_DARK = '#991b1b';
@@ -365,28 +366,16 @@ export default function SpeedQuizGame() {
     setGameResult(result);
     setScreen('loading');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: student } = await supabase
-          .from('students')
-          .select('id')
-          .eq('profile_id', user.id)
-          .single();
-        if (student) {
-          await supabase.from('funhub_sessions').insert({
-            student_id: student.id,
-            game_slug: 'speed-quiz',
-            subject,
-            grade,
-            score: totalXP,
-            xp_earned: totalXP,
-            correct: result.correctCount,
-            total: result.totalQuestions,
-            duration_secs: result.timeTaken,
-            completed: true,
-          });
-        }
-      }
+      await saveFunHubSession({
+        game_slug:     'speed-quiz',
+        subject,
+        grade,
+        score:         totalXP,
+        xp_earned:     totalXP,
+        correct:       result.correctCount,
+        total:         result.totalQuestions,
+        duration_secs: result.timeTaken,
+      });
     } catch { /* Fail silently */ }
     setScreen('result');
   }

@@ -24,101 +24,43 @@ export default function StudentClaimPage() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/admin/login'); return }
+    if (!user) { router.push('/academy/signin?role=student'); return }
 
     const code = claimCode.trim().toUpperCase()
 
-    const { data: codeRow } = await supabase
-      .from('student_claim_codes')
-      .select('id, student_id, claimed, expires_at, role')
-      .eq('code', code)
-          .eq('role', 'student')
-      .single()
-
-    if (!codeRow) {
-      setLoading(false)
-      setError('Claim code not found. Check with your teacher.')
-      return
-    }
-
-    if (codeRow.claimed) {
-      setLoading(false)
-      setError('This claim code has already been used.')
-      return
-    }
-
-    if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
-      setLoading(false)
-      setError('This claim code has expired. Ask your teacher to regenerate it.')
-      return
-    }
-
-    const { data: student } = await supabase
-      .from('students')
-      .select('id, class_id, admission_number')
-      .eq('id', codeRow.student_id)
-      .single()
-
-    if (!student) {
-      setLoading(false)
-      setError('Student record not found. Contact your teacher.')
-      return
-    }
-
-    // Null-safe class fetch
-    const schoolId = student.class_id
-      ? ((await supabase
-          .from('classes')
-          .select('school_id')
-          .eq('id', student.class_id)
-          .single()).data?.school_id ?? null)
-      : null
-
-    // 1. Update student profile_id
-    const { error: stuErr } = await supabase
-      .from('students')
-      .update({ profile_id: user.id })
-      .eq('id', student.id)
-
-    if (stuErr) {
-      setLoading(false)
-      setError('Failed to link account. Please try again.')
-      return
-    }
-
-    // 2. Upsert student_profiles — safe on retry
-    const { error: spErr } = await supabase
-      .from('student_profiles')
-      .upsert({
-        profile_id:   user.id,
-        school_id:    schoolId,
-        admission_no: student.admission_number ?? '',
-        gender:       null,
-      }, { onConflict: 'profile_id' })
-
-    if (spErr) {
-      setLoading(false)
-      setError('Failed to create student profile. Please try again.')
-      return
-    }
-
-    // 3. Update profiles.school_id if available
-    if (schoolId) {
-      await supabase
-        .from('profiles')
-        .update({ school_id: schoolId })
-        .eq('id', user.id)
-    }
-
-    // 4. Mark claimed only after all writes succeed
-    await supabase
-      .from('student_claim_codes')
-      .update({ claimed: true, claimed_by: user.id })
-      .eq('id', codeRow.id)
+    const { data: result, error: rpcErr } = await supabase
+      .rpc('redeem_student_claim', {
+        p_code:    code,
+        p_user_id: user.id,
+      })
 
     setLoading(false)
-    setSuccess('Account linked! Taking you to your dashboard…')
-    setTimeout(() => router.push('/student'), 1500)
+
+    if (rpcErr) {
+      setError('Something went wrong. Please try again.')
+      return
+    }
+
+    switch (result) {
+      case 'success':
+        setSuccess('Account linked! Taking you to your dashboard…')
+        setTimeout(() => router.push('/student'), 1500)
+        break
+      case 'not_found':
+        setError('Claim code not found. Check with your teacher.')
+        break
+      case 'already_claimed':
+        setError('This claim code has already been used.')
+        break
+      case 'expired':
+        setError('This claim code has expired. Ask your teacher to regenerate it.')
+        break
+      case 'student_not_found':
+        setError('Student record not found. Contact your teacher.')
+        break
+      default:
+        setError('Something went wrong. Please try again.')
+    }
   }
 
   return (

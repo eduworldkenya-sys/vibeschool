@@ -85,16 +85,26 @@ export default function AdminSignupPage() {
     setLoading(true)
     try {
       const code = joinCode.trim().toLowerCase()
-      const { data: school, error: schoolErr } = await supabase.from("schools").select("id, name").eq("subdomain", code).single()
+      const { data: school, error: schoolErr } = await supabase
+        .from("schools")
+        .select("id, name, status")
+        .eq("subdomain", code)
+        .single()
       if (schoolErr || !school) throw new Error("Invalid school join code.")
+      if (school.status === "suspended" || school.status === "closed")
+        throw new Error("This school is no longer active.")
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password })
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(), password
+      })
       if (authError || !authData.user) throw new Error(authError?.message ?? "Sign up failed")
 
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: authData.user.id, full_name: fullName.trim(), school_id: school.id, role: "pending_admin",
+      const { error: rpcErr } = await supabase.rpc("join_school_as_admin", {
+        p_user_id:   authData.user.id,
+        p_full_name: fullName.trim(),
+        p_school_id: school.id,
       })
-      if (profileError) throw new Error(profileError.message)
+      if (rpcErr) throw new Error(rpcErr.message)
 
       setSchoolName(school.name)
       setMode("pending")

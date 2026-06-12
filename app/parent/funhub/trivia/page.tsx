@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { saveFunHubSession } from '@/lib/useFunHubSession'
 
 type Subject = 'Mathematics' | 'English' | 'Science' | 'Social Studies' | 'Kiswahili'
 type Difficulty = 'Easy' | 'Medium' | 'Hard'
@@ -182,8 +183,20 @@ export default function TriviaPage() {
     } else {
       setStreak(0)
     }
-    setTimeout(() => {
-      if (currentIndex + 1 >= questions.length) { setPhase('result') }
+    setTimeout(async () => {
+      if (currentIndex + 1 >= questions.length) {
+        const finalXp = score + (isCorrect ? (DIFFICULTY_POINTS[selectedDifficulty!] + (timer > 10 ? 5 : 0)) : 0)
+        await saveFunHubSession({
+          game_slug:  'trivia',
+          subject:    selectedSubject ?? 'General',
+          grade:      1,
+          score:      finalXp,
+          xp_earned:  finalXp,
+          correct:    isCorrect ? correctCount + 1 : correctCount,
+          total:      QUESTIONS_PER_GAME,
+        }).catch(() => {})
+        setPhase('result')
+      }
       else {
         setCurrentIndex(i => i + 1)
         setSelectedAnswer(null)

@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { saveFunHubSession } from '@/lib/useFunHubSession';
 
 const AMBER = '#d97706';
 const AMBER_DARK = '#b45309';
@@ -324,27 +325,15 @@ export default function WordScrambleGame() {
     setGameResult(result);
     setScreen('loading');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: student } = await supabase
-          .from('students')
-          .select('id')
-          .eq('profile_id', user.id)
-          .single();
-        if (student) {
-          await supabase.from('funhub_sessions').insert({
-            student_id: student.id,
-            game_slug: 'word-scramble',
-            subject,
-            grade,
-            score: gainedXp,
-            xp_earned: gainedXp,
-            correct: result.correctAnswers,
-            total: result.totalQuestions,
-            completed: true,
-          });
-        }
-      }
+      await saveFunHubSession({
+        game_slug: 'word-scramble',
+        subject,
+        grade,
+        score:     gainedXp,
+        xp_earned: gainedXp,
+        correct:   result.correctAnswers,
+        total:     result.totalQuestions,
+      });
     } catch { /* Suppress silently */ }
     setScreen('result');
   }

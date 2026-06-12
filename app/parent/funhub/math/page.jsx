@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { saveFunHubSession } from '@/lib/useFunHubSession'
 
 const COLOR = '#059669'
 const TOTAL_TIME = 60
@@ -175,7 +176,22 @@ export default function MathSprint() {
     if (screen !== 'game') return
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
-        if (t <= 1) { clearInterval(timerRef.current); setScreen('gameover'); return 0 }
+        if (t <= 1) {
+            clearInterval(timerRef.current)
+            const xp = Math.floor(score / 2) + bestStreak * 5
+            saveFunHubSession({
+              game_slug:     'math-sprint',
+              subject:       'Mathematics',
+              grade:         grade,
+              score:         score,
+              xp_earned:     xp,
+              correct:       correct,
+              total:         total,
+              duration_secs: 60,
+            }).catch(() => {})
+            setScreen('gameover')
+            return 0
+          }
         return t - 1
       })
     }, 1000)

@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { saveFunHubSession } from '@/lib/useFunHubSession';
 
 const PURPLE = '#7c3aed';
 const PURPLE_DARK = '#6d28d9';
@@ -354,28 +355,16 @@ export default function MemoryMatchGame() {
     setGameResult(result);
     setScreen('loading');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: student } = await supabase
-          .from('students')
-          .select('id')
-          .eq('profile_id', user.id)
-          .single();
-        if (student) {
-          await supabase.from('funhub_sessions').insert({
-            student_id: student.id,
-            game_slug: 'memory-match',
-            subject,
-            grade,
-            score: xp,
-            xp_earned: xp,
-            correct: 6,
-            total: 6,
-            duration_secs: result.timeTaken,
-            completed: true,
-          });
-        }
-      }
+      await saveFunHubSession({
+        game_slug:     'memory-match',
+        subject,
+        grade,
+        score:         xp,
+        xp_earned:     xp,
+        correct:       6,
+        total:         6,
+        duration_secs: result.timeTaken,
+      });
     } catch { /* Fail silently */ }
     setScreen('result');
   }

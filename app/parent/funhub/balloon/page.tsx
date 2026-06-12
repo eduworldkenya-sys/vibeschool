@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { saveFunHubSession } from '@/lib/useFunHubSession'
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 type Subject = 'Mathematics' | 'English' | 'Science' | 'Social Studies' | 'Kiswahili'
@@ -526,6 +527,21 @@ export default function BalloonPage() {
   )
 
   // ─── RESULT ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== 'result') return
+    const xp = Math.round(score / 2) + bestStreak * 5
+    saveFunHubSession({
+      game_slug:   'balloon',
+      subject:     subject ?? 'General',
+      grade:       1,
+      score:       score,
+      xp_earned:   xp,
+      correct:     correctCount,
+      total:       totalCount,
+      streak_max:  bestStreak,
+    }).catch(() => {})
+  }, [phase])
+
   if (phase === 'result') {
     const grade = accuracy >= 80 ? { label: 'Amazing!', color: '#10b981', emoji: '🏆' }
       : accuracy >= 60 ? { label: 'Good Job!', color: '#f59e0b', emoji: '⭐' }

@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { saveFunHubSession } from '@/lib/useFunHubSession';
 
 const PURPLE = '#a855f7';
 const PURPLE_DARK = '#7e22ce';
@@ -599,18 +600,15 @@ export default function BalloonPopGame() {
           .eq('profile_id', user.id)
           .single();
         if (student) {
-          const { error: insertError } = await supabase.from('funhub_sessions').insert({
-            student_id: student.id,
-            game_slug: `balloon-pop-l${levelConfig.id}`,
-            subject,
-            grade,
-            score: finalTotalScore,
-            xp_earned: finalTotalScore,
-            correct: result.correctAnswers,
-            total: result.totalQuestions,
-            completed: rate >= levelConfig.passRate,
-          });
-          if (insertError) console.error('Session persistence failed:', insertError);
+          await saveFunHubSession({
+          game_slug: `balloon-pop-l${levelConfig.id}`,
+          subject,
+          grade,
+          score:     finalTotalScore,
+          xp_earned: finalTotalScore,
+          correct:   result.correctAnswers,
+          total:     result.totalQuestions,
+        });
         }
       }
     } catch (err) {

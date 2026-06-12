@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase'
+import { saveFunHubSession } from '@/lib/useFunHubSession';
 
 const LEVELS = [
   { id: 1, label: 'Level 1: Beginner', pairs: 4, xpPerPair: 20, timer: null, title: 'Warm Up' },
@@ -96,29 +97,15 @@ function MemoryMatchGameCore() {
     setGameState('RESULT');
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: student } = await supabase
-        .from('students')
-        .select('id')
-        .eq('profile_id', user.id)
-        .maybeSingle();
-
-      if (!student) return;
-
-      await supabase.from('funhub_sessions').insert([{
-        student_id: student.id,
+      await saveFunHubSession({
         game_slug: `memory-match-l${levelConfig.id}`,
+        subject:   subject,
+        grade:     grade,
+        score:     payload.xpEarned,
         xp_earned: payload.xpEarned,
-        completed: payload.matchedPairsCount === levelConfig.pairs,
-        grade: grade,
-        metadata: {
-          total_moves: payload.totalMoves,
-          timed_out: payload.hasTimedOut,
-          level_id: levelConfig.id
-        }
-      }]);
+        correct:   payload.matchedPairsCount,
+        total:     levelConfig.pairs,
+      });
     } catch (err) {
       console.error('Failed to commit results transactionally to cloud registry:', err);
     } finally {

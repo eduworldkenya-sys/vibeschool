@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase'
+import { saveFunHubSession } from '@/lib/useFunHubSession';
 
 const TEAL = '#0891b2';
 const TEAL_DARK = '#0e7490';
@@ -289,8 +290,8 @@ export default function FlashcardsPage() {
       if (user) {
         const { data: student } = await supabase.from('students').select('id').eq('profile_id', user.id).single();
         if (student) {
-          await supabase.from('funhub_sessions').insert({
-            student_id: student.id, game_slug: 'flashcards',
+          await saveFunHubSession({
+            game_slug: 'flashcards',
             subject, grade, score: result.gotItCount, xp_earned: xp,
             correct: result.gotItCount, total: result.totalCards, completed: true,
           });
