@@ -100,6 +100,16 @@ export default function FunHubPage() {
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: 1, marginBottom: 4 }}>FUNHUB</div>
         <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Play. Learn. Win. 🔥</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>8 games · CBC aligned · Compete with your school</div>
+        <div
+          onClick={() => router.push('/parent/funhub/store')}
+          style={{ marginTop: 12, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+        >
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 800 }}>🏪 Reward Store</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 1 }}>Spend your XP on real rewards</div>
+          </div>
+          <div style={{ fontSize: 18 }}>→</div>
+        </div>
         {/* XP bar */}
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 5 }}>
