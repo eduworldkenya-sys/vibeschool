@@ -400,10 +400,25 @@ export default function RootPage() {
         return
       }
 
-      const { data: roleData } = await supabase.rpc('get_my_role')
-      const profile = roleData ? { role: roleData } : null
+      let userRole: string | null = null
 
-      const dest = DASHBOARDS[profile?.role ?? '']
+      const rpcResult = await Promise.race([
+        supabase.rpc('get_my_role'),
+        new Promise<{data: null}>((resolve) => setTimeout(() => resolve({data: null}), 3000))
+      ])
+
+      if (rpcResult.data) {
+        userRole = rpcResult.data
+      } else {
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+        userRole = p?.role ?? null
+      }
+
+      const dest = DASHBOARDS[userRole ?? '']
       if (!dest) { setError('Unknown role. Contact support.'); return }
 
       navigated = true
