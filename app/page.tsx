@@ -407,12 +407,8 @@ export default function RootPage() {
 
       let profile = null
       for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: p } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-        if (p?.role) { profile = p; break }
+        const { data: roleData } = await supabase.rpc('get_my_role')
+        if (roleData) { profile = { role: roleData }; break }
         await new Promise(r => setTimeout(r, 300))
       }
 
