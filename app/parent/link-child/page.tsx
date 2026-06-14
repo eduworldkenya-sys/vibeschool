@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react'
@@ -19,101 +18,43 @@ export default function LinkChildPage() {
   async function handleLink() {
     setError('')
     setSuccess('')
-
     if (!claimCode.trim()) { setError('Enter a claim code.'); return }
 
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/admin/login'); return }
+    if (!user) { router.push('/'); return }
 
-    const { data: codeRow } = await supabase
-      .from('student_claim_codes')
-      .select('id, student_id, claimed, role')
-      .eq('code', claimCode.trim().toUpperCase())
-          .eq('role', 'parent')
-      .single()
-
-    if (!codeRow) {
-      setLoading(false)
-      setError('Invalid claim code. Check the code and try again.')
-      return
-    }
-
-    if (codeRow.claimed) {
-      setLoading(false)
-      setError('This claim code has already been used.')
-      return
-    }
-
-    // 1. Fetch student first
-    const { data: student } = await supabase
-      .from('students')
-      .select('class_id, name')
-      .eq('id', codeRow.student_id)
-      .single()
-
-    if (!student) {
-      setLoading(false)
-      setError('Student record not found. Contact the school.')
-      return
-    }
-
-    // 2. Fetch school_id only if class exists
-    const schoolId = student.class_id
-      ? ((await supabase
-          .from('classes')
-          .select('school_id')
-          .eq('id', student.class_id)
-          .single()).data?.school_id ?? null)
-      : null
-
-    // 3. Transfer ownership
-    const { error: stuErr } = await supabase
-      .from('students')
-      .update({ profile_id: user.id })
-      .eq('id', codeRow.student_id)
-
-    if (stuErr) {
-      setLoading(false)
-      setError('Failed to link child. Please try again.')
-      return
-    }
-
-    // 4. Link parent — check for existing link first
-    const { data: existing } = await supabase
-      .from('parent_student_links')
-      .select('id')
-      .eq('parent_id', user.id)
-      .eq('student_id', codeRow.student_id)
-      .single()
-
-    if (!existing) {
-      const { error: linkErr } = await supabase.from('parent_student_links').insert({
-        parent_id:       user.id,
-        student_id:      codeRow.student_id,
-        school_id:       schoolId,
-        relationship:    'parent',
-        is_primary:      true,
-        can_pickup:      true,
-        receives_alerts: true,
+    const { data: result, error: rpcErr } = await supabase
+      .rpc('redeem_parent_claim', {
+        p_code:    claimCode.trim().toUpperCase(),
+        p_user_id: user.id,
       })
-      if (linkErr) {
-        setLoading(false)
-        setError('Failed to link child. Please try again.')
-        return
-      }
-    }
-
-    // 5. Mark claimed only after all writes succeed
-    await supabase
-      .from('student_claim_codes')
-      .update({ claimed: true, claimed_by: user.id })
-      .eq('id', codeRow.id)
 
     setLoading(false)
-    setSuccess(`${student.name} linked successfully!`)
-    setTimeout(() => router.push('/parent'), 1500)
+
+    if (rpcErr) {
+      setError('Something went wrong. Please try again.')
+      return
+    }
+
+    switch (result) {
+      case 'success':
+        setSuccess('Child linked successfully!')
+        setTimeout(() => router.push('/parent'), 1500)
+        break
+      case 'not_found':
+        setError('Invalid claim code. Check the code and try again.')
+        break
+      case 'already_claimed':
+        setError('This claim code has already been used.')
+        break
+      case 'student_not_found':
+        setError('Student record not found. Contact the school.')
+        break
+      default:
+        setError('Something went wrong. Please try again.')
+    }
   }
 
   return (
@@ -128,7 +69,6 @@ export default function LinkChildPage() {
           </div>
         </div>
 
-        {/* Guidance */}
         <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: "#1e40af", marginBottom: 8 }}>📌 Where to get the Parent Code</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
