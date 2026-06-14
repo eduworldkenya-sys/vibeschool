@@ -195,19 +195,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       const { data: p, error: pError } = await supabase
         .from("profiles")
-        .select(`full_name, school_id, role, schools ( name, logo_url )`)
+        .select("full_name, school_id, role")
         .eq("id", user.id)
         .single()
 
-      if (pError || !p || p.role !== "admin") { router.push("/admin/login"); return }
+      if (pError || !p) { router.push("/admin/login"); return }
+      if (p.role !== "admin") { router.push("/admin/login"); return }
 
-      const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
+      let schoolName = "VibeSchool Admin"
+      let logoUrl: string | null = null
+
+      if (p.school_id) {
+        const { data: school } = await supabase
+          .from("schools")
+          .select("name, logo_url")
+          .eq("id", p.school_id)
+          .single()
+        if (school) {
+          schoolName = school.name ?? "VibeSchool Admin"
+          logoUrl = school.logo_url ?? null
+        }
+      }
 
       setProfile({
         name:       p.full_name ?? "Principal",
-        schoolName: schoolData?.name ?? "VibeSchool Admin",
+        schoolName,
         schoolId:   p.school_id ?? "",
-        logoUrl:    schoolData?.logo_url ?? null,
+        logoUrl,
       })
     } catch (err) { console.error("AdminLayout error:", err)
 

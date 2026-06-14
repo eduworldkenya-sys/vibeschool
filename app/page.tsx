@@ -405,12 +405,8 @@ export default function RootPage() {
         refresh_token: data.session.refresh_token,
       })
 
-      let profile = null
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: roleData } = await supabase.rpc('get_my_role')
-        if (roleData) { profile = { role: roleData }; break }
-        await new Promise(r => setTimeout(r, 300))
-      }
+      const { data: roleData } = await supabase.rpc('get_my_role')
+      const profile = roleData ? { role: roleData } : null
 
       const dest = DASHBOARDS[profile?.role ?? '']
       if (!dest) { setError('Role: ' + (profile?.role ?? 'NULL') + ' not mapped.'); return }
