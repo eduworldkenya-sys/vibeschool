@@ -402,14 +402,12 @@ export default function RootPage() {
 
       let userRole: string | null = null
 
-      const rpcResult = await Promise.race([
-        supabase.rpc('get_my_role'),
-        new Promise<{data: null}>((resolve) => setTimeout(() => resolve({data: null}), 3000))
-      ])
-
-      if (rpcResult.data) {
-        userRole = rpcResult.data
+      // Try get_my_role RPC first — fast path
+      const { data: rpcRole } = await supabase.rpc('get_my_role')
+      if (rpcRole) {
+        userRole = rpcRole
       } else {
+        // Fallback — read profiles directly
         const { data: p } = await supabase
           .from('profiles')
           .select('role')
@@ -484,11 +482,11 @@ export default function RootPage() {
       const userId = authData.user.id
       const dbRole = ROLE_DB[role]
 
-      // Insert profile
+      // Insert profile — never use pending_admin, use real role
       const profilePayload: Record<string, unknown> = {
         id:        userId,
         full_name: fullName.trim(),
-        role:      role === 'Admin' ? 'pending_admin' : dbRole,
+        role:      dbRole,
         ...(country && { country_code: country }),
         ...(dob     && { date_of_birth: dob }),
         ...(schoolId && { school_id: schoolId }),
@@ -504,59 +502,58 @@ export default function RootPage() {
         return
       }
 
-      // Student — validate and link claim code
+      // Teacher — add to school_members after profile created
+      // (school link happens in onboarding, self-heal via resolveSchoolId)
+
+      // Parent — add to school_members if school known
+      if (role === 'Parent' && schoolId) {
+        await supabase.from('school_members').upsert(
+          { school_id: schoolId, profile_id: userId, role: 'parent' },
+          { onConflict: 'school_id,profile_id', ignoreDuplicates: true }
+        )
+      }
+
+      // Admin joining existing school — use RPC for atomicity
+      if (role === 'Admin' && schoolId) {
+        await supabase.rpc('join_school_as_admin', {
+          p_user_id:   userId,
+          p_full_name: fullName.trim(),
+          p_school_id: schoolId,
+        })
+      }
+
+      // Student — use atomic RPC instead of 4 separate writes
       if (role === 'Student') {
         const code = claimCode.trim().toUpperCase()
-        const { data: codeRow } = await supabase
-          .from('student_claim_codes')
-          .select('id, student_id, claimed, expires_at')
-          .eq('code', code)
-          .single()
+        const { data: claimResult, error: claimErr } = await supabase
+          .rpc('redeem_student_claim', {
+            p_code:    code,
+            p_user_id: userId,
+          })
 
-        if (!codeRow) {
+        if (claimErr || !claimResult) {
           await supabase.auth.signOut()
-          setError('Claim code not found. Check with your teacher.')
-          return
-        }
-        if (codeRow.claimed) {
-          await supabase.auth.signOut()
-          setError('This claim code has already been used.')
-          return
-        }
-        if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
-          await supabase.auth.signOut()
-          setError('Claim code expired. Ask your teacher for a new one.')
+          setError('Failed to link your student account. Please try again.')
           return
         }
 
-        const { data: student } = await supabase
-          .from('students')
-          .select('id, class_id, admission_number')
-          .eq('id', codeRow.student_id)
-          .single()
-
-        if (!student) {
-          await supabase.auth.signOut()
-          setError('Student record not found. Contact your teacher.')
-          return
-        }
-
-        const { data: cls } = await supabase
-          .from('classes')
-          .select('school_id')
-          .eq('id', student.class_id)
-          .single()
-
-        await supabase.from('students').update({ profile_id: userId }).eq('id', student.id)
-        await supabase.from('student_profiles').insert({
-          profile_id:   userId,
-          school_id:    cls?.school_id ?? null,
-          admission_no: student.admission_number ?? '',
-          gender:       null,
-        })
-        await supabase.from('student_claim_codes').update({ claimed: true }).eq('id', codeRow.id)
-        if (cls?.school_id) {
-          await supabase.from('profiles').update({ school_id: cls.school_id }).eq('id', userId)
+        switch (claimResult) {
+          case 'not_found':
+            await supabase.auth.signOut()
+            setError('Claim code not found. Check with your teacher.')
+            return
+          case 'already_claimed':
+            await supabase.auth.signOut()
+            setError('This claim code has already been used.')
+            return
+          case 'expired':
+            await supabase.auth.signOut()
+            setError('Claim code expired. Ask your teacher for a new one.')
+            return
+          case 'student_not_found':
+            await supabase.auth.signOut()
+            setError('Student record not found. Contact your teacher.')
+            return
         }
       }
 
