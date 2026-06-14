@@ -400,11 +400,16 @@ export default function RootPage() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single()
+      let profile = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+        if (p?.role) { profile = p; break }
+        await new Promise(r => setTimeout(r, 400))
+      }
 
       const dest = DASHBOARDS[profile?.role ?? '']
       if (!dest) { setError('Unknown role. Contact support.'); return }
