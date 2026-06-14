@@ -38,12 +38,8 @@ export default function AdminLoginPage() {
         setLoading(false)
         return
       }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single()
-      if (profile?.role !== "admin") {
+      const { data: roleData } = await supabase.rpc('get_my_role')
+      if (roleData !== "admin") {
         setError("Access denied. You do not have administrator privileges.")
         await supabase.auth.signOut()
         setLoading(false)
