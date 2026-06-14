@@ -348,16 +348,14 @@ export default function RootPage() {
       if (!alive) return
       if (!user) { setInitialising(false); return }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+      const { data: rpcRole } = await supabase.rpc('get_my_role')
 
       if (!alive) return
 
-      const dest = DASHBOARDS[profile?.role ?? '']
-      if (dest) { router.replace(dest); return }
+      if (rpcRole && rpcRole !== 'global_user') {
+        const dest = DASHBOARDS[rpcRole]
+        if (dest) { router.replace(dest); return }
+      }
 
       setInitialising(false)
     }

@@ -77,6 +77,7 @@ export default function GlobalSignUp() {
       full_name:     fullName.trim(),
       date_of_birth: dob,
       country_code:  country,
+      role:          'global_user',
     })
 
     if (profileError) {
