@@ -400,6 +400,11 @@ export default function RootPage() {
         return
       }
 
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      })
+
       let profile = null
       for (let attempt = 0; attempt < 3; attempt++) {
         const { data: p } = await supabase
@@ -408,7 +413,7 @@ export default function RootPage() {
           .eq('id', data.user.id)
           .single()
         if (p?.role) { profile = p; break }
-        await new Promise(r => setTimeout(r, 400))
+        await new Promise(r => setTimeout(r, 300))
       }
 
       const dest = DASHBOARDS[profile?.role ?? '']
