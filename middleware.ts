@@ -30,7 +30,7 @@ export async function middleware(req: NextRequest) {
       : pathname.startsWith('/parent')  ? 'parent'
       : pathname.startsWith('/student') ? 'student'
       : 'teacher'
-    return NextResponse.redirect(new URL(`/academy/signin?role=${role}`, req.url))
+    return NextResponse.redirect(new URL(`/?role=${role}`, req.url))
   }
 
   return res
