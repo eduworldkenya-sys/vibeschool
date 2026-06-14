@@ -409,7 +409,7 @@ export default function RootPage() {
       const profile = roleData ? { role: roleData } : null
 
       const dest = DASHBOARDS[profile?.role ?? '']
-      if (!dest) { setError('Role: ' + (profile?.role ?? 'NULL') + ' not mapped.'); return }
+      if (!dest) { setError('Unknown role. Contact support.'); return }
 
       navigated = true
       router.replace(dest)
