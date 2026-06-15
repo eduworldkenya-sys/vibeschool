@@ -1,7 +1,7 @@
 "use client"
 
-import { ExamForm } from '@/lib/types'
-import { EXAM_DATA } from '@/lib/examData'
+import { ExamForm } from "@/lib/types"
+import { EXAM_DATA } from "@/lib/examData"
 
 interface TopicPickerProps {
   form:     ExamForm
@@ -12,18 +12,9 @@ interface TopicPickerProps {
 export default function TopicPicker({ form, selected, onSelect }: TopicPickerProps) {
   const topics = EXAM_DATA[form] ?? []
   return (
-    <div className="w-full max-h-48 overflow-y-auto border border-zinc-800 rounded-xl bg-zinc-950/50 p-2 space-y-1">
+    <div style={{ width: "100%", maxHeight: 192, overflowY: "auto", border: "1px solid #27272a", borderRadius: 12, background: "rgba(9,9,11,0.5)", padding: 8, display: "flex", flexDirection: "column", gap: 4 }}>
       {topics.map((topic) => (
-        <button
-          key={topic}
-          type="button"
-          onClick={() => onSelect(topic)}
-          className={`w-full h-11 px-3 text-left rounded-lg text-sm font-semibold transition-all flex items-center ${
-            selected === topic
-              ? 'bg-[#C8A84B] text-[#05050F]'
-              : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
-          }`}
-        >
+        <button key={topic} type="button" onClick={() => onSelect(topic)} style={{ width: "100%", height: 44, paddingLeft: 12, paddingRight: 12, textAlign: "left", borderRadius: 8, fontSize: 14, fontWeight: 600, background: selected===topic?"#C8A84B":"transparent", color: selected===topic?"#05050F":"#d4d4d8", border: "none", cursor: "pointer", transition: "background 0.15s" }}>
           {topic}
         </button>
       ))}

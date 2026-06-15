@@ -1,6 +1,6 @@
 "use client"
 
-import { ExamSubject } from '@/lib/types'
+import { ExamSubject } from "@/lib/types"
 
 interface SubjectPickerProps {
   selected: ExamSubject | null
@@ -8,39 +8,25 @@ interface SubjectPickerProps {
 }
 
 const SUBJECTS: { name: ExamSubject; available: boolean }[] = [
-  { name: 'Mathematics', available: true  },
-  { name: 'English',     available: false },
-  { name: 'Biology',     available: false },
-  { name: 'Chemistry',   available: false },
-  { name: 'History',     available: false },
+  { name: "Mathematics", available: true  },
+  { name: "English",     available: false },
+  { name: "Biology",     available: false },
+  { name: "Chemistry",   available: false },
+  { name: "History",     available: false },
 ]
 
 export default function SubjectPicker({ selected, onSelect }: SubjectPickerProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
       {SUBJECTS.map((s) =>
         s.available ? (
-          <button
-            key={s.name}
-            type="button"
-            onClick={() => onSelect(s.name)}
-            className={`h-14 px-4 border rounded-xl flex items-center font-bold text-sm transition-all ${
-              selected === s.name
-                ? 'bg-[#C8A84B]/10 border-[#C8A84B] text-[#C8A84B]'
-                : 'bg-zinc-900 border-zinc-800 text-white hover:border-zinc-700'
-            }`}
-          >
+          <button key={s.name} type="button" onClick={() => onSelect(s.name)} style={{ height: 56, paddingLeft: 16, paddingRight: 16, border: `1px solid ${selected===s.name?"#C8A84B":"#27272a"}`, borderRadius: 12, display: "flex", alignItems: "center", fontWeight: 700, fontSize: 14, background: selected===s.name?"rgba(200,168,75,0.1)":"#18181b", color: selected===s.name?"#C8A84B":"#fff", cursor: "pointer", textAlign: "left" }}>
             {s.name}
           </button>
         ) : (
-          <div
-            key={s.name}
-            className="h-14 px-4 bg-zinc-950 border border-zinc-900 rounded-xl flex items-center justify-between opacity-50 cursor-not-allowed"
-          >
-            <span className="text-sm font-medium text-zinc-500">{s.name}</span>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-zinc-900 text-zinc-600 rounded">
-              Soon
-            </span>
+          <div key={s.name} style={{ height: 56, paddingLeft: 16, paddingRight: 16, background: "#09090b", border: "1px solid #18181b", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "space-between", opacity: 0.5, cursor: "not-allowed" }}>
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#52525b" }}>{s.name}</span>
+            <span style={{ fontSize: 10, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.08em", padding: "2px 8px", background: "#18181b", color: "#52525b", borderRadius: 4 }}>Soon</span>
           </div>
         )
       )}
