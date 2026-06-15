@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { ExamResult } from '@/lib/types'
 import { getKNECGrade } from '@/lib/examTracker'
