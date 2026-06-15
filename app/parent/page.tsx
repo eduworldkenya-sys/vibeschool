@@ -44,7 +44,7 @@ export default function ParentHomePage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/admin/login'); return }
+      if (!user) { router.push('/'); return }
 
       const { data: profile } = await supabase
         .from('profiles')

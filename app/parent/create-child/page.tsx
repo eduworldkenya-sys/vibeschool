@@ -134,7 +134,7 @@ export default function CreateChildPage() {
     if (!validateDetails()) return;
     setLoading(true); setError("");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/admin/login"); return; }
+    if (!user) { router.push("/"); return; }
     const { data: studentId, error: stuErr } = await supabase.rpc("create_child_for_parent", {
       p_name: childName.trim(), p_dob: childDob, p_class_id: null,
     });
@@ -182,7 +182,7 @@ export default function CreateChildPage() {
     if (!classId) { setError("Please select a class."); return; }
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/admin/login"); return; }
+    if (!user) { router.push("/"); return; }
     const { data: studentId, error: stuErr } = await supabase.rpc("create_child_for_parent", {
       p_name: childName.trim(), p_dob: childDob, p_class_id: classId,
     });

@@ -181,7 +181,7 @@ export default function FinancePage() {
     if (!id) return;
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/admin/login"); return; }
+    if (!user) { router.push("/"); return; }
     setUserId(user.id);
     const { data: student } = await supabase.from("students").select("name").eq("id", id).single();
     setChildName(student?.name ?? "");

@@ -433,7 +433,7 @@ export default function TeacherDashboard() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/admin/login'); return }
+    if (!user) { router.push('/'); return }
 
     const uid    = user.id
     const today  = new Date().toISOString().split('T')[0]

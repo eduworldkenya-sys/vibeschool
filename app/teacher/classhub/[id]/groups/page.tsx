@@ -61,7 +61,7 @@ function GroupsInner() {
 
   async function load() {
     const [studsRes, classRes, groupsRes, membersRes] = await Promise.all([
-      supabase.from('students').select('id, name, admission_number').eq('class_id', classId).is('deleted_at', null).order('name', { ascending: true }),
+      supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', classId).eq('is_current', true),
       supabase.from('classes').select('name').eq('id', classId).single(),
       supabase.from('class_groups').select('*').eq('class_id', classId),
       supabase.from('class_group_members').select('group_id, student_id'),
@@ -79,7 +79,7 @@ function GroupsInner() {
       members: (membersRes.data ?? []).filter(m => m.group_id === g.id).map(m => m.student_id),
     }))
 
-    setStudents(studsRes.data ?? [])
+    setStudents((studsRes.data ?? []).map((sc: any) => sc.students).filter(Boolean))
     setGroups(fetchedGroups)
     setLoading(false)
   }

@@ -292,8 +292,8 @@ export default function FlashcardsPage() {
         if (student) {
           await saveFunHubSession({
             game_slug: 'flashcards',
-            subject, grade, score: result.gotItCount, xp_earned: xp,
-            correct: result.gotItCount, total: result.totalCards, completed: true,
+            subject: subject!, grade: grade!, score: result.gotItCount, xp_earned: xp,
+            correct: result.gotItCount, total: result.totalCards,
           });
         }
       }

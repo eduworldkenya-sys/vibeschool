@@ -45,7 +45,7 @@ export default function StudentsOnboardingPage() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/admin/login'); return }
+    if (!user) { router.push('/'); return }
 
     const { data: tcData } = await supabase
       .from('teacher_classes')

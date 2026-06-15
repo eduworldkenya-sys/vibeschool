@@ -35,7 +35,7 @@ export default function ClassOnboardingPage() {
     if (!subject) { setError('Select a subject.'); return }
     setLoading(true)
     const { data: { user }, error: userErr } = await supabase.auth.getUser()
-    if (userErr || !user) { setLoading(false); router.push('/admin/login'); return }
+    if (userErr || !user) { setLoading(false); router.push('/'); return }
     const [profileRes, teacherRes, memberRes] = await Promise.all([
       supabase.from('profiles').select('school_id').eq('id', user.id).single(),
       supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),

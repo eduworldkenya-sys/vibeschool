@@ -536,3 +536,48 @@ export interface VVQuestionResponse {
   options:  string[]
   correct:  number
 }
+
+// ─── VibeExam ─────────────────────────────────────────────────────────────────
+
+export type ExamDifficulty = 'easy' | 'medium' | 'hard'
+export type ExamSubject    = 'Mathematics' | 'English' | 'Biology' | 'Chemistry' | 'History'
+export type ExamForm       = 'Form 1' | 'Form 2' | 'Form 3' | 'Form 4'
+
+export interface ExamQuestion {
+  id:           string
+  question:     string
+  options:      [string, string, string, string]
+  correctIndex: number
+  explanation:  string
+  teachingNote: string
+  topic:        string
+}
+
+export interface ExamAnswer {
+  questionId:       string
+  selectedIndex:    number
+  isCorrect:        boolean
+  timeSpentSeconds: number
+}
+
+export interface ExamSession {
+  subject:        ExamSubject
+  form:           ExamForm
+  topic:          string
+  difficulty:     ExamDifficulty
+  totalQuestions: number
+  questions:      ExamQuestion[]
+  answers:        ExamAnswer[]
+  startedAt:      string
+  completedAt:    string | null
+}
+
+export interface ExamResult {
+  score:        number
+  total:        number
+  percentage:   number
+  weakTopics:   string[]
+  strongTopics: string[]
+  answers:      ExamAnswer[]
+  questions:    ExamQuestion[]
+}

@@ -143,7 +143,7 @@ export default function SettingsPage() {
   }, []);
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/admin/login')
+    router.push('/')
   }
 
   // ── Save ──────────────────────────────────────────────────────────────

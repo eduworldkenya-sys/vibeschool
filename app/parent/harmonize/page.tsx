@@ -49,7 +49,7 @@ function HarmonizeInner() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/admin/login&next=/parent/harmonize?sid=' + sid)
+      router.push('/?next=/parent/harmonize?sid=' + sid)
       return
     }
 
@@ -122,7 +122,7 @@ function HarmonizeInner() {
     setLinking(true)
     setError('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/admin/login'); return }
+    if (!user) { router.push('/'); return }
 
     // Mark token as claimed
     if (token) {
@@ -134,18 +134,25 @@ function HarmonizeInner() {
         .eq('role', 'parent')
     }
 
-    // Gap 5: stamp student record so teacher sees parent linked
-    await supabase
-      .from('students')
-      .update({ parent_linked_at: new Date().toISOString() })
-      .eq('id', sid)
+    await supabase.from('students').update({ parent_linked_at: new Date().toISOString() }).eq('id', sid)
+
+    const { data: scRow } = await supabase
+      .from('student_classes').select('school_id').eq('student_id', sid).eq('is_current', true).single()
+    const schoolId = scRow?.school_id ?? null
 
     const { error: linkErr } = await supabase.from('parent_student_links').insert({
-      parent_id:  user.id,
-      student_id: sid,
+      parent_id: user.id, student_id: sid, school_id: schoolId,
+      relationship: 'parent', is_primary: true, can_pickup: true, receives_alerts: true,
     })
+    if (linkErr && !linkErr.message.includes('duplicate')) { setError(linkErr.message); setLinking(false); return }
 
-    if (linkErr) { setError(linkErr.message); setLinking(false); return }
+    if (schoolId) {
+      await supabase.from('school_members').upsert(
+        { school_id: schoolId, profile_id: user.id, role: 'parent' },
+        { onConflict: 'school_id,profile_id', ignoreDuplicates: true }
+      )
+      await supabase.from('profiles').update({ school_id: schoolId }).eq('id', user.id)
+    }
 
     setSuccess(true)
     setLinking(false)

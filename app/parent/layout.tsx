@@ -199,19 +199,19 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     async function fetchProfile() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { router.push("/admin/login"); return; }
+        if (!user) { router.push("/"); return; }
         const { data } = await supabase
           .from("profiles")
           .select("full_name, role")
           .eq("id", user.id)
           .single();
-        if (data?.role !== "parent") { router.push("/admin/login"); return; }
+        if (data?.role !== "parent") { router.push("/"); return; }
         const name  = data?.full_name ?? "";
         setFullName(name);
         const parts = name.trim().split(" ").filter(Boolean);
         setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
       } catch {
-        router.push("/admin/login");
+        router.push("/");
       }
     }
     fetchProfile();

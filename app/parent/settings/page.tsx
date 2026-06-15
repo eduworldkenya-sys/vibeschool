@@ -185,7 +185,7 @@ export default function ParentSettingsPage() {
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
     await supabase.auth.signOut();
-    router.push("/admin/login");
+    router.push("/");
   }, [router]);
 
   // ── Toggle notif ──────────────────────────────────────────────────────────
