@@ -15,7 +15,6 @@ function IconCheck() {
     </svg>
   )
 }
-
 function IconX() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -26,36 +25,35 @@ function IconX() {
 }
 
 export default function FeedbackCard({ isCorrect, explanation, teachingNote, correctAnswer }: FeedbackCardProps) {
+  const accent = isCorrect ? "#34d399" : "#f87171"
+  const accentBg = isCorrect ? "rgba(6,78,59,0.2)" : "rgba(69,10,10,0.2)"
+  const accentBorder = isCorrect ? "#064e3b" : "#7f1d1d"
   return (
-    <div className="w-full space-y-4">
-      <div className={`border p-5 rounded-2xl flex items-start gap-4 ${
-        isCorrect
-          ? 'bg-emerald-950/20 border-emerald-900 text-emerald-400'
-          : 'bg-rose-950/20 border-rose-900 text-rose-400'
-      }`}>
-        <div className="shrink-0 mt-0.5">
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ border: `1px solid ${accentBorder}`, padding: 20, borderRadius: 16, display: "flex", alignItems: "flex-start", gap: 16, background: accentBg, color: accent }}>
+        <div style={{ flexShrink: 0, marginTop: 2 }}>
           {isCorrect ? <IconCheck /> : <IconX />}
         </div>
-        <div className="space-y-2">
-          <h2 className="font-extrabold text-lg tracking-tight">
-            {isCorrect ? 'Correct!' : 'Not quite'}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <h2 style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em", margin: 0, color: accent }}>
+            {isCorrect ? "Correct!" : "Not quite"}
           </h2>
           {!isCorrect && (
-            <p className="text-sm font-semibold text-zinc-300">
-              Correct Answer: <span className="text-emerald-400">{correctAnswer}</span>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#d4d4d8", margin: 0 }}>
+              Correct Answer: <span style={{ color: "#34d399" }}>{correctAnswer}</span>
             </p>
           )}
-          <p className="text-sm text-zinc-300 leading-relaxed">
+          <p style={{ fontSize: 14, color: "#d4d4d8", lineHeight: 1.6, margin: 0 }}>
             {explanation}
           </p>
         </div>
       </div>
 
-      <div className="bg-zinc-900 border border-[#C8A84B]/40 rounded-2xl p-5 space-y-2">
-        <p className="text-xs uppercase font-extrabold tracking-widest text-[#C8A84B]">
+      <div style={{ background: "#18181b", border: "1px solid rgba(200,168,75,0.4)", borderRadius: 16, padding: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+        <p style={{ fontSize: 11, textTransform: "uppercase", fontWeight: 800, letterSpacing: "0.1em", color: "#C8A84B", margin: 0 }}>
           Learn This
         </p>
-        <p className="text-sm text-white font-medium leading-relaxed">
+        <p style={{ fontSize: 14, color: "#ffffff", fontWeight: 500, lineHeight: 1.6, margin: 0 }}>
           {teachingNote}
         </p>
       </div>

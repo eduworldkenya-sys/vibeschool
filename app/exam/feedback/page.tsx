@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ExamQuestion, ExamSession } from '@/lib/types'
-import FeedbackCard from '@/components/exam/FeedbackCard'
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { ExamQuestion, ExamSession } from "@/lib/types"
+import FeedbackCard from "@/components/exam/FeedbackCard"
 
 function IconFlag() {
   return (
@@ -32,15 +32,15 @@ export default function ExamFeedbackPage() {
   const [loading,     setLoading]     = useState(true)
   const [flagged,     setFlagged]     = useState(false)
   const [contested,   setContested]   = useState(false)
-  const [contestText, setContestText] = useState('')
+  const [contestText, setContestText] = useState("")
 
   useEffect(() => {
-    const raw = window.sessionStorage.getItem('vibe_exam_feedback')
-    if (!raw) { router.replace('/exam'); return }
+    const raw = window.sessionStorage.getItem("vibe_exam_feedback")
+    if (!raw) { router.replace("/exam"); return }
     try {
       setData(JSON.parse(raw))
     } catch {
-      router.replace('/exam')
+      router.replace("/exam")
       return
     }
     setLoading(false)
@@ -48,8 +48,8 @@ export default function ExamFeedbackPage() {
 
   if (loading || !data) {
     return (
-      <div className="min-h-screen bg-[#05050F] flex items-center justify-center font-[family:var(--font-display)]">
-        <div className="animate-pulse h-28 bg-zinc-800 rounded w-full max-w-md mx-4" />
+      <div style={{ minHeight: "100vh", background: "#05050F", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div style={{ height: 112, background: "#18181b", borderRadius: 12, width: "100%", maxWidth: 480 }} />
       </div>
     )
   }
@@ -59,11 +59,11 @@ export default function ExamFeedbackPage() {
   const correctAnswer = question.options[question.correctIndex]
   const isLast        = sessionState.answers.length === sessionState.totalQuestions
 
-  const submitFlag = async (type: 'error' | 'contest', reason?: string) => {
+  const submitFlag = async (type: "error" | "contest", reason?: string) => {
     try {
-      await fetch('/api/exam/flag', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/exam/flag", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ questionId: question.id, type, reason }),
       })
     } catch { /* silent */ }
@@ -72,27 +72,27 @@ export default function ExamFeedbackPage() {
   const handleFlag = () => {
     if (flagged) return
     setFlagged(true)
-    submitFlag('error', 'Student flagged question error')
+    submitFlag("error", "Student flagged question error")
   }
 
   const handleContest = () => {
     if (!contestText.trim() || contested) return
     setContested(true)
-    submitFlag('contest', contestText)
+    submitFlag("contest", contestText)
   }
 
   const handleNext = () => {
-    window.sessionStorage.removeItem('vibe_exam_feedback')
-    router.push(isLast ? '/exam/results' : '/exam/session')
+    window.sessionStorage.removeItem("vibe_exam_feedback")
+    router.push(isLast ? "/exam/results" : "/exam/session")
   }
 
   return (
-    <div className="min-h-screen bg-[#05050F] text-white p-4 font-[family:var(--font-display)] flex flex-col items-center justify-center">
-      <div className="w-full max-w-xl space-y-5">
+    <div style={{ minHeight: "100vh", background: "#05050F", color: "#ffffff", padding: 16, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 20 }}>
 
-        <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#C8A84B]">
-            {isCorrect ? 'Boom! Solid logic! 🎉' : "Don't sweat it — next one is yours! 🎯"}
+        <div style={{ textAlign: "center" }}>
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#C8A84B", margin: 0 }}>
+            {isCorrect ? "Boom! Solid logic! 🎉" : "Don't sweat it — next one is yours! 🎯"}
           </p>
         </div>
 
@@ -104,47 +104,45 @@ export default function ExamFeedbackPage() {
         />
 
         {/* Validation desk */}
-        <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+        <div style={{ background: "#09090b", border: "1px solid #18181b", borderRadius: 12, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#52525b" }}>
               Validation Desk
             </span>
             <button
               type="button"
               onClick={handleFlag}
-              className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded transition-colors ${
-                flagged ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'
-              }`}
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, padding: "4px 8px", borderRadius: 6, background: "none", border: "none", cursor: flagged ? "default" : "pointer", color: flagged ? "#f59e0b" : "#71717a" }}
             >
               <IconFlag />
-              <span>{flagged ? 'Reported' : 'Report Error'}</span>
+              <span>{flagged ? "Reported" : "Report Error"}</span>
             </button>
           </div>
 
           {!contested ? (
-            <div className="space-y-2">
-              <p className="text-[11px] text-zinc-400 leading-normal">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <p style={{ fontSize: 11, color: "#71717a", lineHeight: 1.5, margin: 0 }}>
                 Think another answer is also correct? Explain why:
               </p>
-              <div className="flex gap-2">
+              <div style={{ display: "flex", gap: 8 }}>
                 <textarea
                   value={contestText}
                   onChange={(e) => setContestText(e.target.value)}
-                  placeholder="e.g. Option B is also valid because..."
+                  placeholder="e.g. Option B is also valid"
                   rows={2}
-                  className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-zinc-700 placeholder-zinc-600 resize-none"
+                  style={{ flex: 1, background: "#18181b", border: "1px solid #27272a", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#ffffff", outline: "none", resize: "none", fontFamily: "inherit" }}
                 />
                 <button
                   type="button"
                   onClick={handleContest}
-                  className="px-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs rounded-lg transition-colors self-end pb-2 pt-2"
+                  style={{ padding: "8px 12px", background: "#27272a", color: "#ffffff", fontWeight: 700, fontSize: 12, borderRadius: 8, border: "none", cursor: "pointer", alignSelf: "flex-end" }}
                 >
                   Contest
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-emerald-400 bg-zinc-900/60 p-2 rounded-lg border border-zinc-800">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#34d399", background: "rgba(24,24,27,0.6)", padding: 10, borderRadius: 8, border: "1px solid #27272a" }}>
               <IconCheck />
               <span>Contest recorded. Our team will review your note.</span>
             </div>
@@ -154,9 +152,9 @@ export default function ExamFeedbackPage() {
         <button
           type="button"
           onClick={handleNext}
-          className="w-full h-14 bg-[#C8A84B] hover:bg-[#b0923e] text-[#05050F] font-black rounded-xl text-base tracking-wide transition-all shadow-lg active:scale-[0.99]"
+          style={{ width: "100%", height: 56, background: "#C8A84B", color: "#05050F", fontWeight: 900, borderRadius: 12, fontSize: 16, letterSpacing: "0.05em", border: "none", cursor: "pointer" }}
         >
-          {isLast ? 'View Results' : 'Next Question'}
+          {isLast ? "View Results" : "Next Question"}
         </button>
 
       </div>
