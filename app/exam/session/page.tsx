@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { ExamSession } from '@/lib/types'
-import ProgressBar from '@/components/exam/ProgressBar'
-import QuestionCard from '@/components/exam/QuestionCard'
-import AnswerOption from '@/components/exam/AnswerOption'
+import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
+import { ExamSession } from "@/lib/types"
+import ProgressBar from "@/components/exam/ProgressBar"
+import QuestionCard from "@/components/exam/QuestionCard"
+import AnswerOption from "@/components/exam/AnswerOption"
 
 function IconClock() {
   return (
@@ -32,7 +32,7 @@ function IconHint() {
 function formatTime(secs: number): string {
   const m = Math.floor(secs / 60)
   const s = secs % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
+  return `${m}:${s.toString().padStart(2, "0")}`
 }
 
 export default function ExamSessionPage() {
@@ -42,19 +42,17 @@ export default function ExamSessionPage() {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [showHint,    setShowHint]    = useState(false)
   const [elapsed,     setElapsed]     = useState(0)
-  const [visible,     setVisible]     = useState(false)
   const startRef = useRef<number>(Date.now())
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    const raw = window.localStorage.getItem('vibe_active_exam_session')
-    if (!raw) { router.replace('/exam'); return }
+    const raw = window.localStorage.getItem("vibe_active_exam_session")
+    if (!raw) { router.replace("/exam"); return }
     try {
       const parsed = JSON.parse(raw) as ExamSession
       setSession(parsed)
-      setVisible(true)
     } catch {
-      router.replace('/exam')
+      router.replace("/exam")
       return
     }
     setLoading(false)
@@ -63,21 +61,19 @@ export default function ExamSessionPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [router])
 
-  // FIX 1: redirect inside useEffect, never during render
   useEffect(() => {
     if (session && session.answers.length >= session.totalQuestions) {
-      router.replace('/exam/results')
+      router.replace("/exam/results")
     }
   }, [session, router])
 
   if (loading || !session) {
     return (
-      <div className="min-h-screen bg-[#05050F] flex items-center justify-center font-[family:var(--font-display)]">
-        <div className="animate-pulse space-y-4 w-full max-w-md px-4">
-          <div className="h-4 bg-zinc-800 rounded w-full" />
-          <div className="h-28 bg-zinc-800 rounded w-full" />
-          <div className="h-12 bg-zinc-800 rounded w-full" />
-          <div className="h-12 bg-zinc-800 rounded w-full" />
+      <div style={{ minHeight: "100vh", background: "#05050F", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 12 }}>
+          {[80, 120, 56, 56].map((h, i) => (
+            <div key={i} style={{ height: h, borderRadius: 12, background: "#18181b" }} />
+          ))}
         </div>
       </div>
     )
@@ -94,7 +90,7 @@ export default function ExamSessionPage() {
 
     const timeSpent = Math.max(1, Math.round((Date.now() - startRef.current) / 1000))
     const isCorrect = optionIndex === currentQuestion.correctIndex
-    const nextStreak = isCorrect ? session.currentStreak + 1 : 0
+    const nextStreak = isCorrect ? (session.currentStreak ?? 0) + 1 : 0
 
     const updatedSession: ExamSession = {
       ...session,
@@ -102,77 +98,66 @@ export default function ExamSessionPage() {
       currentStreak: nextStreak,
     }
 
-    window.localStorage.setItem('vibe_active_exam_session', JSON.stringify(updatedSession))
-    window.sessionStorage.setItem('vibe_exam_feedback', JSON.stringify({
+    window.localStorage.setItem("vibe_active_exam_session", JSON.stringify(updatedSession))
+    window.sessionStorage.setItem("vibe_exam_feedback", JSON.stringify({
       question:      currentQuestion,
       selectedIndex: optionIndex,
       sessionState:  updatedSession,
     }))
 
-    setTimeout(() => {
-      setVisible(false)
-      setTimeout(() => router.push('/exam/feedback'), 180)
-    }, 320)
+    setTimeout(() => router.push("/exam/feedback"), 320)
   }
 
   return (
-    <div className="min-h-screen bg-[#05050F] text-white p-4 font-[family:var(--font-display)] flex flex-col items-center">
-      <div className={`w-full max-w-xl flex flex-col gap-5 pt-4 transition-all duration-200 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
+    <div style={{ minHeight: "100vh", background: "#05050F", color: "#ffffff", padding: 16, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 20, paddingTop: 16 }}>
 
-        <div className="flex justify-between items-center bg-zinc-900/40 border border-zinc-800 px-3 py-2.5 rounded-xl">
-          <div className="flex items-center gap-1.5 text-zinc-400 text-xs font-bold">
+        {/* Header bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(24,24,27,0.4)", border: "1px solid #27272a", padding: "10px 14px", borderRadius: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#71717a", fontSize: 12, fontWeight: 700 }}>
             <IconClock />
             <span>{formatTime(elapsed)}</span>
           </div>
-          {session.currentStreak >= 2 && (
-            <div className="flex items-center gap-1 text-orange-400 font-black text-xs uppercase tracking-wider">
+          {(session.currentStreak ?? 0) >= 2 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#fb923c", fontWeight: 900, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               <IconFlame />
               <span>{session.currentStreak} in a row!</span>
             </div>
           )}
-          <span className="text-[11px] font-extrabold tracking-widest text-[#C8A84B] uppercase">
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", color: "#C8A84B", textTransform: "uppercase" }}>
             {session.subject}
           </span>
         </div>
 
         <ProgressBar current={currentIndex + 1} total={session.totalQuestions} />
 
-        <QuestionCard
-          question={currentQuestion}
-          questionNumber={currentIndex + 1}
-          total={session.totalQuestions}
-        />
+        <QuestionCard question={currentQuestion} questionNumber={currentIndex + 1} total={session.totalQuestions} />
 
         {currentQuestion.hint && (
           <div>
             <button
               type="button"
               onClick={() => setShowHint((p) => !p)}
-              className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-[#C8A84B] transition-colors"
+              style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#71717a", background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
               <IconHint />
-              <span>{showHint ? 'Hide Hint' : 'Show Hint'}</span>
+              <span>{showHint ? "Hide Hint" : "Show Hint"}</span>
             </button>
             {showHint && (
-              <div className="mt-2 p-3 bg-zinc-900/60 border border-zinc-800 text-zinc-300 text-xs rounded-xl leading-relaxed">
+              <div style={{ marginTop: 8, padding: 12, background: "rgba(24,24,27,0.6)", border: "1px solid #27272a", color: "#d4d4d8", fontSize: 12, borderRadius: 12, lineHeight: 1.6 }}>
                 {currentQuestion.hint}
               </div>
             )}
           </div>
         )}
 
-        <div className="flex flex-col gap-2.5">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {currentQuestion.options.map((option, idx) => (
             <div
               key={idx}
-              className={`transition-all duration-150 ${selectedIdx === idx ? 'ring-2 ring-[#C8A84B] rounded-xl scale-[0.997]' : ''}`}
+              style={{ borderRadius: 12, outline: selectedIdx === idx ? "2px solid #C8A84B" : "none", outlineOffset: 2 }}
             >
-              <AnswerOption
-                label={option}
-                index={idx}
-                onSelect={handleSelect}
-                disabled={selectedIdx !== null}
-              />
+              <AnswerOption label={option} index={idx} onSelect={handleSelect} disabled={selectedIdx !== null} />
             </div>
           ))}
         </div>
