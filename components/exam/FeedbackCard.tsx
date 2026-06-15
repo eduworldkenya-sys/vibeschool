@@ -1,13 +1,15 @@
+'use client'
+
 interface FeedbackCardProps {
-  isCorrect:    boolean
-  explanation:  string
-  teachingNote: string
+  isCorrect:     boolean
+  explanation:   string
+  teachingNote:  string
   correctAnswer: string
 }
 
 function IconCheck() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <path d="M8 12l3 3 5-5" />
     </svg>
@@ -16,7 +18,7 @@ function IconCheck() {
 
 function IconX() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <path d="M15 9l-6 6M9 9l6 6" />
     </svg>
@@ -36,7 +38,7 @@ export default function FeedbackCard({ isCorrect, explanation, teachingNote, cor
         </div>
         <div className="space-y-2">
           <h2 className="font-extrabold text-lg tracking-tight">
-            {isCorrect ? 'Correct!' : 'Incorrect'}
+            {isCorrect ? 'Correct!' : 'Not quite'}
           </h2>
           {!isCorrect && (
             <p className="text-sm font-semibold text-zinc-300">

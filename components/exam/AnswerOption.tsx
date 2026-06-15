@@ -1,7 +1,9 @@
+'use client'
+
 interface AnswerOptionProps {
-  label:    string
-  index:    number
-  onSelect: (index: number) => void
+  label:     string
+  index:     number
+  onSelect:  (index: number) => void
   disabled?: boolean
 }
 

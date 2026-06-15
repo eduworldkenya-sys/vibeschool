@@ -551,6 +551,7 @@ export interface ExamQuestion {
   explanation:  string
   teachingNote: string
   topic:        string
+  hint?:        string
 }
 
 export interface ExamAnswer {
@@ -570,6 +571,7 @@ export interface ExamSession {
   answers:        ExamAnswer[]
   startedAt:      string
   completedAt:    string | null
+  currentStreak:  number
 }
 
 export interface ExamResult {
@@ -580,4 +582,9 @@ export interface ExamResult {
   strongTopics: string[]
   answers:      ExamAnswer[]
   questions:    ExamQuestion[]
+}
+
+export interface StudentStreak {
+  currentStreak:  number
+  lastActiveDate: string
 }

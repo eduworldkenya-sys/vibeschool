@@ -1,3 +1,5 @@
+'use client'
+
 interface ShareButtonProps {
   score:   number
   total:   number
@@ -6,8 +8,8 @@ interface ShareButtonProps {
 }
 
 export default function ShareButton({ score, total, subject, topic }: ShareButtonProps) {
-  const message    = `I scored ${score}/${total} on KCSE ${subject} (${topic}) on VibeExam! Try it free at exam.vibeschool.co.ke 🎯`
-  const waUrl      = `https://wa.me/?text=${encodeURIComponent(message)}`
+  const message = `I scored ${score}/${total} on KCSE ${subject} (${topic}) on VibeExam! Try it free at vibeschool.co.ke/exam 🎯`
+  const waUrl   = `https://wa.me/?text=${encodeURIComponent(message)}`
 
   return (
     <a

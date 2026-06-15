@@ -1,3 +1,5 @@
+'use client'
+
 import { ExamForm } from '@/lib/types'
 import { EXAM_DATA } from '@/lib/examData'
 

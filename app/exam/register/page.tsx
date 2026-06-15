@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 
 export default function ExamRegisterPage() {
   const router = useRouter()
-
   return (
     <div className="min-h-screen bg-[#05050F] text-white p-4 font-[family:var(--font-display)] flex items-center justify-center">
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6 text-center shadow-2xl">
@@ -17,7 +16,7 @@ export default function ExamRegisterPage() {
             You have completed 3 exam sessions. Create a free VibeSchool account to save your progress, track your streak, and unlock more subjects.
           </p>
         </div>
-        <div className="flex flex-col gap-3 pt-2">
+        <div className="flex flex-col gap-3">
           <button
             type="button"
             onClick={() => router.push('/global/signup')}

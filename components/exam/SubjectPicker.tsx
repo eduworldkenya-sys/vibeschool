@@ -1,3 +1,5 @@
+'use client'
+
 import { ExamSubject } from '@/lib/types'
 
 interface SubjectPickerProps {

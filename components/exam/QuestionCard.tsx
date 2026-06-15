@@ -1,3 +1,5 @@
+'use client'
+
 import { ExamQuestion } from '@/lib/types'
 
 interface QuestionCardProps {

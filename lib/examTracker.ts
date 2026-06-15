@@ -1,4 +1,7 @@
+import { StudentStreak } from '@/lib/types'
+
 const TRACKER_KEY = 'vibe_exam_count'
+const STREAK_KEY  = 'vibe_student_streak'
 
 export function getExamCount(): number {
   if (typeof window === 'undefined') return 0
@@ -14,12 +17,65 @@ export function incrementExamCount(): void {
   if (typeof window === 'undefined') return
   try {
     window.localStorage.setItem(TRACKER_KEY, (getExamCount() + 1).toString())
+    updateDailyStreak()
   } catch {
-    // safely swallow storage errors
+    // swallow
   }
 }
 
-// FIX 4 — fires exactly at 3, not on every exam after 3
+// FIX: fires exactly at 3, not forever after
 export function shouldShowRegisterPrompt(): boolean {
   return getExamCount() === 3
+}
+
+export function getStudentStreak(): StudentStreak {
+  if (typeof window === 'undefined') return { currentStreak: 0, lastActiveDate: '' }
+  try {
+    const raw = window.localStorage.getItem(STREAK_KEY)
+    if (!raw) return { currentStreak: 0, lastActiveDate: '' }
+    return JSON.parse(raw) as StudentStreak
+  } catch {
+    return { currentStreak: 0, lastActiveDate: '' }
+  }
+}
+
+function updateDailyStreak(): void {
+  if (typeof window === 'undefined') return
+  try {
+    const todayStr     = new Date().toISOString().split('T')[0]
+    const streakData   = getStudentStreak()
+    if (streakData.lastActiveDate === todayStr) return
+
+    const yesterday    = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+    const newStreak = streakData.lastActiveDate === yesterdayStr
+      ? streakData.currentStreak + 1
+      : 1
+
+    window.localStorage.setItem(STREAK_KEY, JSON.stringify({
+      currentStreak:  newStreak,
+      lastActiveDate: todayStr,
+    }))
+  } catch {
+    // swallow
+  }
+}
+
+export function getKNECGrade(percentage: number): {
+  grade: string; points: number; color: string; feedback: string
+} {
+  if (percentage >= 80) return { grade: 'A',  points: 12, color: 'text-emerald-400', feedback: 'Exceptional! Absolute mastery of this topic area.' }
+  if (percentage >= 75) return { grade: 'A-', points: 11, color: 'text-emerald-500', feedback: 'Brilliant work. Strong candidate for top national cohorts.' }
+  if (percentage >= 70) return { grade: 'B+', points: 10, color: 'text-teal-400',    feedback: 'Very strong. Keep polishing the remaining concept edges.' }
+  if (percentage >= 65) return { grade: 'B',  points:  9, color: 'text-teal-500',    feedback: 'Solid work. A secure competitive position on this topic.' }
+  if (percentage >= 60) return { grade: 'B-', points:  8, color: 'text-amber-400',   feedback: 'Good effort. Minor structural gaps to address.' }
+  if (percentage >= 55) return { grade: 'C+', points:  7, color: 'text-amber-500',   feedback: 'Minimum university entry tier. Push this to a secure B!' }
+  if (percentage >= 50) return { grade: 'C',  points:  6, color: 'text-yellow-500',  feedback: 'You have identified gaps to fix. That is where the work begins.' }
+  if (percentage >= 45) return { grade: 'C-', points:  5, color: 'text-orange-400',  feedback: 'Pass metric. Needs more practice on foundational logic.' }
+  if (percentage >= 40) return { grade: 'D+', points:  4, color: 'text-orange-500',  feedback: 'Reframe this as study data, not judgment. You know what to fix.' }
+  if (percentage >= 35) return { grade: 'D',  points:  3, color: 'text-rose-400',    feedback: 'Every mistake is a tutorial. Review the explanations closely.' }
+  if (percentage >= 30) return { grade: 'D-', points:  2, color: 'text-rose-500',    feedback: 'Take a breath. Focus on the Learn This cards below each question.' }
+  return                       { grade: 'E',  points:  1, color: 'text-red-500',     feedback: 'This is your starting map. Use targeted drills to build up step by step.' }
 }

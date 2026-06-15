@@ -1,3 +1,5 @@
+'use client'
+
 interface ProgressBarProps {
   current: number
   total:   number
