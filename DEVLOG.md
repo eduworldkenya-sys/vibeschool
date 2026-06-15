@@ -109,3 +109,7 @@
 ## [2026-06-05 12:18] 85a846a
 **What:** fix: restore full teacher tray nav — all real pages linked
 **Status:** ✅ pushed
+
+## [2026-06-15 22:29] a9f9b70
+**What:** feat: VibeExam — free AI KCSE mock exam feature
+**Status:** ✅ pushed
