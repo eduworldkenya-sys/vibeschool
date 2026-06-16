@@ -45,7 +45,7 @@ export default function ExamResultsPage() {
         const q = s.questions.find((q) => q.id === ans.questionId)
         if (!q) return
         const t = q.topic || s.topic
-        if (ans.isCorrect) strongSet.add(t) else weakSet.add(t)
+        if (ans.isCorrect) { strongSet.add(t) } else { weakSet.add(t) }
       })
       setResult({ score, total, percentage, weakTopics: Array.from(weakSet), strongTopics: Array.from(strongSet).filter((t) => !weakSet.has(t)), answers: s.answers, questions: s.questions })
       setSession(s)
