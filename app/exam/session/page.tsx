@@ -101,6 +101,7 @@ export default function ExamSessionPage() {
   const [result,       setResult]       = useState<ExamResult | null>(null)
   const [showPrompt,   setShowPrompt]   = useState(false)
   const [drillLoad,    setDrillLoad]    = useState(false)
+  const [drillError,   setDrillError]   = useState(false)
 
   const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null)
   const startRef   = useRef<number>(Date.now())
@@ -162,8 +163,8 @@ export default function ExamSessionPage() {
   // ── Next question ──────────────────────────────────────────────────────────
   const handleNext = useCallback(() => {
     if (!session) return
-    const updatedSession = JSON.parse(window.localStorage.getItem("vibe_active_exam_session") ?? "{}")
-    const done = updatedSession.answers?.length >= updatedSession.totalQuestions
+    const updatedSession = session
+    const done = updatedSession.answers.length >= updatedSession.totalQuestions
 
     if (done) {
       // build results
@@ -202,9 +203,8 @@ export default function ExamSessionPage() {
       setFlagged(false)
       setContested(false)
       setContestText("")
-      setElapsed(0)
       transition("question")
-      setTimeout(startTimer, 220)
+      setTimeout(() => { setElapsed(0); startTimer() }, 220)
     }
   }, [session])
 
@@ -239,7 +239,7 @@ export default function ExamSessionPage() {
         completedAt: null, currentStreak: 0,
       }))
       router.push("/exam/session")
-    } catch { setDrillLoad(false) }
+    } catch { setDrillLoad(false); setDrillError(true) }
   }
 
   const handleNewExam = () => {
@@ -524,9 +524,14 @@ export default function ExamSessionPage() {
 
         {/* Drill */}
         {result.weakTopics.length > 0 && (
-          <button type="button" disabled={drillLoad} onClick={handleDrill} style={{ width: "100%", height: 52, background: "#d97706", color: "#fff", fontWeight: 900, borderRadius: 12, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", border: "none", cursor: drillLoad ? "not-allowed" : "pointer", opacity: drillLoad ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <IconDrill /><span>{drillLoad ? "Preparing drill..." : `Drill: ${result.weakTopics[0]} (5 Qs)`}</span>
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button type="button" disabled={drillLoad} onClick={() => { setDrillError(false); handleDrill() }} style={{ width: "100%", height: 52, background: "#d97706", color: "#fff", fontWeight: 900, borderRadius: 12, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.05em", border: "none", cursor: drillLoad ? "not-allowed" : "pointer", opacity: drillLoad ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <IconDrill /><span>{drillLoad ? "Preparing drill..." : `Drill: ${result.weakTopics[0]} (5 Qs)`}</span>
+            </button>
+            {drillError && (
+              <p style={{ fontSize: 11, color: "#f87171", textAlign: "center", margin: 0 }}>Failed to load drill. Check your connection and try again.</p>
+            )}
+          </div>
         )}
 
         {/* WhatsApp share */}
