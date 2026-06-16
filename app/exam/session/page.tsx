@@ -177,7 +177,7 @@ export default function ExamSessionPage() {
         const q = s.questions.find((q: ExamQuestion) => q.id === ans.questionId)
         if (!q) return
         const t = q.topic || s.topic
-        if (ans.isCorrect) strongSet.add(t) else weakSet.add(t)
+        if (ans.isCorrect) { strongSet.add(t) } else { weakSet.add(t) }
       })
       const r: ExamResult = {
         score, total, percentage,
