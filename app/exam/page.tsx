@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ExamForm, ExamSubject, ExamDifficulty } from "@/lib/types"
-import { EXAM_DATA } from "@/lib/examData"
+import { SUBJECT_DATA } from "@/lib/examData"
 import { getStudentStreak } from "@/lib/examTracker"
 import SubjectPicker from "@/components/exam/SubjectPicker"
 import TopicPicker from "@/components/exam/TopicPicker"
@@ -26,7 +26,7 @@ export default function ExamLandingPage() {
   const router = useRouter()
   const [subject,    setSubject]    = useState<ExamSubject>("Mathematics")
   const [form,       setForm]       = useState<ExamForm>("Form 1")
-  const [topic,      setTopic]      = useState<string>(EXAM_DATA["Form 1"][0])
+  const [topic,      setTopic]      = useState<string>(SUBJECT_DATA["Mathematics"]["Form 1"][0])
   const [difficulty, setDifficulty] = useState<ExamDifficulty>("medium")
   const [count,      setCount]      = useState<number>(10)
   const [loading,    setLoading]    = useState<boolean>(false)
@@ -35,7 +35,8 @@ export default function ExamLandingPage() {
 
   useEffect(() => { setStreak(getStudentStreak().currentStreak) }, [])
 
-  const handleFormChange = (f: ExamForm) => { setForm(f); setTopic(EXAM_DATA[f][0]) }
+  const handleFormChange = (f: ExamForm) => { setForm(f); setTopic(SUBJECT_DATA[subject][f][0]) }
+  const handleSubjectChange = (s: ExamSubject) => { setSubject(s); setTopic(SUBJECT_DATA[s][form][0]) }
 
   const handleStart = async () => {
     setLoading(true); setError(null)
@@ -111,7 +112,7 @@ export default function ExamLandingPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <p style={{ fontSize: 11, textTransform: "uppercase", fontWeight: 800, letterSpacing: "0.08em", color: "#C8A84B", margin: 0 }}>1. Subject</p>
-          <SubjectPicker selected={subject} onSelect={setSubject} />
+          <SubjectPicker selected={subject} onSelect={handleSubjectChange} />
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -127,7 +128,7 @@ export default function ExamLandingPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <p style={{ fontSize: 11, textTransform: "uppercase", fontWeight: 800, letterSpacing: "0.08em", color: "#C8A84B", margin: 0 }}>3. Topic</p>
-          <TopicPicker form={form} selected={topic} onSelect={setTopic} />
+          <TopicPicker subject={subject} form={form} selected={topic} onSelect={setTopic} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
