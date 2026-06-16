@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { ExamSession, ExamResult } from "@/lib/types"
 import { incrementExamCount, shouldShowRegisterPrompt, getKNECGrade } from "@/lib/examTracker"
-import ScoreCard from "@/components/exam/ScoreCard"
 import ShareButton from "@/components/exam/ShareButton"
 
 function IconRefresh() {
@@ -131,7 +130,6 @@ export default function ExamResultsPage() {
           </p>
         </div>
 
-        <ScoreCard result={result} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ background: "#09090b", border: "1px solid #18181b", padding: 16, borderRadius: 12 }}>
