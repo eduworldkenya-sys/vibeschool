@@ -305,7 +305,7 @@ export function FullPlayer({ state, onClose }: FullPlayerProps) {
             <div style={{ fontSize: "15px", fontWeight: "bold" }}>Q: {quiz.question}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {quiz.options.map((option, idx) => {
-                let btnStyle: React.CSSProperties = {
+                const btnStyle: React.CSSProperties = {
                   backgroundColor: "#090D16", border: "1px solid #1a2235",
                   borderRadius: "8px", padding: "12px", color: "#ffffff",
                   fontSize: "13px", textAlign: "left",
