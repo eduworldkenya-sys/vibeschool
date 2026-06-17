@@ -366,6 +366,22 @@ export default function BalloonPage() {
   const timerColor = timeLeft > 20 ? '#10b981' : timeLeft > 10 ? '#f59e0b' : '#ef4444'
 
   // ─── SETUP ────────────────────────────────────────────────────────────────
+  // ─── RESULT ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== 'result') return
+    const xp = Math.round(score / 2) + bestStreak * 5
+    saveFunHubSession({
+      game_slug:   'balloon',
+      subject:     subject ?? 'General',
+      grade:       1,
+      score:       score,
+      xp_earned:   xp,
+      correct:     correctCount,
+      total:       totalCount,
+      streak_max:  bestStreak,
+    }).catch(() => {})
+  }, [phase])
+
   if (phase === 'setup') return (
     <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '24px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
@@ -530,21 +546,7 @@ export default function BalloonPage() {
 
 
 
-  // ─── RESULT ───────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (phase !== 'result') return
-    const xp = Math.round(score / 2) + bestStreak * 5
-    saveFunHubSession({
-      game_slug:   'balloon',
-      subject:     subject ?? 'General',
-      grade:       1,
-      score:       score,
-      xp_earned:   xp,
-      correct:     correctCount,
-      total:       totalCount,
-      streak_max:  bestStreak,
-    }).catch(() => {})
-  }, [phase])
+
 
   if (phase === 'result') {
     const grade = accuracy >= 80 ? { label: 'Amazing!', color: '#10b981', emoji: '🏆' }
