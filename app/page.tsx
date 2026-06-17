@@ -384,7 +384,7 @@ export default function RootPage() {
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${origin}/admin/reset-password`,
+        redirectTo: `${origin}/reset-password?role=${role.toLowerCase()}`,
       })
       if (error) { setError('Could not send reset email. Check the address and try again.'); return }
       setError('✅ Reset link sent — check your inbox.')
