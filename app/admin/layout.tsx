@@ -162,11 +162,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebar] = useState(false)
   const [mounted,     setMounted] = useState(false)
 
-  const isLoginPage = pathname === "/admin/login"
+  const PUBLIC_ADMIN_PAGES = ["/admin/login", "/admin/signup", "/admin/reset-password"]
+  const isPublicAdminPage = PUBLIC_ADMIN_PAGES.includes(pathname)
 
   useEffect(() => {
     setMounted(true)
-    if (isLoginPage) { setLoading(false); return }
+    if (isPublicAdminPage) { setLoading(false); return }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -174,7 +175,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           router.push("/admin/login")
           return
         }
-        if (session && event === "SIGNED_IN") {
+        // INITIAL_SESSION fires on refresh; SIGNED_IN fires after login. Both need loadProfile.
+        if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
           loadProfile()
           return
         }

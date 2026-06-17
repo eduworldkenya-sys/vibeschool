@@ -23,16 +23,26 @@ export default function ResetPasswordPage() {
   const [checking,     setChecking]     = useState(true)
 
   useEffect(() => {
+    const fallback = setTimeout(() => {
+      setValidSession(false)
+      setChecking(false)
+    }, 4000)
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
       if (event === "PASSWORD_RECOVERY") {
+        clearTimeout(fallback)
         setValidSession(true)
-      } else {
+        setChecking(false)
+      } else if (event === "SIGNED_OUT") {
+        clearTimeout(fallback)
         setValidSession(false)
+        setChecking(false)
       }
-      setChecking(false)
     })
+
     return () => {
       subscription.unsubscribe()
+      clearTimeout(fallback)
       if (redirectTimer.current) clearTimeout(redirectTimer.current)
     }
   }, [])

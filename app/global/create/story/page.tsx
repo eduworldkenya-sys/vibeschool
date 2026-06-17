@@ -28,13 +28,13 @@ export default function StoryEditorEntryPage() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
         if (error || !user) {
-          router.replace('/global/signin')
+          router.replace('/')
         } else {
           setSession({ loading: false, userId: user.id })
         }
       } catch (err) {
         console.error('Editor auth error:', err)
-        router.replace('/global/signin')
+        router.replace('/')
       }
     }
 

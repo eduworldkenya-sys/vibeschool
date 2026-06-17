@@ -66,7 +66,7 @@ export default function VoucherStorePage() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/parent/login'); return }
+      if (!user) { router.push('/?role=parent'); return }
 
       const { data: student } = await supabase
         .from('students').select('id').eq('profile_id', user.id).single()

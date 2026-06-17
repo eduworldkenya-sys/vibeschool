@@ -29,7 +29,7 @@ export default function VibePressPage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     sb.auth.getUser().then(async ({ data: { user }, error }) => {
-      if (error || !user) { router.replace('/global/signin'); return }
+      if (error || !user) { router.replace('/'); return }
       setUserId(user.id)
       const { data } = await sb
         .from('vibe_publications')

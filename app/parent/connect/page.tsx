@@ -146,20 +146,20 @@ export default function ParentConnectPage() {
   async function loadUser() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/parent/login'); return }
+      if (!user) { router.push('/?role=parent'); return }
       const [pRes, memberRes] = await Promise.all([
         supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single(),
         supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
       ])
       const p = pRes.data
       if (p) p.school_id = memberRes.data?.school_id ?? p.school_id
-      if (!p || p.role !== 'parent') { router.push('/parent/login'); return }
+      if (!p || p.role !== 'parent') { router.push('/?role=parent'); return }
       setUserId(user.id)
       setSchoolId(p?.school_id ?? '')
       try { await ensureVCId(user.id, p.full_name ?? 'Parent') } catch {}
       await loadAll(user.id, p?.school_id ?? '')
     } catch {
-      router.push('/parent/login')
+      router.push('/?role=parent')
     } finally {
       setLoading(false)
     }

@@ -695,6 +695,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [initials,      setInitials]      = useState("");
   const [fullName,      setFullName]      = useState("");
   const [unreadConnect, setUnreadConnect] = useState(0);
+  const [authReady,     setAuthReady]     = useState(false);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -704,13 +705,13 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     async function fetchProfile() {
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) { window.location.href = "/admin/login"; return; }
+      if (userErr || !user) { window.location.href = "/?role=teacher"; return; }
       const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
         .select("full_name, school_id, role")
         .eq("id", user.id)
         .single();
-      if (profileErr || !profileData || profileData.role !== "teacher") { window.location.href = "/admin/login"; return; }
+      if (profileErr || !profileData || profileData.role !== "teacher") { window.location.href = "/?role=teacher"; return; }
       const name  = profileData.full_name ?? "";
       setFullName(name);
       const parts   = name.trim().split(" ").filter(Boolean);
@@ -752,11 +753,21 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         unread = counts.reduce((a: number, b: number) => a + b, 0);
       }
       setUnreadConnect(unread);
+      setAuthReady(true);
     }
     fetchProfile();
   }, [pathname]);
 
   const userCtx: UserCtx = { fullName, initials, school };
+
+  if (!authReady) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f0f2f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTop: "3px solid #10b981", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
 
   return (
     <ToastContext.Provider value={{ showToast }}>

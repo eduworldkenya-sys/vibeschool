@@ -97,7 +97,7 @@ export default function SubjectHubPage() {
   async function init() {
     try {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/global/signin'); return }
+    if (!user) { router.push('/?role=teacher'); return }
     setCurrentId(user.id)
 
     const [tcRes, teacherRes, memberRes, profileRes] = await Promise.all([

@@ -377,6 +377,22 @@ export default function RootPage() {
 
   // ── Handlers ───────────────────────────────────────────────────
 
+  async function handleForgotPassword() {
+    if (!email.trim()) { setError('Enter your email address first, then click Forgot password.'); return }
+    setError('')
+    setLoading(true)
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${origin}/admin/reset-password`,
+      })
+      if (error) { setError('Could not send reset email. Check the address and try again.'); return }
+      setError('✅ Reset link sent — check your inbox.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function handleSignIn() {
     if (inflightRef.current) return
     setError('')
@@ -692,7 +708,7 @@ export default function RootPage() {
                 </div>
 
                 <div style={S.forgotRow}>
-                  <button style={S.forgot} onClick={() => router.push('/admin/login')}>
+                  <button style={S.forgot} onClick={handleForgotPassword}>
                     Forgot password?
                   </button>
                 </div>

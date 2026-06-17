@@ -74,7 +74,7 @@ export default function ProfilePage() {
           <button onClick={() => router.push('/global/signup')} style={{ width: '100%', padding: 14, backgroundColor: '#CCFF00', color: '#090D16', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
             Create Account
           </button>
-          <button onClick={() => router.push('/global/signin')} style={{ width: '100%', padding: 14, backgroundColor: 'transparent', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => router.push('/')} style={{ width: '100%', padding: 14, backgroundColor: 'transparent', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             Sign In
           </button>
         </div>

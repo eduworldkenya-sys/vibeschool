@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -20,6 +20,14 @@ export default function AdminLoginPage() {
   const [resetEmail,   setResetEmail]   = useState("")
   const [resetLoading, setResetLoading] = useState(false)
   const [resetSent,    setResetSent]    = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('profiles').select('role').eq('id', user.id).single()
+        .then(({ data }) => { if (data?.role === 'admin') router.replace('/admin') })
+    })
+  }, [])
 
   async function handleLogin() {
     setError("")

@@ -77,7 +77,7 @@ export default function SchoolOnboardingPage() {
 
   async function getUser() {
     const { data: { user }, error } = await supabase.auth.getUser()
-    if (error || !user) { router.push('/global/signin'); return null }
+    if (error || !user) { router.push('/?role=teacher'); return null }
     return user
   }
 

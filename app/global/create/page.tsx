@@ -71,7 +71,7 @@ export default function FormatSelectorPage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     supabase.auth.getUser().then(({ data: { user }, error }) => {
-      if (error || !user) router.replace('/global/signin')
+      if (error || !user) router.replace('/')
       else setLoading(false)
     })
   }, [router])

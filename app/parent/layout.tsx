@@ -36,6 +36,15 @@ function BottomNav({
 }) {
   const router = useRouter();
 
+  if (!authReady) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f0f2f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTop: "3px solid #10b981", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
+
   return (
     <div style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700,
@@ -194,6 +203,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   const [fullName, setFullName] = useState("");
   const [initials, setInitials] = useState("");
   const [vibeLearnOpen, setVibeLearnOpen] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -210,6 +220,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
         setFullName(name);
         const parts = name.trim().split(" ").filter(Boolean);
         setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+        setAuthReady(true);
       } catch {
         router.push("/");
       }

@@ -350,14 +350,14 @@ export default function AdminResourcesPage() {
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      if (!user) { router.push('/admin/login'); return }
       const [pRes, adminRes, memberRes] = await Promise.all([
         supabase.from('profiles').select('school_id').eq('id', user.id).single(),
         supabase.from('admin_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
         supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
       ])
       const resolvedId = memberRes.data?.school_id ?? adminRes.data?.school_id ?? pRes.data?.school_id ?? null
-      if (!resolvedId) { router.push('/login'); return }
+      if (!resolvedId) { router.push('/admin/login'); return }
       setUserId(user.id)
       setSchoolId(resolvedId)
     }

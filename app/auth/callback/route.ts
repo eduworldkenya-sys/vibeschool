@@ -51,10 +51,8 @@ export async function GET(req: NextRequest) {
           return NextResponse.redirect(new URL(DASHBOARDS[profile.role], req.url))
         }
 
-        // New Google user — send to complete profile with role hint
-        return NextResponse.redirect(
-          new URL("/", req.url)
-        )
+        // New Google user — forward role hint so root page can guide profile completion
+        return NextResponse.redirect(new URL(`/?role=${role}&from=google`, req.url))
       }
     }
   }

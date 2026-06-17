@@ -29,7 +29,7 @@ export default function ReaderPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/global/signin'); return }
+      if (!user) { router.replace('/'); return }
       setUserId(user.id)
 
       const { data, error: err } = await supabase

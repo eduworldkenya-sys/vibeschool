@@ -1,7 +1,17 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
+const PUBLIC_PATHS = new Set([
+  '/admin/login',
+  '/admin/signup',
+  '/admin/reset-password',
+])
+
 export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
+
+  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next()
+
   const res = NextResponse.next()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,7 +29,6 @@ export async function middleware(req: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-  const { pathname } = req.nextUrl
 
   const protectedPrefixes = ['/teacher', '/admin', '/parent', '/student', '/select']
   const isProtected = protectedPrefixes.some(p => pathname.startsWith(p))

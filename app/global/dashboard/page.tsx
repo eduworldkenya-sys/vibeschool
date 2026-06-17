@@ -103,7 +103,7 @@ export default function VibeGlobalDashboard() {
   useEffect(() => {
     async function init() {
       const { data: { user: u } } = await supabase.auth.getUser()
-      if (!u) { router.replace('/global/signin'); return }
+      if (!u) { router.replace('/'); return }
       const { data: profile } = await supabase
         .from('profiles')
         .select('id, full_name, country_code')
@@ -602,7 +602,7 @@ export default function VibeGlobalDashboard() {
             </div>
 
             <button
-              onClick={async () => { await supabase.auth.signOut(); router.replace('/global/signin') }}
+              onClick={async () => { await supabase.auth.signOut(); router.replace('/') }}
               style={{ width: '100%', padding: '14px 0', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: MUTED, fontWeight: 700, fontSize: 13, cursor: 'pointer', marginTop: 8 }}
             >
               Sign Out
