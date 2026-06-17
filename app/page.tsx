@@ -492,6 +492,11 @@ export default function RootPage() {
         setError(friendlyError(authErr?.message ?? ''))
         return
       }
+      // Supabase returns fake success for duplicate emails — detect it
+      if (!authData.session && !authErr) {
+        setError('An account with this email already exists. Please sign in instead.')
+        return
+      }
 
       const userId = authData.user.id
       const dbRole = ROLE_DB[role]

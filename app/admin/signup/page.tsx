@@ -67,7 +67,10 @@ export default function AdminSignupPage() {
         p_county:     county.trim() || null,
       })
 
-      if (rpcErr) throw new Error(rpcErr.message)
+      if (rpcErr) {
+        await supabase.auth.signOut()
+        throw new Error(rpcErr.message)
+      }
 
       setSchoolName(newSchoolName.trim())
       setMode("pending")
@@ -104,7 +107,10 @@ export default function AdminSignupPage() {
         p_full_name: fullName.trim(),
         p_school_id: school.id,
       })
-      if (rpcErr) throw new Error(rpcErr.message)
+      if (rpcErr) {
+        await supabase.auth.signOut()
+        throw new Error(rpcErr.message)
+      }
 
       setSchoolName(school.name)
       setMode("pending")
