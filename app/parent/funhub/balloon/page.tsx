@@ -517,6 +517,19 @@ export default function BalloonPage() {
         ))}
       </div>
 
+
+
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+      `}</style>
+    </div>
+  )
+
+
+
   // ─── RESULT ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'result') return
@@ -532,17 +545,6 @@ export default function BalloonPage() {
       streak_max:  bestStreak,
     }).catch(() => {})
   }, [phase])
-
-      <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}</style>
-    </div>
-  )
-
-
 
   if (phase === 'result') {
     const grade = accuracy >= 80 ? { label: 'Amazing!', color: '#10b981', emoji: '🏆' }
