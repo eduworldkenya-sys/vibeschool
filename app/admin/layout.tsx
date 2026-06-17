@@ -237,7 +237,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push("/admin/login")
   }
 
-  if (isLoginPage) return <>{children}</>
+  if (isPublicAdminPage) return <>{children}</>
 
   if (loading || !mounted) {
     return (
