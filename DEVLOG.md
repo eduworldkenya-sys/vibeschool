@@ -117,3 +117,7 @@
 ## [2026-06-15 22:35] adc54ff
 **What:** feat: VibeExam — free AI KCSE mock exam feature
 **Status:** ✅ pushed
+
+## [2026-06-19 22:49] 8e748ba
+**What:** fix: audit findings - login/signup security, student route guard, middleware role check, 404/error pages
+**Status:** ✅ pushed
