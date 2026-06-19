@@ -42,6 +42,30 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(`/?role=${role}`, req.url))
   }
 
+  // Role enforcement: a logged-in user of one role should not be able to
+  // browse another role's protected area just because they're authenticated.
+  // '/select' is intentionally excluded — it is reachable by multiple roles.
+  if (isProtected && user) {
+    const expectedRole = pathname.startsWith('/teacher') ? 'teacher'
+      : pathname.startsWith('/admin')   ? 'admin'
+      : pathname.startsWith('/parent')  ? 'parent'
+      : pathname.startsWith('/student') ? 'student'
+      : null
+
+    if (expectedRole) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role && profile.role !== expectedRole) {
+        const dest = profile.role === 'global_user' ? '/global' : `/${profile.role}`
+        return NextResponse.redirect(new URL(dest, req.url))
+      }
+    }
+  }
+
   return res
 }
 
