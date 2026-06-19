@@ -1,5 +1,4 @@
 import { Metadata } from 'next'
-import StudentAuthGuard from '@/components/student/StudentAuthGuard'
 
 export const metadata: Metadata = {
   title: 'Student Learning — Free CBC & Secondary Resources',
@@ -15,5 +14,5 @@ export const metadata: Metadata = {
 }
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  return <StudentAuthGuard>{children}</StudentAuthGuard>
+  return <>{children}</>
 }

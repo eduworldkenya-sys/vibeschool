@@ -9,6 +9,7 @@ import { GlobalBottomNav } from '@/components/global/layout/GlobalBottomNav'
 
 const HIDE_SHELL_PATHS = [
   '/global/signup',
+  '/global/signup',
 ]
 
 export function GlobalShellProvider({ children }: { children: React.ReactNode }) {
@@ -23,15 +24,15 @@ export function GlobalShellProvider({ children }: { children: React.ReactNode })
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    sb.auth.getUser().then(({ data }) => {
-      const user = data.user
-      if (user) {
+    sb.auth.getSession().then(({ data }) => {
+      const session = data.session
+      if (session) {
         setIsLoggedIn(true)
-        setUserId(user.id)
+        setUserId(session.user.id)
         setUserName(
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.email?.split('@')[0] ||
+          session.user.user_metadata?.full_name ||
+          session.user.user_metadata?.name ||
+          session.user.email?.split('@')[0] ||
           null
         )
       }

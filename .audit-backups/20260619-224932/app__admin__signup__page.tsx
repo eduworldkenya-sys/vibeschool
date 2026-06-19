@@ -54,7 +54,6 @@ export default function AdminSignupPage() {
       // 1. Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password })
       if (authError || !authData.user) throw new Error(authError?.message ?? "Sign up failed")
-      if (!authData.session) throw new Error("An account with this email already exists. Please sign in instead.")
 
       const uid = authData.user.id
       const subdomain = slugify(newSchoolName) + "-" + Math.random().toString(36).slice(2,6)
@@ -102,7 +101,6 @@ export default function AdminSignupPage() {
         email: email.trim().toLowerCase(), password
       })
       if (authError || !authData.user) throw new Error(authError?.message ?? "Sign up failed")
-      if (!authData.session) throw new Error("An account with this email already exists. Please sign in instead.")
 
       const { error: rpcErr } = await supabase.rpc("join_school_as_admin", {
         p_user_id:   authData.user.id,

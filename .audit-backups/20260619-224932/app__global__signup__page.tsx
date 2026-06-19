@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -6,13 +7,11 @@ import styles from './signup.module.css'
 
 const COUNTRIES = [
   { code: 'KE', name: 'Kenya' },
-  { code: 'UG', name: 'Uganda' },
-  { code: 'TZ', name: 'Tanzania' },
-  { code: 'RW', name: 'Rwanda' },
   { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
   { code: 'DE', name: 'Germany' },
+  { code: 'GB', name: 'United Kingdom' },
   { code: 'JP', name: 'Japan' },
+  { code: 'KR', name: 'South Korea' },
 ]
 
 const MIN_DOB = new Date()
@@ -30,7 +29,6 @@ export default function GlobalSignUp() {
   const [country,  setCountry]  = useState('')
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [showPw,   setShowPw]   = useState(false)
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
 
@@ -71,13 +69,6 @@ export default function GlobalSignUp() {
     if (authError || !authData.user) {
       setLoading(false)
       setError(authError?.message || 'Sign up failed. Please try again.')
-      return
-    }
-
-    // Supabase returns fake success for duplicate emails — detect it
-    if (!authData.session) {
-      setLoading(false)
-      setError('An account with this email already exists. Please sign in instead.')
       return
     }
 
@@ -150,16 +141,8 @@ export default function GlobalSignUp() {
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="password">PASSWORD</label>
-              <div style={{ position: 'relative' }}>
-                <input id="password" className={styles.input} type={showPw ? 'text' : 'password'} autoComplete="new-password"
-                  style={{ paddingRight: 42 }}
-                  value={password} onChange={e => setPassword(e.target.value)} disabled={loading}
-                  onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }} />
-                <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1 }}>
-                  {showPw ? '🙈' : '👁'}
-                </button>
-              </div>
+              <input id="password" className={styles.input} type="password" autoComplete="new-password"
+                value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
             </div>
 
             {error && <p className={styles.error} role="alert">{error}</p>}

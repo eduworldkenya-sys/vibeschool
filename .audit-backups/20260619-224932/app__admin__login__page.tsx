@@ -21,20 +21,12 @@ export default function AdminLoginPage() {
   const [resetLoading, setResetLoading] = useState(false)
   const [resetSent,    setResetSent]    = useState(false)
 
-  const [checkingSession, setCheckingSession] = useState(true)
-
   useEffect(() => {
-    let alive = true
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { if (alive) setCheckingSession(false); return }
+      if (!user) return
       supabase.from('profiles').select('role').eq('id', user.id).single()
-        .then(({ data }) => {
-          if (!alive) return
-          if (data?.role === 'admin') { router.replace('/admin'); return }
-          setCheckingSession(false)
-        })
+        .then(({ data }) => { if (data?.role === 'admin') router.replace('/admin') })
     })
-    return () => { alive = false }
   }, [])
 
   async function handleLogin() {
@@ -75,7 +67,7 @@ export default function AdminLoginPage() {
     setResetLoading(true)
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       resetEmail.trim().toLowerCase(),
-      { redirectTo: `${window.location.origin}/admin/reset-password` }
+      { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/admin/reset-password` }
     )
     setResetLoading(false)
     if (resetError) {
@@ -95,15 +87,6 @@ export default function AdminLoginPage() {
     display: "block", color: "rgba(255,255,255,0.5)", fontSize: "12px",
     fontWeight: "600", letterSpacing: "0.5px", marginBottom: "8px",
     textTransform: "uppercase",
-  }
-
-  if (checkingSession) {
-    return (
-      <div style={{ minHeight: "100dvh", background: deepspace, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 36, height: 36, border: "3px solid rgba(255,255,255,0.1)", borderTop: "3px solid #10b981", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      </div>
-    )
   }
 
   return (

@@ -352,7 +352,7 @@ export default function RootPage() {
 
       if (!alive) return
 
-      if (rpcRole) {
+      if (rpcRole && rpcRole !== 'global_user') {
         const dest = DASHBOARDS[rpcRole]
         if (dest) { router.replace(dest); return }
       }
@@ -778,7 +778,6 @@ export default function RootPage() {
                     type={showConfirm ? 'text' : 'password'}
                     autoComplete="new-password" placeholder="Repeat password"
                     value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={isBusy}
-                    onKeyDown={e => { if (e.key === 'Enter') handleSignUp() }}
                   />
                   <button style={S.eyeBtn} type="button" onClick={() => setShowConfirm(v => !v)}>
                     {showConfirm ? '🙈' : '👁'}
