@@ -288,12 +288,13 @@ export default function ExamSessionPage() {
 
   // ── Progress bar ───────────────────────────────────────────────────────────
   const answered = session.answers.length
-  const pct      = session.totalQuestions > 0 ? Math.min(100, (answered / session.totalQuestions) * 100) : 0
+  const viewing   = Math.min(currentIndex + 1, session.totalQuestions)
+  const pct       = session.totalQuestions > 0 ? Math.min(100, (viewing / session.totalQuestions) * 100) : 0
   const ProgressBar = () => (
     <div style={{ width: "100%" }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#71717a", marginBottom: 4 }}>
         <span>Progress</span>
-        <span>{answered} / {session.totalQuestions}</span>
+        <span>{viewing} / {session.totalQuestions}</span>
       </div>
       <div style={{ width: "100%", height: 6, background: "#18181b", border: "1px solid #27272a", borderRadius: 999, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${pct}%`, background: "#C8A84B", borderRadius: 999, transition: "width 0.4s ease" }} />
