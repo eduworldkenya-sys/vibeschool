@@ -539,6 +539,9 @@ export default function ExamSessionPage() {
         {/* Review */}
         <button type="button" onClick={() => setShowReview(true)} style={{ width: "100%", height: 46, background: "#18181b", border: "1px solid rgba(200,168,75,0.35)", color: "#C8A84B", fontWeight: 800, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", borderRadius: 12, cursor: "pointer" }}>Review All Questions</button>
 
+        {/* Review */}
+        <button type="button" onClick={() => setShowReview(true)} style={{ width: "100%", height: 46, background: "#18181b", border: "1px solid rgba(200,168,75,0.35)", color: "#C8A84B", fontWeight: 800, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", borderRadius: 12, cursor: "pointer" }}>Review All Questions</button>
+
         {/* WhatsApp share */}
         <a href={`https://wa.me/?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer" style={{ width: "100%", height: 52, background: "#25D366", color: "#fff", fontWeight: 800, borderRadius: 12, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
           Share Score on WhatsApp
