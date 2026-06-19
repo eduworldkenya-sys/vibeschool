@@ -121,3 +121,7 @@
 ## [2026-06-19 22:49] 8e748ba
 **What:** fix: audit findings - login/signup security, student route guard, middleware role check, 404/error pages
 **Status:** ✅ pushed
+
+## [2026-06-19 23:08] bd50187
+**What:** fix: revert middleware role-check (perf regression on slow networks)
+**Status:** ✅ pushed
