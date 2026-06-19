@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef, useCallback } from "react"
+import QuestionReview from "@/components/exam/QuestionReview"
 import { useRouter } from "next/navigation"
 import { ExamSession, ExamQuestion, ExamAnswer, ExamResult } from "@/lib/types"
 import { incrementExamCount, shouldShowRegisterPrompt, getKNECGrade, getStudentStreak } from "@/lib/examTracker"
@@ -97,6 +98,7 @@ export default function ExamSessionPage() {
   const [contested,    setContested]    = useState(false)
   const [contestText,  setContestText]  = useState("")
 
+  const [showReview,   setShowReview]   = useState(false)
   // ── Results state ──────────────────────────────────────────────────────────
   const [result,       setResult]       = useState<ExamResult | null>(null)
   const [showPrompt,   setShowPrompt]   = useState(false)
@@ -534,6 +536,9 @@ export default function ExamSessionPage() {
           </div>
         )}
 
+        {/* Review */}
+        <button type="button" onClick={() => setShowReview(true)} style={{ width: "100%", height: 46, background: "#18181b", border: "1px solid rgba(200,168,75,0.35)", color: "#C8A84B", fontWeight: 800, fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em", borderRadius: 12, cursor: "pointer" }}>Review All Questions</button>
+
         {/* WhatsApp share */}
         <a href={`https://wa.me/?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noopener noreferrer" style={{ width: "100%", height: 52, background: "#25D366", color: "#fff", fontWeight: 800, borderRadius: 12, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>
           Share Score on WhatsApp
@@ -563,6 +568,9 @@ export default function ExamSessionPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: "#05050F", color: "#fff", padding: 16, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      {showReview && session && (
+        <QuestionReview questions={session.questions} answers={session.answers} onClose={() => setShowReview(false)} />
+      )}
       <div style={{
         width: "100%", maxWidth: 560, paddingTop: 16, paddingBottom: 80,
         opacity: visible ? 1 : 0,

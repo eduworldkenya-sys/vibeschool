@@ -540,7 +540,7 @@ export interface VVQuestionResponse {
 // ─── VibeExam ─────────────────────────────────────────────────────────────────
 
 export type ExamDifficulty = 'easy' | 'medium' | 'hard'
-export type ExamSubject    = 'Mathematics' | 'English' | 'Biology' | 'Chemistry' | 'History'
+export type ExamSubject    = 'Mathematics' | 'English' | 'Biology' | 'Chemistry' | 'History' | 'Physics' | 'Geography' | 'Kiswahili' | 'CRE' | 'Business Studies'
 export type ExamForm       = 'Form 1' | 'Form 2' | 'Form 3' | 'Form 4'
 
 export interface ExamQuestion {

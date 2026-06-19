@@ -7,12 +7,17 @@ interface SubjectPickerProps {
   onSelect: (s: ExamSubject) => void
 }
 
-const SUBJECTS: { name: ExamSubject; emoji: string }[] = [
-  { name: "Mathematics", emoji: "📐" },
-  { name: "English",     emoji: "📖" },
-  { name: "Biology",     emoji: "🧬" },
-  { name: "Chemistry",   emoji: "⚗️" },
-  { name: "History",     emoji: "🏛️" },
+const SUBJECTS: { name: ExamSubject; icon: string }[] = [
+  { name: "Mathematics",      icon: "📐" },
+  { name: "English",          icon: "📖" },
+  { name: "Physics",          icon: "⚡" },
+  { name: "Biology",          icon: "🧬" },
+  { name: "Chemistry",        icon: "⚗️" },
+  { name: "Geography",        icon: "🌍" },
+  { name: "History",          icon: "🏛️" },
+  { name: "Kiswahili",        icon: "🇰🇪" },
+  { name: "CRE",              icon: "✝️" },
+  { name: "Business Studies", icon: "📊" },
 ]
 
 export default function SubjectPicker({ selected, onSelect }: SubjectPickerProps) {
@@ -33,8 +38,8 @@ export default function SubjectPicker({ selected, onSelect }: SubjectPickerProps
             cursor: "pointer", transition: "all 0.15s", textAlign: "left",
           }}
         >
-          <span style={{ fontSize: 18 }}>{s.emoji}</span>
-          <span>{s.name}</span>
+          <span style={{ fontSize: 18 }}>{s.icon}</span>
+          <span style={{ lineHeight: 1.2 }}>{s.name}</span>
         </button>
       ))}
     </div>
