@@ -704,6 +704,7 @@ export default function RootPage() {
                     style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
                     type={showPw ? 'text' : 'password'}
                     autoComplete="current-password"
+                    name="password"
                     placeholder="••••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
