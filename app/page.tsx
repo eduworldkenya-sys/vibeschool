@@ -445,6 +445,7 @@ export default function RootPage() {
       if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
       navigated = true
+      await new Promise(r => setTimeout(r, 800))
       window.location.href = dest
     } catch (e: any) {
       setError('Unexpected error: ' + (e?.message ?? 'Please try again.'))
