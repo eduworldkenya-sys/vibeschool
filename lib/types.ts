@@ -552,6 +552,7 @@ export interface ExamQuestion {
   teachingNote: string
   topic:        string
   hint?:        string
+  bankId?:      string   // links back to exam_question_bank row, for flag/dismiss pipeline
 }
 
 export interface ExamAnswer {

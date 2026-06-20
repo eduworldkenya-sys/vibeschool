@@ -217,7 +217,7 @@ export default function ExamSessionPage() {
     try {
       await fetch("/api/exam/flag", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: currentQ?.id, type, reason }),
+        body: JSON.stringify({ questionId: currentQ?.id, bankId: currentQ?.bankId, type, reason }),
       })
     } catch { /* silent */ }
   }
