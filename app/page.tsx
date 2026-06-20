@@ -344,20 +344,23 @@ export default function RootPage() {
   useEffect(() => {
     let alive = true
     async function check() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!alive) return
-      if (!user) { setInitialising(false); return }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!alive) return
+        if (!user) { setInitialising(false); return }
 
-      const { data: rpcRole } = await supabase.rpc('get_my_role')
+        const { data: rpcRole } = await supabase.rpc('get_my_role')
+        if (!alive) return
 
-      if (!alive) return
-
-      if (rpcRole) {
-        const dest = DASHBOARDS[rpcRole]
-        if (dest) { router.replace(dest); return }
+        if (rpcRole) {
+          const dest = DASHBOARDS[rpcRole]
+          if (dest) { router.replace(dest); return }
+        }
+      } catch {
+        // RPC or network failed — show login anyway
+      } finally {
+        if (alive) setInitialising(false)
       }
-
-      setInitialising(false)
     }
     check()
     return () => { alive = false }
