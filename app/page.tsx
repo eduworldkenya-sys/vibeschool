@@ -337,6 +337,7 @@ export default function RootPage() {
   const [joinCode,        setJoinCode]        = useState('')
 
   const inflightRef  = useRef(false)
+  const passwordRef   = useRef<HTMLInputElement>(null)
   const gInflightRef = useRef(false)
   const isBusy = loading || gLoading
 
@@ -402,7 +403,7 @@ export default function RootPage() {
     if (!email.trim()) { setError('Email is required.'); return }
     if (!password)     { setError('Password is required.'); return }
 
-    const pw = password
+    const pw = passwordRef.current?.value || password
     setPassword('')
     inflightRef.current = true
     setLoading(true)
@@ -702,6 +703,7 @@ export default function RootPage() {
                 <div style={S.inputWrap}>
                   <input
                     style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                    ref={passwordRef}
                     type={showPw ? 'text' : 'password'}
                     autoComplete="current-password"
                     name="password"
