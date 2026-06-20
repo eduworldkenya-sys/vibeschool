@@ -445,7 +445,7 @@ export default function RootPage() {
       if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
       navigated = true
-      router.replace(dest)
+      window.location.href = dest
     } catch (e: any) {
       setError('Unexpected error: ' + (e?.message ?? 'Please try again.'))
     } finally {
