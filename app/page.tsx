@@ -421,24 +421,33 @@ export default function RootPage() {
       let userRole: string | null = null
 
       // Try get_my_role RPC first — fast path
-      const { data: rpcRole } = await supabase.rpc('get_my_role')
+      const { data: rpcRole, error: rpcErr } = await supabase.rpc('get_my_role')
+      if (rpcErr) {
+        setError('Role check failed: ' + rpcErr.message)
+        return
+      }
       if (rpcRole) {
         userRole = rpcRole
       } else {
         // Fallback — read profiles directly
-        const { data: p } = await supabase
+        const { data: p, error: pErr } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single()
+        if (pErr) { setError('Profile read failed: ' + pErr.message); return }
         userRole = p?.role ?? null
       }
 
-      const dest = DASHBOARDS[userRole ?? '']
-      if (!dest) { setError('Unknown role. Contact support.'); return }
+      if (!userRole) { setError('No role found for this account. Contact support.'); return }
+
+      const dest = DASHBOARDS[userRole]
+      if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
       navigated = true
       router.replace(dest)
+    } catch (e: any) {
+      setError('Unexpected error: ' + (e?.message ?? 'Please try again.'))
     } finally {
       inflightRef.current = false
       if (!navigated) setLoading(false)
