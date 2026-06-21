@@ -149,3 +149,7 @@
 ## [2026-06-22 00:42] aa7052a
 **What:** diagnostic: surface real profileErr on signup failure
 **Status:** ✅ pushed
+
+## [2026-06-22 00:58] 64e6ca9
+**What:** diagnostic: surface real profileErr on signup failure
+**Status:** ✅ pushed
