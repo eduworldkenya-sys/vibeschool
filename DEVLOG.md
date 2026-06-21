@@ -165,3 +165,7 @@
 ## [2026-06-22 01:04] abd4cab
 **What:** diagnostic: surface real profileErr on signup failure
 **Status:** ✅ pushed
+
+## [2026-06-22 01:36] cdbe17a
+**What:** diagnostic: surface profileErr.details on signup failure
+**Status:** ✅ pushed
