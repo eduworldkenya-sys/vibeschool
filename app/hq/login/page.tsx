@@ -26,13 +26,6 @@ export default function HQLoginPage() {
         email: email.trim().toLowerCase(), password,
       })
       if (authError || !data?.user) { setError("Invalid email or password."); setLoading(false); return }
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single()
-      if (profile?.role !== "admin") {
-        setError("Access denied. Admins only.")
-        await supabase.auth.signOut()
-        setLoading(false)
-        return
-      }
       router.replace("/hq")
     } catch {
       setError("Something went wrong.")
