@@ -520,9 +520,7 @@ export default function RootPage() {
 
       // Insert profile — never use pending_admin, use real role
       const profilePayload: Record<string, unknown> = {
-        id:        userId,
         full_name: fullName.trim(),
-        role:      dbRole,
         ...(country && { country_code: country }),
         ...(dob     && { date_of_birth: dob }),
         ...(schoolId && { school_id: schoolId }),
@@ -530,7 +528,9 @@ export default function RootPage() {
 
       const { error: profileErr } = await supabase
         .from('profiles')
-        .insert(profilePayload)
+        .update(profilePayload)
+        .eq('id', userId)
+        .select('id')
 
       if (profileErr) {
         await supabase.auth.signOut()
