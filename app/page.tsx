@@ -357,6 +357,7 @@ export default function RootPage() {
           const dest = DASHBOARDS[rpcRole]
           if (dest) {
             document.cookie = `vibe_role=${rpcRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+            localStorage.setItem('vs_role', rpcRole)
             router.replace(dest); return
           }
         }
@@ -448,6 +449,7 @@ export default function RootPage() {
       if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
       document.cookie = `vibe_role=${userRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+      localStorage.setItem('vs_role', userRole)
       navigated = true
       setLoading(false)
       router.replace(dest)
