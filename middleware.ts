@@ -51,7 +51,12 @@ export async function middleware(req: NextRequest) {
       .single()
     const role = profile?.role as string | undefined
     if (role && role !== 'global_user') {
-      const home = ROLE_HOME[role] ?? '/'
+      const roleMap: Record<string, string> = {
+        teacher: '/teacher',
+        admin:   '/admin',
+        parent:  '/parent',
+      }
+      const home = roleMap[role] ?? '/'
       return NextResponse.redirect(new URL(home, req.url))
     }
   }
