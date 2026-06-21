@@ -424,22 +424,19 @@ export default function RootPage() {
 
       let userRole: string | null = null
 
-      // Try get_my_role RPC first — fast path
       const { data: rpcRole, error: rpcErr } = await supabase.rpc('get_my_role')
-      if (rpcErr) {
-        setError('Role check failed: ' + rpcErr.message)
-        return
-      }
-      if (rpcRole) {
+      if (!rpcErr && rpcRole) {
         userRole = rpcRole
       } else {
-        // Fallback — read profiles directly
         const { data: p, error: pErr } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single()
-        if (pErr) { setError('Profile read failed: ' + pErr.message); return }
+        if (pErr) {
+          setError('Could not verify your account role. Please try again or contact support.')
+          return
+        }
         userRole = p?.role ?? null
       }
 
@@ -506,14 +503,14 @@ export default function RootPage() {
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: { data: { role: ROLE_DB[role], full_name: fullName.trim() } },
       })
 
       if (authErr || !authData.user) {
         setError(friendlyError(authErr?.message ?? ''))
         return
       }
-      // Supabase returns fake success for duplicate emails — detect it
-      if (!authData.session && !authErr) {
+      if (!authErr && authData.user.identities && authData.user.identities.length === 0) {
         setError('An account with this email already exists. Please sign in instead.')
         return
       }
