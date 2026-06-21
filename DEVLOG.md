@@ -137,3 +137,7 @@
 ## [2026-06-21 15:23] 62590f7
 **What:** Add course enrollment lock-in to roadmap page
 **Status:** ✅ pushed
+
+## [2026-06-21 15:26] b8d3fad
+**What:** Domain-aware tip tab label on topic page
+**Status:** ✅ pushed
