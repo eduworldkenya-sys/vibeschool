@@ -65,15 +65,13 @@ create table if not exists quiz_questions (
   id                 uuid primary key default gen_random_uuid(),
   topic_id           uuid not null references topics(id) on delete cascade,
   question_text      text not null,
-  options            jsonb not null, -- [{ id: "opt-a", label: "A", text: "..." }, ...]
+  options            jsonb not null,
   correct_option_id  text not null,
   explanation        text,
   created_at         timestamptz default now()
 );
 
 -- ─── learner_progress ──────────────────────────────────────────────────────
--- Single source of truth for completion. Course/module progress and streaks
--- are derived from this table, never stored independently.
 create table if not exists learner_progress (
   id            uuid primary key default gen_random_uuid(),
   learner_id    uuid not null references learner_profiles(id) on delete cascade,
@@ -99,20 +97,34 @@ alter table topics enable row level security;
 alter table quiz_questions enable row level security;
 alter table learner_progress enable row level security;
 
--- Public read on published catalog content
+drop policy if exists "public read courses" on courses;
 create policy "public read courses" on courses for select using (true);
+
+drop policy if exists "public read modules" on modules;
 create policy "public read modules" on modules for select using (true);
+
+drop policy if exists "public read published topics" on topics;
 create policy "public read published topics" on topics for select using (content_status = 'published');
+
+drop policy if exists "public read quiz questions" on quiz_questions;
 create policy "public read quiz questions" on quiz_questions for select using (true);
 
--- Learner profile: owner-only
+drop policy if exists "learner reads own profile" on learner_profiles;
 create policy "learner reads own profile" on learner_profiles for select using (auth.uid() = id);
+
+drop policy if exists "learner inserts own profile" on learner_profiles;
 create policy "learner inserts own profile" on learner_profiles for insert with check (auth.uid() = id);
+
+drop policy if exists "learner updates own profile" on learner_profiles;
 create policy "learner updates own profile" on learner_profiles for update using (auth.uid() = id);
 
--- Learner progress: owner-only
+drop policy if exists "learner reads own progress" on learner_progress;
 create policy "learner reads own progress" on learner_progress for select using (auth.uid() = learner_id);
+
+drop policy if exists "learner inserts own progress" on learner_progress;
 create policy "learner inserts own progress" on learner_progress for insert with check (auth.uid() = learner_id);
+
+drop policy if exists "learner updates own progress" on learner_progress;
 create policy "learner updates own progress" on learner_progress for update using (auth.uid() = learner_id);
 
 -- ─── Seed: pilot course (Community Health Nursing) ────────────────────────
@@ -132,7 +144,6 @@ values (
 )
 on conflict (slug) do nothing;
 
--- Coming-soon placeholders (catalog only, no module/topic content yet)
 insert into courses (slug, title, institution, level, duration_label, domain, status, badge)
 values
   ('pharmacy-technician',      'Pharmacy Technician',          'KMTC',            'Certificate', '2 years', 'health',    'coming_soon', null),
