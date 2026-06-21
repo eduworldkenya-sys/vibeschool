@@ -129,3 +129,7 @@
 ## [2026-06-21 14:18] 6d39d00
 **What:** Redesign /learn page with brand tokens, functional domain filters, skeleton loading and error states
 **Status:** ✅ pushed
+
+## [2026-06-21 15:05] 1ec1ea2
+**What:** Add course enrollment lock-in to roadmap page
+**Status:** ✅ pushed
