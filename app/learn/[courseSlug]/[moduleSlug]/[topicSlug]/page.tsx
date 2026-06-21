@@ -51,9 +51,17 @@ interface ModuleRow {
 interface CourseRow {
   id: string
   title: string
+  domain: string
 }
 
-type TabKey = 'concept' | 'kenya' | 'practice' | 'errors' | 'clinical'
+type TabKey = 'concept' | 'kenya' | 'practice' | 'errors' | 'tip'
+
+const TIP_LABEL_BY_DOMAIN: Record<string, string> = {
+  health: '🏥 Clinical Tip',
+  trade: '🔧 Field Tip',
+  tech: '💻 Pro Tip',
+  education: '🎓 Teaching Tip',
+}
 
 function ConceptBlocks({ blocks }: { blocks: ContentBlock[] | null }) {
   if (!blocks || blocks.length === 0) {
@@ -196,7 +204,7 @@ export default function TopicDetailPage() {
     async function load() {
       const { data: courseData, error: courseErr } = await supabase
         .from('courses')
-        .select('id, title')
+        .select('id, title, domain')
         .eq('slug', courseSlug)
         .single()
 
@@ -278,12 +286,14 @@ export default function TopicDetailPage() {
     setMarkingDone(false)
   }
 
+  const tipLabel = TIP_LABEL_BY_DOMAIN[course?.domain ?? ''] ?? '💡 Practical Tip'
+
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'concept',  label: '💡 Concept' },
     { key: 'kenya',    label: '🇰🇪 Kenya Context' },
     { key: 'practice', label: '📝 Practice' },
     { key: 'errors',   label: '⚠️ Common Errors' },
-    { key: 'clinical', label: '🏥 Clinical Tip' },
+    { key: 'tip',      label: tipLabel },
   ]
 
   if (loading) {
@@ -353,7 +363,7 @@ export default function TopicDetailPage() {
         {activeTab === 'kenya' && <ConceptBlocks blocks={topic.kenya_context_tab} />}
         {activeTab === 'practice' && <QuizPanel topicId={topic.id} />}
         {activeTab === 'errors' && <ConceptBlocks blocks={topic.common_errors_tab} />}
-        {activeTab === 'clinical' && <ConceptBlocks blocks={topic.clinical_tip_tab} />}
+        {activeTab === 'tip' && <ConceptBlocks blocks={topic.clinical_tip_tab} />}
       </div>
 
       {/* MARK COMPLETE */}
