@@ -355,7 +355,10 @@ export default function RootPage() {
 
         if (rpcRole) {
           const dest = DASHBOARDS[rpcRole]
-          if (dest) { router.replace(dest); return }
+          if (dest) {
+            document.cookie = `vibe_role=${rpcRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+            router.replace(dest); return
+          }
         }
       } catch {
         // RPC or network failed — show login anyway
@@ -446,6 +449,7 @@ export default function RootPage() {
 
       document.cookie = `vibe_role=${userRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       navigated = true
+      setLoading(false)
       router.replace(dest)
     } catch (e: any) {
       setError('Unexpected error: ' + (e?.message ?? 'Please try again.'))
