@@ -530,6 +530,7 @@ export default function RootPage() {
 
       if (profileErr) {
         await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
         setError('Account setup failed. Please try again.')
         return
       }
@@ -565,6 +566,7 @@ export default function RootPage() {
 
         if (claimErr || !claimResult) {
           await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
           setError('Failed to link your student account. Please try again.')
           return
         }
@@ -572,18 +574,22 @@ export default function RootPage() {
         switch (claimResult) {
           case 'not_found':
             await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
             setError('Claim code not found. Check with your teacher.')
             return
           case 'already_claimed':
             await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
             setError('This claim code has already been used.')
             return
           case 'expired':
             await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
             setError('Claim code expired. Ask your teacher for a new one.')
             return
           case 'student_not_found':
             await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
             setError('Student record not found. Contact your teacher.')
             return
         }

@@ -57,6 +57,7 @@ export default function ProfilePage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
     router.replace('/global')
   }
 

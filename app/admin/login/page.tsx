@@ -58,6 +58,7 @@ export default function AdminLoginPage() {
       if (roleData !== "admin") {
         setError("Access denied. You do not have administrator privileges.")
         await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
         setLoading(false)
         return
       }

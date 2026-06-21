@@ -234,6 +234,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   async function handleSignOut() {
     await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
     router.push("/admin/login")
   }
 

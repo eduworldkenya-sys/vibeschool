@@ -91,6 +91,7 @@ export default function GlobalSignUp() {
 
     if (profileError) {
       await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
       setLoading(false)
       setError('Account setup failed. Please try again.')
       return

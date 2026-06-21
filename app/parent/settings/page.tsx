@@ -184,7 +184,8 @@ export default function ParentSettingsPage() {
   // ── Sign out ──────────────────────────────────────────────────────────────
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
-    await supabase.auth.signOut();
+    await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0';
     router.push("/");
   }, [router]);
 

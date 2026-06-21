@@ -70,6 +70,7 @@ export default function AdminSignupPage() {
 
       if (rpcErr) {
         await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
         throw new Error(rpcErr.message)
       }
 
@@ -111,6 +112,7 @@ export default function AdminSignupPage() {
       })
       if (rpcErr) {
         await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
         throw new Error(rpcErr.message)
       }
 

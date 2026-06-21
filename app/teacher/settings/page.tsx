@@ -143,6 +143,7 @@ export default function SettingsPage() {
   }, []);
   async function handleLogout() {
     await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
     router.push('/')
   }
 
