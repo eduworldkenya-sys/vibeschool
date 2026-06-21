@@ -10,6 +10,8 @@ const BLUE = '#1A1AFF'
 const INK = '#0A0A0F'
 const MUTED = '#5A5A6A'
 const CANVAS = '#F7F7FB'
+const HEALTH = '#00a878'
+const HEALTH_BG = '#e6fff5'
 
 interface CourseRow {
   id: string
@@ -54,6 +56,9 @@ export default function CourseRoadmapPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
+  const [isEnrolled, setIsEnrolled] = useState(false)
+  const [enrolling, setEnrolling] = useState(false)
+
   useEffect(() => {
     async function load() {
       const { data: courseData, error: courseErr } = await supabase
@@ -72,7 +77,7 @@ export default function CourseRoadmapPage() {
 
       const { data: { user } } = await supabase.auth.getUser()
 
-      const [modulesResult, progressResult] = await Promise.all([
+      const [modulesResult, progressResult, enrollmentResult] = await Promise.all([
         supabase
           .from('modules')
           .select('id, slug, title, sequence_number, weeks_label')
@@ -84,6 +89,14 @@ export default function CourseRoadmapPage() {
               .select('topic_id, completed_at')
               .eq('learner_id', user.id)
           : Promise.resolve({ data: [] as ProgressRow[], error: null }),
+        user
+          ? supabase
+              .from('course_enrollments')
+              .select('id')
+              .eq('learner_id', user.id)
+              .eq('course_id', courseData.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
       ])
 
       const moduleRows = (modulesResult.data ?? []) as ModuleRow[]
@@ -95,6 +108,7 @@ export default function CourseRoadmapPage() {
           .map(p => p.topic_id)
       )
       setCompletedTopicIds(completed)
+      setIsEnrolled(Boolean(enrollmentResult.data))
 
       if (moduleRows.length > 0) {
         const moduleIds = moduleRows.map(m => m.id)
@@ -121,6 +135,32 @@ export default function CourseRoadmapPage() {
     }
     load()
   }, [courseSlug])
+
+  async function lockCourse() {
+    if (!course || enrolling || isEnrolled) return
+    setEnrolling(true)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setEnrolling(false)
+      router.push('/auth/callback')
+      return
+    }
+
+    const { error } = await supabase
+      .from('course_enrollments')
+      .upsert(
+        { learner_id: user.id, course_id: course.id },
+        { onConflict: 'learner_id,course_id' }
+      )
+
+    if (error) {
+      console.error('lockCourse error:', error)
+    } else {
+      setIsEnrolled(true)
+    }
+    setEnrolling(false)
+  }
 
   function moduleProgress(moduleId: string): { done: number; total: number } {
     const topics = topicsByModule[moduleId] ?? []
@@ -199,6 +239,25 @@ export default function CourseRoadmapPage() {
             <div style={{ fontSize: 12, color: MUTED }}>{overallDone} of {overallTotal} topics done</div>
           </div>
         </div>
+
+        {/* LOCK THIS COURSE */}
+        <div
+          onClick={lockCourse}
+          style={{
+            marginTop: 12, textAlign: 'center', padding: '13px', borderRadius: 14,
+            background: isEnrolled ? HEALTH_BG : BLUE,
+            color: isEnrolled ? HEALTH : '#fff',
+            fontSize: 13.5, fontWeight: 700,
+            cursor: isEnrolled ? 'default' : 'pointer',
+          }}
+        >
+          {isEnrolled ? '🔒 Course locked in' : enrolling ? 'Locking in...' : 'Lock this course'}
+        </div>
+        {!isEnrolled && (
+          <div style={{ fontSize: 11, color: MUTED, marginTop: 6, textAlign: 'center' }}>
+            Commit to this course to track it as part of your learning path
+          </div>
+        )}
       </div>
 
       {/* MODULE LIST */}

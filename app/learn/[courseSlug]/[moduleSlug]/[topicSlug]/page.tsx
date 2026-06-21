@@ -226,6 +226,7 @@ export default function TopicDetailPage() {
         .select('id, module_id, slug, title, subtitle, concept_tab, kenya_context_tab, common_errors_tab, clinical_tip_tab')
         .eq('module_id', moduleData.id)
         .eq('slug', topicSlug)
+        .eq('content_status', 'published')
         .single()
 
       if (topicErr || !topicData) {
