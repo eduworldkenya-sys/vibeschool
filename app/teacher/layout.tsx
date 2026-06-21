@@ -704,6 +704,14 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function fetchProfile() {
+      // Fast path — trust localStorage cache set at login
+      const cachedRole = localStorage.getItem('vs_role');
+      if (cachedRole && cachedRole !== 'teacher') {
+        localStorage.removeItem('vs_role');
+        window.location.href = "/?role=teacher";
+        return;
+      }
+
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
       if (userErr || !user) { window.location.href = "/?role=teacher"; return; }
       const { data: profileData, error: profileErr } = await supabase
@@ -711,7 +719,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         .select("full_name, school_id, role")
         .eq("id", user.id)
         .single();
-      if (profileErr || !profileData || profileData.role !== "teacher") { window.location.href = "/?role=teacher"; return; }
+      if (profileErr || !profileData || profileData.role !== "teacher") {
+        localStorage.removeItem('vs_role');
+        window.location.href = "/?role=teacher";
+        return;
+      }
+      localStorage.setItem('vs_role', 'teacher');
       const name  = profileData.full_name ?? "";
       setFullName(name);
       const parts   = name.trim().split(" ").filter(Boolean);
