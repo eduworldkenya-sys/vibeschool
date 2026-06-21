@@ -1,73 +1,70 @@
 "use client"
 
-import React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
-interface NavTab {
+const BG = '#000000'
+const BORDER = '#1f1f23'
+const ACCENT = '#10b981'
+const MUTED = '#71717a'
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, sans-serif"
+
+interface NavItem {
+  href: string
   label: string
-  path: string
   icon: string
 }
 
+const NAV_ITEMS: NavItem[] = [
+  { href: '/learn', label: 'Home', icon: '🏠' },
+  { href: '/learn/careers', label: 'Careers', icon: '🎯' },
+]
+
 export function LearnBottomNav() {
-  const pathname = usePathname()
   const router = useRouter()
-
-  const tabs: NavTab[] = [
-    { label: 'Home',    path: '/learn',         icon: '🏠' },
-    { label: 'Careers', path: '/learn/careers', icon: '🎯' },
-  ]
-
-  const handleTabClick = (tab: NavTab) => {
-    router.push(tab.path)
-  }
-
-  const isTabActive = (tab: NavTab) => {
-    if (tab.path === '/learn') {
-      return pathname === '/learn'
-    }
-    return pathname.startsWith(tab.path)
-  }
+  const pathname = usePathname()
 
   return (
-    <nav style={{
-      position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: '480px', height: 64,
-      backgroundColor: '#ffffff', borderTop: '1px solid #e5e5ef',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-around',
-      zIndex: 90, boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+      background: `${BG}f2`, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+      borderTop: `1px solid ${BORDER}`,
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
-      {tabs.map((tab) => {
-        const isActive = isTabActive(tab)
-        return (
-          <div
-            key={tab.label}
-            onClick={() => handleTabClick(tab)}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', flex: 1, height: '100%',
-              cursor: 'pointer', position: 'relative',
-            }}
-          >
-            {isActive && (
-              <div style={{
-                position: 'absolute', top: 0, width: 24, height: 3,
-                backgroundColor: '#1A1AFF', borderRadius: '0 0 2px 2px',
-              }} />
-            )}
-            <span style={{ fontSize: 18, opacity: isActive ? 1 : 0.45 }}>
-              {tab.icon}
-            </span>
-            <span style={{
-              fontSize: 10, marginTop: 2,
-              color: isActive ? '#1A1AFF' : '#9292a6',
-              fontWeight: isActive ? 700 : 400,
-            }}>
-              {tab.label}
-            </span>
-          </div>
-        )
-      })}
-    </nav>
+      <div style={{
+        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+        maxWidth: 480, margin: '0 auto', padding: '10px 16px',
+      }}>
+        {NAV_ITEMS.map((item) => {
+          const isActive = item.href === '/learn'
+            ? pathname === '/learn'
+            : pathname.startsWith(item.href)
+
+          return (
+            <button
+              key={item.href}
+              onClick={() => router.push(item.href)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px 18px',
+              }}
+            >
+              <span style={{
+                fontSize: 19,
+                filter: isActive ? 'none' : 'grayscale(1) opacity(0.6)',
+              }}>
+                {item.icon}
+              </span>
+              <span style={{
+                fontFamily: FONT_BODY, fontSize: 10.5, fontWeight: 700,
+                color: isActive ? ACCENT : MUTED,
+              }}>
+                {item.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
