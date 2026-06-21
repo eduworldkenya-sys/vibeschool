@@ -125,3 +125,7 @@
 ## [2026-06-19 23:08] bd50187
 **What:** fix: revert middleware role-check (perf regression on slow networks)
 **Status:** ✅ pushed
+
+## [2026-06-21 14:18] 6d39d00
+**What:** Redesign /learn page with brand tokens, functional domain filters, skeleton loading and error states
+**Status:** ✅ pushed
