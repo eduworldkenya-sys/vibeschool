@@ -161,3 +161,7 @@
 ## [2026-06-22 01:04] fb9cf08
 **What:** revert diagnostic logging
 **Status:** ✅ pushed
+
+## [2026-06-22 01:04] abd4cab
+**What:** diagnostic: surface real profileErr on signup failure
+**Status:** ✅ pushed
