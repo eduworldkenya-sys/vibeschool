@@ -445,8 +445,7 @@ export default function RootPage() {
       if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
       navigated = true
-      localStorage.setItem('vs_role', userRole)
-      window.location.href = dest
+      router.replace(dest)
     } catch (e: any) {
       setError('Unexpected error: ' + (e?.message ?? 'Please try again.'))
     } finally {
