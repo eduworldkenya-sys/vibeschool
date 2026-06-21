@@ -535,7 +535,7 @@ export default function RootPage() {
       if (profileErr) {
         await supabase.auth.signOut()
     document.cookie = 'vibe_role=; path=/; max-age=0'
-        setError('Account setup failed. Please try again.')
+        setError(`Account setup failed: ${profileErr.message} (${profileErr.code ?? 'no code'})`)
         return
       }
 
