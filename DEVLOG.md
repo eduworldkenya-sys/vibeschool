@@ -169,3 +169,7 @@
 ## [2026-06-22 01:36] cdbe17a
 **What:** diagnostic: surface profileErr.details on signup failure
 **Status:** ✅ pushed
+
+## [2026-06-22 02:02] 4d87c63
+**What:** fix: profiles insert -> update, since on_auth_user_created trigger already creates the row
+**Status:** ✅ pushed
