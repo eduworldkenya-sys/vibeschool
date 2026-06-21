@@ -444,6 +444,7 @@ export default function RootPage() {
       const dest = DASHBOARDS[userRole]
       if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
+      document.cookie = `vibe_role=${userRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       navigated = true
       router.replace(dest)
     } catch (e: any) {
