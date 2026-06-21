@@ -145,3 +145,7 @@
 ## [2026-06-21 15:28] abc0813
 **What:** Add course enrollment lock-in to roadmap page
 **Status:** ✅ pushed
+
+## [2026-06-22 00:42] aa7052a
+**What:** diagnostic: surface real profileErr on signup failure
+**Status:** ✅ pushed
