@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     let alive = true
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       if (!user) { if (alive) setCheckingSession(false); return }
       supabase.from('profiles').select('role').eq('id', user.id).single()
         .then(({ data }) => {
