@@ -102,6 +102,12 @@ function Toast({ msg }: { msg: string }) {
   )
 }
 
+const SUBJECTS = [
+  "Mathematics","English","Kiswahili","Biology","Chemistry",
+  "Physics","History","Geography","CRE","IRE","Business Studies",
+  "Agriculture","Computer Studies","Art & Design","Music","French",
+]
+
 function Shimmer() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px" }}>
@@ -137,6 +143,7 @@ export default function StaffPage() {
   const [leaveOpen,   setLeaveOpen]   = useState(false)
   const [expandedId,  setExpandedId]  = useState<string | null>(null)
   const [formStep,    setFormStep]    = useState(0)
+  const [otherSubject, setOtherSubject] = useState(false)
 
   const [form, setForm] = useState({
     full_name: "", phone: "", email: "", staff_number: "", national_id: "",
@@ -226,6 +233,7 @@ export default function StaffPage() {
     fireToast("Staff member added.")
     setShowAdd(false)
     setFormStep(0)
+    setOtherSubject(false)
     setForm({ full_name: "", phone: "", email: "", staff_number: "", national_id: "", tsc_number: "", category: "teaching", employment_type: "permanent", designation: "", department: "", subject: "", gender: "", date_of_birth: "", date_joined: "", contract_start: "", contract_end: "", salary_grade: "", next_of_kin_name: "", next_of_kin_phone: "", next_of_kin_relation: "" })
     await loadAll(schoolId)
   }
@@ -261,7 +269,7 @@ export default function StaffPage() {
         @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
         @keyframes slideUp { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
         * { box-sizing: border-box; }
-        input::placeholder { color: #c4c4c4; }
+        input::placeholder { color: #9ca3af; }
       `}</style>
 
       {/* ── HERO HEADER ── */}
@@ -523,7 +531,7 @@ export default function StaffPage() {
 
       {/* ── FLOATING ADD BUTTON ── */}
       <button
-        onClick={() => { setShowAdd(true); setFormStep(0) }}
+        onClick={() => { setShowAdd(true); setFormStep(0); setOtherSubject(false) }}
         style={{
           position: "fixed", bottom: 28, right: 24, width: 58, height: 58,
           borderRadius: "50%", border: "none",
@@ -628,7 +636,27 @@ export default function StaffPage() {
                 {form.category === "teaching" && (
                   <>
                     <span style={lbl}>Subject Taught</span>
-                    <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="e.g. Mathematics" style={inp} />
+                    <select
+                      value={otherSubject ? "Other" : form.subject}
+                      onChange={e => {
+                        const v = e.target.value
+                        if (v === "Other") { setOtherSubject(true); setForm(f => ({ ...f, subject: "" })) }
+                        else { setOtherSubject(false); setForm(f => ({ ...f, subject: v })) }
+                      }}
+                      style={sel}
+                    >
+                      <option value="">Select subject</option>
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                      <option value="Other">Other</option>
+                    </select>
+                    {otherSubject && (
+                      <input
+                        value={form.subject}
+                        onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                        placeholder="Enter subject name"
+                        style={inp}
+                      />
+                    )}
                     <span style={lbl}>TSC Number</span>
                     <input value={form.tsc_number} onChange={e => setForm(f => ({ ...f, tsc_number: e.target.value }))} placeholder="TSC Number" style={inp} />
                   </>
