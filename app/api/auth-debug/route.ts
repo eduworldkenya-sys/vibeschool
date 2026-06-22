@@ -1,9 +1,13 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function GET(req: NextRequest) {
   const allCookies = req.cookies.getAll()
-  const sbCookies = allCookies.filter(c => c.name.startsWith('sb-'))
+
+  // Manually reassemble chunked sb- auth token
+  const chunk0 = req.cookies.get('sb-yauqsxggtuxuykcbrtzf-auth-token.0')?.value ?? ''
+  const chunk1 = req.cookies.get('sb-yauqsxggtuxuykcbrtzf-auth-token.1')?.value ?? ''
+  const reassembled = chunk0 + chunk1
 
   const res = NextResponse.next()
   const supabase = createServerClient(
@@ -11,7 +15,15 @@ export async function GET(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return req.cookies.getAll() },
+        getAll() {
+          const cookies = req.cookies.getAll().filter(
+            c => !c.name.startsWith('sb-yauqsxggtuxuykcbrtzf-auth-token')
+          )
+          if (reassembled) {
+            cookies.push({ name: 'sb-yauqsxggtuxuykcbrtzf-auth-token', value: reassembled })
+          }
+          return cookies
+        },
         setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           cookiesToSet.forEach(({ name, value, options }) =>
             res.cookies.set(name, value, options)
@@ -27,15 +39,13 @@ export async function GET(req: NextRequest) {
     timestamp: new Date().toISOString(),
     cookies: {
       all_names: allCookies.map(c => c.name),
-      sb_cookies: sbCookies.map(c => ({ name: c.name, value_length: c.value.length })),
-      vibe_role: req.cookies.get('vibe_role')?.value ?? null,
+      sb_cookies: allCookies.filter(c => c.name.startsWith('sb-')).map(c => ({ name: c.name, value_length: c.value.length })),
+      reassembled_length: reassembled.length,
     },
     server_auth: {
       user_found: !!user,
-      user_id: user?.id ?? null,
       user_email: user?.email ?? null,
       error: error?.message ?? null,
     },
-    supabase_url: (process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'NOT SET').slice(0, 50),
   }, { headers: { 'Cache-Control': 'no-store' } })
 }
