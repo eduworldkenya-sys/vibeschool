@@ -185,3 +185,7 @@
 ## [2026-06-22 09:03] 7ce0eba
 **What:** fix: cookie-before-redirect, remove production alert(), activate all users, update handle_new_user to default active
 **Status:** ✅ pushed
+
+## [2026-06-23 00:10] 3a4bf29
+**What:** feat: student signup via claim code, skip email field
+**Status:** ✅ pushed
