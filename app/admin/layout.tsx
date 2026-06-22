@@ -190,7 +190,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => subscription.unsubscribe()
   }, [])
 
-  async function loadProfile(session.user) {
+  async function loadProfile(user: { id: string }) {
     try {
       const { data: p, error: pError } = await supabase
         .from("profiles")
