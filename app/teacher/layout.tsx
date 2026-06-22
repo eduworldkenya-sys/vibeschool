@@ -713,7 +713,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       }
 
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) { alert("NO SESSION: " + (userErr?.message ?? "user null")); window.location.href = "/?role=teacher"; return; }
+      if (userErr || !user) { window.location.href = "/?role=teacher"; return; }
       const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
         .select("full_name, school_id, role")
