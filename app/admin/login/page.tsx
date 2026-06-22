@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
       }
       document.cookie = `vibe_role=admin; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       localStorage.setItem('vs_role', 'admin')
-      router.replace("/admin")
+      window.location.href = "/admin"
       return
     } catch {
       setError("Something went wrong. Please try again.")

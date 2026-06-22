@@ -358,7 +358,7 @@ export default function RootPage() {
           if (dest) {
             document.cookie = `vibe_role=${rpcRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
             localStorage.setItem('vs_role', rpcRole)
-            router.replace(dest); return
+            window.location.href = dest; return
           }
         }
       } catch {
@@ -403,7 +403,7 @@ export default function RootPage() {
 
   async function handleSignIn() {
     if (inflightRef.current) return
-    setError('DEBUG: handleSignIn started')
+    setError('')
     if (!email.trim()) { setError('Email is required.'); return }
     if (!password)     { setError('Password is required.'); return }
 
@@ -414,30 +414,27 @@ export default function RootPage() {
     let navigated = false
 
     try {
-      setError('DEBUG: calling signInWithPassword')
       const { data, error: authErr } = await supabase.auth.signInWithPassword({
         email: email.trim(), password: pw,
       })
       if (authErr || !data.user) {
-        setError('DEBUG auth fail: ' + JSON.stringify(authErr))
+        setError(friendlyError(authErr?.message ?? ''))
         return
       }
 
       let userRole: string | null = null
 
-      setError('DEBUG: calling get_my_role')
       const { data: rpcRole, error: rpcErr } = await supabase.rpc('get_my_role')
       if (!rpcErr && rpcRole) {
         userRole = rpcRole
       } else {
-        setError('DEBUG: rpc failed, falling back to profiles: ' + JSON.stringify(rpcErr))
         const { data: p, error: pErr } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single()
         if (pErr) {
-          setError('DEBUG profile fail: ' + JSON.stringify(pErr))
+          setError('Could not verify your account role. Please try again or contact support.')
           return
         }
         userRole = p?.role ?? null
@@ -448,14 +445,12 @@ export default function RootPage() {
       const dest = DASHBOARDS[userRole]
       if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
-      setError('DEBUG: about to navigate to ' + dest)
       document.cookie = `vibe_role=${userRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       localStorage.setItem('vs_role', userRole)
       navigated = true
-      setLoading(false)
-      router.replace(dest)
+      window.location.href = dest
     } catch (e: any) {
-      setError('DEBUG CAUGHT: ' + String(e) + ' | ' + JSON.stringify(e, Object.getOwnPropertyNames(e)))
+      setError('Unexpected error: ' + (e?.message ?? 'Please try again.'))
     } finally {
       inflightRef.current = false
       if (!navigated) setLoading(false)
