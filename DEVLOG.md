@@ -177,3 +177,7 @@
 ## [2026-06-22 08:22] 57da1c7
 **What:** fix: commit session before redirect + revert diagnostic error message
 **Status:** ✅ pushed
+
+## [2026-06-22 08:44] 5b50211
+**What:** fix: write vibe_role cookie before redirect so middleware fast-path works on signup
+**Status:** ✅ pushed
