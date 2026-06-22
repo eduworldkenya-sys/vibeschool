@@ -386,7 +386,8 @@ export default function ParentLearnPage() {
         if (plansRes.error)  throw new Error(plansRes.error.message);
         if (assessRes.error) throw new Error(assessRes.error.message);
 
-        const subMap = new Map(
+        type SubRow = { id: string; homework_id: string; status: string; mark: number | null; feedback: string | null; submitted_at: string | null; photo_url: string | null };
+        const subMap = new Map<string, SubRow>(
           (subRes.data ?? []).map(s => [s.homework_id, s])
         );
         
