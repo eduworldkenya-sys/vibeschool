@@ -610,10 +610,9 @@ export default function RootPage() {
       }
 
       if (authData.session) {
-        await supabase.auth.setSession({
-          access_token: authData.session.access_token,
-          refresh_token: authData.session.refresh_token,
-        })
+        const maxAge = authData.session.expires_in ?? 3600
+        document.cookie = `vibe_role=${dbRole}; path=/; max-age=${maxAge}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+        localStorage.setItem('vs_role', dbRole)
       }
       navigated = true
       router.replace(SIGNUP_DESTINATIONS[role])
