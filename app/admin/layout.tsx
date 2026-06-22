@@ -176,8 +176,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           return
         }
         // INITIAL_SESSION fires on refresh; SIGNED_IN fires after login. Both need loadProfile.
-        if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
-          loadProfile()
+        if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")) {
+          loadProfile(session.user)
           return
         }
         if (event === "INITIAL_SESSION" && !session) {
@@ -190,11 +190,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => subscription.unsubscribe()
   }, [])
 
-  async function loadProfile() {
+  async function loadProfile(session.user) {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/admin/login"); return }
-
       const { data: p, error: pError } = await supabase
         .from("profiles")
         .select("full_name, school_id, role")
