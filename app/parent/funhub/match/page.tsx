@@ -59,7 +59,7 @@ function MemoryMatchGameCore() {
         return;
       }
 
-      const generatedPairs = [];
+      const generatedPairs: { id: string; pairId: string; content: any; type: string }[] = [];
       let uniqueIdCounter = 0;
 
       const itemsWithAnswers = data.filter(q => q.question_text && q.correct_answer);
