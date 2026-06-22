@@ -173,3 +173,7 @@
 ## [2026-06-22 02:02] 4d87c63
 **What:** fix: profiles insert -> update, since on_auth_user_created trigger already creates the row
 **Status:** ✅ pushed
+
+## [2026-06-22 08:22] 57da1c7
+**What:** fix: commit session before redirect + revert diagnostic error message
+**Status:** ✅ pushed
