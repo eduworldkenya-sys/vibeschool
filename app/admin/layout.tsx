@@ -291,6 +291,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "12px", marginTop: "3px" }}>{profile?.name}</div>
             </div>
           </div>
+          <button
+            onClick={handleSignOut}
+            style={{
+              marginTop: "14px", width: "100%", padding: "10px 14px", borderRadius: "10px",
+              border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.12)",
+              color: "#f87171", fontSize: "13px", fontWeight: "700", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: "8px", fontFamily: "inherit",
+            }}
+          >
+            <SvgSignOut col="#f87171" />
+            Sign Out
+          </button>
         </div>
 
         <nav style={{ padding: "10px 12px", flex: 1, overflowY: "auto" }}>
@@ -331,21 +343,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        <div style={{ padding: "12px 16px 24px", borderTop: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
-          <button
-            onClick={handleSignOut}
-            style={{
-              width: "100%", padding: "13px 16px", borderRadius: "12px",
-              border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.12)",
-              color: "#f87171", fontSize: "14px", fontWeight: "700", cursor: "pointer",
-              display: "flex", alignItems: "center", gap: "10px",
-              transition: "background 0.15s ease",
-            }}
-          >
-            <SvgSignOut col="#f87171" />
-            Sign Out
-          </button>
-        </div>
+
       </aside>
 
       <header style={{
