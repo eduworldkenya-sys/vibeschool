@@ -23,7 +23,7 @@ export function GlobalShellProvider({ children }: { children: React.ReactNode })
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    sb.auth.getUser().then(({ data }) => {
+    sb.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       const user = data.user
       if (user) {
         setIsLoggedIn(true)

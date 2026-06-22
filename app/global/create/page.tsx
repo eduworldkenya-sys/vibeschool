@@ -70,7 +70,7 @@ export default function FormatSelectorPage() {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    supabase.auth.getUser().then(({ data: { user }, error }) => {
+    supabase.auth.getUser().then(({ data: { user }, error }: { data: { user: import("@supabase/supabase-js").User | null }, error: any }) => {
       if (error || !user) router.replace('/')
       else setLoading(false)
     })

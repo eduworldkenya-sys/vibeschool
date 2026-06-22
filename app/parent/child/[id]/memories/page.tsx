@@ -314,7 +314,7 @@ export default function MemoriesPage() {
       if (data?.name) setChildName(data.name.split(" ")[0]);
     }
     if (id) fetchName();
-    supabase.auth.getUser().then(({ data }) => { if (data.user) setParentId(data.user.id); });
+    supabase.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => { if (data.user) setParentId(data.user.id); });
   }, [id]);
 
   // ── Fetch media ─────────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
       setChecking(false)
     }, 4000)
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: import("@supabase/supabase-js").AuthChangeEvent, _session: import("@supabase/supabase-js").Session | null) => {
       if (event === "PASSWORD_RECOVERY") {
         clearTimeout(fallback)
         setValidSession(true)

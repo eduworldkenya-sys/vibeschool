@@ -15,7 +15,7 @@ export function useTwinMemory() {
   const writeQueueRef = useRef<QueuedWrite[]>([])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       const uid = data.user?.id ?? null
       profileIdRef.current = uid
       resolvedRef.current  = true

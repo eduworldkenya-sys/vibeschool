@@ -91,7 +91,7 @@ export default function HomeworkDetailPage() {
   const [expanded,      setExpanded]      = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       if (data.user) setUserId(data.user.id);
     });
   }, []);
