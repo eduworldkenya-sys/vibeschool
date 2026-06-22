@@ -28,17 +28,23 @@ export async function middleware(req: NextRequest) {
 
   if (PUBLIC_PATHS.has(pathname)) return NextResponse.next()
 
-  const res = NextResponse.next()
+  const res = NextResponse.next({
+    request: { headers: req.headers },
+  })
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return req.cookies.getAll() },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            res.cookies.set(name, value, options as Parameters<typeof res.cookies.set>[2])
-          )
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value)
+            res.cookies.set(name, value, options as any)
+          })
         },
       },
     }
@@ -49,7 +55,6 @@ export async function middleware(req: NextRequest) {
   const protectedPrefixes = ['/teacher', '/admin', '/parent', '/student', '/select', '/global']
   const isProtected = protectedPrefixes.some(p => pathname.startsWith(p))
 
-  // Not logged in → redirect to login
   if (isProtected && !user) {
     const role = getRouteRole(pathname)
     const loginUrl = role === 'admin' ? '/admin/login' : role ? `/?role=${role}` : '/'
@@ -57,10 +62,8 @@ export async function middleware(req: NextRequest) {
   }
 
   if (user) {
-    // Fast path — read role from cookie (no DB hit)
     let userRole = req.cookies.get('vibe_role')?.value
 
-    // Cache miss — query profiles once, write to cookie
     if (!userRole) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -81,14 +84,12 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // Cross-role enforcement — teacher cannot hit /parent, etc.
     const routeRole = getRouteRole(pathname)
     if (routeRole && userRole !== routeRole && userRole !== 'admin') {
       const home = ROLE_HOMES[userRole ?? ''] ?? '/'
       return NextResponse.redirect(new URL(home, req.url))
     }
 
-    // /global — only global_user role allowed
     if (pathname.startsWith('/global') && userRole !== 'global_user') {
       const home = ROLE_HOMES[userRole ?? ''] ?? '/'
       return NextResponse.redirect(new URL(home, req.url))
