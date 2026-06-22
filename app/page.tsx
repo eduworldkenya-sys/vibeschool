@@ -535,7 +535,7 @@ export default function RootPage() {
       if (profileErr) {
         await supabase.auth.signOut()
     document.cookie = 'vibe_role=; path=/; max-age=0'
-        setError(`Account setup failed: ${profileErr.message} (${profileErr.code ?? 'no code'} | ${profileErr.details ?? 'no details'})`)
+        setError('Account setup failed. Please try again.')
         return
       }
 
@@ -609,6 +609,12 @@ export default function RootPage() {
         return
       }
 
+      if (authData.session) {
+        await supabase.auth.setSession({
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
+        })
+      }
       navigated = true
       router.replace(SIGNUP_DESTINATIONS[role])
     } finally {
