@@ -403,7 +403,7 @@ export default function RootPage() {
 
   async function handleSignIn() {
     if (inflightRef.current) return
-    setError('')
+    setError('DEBUG: handleSignIn started')
     if (!email.trim()) { setError('Email is required.'); return }
     if (!password)     { setError('Password is required.'); return }
 
@@ -414,27 +414,30 @@ export default function RootPage() {
     let navigated = false
 
     try {
+      setError('DEBUG: calling signInWithPassword')
       const { data, error: authErr } = await supabase.auth.signInWithPassword({
         email: email.trim(), password: pw,
       })
       if (authErr || !data.user) {
-        setError(friendlyError(authErr?.message ?? ''))
+        setError('DEBUG auth fail: ' + JSON.stringify(authErr))
         return
       }
 
       let userRole: string | null = null
 
+      setError('DEBUG: calling get_my_role')
       const { data: rpcRole, error: rpcErr } = await supabase.rpc('get_my_role')
       if (!rpcErr && rpcRole) {
         userRole = rpcRole
       } else {
+        setError('DEBUG: rpc failed, falling back to profiles: ' + JSON.stringify(rpcErr))
         const { data: p, error: pErr } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single()
         if (pErr) {
-          setError('Could not verify your account role. Please try again or contact support.')
+          setError('DEBUG profile fail: ' + JSON.stringify(pErr))
           return
         }
         userRole = p?.role ?? null
@@ -445,13 +448,14 @@ export default function RootPage() {
       const dest = DASHBOARDS[userRole]
       if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
 
+      setError('DEBUG: about to navigate to ' + dest)
       document.cookie = `vibe_role=${userRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       localStorage.setItem('vs_role', userRole)
       navigated = true
       setLoading(false)
       router.replace(dest)
     } catch (e: any) {
-      setError('Unexpected error: ' + (e?.message ?? 'Please try again.'))
+      setError('DEBUG CAUGHT: ' + String(e) + ' | ' + JSON.stringify(e, Object.getOwnPropertyNames(e)))
     } finally {
       inflightRef.current = false
       if (!navigated) setLoading(false)
