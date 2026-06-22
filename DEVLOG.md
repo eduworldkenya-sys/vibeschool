@@ -197,3 +197,7 @@
 ## [2026-06-23 02:44] 3847e80
 **What:** ux: compact sign out icon in admin sidebar header, restore settings visibility
 **Status:** ✅ pushed
+
+## [2026-06-23 02:50] 502991a
+**What:** security: remove admin-direct debug page before production
+**Status:** ✅ pushed
