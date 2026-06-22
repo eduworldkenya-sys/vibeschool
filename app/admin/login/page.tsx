@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
       supabase.from('profiles').select('role').eq('id', user.id).single()
         .then(({ data }) => {
           if (!alive) return
-          if (data?.role === 'admin') { router.replace('/admin'); return }
+          if (data?.role === 'admin') { window.location.href = '/admin'; return }
           setCheckingSession(false)
         })
     })
