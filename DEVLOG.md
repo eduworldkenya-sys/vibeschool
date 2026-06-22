@@ -181,3 +181,7 @@
 ## [2026-06-22 08:44] 5b50211
 **What:** fix: write vibe_role cookie before redirect so middleware fast-path works on signup
 **Status:** ✅ pushed
+
+## [2026-06-22 09:03] 7ce0eba
+**What:** fix: cookie-before-redirect, remove production alert(), activate all users, update handle_new_user to default active
+**Status:** ✅ pushed
