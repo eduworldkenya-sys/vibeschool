@@ -62,6 +62,8 @@ export default function AdminLoginPage() {
         setLoading(false)
         return
       }
+      document.cookie = `vibe_role=admin; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+      localStorage.setItem('vs_role', 'admin')
       router.replace("/admin")
       return
     } catch {
