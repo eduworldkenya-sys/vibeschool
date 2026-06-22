@@ -180,7 +180,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           loadProfile()
           return
         }
-        if (!session && event === "INITIAL_SESSION") {
+        if (event === "INITIAL_SESSION" && !session) {
           router.push("/admin/login")
           return
         }
