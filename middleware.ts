@@ -52,9 +52,8 @@ export async function middleware(req: NextRequest) {
   // Not logged in → redirect to login
   if (isProtected && !user) {
     const role = getRouteRole(pathname)
-    return NextResponse.redirect(
-      new URL(role ? `/?role=${role}` : '/', req.url)
-    )
+    const loginUrl = role === 'admin' ? '/admin/login' : role ? `/?role=${role}` : '/'
+    return NextResponse.redirect(new URL(loginUrl, req.url))
   }
 
   if (user) {
