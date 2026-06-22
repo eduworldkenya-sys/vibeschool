@@ -25,15 +25,18 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     let alive = true
-    supabase.auth.getUser().then(({ data: { user } }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
+
+    async function checkSession() {
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) { if (alive) setCheckingSession(false); return }
-      supabase.from('profiles').select('role').eq('id', user.id).single()
-        .then(({ data }) => {
-          if (!alive) return
-          if (data?.role === 'admin') { window.location.href = '/admin'; return }
-          setCheckingSession(false)
-        })
-    })
+
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      if (!alive) return
+      if (data?.role === 'admin') { window.location.href = '/admin'; return }
+      setCheckingSession(false)
+    }
+
+    checkSession()
     return () => { alive = false }
   }, [])
 
