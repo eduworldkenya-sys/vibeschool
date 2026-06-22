@@ -463,10 +463,10 @@ export default function RootPage() {
 
     // Validation
     if (!fullName.trim())  { setError('Full name is required.'); return }
-    if (!email.trim())     { setError('Email is required.'); return }
+    if (role !== 'Student' && !email.trim()) { setError('Email is required.'); return }
     if (!password)         { setError('Password is required.'); return }
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
-    if (password !== confirmPassword) { setError('Passwords do not match.'); return }
+    if (role !== 'Student' && password !== confirmPassword) { setError('Passwords do not match.'); return }
     if ((role === 'Teacher' || role === 'Parent' || role === 'Global') && !country) {
       setError('Country is required.'); return
     }
@@ -499,8 +499,12 @@ export default function RootPage() {
       }
 
       // Create auth user
+      const signupEmail = role === 'Student'
+        ? `${claimCode.trim().toLowerCase()}@student.vibeschool.co.ke`
+        : email.trim()
+
       const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: signupEmail,
         password,
         options: { data: { role: ROLE_DB[role], full_name: fullName.trim() } },
       })
@@ -782,10 +786,14 @@ export default function RootPage() {
                   placeholder="Your full name"
                   value={fullName} onChange={e => setFullName(e.target.value)} disabled={isBusy} />
 
-                <label style={S.fieldLabel}>Email</label>
-                <input style={S.input} type="email" autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email} onChange={e => setEmail(e.target.value)} disabled={isBusy} />
+                {role !== 'Student' && (
+                  <>
+                    <label style={S.fieldLabel}>Email</label>
+                    <input style={S.input} type="email" autoComplete="email"
+                      placeholder="you@example.com"
+                      value={email} onChange={e => setEmail(e.target.value)} disabled={isBusy} />
+                  </>
+                )}
 
                 <label style={S.fieldLabel}>Password</label>
                 <div style={S.inputWrap}>

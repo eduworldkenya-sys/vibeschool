@@ -303,7 +303,7 @@ export default function LifePage() {
 
     const bookCount     = allBooks?.length ?? 0;
     const goalCount     = allGoals?.length ?? 0;
-    const completedGoals= allGoals?.filter(g => g.status === "completed").length ?? 0;
+    const completedGoals= allGoals?.filter((g: any) => g.status === "completed").length ?? 0;
     const skillCount    = allSkills?.length ?? 0;
     const eventCount    = allEvents?.length ?? 0;
 
