@@ -193,3 +193,7 @@
 ## [2026-06-23 00:53] 2761bb3
 **What:** ux: pin sign out to top of admin sidebar for instant visibility
 **Status:** ✅ pushed
+
+## [2026-06-23 02:44] 3847e80
+**What:** ux: compact sign out icon in admin sidebar header, restore settings visibility
+**Status:** ✅ pushed
