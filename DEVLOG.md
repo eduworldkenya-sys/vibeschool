@@ -189,3 +189,7 @@
 ## [2026-06-23 00:10] 3a4bf29
 **What:** feat: student signup via claim code, skip email field
 **Status:** ✅ pushed
+
+## [2026-06-23 00:53] 2761bb3
+**What:** ux: pin sign out to top of admin sidebar for instant visibility
+**Status:** ✅ pushed
