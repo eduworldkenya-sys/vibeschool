@@ -470,7 +470,7 @@ export default function TeacherDashboard() {
         ? supabase.from('schools').select('name').eq('id', schoolId).single()
         : Promise.resolve({ data: null }),
       slotIds.length > 0
-        ? supabase.from('attendance').select('timetable_slot_id').in('timetable_slot_id', slotIds).eq('date', today)
+        ? supabase.from('attendance').select('timetable_slot_id').in('timetable_slot_id', slotIds).gte('timestamp', today + 'T00:00:00').lte('timestamp', today + 'T23:59:59')
         : Promise.resolve({ data: [] }),
     ])
 
@@ -505,8 +505,8 @@ export default function TeacherDashboard() {
       const [classRes, studentRes, attTodayRes, hwRes, assessRes] = await Promise.all([
         supabase.from('classes').select('*').in('id', classIds),
         supabase.from('students').select('class_id,id').in('class_id', classIds),
-        supabase.from('attendance').select('class_id,status').in('class_id', classIds).eq('date', today),
-        supabase.from('homework').select('class_id,status').in('class_id', classIds).eq('status', 'pending'),
+        supabase.from('attendance').select('class_id,status').in('class_id', classIds).gte('timestamp', today + 'T00:00:00').lte('timestamp', today + 'T23:59:59'),
+        supabase.from('homework').select('class_id,status').in('class_id', classIds).eq('status', 'pending').eq('school_id', schoolId),
         supabase.from('cbc_assessments').select('class_id,performance').in('class_id', classIds),
       ])
 
