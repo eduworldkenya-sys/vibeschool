@@ -157,7 +157,6 @@ export default function StaffPage() {
     setToast(msg); setTimeout(() => setToast(""), 3000)
   }, [])
 
-  useEffect(() => { bootstrap() }, [bootstrap])
 
   const bootstrap = useCallback(async () => {
     try {
@@ -170,7 +169,9 @@ export default function StaffPage() {
       await loadAll(p.school_id)
     } catch { router.push("/admin/login") }
     finally { setLoading(false) }
-  }, [fireToast, router])
+  }, [router])
+
+  useEffect(() => { bootstrap() }, [bootstrap])
 
   async function loadAll(sid: string) {
     const [staffRes, leaveRes] = await Promise.all([
