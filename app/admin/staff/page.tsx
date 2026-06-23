@@ -177,9 +177,11 @@ export default function StaffPage() {
       supabase.from("staff")
         .select("id,full_name,phone,email,staff_number,category,employment_type,designation,department,subject,status,date_joined,contract_end,gender")
         .eq("school_id", sid).is("deleted_at", null).order("full_name"),
+      // FIX #1: FK join hint staff:staff_id(...) so Supabase resolves the relation unambiguously
+      // FIX #4: removed .is("deleted_at", null) — staff_leave table not confirmed to have this column
       supabase.from("staff_leave")
-        .select("id,staff_id,leave_type,start_date,end_date,days_requested,reason,status,staff(full_name,designation)")
-        .eq("school_id", sid).eq("status", "pending").is("deleted_at", null).order("created_at"),
+        .select("id,staff_id,leave_type,start_date,end_date,days_requested,reason,status,staff:staff_id(full_name,designation)")
+        .eq("school_id", sid).eq("status", "pending").order("created_at"),
     ])
     setStaff((staffRes.data ?? []) as StaffMember[])
     setLeaves((leaveRes.data ?? []) as unknown as LeaveRequest[])
@@ -194,7 +196,8 @@ export default function StaffPage() {
     if (error) { fireToast("Something went wrong."); setApprovingId(null); return }
     if (approve) {
       const leave = leaves.find(l => l.id === leaveId)
-      if (leave) await supabase.from("staff").update({ status: "on_leave", updated_at: new Date().toISOString() }).eq("id", leave.staff_id)
+      // FIX #3: added .eq("school_id", schoolId) — required on every update per DB rules
+      if (leave) await supabase.from("staff").update({ status: "on_leave", updated_at: new Date().toISOString() }).eq("id", leave.staff_id).eq("school_id", schoolId)
     }
     fireToast(approve ? "Leave approved." : "Leave rejected.")
     setApprovingId(null)
@@ -272,17 +275,18 @@ export default function StaffPage() {
         input::placeholder { color: #9ca3af; }
       `}</style>
 
-      {/* ── HERO HEADER ── */}
+      {/* HERO HEADER */}
       <div style={{
         background: `linear-gradient(135deg, ${dark} 0%, #0d2347 100%)`,
         padding: "28px 20px 32px", position: "relative", overflow: "hidden",
       }}>
-        <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "#ffffff" }} />
+        <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
         <div style={{ position: "absolute", bottom: -20, right: 40, width: 80, height: 80, borderRadius: "50%", background: "rgba(16,185,129,0.12)" }} />
 
         <div style={{ position: "relative" }}>
-          <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 600, marginBottom: 4, letterSpacing: 0.5 }}>HUMAN RESOURCES</div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#111827", letterSpacing: -0.5, marginBottom: 6 }}>Staff</div>
+          {/* FIX #5: text colors corrected — was #111827 (black) on dark gradient, now white/muted */}
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", fontWeight: 600, marginBottom: 4, letterSpacing: 0.5 }}>HUMAN RESOURCES</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#ffffff", letterSpacing: -0.5, marginBottom: 6 }}>Staff</div>
           <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: accent }} />
@@ -302,7 +306,7 @@ export default function StaffPage() {
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 16px" }}>
 
-        {/* ── SEARCH ── */}
+        {/* SEARCH */}
         <div style={{ marginTop: -18, marginBottom: 16, position: "relative" }}>
           <div style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>🔍</div>
           <input
@@ -318,7 +322,7 @@ export default function StaffPage() {
           />
         </div>
 
-        {/* ── LEAVE ALERT ── */}
+        {/* LEAVE ALERT */}
         {leaves.length > 0 && (
           <div style={{ background: "#fff", borderRadius: 14, marginBottom: 14, border: "1px solid #fde68a", overflow: "hidden", boxShadow: "0 2px 8px rgba(245,158,11,0.10)" }}>
             <div
@@ -377,7 +381,7 @@ export default function StaffPage() {
           </div>
         )}
 
-        {/* ── CATEGORY PILLS ── */}
+        {/* CATEGORY PILLS */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
           {[
             { key: "all",            label: "All Staff" },
@@ -402,7 +406,7 @@ export default function StaffPage() {
           ))}
         </div>
 
-        {/* ── STAFF LIST ── */}
+        {/* STAFF LIST */}
         {loading ? <Shimmer /> : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 24px" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
@@ -436,7 +440,7 @@ export default function StaffPage() {
                           width: 48, height: 48, borderRadius: 14,
                           background: avatarGradient(s.category),
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 20, fontWeight: 900, color: "#111827", flexShrink: 0,
+                          fontSize: 20, fontWeight: 900, color: "#ffffff", flexShrink: 0,
                           boxShadow: `0 4px 12px ${categoryColor(s.category)}40`,
                         }}>
                           {s.full_name[0].toUpperCase()}
@@ -462,7 +466,6 @@ export default function StaffPage() {
                       </div>
                     </div>
 
-                    {/* Bottom row always visible */}
                     <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
                       <div style={{
                         fontSize: 11, fontWeight: 700,
@@ -473,7 +476,7 @@ export default function StaffPage() {
                         {categoryLabel(s.category)}
                       </div>
                       {s.phone && (
-                        <a
+                        
                           href={`tel:${s.phone}`}
                           onClick={e => e.stopPropagation()}
                           style={{ fontSize: 12, color: accent, fontWeight: 600, textDecoration: "none" }}
@@ -487,7 +490,6 @@ export default function StaffPage() {
                     </div>
                   </div>
 
-                  {/* Expanded details */}
                   {isExpanded && (
                     <div style={{ borderTop: "1px solid #f3f4f6", padding: "14px 16px", background: "#fafafa", display: "flex", flexDirection: "column", gap: 8 }}>
                       {s.staff_number && (
@@ -529,7 +531,7 @@ export default function StaffPage() {
         )}
       </div>
 
-      {/* ── FLOATING ADD BUTTON ── */}
+      {/* FLOATING ADD BUTTON */}
       <button
         onClick={() => { setShowAdd(true); setFormStep(0); setOtherSubject(false) }}
         style={{
@@ -545,7 +547,7 @@ export default function StaffPage() {
         +
       </button>
 
-      {/* ── ADD STAFF BOTTOM SHEET ── */}
+      {/* ADD STAFF BOTTOM SHEET */}
       {showAdd && (
         <div
           onClick={() => setShowAdd(false)}
@@ -555,14 +557,11 @@ export default function StaffPage() {
             onClick={e => e.stopPropagation()}
             style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "24px 20px 48px", width: "100%", maxWidth: 640, maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.25s ease" }}
           >
-            {/* Handle */}
             <div style={{ width: 40, height: 4, background: "#e5e7eb", borderRadius: 4, margin: "0 auto 20px" }} />
 
-            {/* Title */}
             <div style={{ fontSize: 20, fontWeight: 900, color: dark, marginBottom: 4 }}>Add Staff Member</div>
             <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 20 }}>Step {formStep + 1} of {steps.length} — {steps[formStep]}</div>
 
-            {/* Progress bar */}
             <div style={{ display: "flex", gap: 6, marginBottom: 24 }}>
               {steps.map((_, i) => (
                 <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i <= formStep ? accent : "#e5e7eb", transition: "background 0.3s" }} />
@@ -703,7 +702,7 @@ export default function StaffPage() {
               </div>
             )}
 
-            {/* Navigation buttons */}
+            {/* Navigation */}
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               {formStep > 0 && (
                 <button
