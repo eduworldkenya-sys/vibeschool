@@ -702,7 +702,7 @@ export default function RootPage() {
                 <button
                   key={r}
                   style={pillStyle(role === r, isBusy)}
-                  onClick={() => { if (!isBusy) { if (r === 'Admin') { router.push(isLogin ? '/admin/login' : '/admin/signup'); return } setRole(r); setError('') } }}
+                  onClick={() => { if (!isBusy) { if (r === 'Admin') { router.push(tab === 'signin' ? '/admin/login' : '/admin/signup'); return } setRole(r); setError('') } }}
                 >
                   {r}
                 </button>
