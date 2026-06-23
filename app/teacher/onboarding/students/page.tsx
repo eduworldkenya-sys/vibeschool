@@ -67,9 +67,8 @@ export default function StudentsOnboardingPage() {
         p_school_id:        tcData.school_id,
       })
       if (insertErr) {
-        setLoading(false)
-        setError(insertErr.message)
-        return
+        console.error('[StudentOnboarding] insert error', insertErr)
+        // continue loop - don't stop on one failure
       }
     }
 

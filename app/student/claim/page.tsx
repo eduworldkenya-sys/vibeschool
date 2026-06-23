@@ -23,23 +23,24 @@ export default function StudentClaimPage() {
 
     setLoading(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/?role=student'); return }
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/?role=student'); setLoading(false); return }
 
-    const code = claimCode.trim().toUpperCase()
+      const code = claimCode.trim().toUpperCase()
 
-    const { data: result, error: rpcErr } = await supabase
-      .rpc('redeem_student_claim', {
-        p_code:    code,
-        p_user_id: user.id,
-      })
+      const { data: result, error: rpcErr } = await supabase
+        .rpc('redeem_student_claim', {
+          p_code:    code,
+          p_user_id: user.id,
+        })
 
-    setLoading(false)
+      setLoading(false)
 
-    if (rpcErr) {
-      setError('Something went wrong. Please try again.')
-      return
-    }
+      if (rpcErr) {
+        setError('Something went wrong. Please try again.')
+        return
+      }
 
     switch (result) {
       case 'success':
@@ -60,6 +61,10 @@ export default function StudentClaimPage() {
         break
       default:
         setError('Something went wrong. Please try again.')
+    }
+    } catch {
+      setLoading(false)
+      setError('Network error. Please check your connection and try again.')
     }
   }
 
