@@ -111,7 +111,7 @@ function ClassPageInner() {
       loadedStudents.length > 0
         ? supabase.from('student_claim_codes').select('student_id, code').eq('claimed', false).in('student_id', ids)
         : Promise.resolve({ data: [] }),
-      supabase.from('attendance').select('status').eq('class_id', classId).eq('date', today),
+      supabase.from('attendance').select('status').eq('class_id', classId).gte('timestamp', today + 'T00:00:00').lte('timestamp', today + 'T23:59:59'),
       supabase.from('cbc_assessments').select('performance').eq('class_id', classId),
       loadedStudents.length > 0
         ? supabase.from('class_groups').select('id, name, color').eq('class_id', classId).eq('type', 'learning')
