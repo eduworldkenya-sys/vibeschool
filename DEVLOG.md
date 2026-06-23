@@ -209,3 +209,7 @@
 ## [2026-06-23 03:12] 1d5bc4b
 **What:** chore: add vibe-check.sh health check script
 **Status:** ✅ pushed
+
+## [2026-06-23 03:13] 4944c3c
+**What:** ux: remove duplicate sign out, fix sidebar nav scroll
+**Status:** ✅ pushed
