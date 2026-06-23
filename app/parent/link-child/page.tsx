@@ -25,7 +25,6 @@ export default function LinkChildPage() {
     try {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); router.push('/'); return }
-    if (!user) { router.push('/'); return }
 
     const { data: result, error: rpcErr } = await supabase
       .rpc('redeem_parent_claim', {
