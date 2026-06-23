@@ -100,25 +100,43 @@ export default function AdminHub() {
   }
 
   async function loadDash(sid: string, name: string, school: any) {
-    const today = new Date().toISOString().split("T")[0]
+    if (!sid) {
+      setData({
+        adminName: name, schoolName: school?.name ?? "School", logoUrl: school?.logo_url ?? null,
+        students: 0, staff: 0, classes: 0, parents: 0,
+        presentToday: 0, absentToday: 0,
+        staffPresentToday: 0, staffTotal: 0,
+        visitorsToday: 0, meetingsToday: 0,
+        pendingLeave: 0, activeProjects: 0,
+        feesCollected: 0, feesExpected: 0,
+      })
+      return
+    }
+
+    const today    = new Date().toISOString().split("T")[0]
+    const dayStart = today + "T00:00:00"
+    const dayEnd   = today + "T23:59:59"
+
     const [s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14] = await Promise.all([
       supabase.from("student_classes").select("student_id", { count: "exact", head: true }).eq("school_id", sid).eq("is_current", true),
       supabase.from("staff").select("id", { count: "exact", head: true }).eq("school_id", sid).is("deleted_at", null),
       supabase.from("classes").select("id", { count: "exact", head: true }).eq("school_id", sid).is("deleted_at", null),
       supabase.from("parent_student_links").select("id", { count: "exact", head: true }).eq("school_id", sid),
-      supabase.from("attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).eq("date", today).eq("status", "present"),
-      supabase.from("attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).eq("date", today).eq("status", "absent"),
-      supabase.from("admin_staff_attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).eq("date", today).eq("status", "present"),
-      supabase.from("admin_staff_attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).eq("date", today),
-      supabase.from("admin_visitors").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("created_at", today),
-      supabase.from("admin_meetings").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("scheduled_at", today + "T00:00:00").lte("scheduled_at", today + "T23:59:59"),
+      supabase.from("attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("timestamp", dayStart).lte("timestamp", dayEnd).eq("status", "present"),
+      supabase.from("attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("timestamp", dayStart).lte("timestamp", dayEnd).eq("status", "absent"),
+      supabase.from("admin_staff_attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("timestamp", dayStart).lte("timestamp", dayEnd).eq("status", "present"),
+      supabase.from("admin_staff_attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("timestamp", dayStart).lte("timestamp", dayEnd),
+      supabase.from("admin_visitors").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("created_at", dayStart).lte("created_at", dayEnd),
+      supabase.from("admin_meetings").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("scheduled_at", dayStart).lte("scheduled_at", dayEnd),
       supabase.from("admin_staff_leave").select("id", { count: "exact", head: true }).eq("school_id", sid).eq("status", "pending"),
       supabase.from("admin_projects").select("id", { count: "exact", head: true }).eq("school_id", sid).eq("status", "active"),
       supabase.from("finance_fee_payments").select("amount").eq("school_id", sid),
       supabase.from("finance_fee_structures").select("amount").eq("school_id", sid),
     ])
+
     const collected = (s13.data ?? []).reduce((a: number, r: any) => a + (r.amount ?? 0), 0)
     const expected  = (s14.data ?? []).reduce((a: number, r: any) => a + (r.amount ?? 0), 0)
+
     setData({
       adminName: name, schoolName: school?.name ?? "School", logoUrl: school?.logo_url ?? null,
       students: s1.count ?? 0, staff: s2.count ?? 0, classes: s3.count ?? 0, parents: s4.count ?? 0,
@@ -180,7 +198,7 @@ export default function AdminHub() {
       <div style={{ height: "52px", background: "#e2e8f0", borderRadius: "14px", animation: "pulse 1.5s ease-in-out infinite", animationDelay: "0.1s" }} />
       <div style={{ height: "52px", background: "#e2e8f0", borderRadius: "14px", animation: "pulse 1.5s ease-in-out infinite", animationDelay: "0.2s" }} />
       <div style={{ height: "90px", background: "#e2e8f0", borderRadius: "18px", animation: "pulse 1.5s ease-in-out infinite", animationDelay: "0.3s" }} />
-      <style>{`@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}`}</style>
+      <style>{"@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}"}</style>
     </div>
   )
 
