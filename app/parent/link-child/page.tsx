@@ -101,6 +101,7 @@ export default function LinkChildPage() {
             type="text"
             value={claimCode}
             onChange={e => setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+            onKeyDown={e => { if (e.key === 'Enter' && claimCode.length === 6) handleLink() }}
             placeholder="e.g. A1B2C3"
             maxLength={6}
             disabled={loading}
