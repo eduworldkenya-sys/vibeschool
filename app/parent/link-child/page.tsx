@@ -57,6 +57,10 @@ export default function LinkChildPage() {
       default:
         setError('Something went wrong. Please try again.')
     }
+  } catch (e) {
+      setLoading(false)
+      setError('Something went wrong. Please try again.')
+    }
   }
 
   return (
