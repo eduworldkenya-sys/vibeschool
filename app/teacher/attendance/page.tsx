@@ -101,7 +101,7 @@ function AttendanceInner() {
       const [profileRes, memberRes, classesRes, slotsRes] = await Promise.all([
         supabase.from('profiles').select('school_id').eq('id', user.id).single(),
         supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('classes').select('id, name, stream, school_id').eq('teacher_id', user.id).order('name', { ascending: true }),
+        supabase.from('teacher_classes').select('class_id, is_class_teacher').eq('teacher_id', user.id),
         supabase.from('timetable_slots')
           .select('id, room, start_time, end_time, class_id, subject_id, day_of_week')
           .eq('teacher_id', user.id)
@@ -177,7 +177,7 @@ function AttendanceInner() {
 
     const [studentsRes, attRes] = await Promise.all([
       supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', classId).eq('is_current', true),
-      supabase.from('attendance').select('student_id, status, is_late').eq('class_id', classId).eq('date', selectedDate).is('timetable_slot_id', null),
+      supabase.from('attendance').select('student_id, status, is_late').eq('class_id', classId).gte('timestamp', selectedDate + 'T00:00:00').lte('timestamp', selectedDate + 'T23:59:59').is('timetable_slot_id', null),
     ])
 
     const studs: Student[] = (studentsRes.data ?? []).map((r: any) => r.students).filter(Boolean).map((s: any) => ({
@@ -204,7 +204,7 @@ function AttendanceInner() {
 
     const [studentsRes, attRes] = await Promise.all([
       supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', slot.classId).eq('is_current', true),
-      supabase.from('attendance').select('student_id, status, is_late').eq('timetable_slot_id', slot.id).eq('date', selectedDate),
+      supabase.from('attendance').select('student_id, status, is_late').eq('timetable_slot_id', slot.id).gte('timestamp', selectedDate + 'T00:00:00').lte('timestamp', selectedDate + 'T23:59:59'),
     ])
 
     const studs: Student[] = (studentsRes.data ?? []).map((r: any) => r.students).filter(Boolean).map((s: any) => ({
@@ -248,7 +248,7 @@ function AttendanceInner() {
       class_id:   isLesson ? activeSlot!.classId : activeClassId!,
       teacher_id: uid,
       school_id:  classSchoolId,
-      date:       selectedDate,
+      timestamp:  selectedDate + 'T00:00:00',
       status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
       is_late:    statuses[s.id] === 'late',
       marked_at:  new Date().toISOString(),
