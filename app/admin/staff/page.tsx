@@ -157,9 +157,9 @@ export default function StaffPage() {
     setToast(msg); setTimeout(() => setToast(""), 3000)
   }, [])
 
-  useEffect(() => { bootstrap() }, [])
+  useEffect(() => { bootstrap() }, [bootstrap])
 
-  async function bootstrap() {
+  const bootstrap = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/admin/login"); return }
@@ -170,7 +170,7 @@ export default function StaffPage() {
       await loadAll(p.school_id)
     } catch { router.push("/admin/login") }
     finally { setLoading(false) }
-  }
+  }, [fireToast, router])
 
   async function loadAll(sid: string) {
     const [staffRes, leaveRes] = await Promise.all([
@@ -476,6 +476,7 @@ export default function StaffPage() {
                       </div>
                       {s.phone && (
                         
+                          <a
                           href={`tel:${s.phone}`}
                           onClick={e => e.stopPropagation()}
                           style={{ fontSize: 12, color: accent, fontWeight: 600, textDecoration: "none" }}
