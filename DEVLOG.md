@@ -213,3 +213,7 @@
 ## [2026-06-23 03:13] 4944c3c
 **What:** ux: remove duplicate sign out, fix sidebar nav scroll
 **Status:** ✅ pushed
+
+## [2026-06-23 03:16] 2ebe865
+**What:** ux: redirect admin role pill to dedicated signup/login pages
+**Status:** ✅ pushed
