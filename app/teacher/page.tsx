@@ -395,7 +395,7 @@ export default function TeacherDashboard() {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             try {
-              const r   = await fetch('http://ip-api.com/json/')
+              const r   = await fetch('https://ip-api.com/json/')
               const loc = await r.json()
               const city = loc.city ?? 'My Location'
               const lat  = pos.coords.latitude
@@ -408,7 +408,7 @@ export default function TeacherDashboard() {
           },
           async () => {
             try {
-              const r   = await fetch('http://ip-api.com/json/')
+              const r   = await fetch('https://ip-api.com/json/')
               const loc = await r.json()
               await fetchWeather(loc.lat ?? -1.2921, loc.lon ?? 36.8219, loc.city ?? 'Nairobi')
             } catch {
@@ -418,7 +418,7 @@ export default function TeacherDashboard() {
         )
       } else {
         try {
-          const r   = await fetch('http://ip-api.com/json/')
+          const r   = await fetch('https://ip-api.com/json/')
           const loc = await r.json()
           await fetchWeather(loc.lat ?? -1.2921, loc.lon ?? 36.8219, loc.city ?? 'Nairobi')
         } catch {
@@ -432,6 +432,7 @@ export default function TeacherDashboard() {
   useEffect(() => { load() }, [])
 
   async function load() {
+    try {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }
 
@@ -570,6 +571,11 @@ export default function TeacherDashboard() {
 
     setData({ fullName, school: (schoolRes.data as any)?.name ?? '', allSlots, todaySlots, classes })
     setLoading(false)
+    } catch (err) {
+      console.error('[TeacherDashboard] load error', err)
+      showToast('Failed to load dashboard. Please refresh.')
+      setLoading(false)
+    }
   }
 
   function onSlideScroll() {
