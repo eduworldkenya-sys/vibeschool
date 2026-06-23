@@ -563,17 +563,7 @@ function PersonalInfoSection() {
             placeholder="e.g. TSC-0041-8821" />
         </div>
 
-        <div>
-          <label htmlFor="employment_type" style={lbl}>Employment Type</label>
-          <select id="employment_type" style={inp} value={teacher.employment_type}
-            onChange={e => setTeacher(t => ({ ...t, employment_type: e.target.value }))}>
-            <option value="">Select type</option>
-            <option value="government">Government</option>
-            <option value="private">Private</option>
-            <option value="volunteer">Volunteer</option>
-            <option value="trainee">Trainee</option>
-          </select>
-        </div>
+
 
         <div>
           <label htmlFor="class_select" style={lbl}>My Class</label>
