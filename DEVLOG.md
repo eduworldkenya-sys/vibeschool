@@ -217,3 +217,7 @@
 ## [2026-06-23 03:16] 2ebe865
 **What:** ux: redirect admin role pill to dedicated signup/login pages
 **Status:** ✅ pushed
+
+## [2026-06-23 03:19] d211941
+**What:** fix: student claim code 2.5s delay before RPC call
+**Status:** ✅ pushed
