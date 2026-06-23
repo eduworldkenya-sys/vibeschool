@@ -305,7 +305,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <nav style={{ padding: "10px 12px", flex: 1, overflowY: "auto" }}>
+        <nav style={{ padding: "10px 12px 32px", flex: 1, overflowY: "auto" }}>
           {NAV_GROUPS.map((group, gi) => (
             <div key={group.label} style={{ marginBottom: gi < NAV_GROUPS.length - 1 ? "4px" : 0 }}>
               <div style={{ color: "rgba(255,255,255,0.28)", fontSize: "10px", fontWeight: "700", letterSpacing: "1.1px", textTransform: "uppercase", padding: "10px 12px 6px" }}>
