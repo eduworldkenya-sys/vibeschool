@@ -86,7 +86,7 @@ export default function IndexerPage() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace("/teacher/login"); return; }
+      if (!user) { router.replace('/?role=teacher'); return; }
 
       const [contentRes, statsRes] = await Promise.all([
         supabase

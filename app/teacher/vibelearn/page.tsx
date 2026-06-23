@@ -212,7 +212,7 @@ export default function VibeLearnPage() {
     async function init() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { router.replace("/teacher/login"); return; }
+        if (!user) { router.replace('/?role=teacher'); return; }
         if (!mounted.current) return;
         setUserId(user.id);
         await Promise.all([loadContent(user.id), loadStats(user.id)]);

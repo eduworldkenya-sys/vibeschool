@@ -13,45 +13,27 @@ const LEARNING_PRESETS = [
 
 const READING_PRESETS = [
   { name: 'Fluent Readers',     color: '#1d4ed8', bg: '#dbeafe', emoji: '📖' },
-  { name: 'Developing Readers', color: '#6d28d9', bg: '#ede9fe', emoji: '📝' },
-  { name: 'Emerging Readers',   color: '#9d174d', bg: '#fce7f3', emoji: '🌱' },
+  { name: 'Developing Readers', color: '#92400e', bg: '#fef3c7', emoji: '📘' },
+  { name: 'Emerging Readers',   color: '#991b1b', bg: '#fee2e2', emoji: '📕' },
 ]
 
-const ACTIVITY_COLORS = [
-  { color: '#1d4ed8', bg: '#dbeafe' },
-  { color: '#065f46', bg: '#d1fae5' },
-  { color: '#6d28d9', bg: '#ede9fe' },
-  { color: '#92400e', bg: '#fef3c7' },
-  { color: '#0f766e', bg: '#ccfbf1' },
-  { color: '#9d174d', bg: '#fce7f3' },
-]
+const GROUP_COLORS = ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16']
 
-type TabType = 'learning' | 'activity' | 'reading'
-
-interface Group {
-  id:      string
-  name:    string
-  color:   string
-  type:    string
-  members: string[]
-}
-
-interface Student {
-  id:               string
-  name:             string
-  admission_number: string
-}
+interface Student   { id: string; name: string; admission_number: string | null }
+interface Group     { id: string; name: string; color: string; type: string }
+interface GroupMember { group_id: string; student_id: string }
 
 function GroupsInner() {
-  const router  = useRouter()
-  const params  = useParams()
-  const classId = params.id as string
+  const router   = useRouter()
+  const params   = useParams()
+  const classId  = params.id as string
 
-  const [tab,             setTab]             = useState<TabType>('learning')
   const [students,        setStudents]        = useState<Student[]>([])
   const [groups,          setGroups]          = useState<Group[]>([])
-  const [grade,           setGrade]           = useState<number>(0)
+  const [members,         setMembers]         = useState<GroupMember[]>([])
+  const [className,       setClassName]       = useState('')
   const [loading,         setLoading]         = useState(true)
+  const [authError,       setAuthError]       = useState('')
   const [saving,          setSaving]          = useState(false)
   const [msg,             setMsg]             = useState('')
   const [editingId,       setEditingId]       = useState<string | null>(null)
@@ -60,304 +42,249 @@ function GroupsInner() {
   const [showCountPicker, setShowCountPicker] = useState(false)
 
   async function load() {
-    const [studsRes, classRes, groupsRes, membersRes] = await Promise.all([
+    setLoading(true)
+    setAuthError('')
+
+    const { data: { user }, error: userErr } = await supabase.auth.getUser()
+    if (userErr || !user) { router.push('/'); return }
+
+    // Verify teacher owns or teaches this class
+    const { data: ownership } = await supabase
+      .from('classes')
+      .select('id, name')
+      .eq('id', classId)
+      .eq('teacher_id', user.id)
+      .maybeSingle()
+
+    // Also allow subject teachers via teacher_classes
+    let className = ownership?.name ?? null
+    if (!ownership) {
+      const { data: tc } = await supabase
+        .from('teacher_classes')
+        .select('class_id')
+        .eq('class_id', classId)
+        .eq('teacher_id', user.id)
+        .maybeSingle()
+      if (!tc) {
+        setAuthError('You do not have access to this class.')
+        setLoading(false)
+        return
+      }
+      const { data: cls } = await supabase
+        .from('classes')
+        .select('name')
+        .eq('id', classId)
+        .single()
+      className = cls?.name ?? ''
+    }
+
+    const [studsRes, groupsRes, membersRes] = await Promise.all([
       supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', classId).eq('is_current', true),
-      supabase.from('classes').select('name').eq('id', classId).single(),
       supabase.from('class_groups').select('*').eq('class_id', classId),
       supabase.from('class_group_members').select('group_id, student_id'),
     ])
 
-    const className = classRes.data?.name ?? ''
-    const parsedGrade = parseInt(className.match(/\d+/)?.[0] ?? '0')
-    setGrade(parsedGrade)
-
-    const fetchedGroups: Group[] = (groupsRes.data ?? []).map(g => ({
-      id:      g.id,
-      name:    g.name,
-      color:   g.color,
-      type:    g.type ?? 'learning',
-      members: (membersRes.data ?? []).filter(m => m.group_id === g.id).map(m => m.student_id),
-    }))
-
+    setClassName(className ?? '')
     setStudents((studsRes.data ?? []).map((sc: any) => sc.students).filter(Boolean))
-    setGroups(fetchedGroups)
+    setGroups(groupsRes.data ?? [])
+    setMembers(membersRes.data ?? [])
     setLoading(false)
   }
 
   useEffect(() => { load() }, [classId])
 
-  function showMsg(text: string) {
-    setMsg(text)
-    setTimeout(() => setMsg(''), 1800)
-  }
-
-  async function createPresets(presets: { name: string; color: string }[], type: string) {
+  async function createGroups(type: string, presets: typeof LEARNING_PRESETS) {
     setSaving(true)
     for (const p of presets) {
       await supabase.from('class_groups').insert({ class_id: classId, name: p.name, color: p.color, type })
     }
+    await load()
     setSaving(false)
-    load()
+    setMsg('Groups created!')
+    setTimeout(() => setMsg(''), 2500)
   }
 
-  async function createActivityGroups(count: number) {
+  async function createRandomGroups() {
     setSaving(true)
-    const letters     = ['A', 'B', 'C', 'D', 'E', 'F']
-    const allStudents = students
-    const chunkSize   = Math.ceil(allStudents.length / count)
+    const n       = groupCount
+    const colors  = GROUP_COLORS.slice(0, n)
+    const shuffled = [...students].sort(() => Math.random() - 0.5)
 
-    for (let i = 0; i < count; i++) {
-      const palette = ACTIVITY_COLORS[i % ACTIVITY_COLORS.length]
-      const { data: grp } = await supabase
-        .from('class_groups')
-        .insert({ class_id: classId, name: 'Group ' + letters[i], color: palette.color, type: 'activity' })
-        .select('id')
-        .single()
+    const { data: newGroups } = await supabase
+      .from('class_groups')
+      .insert(colors.map((c, i) => ({ class_id: classId, name: `Group ${i + 1}`, color: c, type: 'custom' })))
+      .select('id')
 
-      if (grp) {
-        const chunk = allStudents.slice(i * chunkSize, (i + 1) * chunkSize)
-        if (chunk.length > 0) {
-          await supabase.from('class_group_members').insert(
-            chunk.map(s => ({ group_id: grp.id, student_id: s.id }))
-          )
-        }
+    if (newGroups) {
+      const assignments = shuffled.map((s, i) => ({
+        group_id:   newGroups[i % n].id,
+        student_id: s.id,
+      }))
+      await supabase.from('class_group_members').delete().eq('student_id', shuffled[0]?.id ?? '')
+      const sameTypeGroupIds = (groups.filter(g => g.type === 'custom')).map(g => g.id)
+      if (sameTypeGroupIds.length > 0) {
+        await supabase.from('class_group_members').delete().in('group_id', sameTypeGroupIds)
+        await supabase.from('class_groups').delete().in('id', sameTypeGroupIds)
       }
+      await supabase.from('class_group_members').insert(assignments)
     }
-
+    await load()
     setSaving(false)
-    setShowCountPicker(false)
-    load()
+    setMsg('Random groups created!')
+    setTimeout(() => setMsg(''), 2500)
   }
 
   async function assignStudent(studentId: string, groupId: string, type: string) {
     const sameTypeGroupIds = groups.filter(g => g.type === type).map(g => g.id)
-    if (sameTypeGroupIds.length > 0) {
-      await supabase.from('class_group_members').delete().eq('student_id', studentId).in('group_id', sameTypeGroupIds)
-    }
+    await supabase.from('class_group_members').delete().eq('student_id', studentId).in('group_id', sameTypeGroupIds)
     await supabase.from('class_group_members').insert({ group_id: groupId, student_id: studentId })
-    showMsg('Saved')
-    load()
+    await load()
   }
 
-  async function removeFromGroup(studentId: string, type: string) {
+  async function removeStudent(studentId: string, type: string) {
     const sameTypeGroupIds = groups.filter(g => g.type === type).map(g => g.id)
-    if (sameTypeGroupIds.length > 0) {
-      await supabase.from('class_group_members').delete().eq('student_id', studentId).in('group_id', sameTypeGroupIds)
-    }
-    load()
+    await supabase.from('class_group_members').delete().eq('student_id', studentId).in('group_id', sameTypeGroupIds)
+    await load()
   }
 
   async function renameGroup(id: string, name: string) {
-    if (!name.trim()) return
     await supabase.from('class_groups').update({ name: name.trim() }).eq('id', id)
     setEditingId(null)
-    showMsg('Renamed')
-    load()
+    await load()
   }
 
   async function deleteGroup(id: string) {
     await supabase.from('class_groups').delete().eq('id', id)
-    showMsg('Group deleted')
-    load()
+    await load()
   }
 
-  const showReading = grade >= 1 && grade <= 3
+  const groupsByType = (type: string) => groups.filter(g => g.type === type)
+  const memberOf = (studentId: string, type: string) => {
+    const typeGroupIds = new Set(groupsByType(type).map(g => g.id))
+    return members.find(m => m.student_id === studentId && typeGroupIds.has(m.group_id))?.group_id ?? null
+  }
 
-  const TABS: { id: TabType; label: string }[] = [
-    { id: 'learning', label: '🎯 Learning' },
-    { id: 'activity', label: '⚡ Activity' },
-    ...(showReading ? [{ id: 'reading' as TabType, label: '📖 Reading' }] : []),
+  if (loading) return (
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTop: '3px solid #10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+
+  if (authError) return (
+    <div style={{ padding: 24, textAlign: 'center' }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#ef4444', marginBottom: 8 }}>{authError}</div>
+      <button onClick={() => router.push('/teacher')} style={{ padding: '10px 20px', background: C.accent, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>
+        Go Home
+      </button>
+    </div>
+  )
+
+  const TABS = [
+    { type: 'learning', label: 'Performance',  presets: LEARNING_PRESETS },
+    { type: 'reading',  label: 'Reading',      presets: READING_PRESETS  },
+    { type: 'custom',   label: 'Custom',       presets: []               },
   ]
 
-  const TAB_CONFIG: Record<TabType, {
-    label: string; sub: string; gradient: string
-    emptyIcon: string; emptyText: string; emptyBtn: string
-    emptyAction: () => void
-  }> = {
-    learning: {
-      label:       'Learning Groups',
-      sub:         'CBC differentiated instruction',
-      gradient:    'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
-      emptyIcon:   '🫂',
-      emptyText:   'Set up CBC learning groups to differentiate instruction by performance level.',
-      emptyBtn:    '✨ Create CBC Groups',
-      emptyAction: () => createPresets(LEARNING_PRESETS, 'learning'),
-    },
-    activity: {
-      label:       'Activity Groups',
-      sub:         'Daily classwork teams',
-      gradient:    'linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%)',
-      emptyIcon:   '🏃',
-      emptyText:   'Create activity groups for daily classwork. Students are split evenly and you can rename each group.',
-      emptyBtn:    '⚡ Create Activity Groups',
-      emptyAction: () => setShowCountPicker(true),
-    },
-    reading: {
-      label:       'Reading Groups',
-      sub:         'Literacy & fluency tracking',
-      gradient:    'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)',
-      emptyIcon:   '📖',
-      emptyText:   'Group students by reading fluency level to target literacy support effectively.',
-      emptyBtn:    '📖 Create Reading Groups',
-      emptyAction: () => createPresets(READING_PRESETS, 'reading'),
-    },
-  }
-
-  const cfg         = TAB_CONFIG[tab]
-  const tabGroups   = groups.filter(g => g.type === tab)
-  const assignedIds = tabGroups.flatMap(g => g.members)
-  const unassigned  = students.filter(s => !assignedIds.includes(s.id))
-
-  const paletteFor = (color: string) => {
-    const allColors = [
-      ...ACTIVITY_COLORS,
-      ...READING_PRESETS.map(p => ({ color: p.color, bg: p.bg })),
-    ]
-    const found = allColors.find(c => c.color === color)
-    if (found) return { bg: found.bg, text: color }
-    const map: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2' }
-    return { bg: map[color] ?? '#f3f4f6', text: color }
-  }
-
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: '100%' }}>
-      <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} } @keyframes fadeIn { from{opacity:0} to{opacity:1} }`}</style>
-
-      {/* HERO */}
-      <div style={{ background: cfg.gradient, padding: '20px 16px 24px', transition: 'background 0.3s ease' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <button onClick={() => router.back()} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10, width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>{cfg.label}</h1>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', margin: '2px 0 0' }}>{cfg.sub}</p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => { setTab(t.id); setShowCountPicker(false) }} style={{ flex: 1, padding: '10px 8px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 11, background: tab === t.id ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: tab === t.id ? '#1e1b4b' : 'rgba(255,255,255,0.85)', transition: 'all 0.15s' }}>
-              {t.label}
-            </button>
-          ))}
+    <div style={{ paddingBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <button onClick={() => router.back()} style={{ background: C.dark, border: 'none', borderRadius: 10, width: 36, height: 36, color: '#fff', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: C.dark }}>Class Groups</div>
+          <div style={{ fontSize: 12, color: C.textMuted }}>{className}</div>
         </div>
       </div>
 
-      {/* TOAST */}
       {msg && (
-        <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background: C.accent, color: '#fff', padding: '8px 20px', borderRadius: 20, fontWeight: 700, fontSize: 13, zIndex: 999, animation: 'fadeIn 0.2s ease' }}>{msg}</div>
+        <div style={{ background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600, color: '#065f46', marginBottom: 16 }}>
+          {msg}
+        </div>
       )}
 
-      <div style={{ padding: '16px', animation: 'slideDown 0.2s ease' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>Loading…</div>
-
-        ) : showCountPicker ? (
-          <div style={{ background: '#fff', borderRadius: 20, padding: '24px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', textAlign: 'center' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>⚡</div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1e1b4b', margin: '0 0 6px' }}>How many groups?</h2>
-            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px' }}>Students will be split evenly. You can rename groups after.</p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 24 }}>
-              {[2, 3, 4, 5, 6].map(n => (
-                <button key={n} onClick={() => setGroupCount(n)} style={{ width: 44, height: 44, borderRadius: 12, border: groupCount === n ? '2.5px solid #4f46e5' : '1.5px solid #e5e7eb', background: groupCount === n ? '#ede9fe' : '#fff', color: groupCount === n ? '#4f46e5' : C.textPrimary, fontWeight: 800, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>{n}</button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowCountPicker(false)} style={{ flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: '#fff', color: C.textMuted, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-              <button onClick={() => createActivityGroups(groupCount)} disabled={saving} style={{ flex: 2, padding: '12px', borderRadius: 12, border: 'none', background: saving ? '#a5b4fc' : '#4f46e5', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {saving ? 'Creating…' : `Create ${groupCount} Groups`}
-              </button>
-            </div>
+      {TABS.map(tab => (
+        <div key={tab.type} style={{ background: '#fff', borderRadius: 16, border: '1px solid #f0ece6', padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.dark, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {tab.label} Groups
           </div>
 
-        ) : tabGroups.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>{cfg.emptyIcon}</div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1e1b4b', margin: '0 0 8px' }}>No {tab} groups yet</h2>
-            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px', lineHeight: 1.5 }}>{cfg.emptyText}</p>
-            <button onClick={cfg.emptyAction} disabled={saving} style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: tab === 'learning' ? '#b45309' : tab === 'reading' ? '#0f766e' : '#4f46e5', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {saving ? 'Creating…' : cfg.emptyBtn}
-            </button>
-          </div>
-
-        ) : (
-          <>
-            {unassigned.length > 0 && (
-              <div style={{ background: '#fff', borderRadius: 20, padding: '16px', marginBottom: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.2, textTransform: 'uppercase', margin: '0 0 12px' }}>Unassigned ({unassigned.length})</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {unassigned.map(s => (
-                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: C.surface, borderRadius: 12, border: '1px solid #e5e7eb' }}>
-                      <div>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#1e1b4b', margin: 0 }}>{s.name}</p>
-                        {s.admission_number && <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{s.admission_number}</p>}
-                      </div>
-                      <select onChange={e => { if (e.target.value) assignStudent(s.id, e.target.value, tab) }} defaultValue="" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12, fontFamily: 'inherit', color: '#1e1b4b', background: '#fff', cursor: 'pointer' }}>
-                        <option value="" disabled>Assign →</option>
-                        {tabGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                      </select>
-                    </div>
-                  ))}
+          {groupsByType(tab.type).length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 12 }}>No {tab.label.toLowerCase()} groups yet</div>
+              {tab.presets.length > 0 && (
+                <button onClick={() => createGroups(tab.type, tab.presets)} disabled={saving} style={{ padding: '8px 16px', background: C.accent, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                  Create Default Groups
+                </button>
+              )}
+              {tab.type === 'custom' && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: C.textMuted }}>Groups:</span>
+                    <button onClick={() => setGroupCount(c => Math.max(2, c - 1))} style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: 700 }}>-</button>
+                    <span style={{ fontWeight: 800, fontSize: 14 }}>{groupCount}</span>
+                    <button onClick={() => setGroupCount(c => Math.min(8, c + 1))} style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', cursor: 'pointer', fontWeight: 700 }}>+</button>
+                  </div>
+                  <button onClick={createRandomGroups} disabled={saving || students.length === 0} style={{ padding: '8px 16px', background: C.accent, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    Randomise into {groupCount} Groups
+                  </button>
                 </div>
-              </div>
-            )}
-
-            {tabGroups.map(g => {
-              const palette   = paletteFor(g.color)
-              const members   = students.filter(s => g.members.includes(s.id))
-              const isEditing = editingId === g.id
-              return (
-                <div key={g.id} style={{ background: '#fff', borderRadius: 20, padding: '16px', marginBottom: 14, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: `4px solid ${g.color}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    {isEditing ? (
-                      <div style={{ display: 'flex', gap: 6, flex: 1, marginRight: 8 }}>
-                        <input value={editName} onChange={e => setEditName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameGroup(g.id, editName) }} autoFocus style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1.5px solid ' + g.color, fontSize: 13, fontFamily: 'inherit', fontWeight: 700, color: '#1e1b4b', outline: 'none' }} />
-                        <button onClick={() => renameGroup(g.id, editName)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: g.color, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>✓</button>
-                        <button onClick={() => setEditingId(null)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: C.textMuted, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {groupsByType(tab.type).map(g => (
+                <div key={g.id} style={{ border: '1px solid #f0ece6', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ background: g.color + '18', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {editingId === g.id ? (
+                      <div style={{ display: 'flex', gap: 6, flex: 1 }}>
+                        <input
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit' }}
+                          autoFocus
+                        />
+                        <button onClick={() => renameGroup(g.id, editName)} style={{ padding: '4px 10px', background: C.accent, color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Save</button>
+                        <button onClick={() => setEditingId(null)} style={{ padding: '4px 10px', background: '#f3f4f6', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
                       </div>
                     ) : (
-                      <button onClick={() => { setEditingId(g.id); setEditName(g.name) }} style={{ padding: '4px 10px', borderRadius: 20, background: palette.bg, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: palette.text }}>{g.name} ✏️</span>
-                      </button>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>{members.length} student{members.length !== 1 ? 's' : ''}</span>
-                      <button onClick={() => deleteGroup(g.id)} style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #fca5a5', background: 'transparent', color: '#ef4444', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>🗑</button>
-                    </div>
-                  </div>
-                  {members.length === 0 ? (
-                    <p style={{ fontSize: 12, color: C.textMuted, textAlign: 'center', padding: '12px 0', margin: 0 }}>No students assigned yet</p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {members.map(s => (
-                        <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: palette.bg, borderRadius: 10 }}>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: '#1e1b4b', margin: 0 }}>{s.name}</p>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            <select onChange={e => { if (e.target.value) assignStudent(s.id, e.target.value, tab) }} value={g.id} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 11, fontFamily: 'inherit', background: '#fff', cursor: 'pointer' }}>
-                              {tabGroups.map(og => <option key={og.id} value={og.id}>{og.name}</option>)}
-                            </select>
-                            <button onClick={() => removeFromGroup(s.id, tab)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #fca5a5', background: 'transparent', color: '#ef4444', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
-                          </div>
+                      <>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: g.color }}>{g.name}</span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => { setEditingId(g.id); setEditName(g.name) }} style={{ fontSize: 11, padding: '3px 8px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>Rename</button>
+                          <button onClick={() => deleteGroup(g.id)} style={{ fontSize: 11, padding: '3px 8px', border: '1px solid #fecaca', borderRadius: 6, background: '#fff', color: '#ef4444', cursor: 'pointer' }}>Delete</button>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </>
+                    )}
+                  </div>
+                  <div style={{ padding: '8px 14px 12px' }}>
+                    {students.map(s => {
+                      const assigned = memberOf(s.id, tab.type)
+                      const inThis   = assigned === g.id
+                      return (
+                        <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f9fafb' }}>
+                          <span style={{ fontSize: 13, color: C.dark }}>{s.name}</span>
+                          {inThis ? (
+                            <button onClick={() => removeStudent(s.id, tab.type)} style={{ fontSize: 11, padding: '3px 10px', background: g.color + '20', color: g.color, border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer' }}>✓ Remove</button>
+                          ) : (
+                            <button onClick={() => assignStudent(s.id, g.id, tab.type)} disabled={!!assigned} style={{ fontSize: 11, padding: '3px 10px', background: assigned ? '#f3f4f6' : '#f0fdf4', color: assigned ? '#9ca3af' : C.accent, border: 'none', borderRadius: 6, fontWeight: 600, cursor: assigned ? 'not-allowed' : 'pointer' }}>
+                              {assigned ? 'Assigned' : 'Add'}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              )
-            })}
-
-            {unassigned.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: C.textMuted }}>✅ All students assigned to groups</div>
-            )}
-          </>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
 
 export default function GroupsPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 20, color: '#6b7280' }}>Loading…</div>}>
-      <GroupsInner />
-    </Suspense>
-  )
+  return <Suspense><GroupsInner /></Suspense>
 }

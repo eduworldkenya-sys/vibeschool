@@ -753,18 +753,20 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           (participation ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => {
             readMap[p.thread_id] = p.last_read_at ?? '1970-01-01T00:00:00Z';
           });
-          const counts = await Promise.all(
-            threadIds.map(async (tid: string) => {
-              const { count } = await supabase
-                .from('vc_messages')
-                .select('id', { count: 'exact', head: true })
-                .eq('thread_id', tid)
-                .neq('sender_id', user.id)
-                .gt('created_at', readMap[tid]);
-              return (count ?? 0) > 0 ? 1 : 0;
-            })
+          // Batched unread count — single query instead of N+1
+          const { data: unreadRows } = await supabase
+            .from('vc_messages')
+            .select('thread_id, created_at')
+            .in('thread_id', threadIds)
+            .neq('sender_id', user.id);
+          const unreadSet = new Set(
+            (unreadRows ?? [])
+              .filter((r: { thread_id: string; created_at: string }) =>
+                r.created_at > (readMap[r.thread_id] ?? '1970-01-01T00:00:00Z')
+              )
+              .map((r: { thread_id: string }) => r.thread_id)
           );
-          unread = counts.reduce((a: number, b: number) => a + b, 0);
+          unread = unreadSet.size;
         }
       } catch {
         // unread count failed — non-critical, continue
@@ -773,7 +775,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       setAuthReady(true);
     }
     fetchProfile();
-  }, [pathname]);
+  }, []);
 
   const userCtx: UserCtx = { fullName, initials, school };
 
