@@ -253,10 +253,17 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       )
 
       const json = await res.json()
+      if (!res.ok || !json.plan) {
+        const detail = json.error ?? 'Generation failed. Try again.'
+        setError(detail)
+        setPhase('form')
+        setBusy('idle')
+        return
+      }
       // G3: null check on parse
-      const parsed = json.plan ? parsePlan(json.plan) : null
+      const parsed = parsePlan(json.plan)
       if (parsed == null) {
-        setError('Generation failed or returned an unreadable plan. Try again.')
+        setError('Gemini returned an unreadable plan. Try again.')
         setPhase('form')
         setBusy('idle')
         return
