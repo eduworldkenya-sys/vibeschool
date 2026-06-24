@@ -406,6 +406,7 @@ function Chip({
 // ── MAIN INNER ─────────────────────────────────────────────────
 function SchemePageInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   const [uid,             setUid]             = useState<string | null>(null)
   const [schoolId,        setSchoolId]        = useState<string | null>(null)
