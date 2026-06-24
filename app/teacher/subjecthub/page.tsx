@@ -94,6 +94,8 @@ export default function SubjectHubPage() {
   const [suggLoading,      setSuggLoading]      = useState(false)
   // Weakest-strand widget: real CBC performance data, not assumed
   const [weakStrand, setWeakStrand] = useState<{ name: string; pct: number } | null>(null)
+  // Curriculum completion: real strands + strand_progress data, status === 'done'
+  const [curriculumPct, setCurriculumPct] = useState<number | null>(null)
   // Fix 5: inline confirm state for subject removal
   const [removeConfirmId,  setRemoveConfirmId]  = useState<string | null>(null)
 
@@ -276,14 +278,17 @@ export default function SubjectHubPage() {
     const today = nairobiDateStr()
     const weekAgo = nairobiDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
     const termStart = nairobiDateStr(new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 4) * 4, 1))
+    const activeTerm = Math.floor(new Date().getMonth() / 4) + 1
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
-    const [lpRes, assRes, attRes, slotRes, resRes, strandPerfRes, strandNameRes] = await Promise.all([
+    const [lpRes, assRes, attRes, slotRes, resRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id' , currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('strands').select('id, name').eq('subject_id', subjectId),
+      schoolId ? supabase.from('strands').select('id').eq('subject_id', subjectId).eq('school_id', schoolId) : Promise.resolve({ data: [] }),
+      schoolId ? supabase.from('strand_progress').select('strand_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
       supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
       supabase.from('resources').select('id').eq('subject_id', subjectId).eq('teacher_id', currentId),
@@ -325,6 +330,19 @@ export default function SubjectHubPage() {
       }
     }
     setWeakStrand(weakest)
+
+    // Curriculum completion %: done strands / total strands for this subject, this term
+    const totalStrands = (allStrandsRes.data ?? []).length
+    if (totalStrands > 0) {
+      const doneStrandIds = new Set(
+        ((progressRes.data ?? []) as { strand_id: string; status: string }[])
+          .filter(p => p.status === 'done')
+          .map(p => p.strand_id)
+      )
+      setCurriculumPct(Math.round((doneStrandIds.size / totalStrands) * 100))
+    } else {
+      setCurriculumPct(null)
+    }
 
     // Impact score — weighted
     const score = (lCount * 15) + (aCount * 8) + (atCount * 5) + (rCount * 20)
@@ -615,6 +633,23 @@ export default function SubjectHubPage() {
               </div>
             </div>
           </div>
+
+          {/* Curriculum Completion — real strands + strand_progress data */}
+          {curriculumPct !== null && (
+            <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Curriculum Completion</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: curriculumPct >= 70 ? '#065f46' : curriculumPct >= 40 ? '#92400e' : '#991b1b' }}>{curriculumPct}%</div>
+              </div>
+              <div style={{ width: '100%', height: 8, borderRadius: 8, background: C.surface, overflow: 'hidden' }}>
+                <div style={{
+                  width: `${curriculumPct}%`, height: '100%', borderRadius: 8,
+                  background: curriculumPct >= 70 ? '#10b981' : curriculumPct >= 40 ? '#f59e0b' : '#ef4444',
+                  transition: 'width 0.4s ease',
+                }} />
+              </div>
+            </div>
+          )}
 
           {/* Weakest Strand — real performance data, not assumed */}
           {weakStrand && (
