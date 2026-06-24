@@ -225,3 +225,7 @@
 ## [2026-06-24 09:08] ff8896f
 **What:** fix: add nairobiDateStr import to LessonPlanModal
 **Status:** ✅ pushed
+
+## [2026-06-24 09:27] 3b3cb09
+**What:** fix: subjecthub — secure API route, fix classes fetch, attendance subject filter, remove unused imports
+**Status:** ✅ pushed
