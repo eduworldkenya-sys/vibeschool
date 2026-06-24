@@ -130,20 +130,24 @@ export default function SubjectHubPage() {
       (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
     ))
 
-    // Always load classes first — needed for Add Subject modal even if teacher has no subjects yet
-    const { data: tcClassData } = await supabase
+    // Always load classes first — direct fetch avoids nested join RLS issues
+    // Covers both school teachers and independent teachers (classes.teacher_id = uid)
+    const { data: tcRows } = await supabase
       .from('teacher_classes')
-      .select('class_id, classes(id, name, stream, school_id)')
+      .select('class_id')
       .eq('teacher_id', user.id)
-    const seenIds = new Set<string>()
-    const clData = (tcClassData ?? [])
-      .map((r: { classes: { id: string; name: string; stream: string | null; school_id: string | null } | null }) => r.classes)
-      .filter((c): c is { id: string; name: string; stream: string | null; school_id: string | null } => {
-        if (!c || seenIds.has(c.id)) return false
-        seenIds.add(c.id)
-        return true
-      })
-    setAllClasses(clData)
+    const classIds = Array.from(new Set(
+      (tcRows ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
+    ))
+    if (classIds.length > 0) {
+      const { data: classRows } = await supabase
+        .from('classes')
+        .select('id, name, stream, school_id')
+        .in('id', classIds)
+      setAllClasses(classRows ?? [])
+    } else {
+      setAllClasses([])
+    }
 
     if (subjectIds.length === 0) { setLoading(false); return }
 
