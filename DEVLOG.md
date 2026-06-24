@@ -221,3 +221,7 @@
 ## [2026-06-23 03:19] d211941
 **What:** fix: student claim code 2.5s delay before RPC call
 **Status:** ✅ pushed
+
+## [2026-06-24 09:08] ff8896f
+**What:** fix: add nairobiDateStr import to LessonPlanModal
+**Status:** ✅ pushed
