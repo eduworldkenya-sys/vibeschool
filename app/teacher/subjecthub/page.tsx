@@ -73,17 +73,17 @@ function HeroSkeleton() {
 export default function SubjectHubPage() {
   const router = useRouter()
 
-  const [subjects,     setSubjects]     = useState<SubjectOption[]>([])
-  const [activeIdx,    setActiveIdx]    = useState(0)
-  const [classes,      setClasses]      = useState<ClassForSubject[]>([])
-  const [teammates,    setTeammates]    = useState<Teammate[]>([])
-  const [schoolId,     setSchoolId]     = useState<string | null>(null)
-  const [currentId,    setCurrentId]    = useState<string | null>(null)
-  const [loading,      setLoading]      = useState(true)
-  const [classLoading, setClassLoading] = useState(false)
-  const [teamLoading,  setTeamLoading]  = useState(false)
-  const [error,        setError]        = useState<string | null>(null)
-  const [pickerAction, setPickerAction] = useState<{ id: string; label: string; icon: string; bg: string; route: string } | null>(null)
+  const [subjects,       setSubjects]       = useState<SubjectOption[]>([])
+  const [activeIdx,      setActiveIdx]      = useState(0)
+  const [classes,        setClasses]        = useState<ClassForSubject[]>([])
+  const [teammates,      setTeammates]      = useState<Teammate[]>([])
+  const [schoolId,       setSchoolId]       = useState<string | null>(null)
+  const [currentId,      setCurrentId]      = useState<string | null>(null)
+  const [loading,        setLoading]        = useState(true)
+  const [classLoading,   setClassLoading]   = useState(false)
+  const [teamLoading,    setTeamLoading]    = useState(false)
+  const [error,          setError]          = useState<string | null>(null)
+  const [pickerAction,   setPickerAction]   = useState<{ id: string; label: string; icon: string; bg: string; route: string } | null>(null)
   const [showAddSubject,    setShowAddSubject]    = useState(false)
   const [newSubjectName,    setNewSubjectName]    = useState('')
   const [useOtherSubject,  setUseOtherSubject]  = useState(false)
@@ -101,66 +101,62 @@ export default function SubjectHubPage() {
   const [dailyFact,        setDailyFact]        = useState<string | null>(null)
   const [resourceCount,    setResourceCount]    = useState<number>(0)
   const [suggLoading,      setSuggLoading]      = useState(false)
-  // Weakest-strand widget: real CBC performance data, not assumed
-  const [weakStrand, setWeakStrand] = useState<{ name: string; pct: number } | null>(null)
-  // Curriculum completion: real strands + strand_progress data, status === 'done'
-  const [curriculumPct, setCurriculumPct] = useState<number | null>(null)
-  // Fix 5: inline confirm state for subject removal
+  const [weakStrand,       setWeakStrand]       = useState<{ name: string; pct: number } | null>(null)
+  const [curriculumPct,    setCurriculumPct]    = useState<number | null>(null)
   const [removeConfirmId,  setRemoveConfirmId]  = useState<string | null>(null)
+  // Task 2A — attendance rate per class for this subject this term
+  const [attRateByClass,   setAttRateByClass]   = useState<Record<string, number>>({})
 
   useEffect(() => { init() }, [])
 
   async function init() {
     try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/?role=teacher'); return }
-    setCurrentId(user.id)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/?role=teacher'); return }
+      setCurrentId(user.id)
 
-    const [tcRes, teacherRes, memberRes, profileRes] = await Promise.all([
-      supabase.from('teacher_classes').select('subject_id').eq('teacher_id', user.id),
-      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
-    ])
+      const [tcRes, teacherRes, memberRes, profileRes] = await Promise.all([
+        supabase.from('teacher_classes').select('subject_id').eq('teacher_id', user.id),
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('profiles').select('school_id').eq('id', user.id).single(),
+      ])
 
-    const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
-    setSchoolId(sid)
+      const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
+      setSchoolId(sid)
 
-    const subjectIds = Array.from(new Set(
-      (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
-    ))
+      const subjectIds = Array.from(new Set(
+        (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
+      ))
 
-    // Always load classes first — direct fetch avoids nested join RLS issues
-    // Covers both school teachers and independent teachers (classes.teacher_id = uid)
-    const { data: tcRows } = await supabase
-      .from('teacher_classes')
-      .select('class_id')
-      .eq('teacher_id', user.id)
-    const classIds = Array.from(new Set(
-      (tcRows ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
-    ))
-    if (classIds.length > 0) {
-      const { data: classRows } = await supabase
-        .from('classes')
-        .select('id, name, stream, school_id')
-        .in('id', classIds)
-      setAllClasses(classRows ?? [])
-    } else {
-      setAllClasses([])
-    }
+      const { data: tcRows } = await supabase
+        .from('teacher_classes')
+        .select('class_id')
+        .eq('teacher_id', user.id)
+      const classIds = Array.from(new Set(
+        (tcRows ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
+      ))
+      if (classIds.length > 0) {
+        const { data: classRows } = await supabase
+          .from('classes')
+          .select('id, name, stream, school_id')
+          .in('id', classIds)
+        setAllClasses(classRows ?? [])
+      } else {
+        setAllClasses([])
+      }
 
-    if (subjectIds.length === 0) { setLoading(false); return }
+      if (subjectIds.length === 0) { setLoading(false); return }
 
-    const subjectQuery = supabase
-      .from('subjects').select('id, name').in('id', subjectIds).order('name')
-    // Fix 1: scope to this school (or global subjects with null school_id)
-    const scopedQuery = sid
-      ? subjectQuery.or(`school_id.eq.${sid},school_id.is.null`)
-      : subjectQuery.is('school_id', null)
-    const { data: subData } = await scopedQuery
+      const subjectQuery = supabase
+        .from('subjects').select('id, name').in('id', subjectIds).order('name')
+      const scopedQuery = sid
+        ? subjectQuery.or(`school_id.eq.${sid},school_id.is.null`)
+        : subjectQuery.is('school_id', null)
+      const { data: subData } = await scopedQuery
 
-    setSubjects(subData ?? [])
-    } catch (err) {
+      setSubjects(subData ?? [])
+    } catch {
       setError('Failed to load. Please refresh.')
     } finally {
       setLoading(false)
@@ -187,12 +183,15 @@ export default function SubjectHubPage() {
 
     const classIds = (tcData ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
 
-    if (classIds.length === 0) { setClasses([]); setClassLoading(false); return }
+    if (classIds.length === 0) { setClasses([]); setAttRateByClass({}); setClassLoading(false); return }
 
-    const [classRes, studentRes, perfRes] = await Promise.all([
+    const termStart = nairobiDateStr(new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 4) * 4, 1))
+
+    const [classRes, studentRes, perfRes, attRes] = await Promise.all([
       supabase.from('classes').select('id, name, stream').in('id', classIds),
       supabase.from('students').select('class_id').in('class_id', classIds),
       supabase.from('cbc_assessments').select('class_id, performance').eq('subject_id', subjectId).in('class_id', classIds),
+      supabase.from('attendance').select('class_id, student_id, status').in('class_id', classIds).eq('teacher_id', currentId).gte('date', termStart),
     ])
 
     const counts: Record<string, number> = {}
@@ -200,7 +199,6 @@ export default function SubjectHubPage() {
       counts[s.class_id] = (counts[s.class_id] ?? 0) + 1
     }
 
-    // Per-class heatmap: average performance, real cbc_assessments data, not assumed
     const PERF_SCORE: Record<string, number> = {
       exceeds_expectation: 4,
       meets_expectation: 3,
@@ -228,12 +226,28 @@ export default function SubjectHubPage() {
     })
 
     setClasses(mapped)
+
+    // Task 2A — compute per-class attendance rate
+    const classTotals: Record<string, { present: number; total: number }> = {}
+    for (const row of (attRes.data ?? []) as { class_id: string; student_id: string; status: string }[]) {
+      if (!row.class_id) continue
+      const prev = classTotals[row.class_id] ?? { present: 0, total: 0 }
+      classTotals[row.class_id] = {
+        present: prev.present + (['present', 'late'].includes(row.status) ? 1 : 0),
+        total: prev.total + 1,
+      }
+    }
+    const rates: Record<string, number> = {}
+    for (const [cid, { present, total }] of Object.entries(classTotals)) {
+      rates[cid] = total > 0 ? Math.round((present / total) * 100) : 0
+    }
+    setAttRateByClass(rates)
+
     setClassLoading(false)
   }
 
   async function loadTeamForSubject(subjectId: string) {
     if (!subjectId) { setTeammates([]); setTeamLoading(false); return }
-    // Fix 3: no school means no cross-teacher query — avoid .eq('school_id','')
     if (!schoolId) { setTeammates([]); setTeamLoading(false); return }
     setTeamLoading(true)
 
@@ -252,7 +266,7 @@ export default function SubjectHubPage() {
     const { data: profileData } = await supabase
       .from('profiles').select('id, full_name').in('id', teacherIds)
 
-    const team: Teammate[] = (profileData ?? []).map((p: { id: string; full_name: string }, idx: number) => ({
+    const team: Teammate[] = (profileData ?? []).map((p: { id: string; full_name: string }) => ({
       profileId: p.id,
       fullName:  p.full_name ?? 'Unknown',
       initials:  getInitials(p.full_name ?? '?'),
@@ -263,7 +277,6 @@ export default function SubjectHubPage() {
     setTeamLoading(false)
   }
 
-  // Lock body scroll when modal is open
   useEffect(() => {
     if (showAddSubject) {
       document.body.style.overflow = 'hidden'
@@ -290,7 +303,6 @@ export default function SubjectHubPage() {
     setUseOtherSubject(false)
   }
 
-  // removeSubject — unlinks subject from teacher entirely (all class rows)
   async function removeSubject(subjectId: string) {
     if (!currentId) return
     const { error: delErr } = await supabase
@@ -320,7 +332,7 @@ export default function SubjectHubPage() {
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
     const [lpRes, assRes, attRes, slotRes, resRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes] = await Promise.all([
-      supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id' , currentId).gte('created_at', termStart),
+      supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('strands').select('id, name').eq('subject_id', subjectId),
@@ -341,7 +353,6 @@ export default function SubjectHubPage() {
     setAttCount(atCount)
     setResourceCount(rCount)
 
-    // Weakest strand: real performance data from cbc_assessments, scored low-to-high
     const PERF_SCORE: Record<string, number> = {
       exceeds_expectation: 4,
       meets_expectation: 3,
@@ -368,7 +379,6 @@ export default function SubjectHubPage() {
     })
     setWeakStrand(weakest)
 
-    // Curriculum completion %: done strands / total strands for this subject, this term
     const totalStrands = (allStrandsRes.data ?? []).length
     if (totalStrands > 0) {
       const doneStrandIds = new Set(
@@ -381,11 +391,9 @@ export default function SubjectHubPage() {
       setCurriculumPct(null)
     }
 
-    // Impact score — weighted
     const score = (lCount * 15) + (aCount * 8) + (atCount * 5) + (rCount * 20)
     setImpactScore(score)
 
-    // Streak — consecutive days with any activity
     const activityDates = new Set([
       ...(lpRes.data ?? []).map((r: {created_at: string}) => r.created_at.split('T')[0]),
       ...(assRes.data ?? []).map((r: {created_at: string}) => r.created_at.split('T')[0]),
@@ -400,7 +408,6 @@ export default function SubjectHubPage() {
     }
     setStreak(s)
 
-    // Next timetable slot today
     const todayDow = now.getDay()
     const todaySlots = (slotRes.data ?? []).filter((sl: {day_of_week?: number; start_time: string; end_time: string}) => {
       const slDow = (sl as {day_of_week?: number}).day_of_week
@@ -419,7 +426,6 @@ export default function SubjectHubPage() {
       setNextSlot(null)
     }
 
-    // Daily fact + AI suggestion — only fetch if teacher has some activity
     const subjectName = activeSubject?.name ?? 'your subject'
     if (lCount > 0 || aCount > 0 || atCount > 0 || rCount > 0) {
       try {
@@ -455,11 +461,9 @@ export default function SubjectHubPage() {
     setAddingSubject(true)
     setAddSubjectError(null)
 
-    // class is optional — independent teachers may have no class yet
     const selectedClass = allClasses.find(c => c.id === newSubjectClassId) ?? null
     const classSchoolId = selectedClass?.school_id ?? schoolId ?? null
 
-    // Deduplicate — check by name + school_id (null-safe)
     let dedupQuery = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
     if (classSchoolId) {
       dedupQuery = dedupQuery.eq('school_id', classSchoolId) as typeof dedupQuery
@@ -483,7 +487,6 @@ export default function SubjectHubPage() {
       subjectId = newSub.id
     }
 
-    // NOTE: teacher_classes.class_id is nullable (ALTER TABLE teacher_classes ALTER COLUMN class_id DROP NOT NULL)
     const tcRow: Record<string, unknown> = {
       teacher_id:       currentId,
       subject_id:       subjectId,
@@ -506,20 +509,34 @@ export default function SubjectHubPage() {
 
   const activeSubject = subjects[activeIdx] ?? null
 
-  // Fix 6: readiness chip — based on lesson plans + assessments this term
   const readiness: { label: string; bg: string; color: string } = (() => {
     if (lessonCount > 0 && assessCount > 0) return { label: 'Ready',     bg: '#d1fae5', color: '#065f46' }
     if (lessonCount > 0 || assessCount > 0) return { label: 'Partial',   bg: '#fef3c7', color: '#92400e' }
     return                                          { label: 'Not Ready', bg: '#fee2e2', color: '#991b1b' }
   })()
 
+  // Task 2B — expanded SUBJECT_ACTIONS (7 items, 3-col grid)
   const SUBJECT_ACTIONS = [
     { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
     { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
     { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
     { id: 'scheme',     label: 'Scheme',       icon: '📋', bg: '#075985', route: '/teacher/scheme'     },
-    { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#0f766e', route: '/teacher/timetable'  },
+    { id: 'resources',  label: 'Resources',    icon: '🌍', bg: '#0f766e', route: '/teacher/resources'  },
+    { id: 'tpad',       label: 'TPAD',         icon: '🏅', bg: '#1e1b4b', route: '/teacher/tpad'       },
+    { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#374151', route: '/teacher/timetable'  },
   ]
+
+  // Task 1 — derived values for Subject Intelligence card
+  const termTag = `Term ${Math.floor(new Date().getMonth() / 4) + 1}`
+  const totalStudents = classes.reduce((sum, c) => sum + c.studentCount, 0)
+  const perfClasses = classes.filter(c => c.perfPct !== null)
+  const avgPerfPct = perfClasses.length > 0
+    ? Math.round(perfClasses.reduce((sum, c) => sum + (c.perfPct ?? 0), 0) / perfClasses.length)
+    : null
+
+  function barColor(pct: number) {
+    return pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444'
+  }
 
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 60, background: C.surface, minHeight: '100%' }}>
@@ -533,7 +550,6 @@ export default function SubjectHubPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.4, textTransform: 'uppercase' }}>SubjectHub</div>
-          {/* Fix 4: bell navigates to notification settings */}
           <button onClick={() => router.push('/teacher/settings')} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13 }}>🔔</button>
         </div>
 
@@ -545,7 +561,6 @@ export default function SubjectHubPage() {
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              {/* Subject icon — rounded circle, subject-color, tappable */}
               <div style={{
                 width: 56, height: 56, borderRadius: '50%',
                 background: 'rgba(255,255,255,0.18)',
@@ -560,7 +575,6 @@ export default function SubjectHubPage() {
                   {activeSubject ? activeSubject.name : 'No Subjects'}
                 </h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                  {/* Readiness badge — tappable, shows what's needed */}
                   {activeSubject && !suggLoading && (
                     <button
                       onClick={() => {
@@ -568,7 +582,7 @@ export default function SubjectHubPage() {
                         if (lessonCount === 0) missing.push('Add a lesson plan')
                         if (assessCount === 0) missing.push('Record an assessment')
                         if (missing.length === 0) alert('You are fully ready! Keep it up.')
-                        else alert('To become Ready:\n• ' + missing.join('\n• '))
+                        else alert("To become Ready:\n• " + missing.join('\n• '))
                       }}
                       style={{
                         fontSize: 10, fontWeight: 800, borderRadius: 20,
@@ -586,7 +600,6 @@ export default function SubjectHubPage() {
               </div>
             </div>
 
-            {/* Stat pills — tappable with navigation */}
             <div style={{ display: 'flex', gap: 8 }}>
               {[
                 { label: 'My Classes',  value: classes.length,   route: '/teacher/classhub' },
@@ -613,7 +626,7 @@ export default function SubjectHubPage() {
         )}
       </div>
 
-      {/* ── SUBJECT TABS (if multiple) ── */}
+      {/* ── SUBJECT TABS ── */}
       {!loading && subjects.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
           <button
@@ -624,7 +637,6 @@ export default function SubjectHubPage() {
         </div>
       )}
 
-      {/* subject tabs — always show when subjects exist */}
       {!loading && subjects.length > 0 && (
         <div style={{ padding: '14px 16px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
           {subjects.map((s, i) => (
@@ -665,16 +677,76 @@ export default function SubjectHubPage() {
         </div>
       )}
 
+      {/* ── TASK 1: SUBJECT INTELLIGENCE CARD ── */}
+      {!loading && activeSubject && (
+        <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase' }}>Subject Intelligence</span>
+            <span style={{ fontSize: 10, fontWeight: 700, background: '#dbeafe', color: '#1d4ed8', borderRadius: 20, padding: '3px 9px' }}>{termTag}</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary }}>{classes.length}</div>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>Classes</div>
+            </div>
+            <div style={{ width: 1, background: C.border }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary }}>{totalStudents}</div>
+              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>Students</div>
+            </div>
+          </div>
+
+          {curriculumPct !== null && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Curriculum</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: barColor(curriculumPct) }}>{curriculumPct}%</span>
+              </div>
+              <div style={{ width: '100%', height: 6, borderRadius: 6, background: C.surface, overflow: 'hidden' }}>
+                <div style={{ width: `${curriculumPct}%`, height: '100%', borderRadius: 6, background: barColor(curriculumPct), transition: 'width 0.4s ease' }} />
+              </div>
+            </div>
+          )}
+
+          {avgPerfPct !== null ? (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Avg Perf</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: barColor(avgPerfPct) }}>{avgPerfPct}%</span>
+              </div>
+              <div style={{ width: '100%', height: 6, borderRadius: 6, background: C.surface, overflow: 'hidden' }}>
+                <div style={{ width: `${avgPerfPct}%`, height: '100%', borderRadius: 6, background: barColor(avgPerfPct), transition: 'width 0.4s ease' }} />
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>Avg Perf — No data yet</div>
+          )}
+
+          {weakStrand && (
+            <div style={{ fontSize: 12, color: '#991b1b', fontWeight: 700, marginBottom: 6 }}>
+              ⚠️ Weak Area: {weakStrand.name} ({weakStrand.pct}%)
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span style={{ fontSize: 11, color: C.textMuted }}>📖 {lessonCount} lesson{lessonCount !== 1 ? 's' : ''} this term</span>
+            <span style={{ fontSize: 11, color: C.textMuted }}>📊 {assessCount} assessment{assessCount !== 1 ? 's' : ''} this term</span>
+          </div>
+        </div>
+      )}
+
       {/* ── QUICK ACTIONS ── */}
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>Subject Tools</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          {/* Task 2B — 3-col grid, 7 actions */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {SUBJECT_ACTIONS.map(a => (
               <button
                 key={a.id}
                 onClick={() => {
-                  if (a.id === 'timetable') { router.push(a.route); return }
+                  if (a.id === 'timetable' || a.id === 'tpad') { router.push(a.route); return }
+                  if (a.id === 'resources') { router.push(a.route); return }
                   if (classes.length === 0) { router.push(a.route + '?subjectId=' + activeSubject.id); return }
                   if (classes.length === 1) { router.push(a.route + '?subjectId=' + activeSubject.id + '&classId=' + classes[0].id); return }
                   setPickerAction(a)
@@ -715,7 +787,7 @@ export default function SubjectHubPage() {
             </div>
           </div>
 
-          {/* Curriculum Completion — real strands + strand_progress data */}
+          {/* Curriculum Completion */}
           {curriculumPct !== null && (
             <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -732,7 +804,7 @@ export default function SubjectHubPage() {
             </div>
           )}
 
-          {/* Weakest Strand — real performance data, not assumed */}
+          {/* Weakest Strand */}
           {weakStrand && (
             <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 24 }}>⚠️</div>
@@ -762,6 +834,52 @@ export default function SubjectHubPage() {
             </div>
           </div>
 
+          {/* Task 3 — TPAD Evidence Card */}
+          {(lessonCount > 0 || assessCount > 0 || attCount > 0) && (
+            <div style={{
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #3730a3 100%)',
+              borderRadius: 20, padding: '16px', marginBottom: 10,
+              boxShadow: '0 4px 16px rgba(30,27,75,0.35)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 20 }}>🏅</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>TPAD EVIDENCE READY</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>Your activity this term qualifies as TSC evidence.</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, margin: '12px 0' }}>
+                {lessonCount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{lessonCount} lesson plan{lessonCount !== 1 ? 's' : ''}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 1</span>
+                  </div>
+                )}
+                {attCount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{attCount} attendance log{attCount !== 1 ? 's' : ''}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 2</span>
+                  </div>
+                )}
+                {assessCount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{assessCount} assessment{assessCount !== 1 ? 's' : ''}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 4</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => router.push('/teacher/tpad')}
+                style={{
+                  width: '100%', padding: '11px', borderRadius: 10, border: 'none',
+                  background: '#fff', color: '#1e1b4b', fontSize: 13, fontWeight: 800,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                Generate TPAD Evidence
+              </button>
+            </div>
+          )}
+
           {/* Next Class */}
           {nextSlot && (
             <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #075985 100%)', borderRadius: 20, padding: '14px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 12px rgba(14,165,233,0.25)' }}>
@@ -788,7 +906,6 @@ export default function SubjectHubPage() {
             </div>
           )}
 
-          {/* AI Suggestion */}
           {aiSuggestion && !suggLoading && (
             <div style={{ background: 'linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%)', borderRadius: 20, padding: '16px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '4px solid #7c3aed' }}>
               <div style={{ fontSize: 10, fontWeight: 800, color: '#5b21b6', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>🚀 Your Next Move</div>
@@ -848,6 +965,15 @@ export default function SubjectHubPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Task 2A — attendance rate pill */}
+                {attRateByClass[cls.id] !== undefined && (
+                  <div style={{
+                    fontSize: 11, fontWeight: 800, padding: '4px 9px', borderRadius: 20,
+                    background: '#dbeafe', color: '#1d4ed8',
+                  }}>
+                    {attRateByClass[cls.id]}% att
+                  </div>
+                )}
                 {cls.perfPct !== null && (
                   <div style={{
                     fontSize: 11, fontWeight: 800, padding: '4px 9px', borderRadius: 20,
@@ -955,7 +1081,6 @@ export default function SubjectHubPage() {
       {showAddSubject && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 64 }}>
           <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, maxHeight: 'calc(90vh - 64px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-            {/* Scrollable body */}
             <div style={{ overflowY: 'auto', padding: '24px 24px 8px', flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 16 }}>Add Subject</div>
               <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>SUBJECT NAME</div>
@@ -1005,7 +1130,6 @@ export default function SubjectHubPage() {
               </p>
               {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 8, marginTop: 4 }}>{addSubjectError}</div>}
             </div>
-            {/* Sticky footer buttons — always visible */}
             <div style={{ padding: '12px 24px 32px', paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, background: '#fff' }}>
               <button
                 onClick={closeAddSubject}
