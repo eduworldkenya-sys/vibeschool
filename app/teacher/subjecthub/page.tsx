@@ -17,6 +17,7 @@ interface ClassForSubject {
   name:       string
   stream:     string
   studentCount: number
+  perfPct:    number | null
 }
 
 interface Teammate {
@@ -176,9 +177,10 @@ export default function SubjectHubPage() {
 
     if (classIds.length === 0) { setClasses([]); setClassLoading(false); return }
 
-    const [classRes, studentRes] = await Promise.all([
+    const [classRes, studentRes, perfRes] = await Promise.all([
       supabase.from('classes').select('id, name, stream').in('id', classIds),
       supabase.from('students').select('class_id').in('class_id', classIds),
+      supabase.from('cbc_assessments').select('class_id, performance').eq('subject_id', subjectId).in('class_id', classIds),
     ])
 
     const counts: Record<string, number> = {}
@@ -186,12 +188,32 @@ export default function SubjectHubPage() {
       counts[s.class_id] = (counts[s.class_id] ?? 0) + 1
     }
 
-    const mapped: ClassForSubject[] = (classRes.data ?? []).map((c: { id: string; name: string; stream: string }) => ({
-      id:           c.id,
-      name:         c.name,
-      stream:       c.stream,
-      studentCount: counts[c.id] ?? 0,
-    }))
+    // Per-class heatmap: average performance, real cbc_assessments data, not assumed
+    const PERF_SCORE: Record<string, number> = {
+      exceeds_expectation: 4,
+      meets_expectation: 3,
+      approaches_expectation: 2,
+      below_expectation: 1,
+    }
+    const classPerfTotals: Record<string, { sum: number; count: number }> = {}
+    for (const row of (perfRes.data ?? []) as { class_id: string | null; performance: string }[]) {
+      if (!row.class_id) continue
+      const score = PERF_SCORE[row.performance] ?? 0
+      if (score === 0) continue
+      const prev = classPerfTotals[row.class_id] ?? { sum: 0, count: 0 }
+      classPerfTotals[row.class_id] = { sum: prev.sum + score, count: prev.count + 1 }
+    }
+
+    const mapped: ClassForSubject[] = (classRes.data ?? []).map((c: { id: string; name: string; stream: string }) => {
+      const perf = classPerfTotals[c.id]
+      return {
+        id:           c.id,
+        name:         c.name,
+        stream:       c.stream,
+        studentCount: counts[c.id] ?? 0,
+        perfPct:      perf ? Math.round((perf.sum / (perf.count * 4)) * 100) : null,
+      }
+    })
 
     setClasses(mapped)
     setClassLoading(false)
@@ -762,6 +784,15 @@ export default function SubjectHubPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {cls.perfPct !== null && (
+                  <div style={{
+                    fontSize: 11, fontWeight: 800, padding: '4px 9px', borderRadius: 20,
+                    background: cls.perfPct >= 70 ? '#d1fae5' : cls.perfPct >= 40 ? '#fef3c7' : '#fee2e2',
+                    color:      cls.perfPct >= 70 ? '#065f46' : cls.perfPct >= 40 ? '#92400e' : '#991b1b',
+                  }}>
+                    {cls.perfPct}%
+                  </div>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
