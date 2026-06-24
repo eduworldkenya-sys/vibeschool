@@ -345,12 +345,12 @@ export default function SubjectHubPage() {
       strandTotals.set(row.strand_id, { sum: prev.sum + score, count: prev.count + 1 })
     }
     let weakest: { name: string; pct: number } | null = null
-    for (const [strandId, { sum, count }] of strandTotals) {
+    Array.from(strandTotals.entries()).forEach(([strandId, { sum, count }]) => {
       const avgPct = Math.round((sum / (count * 4)) * 100)
       if (weakest === null || avgPct < weakest.pct) {
         weakest = { name: strandNames.get(strandId) ?? 'Unnamed strand', pct: avgPct }
       }
-    }
+    })
     setWeakStrand(weakest)
 
     // Curriculum completion %: done strands / total strands for this subject, this term
