@@ -92,6 +92,8 @@ export default function SubjectHubPage() {
   const [dailyFact,        setDailyFact]        = useState<string | null>(null)
   const [resourceCount,    setResourceCount]    = useState<number>(0)
   const [suggLoading,      setSuggLoading]      = useState(false)
+  // Fix 5: inline confirm state for subject removal
+  const [removeConfirmId,  setRemoveConfirmId]  = useState<string | null>(null)
 
   useEffect(() => { init() }, [])
 
@@ -117,8 +119,13 @@ export default function SubjectHubPage() {
 
     if (subjectIds.length === 0) { setLoading(false); return }
 
-    const { data: subData } = await supabase
+    const subjectQuery = supabase
       .from('subjects').select('id, name').in('id', subjectIds).order('name')
+    // Fix 1: scope to this school (or global subjects with null school_id)
+    const scopedQuery = sid
+      ? subjectQuery.or(`school_id.eq.${sid},school_id.is.null`)
+      : subjectQuery.is('school_id', null)
+    const { data: subData } = await scopedQuery
 
     setSubjects(subData ?? [])
 
@@ -188,13 +195,15 @@ export default function SubjectHubPage() {
 
   async function loadTeamForSubject(subjectId: string) {
     if (!subjectId) { setTeammates([]); setTeamLoading(false); return }
+    // Fix 3: no school means no cross-teacher query — avoid .eq('school_id','')
+    if (!schoolId) { setTeammates([]); setTeamLoading(false); return }
     setTeamLoading(true)
 
     const { data: tcData } = await supabase
       .from('teacher_classes')
       .select('teacher_id')
       .eq('subject_id', subjectId)
-      .eq('school_id', schoolId ?? '')
+      .eq('school_id', schoolId)
 
     const teacherIds = Array.from(new Set(
       (tcData ?? []).map((r: { teacher_id: string }) => r.teacher_id)
@@ -240,6 +249,22 @@ export default function SubjectHubPage() {
     setNewSubjectClassId('')
     setAddSubjectError(null)
     setAddingSubject(false)
+  }
+
+  // Fix 5: remove (unlink) subject — deletes teacher_classes rows for this teacher+subject
+  async function removeSubject(subjectId: string) {
+    if (!currentId) return
+    const { error: delErr } = await supabase
+      .from('teacher_classes')
+      .delete()
+      .eq('teacher_id', currentId)
+      .eq('subject_id', subjectId)
+    if (delErr) { setError('Failed to remove subject. Please try again.'); return }
+    const nextSubjects = subjects.filter(s => s.id !== subjectId)
+    setSubjects(nextSubjects)
+    setActiveIdx(0)
+    setClasses([])
+    setTeammates([])
   }
 
   async function loadGrowthData(subjectId: string) {
@@ -339,15 +364,18 @@ export default function SubjectHubPage() {
     setAddingSubject(true)
     setAddSubjectError(null)
 
-    // Derive school_id from selected class — not teacher profile
+    // Fix 2: derive school_id — class wins, fall back to teacher's school, never null-pollute
     const selectedClass = allClasses.find(c => c.id === newSubjectClassId)
-    const classSchoolId = selectedClass?.school_id ?? null
+    const classSchoolId = selectedClass?.school_id ?? schoolId ?? null
+    if (!classSchoolId) {
+      setAddSubjectError('Select a class so the subject is linked to your school.')
+      setAddingSubject(false)
+      return
+    }
 
     // Deduplicate — no unique constraint on subjects.name
     const dedupBase = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
-    const { data: existing } = await (
-      classSchoolId ? dedupBase.eq('school_id', classSchoolId) : dedupBase.is('school_id', null)
-    ).maybeSingle()
+    const { data: existing } = await dedupBase.eq('school_id', classSchoolId).maybeSingle()
 
     let subjectId: string
     if (existing) {
@@ -377,6 +405,13 @@ export default function SubjectHubPage() {
 
   const activeSubject = subjects[activeIdx] ?? null
 
+  // Fix 6: readiness chip — based on lesson plans + assessments this term
+  const readiness: { label: string; bg: string; color: string } = (() => {
+    if (lessonCount > 0 && assessCount > 0) return { label: 'Ready',     bg: '#d1fae5', color: '#065f46' }
+    if (lessonCount > 0 || assessCount > 0) return { label: 'Partial',   bg: '#fef3c7', color: '#92400e' }
+    return                                          { label: 'Not Ready', bg: '#fee2e2', color: '#991b1b' }
+  })()
+
   const SUBJECT_ACTIONS = [
     { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
     { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
@@ -397,7 +432,8 @@ export default function SubjectHubPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.4, textTransform: 'uppercase' }}>SubjectHub</div>
-          <button style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13 }}>🔔</button>
+          {/* Fix 4: bell navigates to notification settings */}
+          <button onClick={() => router.push('/teacher/settings')} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13 }}>🔔</button>
         </div>
 
         {loading ? (
@@ -410,9 +446,21 @@ export default function SubjectHubPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🔬</div>
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
-                  {activeSubject ? activeSubject.name : 'No Subjects'}
-                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                    {activeSubject ? activeSubject.name : 'No Subjects'}
+                  </h1>
+                  {/* Fix 6: readiness chip */}
+                  {activeSubject && !suggLoading && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 800, borderRadius: 20,
+                      padding: '3px 9px', background: readiness.bg, color: readiness.color,
+                      letterSpacing: 0.5, whiteSpace: 'nowrap',
+                    }}>
+                      {readiness.label}
+                    </span>
+                  )}
+                </div>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '3px 0 0' }}>
                   {subjects.length > 1 ? `${subjects.length} subjects assigned` : 'Subject Teacher'}
                 </p>
@@ -446,23 +494,43 @@ export default function SubjectHubPage() {
         </div>
       )}
 
+      {/* Fix 5 + 7: subject tabs with inline remove confirm */}
       {!loading && subjects.length > 1 && (
         <div style={{ padding: '14px 16px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
           {subjects.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => setActiveIdx(i)}
-              style={{
-                padding: '7px 16px', borderRadius: 20, border: 'none',
-                cursor: 'pointer', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-                background: i === activeIdx ? '#075985' : '#fff',
-                color:      i === activeIdx ? '#fff'    : C.textMuted,
-                boxShadow: i === activeIdx ? '0 2px 8px rgba(7,89,133,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
-                fontFamily: 'inherit',
-              }}
-            >
-              {s.name}
-            </button>
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+              {removeConfirmId === s.id ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fee2e2', borderRadius: 20, padding: '4px 10px' }}>
+                  <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>Remove {s.name}?</span>
+                  <button onClick={() => { removeSubject(s.id); setRemoveConfirmId(null) }}
+                    style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: '#dc2626', border: 'none', borderRadius: 12, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>Yes</button>
+                  <button onClick={() => setRemoveConfirmId(null)}
+                    style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', background: '#fff', border: 'none', borderRadius: 12, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>No</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setActiveIdx(i)}
+                  style={{
+                    padding: '7px 12px 7px 16px', borderRadius: 20, border: 'none',
+                    cursor: 'pointer', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                    background: i === activeIdx ? '#075985' : '#fff',
+                    color:      i === activeIdx ? '#fff'    : C.textMuted,
+                    boxShadow: i === activeIdx ? '0 2px 8px rgba(7,89,133,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  {s.name}
+                  <span
+                    onClick={e => { e.stopPropagation(); setRemoveConfirmId(s.id) }}
+                    title="Remove subject"
+                    style={{
+                      fontSize: 14, lineHeight: 1, color: i === activeIdx ? 'rgba(255,255,255,0.6)' : '#9ca3af',
+                      cursor: 'pointer', padding: '0 2px',
+                    }}
+                  >×</span>
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -724,20 +792,28 @@ export default function SubjectHubPage() {
               autoFocus
               style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, outline: 'none' }}
             />
-            {allClasses.length > 0 && (
-              <>
-                <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>CLASS (OPTIONAL)</div>
-                <select
-                  value={newSubjectClassId}
-                  onChange={e => setNewSubjectClassId(e.target.value)}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, background: '#fff' }}>
-                  <option value="">No class yet</option>
-                  {allClasses.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ''}</option>
-                  ))}
-                </select>
-              </>
+            {/* Fix 7: class dropdown always visible; label clarifies it scopes the school */}
+            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>
+              CLASS <span style={{ color: '#ef4444' }}>*</span>
+            </div>
+            {allClasses.length === 0 ? (
+              <div style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted, background: C.surface, marginBottom: 6 }}>
+                No classes found — ask your admin to add classes first.
+              </div>
+            ) : (
+              <select
+                value={newSubjectClassId}
+                onChange={e => setNewSubjectClassId(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', background: '#fff' }}>
+                <option value="">Select a class…</option>
+                {allClasses.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ''}</option>
+                ))}
+              </select>
             )}
+            <p style={{ fontSize: 11, color: C.textMuted, margin: '4px 0 14px', lineHeight: 1.5 }}>
+              Selecting a class links this subject to your school so teammates and school-scoped data appear correctly.
+            </p>
             {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 12, marginTop: 4 }}>{addSubjectError}</div>}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button
