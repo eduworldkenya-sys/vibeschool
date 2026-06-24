@@ -659,7 +659,7 @@ export default function TeacherDashboard() {
                   ) : (
                     <>
                       <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', letterSpacing:1.4, textTransform:'uppercase', marginBottom:4 }}>Free day</div>
-                      <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{data.school}</div>
+                      <div style={{ fontSize:20, fontWeight:800, color:'#fff', lineHeight:1.15 }}>{data.fullName}</div>
                       <div style={{ fontSize:12, color:'rgba(255,255,255,0.45)', marginTop:4 }}>No lessons scheduled this week</div>
                     </>
                   )}
