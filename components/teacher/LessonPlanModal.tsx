@@ -253,6 +253,12 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       )
 
       const json = await res.json()
+      if (res.status === 402 || json.error === 'insufficient_credits') {
+        setError('insufficient_credits')
+        setPhase('form')
+        setBusy('idle')
+        return
+      }
       if (!res.ok || !json.plan) {
         const detail = json.error ?? 'Generation failed. Try again.'
         setError(detail)
@@ -551,7 +557,31 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
                   }}
                 />
               </div>
-              {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
+              {error === 'insufficient_credits' ? (
+                <div style={{
+                  background: '#fef3c7', border: '1.5px solid #f59e0b',
+                  borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#92400e', marginBottom: 6 }}>
+                    🪙 Not enough credits
+                  </div>
+                  <div style={{ fontSize: 12, color: '#78350f', marginBottom: 12 }}>
+                    You need 1 credit to generate a lesson plan.
+                  </div>
+                  <button
+                    onClick={() => { onClose(); window.location.href = '/teacher/credits' }}
+                    style={{
+                      padding: '9px 18px', borderRadius: 10, border: 'none',
+                      background: '#f59e0b', color: '#fff', fontSize: 13,
+                      fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    Top Up Credits →
+                  </button>
+                </div>
+              ) : error !== '' ? (
+                <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>
+              ) : null}
               <button onClick={generate} disabled={isbusy} style={{
                 width: '100%', padding: '14px', borderRadius: 12, border: 'none',
                 background: C.accent, color: '#fff', fontSize: 15, fontWeight: 800,
