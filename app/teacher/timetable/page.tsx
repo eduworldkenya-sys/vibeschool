@@ -631,7 +631,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
               transition: 'opacity 0.2s',
             }}
           >
-            + Add Slot
+            + Add Lesson
           </button>
         </div>
 
