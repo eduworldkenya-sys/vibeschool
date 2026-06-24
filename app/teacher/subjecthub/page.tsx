@@ -92,6 +92,8 @@ export default function SubjectHubPage() {
   const [dailyFact,        setDailyFact]        = useState<string | null>(null)
   const [resourceCount,    setResourceCount]    = useState<number>(0)
   const [suggLoading,      setSuggLoading]      = useState(false)
+  // Weakest-strand widget: real CBC performance data, not assumed
+  const [weakStrand, setWeakStrand] = useState<{ name: string; pct: number } | null>(null)
   // Fix 5: inline confirm state for subject removal
   const [removeConfirmId,  setRemoveConfirmId]  = useState<string | null>(null)
 
@@ -277,9 +279,11 @@ export default function SubjectHubPage() {
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
-    const [lpRes, assRes, attRes, slotRes, resRes] = await Promise.all([
+    const [lpRes, assRes, attRes, slotRes, resRes, strandPerfRes, strandNameRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id' , currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
+      supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
+      supabase.from('strands').select('id, name').eq('subject_id', subjectId),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
       supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
       supabase.from('resources').select('id').eq('subject_id', subjectId).eq('teacher_id', currentId),
@@ -294,6 +298,33 @@ export default function SubjectHubPage() {
     setAssessCount(aCount)
     setAttCount(atCount)
     setResourceCount(rCount)
+
+    // Weakest strand: real performance data from cbc_assessments, scored low-to-high
+    const PERF_SCORE: Record<string, number> = {
+      exceeds_expectation: 4,
+      meets_expectation: 3,
+      approaches_expectation: 2,
+      below_expectation: 1,
+    }
+    const strandNames = new Map<string, string>(
+      (strandNameRes.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name])
+    )
+    const strandTotals = new Map<string, { sum: number; count: number }>()
+    for (const row of (strandPerfRes.data ?? []) as { strand_id: string | null; performance: string }[]) {
+      if (!row.strand_id) continue
+      const score = PERF_SCORE[row.performance] ?? 0
+      if (score === 0) continue
+      const prev = strandTotals.get(row.strand_id) ?? { sum: 0, count: 0 }
+      strandTotals.set(row.strand_id, { sum: prev.sum + score, count: prev.count + 1 })
+    }
+    let weakest: { name: string; pct: number } | null = null
+    for (const [strandId, { sum, count }] of strandTotals) {
+      const avgPct = Math.round((sum / (count * 4)) * 100)
+      if (weakest === null || avgPct < weakest.pct) {
+        weakest = { name: strandNames.get(strandId) ?? 'Unnamed strand', pct: avgPct }
+      }
+    }
+    setWeakStrand(weakest)
 
     // Impact score — weighted
     const score = (lCount * 15) + (aCount * 8) + (atCount * 5) + (rCount * 20)
@@ -584,6 +615,18 @@ export default function SubjectHubPage() {
               </div>
             </div>
           </div>
+
+          {/* Weakest Strand — real performance data, not assumed */}
+          {weakStrand && (
+            <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 24 }}>⚠️</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Weakest Strand This Term</div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: '#991b1b', marginTop: 2 }}>{weakStrand.name}</div>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#991b1b' }}>{weakStrand.pct}%</div>
+            </div>
+          )}
 
           {/* Cumulative Stats */}
           <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
