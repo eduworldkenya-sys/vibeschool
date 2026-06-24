@@ -130,19 +130,7 @@ export default function SubjectHubPage() {
       (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
     ))
 
-    if (subjectIds.length === 0) { setLoading(false); return }
-
-    const subjectQuery = supabase
-      .from('subjects').select('id, name').in('id', subjectIds).order('name')
-    // Fix 1: scope to this school (or global subjects with null school_id)
-    const scopedQuery = sid
-      ? subjectQuery.or(`school_id.eq.${sid},school_id.is.null`)
-      : subjectQuery.is('school_id', null)
-    const { data: subData } = await scopedQuery
-
-    setSubjects(subData ?? [])
-
-    // Load classes for add-subject modal via teacher_classes join
+    // Always load classes first — needed for Add Subject modal even if teacher has no subjects yet
     const { data: tcClassData } = await supabase
       .from('teacher_classes')
       .select('class_id, classes(id, name, stream, school_id)')
@@ -156,6 +144,18 @@ export default function SubjectHubPage() {
         return true
       })
     setAllClasses(clData)
+
+    if (subjectIds.length === 0) { setLoading(false); return }
+
+    const subjectQuery = supabase
+      .from('subjects').select('id, name').in('id', subjectIds).order('name')
+    // Fix 1: scope to this school (or global subjects with null school_id)
+    const scopedQuery = sid
+      ? subjectQuery.or(`school_id.eq.${sid},school_id.is.null`)
+      : subjectQuery.is('school_id', null)
+    const { data: subData } = await scopedQuery
+
+    setSubjects(subData ?? [])
     } catch (err) {
       setError('Failed to load. Please refresh.')
     } finally {
