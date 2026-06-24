@@ -37,34 +37,27 @@ interface Result {
 
 type Tier = 1 | 2 | 3
 
-// ─── Grade utility (8-4-4) ────────────────────────────────────────────────────
+// ─── Grade utility (CBC Kenya) ────────────────────────────────────────────────
+// CBC exam grades: EE=Exceeding Expectation, ME=Meeting, AE=Approaching, BE=Below
+// Used for Grade 4–9 exams. PP1–3 assessments use EE/ME/AE/BE via Assessment page.
 
 function getGrade(marks: number): string {
-  if (marks >= 80) return 'A'
-  if (marks >= 75) return 'A-'
-  if (marks >= 70) return 'B+'
-  if (marks >= 65) return 'B'
-  if (marks >= 60) return 'B-'
-  if (marks >= 55) return 'C+'
-  if (marks >= 50) return 'C'
-  if (marks >= 45) return 'C-'
-  if (marks >= 40) return 'D+'
-  if (marks >= 35) return 'D'
-  if (marks >= 30) return 'D-'
-  return 'E'
+  if (marks >= 75) return 'EE'
+  if (marks >= 50) return 'ME'
+  if (marks >= 25) return 'AE'
+  return 'BE'
 }
 
 function gradeColor(grade: string): { bg: string; color: string } {
-  if (grade === 'A')                          return { bg: '#d1fae5', color: '#065f46' }
-  if (grade === 'A-' || grade === 'B+')       return { bg: '#dbeafe', color: '#1e40af' }
-  if (['B','B-','C+'].includes(grade))        return { bg: '#fef3c7', color: '#92400e' }
-  if (['C','C-','D+'].includes(grade))        return { bg: '#fed7aa', color: '#9a3412' }
+  if (grade === 'EE') return { bg: '#d1fae5', color: '#065f46' }
+  if (grade === 'ME') return { bg: '#dbeafe', color: '#1e40af' }
+  if (grade === 'AE') return { bg: '#fef3c7', color: '#92400e' }
   return { bg: '#fee2e2', color: '#991b1b' }
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const EXAM_TYPES  = ['summative', 'cat', 'midterm', 'opener']
+const EXAM_TYPES  = ['summative', 'cat', 'midterm', 'opener', 'endterm']
 const TERM_LABELS = ['Term 1', 'Term 2', 'Term 3']
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
