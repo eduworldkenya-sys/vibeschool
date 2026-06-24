@@ -7,6 +7,13 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
+const CBC_SUBJECTS = [
+  'Mathematics', 'English', 'Kiswahili', 'Science and Technology',
+  'Social Studies', 'Agriculture', 'Home Science', 'Religious Education',
+  'Creative Arts', 'Physical Education', 'Health Education',
+  'Pre-Technical Studies', 'Business Studies',
+]
+
 interface SubjectOption {
   id:   string
   name: string
@@ -79,6 +86,7 @@ export default function SubjectHubPage() {
   const [pickerAction, setPickerAction] = useState<{ id: string; label: string; icon: string; bg: string; route: string } | null>(null)
   const [showAddSubject,    setShowAddSubject]    = useState(false)
   const [newSubjectName,    setNewSubjectName]    = useState('')
+  const [useOtherSubject,  setUseOtherSubject]  = useState(false)
   const [newSubjectClassId, setNewSubjectClassId] = useState('')
   const [addingSubject,     setAddingSubject]     = useState(false)
   const [addSubjectError,   setAddSubjectError]   = useState<string | null>(null)
@@ -275,6 +283,7 @@ export default function SubjectHubPage() {
     setNewSubjectClassId('')
     setAddSubjectError(null)
     setAddingSubject(false)
+    setUseOtherSubject(false)
   }
 
   // Fix 5: remove (unlink) subject — deletes teacher_classes rows for this teacher+subject
@@ -893,14 +902,29 @@ export default function SubjectHubPage() {
           <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 16 }}>Add Subject</div>
             <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>SUBJECT NAME</div>
-            <input
-              value={newSubjectName}
-              onChange={e => setNewSubjectName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addSubject() }}
-              placeholder="e.g. Mathematics"
-              autoFocus
-              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, outline: 'none' }}
-            />
+            <select
+              value={useOtherSubject ? 'Other' : newSubjectName}
+              onChange={e => {
+                const v = e.target.value
+                if (v === 'Other') { setUseOtherSubject(true); setNewSubjectName('') }
+                else { setUseOtherSubject(false); setNewSubjectName(v) }
+              }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: useOtherSubject ? 10 : 14, background: '#fff' }}
+            >
+              <option value="">Select a subject…</option>
+              {CBC_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="Other">Other (type manually)</option>
+            </select>
+            {useOtherSubject && (
+              <input
+                value={newSubjectName}
+                onChange={e => setNewSubjectName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addSubject() }}
+                placeholder="Type subject name"
+                autoFocus
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, outline: 'none' }}
+              />
+            )}
             {/* Fix 7: class dropdown always visible; label clarifies it scopes the school */}
             <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>
               CLASS <span style={{ color: '#ef4444' }}>*</span>
