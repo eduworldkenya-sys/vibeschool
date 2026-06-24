@@ -419,23 +419,28 @@ export default function SubjectHubPage() {
       setNextSlot(null)
     }
 
-    // Daily fact + AI suggestion via secure API route
+    // Daily fact + AI suggestion — only fetch if teacher has some activity
     const subjectName = activeSubject?.name ?? 'your subject'
-    try {
-      const insightRes = await fetch('/api/subject-insight', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subjectName, lCount, aCount, atCount, rCount }),
-      })
-      if (insightRes.ok) {
-        const { fact, suggestion } = await insightRes.json()
-        setDailyFact(fact ?? null)
-        setAiSuggestion(suggestion ?? null)
-      } else {
+    if (lCount > 0 || aCount > 0 || atCount > 0 || rCount > 0) {
+      try {
+        const insightRes = await fetch('/api/subject-insight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subjectName, lCount, aCount, atCount, rCount }),
+        })
+        if (insightRes.ok) {
+          const { fact, suggestion } = await insightRes.json()
+          setDailyFact(fact ?? null)
+          setAiSuggestion(suggestion ?? null)
+        } else {
+          setDailyFact(null)
+          setAiSuggestion(null)
+        }
+      } catch {
         setDailyFact(null)
         setAiSuggestion(null)
       }
-    } catch {
+    } else {
       setDailyFact(null)
       setAiSuggestion(null)
     }
@@ -454,23 +459,31 @@ export default function SubjectHubPage() {
     const selectedClass = allClasses.find(c => c.id === newSubjectClassId) ?? null
     const classSchoolId = selectedClass?.school_id ?? schoolId ?? null
 
-    // Deduplicate — no unique constraint on subjects.name
-    const dedupBase = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
-    const { data: existing } = await dedupBase.eq('school_id', classSchoolId).maybeSingle()
+    // Deduplicate — check by name + school_id (null-safe)
+    let dedupQuery = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
+    if (classSchoolId) {
+      dedupQuery = dedupQuery.eq('school_id', classSchoolId) as typeof dedupQuery
+    } else {
+      dedupQuery = dedupQuery.is('school_id', null) as typeof dedupQuery
+    }
+    const { data: existing } = await dedupQuery.maybeSingle()
 
     let subjectId: string
     if (existing) {
       subjectId = existing.id
     } else {
+      const insertPayload: { name: string; school_id?: string } = { name: newSubjectName.trim() }
+      if (classSchoolId) insertPayload.school_id = classSchoolId
       const { data: newSub, error: subErr } = await supabase
         .from('subjects')
-        .insert({ name: newSubjectName.trim(), school_id: classSchoolId })
+        .insert(insertPayload)
         .select('id')
         .single()
       if (subErr || !newSub) { setAddSubjectError('Failed to create subject'); setAddingSubject(false); return }
       subjectId = newSub.id
     }
 
+    // NOTE: teacher_classes.class_id is nullable (ALTER TABLE teacher_classes ALTER COLUMN class_id DROP NOT NULL)
     const tcRow: Record<string, unknown> = {
       teacher_id:       currentId,
       subject_id:       subjectId,
@@ -532,39 +545,68 @@ export default function SubjectHubPage() {
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🔬</div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
-                    {activeSubject ? activeSubject.name : 'No Subjects'}
-                  </h1>
-                  {/* Fix 6: readiness chip */}
+              {/* Subject icon — rounded circle, subject-color, tappable */}
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.18)',
+                backdropFilter: 'blur(8px)',
+                border: '2px solid rgba(255,255,255,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 26, flexShrink: 0,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+              }}>🔬</div>
+              <div style={{ flex: 1 }}>
+                <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                  {activeSubject ? activeSubject.name : 'No Subjects'}
+                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                  {/* Readiness badge — tappable, shows what's needed */}
                   {activeSubject && !suggLoading && (
-                    <span style={{
-                      fontSize: 10, fontWeight: 800, borderRadius: 20,
-                      padding: '3px 9px', background: readiness.bg, color: readiness.color,
-                      letterSpacing: 0.5, whiteSpace: 'nowrap',
-                    }}>
-                      {readiness.label}
-                    </span>
+                    <button
+                      onClick={() => {
+                        const missing: string[] = []
+                        if (lessonCount === 0) missing.push('Add a lesson plan')
+                        if (assessCount === 0) missing.push('Record an assessment')
+                        if (missing.length === 0) alert('You are fully ready! Keep it up.')
+                        else alert('To become Ready:\n• ' + missing.join('\n• '))
+                      }}
+                      style={{
+                        fontSize: 10, fontWeight: 800, borderRadius: 20,
+                        padding: '3px 9px', background: readiness.bg, color: readiness.color,
+                        letterSpacing: 0.5, whiteSpace: 'nowrap',
+                        border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      }}>
+                      {readiness.label} {readiness.label !== 'Ready' ? 'ℹ️' : '✅'}
+                    </button>
                   )}
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                    {subjects.length > 1 ? `${subjects.length} subjects` : 'Subject Teacher'}
+                  </p>
                 </div>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '3px 0 0' }}>
-                  {subjects.length > 1 ? `${subjects.length} subjects assigned` : 'Subject Teacher'}
-                </p>
               </div>
             </div>
 
+            {/* Stat pills — tappable with navigation */}
             <div style={{ display: 'flex', gap: 8 }}>
               {[
-                { label: 'My Classes',  value: classes.length },
-                ...(schoolId ? [{ label: 'Teammates', value: teammates.length }] : []),
-                { label: 'Subjects',    value: subjects.length },
+                { label: 'My Classes',  value: classes.length,   route: '/teacher/classhub' },
+                ...(schoolId ? [{ label: 'Teammates', value: teammates.length, route: '/teacher/profile' }] : []),
+                { label: 'Subjects',    value: subjects.length,  route: null },
               ].map(s => (
-                <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+                <button
+                  key={s.label}
+                  onClick={() => s.route ? router.push(s.route) : null}
+                  style={{
+                    flex: 1, background: 'rgba(255,255,255,0.12)',
+                    borderRadius: 16, padding: '10px 8px', textAlign: 'center',
+                    border: 'none', cursor: s.route ? 'pointer' : 'default',
+                    backdropFilter: 'blur(4px)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    fontFamily: 'inherit',
+                  }}>
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: 600, marginTop: 2 }}>{s.label}</div>
-                </div>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginTop: 2 }}>{s.label}</div>
+                </button>
               ))}
             </div>
           </>
@@ -582,8 +624,8 @@ export default function SubjectHubPage() {
         </div>
       )}
 
-      {/* Fix 5 + 7: subject tabs with inline remove confirm */}
-      {!loading && subjects.length > 1 && (
+      {/* subject tabs — always show when subjects exist */}
+      {!loading && subjects.length > 0 && (
         <div style={{ padding: '14px 16px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
           {subjects.map((s, i) => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
@@ -774,7 +816,12 @@ export default function SubjectHubPage() {
           {!classLoading && classes.length === 0 && (
             <div style={{ padding: '28px 16px', textAlign: 'center' }}>
               <span style={{ fontSize: 28 }}>📚</span>
-              <p style={{ fontSize: 13, color: C.textMuted, marginTop: 8 }}>No classes assigned for this subject yet.</p>
+              <p style={{ fontSize: 13, color: C.textMuted, marginTop: 8, marginBottom: 12 }}>No classes linked to this subject yet.</p>
+              <button
+                onClick={openAddSubject}
+                style={{ padding: '8px 18px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                + Link a Class
+              </button>
             </div>
           )}
 
