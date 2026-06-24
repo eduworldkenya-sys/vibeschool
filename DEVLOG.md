@@ -233,3 +233,7 @@
 ## [2026-06-24 09:53] cfefd50
 **What:** fix: restore use client order and nairobiDateStr imports in SmartInsightSlides and SmartTimetablePreview
 **Status:** ✅ pushed
+
+## [2026-06-24 22:44] 2dbeb31
+**What:** fix scheme page: load strands from curriculum table, fix coverage dots, add sub_strand display
+**Status:** ✅ pushed
