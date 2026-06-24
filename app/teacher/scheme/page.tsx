@@ -553,11 +553,15 @@ function SchemePageInner() {
       notes:     p.notes,
     })))
     setFetching(false)
-  }, [selectedSubject, selectedClass, selectedTerm, schoolId, uid])
+  }, [selectedSubject, selectedClass, selectedTerm, selectedWeek, schoolId, uid])
 
   useEffect(() => {
     if (!loading) loadStrands()
   }, [loading, loadStrands])
+
+  useEffect(() => {
+    if (!loading && selectedClass && selectedSubject) loadStrands()
+  }, [selectedWeek, selectedTerm])
 
   // ── Update status ─────────────────────────────────────────────
   async function updateStatus(strandId: string, status: string) {
