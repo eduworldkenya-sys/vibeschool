@@ -237,3 +237,7 @@
 ## [2026-06-24 22:44] 2dbeb31
 **What:** fix scheme page: load strands from curriculum table, fix coverage dots, add sub_strand display
 **Status:** ✅ pushed
+
+## [2026-06-24 22:57] 5afc9e9
+**What:** fix scheme: reload strands on week/term change, add selectedWeek to useCallback deps
+**Status:** ✅ pushed
