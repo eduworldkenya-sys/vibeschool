@@ -932,7 +932,7 @@ export default function SubjectHubPage() {
               </div>
               {allClasses.length === 0 ? (
                 <div style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted, background: C.surface, marginBottom: 6 }}>
-                  No classes linked yet — <a href="/teacher/classhub" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>create one in ClassHub</a>
+                  No classes linked yet — <a href="/teacher/onboarding/class" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>set up a class first</a>
                 </div>
               ) : (
                 <select
