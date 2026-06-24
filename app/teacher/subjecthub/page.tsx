@@ -898,8 +898,8 @@ export default function SubjectHubPage() {
       )}
 
       {showAddSubject && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 64 }}>
+          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, maxHeight: 'calc(90vh - 64px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             {/* Scrollable body */}
             <div style={{ overflowY: 'auto', padding: '24px 24px 8px', flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 16 }}>Add Subject</div>
@@ -951,7 +951,7 @@ export default function SubjectHubPage() {
               {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 8, marginTop: 4 }}>{addSubjectError}</div>}
             </div>
             {/* Sticky footer buttons — always visible */}
-            <div style={{ padding: '12px 24px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, background: '#fff' }}>
+            <div style={{ padding: '12px 24px 32px', paddingBottom: 'max(28px, env(safe-area-inset-bottom, 28px))', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, background: '#fff' }}>
               <button
                 onClick={closeAddSubject}
                 style={{ flex: 1, padding: '12px', borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: C.textMuted }}>
