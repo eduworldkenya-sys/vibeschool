@@ -448,14 +448,9 @@ export default function SubjectHubPage() {
     setAddingSubject(true)
     setAddSubjectError(null)
 
-    // Fix 2: derive school_id — class wins, fall back to teacher's school, never null-pollute
-    const selectedClass = allClasses.find(c => c.id === newSubjectClassId)
+    // class is optional — independent teachers may have no class yet
+    const selectedClass = allClasses.find(c => c.id === newSubjectClassId) ?? null
     const classSchoolId = selectedClass?.school_id ?? schoolId ?? null
-    if (!classSchoolId) {
-      setAddSubjectError('Select a class so the subject is linked to your school.')
-      setAddingSubject(false)
-      return
-    }
 
     // Deduplicate — no unique constraint on subjects.name
     const dedupBase = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
@@ -474,13 +469,14 @@ export default function SubjectHubPage() {
       subjectId = newSub.id
     }
 
-    const { error: tcErr } = await supabase.from('teacher_classes').insert({
+    const tcRow: Record<string, unknown> = {
       teacher_id:       currentId,
       subject_id:       subjectId,
-      class_id:         newSubjectClassId || null,
       school_id:        classSchoolId,
       is_class_teacher: false,
-    })
+    }
+    if (newSubjectClassId) tcRow.class_id = newSubjectClassId
+    const { error: tcErr } = await supabase.from('teacher_classes').insert(tcRow)
     if (tcErr) { console.error('teacher_classes insert error:', tcErr); setAddSubjectError('Failed to link subject: ' + (tcErr.message ?? tcErr.code ?? 'unknown')); setAddingSubject(false); return }
 
     setSubjects(prev => [...prev, { id: subjectId, name: newSubjectName.trim() }])
@@ -932,7 +928,7 @@ export default function SubjectHubPage() {
                 />
               )}
               <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>
-                CLASS <span style={{ color: '#ef4444' }}>*</span>
+                CLASS <span style={{ color: C.textMuted, fontWeight: 400 }}>(optional)</span>
               </div>
               {allClasses.length === 0 ? (
                 <div style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted, background: C.surface, marginBottom: 6 }}>
@@ -950,7 +946,7 @@ export default function SubjectHubPage() {
                 </select>
               )}
               <p style={{ fontSize: 11, color: C.textMuted, margin: '4px 0 8px', lineHeight: 1.5 }}>
-                Selecting a class links this subject to your school so teammates and school-scoped data appear correctly.
+                Linking a class is optional. You can always link one later from this subject's settings.
               </p>
               {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 8, marginTop: 4 }}>{addSubjectError}</div>}
             </div>
