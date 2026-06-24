@@ -50,6 +50,14 @@ function formatCountdown(mins: number): string {
   return `${Math.floor(safe / 60)}h ${safe % 60}m`
 }
 
+function localDateStr(): string {
+  const d   = new Date()
+  const y   = d.getFullYear()
+  const m   = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 const DAYS = [
   { label: 'Mon', dow: 1, weekend: false },
   { label: 'Tue', dow: 2, weekend: false },
@@ -204,7 +212,7 @@ function SlotDrawer({
     if (delta > 120) onClose()  // FIX [UI-06]: increased threshold from 80 to 120px
   }
 
-  const today         = new Date().toISOString().slice(0, 10)
+  const today         = localDateStr()
   const attendanceUrl = `/teacher/attendance?classId=${encodeURIComponent(slot.classId)}&date=${today}&subject=${encodeURIComponent(slot.subject)}`
   const lessonUrl = `/teacher/lessonplan?subject=${encodeURIComponent(slot.subject)}&classId=${slot.classId}`;
   const homeworkUrl = `/teacher/classhub/${slot.classId}/homework`;
@@ -375,6 +383,16 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     }, 60_000)
     return () => clearInterval(id)
   }, [])
+
+  // FIX [LOGIC-07]: resync activeDow with todayDow on midnight rollover,
+  // but only if the user was viewing "today" (not a manually picked day)
+  const prevTodayDow = useRef(todayDow)
+  useEffect(() => {
+    if (todayDow !== prevTodayDow.current) {
+      setActiveDow(curr => curr === prevTodayDow.current ? todayDow : curr)
+      prevTodayDow.current = todayDow
+    }
+  }, [todayDow])
 
   // FIX [FATAL-03]: single router instance at page level — passed down as onNavigate prop
   const handleNavigate = useCallback((url: string) => {
@@ -761,7 +779,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           {[
             { label: 'Total Lessons', value: totalLessons },
             { label: 'Classes',       value: uniqueClasses },
-            { label: "Today's Lessons", value: allSlots.filter(s => s.dayOfWeek === todayDow).length },
+            { label: "Today's Lessons", value: todayCount },
           ].map(r => (
             <div
               key={r.label}
