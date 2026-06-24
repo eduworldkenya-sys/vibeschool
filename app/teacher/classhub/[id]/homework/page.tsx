@@ -100,7 +100,12 @@ function HomeworkInner() {
   }
 
   function isOverdue(due: string) {
-    return new Date(due) < new Date()
+    // Compare date strings only — avoids UTC/EAT timezone drift
+    const todayNairobi = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })
+    ).toISOString().split('T')[0]
+    const dueDate = due.split('T')[0].slice(0, 10)
+    return dueDate < todayNairobi
   }
 
   const inputStyle: React.CSSProperties = {
@@ -171,7 +176,7 @@ function HomeworkInner() {
               </div>
               <div>
                 <label style={labelStyle}>Due Date *</label>
-                <input style={inputStyle} type="datetime-local" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
+                <input style={inputStyle} type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} />
               </div>
               <div>
                 <label style={labelStyle}>Type</label>
