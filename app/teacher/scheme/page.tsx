@@ -36,10 +36,10 @@ const C = {
 // ── INTERFACES ─────────────────────────────────────────────────
 interface ClassOption   { id: string; label: string; grade: string }
 interface SubjectOption { id: string; label: string }
-interface Strand        { id: string; name: string }
+interface Strand        { id: string; name: string; sub_strand: string; topic: string }
 interface Progress      { strand_id: string; term: number; week: number; status: string; notes: string | null }
 interface Term          { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string }
-interface CurriculumRow { grade: string; subject: string; strand: string; week: number; term: number }
+interface CurriculumRow { id: string; grade: string; subject: string; strand: string; sub_strand: string; topic: string; week: number; term: number }
 
 // ── STATUS CONFIG ──────────────────────────────────────────────
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string; border: string }> = {
@@ -297,6 +297,11 @@ function StrandCard({
             flex:       1,
             marginRight: 10,
           }}>{strand.name}</div>
+          {strand.sub_strand && (
+            <div style={{ fontSize: 11, color: C.text3, marginTop: 2, marginRight: 10 }}>
+              {strand.sub_strand}{strand.topic ? ` · ${strand.topic}` : ''}
+            </div>
+          )}
 
           <span style={{
             background:   st.bg,
@@ -508,15 +513,22 @@ function SchemePageInner() {
     setProgress([])
     setFetchError(null)
 
+    const cls  = classes.find(c => c.id === selectedClass)
+    const subj = subjects.find(s => s.id === selectedSubject)
+    if (!cls || !subj) { setFetching(false); return }
+
     const [strandsRes, progressRes] = await Promise.all([
       supabase
-        .from('strands')
-        .select('id,name')
-        .eq('subject_id', selectedSubject)
-        .eq('school_id', schoolId),
+        .from('curriculum')
+        .select('id,strand,sub_strand,topic,week,term,grade,subject')
+        .eq('grade', cls.grade)
+        .eq('subject', subj.label)
+        .eq('term', selectedTerm)
+        .eq('week', selectedWeek)
+        .order('strand'),
       supabase
         .from('strand_progress')
-        .select('strand_id,term,week,status,notes')
+        .select('curriculum_id,term,week,status,notes')
         .eq('teacher_id', uid)
         .eq('class_id', selectedClass)
         .eq('subject_id', selectedSubject)
@@ -526,8 +538,20 @@ function SchemePageInner() {
     if (strandsRes.error)  { setFetchError(strandsRes.error.message);  setFetching(false); return }
     if (progressRes.error) { setFetchError(progressRes.error.message); setFetching(false); return }
 
-    setStrands(strandsRes.data  ?? [])
-    setProgress(progressRes.data ?? [])
+    const mappedStrands: Strand[] = (strandsRes.data ?? []).map((r: CurriculumRow) => ({
+      id:         r.id,
+      name:       r.strand,
+      sub_strand: r.sub_strand,
+      topic:      r.topic,
+    }))
+    setStrands(mappedStrands)
+    setProgress((progressRes.data ?? []).map((p: { curriculum_id: string; term: number; week: number; status: string; notes: string | null }) => ({
+      strand_id: p.curriculum_id,
+      term:      p.term,
+      week:      p.week,
+      status:    p.status,
+      notes:     p.notes,
+    })))
     setFetching(false)
   }, [selectedSubject, selectedClass, selectedTerm, schoolId, uid])
 
@@ -541,15 +565,16 @@ function SchemePageInner() {
     setSaving(strandId)
 
     const { error } = await supabase.from('strand_progress').upsert({
-      teacher_id: uid,
-      class_id:   selectedClass,
-      subject_id: selectedSubject,
-      school_id:  schoolId,
-      strand_id:  strandId,
+      teacher_id:    uid,
+      class_id:      selectedClass,
+      subject_id:    selectedSubject,
+      school_id:     schoolId,
+      curriculum_id: strandId,
+      strand_id:     strandId,
       term:       selectedTerm,
       week:       selectedWeek,
       status,
-    }, { onConflict: 'teacher_id,class_id,strand_id,term,week' })
+    }, { onConflict: 'teacher_id,class_id,curriculum_id,term,week' })
 
     if (!error) {
       setProgress(prev => {
@@ -586,8 +611,9 @@ function SchemePageInner() {
       )
       const delivered = weekStrands.filter(c =>
         progress.some(p =>
-          p.week   === w &&
-          p.status === 'done'
+          p.strand_id === c.id &&
+          p.week      === w    &&
+          p.status    === 'done'
         )
       ).length
       map[w] = weekStrands.length > 0
