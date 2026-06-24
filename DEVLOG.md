@@ -229,3 +229,7 @@
 ## [2026-06-24 09:27] 3b3cb09
 **What:** fix: subjecthub — secure API route, fix classes fetch, attendance subject filter, remove unused imports
 **Status:** ✅ pushed
+
+## [2026-06-24 09:53] cfefd50
+**What:** fix: restore use client order and nairobiDateStr imports in SmartInsightSlides and SmartTimetablePreview
+**Status:** ✅ pushed
