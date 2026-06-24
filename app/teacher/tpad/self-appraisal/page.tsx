@@ -12,6 +12,10 @@ interface TpadAppraisal {
   standard_2_self: number | null
   standard_3_self: number | null
   standard_4_self: number | null
+  standard_5_self: number | null
+  standard_6_self: number | null
+  standard_7_self: number | null
+  standard_8_self: number | null
 }
 
 const STANDARDS = [
@@ -67,6 +71,58 @@ const STANDARDS = [
       'Learner results show improvement over time',
     ],
   },
+  {
+    num: 5,
+    title: 'Extra-Curricular Activities',
+    icon: '🏆',
+    desc: 'Do you participate in and support co-curricular and extra-curricular activities?',
+    criteria: [
+      'Coaches or supervises at least one co-curricular activity',
+      'Encourages learner participation in clubs and sports',
+      'Organises or supports school events and competitions',
+      'Integrates life skills through extra-curricular activities',
+      'Documents learner participation and achievements',
+    ],
+  },
+  {
+    num: 6,
+    title: 'Professional Development',
+    icon: '🎓',
+    desc: 'Are you actively growing your professional skills and knowledge?',
+    criteria: [
+      'Attends TSC-approved CPD courses and workshops',
+      'Pursues further education or professional qualifications',
+      'Shares knowledge gained with colleagues',
+      'Reflects on own teaching practice regularly',
+      'Keeps a professional development portfolio',
+    ],
+  },
+  {
+    num: 7,
+    title: 'Community Involvement',
+    icon: '🤝',
+    desc: 'How well do you engage with parents, guardians and the wider school community?',
+    criteria: [
+      'Communicates regularly with parents about learner progress',
+      'Participates in school-community outreach activities',
+      'Responds promptly to parent concerns and inquiries',
+      'Supports school fundraising and community initiatives',
+      'Promotes the school positively in the community',
+    ],
+  },
+  {
+    num: 8,
+    title: 'Innovative Teaching',
+    icon: '💡',
+    desc: 'Do you use creative and innovative approaches to improve learning outcomes?',
+    criteria: [
+      'Uses varied and creative teaching strategies',
+      'Incorporates technology and digital tools in lessons',
+      'Develops own teaching and learning materials',
+      'Experiments with new CBC-aligned pedagogical approaches',
+      'Shares innovative practices with colleagues',
+    ],
+  },
 ]
 
 const SCORE_LABELS: Record<number, { label: string; color: string; bg: string }> = {
@@ -93,7 +149,7 @@ export default function SelfAppraisalPage() {
   const [schoolId,  setSchoolId]  = useState<string | null>(null)
   const [termId,    setTermId]    = useState<string | null>(null)
   const [appraisal, setAppraisal] = useState<TpadAppraisal | null>(null)
-  const [scores,    setScores]    = useState<Record<number, number | null>>({ 1: null, 2: null, 3: null, 4: null })
+  const [scores,    setScores]    = useState<Record<number, number | null>>({ 1: null, 2: null, 3: null, 4: null, 5: null, 6: null, 7: null, 8: null })
   const [loading,   setLoading]   = useState(true)
   const [saving,    setSaving]    = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -138,7 +194,7 @@ export default function SelfAppraisalPage() {
 
         const { data: appraisalData } = await supabase
           .from('tpad_appraisals')
-          .select('id,status,standard_1_self,standard_2_self,standard_3_self,standard_4_self')
+          .select('id,status,standard_1_self,standard_2_self,standard_3_self,standard_4_self,standard_5_self,standard_6_self,standard_7_self,standard_8_self')
           .eq('teacher_id', uid)
           .eq('term_id', termData.id)
           .maybeSingle()
@@ -150,6 +206,10 @@ export default function SelfAppraisalPage() {
             2: appraisalData.standard_2_self,
             3: appraisalData.standard_3_self,
             4: appraisalData.standard_4_self,
+            5: appraisalData.standard_5_self,
+            6: appraisalData.standard_6_self,
+            7: appraisalData.standard_7_self,
+            8: appraisalData.standard_8_self,
           })
         }
       } catch {
@@ -175,12 +235,16 @@ export default function SelfAppraisalPage() {
       standard_2_self: scores[2],
       standard_3_self: scores[3],
       standard_4_self: scores[4],
+      standard_5_self: scores[5],
+      standard_6_self: scores[6],
+      standard_7_self: scores[7],
+      standard_8_self: scores[8],
     }
 
     const { data: upserted, error: upsertError } = await supabase
       .from('tpad_appraisals')
       .upsert(payload, { onConflict: 'teacher_id,term_id' })
-      .select('id,status,standard_1_self,standard_2_self,standard_3_self,standard_4_self')
+      .select('id,status,standard_1_self,standard_2_self,standard_3_self,standard_4_self,standard_5_self,standard_6_self,standard_7_self,standard_8_self')
       .single()
 
     if (upsertError) {
@@ -216,6 +280,10 @@ export default function SelfAppraisalPage() {
       standard_2_self: scores[2],
       standard_3_self: scores[3],
       standard_4_self: scores[4],
+      standard_5_self: scores[5],
+      standard_6_self: scores[6],
+      standard_7_self: scores[7],
+      standard_8_self: scores[8],
       submitted_at:    new Date().toISOString(),
     }
 
@@ -266,7 +334,7 @@ export default function SelfAppraisalPage() {
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, margin: 0 }}>Self-Appraisal</h1>
         <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>
-          Rate yourself honestly on each of the 4 TPAD standards
+          Rate yourself honestly on each of the 8 TSC TPAD standards
         </p>
       </div>
 
@@ -393,7 +461,7 @@ export default function SelfAppraisalPage() {
                 ← Previous
               </button>
             )}
-            {activeStd < 4 && (
+            {activeStd < 8 && (
               <button
                 onClick={() => setActiveStd(activeStd + 1)}
                 style={{
@@ -438,7 +506,7 @@ export default function SelfAppraisalPage() {
               cursor: submitting || !allFilled ? 'not-allowed' : 'pointer',
             }}
           >
-            {submitting ? 'Submitting...' : allFilled ? 'Submit to Head Teacher' : 'Rate all 4 standards to submit'}
+            {submitting ? 'Submitting...' : allFilled ? 'Submit to Head Teacher' : 'Rate all 8 standards to submit'}
           </button>
         </div>
       )}
