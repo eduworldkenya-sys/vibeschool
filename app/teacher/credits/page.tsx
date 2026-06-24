@@ -92,7 +92,7 @@ function MpesaModal({
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 20px" }} />
         <p style={{ fontSize: 13, color: C.textMuted, margin: "0 0 4px" }}>Paying for</p>
-        <p style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: "0 0 4px" }}>{pkg.name}</p>
+        <p style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary, margin: "0 0 4px" }}>{pkg.name}</p>
         <p style={{ fontSize: 14, color: C.accent, fontWeight: 700, margin: "0 0 24px" }}>
           KES {pkg.price_kes} · {pkg.credits} Vibe Credits
         </p>
@@ -240,7 +240,7 @@ export default function CreditsPage() {
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <p style={{ fontSize: 16, fontWeight: 800, color: C.text, margin: "0 0 3px" }}>{pkg.name}</p>
+                <p style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, margin: "0 0 3px" }}>{pkg.name}</p>
                 <p style={{ fontSize: 12, color: C.textMuted, margin: "0 0 8px" }}>{OUTCOME[pkg.name]}</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{
@@ -255,7 +255,7 @@ export default function CreditsPage() {
                 </div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                <p style={{ fontSize: 20, fontWeight: 900, color: C.text, margin: "0 0 2px" }}>
+                <p style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, margin: "0 0 2px" }}>
                   KES {pkg.price_kes}
                 </p>
                 <p style={{ fontSize: 10, color: C.accent, fontWeight: 700, margin: 0 }}>
@@ -280,7 +280,7 @@ export default function CreditsPage() {
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: "0 0 2px", textTransform: "capitalize" }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, margin: "0 0 2px", textTransform: "capitalize" }}>
                     {tx.type === "spend" ? `Used · ${tx.feature?.replace(/_/g, " ")}` : tx.notes ?? tx.type}
                   </p>
                   <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>{fmt(tx.created_at)}</p>
