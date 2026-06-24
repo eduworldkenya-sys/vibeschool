@@ -290,7 +290,7 @@ export default function SubjectHubPage() {
     setUseOtherSubject(false)
   }
 
-  // Fix 5: remove (unlink) subject — deletes teacher_classes rows for this teacher+subject
+  // removeSubject — unlinks subject from teacher entirely (all class rows)
   async function removeSubject(subjectId: string) {
     if (!currentId) return
     const { error: delErr } = await supabase
@@ -301,9 +301,11 @@ export default function SubjectHubPage() {
     if (delErr) { setError('Failed to remove subject. Please try again.'); return }
     const nextSubjects = subjects.filter(s => s.id !== subjectId)
     setSubjects(nextSubjects)
-    setActiveIdx(0)
+    const nextIdx = Math.max(0, Math.min(activeIdx, nextSubjects.length - 1))
+    setActiveIdx(nextIdx)
     setClasses([])
     setTeammates([])
+    if (nextSubjects.length > 0) loadGrowthData(nextSubjects[nextIdx].id)
   }
 
   async function loadGrowthData(subjectId: string) {
@@ -479,7 +481,13 @@ export default function SubjectHubPage() {
     const { error: tcErr } = await supabase.from('teacher_classes').insert(tcRow)
     if (tcErr) { console.error('teacher_classes insert error:', tcErr); setAddSubjectError('Failed to link subject: ' + (tcErr.message ?? tcErr.code ?? 'unknown')); setAddingSubject(false); return }
 
-    setSubjects(prev => [...prev, { id: subjectId, name: newSubjectName.trim() }])
+    const newEntry = { id: subjectId, name: newSubjectName.trim() }
+    setSubjects(prev => {
+      const next = [...prev, newEntry]
+      const newIdx = next.length - 1
+      setTimeout(() => { setActiveIdx(newIdx); loadGrowthData(subjectId) }, 100)
+      return next
+    })
     closeAddSubject()
   }
 
@@ -581,7 +589,7 @@ export default function SubjectHubPage() {
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
               {removeConfirmId === s.id ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fee2e2', borderRadius: 20, padding: '4px 10px' }}>
-                  <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>Remove {s.name}?</span>
+                  <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>Unlink {s.name} from all classes?</span>
                   <button onClick={() => { removeSubject(s.id); setRemoveConfirmId(null) }}
                     style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: '#dc2626', border: 'none', borderRadius: 12, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>Yes</button>
                   <button onClick={() => setRemoveConfirmId(null)}
@@ -932,7 +940,7 @@ export default function SubjectHubPage() {
               </div>
               {allClasses.length === 0 ? (
                 <div style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted, background: C.surface, marginBottom: 6 }}>
-                  No classes linked yet — <a href="/teacher/onboarding/class" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>set up a class first</a>
+                  No classes yet — <a href="/teacher/onboarding/class" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>create a class</a> or skip and add subject only.
                 </div>
               ) : (
                 <select
@@ -946,7 +954,7 @@ export default function SubjectHubPage() {
                 </select>
               )}
               <p style={{ fontSize: 11, color: C.textMuted, margin: '4px 0 8px', lineHeight: 1.5 }}>
-                Linking a class is optional. You can always link one later from this subject's settings.
+                Linking a class is optional — you can add the same subject to more classes anytime.
               </p>
               {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 8, marginTop: 4 }}>{addSubjectError}</div>}
             </div>
