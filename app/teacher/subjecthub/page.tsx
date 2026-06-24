@@ -477,7 +477,7 @@ export default function SubjectHubPage() {
       school_id:        classSchoolId,
       is_class_teacher: false,
     })
-    if (tcErr) { setAddSubjectError('Failed to link subject'); setAddingSubject(false); return }
+    if (tcErr) { console.error('teacher_classes insert error:', tcErr); setAddSubjectError('Failed to link subject: ' + (tcErr.message ?? tcErr.code ?? 'unknown')); setAddingSubject(false); return }
 
     setSubjects(prev => [...prev, { id: subjectId, name: newSubjectName.trim() }])
     closeAddSubject()
@@ -897,58 +897,65 @@ export default function SubjectHubPage() {
         </div>
       )}
 
-      {showAddSubject && (
+      {showAddSubject && (() => {
+        const assignedNames = new Set(subjects.map(s => s.name.toLowerCase()))
+        const availableCBC = CBC_SUBJECTS.filter(s => !assignedNames.has(s.toLowerCase()))
+        return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: 24, width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 16 }}>Add Subject</div>
-            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>SUBJECT NAME</div>
-            <select
-              value={useOtherSubject ? 'Other' : newSubjectName}
-              onChange={e => {
-                const v = e.target.value
-                if (v === 'Other') { setUseOtherSubject(true); setNewSubjectName('') }
-                else { setUseOtherSubject(false); setNewSubjectName(v) }
-              }}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: useOtherSubject ? 10 : 14, background: '#fff' }}
-            >
-              <option value="">Select a subject…</option>
-              {CBC_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-              <option value="Other">Other (type manually)</option>
-            </select>
-            {useOtherSubject && (
-              <input
-                value={newSubjectName}
-                onChange={e => setNewSubjectName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') addSubject() }}
-                placeholder="Type subject name"
-                autoFocus
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, outline: 'none' }}
-              />
-            )}
-            {/* Fix 7: class dropdown always visible; label clarifies it scopes the school */}
-            <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>
-              CLASS <span style={{ color: '#ef4444' }}>*</span>
-            </div>
-            {allClasses.length === 0 ? (
-              <div style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted, background: C.surface, marginBottom: 6 }}>
-                No classes found — ask your admin to add classes first.
-              </div>
-            ) : (
+          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            {/* Scrollable body */}
+            <div style={{ overflowY: 'auto', padding: '24px 24px 8px', flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 16 }}>Add Subject</div>
+              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>SUBJECT NAME</div>
               <select
-                value={newSubjectClassId}
-                onChange={e => setNewSubjectClassId(e.target.value)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', background: '#fff' }}>
-                <option value="">Select a class…</option>
-                {allClasses.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ''}</option>
-                ))}
+                value={useOtherSubject ? 'Other' : newSubjectName}
+                onChange={e => {
+                  const v = e.target.value
+                  if (v === 'Other') { setUseOtherSubject(true); setNewSubjectName('') }
+                  else { setUseOtherSubject(false); setNewSubjectName(v) }
+                }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: useOtherSubject ? 10 : 14, background: '#fff' }}
+              >
+                <option value="">Select a subject…</option>
+                {availableCBC.map(s => <option key={s} value={s}>{s}</option>)}
+                <option value="Other">Other (type manually)</option>
               </select>
-            )}
-            <p style={{ fontSize: 11, color: C.textMuted, margin: '4px 0 14px', lineHeight: 1.5 }}>
-              Selecting a class links this subject to your school so teammates and school-scoped data appear correctly.
-            </p>
-            {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 12, marginTop: 4 }}>{addSubjectError}</div>}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              {useOtherSubject && (
+                <input
+                  value={newSubjectName}
+                  onChange={e => setNewSubjectName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') addSubject() }}
+                  placeholder="Type subject name"
+                  autoFocus
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: 14, outline: 'none' }}
+                />
+              )}
+              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>
+                CLASS <span style={{ color: '#ef4444' }}>*</span>
+              </div>
+              {allClasses.length === 0 ? (
+                <div style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted, background: C.surface, marginBottom: 6 }}>
+                  No classes linked yet —{' '}
+                  <a href="/teacher/classhub" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>create one in ClassHub</a>
+                </div>
+              ) : (
+                <select
+                  value={newSubjectClassId}
+                  onChange={e => setNewSubjectClassId(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', background: '#fff' }}>
+                  <option value="">Select a class…</option>
+                  {allClasses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}{c.stream ? ` \${c.stream}` : ''}</option>
+                  ))}
+                </select>
+              )}
+              <p style={{ fontSize: 11, color: C.textMuted, margin: '4px 0 8px', lineHeight: 1.5 }}>
+                Selecting a class links this subject to your school so teammates and school-scoped data appear correctly.
+              </p>
+              {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 8, marginTop: 4 }}>{addSubjectError}</div>}
+            </div>
+            {/* Sticky footer buttons — always visible */}
+            <div style={{ padding: '12px 24px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, background: '#fff', borderRadius: '0 0 0 0' }}>
               <button
                 onClick={closeAddSubject}
                 style={{ flex: 1, padding: '12px', borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: C.textMuted }}>
@@ -963,7 +970,8 @@ export default function SubjectHubPage() {
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {error && (
         <div style={{ margin: '14px 16px', padding: '12px 14px', borderRadius: 12, background: '#fef2f2', color: C.error, fontSize: 13 }}>
