@@ -897,10 +897,7 @@ export default function SubjectHubPage() {
         </div>
       )}
 
-      {showAddSubject && (() => {
-        const assignedNames = new Set(subjects.map(s => s.name.toLowerCase()))
-        const availableCBC = CBC_SUBJECTS.filter(s => !assignedNames.has(s.toLowerCase()))
-        return (
+      {showAddSubject && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             {/* Scrollable body */}
@@ -917,7 +914,7 @@ export default function SubjectHubPage() {
                 style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: useOtherSubject ? 10 : 14, background: '#fff' }}
               >
                 <option value="">Select a subject…</option>
-                {availableCBC.map(s => <option key={s} value={s}>{s}</option>)}
+                {CBC_SUBJECTS.filter(s => !subjects.map(x => x.name.toLowerCase()).includes(s.toLowerCase())).map(s => <option key={s} value={s}>{s}</option>)}
                 <option value="Other">Other (type manually)</option>
               </select>
               {useOtherSubject && (
@@ -935,8 +932,7 @@ export default function SubjectHubPage() {
               </div>
               {allClasses.length === 0 ? (
                 <div style={{ padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.textMuted, background: C.surface, marginBottom: 6 }}>
-                  No classes linked yet —{' '}
-                  <a href="/teacher/classhub" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>create one in ClassHub</a>
+                  No classes linked yet — <a href="/teacher/classhub" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>create one in ClassHub</a>
                 </div>
               ) : (
                 <select
@@ -944,8 +940,8 @@ export default function SubjectHubPage() {
                   onChange={e => setNewSubjectClassId(e.target.value)}
                   style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', background: '#fff' }}>
                   <option value="">Select a class…</option>
-                  {allClasses.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}{c.stream ? ` \${c.stream}` : ''}</option>
+                  {allClasses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.stream ? ' ' + c.stream : ''}</option>
                   ))}
                 </select>
               )}
@@ -955,7 +951,7 @@ export default function SubjectHubPage() {
               {addSubjectError && <div style={{ fontSize: 13, color: C.error, marginBottom: 8, marginTop: 4 }}>{addSubjectError}</div>}
             </div>
             {/* Sticky footer buttons — always visible */}
-            <div style={{ padding: '12px 24px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, background: '#fff', borderRadius: '0 0 0 0' }}>
+            <div style={{ padding: '12px 24px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, background: '#fff' }}>
               <button
                 onClick={closeAddSubject}
                 style={{ flex: 1, padding: '12px', borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: C.textMuted }}>
@@ -970,8 +966,7 @@ export default function SubjectHubPage() {
             </div>
           </div>
         </div>
-        )
-      })()}
+      )}
 
       {error && (
         <div style={{ margin: '14px 16px', padding: '12px 14px', borderRadius: 12, background: '#fef2f2', color: C.error, fontSize: 13 }}>
