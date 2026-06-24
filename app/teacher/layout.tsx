@@ -562,7 +562,7 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
 }
 
 // ── TopBar — VibeConnect icon + Avatar only ───────────────────────────────────
-function TopBar({ school, initials, unreadConnect }: { school: string; initials: string; unreadConnect: number }) {
+function TopBar({ school, initials, unreadConnect, creditBalance }: { school: string; initials: string; unreadConnect: number; creditBalance: number | null }) {
   const router   = useRouter();
   const pathname = usePathname();
   const isRoot   = pathname === "/teacher" || pathname === "/teacher/" || pathname === "/teacher";
@@ -648,6 +648,21 @@ function TopBar({ school, initials, unreadConnect }: { school: string; initials:
           )}
         </div>
 
+        {/* Credit Balance Pill */}
+        <div
+          onClick={() => router.push("/teacher/credits")}
+          style={{
+            display: "flex", alignItems: "center", gap: 4,
+            background: "rgba(16,185,129,0.15)", borderRadius: 20,
+            padding: "4px 10px", cursor: "pointer",
+          }}
+        >
+          <span style={{ fontSize: 13 }}>🪙</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>
+            {creditBalance ?? "…"}
+          </span>
+        </div>
+
         {/* Avatar → Profile */}
         <Avatar
           initials={initials || "…"}
@@ -695,6 +710,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [initials,      setInitials]      = useState("");
   const [fullName,      setFullName]      = useState("");
   const [unreadConnect, setUnreadConnect] = useState(0);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [authReady,     setAuthReady]     = useState(false);
 
   const showToast = useCallback((msg: string) => {
@@ -714,6 +730,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
       if (userErr || !user) { window.location.href = "/?role=teacher"; return; }
+      // Fetch credit balance
+      const { data: creditData } = await supabase.rpc("get_credit_balance", { p_teacher_id: user.id });
+      if (creditData?.success) setCreditBalance(creditData.balance);
+
       const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
         .select("full_name, school_id, role")
@@ -803,7 +823,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
         `}</style>
         <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-          <TopBar school={school} initials={initials} unreadConnect={unreadConnect} />
+          <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
               <OfflineBar />
           <main style={{
             maxWidth:      768,

@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
 
@@ -265,12 +265,13 @@ function WeekGrid({
 
 // ── STRAND CARD ────────────────────────────────────────────────
 function StrandCard({
-  strand, status, isSaving, onUpdate
+  strand, status, isSaving, onUpdate, onGenerate
 }: {
-  strand:   Strand
-  status:   string
-  isSaving: boolean
-  onUpdate: (strandId: string, status: string) => void
+  strand:     Strand
+  status:     string
+  isSaving:   boolean
+  onUpdate:   (strandId: string, status: string) => void
+  onGenerate: () => void
 }) {
   const st = STATUS_STYLE[status] ?? STATUS_STYLE.planned
 
@@ -352,6 +353,23 @@ function StrandCard({
             )
           })}
         </div>
+        <button
+          onClick={onGenerate}
+          style={{
+            marginTop:    8,
+            width:        '100%',
+            padding:      '7px',
+            background:   'linear-gradient(135deg, #4f46e5, #6366f1)',
+            color:        '#fff',
+            border:       'none',
+            borderRadius: 8,
+            fontSize:     11,
+            fontWeight:   700,
+            cursor:       'pointer',
+            fontFamily:   'inherit',
+            letterSpacing: 0.3,
+          }}
+        >✨ Generate Lesson Plan</button>
       </div>
     </div>
   )
@@ -663,6 +681,24 @@ function SchemePageInner() {
         (progress.filter(p => p.status === 'done' && p.week === selectedWeek).length / strands.length) * 100
       )
     : 0
+
+  function handleGenerate(strand: Strand) {
+    const cls  = classes.find(c => c.id === selectedClass)
+    const subj = subjects.find(s => s.id === selectedSubject)
+    if (!cls || !subj || !selectedClass || !selectedSubject) return
+    const params = new URLSearchParams({
+      classId:    selectedClass,
+      subjectId:  selectedSubject,
+      grade:      cls.grade,
+      subject:    subj.label,
+      strand:     strand.name,
+      subStrand:  strand.sub_strand ?? '',
+      topic:      strand.topic ?? '',
+      week:       String(selectedWeek),
+      term:       String(selectedTerm),
+    })
+    router.push(`/teacher/scheme/generate?${params.toString()}`)
+  }
 
   // ── Render ────────────────────────────────────────────────────
   return (
@@ -1041,6 +1077,7 @@ function SchemePageInner() {
                     status={getStatus(strand.id)}
                     isSaving={saving === strand.id}
                     onUpdate={updateStatus}
+                    onGenerate={() => handleGenerate(strand)}
                   />
                 ))}
               </div>
