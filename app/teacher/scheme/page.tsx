@@ -155,13 +155,14 @@ function CoveragePill({ pct }: { pct: number }) {
 
 // ── WEEK GRID ──────────────────────────────────────────────────
 function WeekGrid({
-  totalWks, currentWk, weekCoverage, selectedWeek, onSelect
+  totalWks, currentWk, weekCoverage, weekStrandCount, selectedWeek, onSelect
 }: {
-  totalWks:     number
-  currentWk:    number
-  weekCoverage: Record<number, number>
-  selectedWeek: number
-  onSelect:     (w: number) => void
+  totalWks:        number
+  currentWk:       number
+  weekCoverage:    Record<number, number>
+  weekStrandCount: Record<number, number>
+  selectedWeek:    number
+  onSelect:        (w: number) => void
 }) {
   return (
     <div>
@@ -219,6 +220,14 @@ function WeekGrid({
                 background:   dotColor,
                 boxShadow:    level !== 'empty' ? `0 0 4px ${dotColor}` : 'none',
               }} />
+              {(weekStrandCount[w] ?? 0) > 0 && (
+                <div style={{
+                  fontSize:   8,
+                  fontWeight: 800,
+                  color:      active ? C.indigo : C.text3,
+                  lineHeight: 1,
+                }}>{weekStrandCount[w]}</div>
+              )}
             </div>
           )
         })}
@@ -596,6 +605,24 @@ function SchemePageInner() {
     progress.find(p => p.strand_id === strandId && p.week === selectedWeek)?.status ?? 'planned'
 
   // ── Week coverage dots (synced with curriculum table) ─────────
+  const weekStrandCount = useMemo(() => {
+    const map: Record<number, number> = {}
+    if (!activeTerm || !selectedClass || !selectedSubject) return map
+    const cls  = classes.find(c => c.id === selectedClass)
+    const subj = subjects.find(s => s.id === selectedSubject)
+    if (!cls || !subj) return map
+    const totWks = totalWeeks(activeTerm)
+    for (let w = 1; w <= totWks; w++) {
+      map[w] = curriculum.filter(c =>
+        c.grade   === cls.grade &&
+        c.subject === subj.label &&
+        c.week    === w &&
+        c.term    === selectedTerm
+      ).length
+    }
+    return map
+  }, [activeTerm, selectedClass, selectedSubject, classes, subjects, curriculum, selectedTerm])
+
   const weekCoverage = useMemo(() => {
     const map: Record<number, number> = {}
     if (!activeTerm || !selectedClass || !selectedSubject) return map
@@ -900,6 +927,7 @@ function SchemePageInner() {
               totalWks={totWks}
               currentWk={curWeek}
               weekCoverage={weekCoverage}
+              weekStrandCount={weekStrandCount}
               selectedWeek={selectedWeek}
               onSelect={setSelectedWeek}
             />
