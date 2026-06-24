@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useCallback } from "react"
@@ -64,7 +65,7 @@ export default function AttendancePage() {
   const [saving,       setSaving]       = useState(false)
   const [toast,        setToast]        = useState("")
   const [tab,          setTab]          = useState<"staff" | "students">("staff")
-  const [date,         setDate]         = useState(() => new Date().toISOString().slice(0, 10))
+  const [date,         setDate]         = useState(() => nairobiDateStr())
   const [staffList,    setStaffList]    = useState<StaffRow[]>([])
   const [classes,      setClasses]      = useState<ClassRow[]>([])
   const [students,     setStudents]     = useState<StudentRow[]>([])

@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 import { supabase } from '@/lib/supabase'
 
@@ -71,7 +72,7 @@ export default function SystemReportPage() {
     }))
     setAuditRows(rows)
     const today = rows.filter(r =>
-      r.created_at?.startsWith(new Date().toISOString().split('T')[0])
+      r.created_at?.startsWith(nairobiDateStr())
     ).length
     setInsight(`🔐 ${rows.length} audit events logged. ${today} actions recorded today.`)
   }

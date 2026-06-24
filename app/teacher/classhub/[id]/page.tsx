@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 import { C } from '@/components/teacher/ui'
 import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
@@ -104,7 +105,7 @@ function ClassPageInner() {
     setJoinRequests(requestsRes.data?.length ?? 0)
 
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = nairobiDateStr()
     const ids = loadedStudents.map(s => s.id)
 
     const [codesRes, attRes, assessRes, grpRes] = await Promise.all([

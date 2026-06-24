@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 import { supabase } from '@/lib/supabase'
 
@@ -84,7 +85,7 @@ export default function OperationalReportPage() {
       status: r.status ?? 'visited',
     }))
     setVisitors(rows)
-    const today = rows.filter(r => r.date === new Date().toISOString().split('T')[0]).length
+    const today = rows.filter(r => r.date === nairobiDateStr()).length
     setInsight(`🏛️ ${rows.length} visitor records. ${today} visitor(s) logged today.`)
   }
 

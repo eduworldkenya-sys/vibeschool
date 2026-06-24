@@ -1,3 +1,4 @@
+import { nairobiDateStr } from '@/lib/time'
 import { StudentStreak } from '@/lib/types'
 
 const TRACKER_KEY = 'vibe_exam_count'
@@ -42,13 +43,13 @@ export function getStudentStreak(): StudentStreak {
 function updateDailyStreak(): void {
   if (typeof window === 'undefined') return
   try {
-    const todayStr     = new Date().toISOString().split('T')[0]
+    const todayStr     = nairobiDateStr()
     const streakData   = getStudentStreak()
     if (streakData.lastActiveDate === todayStr) return
 
     const yesterday    = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    const yesterdayStr = nairobiDateStr(yesterday)
 
     const newStreak = streakData.lastActiveDate === yesterdayStr
       ? streakData.currentStreak + 1

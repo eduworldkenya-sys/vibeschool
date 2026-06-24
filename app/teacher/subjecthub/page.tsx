@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 import { Card, SectionLabel, Btn, C, ReadinessChip } from '@/components/teacher/ui'
 
@@ -235,9 +236,9 @@ export default function SubjectHubPage() {
     if (!subjectId || !currentId) return
     setSuggLoading(true)
 
-    const today = new Date().toISOString().split('T')[0]
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    const termStart = new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 4) * 4, 1).toISOString().split('T')[0]
+    const today = nairobiDateStr()
+    const weekAgo = nairobiDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+    const termStart = nairobiDateStr(new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 4) * 4, 1))
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
@@ -272,7 +273,7 @@ export default function SubjectHubPage() {
     let s = 0
     const check = new Date()
     while (true) {
-      const d = check.toISOString().split('T')[0]
+      const d = nairobiDateStr(check)
       if (activityDates.has(d)) { s++; check.setDate(check.getDate() - 1) }
       else break
     }

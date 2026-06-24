@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
@@ -65,7 +66,7 @@ function AttendanceInner() {
   const searchParams = useSearchParams()
   const urlClassId   = searchParams.get('classId')
   const urlDate      = searchParams.get('date')
-  const today        = new Date().toISOString().split('T')[0]
+  const today        = nairobiDateStr()
 
   const [mode,            setMode]            = useState<Mode>(urlClassId ? 'class' : 'class')
   const [selectedDate,    setSelectedDate]    = useState(urlDate ?? today)

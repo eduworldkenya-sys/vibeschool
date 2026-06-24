@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useCallback } from "react"
@@ -145,7 +146,7 @@ export default function ReconciliationPage() {
   const load = useCallback(async (sid: string) => {
     setLoading(true)
     try {
-      const today = new Date().toISOString().slice(0, 10)
+      const today = nairobiDateStr()
 
       const [{ data: unmatchedData }, { data: matchedData }, { data: periodData }] = await Promise.all([
         supabase.from("finance_mpesa_statements").select("*").eq("school_id", sid).eq("status", "unmatched").order("created_at", { ascending: false }),
@@ -351,7 +352,7 @@ export default function ReconciliationPage() {
     }
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = nairobiDateStr()
   const totalUnmatched = unmatched.length
   const totalMatched = matched.length
   const totalKesToday = [...unmatched, ...matched]

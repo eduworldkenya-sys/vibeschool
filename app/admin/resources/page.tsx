@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef } from 'react'
@@ -155,12 +156,12 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric' })
 }
 function today(): string {
-  return new Date().toISOString().split('T')[0]
+  return nairobiDateStr()
 }
 function maxDueDate(): string {
   const d = new Date()
   d.setDate(d.getDate() + MAX_DUE_DATE_DAYS)
-  return d.toISOString().split('T')[0]
+  return nairobiDateStr(d)
 }
 function isOverdue(dueDate: string, returnedAt: string | null): boolean {
   return !returnedAt && new Date(dueDate) < new Date()

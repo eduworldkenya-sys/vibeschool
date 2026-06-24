@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase, SUPABASE_URL } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
-import { getServerWeek } from '@/lib/time'
+import { getServerWeek, nairobiDateStr } from '@/lib/time'
 import type { TimetableSlot } from '@/lib/types'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -411,7 +411,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           subject:      slot.subject,
           instructions: sections.homework.trim(),
           type:         'written',
-          due_date:     due.toISOString().split('T')[0],
+          due_date:     nairobiDateStr(due),
         }).select('id').single()
 
         if (hw?.id) {

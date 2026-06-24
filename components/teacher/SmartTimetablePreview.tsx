@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 'use client'
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
@@ -192,7 +193,7 @@ export default function SmartTimetablePreview() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || !isMounted.current) return
 
-      const today  = new Date().toISOString().split('T')[0]
+      const today  = nairobiDateStr()
 
       const { data: slots } = await supabase
         .from('timetable_slots')

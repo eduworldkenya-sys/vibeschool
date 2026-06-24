@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef } from 'react'
@@ -437,7 +438,7 @@ export default function TeacherDashboard() {
     if (!user) { router.push('/'); return }
 
     const uid    = user.id
-    const today  = new Date().toISOString().split('T')[0]
+    const today  = nairobiDateStr()
     const rawDow = new Date().getDay()
     const dow    = rawDow === 0 ? 7 : rawDow
 

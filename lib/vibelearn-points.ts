@@ -1,3 +1,4 @@
+import { nairobiDateStr } from '@/lib/time'
 import { supabase } from '@/lib/supabase'
 
 const POINT_VALUES: Record<string, number> = {
@@ -24,7 +25,7 @@ export async function awardPoints(
 }
 
 export async function updateStreak(studentId: string): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = nairobiDateStr()
 
   const { data } = await supabase
     .from('vibelearn_streaks')
@@ -51,7 +52,7 @@ export async function updateStreak(studentId: string): Promise<void> {
 
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = yesterday.toISOString().slice(0, 10)
+  const yesterdayStr = nairobiDateStr(yesterday)
 
   const newStreak  = last === yesterdayStr ? current + 1 : 1
   const newLongest = Math.max(longest, newStreak)

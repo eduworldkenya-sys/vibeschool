@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, Suspense } from 'react'
@@ -46,13 +47,13 @@ function getWeekStart() {
   const d = new Date()
   const day = d.getDay()
   const mon = new Date(d.setDate(d.getDate() - day + (day === 0 ? -6 : 1)))
-  return mon.toISOString().split('T')[0]
+  return nairobiDateStr(mon)
 }
 
 function offsetWeek(start: string, days: number) {
   const d = new Date(start + 'T12:00:00')
   d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
+  return nairobiDateStr(d)
 }
 
 function Skeleton({ h = 72 }: { h?: number }) {

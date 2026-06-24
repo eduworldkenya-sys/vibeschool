@@ -1,4 +1,5 @@
 "use client";
+import { nairobiDateStr } from '@/lib/time'
 'use client'
 
 import React, { useEffect, useState, useRef, useCallback } from 'react'
@@ -52,7 +53,7 @@ export default function SmartInsightSlides() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || !isMounted.current) return
 
-      const today = new Date().toISOString().split('T')[0]
+      const today = nairobiDateStr()
 
       const { data: profile } = await supabase
         .from('profiles')
