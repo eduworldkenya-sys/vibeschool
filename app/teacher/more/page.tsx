@@ -5,19 +5,21 @@ import { useRouter } from 'next/navigation'
 import { C } from '@/components/teacher/ui'
 
 const ITEMS = [
-  { label: 'ClassHub',   href: '/teacher',            desc: 'Your classes and students'     },
-  { label: 'SubjectHub', href: '/teacher/subjecthub', desc: 'Manage your subjects'           },
-  { label: 'Timetable',  href: '/teacher/timetable',  desc: 'View your schedule'             },
-  { label: 'Attendance', href: '/teacher/attendance', desc: 'Mark and review attendance'     },
-  { label: 'Assessment', href: '/teacher/assessment', desc: 'CBC assessments'                },
-  { label: 'Scheme',     href: '/teacher/scheme',     desc: 'Curriculum tracker'             },
-  { label: 'Resources',  href: '/teacher/resources',  desc: 'Notes, quizzes, exercises'      },
-  { label: 'SchoolHub',  href: '/teacher/schoolhub',  desc: 'School info and staff'          },
-  { label: 'Results',    href: '/teacher/results',    desc: 'Student results'                },
-  { label: 'TPAD',       href: '/teacher/tpad',       desc: 'Teacher performance appraisal'  },
-  { label: 'Profile',    href: '/teacher/profile',    desc: 'Your profile'                   },
-  { label: 'Settings',   href: '/teacher/settings',   desc: 'App settings'                   },
-  { label: 'Help',       href: '/teacher/help',       desc: 'Help and support'               },
+  { label: 'ClassHub',     href: '/teacher',               desc: 'Your classes and students'      },
+  { label: 'SubjectHub',   href: '/teacher/subjecthub',    desc: 'Manage your subjects'            },
+  { label: 'Lesson Plans', href: '/teacher/lessonplan',    desc: 'Plan and generate lessons'       },
+  { label: 'Lesson Notes', href: '/teacher/lessonnotes',   desc: 'Record what was actually taught' },
+  { label: 'Timetable',    href: '/teacher/timetable',     desc: 'View your schedule'              },
+  { label: 'Attendance',   href: '/teacher/attendance',    desc: 'Mark and review attendance'      },
+  { label: 'Assessment',   href: '/teacher/assessment',    desc: 'CBC assessments'                 },
+  { label: 'Scheme',       href: '/teacher/scheme',        desc: 'Curriculum tracker'              },
+  { label: 'Resources',    href: '/teacher/resources',     desc: 'Notes, quizzes, exercises'       },
+  { label: 'SchoolHub',    href: '/teacher/schoolhub',     desc: 'School info and staff'           },
+  { label: 'Results',      href: '/teacher/results',       desc: 'Student results'                 },
+  { label: 'TPAD',         href: '/teacher/tpad',          desc: 'Teacher performance appraisal'   },
+  { label: 'Profile',      href: '/teacher/profile',       desc: 'Your profile'                    },
+  { label: 'Settings',     href: '/teacher/settings',      desc: 'App settings'                    },
+  { label: 'Help',         href: '/teacher/help',          desc: 'Help and support'                },
 ]
 
 export default function MorePage() {
