@@ -96,19 +96,19 @@ function MpesaModal({
       const balanceBefore = pre?.balance ?? 0;
       // Poll for 60 seconds waiting for callback to credit wallet
       let attempts = 0;
-      let cancelled = false;
+      const cancelled = { value: false };
       const poll = setInterval(async () => {
-        if (cancelled) { clearInterval(poll); return; }
+        if (cancelled.value) { clearInterval(poll); return; }
         attempts++;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { clearInterval(poll); return; }
         const { data: wallet } = await supabase.rpc("get_credit_balance", { p_teacher_id: user.id });
         if ((wallet?.balance ?? 0) > balanceBefore || attempts >= 12) {
           clearInterval(poll);
-          if (!cancelled) { setLoading(false); onSuccess(pkg.credits); }
+          if (!cancelled.value) { setLoading(false); onSuccess(pkg.credits); }
         }
       }, 5000);
-      // cleanup handled via cancelled flag above
+      // cancelled.value set to true on unmount if needed
     } catch (err) {
       setError("Network error. Try again.");
       setLoading(false);
