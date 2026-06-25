@@ -617,7 +617,7 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
         {/* VibeConnect — always visible, badge only when unread */}
         <div
           style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }}
-          onClick={() => router.push("/teacher/vibelearn")}
+          onClick={() => router.push("/teacher/vibeconnect")}
         >
           <svg
             width="22" height="22" viewBox="0 0 24 24"
@@ -721,18 +721,25 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     async function fetchProfile() {
       // Fast path — trust localStorage cache set at login
-      const cachedRole = localStorage.getItem('vs_role');
-      if (cachedRole && cachedRole !== 'teacher') {
-        localStorage.removeItem('vs_role');
-        window.location.href = "/?role=teacher";
-        return;
+      const _cached = localStorage.getItem('vs_role');
+      if (_cached) {
+        try {
+          const { role, t } = JSON.parse(_cached);
+          const TTL_MS = 30 * 60 * 1000; // 30 minutes
+          if (Date.now() - t > TTL_MS) {
+            localStorage.removeItem('vs_role');
+          } else if (role !== 'teacher') {
+            localStorage.removeItem('vs_role');
+            window.location.href = "/?role=teacher";
+            return;
+          }
+        } catch {
+          localStorage.removeItem('vs_role');
+        }
       }
 
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
       if (userErr || !user) { window.location.href = "/?role=teacher"; return; }
-      // Fetch credit balance
-      const { data: creditData } = await supabase.rpc("get_credit_balance", { p_teacher_id: user.id });
-      if (creditData?.success) setCreditBalance(creditData.balance);
 
       const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
@@ -744,7 +751,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         window.location.href = "/?role=teacher";
         return;
       }
-      localStorage.setItem('vs_role', 'teacher');
+      localStorage.setItem('vs_role', JSON.stringify({ role: 'teacher', t: Date.now() }));
       const name  = profileData.full_name ?? "";
       setFullName(name);
       const parts   = name.trim().split(" ").filter(Boolean);
@@ -793,6 +800,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       }
       setUnreadConnect(unread);
       setAuthReady(true);
+      // Credit balance is non-critical — fetch after portal is ready
+      supabase.rpc("get_credit_balance", { p_teacher_id: user.id })
+        .then(({ data: creditData }) => {
+          if (creditData?.success) setCreditBalance(creditData.balance)
+        })
+        .catch(() => {/* RPC may not exist yet — non-fatal */})
     }
     fetchProfile();
   }, []);

@@ -95,9 +95,9 @@ function GroupsInner() {
 
   async function createGroups(type: string, presets: typeof LEARNING_PRESETS) {
     setSaving(true)
-    for (const p of presets) {
-      await supabase.from('class_groups').insert({ class_id: classId, name: p.name, color: p.color, type })
-    }
+    await Promise.all(
+      presets.map(p => supabase.from('class_groups').insert({ class_id: classId, name: p.name, color: p.color, type }))
+    )
     await load()
     setSaving(false)
     setMsg('Groups created!')

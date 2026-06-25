@@ -59,46 +59,33 @@ interface Strand {
 // ─── Grade utility ────────────────────────────────────────────────────────────
 
 function getGrade(marks: number): string {
-  if (marks >= 80) return 'A'
-  if (marks >= 75) return 'A-'
-  if (marks >= 70) return 'B+'
-  if (marks >= 65) return 'B'
-  if (marks >= 60) return 'B-'
-  if (marks >= 55) return 'C+'
-  if (marks >= 50) return 'C'
-  if (marks >= 45) return 'C-'
-  if (marks >= 40) return 'D+'
-  if (marks >= 35) return 'D'
-  if (marks >= 30) return 'D-'
-  return 'E'
+  // CBC Kenya rubric
+  if (marks >= 80) return 'EE'  // Exceeds Expectation
+  if (marks >= 60) return 'ME'  // Meets Expectation
+  if (marks >= 40) return 'AE'  // Approaches Expectation
+  return 'BE'                   // Below Expectation
 }
 
 function gradePoints(grade: string): number {
-  const map: Record<string, number> = {
-    'A': 12, 'A-': 11, 'B+': 10, 'B': 9, 'B-': 8,
-    'C+': 7, 'C': 6, 'C-': 5, 'D+': 4, 'D': 3, 'D-': 2, 'E': 1,
-  }
+  const map: Record<string, number> = { 'EE': 4, 'ME': 3, 'AE': 2, 'BE': 1 }
   return map[grade] ?? 0
 }
 
 function meanGrade(grades: string[]): string {
   if (grades.length === 0) return '—'
   const avg = grades.reduce((a, g) => a + gradePoints(g), 0) / grades.length
-  if (avg >= 11.5) return 'A'
-  if (avg >= 10.5) return 'A-'
-  if (avg >= 9.5)  return 'B+'
-  if (avg >= 8.5)  return 'B'
-  if (avg >= 7.5)  return 'B-'
-  if (avg >= 6.5)  return 'C+'
-  if (avg >= 5.5)  return 'C'
-  if (avg >= 4.5)  return 'C-'
-  if (avg >= 3.5)  return 'D+'
-  if (avg >= 2.5)  return 'D'
-  if (avg >= 1.5)  return 'D-'
-  return 'E'
+  if (avg >= 3.5) return 'EE'
+  if (avg >= 2.5) return 'ME'
+  if (avg >= 1.5) return 'AE'
+  return 'BE'
 }
 
 function gradeColor(grade: string): { bg: string; color: string } {
+  if (grade === 'EE') return { bg: '#d1fae5', color: '#065f46' }
+  if (grade === 'ME') return { bg: '#dbeafe', color: '#1e40af' }
+  if (grade === 'AE') return { bg: '#fef3c7', color: '#92400e' }
+  if (grade === 'BE') return { bg: '#fee2e2', color: '#991b1b' }
+  // fallback
   if (grade === 'A')                          return { bg: '#d1fae5', color: '#065f46' }
   if (grade === 'A-' || grade === 'B+')       return { bg: '#dbeafe', color: '#1e40af' }
   if (['B','B-','C+'].includes(grade))        return { bg: '#fef3c7', color: '#92400e' }
@@ -223,15 +210,19 @@ function ReportCardInner() {
       .eq('student_id', studentId)
     setResults((resultsData ?? []) as Result[])
 
-    // All results for this exam + class (for position)
-    const { data: classResults } = await supabase
-      .from('exam_results')
-      .select('student_id, marks, is_absent, class_id')
-      .eq('exam_id', examId)
+    // All results for this exam scoped to same class as this student
+    const _myClass = (resultsData ?? []).length > 0
+      ? await supabase.from('exam_results').select('class_id').eq('exam_id', examId).eq('student_id', studentId).maybeSingle()
+      : { data: null }
+    const _cid = (_myClass.data as { class_id: string } | null)?.class_id ?? null
+    setClassId(_cid)
+
+    const { data: classResults } = _cid
+      ? await supabase.from('exam_results').select('student_id, marks, is_absent, class_id').eq('exam_id', examId).eq('class_id', _cid)
+      : { data: [] }
 
     if (classResults && classResults.length > 0) {
-      const cid = (classResults as { class_id: string }[]).find(r => r.class_id)?.class_id ?? null
-      setClassId(cid)
+      const cid = _cid
 
       // Group by student, sum marks
       const studentTotals: Record<string, number> = {}

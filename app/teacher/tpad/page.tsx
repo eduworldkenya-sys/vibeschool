@@ -72,7 +72,7 @@ function selfScore(appraisal: TpadAppraisal | null): number | null {
     appraisal.standard_4_self,
   ].filter((s): s is number => s !== null)
   if (scores.length === 0) return null
-  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 20)
+  return Math.round(scores.reduce((a, b) => a + b, 0))
 }
 
 function Skeleton({ h = 80 }: { h?: number }) {
@@ -123,7 +123,18 @@ export default function TPADDashboard() {
           return
         }
 
-        const sid = memberData?.school_id ?? null
+        let sid = memberData?.school_id ?? null
+
+        // Fallback: check profiles.school_id if not in school_members
+        if (!sid) {
+          const { data: profData } = await supabase
+            .from('profiles')
+            .select('school_id')
+            .eq('id', uid)
+            .single()
+          sid = profData?.school_id ?? null
+        }
+
         setSchoolId(sid)
 
         if (!sid) {

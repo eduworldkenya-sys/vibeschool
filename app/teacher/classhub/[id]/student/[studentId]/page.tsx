@@ -136,10 +136,11 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
     expiry.setDate(expiry.getDate() + 30)
     const expiresAt = expiry.toISOString()
 
-    await Promise.all([
-      supabase.from('student_claim_codes').insert({ student_id: student.id, code: studentCode, claimed: false, role: 'student', expires_at: expiresAt }),
-      supabase.from('student_claim_codes').insert({ student_id: student.id, code: parentCode,  claimed: false, role: 'parent',  expires_at: expiresAt }),
+    const { error: insertErr } = await supabase.from('student_claim_codes').insert([
+      { student_id: student.id, code: studentCode, claimed: false, role: 'student', expires_at: expiresAt },
+      { student_id: student.id, code: parentCode,  claimed: false, role: 'parent',  expires_at: expiresAt },
     ])
+    if (insertErr) { setGenning(false); return }
     setGenning(false)
     await onReload()
   }

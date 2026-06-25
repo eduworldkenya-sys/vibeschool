@@ -107,7 +107,7 @@ function LessonPlanInner() {
 
       const planMap = new Map<string, PlanRow>()
       for (const p of plansRes.data ?? []) {
-        planMap.set(p.class_id + ':' + p.day_of_week, {
+        planMap.set(p.class_id + ':' + p.subject_id + ':' + p.day_of_week, {
           id: p.id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '', topic: p.topic ?? '',
           dayOfWeek: p.day_of_week, weekStart: p.week_start,
@@ -133,7 +133,7 @@ function LessonPlanInner() {
           period: 0, status: 'scheduled', planStatus: 'green', attendanceMarked: false,
           class_id: s.class_id, subject_id: s.subject_id,
         }
-        return { slot, plan: planMap.get(s.class_id + ':' + s.day_of_week) ?? null }
+        return { slot, plan: planMap.get(s.class_id + ':' + s.subject_id + ':' + s.day_of_week) ?? null }
       })
 
       setItems(mapped)

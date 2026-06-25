@@ -149,9 +149,17 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         ? supabase.from('schools').select('name').eq('id', schoolId).single()
         : Promise.resolve({ data: null }),
       // G6: always select id explicitly — never assume id === auth id
-      supabase.from('students')
-        .select('id, name, id')
-        .eq('class_id', slot.class_id),
+      supabase.from('teacher_classes')
+        .select('class_id')
+        .eq('teacher_id', userId)
+        .eq('class_id', slot.class_id)
+        .maybeSingle()
+        .then(async ({ data: owned }) => {
+          if (!owned) return { data: [] }
+          return supabase.from('students')
+            .select('id, name')
+            .eq('class_id', slot.class_id)
+        }),
       supabase.from('lesson_plans')
         .select('topic')
         .eq('teacher_id', userId)

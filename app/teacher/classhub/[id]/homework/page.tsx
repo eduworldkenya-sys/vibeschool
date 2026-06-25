@@ -47,7 +47,31 @@ function HomeworkInner() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setLoading(false); return }
+
+    // Ownership check: teacher must own this class via teacher_classes or direct teacher_id
+    const { data: owned } = await supabase
+      .from('teacher_classes')
+      .select('class_id')
+      .eq('teacher_id', user.id)
+      .eq('class_id', classId)
+      .maybeSingle()
+
+    if (!owned) {
+      // Fallback: check classes.teacher_id
+      const { data: direct } = await supabase
+        .from('classes')
+        .select('id')
+        .eq('id', classId)
+        .eq('teacher_id', user.id)
+        .maybeSingle()
+
+      if (!direct) {
+        setLoading(false)
+        router.replace('/teacher/classhub')
+        return
+      }
+    }
 
     const [hwRes, clsRes, grpRes, subjRes] = await Promise.all([
       supabase.from('homework').select('*').eq('class_id', classId).order('created_at', { ascending: false }),
@@ -100,7 +124,6 @@ function HomeworkInner() {
   }
 
   function isOverdue(due: string) {
-    // Compare date strings only — avoids UTC/EAT timezone drift
     const todayNairobi = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })
     ).toISOString().split('T')[0]

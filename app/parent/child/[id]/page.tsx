@@ -158,6 +158,7 @@ export default function ChildDetailPage() {
   const [todayRows,         setTodayRows]         = useState<AttendanceRow[]>([]);
   const [termPct,           setTermPct]           = useState<number | null>(null);
   const [showEncouragement, setShowEncouragement] = useState(false);
+  const [subjectMastery, setSubjectMastery] = useState<{subject: string; mastered: number; assessed: number; total: number; weakStrand: string | null}[]>([]);
   const [toast,             setToast]             = useState("");
 
   const showToast = useCallback((msg: string) => {
@@ -217,6 +218,45 @@ export default function ChildDetailPage() {
     const total   = allAtt?.length ?? 0;
     const present = allAtt?.filter(r => r.status === "present").length ?? 0;
     setTermPct(total > 0 ? Math.round((present / total) * 100) : null);
+
+    // Session 8 — load subject mastery for this child
+    const { data: outcomeRows } = await supabase
+      .from('learner_outcomes')
+      .select('subject_id, strand, status')
+      .eq('student_id', id)
+
+    if (outcomeRows && outcomeRows.length > 0) {
+      const subjectIds = Array.from(new Set(outcomeRows.map((r: {subject_id: string}) => r.subject_id).filter(Boolean))) as string[]
+      const { data: subjectRows } = await supabase
+        .from('subjects')
+        .select('id, name')
+        .in('id', subjectIds)
+      const subjectMap: Record<string, string> = Object.fromEntries((subjectRows ?? []).map((s: {id: string; name: string}) => [s.id, s.name]))
+
+      const grouped: Record<string, {mastered: number; assessed: number; total: number; strands: Record<string, number>}> = {}
+      for (const row of outcomeRows as {subject_id: string; strand: string; status: string}[]) {
+        if (!row.subject_id) continue
+        const key = row.subject_id
+        if (!grouped[key]) grouped[key] = { mastered: 0, assessed: 0, total: 0, strands: {} }
+        grouped[key].total++
+        if (row.status === 'mastered') grouped[key].mastered++
+        if (['mastered','assessed'].includes(row.status)) grouped[key].assessed++
+        if (row.strand) grouped[key].strands[row.strand] = (grouped[key].strands[row.strand] ?? 0) + 1
+      }
+
+      const masteryList = Object.entries(grouped).map(([subjectId, data]) => {
+        const weakStrand = Object.entries(data.strands).sort((a,b) => a[1]-b[1])[0]?.[0] ?? null
+        return {
+          subject:    subjectMap[subjectId] ?? 'Subject',
+          mastered:   data.mastered,
+          assessed:   data.assessed,
+          total:      data.total,
+          weakStrand,
+        }
+      }).filter(s => s.total > 0)
+
+      setSubjectMastery(masteryList)
+    }
 
     setLoading(false);
   }, [id, router]);
@@ -406,6 +446,35 @@ export default function ChildDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* ── SUBJECT MASTERY SNAPSHOT ── */}
+        {subjectMastery.length > 0 && (
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: "16px", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            <p style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 800, color: dark }}>📚 {first}&apos;s Learning</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {subjectMastery.map(s => {
+                const masteryPct = s.total > 0 ? Math.round((s.mastered / s.total) * 100) : 0
+                const color = masteryPct >= 70 ? accent : masteryPct >= 40 ? amber : red
+                return (
+                  <div key={s.subject}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: dark }}>{s.subject}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color }}>{masteryPct}% mastered</span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 6, background: "#f3f4f6", overflow: "hidden", marginBottom: 4 }}>
+                      <div style={{ height: "100%", width: `${masteryPct}%`, background: color, borderRadius: 6, transition: "width 0.5s ease" }} />
+                    </div>
+                    {s.weakStrand && masteryPct < 70 && (
+                      <div style={{ fontSize: 11, color: "#92400e", fontWeight: 600 }}>
+                        ⚠️ Needs support in {s.weakStrand}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── CHILD HUB ── */}
         <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: "16px", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>

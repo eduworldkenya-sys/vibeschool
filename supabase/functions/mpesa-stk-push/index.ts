@@ -3,18 +3,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const CONSUMER_KEY    = Deno.env.get("MPESA_CONSUMER_KEY") ?? ""
 const CONSUMER_SECRET = Deno.env.get("MPESA_CONSUMER_SECRET") ?? ""
-const SHORTCODE       = Deno.env.get("MPESA_SHORTCODE") ?? "174379"
-const PASSKEY         = Deno.env.get("MPESA_PASSKEY") ?? "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
+const SHORTCODE       = Deno.env.get("MPESA_SHORTCODE") ?? ""
+const PASSKEY         = Deno.env.get("MPESA_PASSKEY") ?? ""
 const MPESA_ENV       = Deno.env.get("MPESA_ENV") ?? "sandbox"
 const SUPABASE_URL    = Deno.env.get("SUPABASE_URL") ?? ""
 const SUPABASE_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+const APP_ORIGIN      = Deno.env.get("APP_ORIGIN") ?? "https://vibeschool.vercel.app"
+
+if (!SHORTCODE || !PASSKEY) {
+  console.error("[mpesa-stk-push] CRITICAL: MPESA_SHORTCODE or MPESA_PASSKEY env vars not set")
+}
 
 const BASE_URL = MPESA_ENV === "production"
   ? "https://api.safaricom.co.ke"
   : "https://sandbox.safaricom.co.ke"
 
 const CORS = {
-  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Origin":  APP_ORIGIN,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
@@ -28,11 +33,13 @@ function timestamp() {
   return new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14)
 }
 
-function formatPhone(raw: string): string {
+function formatPhone(raw: string): string | null {
   const cleaned = raw.replace(/\s/g, "")
-  if (cleaned.startsWith("+254")) return cleaned.slice(1)
-  if (cleaned.startsWith("07") || cleaned.startsWith("01")) return "254" + cleaned.slice(1)
-  return cleaned
+  // Only accept Safaricom Kenya numbers: 07XXXXXXXX or +2547XXXXXXXX or 2547XXXXXXXX
+  if (/^\+2547\d{8}$/.test(cleaned)) return cleaned.slice(1)
+  if (/^07\d{8}$/.test(cleaned))     return "254" + cleaned.slice(1)
+  if (/^2547\d{8}$/.test(cleaned))   return cleaned
+  return null
 }
 
 async function getToken(): Promise<string> {
@@ -48,6 +55,10 @@ async function getToken(): Promise<string> {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
+  if (!SHORTCODE || !PASSKEY) {
+    return json({ error: "Payment service misconfigured. Contact support." }, 503)
+  }
+
   // Auth
   const authHeader = req.headers.get("authorization") ?? ""
   const token = authHeader.replace("Bearer ", "").trim()
@@ -61,6 +72,11 @@ serve(async (req) => {
     const { phone, package_id } = await req.json()
     if (!phone || !package_id) return json({ error: "Missing phone or package_id" }, 400)
 
+    const msisdn = formatPhone(phone)
+    if (!msisdn) {
+      return json({ error: "Invalid phone number. Please enter a Safaricom number (07XXXXXXXX)." }, 400)
+    }
+
     // Get package details
     const { data: pkg, error: pkgErr } = await adminClient
       .from("vibe_credit_packages")
@@ -72,7 +88,6 @@ serve(async (req) => {
 
     const ts       = timestamp()
     const password = btoa(SHORTCODE + PASSKEY + ts)
-    const msisdn   = formatPhone(phone)
 
     // Callback URL — Supabase Edge Function
     const callbackUrl = SUPABASE_URL + "/functions/v1/mpesa-callback"
@@ -113,15 +128,15 @@ serve(async (req) => {
       type:          "purchase",
       feature:       "mpesa",
       amount:        pkg.credits,
-      balance_after: 0, // will be updated by callback
+      balance_after: 0,
       notes:         "PENDING — " + pkg.name,
       mpesa_ref:     stkData.CheckoutRequestID,
     })
 
     return json({
-      success:            true,
+      success:             true,
       checkout_request_id: stkData.CheckoutRequestID,
-      message:            "STK push sent. Enter your M-Pesa PIN.",
+      message:             "STK push sent. Enter your M-Pesa PIN.",
     })
 
   } catch (err) {

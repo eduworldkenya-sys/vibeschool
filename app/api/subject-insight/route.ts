@@ -13,54 +13,51 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { subjectName, lCount, aCount, atCount, rCount, strands, weakStrand, avgPerfPct } = await req.json()
+    const { subjectName, lCount, aCount, atCount, rCount, strands, weakStrand, avgPerfPct, coveragePct, masteredPct } = await req.json()
     if (!subjectName) return NextResponse.json({ error: 'Missing subjectName' }, { status: 400 })
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return NextResponse.json({ fact: null, suggestion: null })
 
-    const strandContext = strands && strands.length > 0
-      ? `The subject has these curriculum strands: ${strands.join(', ')}.`
-      : ''
-    const weakContext = weakStrand
-      ? `The weakest strand is ${weakStrand.name} at ${weakStrand.pct}% performance.`
-      : ''
-    const perfContext = avgPerfPct !== null && avgPerfPct !== undefined
-      ? `Overall learner performance average is ${avgPerfPct}%.`
+    const strandContext  = strands?.length > 0 ? `Curriculum strands: ${strands.join(', ')}.` : ''
+    const weakContext    = weakStrand ? `Weakest strand: ${weakStrand.name} at ${weakStrand.pct}%.` : ''
+    const perfContext    = avgPerfPct != null ? `Assessment average: ${avgPerfPct}%.` : ''
+    const masteryGap     = coveragePct != null && masteredPct != null && coveragePct - masteredPct > 30
+      ? `ALERT: Coverage is ${coveragePct}% but mastery is only ${masteredPct}% — learners are being taught content they are not understanding.`
       : ''
 
-    const coachingContext = `A teacher teaches ${subjectName} in a Kenyan CBC school. They have created ${lCount} lesson plans, assessed ${aCount} students, marked attendance ${atCount} times, and published ${rCount} resources this term. ${strandContext} ${weakContext} ${perfContext}`
+    const prompt = `You are a professional CBC teaching coach in Kenya. A teacher teaches ${subjectName}.
+Stats this term: ${lCount} lesson plans, ${aCount} assessments, ${atCount} attendance records, ${rCount} resources.
+${strandContext} ${weakContext} ${perfContext} ${masteryGap}
 
-    const [factRes, suggRes] = await Promise.all([
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 200,
-          messages: [{ role: 'user', content: `Give me one powerful, surprising, globally relevant fact about ${subjectName} that would make a Kenyan CBC teacher feel proud and inspired to teach it. Maximum 2 sentences. No preamble. Just the fact.` }],
-        }),
+Respond ONLY with valid JSON in this exact format, no preamble, no markdown:
+{"fact":"one surprising fact about ${subjectName} that makes a teacher proud to teach it. Max 2 sentences.","suggestion":"one specific actionable intervention for this teacher based on the data above. If there is a mastery gap or weak strand, address it directly. Max 2 sentences.","interventionType":"reteach|enrich|assess"}`
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 400,
+        messages: [{ role: 'user', content: prompt }],
       }),
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 200,
-          messages: [{ role: 'user', content: `You are a professional CBC teaching coach in Kenya. ${coachingContext} Give ONE specific, actionable, encouraging intervention suggestion based on the curriculum data above. If there is a weak strand, address it directly. Maximum 2 sentences. No preamble.` }],
-        }),
-      }),
-    ])
-
-    const factData = await factRes.json()
-    const suggData = await suggRes.json()
-
-    return NextResponse.json({
-      fact:       factData.content?.[0]?.text ?? null,
-      suggestion: suggData.content?.[0]?.text ?? null,
     })
+
+    const data = await res.json()
+    const text = data.content?.[0]?.text ?? ''
+
+    try {
+      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
+      return NextResponse.json({
+        fact:             parsed.fact ?? null,
+        suggestion:       parsed.suggestion ?? null,
+        interventionType: parsed.interventionType ?? null,
+      })
+    } catch {
+      return NextResponse.json({ fact: null, suggestion: text || null, interventionType: null })
+    }
   } catch (err) {
     console.error('subject-insight error:', err)
-    return NextResponse.json({ fact: null, suggestion: null })
+    return NextResponse.json({ fact: null, suggestion: null, interventionType: null })
   }
 }
