@@ -107,6 +107,9 @@ export default function SubjectHubPage() {
   // Task 2A — attendance rate per class for this subject this term
   const [attRateByClass,   setAttRateByClass]   = useState<Record<string, number>>({})
   const [outcomesByStrand, setOutcomesByStrand] = useState<{strand: string; count: number}[]>([])
+  const [coveragePct,    setCoveragePct]    = useState<number | null>(null)
+  const [assessedPct,    setAssessedPct]    = useState<number | null>(null)
+  const [masteredPct,    setMasteredPct]    = useState<number | null>(null)
 
   useEffect(() => { init() }, [])
 
@@ -471,6 +474,25 @@ export default function SubjectHubPage() {
       setOutcomesByStrand([])
     }
 
+    // Three numbers — Coverage / Assessed / Mastered
+    const { data: masteryRows } = await supabase
+      .from('learner_outcomes')
+      .select('status')
+      .eq('subject_id', subjectId)
+    if (masteryRows && masteryRows.length > 0) {
+      const total = masteryRows.length
+      const covered  = masteryRows.filter(r => ['assessed','mastered'].includes(r.status ?? '')).length
+      const assessed = masteryRows.filter(r => ['assessed','mastered'].includes(r.status ?? '')).length
+      const mastered = masteryRows.filter(r => r.status === 'mastered').length
+      setCoveragePct(Math.round((covered  / total) * 100))
+      setAssessedPct(Math.round((assessed / total) * 100))
+      setMasteredPct(Math.round((mastered / total) * 100))
+    } else {
+      setCoveragePct(null)
+      setAssessedPct(null)
+      setMasteredPct(null)
+    }
+
     setSuggLoading(false)
   }
 
@@ -729,18 +751,32 @@ export default function SubjectHubPage() {
             </div>
           )}
 
-          {avgPerfPct !== null ? (
+          {/* Three numbers — Coverage / Assessed / Mastered */}
+          {[
+            { label: 'Coverage',  pct: coveragePct,  color: '#075985', hint: 'Outcomes taught' },
+            { label: 'Assessed',  pct: assessedPct,  color: '#6d28d9', hint: 'Outcomes tested' },
+            { label: 'Mastered',  pct: masteredPct,  color: '#065f46', hint: 'Outcomes understood' },
+          ].map(({ label, pct, color, hint }) => (
+            <div key={label} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600 }}>{label} <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400 }}>— {hint}</span></span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: pct !== null ? barColor(pct) : '#9ca3af' }}>{pct !== null ? `${pct}%` : '—'}</span>
+              </div>
+              <div style={{ width: '100%', height: 6, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden' }}>
+                <div style={{ width: `${pct ?? 0}%`, height: '100%', borderRadius: 6, background: color, transition: 'width 0.4s ease' }} />
+              </div>
+            </div>
+          ))}
+          {avgPerfPct !== null && (
             <div style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Avg Perf</span>
+                <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600 }}>Avg Perf <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400 }}>— Assessment scores</span></span>
                 <span style={{ fontSize: 11, fontWeight: 800, color: barColor(avgPerfPct) }}>{avgPerfPct}%</span>
               </div>
-              <div style={{ width: '100%', height: 6, borderRadius: 6, background: C.surface, overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: 6, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden' }}>
                 <div style={{ width: `${avgPerfPct}%`, height: '100%', borderRadius: 6, background: barColor(avgPerfPct), transition: 'width 0.4s ease' }} />
               </div>
             </div>
-          ) : (
-            <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>Avg Perf — No data yet</div>
           )}
 
           {weakStrand && (
