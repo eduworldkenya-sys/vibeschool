@@ -106,6 +106,7 @@ export default function SubjectHubPage() {
   const [removeConfirmId,  setRemoveConfirmId]  = useState<string | null>(null)
   // Task 2A — attendance rate per class for this subject this term
   const [attRateByClass,   setAttRateByClass]   = useState<Record<string, number>>({})
+  const [outcomesByStrand, setOutcomesByStrand] = useState<{strand: string; count: number}[]>([])
 
   useEffect(() => { init() }, [])
 
@@ -432,7 +433,7 @@ export default function SubjectHubPage() {
         const insightRes = await fetch('/api/subject-insight', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subjectName, lCount, aCount, atCount, rCount }),
+          body: JSON.stringify({ subjectName, subjectId, lCount, aCount, atCount, rCount, strands: outcomesByStrand.map(o => o.strand), weakStrand, avgPerfPct }),
         })
         if (insightRes.ok) {
           const { fact, suggestion } = await insightRes.json()
@@ -449,6 +450,25 @@ export default function SubjectHubPage() {
     } else {
       setDailyFact(null)
       setAiSuggestion(null)
+    }
+
+    // Priority 3 — load learner_outcomes for this subject
+    const { data: outcomeRows } = await supabase
+      .from('learner_outcomes')
+      .select('strand')
+      .eq('subject_id', subjectId)
+    if (outcomeRows && outcomeRows.length > 0) {
+      const strandMap: Record<string, number> = {}
+      for (const row of outcomeRows) {
+        if (!row.strand) continue
+        strandMap[row.strand] = (strandMap[row.strand] ?? 0) + 1
+      }
+      const sorted = Object.entries(strandMap)
+        .map(([strand, count]) => ({ strand, count }))
+        .sort((a, b) => b.count - a.count)
+      setOutcomesByStrand(sorted)
+    } else {
+      setOutcomesByStrand([])
     }
 
     setSuggLoading(false)
@@ -731,6 +751,38 @@ export default function SubjectHubPage() {
           <div style={{ display: 'flex', gap: 16 }}>
             <span style={{ fontSize: 11, color: C.textMuted }}>📖 {lessonCount} lesson{lessonCount !== 1 ? 's' : ''} this term</span>
             <span style={{ fontSize: 11, color: C.textMuted }}>📊 {assessCount} assessment{assessCount !== 1 ? 's' : ''} this term</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── CURRICULUM OUTCOMES CARD ── */}
+      {!loading && activeSubject && outcomesByStrand.length > 0 && (
+        <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase' }}>Curriculum Outcomes</span>
+            <span style={{ fontSize: 10, fontWeight: 700, background: '#d1fae5', color: '#065f46', borderRadius: 20, padding: '3px 9px' }}>
+              {outcomesByStrand.reduce((s, o) => s + o.count, 0)} total
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {outcomesByStrand.map(o => {
+              const total = outcomesByStrand.reduce((s, x) => s + x.count, 0)
+              const pct = Math.round((o.count / total) * 100)
+              return (
+                <div key={o.strand}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{o.strand}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#065f46' }}>{o.count} outcome{o.count !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div style={{ width: '100%', height: 5, borderRadius: 5, background: '#f3f4f6', overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', borderRadius: 5, background: 'linear-gradient(90deg, #065f46 0%, #10b981 100%)', transition: 'width 0.4s ease' }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ marginTop: 10, fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
+            CBC Grade 6 Mathematics outcomes loaded. Mastery tracking coming soon.
           </div>
         </div>
       )}
