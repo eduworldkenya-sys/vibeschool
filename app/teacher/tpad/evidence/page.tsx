@@ -21,6 +21,10 @@ const STANDARDS = [
   { num: 2, title: 'Learning Environment',              icon: '🏫' },
   { num: 3, title: 'Teacher Professionalism',           icon: '🎯' },
   { num: 4, title: 'Learner Outcomes',                  icon: '📊' },
+  { num: 5, title: 'Extra-Curricular Activities',       icon: '🏅' },
+  { num: 6, title: 'Professional Development',          icon: '📈' },
+  { num: 7, title: 'Community Involvement',             icon: '🤝' },
+  { num: 8, title: 'Innovative Teaching',               icon: '💡' },
 ]
 
 const SOURCES = [

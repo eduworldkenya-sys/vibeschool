@@ -41,6 +41,10 @@ const STANDARDS = [
   { num: 2, title: 'Learning Environment',              icon: '🏫', desc: 'Classroom management, student welfare' },
   { num: 3, title: 'Teacher Professionalism',           icon: '🎯', desc: 'Punctuality, conduct, CPD attendance' },
   { num: 4, title: 'Learner Outcomes',                  icon: '📊', desc: 'Student results, assessment records' },
+  { num: 5, title: 'Extra-Curricular Activities',       icon: '🏅', desc: 'Clubs, sports, competitions, co-curriculum' },
+  { num: 6, title: 'Professional Development',          icon: '📈', desc: 'CPD, training, further studies' },
+  { num: 7, title: 'Community Involvement',             icon: '🤝', desc: 'School-community engagement and outreach' },
+  { num: 8, title: 'Innovative Teaching',               icon: '💡', desc: 'ICT integration, creative pedagogy' },
 ]
 
 function daysUntil(dateStr: string): number {

@@ -145,7 +145,8 @@ function AttendanceInner() {
           .from('attendance')
           .select('timetable_slot_id')
           .in('timetable_slot_id', slotIds)
-          .eq('date', selectedDate)
+          .gte('timestamp', selectedDate + 'T00:00:00')
+          .lte('timestamp', selectedDate + 'T23:59:59')
         markedSet = new Set((attRows ?? []).map((r: any) => r.timetable_slot_id))
       }
 

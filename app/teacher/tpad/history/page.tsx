@@ -11,6 +11,10 @@ interface HistoryEntry {
   standard_2_self: number | null
   standard_3_self: number | null
   standard_4_self: number | null
+  standard_5_self: number | null
+  standard_6_self: number | null
+  standard_7_self: number | null
+  standard_8_self: number | null
   standard_1_head: number | null
   standard_2_head: number | null
   standard_3_head: number | null
@@ -21,7 +25,7 @@ interface HistoryEntry {
 }
 
 function selfAvg(entry: HistoryEntry): number | null {
-  const scores = [entry.standard_1_self, entry.standard_2_self, entry.standard_3_self, entry.standard_4_self].filter((s): s is number => s !== null)
+  const scores = [entry.standard_1_self, entry.standard_2_self, entry.standard_3_self, entry.standard_4_self, entry.standard_5_self, entry.standard_6_self, entry.standard_7_self, entry.standard_8_self].filter((s): s is number => s !== null)
   if (scores.length === 0) return null
   return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 20)
 }
