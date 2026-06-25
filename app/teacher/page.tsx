@@ -508,7 +508,7 @@ export default function TeacherDashboard() {
         supabase.from('classes').select('*').in('id', classIds),
         supabase.from('students').select('class_id,id').in('class_id', classIds),
         supabase.from('attendance').select('class_id,status').in('class_id', classIds).gte('timestamp', today + 'T00:00:00').lte('timestamp', today + 'T23:59:59'),
-        supabase.from('homework').select('class_id,status').in('class_id', classIds).eq('status', 'pending').eq('school_id', schoolId),
+        Promise.resolve({ data: [] }), // homework table not yet created
         supabase.from('cbc_assessments').select('class_id,performance').in('class_id', classIds),
       ])
 
