@@ -69,7 +69,7 @@ function MpesaModal({
 
   async function handlePay() {
     const cleaned = phone.replace(/\s/g, "");
-    if (!/^(07|01|\+254)\d{8,9}$/.test(cleaned)) {
+    if (!/^(07[0-9]{8}|\+2547[0-9]{8}|2547[0-9]{8})$/.test(cleaned)) {
       setError("Enter a valid Safaricom number e.g. 0712345678");
       return;
     }
@@ -89,19 +89,26 @@ function MpesaModal({
         setLoading(false);
         return;
       }
+      // Snapshot balance before so poll detects a real increase
+      const { data: { user: preUser } } = await supabase.auth.getUser();
+      if (!preUser) { setError("Session expired."); setLoading(false); return; }
+      const { data: pre } = await supabase.rpc("get_credit_balance", { p_teacher_id: preUser.id });
+      const balanceBefore = pre?.balance ?? 0;
       // Poll for 60 seconds waiting for callback to credit wallet
       let attempts = 0;
+      let cancelled = false;
       const poll = setInterval(async () => {
+        if (cancelled) { clearInterval(poll); return; }
         attempts++;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { clearInterval(poll); return; }
         const { data: wallet } = await supabase.rpc("get_credit_balance", { p_teacher_id: user.id });
-        if (wallet?.total_earned > 0 || attempts >= 12) {
+        if ((wallet?.balance ?? 0) > balanceBefore || attempts >= 12) {
           clearInterval(poll);
-          setLoading(false);
-          onSuccess(pkg.credits);
+          if (!cancelled) { setLoading(false); onSuccess(pkg.credits); }
         }
       }, 5000);
+      return () => { cancelled = true; clearInterval(poll); };
     } catch (err) {
       setError("Network error. Try again.");
       setLoading(false);
@@ -245,6 +252,9 @@ export default function CreditsPage() {
         Top Up Credits
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
+        {packages.length === 0 && (
+          <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", padding: "20px 0" }}>No packages available right now.</p>
+        )}
         {packages.map(pkg => (
           <div
             key={pkg.id}
