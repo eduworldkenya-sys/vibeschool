@@ -9,6 +9,7 @@ const MPESA_ENV       = Deno.env.get("MPESA_ENV") ?? "sandbox"
 const SUPABASE_URL    = Deno.env.get("SUPABASE_URL") ?? ""
 const SUPABASE_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 const APP_ORIGIN      = Deno.env.get("APP_ORIGIN") ?? "https://vibeschool.vercel.app"
+const CALLBACK_SECRET   = Deno.env.get("MPESA_CALLBACK_SECRET") ?? ""
 
 if (!SHORTCODE || !PASSKEY) {
   console.error("[mpesa-stk-push] CRITICAL: MPESA_SHORTCODE or MPESA_PASSKEY env vars not set")
@@ -89,8 +90,8 @@ serve(async (req) => {
     const ts       = timestamp()
     const password = btoa(SHORTCODE + PASSKEY + ts)
 
-    // Callback URL — Supabase Edge Function
-    const callbackUrl = SUPABASE_URL + "/functions/v1/mpesa-callback"
+    // Callback URL — Supabase Edge Function (secret prevents spoofed callbacks)
+    const callbackUrl = SUPABASE_URL + "/functions/v1/mpesa-callback?secret=" + CALLBACK_SECRET
 
     const mpesaToken = await getToken()
 
