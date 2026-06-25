@@ -103,7 +103,7 @@ export default function LessonNotesPage() {
         noteList.filter(n => n.lesson_plan_id).map(n => n.lesson_plan_id as string)
       ))
 
-      let planMap: Record<string, { title: string; topic: string }> = {}
+      const planMap: Record<string, { title: string; topic: string }> = {}
       if (planIds.length > 0) {
         const { data: planRows } = await supabase
           .from('lesson_plans')
