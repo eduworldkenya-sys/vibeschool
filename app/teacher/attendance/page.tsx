@@ -249,6 +249,7 @@ function AttendanceInner() {
       class_id:   isLesson ? activeSlot!.classId : activeClassId!,
       teacher_id: uid,
       school_id:  classSchoolId,
+      date:      selectedDate,
       timestamp:  selectedDate + 'T00:00:00',
       status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
       is_late:    statuses[s.id] === 'late',
