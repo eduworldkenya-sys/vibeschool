@@ -77,6 +77,8 @@ export default function LessonNotesPage() {
   const [participation, setParticipation] = useState<number>(3)
   const [challenges,    setChallenges]    = useState<string>('')
   const [homework,      setHomework]      = useState<string>('')
+  const [strandOptions, setStrandOptions] = useState<string[]>([])
+  const [selectedStrand, setSelectedStrand] = useState<string>('')
 
   useEffect(() => { init() }, [])
 
@@ -136,6 +138,8 @@ export default function LessonNotesPage() {
     setParticipation(3)
     setChallenges('')
     setHomework('')
+    setSelectedStrand('')
+    setStrandOptions([])
     setError(null)
     if (!teacherId) return
     setPlansLoading(true)
@@ -155,6 +159,20 @@ export default function LessonNotesPage() {
       term: p.term,
     })))
     setPlansLoading(false)
+  }
+
+  async function loadStrandsForSubject(subjectId: string) {
+    if (!subjectId) { setStrandOptions([]); return }
+    const { data } = await supabase
+      .from('learner_outcomes')
+      .select('strand')
+      .eq('subject_id', subjectId)
+    if (data && data.length > 0) {
+      const unique = Array.from(new Set(data.map((r: { strand: string }) => r.strand).filter(Boolean)))
+      setStrandOptions(unique as string[])
+    } else {
+      setStrandOptions([])
+    }
   }
 
   async function saveNote() {
@@ -177,6 +195,18 @@ export default function LessonNotesPage() {
     const { error: insertErr } = await supabase.from('lesson_notes').insert(payload)
     setSaving(false)
     if (insertErr) { setError(insertErr.message); return }
+
+    // Session 6 — mark outcomes as covered for this strand
+    const subjectId = linkedPlan?.subject_id ?? null
+    if (subjectId && selectedStrand) {
+      await supabase
+        .from('learner_outcomes')
+        .update({ status: 'assessed' })
+        .eq('subject_id', subjectId)
+        .eq('strand', selectedStrand)
+        .eq('status', 'not_started')
+    }
+
     setView('list')
     init()
   }
@@ -239,12 +269,22 @@ export default function LessonNotesPage() {
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:11, fontWeight:800, color:'#6b7280', letterSpacing:1.2, textTransform:'uppercase', marginBottom:6 }}>Link to Lesson Plan <span style={{ fontWeight:400 }}>(optional)</span></div>
             {plansLoading ? <Skeleton h={44}/> : (
-              <select value={selectedPlan} onChange={e=>setSelectedPlan(e.target.value)} style={{ width:'100%', boxSizing:'border-box', padding:'11px 14px', borderRadius:10, border:'1px solid #e5e7eb', fontSize:14, fontFamily:'inherit', background:'#fff', color:'#111827' }}>
+              <select value={selectedPlan} onChange={e=>{ setSelectedPlan(e.target.value); const p = plans.find(x=>x.id===e.target.value); if(p?.subject_id) loadStrandsForSubject(p.subject_id); else setStrandOptions([]) }} style={{ width:'100%', boxSizing:'border-box', padding:'11px 14px', borderRadius:10, border:'1px solid #e5e7eb', fontSize:14, fontFamily:'inherit', background:'#fff', color:'#111827' }}>
                 <option value="">— No linked plan —</option>
                 {plans.map(p=><option key={p.id} value={p.id}>{p.topic?`${p.topic} — `:''}{p.title}{p.taught_date_hint?` (${p.taught_date_hint})`:''}</option>)}
               </select>
             )}
           </div>
+          {strandOptions.length > 0 && (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:'#6b7280', letterSpacing:1.2, textTransform:'uppercase', marginBottom:6 }}>Strand Covered <span style={{ fontWeight:400 }}>(optional)</span></div>
+              <select value={selectedStrand} onChange={e => setSelectedStrand(e.target.value)} style={{ width:'100%', boxSizing:'border-box', padding:'11px 14px', borderRadius:10, border:'1px solid #e5e7eb', fontSize:14, fontFamily:'inherit', background:'#fff', color:'#111827' }}>
+                <option value="">— Select strand covered —</option>
+                {strandOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:11, fontWeight:800, color:'#6b7280', letterSpacing:1.2, textTransform:'uppercase', marginBottom:6 }}>Date Taught</div>
             <input type="date" value={taughtDate} onChange={e=>setTaughtDate(e.target.value)} style={{ width:'100%', boxSizing:'border-box', padding:'11px 14px', borderRadius:10, border:'1px solid #e5e7eb', fontSize:14, fontFamily:'inherit', background:'#fff', color:'#111827' }}/>
