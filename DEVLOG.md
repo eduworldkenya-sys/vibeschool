@@ -253,3 +253,7 @@
 ## [2026-06-25 09:07] abd5b56
 **What:** fix: strands now load from curriculum table in assessment, subjecthub, gradebook; remove all alert() calls; deprecate generate-scheme route; expand CBC grades list
 **Status:** ✅ pushed
+
+## [2026-06-25 09:08] bafeb5e
+**What:** chore: remove fix scripts from repo
+**Status:** ✅ pushed
