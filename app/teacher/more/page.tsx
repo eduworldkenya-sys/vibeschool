@@ -5,21 +5,23 @@ import { useRouter } from 'next/navigation'
 import { C } from '@/components/teacher/ui'
 
 const ITEMS = [
-  { label: 'ClassHub',     href: '/teacher',               desc: 'Your classes and students'      },
-  { label: 'SubjectHub',   href: '/teacher/subjecthub',    desc: 'Manage your subjects'            },
-  { label: 'Lesson Plans', href: '/teacher/lessonplan',    desc: 'Plan and generate lessons'       },
-  { label: 'Lesson Notes', href: '/teacher/lessonnotes',   desc: 'Record what was actually taught' },
-  { label: 'Timetable',    href: '/teacher/timetable',     desc: 'View your schedule'              },
-  { label: 'Attendance',   href: '/teacher/attendance',    desc: 'Mark and review attendance'      },
-  { label: 'Assessment',   href: '/teacher/assessment',    desc: 'CBC assessments'                 },
-  { label: 'Scheme',       href: '/teacher/scheme',        desc: 'Curriculum tracker'              },
-  { label: 'Resources',    href: '/teacher/resources',     desc: 'Notes, quizzes, exercises'       },
-  { label: 'SchoolHub',    href: '/teacher/schoolhub',     desc: 'School info and staff'           },
-  { label: 'Results',      href: '/teacher/results',       desc: 'Student results'                 },
-  { label: 'TPAD',         href: '/teacher/tpad',          desc: 'Teacher performance appraisal'   },
-  { label: 'Profile',      href: '/teacher/profile',       desc: 'Your profile'                    },
-  { label: 'Settings',     href: '/teacher/settings',      desc: 'App settings'                    },
-  { label: 'Help',         href: '/teacher/help',          desc: 'Help and support'                },
+  { label: 'Home',         href: '/teacher',                      desc: 'Dashboard — your day at a glance'  },
+  { label: 'SubjectHub',   href: '/teacher/subjecthub',           desc: 'Manage your subjects'              },
+  { label: 'Lesson Plans', href: '/teacher/lessonplan',           desc: 'Plan and generate lessons'         },
+  { label: 'Lesson Notes', href: '/teacher/lessonnotes',          desc: 'Record what was actually taught'   },
+  { label: 'Scheme',       href: '/teacher/scheme',               desc: 'Curriculum tracker'                },
+  { label: 'Timetable',    href: '/teacher/timetable',            desc: 'View your schedule'                },
+  { label: 'Attendance',   href: '/teacher/attendance',           desc: 'Mark and review attendance'        },
+  { label: 'Assessment',   href: '/teacher/assessment',           desc: 'CBC assessments'                   },
+  { label: 'Results',      href: '/teacher/results',              desc: 'Student results'                   },
+  { label: 'Resources',    href: '/teacher/resources',            desc: 'Notes, quizzes, exercises'         },
+  { label: 'VibeLearn',    href: '/teacher/vibelearn',            desc: 'AI-powered learning content'       },
+  { label: 'SchoolHub',    href: '/teacher/schoolhub',            desc: 'School info and staff'             },
+  { label: 'TPAD',         href: '/teacher/tpad',                 desc: 'Teacher performance appraisal'     },
+  { label: 'Credits',      href: '/teacher/credits',              desc: 'Vibe Credits wallet'               },
+  { label: 'Profile',      href: '/teacher/profile',              desc: 'Your profile'                      },
+  { label: 'Settings',     href: '/teacher/settings',             desc: 'App settings'                      },
+  { label: 'Help',         href: '/teacher/help',                 desc: 'Help and support'                  },
 ]
 
 export default function MorePage() {
@@ -29,7 +31,7 @@ export default function MorePage() {
       <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #2d2a6e 100%)', borderRadius: 20, padding: '20px', marginBottom: 16, color: '#fff' }}>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase' }}>More</div>
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>All Tools</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>Everything in one place</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>{ITEMS.length} tools in one place</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {ITEMS.map(item => (

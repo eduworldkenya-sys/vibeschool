@@ -161,7 +161,7 @@ export default function SchoolHubPage() {
       const nameMap = new Map<string, { fullName: string; role: string }>(
         (profileData ?? []).map((p: { id: string; full_name: string; role: string }) => [
           p.id,
-          { fullName: p.full_name ?? 'Unknown', role: p.role ?? 'staff' },
+          { fullName: (p.full_name ?? '').trim() || 'Unknown', role: p.role ?? 'staff' },
         ])
       )
 
