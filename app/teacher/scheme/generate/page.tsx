@@ -67,6 +67,7 @@ function GeneratePageInner() {
   const [generated,   setGenerated]   = useState<GeneratedPlan | null>(null)
   const [error,       setError]       = useState<string | null>(null)
   const [saved,       setSaved]       = useState(false)
+  const [credits,     setCredits]     = useState<{ balance: number; used: number } | null>(null)
   const [editSection, setEditSection] = useState<keyof GeneratedPlan | null>(null)
   const [editValue,   setEditValue]   = useState('')
 
@@ -118,14 +119,27 @@ Return ONLY a valid JSON object with exactly these keys:
 Be specific, practical and rooted in the Kenyan CBC context. Use simple English appropriate for the grade level.`
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token ?? ''
+
       const res = await fetch('/api/generate-lesson-plan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ prompt }),
       })
       const data = await res.json()
+
+      if (res.status === 402) {
+        setError('insufficient_credits')
+        return
+      }
       if (data.error) throw new Error(data.error)
+
       setGenerated(data.plan)
+      if (data.credits) setCredits(data.credits)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Generation failed')
     } finally {
@@ -312,16 +326,33 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
         {/* Error */}
         {error && (
           <div style={{
-            background:   C.redLight,
-            border:       `1px solid #fda4af`,
+            background:   error === 'insufficient_credits' ? C.amberLight : C.redLight,
+            border:       `1px solid ${error === 'insufficient_credits' ? '#fcd34d' : '#fda4af'}`,
             borderRadius: 12,
-            padding:      12,
+            padding:      16,
             marginBottom: 12,
-            fontSize:     13,
-            color:        C.red,
-            fontWeight:   600,
           }}>
-            ⚠️ {error}
+            {error === 'insufficient_credits' ? (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.amber, marginBottom: 4 }}>
+                  🪙 No Vibe Credits
+                </div>
+                <div style={{ fontSize: 13, color: C.text2, marginBottom: 12 }}>
+                  You need Vibe Credits to generate lesson plans. Buy credits to continue.
+                </div>
+                <a
+                  href="/teacher/credits"
+                  style={{
+                    display: 'inline-block', padding: '9px 18px',
+                    background: C.amber, color: '#fff',
+                    borderRadius: 10, fontSize: 13, fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >Buy Vibe Credits →</a>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: C.red, fontWeight: 600 }}>⚠️ {error}</div>
+            )}
           </div>
         )}
 
@@ -397,6 +428,23 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
                 </div>
               )
             })}
+
+            {/* Credit usage */}
+            {credits && (
+              <div style={{
+                background: C.tealLight, border: `1px solid #5eead4`,
+                borderRadius: 10, padding: '10px 14px',
+                marginBottom: 10, display: 'flex',
+                justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: 12, color: C.teal, fontWeight: 700 }}>
+                  🪙 {credits.used} credit used
+                </span>
+                <span style={{ fontSize: 12, color: C.text2 }}>
+                  Balance: <strong>{credits.balance}</strong> credits remaining
+                </span>
+              </div>
+            )}
 
             {/* Action buttons */}
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
