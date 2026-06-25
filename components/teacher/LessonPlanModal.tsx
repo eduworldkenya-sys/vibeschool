@@ -349,19 +349,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
     setBusy('publishing')
     try {
       await supabase.from('lesson_plans').update({ status: 'published' }).eq('id', currentId)
-      if (ctx.students.length > 0) {
-        await supabase.from('notifications').insert(
-          ctx.students.map(s => ({
-            school_id:  ctx.schoolId || null,
-            // G6: id not table PK
-            user_id:    s.id,
-            title:      'New Lesson: ' + topic,
-            body:       slot.subject + ' lesson plan published by ' + ctx.teacherName,
-            type:       'lesson_plan',
-            related_id: currentId,
-          }))
-        )
-      }
       setStatus('published')
       showToast('Published to students ✓')
     } catch (err) {
@@ -380,58 +367,9 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
 
     setBusy('sharing')
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user == null) return
-
-      const summary = [
-        'Topic: ' + topic, '',
-        'Learning Objectives:', sections.objectives, '',
-        sections.homework ? 'Homework:\n' + sections.homework : '',
-      ].filter(Boolean).join('\n')
-
-      if (ctx.students.length > 0) {
-        await supabase.from('parent_messages').insert(
-          ctx.students.map(s => ({
-            school_id:    ctx.schoolId,
-            teacher_id:   user.id,
-            student_id:   s.id,
-            channel:      'app',
-            subject:      slot.subject + ' — Lesson: ' + topic,
-            body:         summary,
-            generated_by: 'lesson_plan',
-            sent_at:      new Date().toISOString(),
-            created_at:   new Date().toISOString(),
-          }))
-        )
-      }
-
       await supabase.from('lesson_plans').update({ status: 'shared_to_parents' }).eq('id', currentId)
-
-      if (sections.homework.trim() !== '') {
-        const due = new Date()
-        due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
-        const { data: hw } = await supabase.from('homework').insert({
-          class_id:     slot.class_id,
-          teacher_id:   user.id,
-          title:        topic + ' — Homework',
-          subject:      slot.subject,
-          instructions: sections.homework.trim(),
-          type:         'written',
-          due_date:     nairobiDateStr(due),
-        }).select('id').single()
-
-        if (hw?.id) {
-          const questions = sections.homework
-            .split('\n')
-            .filter((l: string) => l.trim().endsWith('?') || /^\d+\./.test(l.trim()))
-            .slice(0, 5)
-            .map((q: string, i: number) => ({ homework_id: hw.id, question: q.trim(), order_num: i + 1 }))
-          if (questions.length > 0) await supabase.from('homework_questions').insert(questions)
-        }
-      }
-
       setStatus('shared_to_parents')
-      showToast('Shared to parents + homework synced ✓')
+      showToast('Shared to parents ✓')
     } catch (err) {
       console.error('[LessonPlanModal] shareToParents', err)
       setError('Share failed. Try again.')
