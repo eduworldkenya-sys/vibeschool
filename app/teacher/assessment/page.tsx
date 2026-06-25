@@ -320,6 +320,34 @@ function AssessmentInner() {
 
     if (saveErr || !data) { setSaveError(saveErr?.message ?? 'Failed to save'); setSaving(false); return }
     setAssessments(prev => [data as Assessment, ...prev])
+
+    // Session 5 — update learner_outcomes mastery
+    const masteryStatus = ['exceeds_expectation','meets_expectation'].includes(selPerf) ? 'mastered' : 'assessed'
+    const resolvedStrandName = strands.find(s => s.id === selStrand)?.name ?? null
+    if (resolvedStrandName && activeSubjectId) {
+      await supabase
+        .from('learner_outcomes')
+        .update({ status: masteryStatus, score: masteryStatus === 'mastered' ? 100 : 50, assessed_at: new Date().toISOString(), student_id: modalStudent.id })
+        .eq('subject_id', activeSubjectId)
+        .eq('strand', resolvedStrandName)
+        .is('student_id', null)
+        .limit(1)
+
+      // also upsert a student-specific row
+      await supabase
+        .from('learner_outcomes')
+        .upsert({
+          student_id:   modalStudent.id,
+          subject_id:   activeSubjectId,
+          strand:       resolvedStrandName,
+          outcome_text: selSubStrand.trim() || resolvedStrandName,
+          status:       masteryStatus,
+          score:        masteryStatus === 'mastered' ? 100 : 50,
+          assessed_at:  new Date().toISOString(),
+          school_id:    schoolId,
+        }, { onConflict: 'student_id,subject_id,strand,outcome_text' })
+    }
+
     closeModal()
   }
 
@@ -367,6 +395,26 @@ function AssessmentInner() {
 
     if (bulkErr || !data) { setBulkError(bulkErr?.message ?? 'Failed to save'); setBulkSaving(false); return }
     setAssessments(prev => [...(data as Assessment[]), ...prev])
+
+    // Session 5 — bulk update learner_outcomes mastery
+    const bulkMasteryStatus = ['exceeds_expectation','meets_expectation'].includes(bulkPerf) ? 'mastered' : 'assessed'
+    const bulkStrandName = strands.find(s => s.id === bulkStrand)?.name ?? null
+    if (bulkStrandName && activeSubjectId) {
+      const bulkOutcomeRows = Array.from(bulkSelected).map(sid => ({
+        student_id:   sid,
+        subject_id:   activeSubjectId,
+        strand:       bulkStrandName,
+        outcome_text: bulkSubStrand.trim() || bulkStrandName,
+        status:       bulkMasteryStatus,
+        score:        bulkMasteryStatus === 'mastered' ? 100 : 50,
+        assessed_at:  new Date().toISOString(),
+        school_id:    schoolId,
+      }))
+      await supabase
+        .from('learner_outcomes')
+        .upsert(bulkOutcomeRows, { onConflict: 'student_id,subject_id,strand,outcome_text' })
+    }
+
     setBulkSelected(new Set()); setBulkDone(true); setBulkSaving(false)
     setBulkStrand(''); setBulkPerf(''); setBulkNotes(''); setBulkSubStrand('')
   }
