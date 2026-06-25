@@ -1,8 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase, SUPABASE_URL } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
 
 interface Package {
@@ -75,9 +75,37 @@ function MpesaModal({
     }
     setLoading(true);
     setError("");
-    await new Promise(r => setTimeout(r, 2000));
-    onSuccess(pkg.credits);
-    setLoading(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setError("Session expired. Please refresh."); setLoading(false); return; }
+      const res = await fetch(SUPABASE_URL + "/functions/v1/mpesa-stk-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + session.access_token },
+        body: JSON.stringify({ phone: cleaned, package_id: pkg.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error ?? "Payment failed. Try again.");
+        setLoading(false);
+        return;
+      }
+      // Poll for 60 seconds waiting for callback to credit wallet
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { clearInterval(poll); return; }
+        const { data: wallet } = await supabase.rpc("get_credit_balance", { p_teacher_id: user.id });
+        if (wallet?.total_earned > 0 || attempts >= 12) {
+          clearInterval(poll);
+          setLoading(false);
+          onSuccess(pkg.credits);
+        }
+      }, 5000);
+    } catch (err) {
+      setError("Network error. Try again.");
+      setLoading(false);
+    }
   }
 
   return (
