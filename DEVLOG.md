@@ -249,3 +249,7 @@
 ## [2026-06-25 08:52] caa6468
 **What:** secure generate-lesson-plan: add auth + credit check before Anthropic call
 **Status:** ✅ pushed
+
+## [2026-06-25 09:07] abd5b56
+**What:** fix: strands now load from curriculum table in assessment, subjecthub, gradebook; remove all alert() calls; deprecate generate-scheme route; expand CBC grades list
+**Status:** ✅ pushed
