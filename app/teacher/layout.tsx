@@ -17,7 +17,7 @@ export const useUser = () => useContext(UserContext);
 
 // ── Nav config — single source of truth ──────────────────────────────────────
 const NAV_TABS = [
-  { id: "classhub",   label: "ClassHub",  href: "/teacher" },
+  { id: "classhub",   label: "Home",      href: "/teacher" },
   { id: "vibelearn",  label: "VibeLearn", href: "/teacher/vibelearn"  },
   { id: "lessonplan", label: "Plans",     href: "/teacher/lessonplan" },
   { id: "assessment", label: "Assess",    href: "/teacher/assessment" },
@@ -27,13 +27,11 @@ const NAV_TABS = [
 type TabId = typeof NAV_TABS[number]["id"];
 
 function tabIdFromPath(path: string): TabId {
-  // /teacher root → classhub is home
   if (path === "/teacher" || path === "/teacher/") return "classhub";
   const match = NAV_TABS.find(t => path.startsWith(t.href));
   return (match?.id ?? "classhub") as TabId;
 }
 
-// ── SVG icons — currentColor, no hardcoded fills ─────────────────────────────
 function IconClassHub({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -86,7 +84,6 @@ const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
   more:       (a) => <IconMore      size={a ? 23 : 21} />,
 };
 
-// ── TwinPill ─────────────────────────────────────────────────────────────────
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -294,8 +291,6 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   )
 }
 
-// ── BottomNav ─────────────────────────────────────────────────────────────────
-// ── Tray-item SVG icons ───────────────────────────────────────────────────
 function IconAttendance({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -410,8 +405,6 @@ function IconHelp({ size = 22 }: { size?: number }) {
     </svg>
   )
 }
-
-
 function IconTPAD({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -421,7 +414,6 @@ function IconTPAD({ size = 22 }: { size?: number }) {
   )
 }
 
-// ── Tray config ────────────────────────────────────────────────────────────
 interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
 const TRAY_ITEMS: Record<string, TrayItem[]> = {
@@ -438,9 +430,9 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect"       },
   ],
   lessonplan: [
+    { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"  },
     { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan"  },
     { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"      },
-    { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"  },
     { label: "Notes",       icon: <IconVibeLearn  size={24} />, href: "/teacher/lessonnotes" },
   ],
   assessment: [
@@ -450,15 +442,14 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Students",     icon: <IconAttendance size={24} />, href: "/teacher/students"                },
   ],
   more: [
-    { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
-    { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
-    { label: "TPAD",     icon: <IconTPAD     size={24} />, href: "/teacher/tpad"     },
-    { label: "Credits",  icon: <IconVibeLearn size={24} />, href: "/teacher/credits" },
-    { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
+    { label: "Profile",  icon: <IconProfile   size={24} />, href: "/teacher/profile"  },
+    { label: "Settings", icon: <IconSettings  size={24} />, href: "/teacher/settings" },
+    { label: "TPAD",     icon: <IconTPAD      size={24} />, href: "/teacher/tpad"     },
+    { label: "Credits",  icon: <IconVibeLearn size={24} />, href: "/teacher/credits"  },
+    { label: "Help",     icon: <IconHelp      size={24} />, href: "/teacher/help"     },
   ],
 }
 
-// ── BottomNav ─────────────────────────────────────────────────────────────
 function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLearn?: number }) {
   const router   = useRouter()
   const pathname = usePathname()
@@ -562,11 +553,10 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
   )
 }
 
-// ── TopBar — VibeConnect icon + Avatar only ───────────────────────────────────
 function TopBar({ school, initials, unreadConnect, creditBalance }: { school: string; initials: string; unreadConnect: number; creditBalance: number | null }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const isRoot   = pathname === "/teacher" || pathname === "/teacher/" || pathname === "/teacher";
+  const isRoot   = pathname === "/teacher" || pathname === "/teacher/";
 
   return (
     <div style={{
@@ -582,7 +572,6 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
       zIndex:          600,
       boxShadow:       "0 2px 12px rgba(0,0,0,0.18)",
     }}>
-      {/* Left — back chevron or logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {!isRoot && (
           <div
@@ -613,9 +602,7 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
         </div>
       </div>
 
-      {/* Right — VibeConnect + Avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        {/* VibeConnect — always visible, badge only when unread */}
         <div
           style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }}
           onClick={() => router.push("/teacher/vibeconnect")}
@@ -649,7 +636,6 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
           )}
         </div>
 
-        {/* Credit Balance Pill */}
         <div
           onClick={() => router.push("/teacher/credits")}
           style={{
@@ -664,7 +650,6 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
           </span>
         </div>
 
-        {/* Avatar → Profile */}
         <Avatar
           initials={initials || "…"}
           size={34}
@@ -699,7 +684,6 @@ function Toast({ msg }: { msg: string }) {
   );
 }
 
-// ── Root layout ───────────────────────────────────────────────────────────────
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -721,12 +705,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function fetchProfile() {
-      // Fast path — trust localStorage cache set at login
       const _cached = localStorage.getItem('vs_role');
       if (_cached) {
         try {
           const { role, t } = JSON.parse(_cached);
-          const TTL_MS = 30 * 60 * 1000; // 30 minutes
+          const TTL_MS = 30 * 60 * 1000;
           if (Date.now() - t > TTL_MS) {
             localStorage.removeItem('vs_role');
           } else if (role !== 'teacher') {
@@ -767,7 +750,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           .single();
         setSchool(schoolData?.name ?? "");
       }
-      // Unread VibeConnect count
+
       const { data: participation } = await supabase
         .from('vc_participants')
         .select('thread_id, last_read_at')
@@ -781,7 +764,6 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           (participation ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => {
             readMap[p.thread_id] = p.last_read_at ?? '1970-01-01T00:00:00Z';
           });
-          // Batched unread count — single query instead of N+1
           const { data: unreadRows } = await supabase
             .from('vc_messages')
             .select('thread_id, created_at')
@@ -797,16 +779,15 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           unread = unreadSet.size;
         }
       } catch {
-        // unread count failed — non-critical, continue
+        // unread count failed — non-critical
       }
       setUnreadConnect(unread);
       setAuthReady(true);
-      // Credit balance is non-critical — fetch after portal is ready
       supabase.rpc("get_credit_balance", { p_teacher_id: user.id })
         .then(({ data: creditData }) => {
           if (creditData?.success) setCreditBalance(creditData.balance)
         })
-        .catch(() => {/* RPC may not exist yet — non-fatal */})
+        .catch(() => {})
     }
     fetchProfile();
   }, []);
@@ -838,7 +819,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         `}</style>
         <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
-              <OfflineBar />
+          <OfflineBar />
           <main style={{
             maxWidth:      768,
             margin:        "0 auto",

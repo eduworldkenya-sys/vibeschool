@@ -454,7 +454,7 @@ export default function TeacherDashboard() {
     ])
 
     const designation = teacherProfileRes.data?.designation ?? null
-    if (designation === 'subject_teacher') { router.push('/teacher/subjecthub'); return }
+    void designation // kept for future subject-filtered dashboard logic
 
     const fullName = profileRes.data?.full_name ?? ''
     const slotIds  = (slotsRes.data ?? []).map((s: any) => s.id)
