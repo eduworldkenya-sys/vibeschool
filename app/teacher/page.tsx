@@ -533,7 +533,7 @@ export default function TeacherDashboard() {
       }
 
       const hwMap: Record<string, number> = {}
-      for (const h of hwRes.data ?? []) hwMap[h.class_id] = (hwMap[h.class_id] ?? 0) + 1
+      for (const h of (hwRes.data ?? []) as { class_id: string }[]) hwMap[h.class_id] = (hwMap[h.class_id] ?? 0) + 1
 
       const PERF_MAP: Record<string, number> = { BE:1, AE:2, ME:3, EE:4 }
       const scoreMap: Record<string, number[]> = {}

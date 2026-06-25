@@ -340,7 +340,7 @@ export default function SubjectHubPage() {
       schoolId ? supabase.from('strand_progress').select('strand_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
       supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
-      supabase.from('resources').select('id').eq('subject_id', subjectId).eq('teacher_id', currentId),
+      Promise.resolve({ data: [] }), // resources table not yet created
     ])
 
     const lCount = lpRes.data?.length ?? 0
