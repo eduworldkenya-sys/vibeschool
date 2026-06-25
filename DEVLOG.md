@@ -245,3 +245,7 @@
 ## [2026-06-24 23:03] 246345a
 **What:** scheme: add strand count badge per week dot
 **Status:** ✅ pushed
+
+## [2026-06-25 08:52] caa6468
+**What:** secure generate-lesson-plan: add auth + credit check before Anthropic call
+**Status:** ✅ pushed
