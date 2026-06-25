@@ -26,6 +26,8 @@ const STANDARDS = [
 const SOURCES = [
   { value: 'manual',       label: 'Manual Entry' },
   { value: 'lesson_plan',  label: 'Lesson Plan'  },
+  { value: 'lesson_note',  label: 'Lesson Note'  },
+  { value: 'assessment',   label: 'CBC Assessment' },
   { value: 'attendance',   label: 'Attendance'   },
   { value: 'homework',     label: 'Homework'     },
   { value: 'pd',           label: 'CPD / Training' },
@@ -53,6 +55,50 @@ function Skeleton({ h = 80 }: { h?: number }) {
       background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
       backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
     }} />
+  )
+}
+
+function AutoPullButton({ appraisalId, userId, onAdded }: {
+  appraisalId: string
+  userId: string
+  onAdded: (e: Evidence) => void
+}) {
+  const [pulling, setPulling] = useState(false)
+  const [done,    setDone]    = useState(false)
+
+  async function autoPull() {
+    setPulling(true)
+    const termStart = new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 4) * 4, 1).toISOString()
+    const { data: plans } = await supabase
+      .from('lesson_plans')
+      .select('id, title, topic')
+      .eq('teacher_id', userId)
+      .gte('created_at', termStart)
+      .limit(5)
+
+    if (!plans || plans.length === 0) { setPulling(false); return }
+
+    const desc = `Prepared ${plans.length} lesson plan${plans.length > 1 ? 's' : ''} this term. Topics include: ${plans.map((p: {topic: string; title: string}) => p.topic || p.title).filter(Boolean).slice(0, 3).join(', ')}.`
+
+    const { data: inserted } = await supabase
+      .from('tpad_evidence')
+      .insert({ appraisal_id: appraisalId, teacher_id: userId, standard: 1, source: 'lesson_plan', description: desc })
+      .select('id,standard,source,description,created_at')
+      .single()
+
+    if (inserted) { onAdded(inserted as Evidence); setDone(true) }
+    setPulling(false)
+  }
+
+  return (
+    <button onClick={autoPull} disabled={pulling || done} style={{
+      width: '100%', padding: '10px', borderRadius: 10, marginBottom: 16,
+      background: done ? '#d1fae5' : '#dbeafe', border: 'none',
+      color: done ? '#065f46' : '#1e40af', fontWeight: 700, fontSize: 12,
+      cursor: pulling || done ? 'not-allowed' : 'pointer',
+    }}>
+      {done ? '✅ Evidence pulled from lesson plans' : pulling ? 'Pulling…' : '⚡ Auto-pull from my Lesson Plans'}
+    </button>
   )
 }
 
@@ -231,6 +277,9 @@ export default function EvidencePage() {
 
       {appraisal && (
         <>
+          {/* Auto-pull from lesson plans */}
+          <AutoPullButton appraisalId={appraisal.id} userId={userId!} onAdded={(e) => setEvidence(prev => [e, ...prev])} />
+
           {/* Standard tabs */}
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 20 }}>
             {STANDARDS.map(s => {

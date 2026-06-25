@@ -50,7 +50,7 @@ interface Term {
 }
 
 // ── HELPERS ────────────────────────────────────────────────────
-const CBC_GRADES = ["PP1","PP2","Grade 1","Grade 2","Grade 3"]
+const CBC_GRADES = ["PP1","PP2","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9"]
 function isCBC(name: string) {
   return CBC_GRADES.some(g => name.startsWith(g))
 }

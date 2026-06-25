@@ -78,12 +78,20 @@ interface ExamResultItem {
   isAbsent:  boolean;
 }
 
+interface CurriculumItem {
+  strand:     string
+  sub_strand: string
+  topic:      string
+  week:       number
+}
+
 interface CachedData {
   homework:    HomeworkItem[];
   lessons:     LessonItem[];
   assessments: AssessmentItem[];
-  examResults: ExamResultItem[];
-  timestamp:   number;
+  examResults:    ExamResultItem[];
+  curriculumItems: CurriculumItem[];
+  timestamp:       number;
 }
 
 function getDueDateMeta(due: string): { label: string; color: string } {
@@ -232,6 +240,7 @@ export default function ParentLearnPage() {
   const [hwTab,           setHwTab]           = useState<"pending"|"submitted"|"marked">("pending");
   const [homework,        setHomework]        = useState<HomeworkItem[]>([]);
   const [lessons,         setLessons]         = useState<LessonItem[]>([]);
+  const [curriculumItems, setCurriculumItems] = useState<CurriculumItem[]>([]);
   const [assessments,     setAssessments]     = useState<AssessmentItem[]>([]);
   const [examResults,     setExamResults]     = useState<ExamResultItem[]>([]);
   const [loadingChildren, setLoadingChildren] = useState<boolean>(true);
@@ -326,6 +335,7 @@ export default function ParentLearnPage() {
     if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
       setHomework(cached.homework);
       setLessons(cached.lessons);
+      setCurriculumItems(cached.curriculumItems ?? []);
       setAssessments(cached.assessments);
       setExamResults(cached.examResults ?? []);
       setContentError(null);
@@ -508,6 +518,7 @@ export default function ParentLearnPage() {
           lessons: finalLessons, 
           assessments: finalAssessments,
           examResults: finalExamResults,
+          curriculumItems: [],
           timestamp: Date.now()
         });
 

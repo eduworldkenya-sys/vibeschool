@@ -88,6 +88,7 @@ export default function LessonNotesPage() {
   const [loading,       setLoading]       = useState(true);
   const [saving,        setSaving]        = useState(false);
   const [deleting,      setDeleting]      = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [error,         setError]         = useState<string | null>(null);
   const [notes,         setNotes]         = useState<NoteRow[]>([]);
   const [activeNote,    setActiveNote]    = useState<NoteRow | null>(null);
@@ -293,8 +294,16 @@ export default function LessonNotesPage() {
     const tid = tidRef.current;
     const sid = sidRef.current;
     if (!tid) return;
-    if (!window.confirm("Delete this note? This cannot be undone.")) return;
+    setConfirmDelete(noteId);
+  }
 
+  async function confirmDeleteNote() {
+    const noteId = confirmDelete;
+    if (!noteId) return;
+    const tid = tidRef.current;
+    const sid = sidRef.current;
+    if (!tid) return;
+    setConfirmDelete(null);
     setDeleting(true);
     try {
       const { error: delErr } = await supabase
@@ -517,7 +526,7 @@ export default function LessonNotesPage() {
           )}
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
             <button onClick={() => openEdit(note)} style={{ flex: 1, padding: "13px", borderRadius: 12, border: "1.5px solid #e5e7eb", background: "#fff", color: "#111827", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
-            <button onClick={() => deleteNote(note.id)} disabled={deleting} style={{ flex: 1, padding: "13px", borderRadius: 12, border: "1.5px solid #fecaca", background: "#fef2f2", color: "#991b1b", fontSize: 14, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", opacity: deleting ? 0.6 : 1, fontFamily: "inherit" }}>
+            <button onClick={() => setConfirmDelete(note.id)} disabled={deleting} style={{ flex: 1, padding: "13px", borderRadius: 12, border: "1.5px solid #fecaca", background: "#fef2f2", color: "#991b1b", fontSize: 14, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", opacity: deleting ? 0.6 : 1, fontFamily: "inherit" }}>
               {deleting ? "Deleting…" : "🗑 Delete"}
             </button>
           </div>
@@ -526,5 +535,20 @@ export default function LessonNotesPage() {
     );
   }
 
-  return null;
+  return (
+    <>
+      {confirmDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Delete Note?</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>This cannot be undone.</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={confirmDeleteNote} style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
