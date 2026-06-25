@@ -54,7 +54,7 @@ function MemoryMatchGameCore() {
         .eq('grade', targetGrade);
 
       if (error || !data || data.length === 0) {
-        alert('No questions found for this configuration. Loading backup dataset...');
+        console.warn('No questions found for this configuration.');
         setDbLoading(false);
         return;
       }
@@ -76,7 +76,7 @@ function MemoryMatchGameCore() {
       }
 
       if (generatedPairs.length < levelConfig.pairs * 2) {
-        alert('Insufficient valid matching data blocks present for this module config.');
+        console.warn('Insufficient matching data blocks.');
         setDbLoading(false);
         return;
       }

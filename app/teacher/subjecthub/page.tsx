@@ -335,16 +335,25 @@ export default function SubjectHubPage() {
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
+    const [subNameRes2, tcRes2] = await Promise.all([
+      supabase.from('subjects').select('name').eq('id', subjectId).single(),
+      supabase.from('teacher_classes').select('class_id').eq('teacher_id', currentId).eq('subject_id', subjectId).limit(1),
+    ])
+    const subjectName2 = subNameRes2.data?.name ?? ''
+    const firstClassId = tcRes2.data?.[0]?.class_id ?? null
+    const gradeRes = firstClassId ? await supabase.from('classes').select('name').eq('id', firstClassId).single() : { data: null }
+    const gradeForCurriculum = gradeRes.data?.name ?? ''
+
     const [lpRes, assRes, attRes, slotRes, resRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
-      supabase.from('strands').select('id, name').eq('subject_id', subjectId),
-      schoolId ? supabase.from('strands').select('id').eq('subject_id', subjectId).eq('school_id', schoolId) : Promise.resolve({ data: [] }),
-      schoolId ? supabase.from('strand_progress').select('strand_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
+      gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('id, strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
+      gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
+      schoolId ? supabase.from('strand_progress').select('curriculum_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
       supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
-      Promise.resolve({ data: [] }), // resources table not yet created
+      Promise.resolve({ data: [] }),
     ])
 
     const lCount = lpRes.data?.length ?? 0
@@ -364,7 +373,7 @@ export default function SubjectHubPage() {
       below_expectation: 1,
     }
     const strandNames = new Map<string, string>(
-      (strandNameRes.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name])
+      (strandNameRes.data ?? []).map((s: { id: string; strand: string }) => [s.id, s.strand])
     )
     const strandTotals = new Map<string, { sum: number; count: number }>()
     for (const row of (strandPerfRes.data ?? []) as { strand_id: string | null; performance: string }[]) {
@@ -383,14 +392,15 @@ export default function SubjectHubPage() {
     })
     setWeakStrand(weakest)
 
-    const totalStrands = (allStrandsRes.data ?? []).length
+    const distinctStrands = new Set(((allStrandsRes.data ?? []) as { strand: string }[]).map(r => r.strand))
+    const totalStrands = distinctStrands.size
     if (totalStrands > 0) {
-      const doneStrandIds = new Set(
-        ((progressRes.data ?? []) as { strand_id: string; status: string }[])
+      const doneCurriculumIds = new Set(
+        ((progressRes.data ?? []) as { curriculum_id: string; status: string }[])
           .filter(p => p.status === 'done')
-          .map(p => p.strand_id)
+          .map(p => p.curriculum_id)
       )
-      setCurriculumPct(Math.round((doneStrandIds.size / totalStrands) * 100))
+      setCurriculumPct(Math.round((doneCurriculumIds.size / totalStrands) * 100))
     } else {
       setCurriculumPct(null)
     }

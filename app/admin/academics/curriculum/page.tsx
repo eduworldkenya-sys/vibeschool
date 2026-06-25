@@ -334,7 +334,7 @@ function StrandCards({
       <EmptyState
         icon="📭"
         title="No strands yet"
-        desc={`Week ${week} hasn't been set up for ${subject}. Add strands or copy from a previous week.`}
+        desc={`No CBC curriculum data found for ${subject} in Week ${week}. Ensure curriculum is seeded for this grade.`}
         action={
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
             <button style={{

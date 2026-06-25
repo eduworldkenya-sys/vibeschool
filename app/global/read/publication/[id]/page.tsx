@@ -263,7 +263,7 @@ export default function ReadPublicationPage() {
                     : 'This content requires purchase.'}
                 </p>
                 <button
-                  onClick={() => isLoggedIn ? alert('M-Pesa coming soon') : router.push('/')}
+                  onClick={() => { if (!isLoggedIn) router.push('/') }}
                   style={{
                     background: ACCENT, color: '#090D16', border: 'none',
                     borderRadius: 12, padding: '13px 28px',

@@ -11,7 +11,7 @@ const bg     = "#f0f2f5"
 const red    = "#ef4444"
 const amber  = "#f59e0b"
 
-const CBC_GRADES = ["PP1","PP2","Grade 1","Grade 2","Grade 3"]
+const CBC_GRADES = ["PP1","PP2","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9"]
 function isCBC(name: string) { return CBC_GRADES.some(g => name.startsWith(g)) }
 
 interface ClassRow   { id: string; name: string; stream: string | null }
@@ -145,11 +145,18 @@ export default function GradebookPage() {
     setSubjects((subjectRes.data ?? []) as SubjectRow[])
 
     if (cls && isCBC(cls.name)) {
-      const { data: strandData } = await supabase
-        .from("strands")
-        .select("id,name")
-        .eq("school_id", sid)
-      setStrands((strandData ?? []) as StrandRow[])
+      const firstSubjectId = (subjectRes.data ?? [])[0]?.id
+      const subNameRes = firstSubjectId ? await supabase.from("subjects").select("name").eq("id", firstSubjectId).single() : { data: null }
+      const subjectName = subNameRes.data?.name ?? ''
+      if (subjectName) {
+        const { data: strandData } = await supabase.from("curriculum").select("id,strand").eq("grade", cls.name).eq("subject", subjectName)
+        const seen = new Set()
+        const unique: StrandRow[] = []
+        for (const r of (strandData ?? [])) {
+          if (!seen.has(r.strand)) { seen.add(r.strand); unique.push({ id: r.id, name: r.strand }) }
+        }
+        setStrands(unique)
+      }
     }
 
     const initSubject = searchParams.get("subject") ?? ((subjectRes.data ?? [])[0]?.id ?? "")

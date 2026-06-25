@@ -166,7 +166,7 @@ function ClassPageInner() {
         p_school_id:        clsData?.school_id ?? null,
       })
 
-    if (err || !studentId) { setSaving(false); setError(err?.message ?? 'Failed to add student — no ID returned'); alert('RPC error: ' + (err?.message ?? 'no studentId returned')); return }
+    if (err || !studentId) { setSaving(false); setError(err?.message ?? 'Failed to add student — no ID returned'); return }
 
     setSaving(false)
     setForm({ name: '', admission_number: '' })

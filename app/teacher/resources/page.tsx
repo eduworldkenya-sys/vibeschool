@@ -150,7 +150,7 @@ const [teacherRes, memberRes, profileRes] = await Promise.all([
     if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return
     setDeleting(r.id)
     const { error: err } = await supabase.from('resources').delete().eq('id', r.id)
-    if (err) { alert('Failed to delete: ' + err.message); setDeleting(null); return }
+    if (err) { setDeleting(null); return }
     setResources(prev => prev.filter(x => x.id !== r.id))
     if (expanded === r.id) setExpanded(null)
     setDeleting(null)
