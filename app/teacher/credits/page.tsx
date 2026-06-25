@@ -108,7 +108,7 @@ function MpesaModal({
           if (!cancelled) { setLoading(false); onSuccess(pkg.credits); }
         }
       }, 5000);
-      return () => { cancelled = true; clearInterval(poll); };
+      // cleanup handled via cancelled flag above
     } catch (err) {
       setError("Network error. Try again.");
       setLoading(false);
