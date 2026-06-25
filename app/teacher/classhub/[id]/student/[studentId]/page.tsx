@@ -58,7 +58,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ]
 
 const PERF_COLORS: Record<string, { bg: string; color: string }> = {
-  EM: { bg: '#d1fae5', color: '#065f46' },
+  EE: { bg: '#d1fae5', color: '#065f46' },
   ME: { bg: '#dbeafe', color: '#1d4ed8' },
   AE: { bg: '#fef3c7', color: '#92400e' },
   BE: { bg: '#fee2e2', color: '#991b1b' },

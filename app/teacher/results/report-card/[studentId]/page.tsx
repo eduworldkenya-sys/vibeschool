@@ -300,14 +300,8 @@ function ReportCardInner() {
       class_id:         classId,
     }
 
-    const existing = remarks.remarks !== null || remarks.conduct !== null
-    if (existing) {
-      await supabase.from('report_card_remarks')
-        .update({ remarks: payload.remarks, conduct: payload.conduct })
-        .eq('exam_id', examId).eq('student_id', studentId)
-    } else {
-      await supabase.from('report_card_remarks').insert(payload)
-    }
+    await supabase.from('report_card_remarks')
+      .upsert(payload, { onConflict: 'exam_id,student_id' })
 
     setRemarks({ remarks: payload.remarks ?? null, conduct: payload.conduct ?? null })
     setEditRemarks(false)

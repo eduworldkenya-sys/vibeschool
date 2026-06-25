@@ -453,6 +453,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
     { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
     { label: "TPAD",     icon: <IconTPAD     size={24} />, href: "/teacher/tpad"     },
+    { label: "Credits",  icon: <IconVibeLearn size={24} />, href: "/teacher/credits" },
     { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
   ],
 }

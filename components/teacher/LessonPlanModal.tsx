@@ -225,7 +225,14 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       }
     }
     boot()
+    return () => { /* boot is fire-once; no cleanup needed here */ }
   }, [slot.id, slot.class_id, slot.subject_id])
+
+  const abortGenRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => { abortGenRef.current?.abort() }
+  }, [])
 
   async function generate() {
     if (topic.trim() === '') { setError('Please enter a topic first.'); return }
@@ -237,6 +244,11 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
     setPhase('generating')
     setError('')
 
+    const abortCtrl = new AbortController()
+    abortGenRef.current?.abort()
+    abortGenRef.current = abortCtrl
+    const abortRef = abortCtrl
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (user == null) return
@@ -245,6 +257,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         SUPABASE_URL + '/functions/v1/generate-lesson-plan',
         {
           method:  'POST',
+          signal:  abortRef.signal,
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({
             teacher:        ctx.teacherName,

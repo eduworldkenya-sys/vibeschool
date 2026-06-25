@@ -238,11 +238,15 @@ export default function VibeLearnPage() {
   const loadStats = useCallback(async (uid: string) => {
     if (mounted.current) setLoadingStats(true);
     try {
-      const { data } = await supabase
-        .from("vibelearn_teacher_stats")
-        .select("*")
-        .eq("teacher_id", uid)
-        .maybeSingle();
+      let data: Record<string, number> | null = null
+      try {
+        const { data: _d } = await supabase
+          .from("vibelearn_teacher_stats")
+          .select("*")
+          .eq("teacher_id", uid)
+          .maybeSingle();
+        data = _d
+      } catch { /* table may not exist yet — non-fatal */ }
       const { data: top } = await supabase
         .from("vibelearn_content")
         .select("title,view_count")
@@ -774,7 +778,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         if (filter !== "all") q = q.eq("type", filter);
         // exclude own content server-side — not client-side
         if (userId) q = q.neq("submitted_by", userId);
-        if (query.trim()) q = q.textSearch("search_vector", query.trim(), { type: "websearch", config: "english" });
+        if (query.trim()) q = q.ilike("title", "%" + query.trim() + "%");
         const { data } = await q;
         if (mounted.current) setItems((data ?? []) as Content[]);
       } finally {

@@ -253,19 +253,24 @@ function LessonPlanInner() {
 
       <Card>
         <SectionLabel>Differentiation Summary</SectionLabel>
-        {[
-          { level: 'Higher',   color: '#7c3aed', bg: '#ede9fe', desc: 'Multi-step and extension tasks' },
-          { level: 'On Track', color: C.accent,  bg: C.accentLight, desc: 'Core curriculum delivery'  },
-          { level: 'Support',  color: '#d97706', bg: '#fef3c7', desc: 'Scaffolded and visual methods'  },
-        ].map(d => (
-          <div key={d.level} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: d.bg, marginBottom: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: d.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>0</div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: d.color }}>{d.level}</div>
-              <div style={{ fontSize: 12, color: C.textMuted }}>{d.desc}</div>
+        {(() => {
+          const published  = items.filter(i => i.plan?.status === 'published' || i.plan?.status === 'shared_to_parents').length
+          const draft      = items.filter(i => i.plan?.status === 'draft').length
+          const noPlan     = items.filter(i => !i.plan).length
+          return [
+            { level: 'Published', color: '#7c3aed', bg: '#ede9fe', desc: 'Published or shared plans', count: published },
+            { level: 'Draft',     color: C.accent,  bg: C.accentLight, desc: 'Plans saved as draft', count: draft },
+            { level: 'Missing',   color: '#d97706', bg: '#fef3c7', desc: 'Slots with no plan yet',  count: noPlan },
+          ].map(d => (
+            <div key={d.level} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: d.bg, marginBottom: 8 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: d.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{d.count}</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: d.color }}>{d.level}</div>
+                <div style={{ fontSize: 12, color: C.textMuted }}>{d.desc}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        })()}
       </Card>
 
       <Card>
