@@ -281,3 +281,7 @@
 ## [2026-06-26 13:46] 8c0984f
 **What:** add teacher academics hub page
 **Status:** ✅ pushed
+
+## [2026-06-26 14:19] 02f8fd6
+**What:** rebuild teacher academics hub: gradebook, at-risk, TPAD, attendance
+**Status:** ✅ pushed
