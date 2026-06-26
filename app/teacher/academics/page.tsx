@@ -1,4 +1,3 @@
-
 "use client";
 export const dynamic = "force-dynamic";
 
@@ -15,24 +14,29 @@ const C = {
   amber:"#d97706",amberDim:"#fef3c7",
   red:"#dc2626",redDim:"#fee2e2",
   sky:"#0284c7",skyDim:"#e0f2fe",
-  navy:"#1e1b4b",navyLight:"#312e81",
+  navy:"#1e1b4b",
 } as const;
 
 interface SubjectCard {
   id:string;name:string;classes:ClassRow[];lessonCount:number;assessCount:number;
   coveragePct:number|null;assessedPct:number|null;masteredPct:number|null;
   avgPerfPct:number|null;perfDist:Record<string,number>;attRate:number|null;
+  strands:StrandRow[];
 }
 interface ClassRow {
   id:string;name:string;stream:string|null;studentCount:number;
   perfDist:Record<string,number>;attRate:number|null;
+}
+interface StrandRow {
+  strand:string;total:number;assessed:number;mastered:number;
 }
 interface AtRiskStudent {
   id:string;name:string;className:string;subjects:string[];beCount:number;attRate:number|null;
 }
 interface TermStat {
   totalLessons:number;totalAssess:number;subjectCount:number;studentCount:number;
-  tpadScore:number;avgAttRate:number|null;
+  avgAttRate:number|null;tpadFinalScore:number|null;tpadStatus:string|null;
+  tpadStandards:Record<string,number|null>;evidenceCount:number;
 }
 type Tab="overview"|"gradebook"|"atrisk"|"tpad";
 
@@ -43,6 +47,16 @@ const PERF_META:Record<string,{short:string;label:string;color:string;bg:string}
   approaches_expectation:{short:"AE",label:"Approaches",color:"#d97706",bg:"#fef3c7"},
   below_expectation:     {short:"BE",label:"Below",     color:"#dc2626",bg:"#fee2e2"},
 };
+const TSC_STANDARDS:{key:string;label:string}[]=[
+  {key:"standard_1_self",label:"Professional Knowledge & Practice"},
+  {key:"standard_2_self",label:"Teaching & Learning"},
+  {key:"standard_3_self",label:"Assessment for Learning"},
+  {key:"standard_4_self",label:"Personal & Professional Development"},
+  {key:"standard_5_self",label:"Relationship & Responsibilities"},
+  {key:"standard_6_self",label:"Community & Partnerships"},
+  {key:"standard_7_self",label:"Curriculum Design & Innovation"},
+  {key:"standard_8_self",label:"Leadership & Management"},
+];
 function perfScore(p:string){return({exceeds_expectation:4,meets_expectation:3,approaches_expectation:2,below_expectation:1} as Record<string,number>)[p]??0;}
 function barColor(pct:number){return pct>=70?"#059669":pct>=40?"#d97706":"#dc2626";}
 function termStart(){const n=new Date();return nairobiDateStr(new Date(n.getFullYear(),Math.floor(n.getMonth()/4)*4,1));}
@@ -62,19 +76,29 @@ function PerfBar({dist,total}:{dist:Record<string,number>;total:number}){
   if(total===0)return<div style={{fontSize:11,color:C.text3}}>No assessments yet</div>;
   return(<div style={{display:"flex",gap:2,height:8,borderRadius:6,overflow:"hidden",width:"100%"}}>{PERF_ORDER.map(p=>{const pct=total>0?((dist[p]??0)/total)*100:0;if(pct===0)return null;return<div key={p} style={{width:pct+"%",background:PERF_META[p].color,transition:"width 0.4s"}}/>;})}</div>);
 }
+function EmptyAction({icon,title,sub,btnLabel,onPress}:{icon:string;title:string;sub:string;btnLabel:string;onPress:()=>void}){
+  return(
+    <div style={{background:C.surface,borderRadius:16,border:`1.5px dashed ${C.border2}`,padding:"32px 20px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+      <div style={{fontSize:36,marginBottom:10}}>{icon}</div>
+      <div style={{fontSize:15,fontWeight:800,color:C.text,marginBottom:6}}>{title}</div>
+      <div style={{fontSize:13,color:C.text3,marginBottom:14}}>{sub}</div>
+      <button onClick={onPress} style={{padding:"10px 24px",borderRadius:12,background:C.indigo,color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{btnLabel}</button>
+    </div>
+  );
+}
 
 export default function TeacherAcademicsPage(){
   const router=useRouter();
   const [tab,setTab]=useState<Tab>("overview");
   const [loading,setLoading]=useState(true);
+  const [error,setError]=useState<string|null>(null);
   const [subjects,setSubjects]=useState<SubjectCard[]>([]);
   const [atRisk,setAtRisk]=useState<AtRiskStudent[]>([]);
   const [termStats,setTermStats]=useState<TermStat|null>(null);
   const [expanded,setExpanded]=useState<string|null>(null);
-  const [tpadLines,setTpadLines]=useState<{label:string;count:number;pts:number}[]>([]);
 
   const boot=useCallback(async()=>{
-    setLoading(true);
+    setLoading(true);setError(null);
     try{
       const{data:{user}}=await supabase.auth.getUser();
       if(!user){router.push("/?role=teacher");return;}
@@ -90,23 +114,25 @@ export default function TeacherAcademicsPage(){
       const classIds=Array.from(new Set(rows.map(r=>r.class_id).filter(Boolean)));
       if(subjectIds.length===0){setLoading(false);return;}
       const tStart=termStart();const tNum=currentTerm();const tYear=new Date().getFullYear();
-      const[subRes,classRes,studentClsRes,lpRes,assRes,outcomeRes,attRes]=await Promise.all([
+      const[subRes,classRes,studentClsRes,lpRes,assRes,outcomeRes,attRes,tpadRes,evidRes]=await Promise.all([
         supabase.from("subjects").select("id, name").in("id",subjectIds),
         supabase.from("classes").select("id, name, stream").in("id",classIds),
         classIds.length>0?supabase.from("student_classes").select("student_id, class_id").in("class_id",classIds).eq("is_current",true):Promise.resolve({data:[]}),
         supabase.from("lesson_plans").select("id, subject_id, status").eq("teacher_id",user.id).gte("created_at",tStart),
         schoolId
-          ?supabase.from("cbc_assessments").select("id, student_id, subject_id, class_id, performance, term, academic_year").eq("teacher_id",user.id).eq("school_id",schoolId).eq("term",tNum).eq("academic_year",tYear)
-          :supabase.from("cbc_assessments").select("id, student_id, subject_id, class_id, performance, term, academic_year").eq("teacher_id",user.id).eq("term",tNum).eq("academic_year",tYear),
-        supabase.from("learner_outcomes").select("subject_id, status").in("subject_id",subjectIds),
-        classIds.length>0?supabase.from("attendance").select("student_id, class_id, status").in("class_id",classIds).eq("teacher_id",user.id).gte("date",tStart):Promise.resolve({data:[]}),
+          ?supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,performance,term,academic_year").eq("teacher_id",user.id).eq("school_id",schoolId).eq("term",tNum).eq("academic_year",tYear)
+          :supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,performance,term,academic_year").eq("teacher_id",user.id).eq("term",tNum).eq("academic_year",tYear),
+        supabase.from("learner_outcomes").select("subject_id,strand,status").in("subject_id",subjectIds),
+        classIds.length>0?supabase.from("attendance").select("student_id,class_id,status").in("class_id",classIds).eq("teacher_id",user.id).gte("date",tStart):Promise.resolve({data:[]}),
+        supabase.from("tpad_appraisals").select("final_score,status,standard_1_self,standard_2_self,standard_3_self,standard_4_self,standard_5_self,standard_6_self,standard_7_self,standard_8_self").eq("teacher_id",user.id).order("created_at",{ascending:false}).limit(1).maybeSingle(),
+        supabase.from("tpad_evidence").select("id,standard").eq("teacher_id",user.id),
       ]);
       type SubRow={id:string;name:string};
       type ClsRow={id:string;name:string;stream:string|null};
       type SClsRow={student_id:string;class_id:string};
       type LPRow={id:string;subject_id:string;status:string};
       type AssRow={id:string;student_id:string;subject_id:string;class_id:string;performance:string;term:number;academic_year:number};
-      type OutRow={subject_id:string;status:string|null};
+      type OutRow={subject_id:string;strand:string|null;status:string|null};
       type AttRow={student_id:string;class_id:string;status:string};
       const subList=(subRes.data??[]) as SubRow[];
       const classList=(classRes.data??[]) as ClsRow[];
@@ -115,6 +141,8 @@ export default function TeacherAcademicsPage(){
       const assData=(assRes.data??[]) as AssRow[];
       const outcomeData=(outcomeRes.data??[]) as OutRow[];
       const attData=(attRes.data??[]) as AttRow[];
+      const tpadRow=tpadRes.data as Record<string,number|string|null>|null;
+      const evidRows=(evidRes.data??[]) as{id:string;standard:string}[];
       const classStudentIds:Record<string,Set<string>>={};
       for(const r of studentCls){if(!classStudentIds[r.class_id])classStudentIds[r.class_id]=new Set();classStudentIds[r.class_id].add(r.student_id);}
       const totalStudents=Object.values(classStudentIds).reduce((s,st)=>s+st.size,0);
@@ -138,7 +166,9 @@ export default function TeacherAcademicsPage(){
         const classRows:ClassRow[]=classList.filter(c=>myCls.includes(c.id)).map(c=>{const cAss=subAss.filter(a=>a.class_id===c.id);return{id:c.id,name:c.name,stream:c.stream,studentCount:classStudentIds[c.id]?.size??0,perfDist:buildDist(cAss),attRate:classAttRate(c.id)};});
         const myAttRates=myCls.map(cid=>classAttRate(cid)).filter((r):r is number=>r!==null);
         const avgAtt=myAttRates.length>0?Math.round(myAttRates.reduce((a,b)=>a+b,0)/myAttRates.length):null;
-        return{id:sub.id,name:sub.name,classes:classRows,lessonCount:lpData.filter(l=>l.subject_id===sub.id).length,assessCount:subAss.length,coveragePct:total>0?Math.round((covered/total)*100):null,assessedPct:total>0?Math.round((assessed/total)*100):null,masteredPct:total>0?Math.round((mastered/total)*100):null,avgPerfPct:avgPerf,perfDist:dist,attRate:avgAtt};
+        const strandMap:Record<string,StrandRow>={};
+        for(const o of outcomes){const s=o.strand??"Unknown";if(!strandMap[s])strandMap[s]={strand:s,total:0,assessed:0,mastered:0};strandMap[s].total++;if(o.status==="assessed")strandMap[s].assessed++;if(o.status==="mastered")strandMap[s].mastered++;}
+        return{id:sub.id,name:sub.name,classes:classRows,lessonCount:lpData.filter(l=>l.subject_id===sub.id).length,assessCount:subAss.length,coveragePct:total>0?Math.round((covered/total)*100):null,assessedPct:total>0?Math.round((assessed/total)*100):null,masteredPct:total>0?Math.round((mastered/total)*100):null,avgPerfPct:avgPerf,perfDist:dist,attRate:avgAtt,strands:Object.values(strandMap)};
       });
       setSubjects(summaries);
       const beStudentMap:Record<string,{subjectNames:string[];beCount:number;classId:string}>={};
@@ -150,14 +180,16 @@ export default function TeacherAcademicsPage(){
       setAtRisk(atRiskList);
       const allAttRates=classIds.map(cid=>classAttRate(cid)).filter((r):r is number=>r!==null);
       const avgAttRate=allAttRates.length>0?Math.round(allAttRates.reduce((a,b)=>a+b,0)/allAttRates.length):null;
-      setTpadLines([{label:"Lesson Plans",count:lpData.length,pts:15},{label:"Assessments",count:assData.length,pts:8},{label:"Lesson Notes",count:0,pts:10},{label:"Schemes of Work",count:0,pts:20}]);
-      setTermStats({totalLessons:lpData.length,totalAssess:assData.length,subjectCount:subList.length,studentCount:totalStudents,tpadScore:(lpData.length*15)+(assData.length*8),avgAttRate});
-    }catch(e){console.error("TeacherAcademics boot",e);}finally{setLoading(false);}
+      const tpadStandards:Record<string,number|null>={};
+      for(const s of TSC_STANDARDS)tpadStandards[s.key]=tpadRow?((tpadRow[s.key] as number|null)??null):null;
+      setTermStats({totalLessons:lpData.length,totalAssess:assData.length,subjectCount:subList.length,studentCount:totalStudents,avgAttRate,tpadFinalScore:tpadRow?(tpadRow.final_score as number|null):null,tpadStatus:tpadRow?(tpadRow.status as string|null):null,tpadStandards,evidenceCount:evidRows.length});
+    }catch(e){console.error("Academics boot",e);setError("Failed to load. Tap to retry.");}finally{setLoading(false);}
   },[router]);
 
   useEffect(()=>{boot();},[boot]);
 
-  const overallMastery=subjects.length>0?Math.round(subjects.reduce((s,sub)=>s+(sub.masteredPct??0),0)/subjects.length):0;
+  const overallMastery=subjects.length>0&&subjects.some(s=>s.masteredPct!==null)?Math.round(subjects.filter(s=>s.masteredPct!==null).reduce((s,sub)=>s+(sub.masteredPct??0),0)/subjects.filter(s=>s.masteredPct!==null).length):null;
+  const hasAnyAssessments=subjects.some(s=>s.assessCount>0);
   const totalAssessments=subjects.reduce((s,sub)=>s+sub.assessCount,0);
   const globalDist:Record<string,number>={};
   for(const sub of subjects)for(const[k,v]of Object.entries(sub.perfDist))globalDist[k]=(globalDist[k]??0)+v;
@@ -191,25 +223,36 @@ export default function TeacherAcademicsPage(){
       </div>
 
       <div style={{padding:14}}>
+        {error&&(
+          <button onClick={boot} style={{width:"100%",background:C.redDim,border:`1px solid ${C.red}44`,borderRadius:12,padding:"12px",marginBottom:12,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,color:C.red}}>{error}</button>
+        )}
 
         {tab==="overview"&&(
           <div style={{animation:"fadeUp 0.25s ease"}}>
-            {loading?<Skel h={130}/>:subjects.length>0&&(
+            {loading?<Skel h={130}/>:subjects.length>0?(
               <div style={{background:C.surface,borderRadius:16,border:`1px solid ${C.border}`,padding:16,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
                 <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>Overall Mastery</div>
-                <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14}}>
-                  <div style={{width:68,height:68,borderRadius:"50%",flexShrink:0,background:`conic-gradient(${barColor(overallMastery)} ${overallMastery*3.6}deg,${C.border} 0deg)`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    <div style={{width:52,height:52,borderRadius:"50%",background:C.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:900,color:barColor(overallMastery)}}>{overallMastery}%</div>
+                <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:overallMastery!==null&&totalAssessments>0?14:0}}>
+                  <div style={{width:68,height:68,borderRadius:"50%",flexShrink:0,background:overallMastery!==null?`conic-gradient(${barColor(overallMastery)} ${overallMastery*3.6}deg,${C.border} 0deg)`:`conic-gradient(${C.border} 360deg,${C.border} 0deg)`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                    <div style={{width:52,height:52,borderRadius:"50%",background:C.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:overallMastery!==null?16:12,fontWeight:900,color:overallMastery!==null?barColor(overallMastery):C.text3}}>{overallMastery!==null?overallMastery+"%":"—"}</div>
                   </div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:17,fontWeight:900,color:C.text}}>{overallMastery>=70?"On Track 🎯":overallMastery>=40?"Needs Attention ⚠️":"Behind 🔴"}</div>
-                    <div style={{fontSize:12,color:C.text2,marginTop:3}}>Avg mastery across {subjects.length} subject{subjects.length!==1?"s":""}</div>
-                    {termStats&&termStats.avgAttRate!==null&&(<div style={{fontSize:12,color:C.text2,marginTop:2}}>Avg attendance: <span style={{color:barColor(termStats.avgAttRate),fontWeight:700}}>{termStats.avgAttRate}%</span></div>)}
+                    {overallMastery!==null?(
+                      <><div style={{fontSize:17,fontWeight:900,color:C.text}}>{overallMastery>=70?"On Track 🎯":overallMastery>=40?"Needs Attention ⚠️":"Getting Started 📚"}</div><div style={{fontSize:12,color:C.text2,marginTop:3}}>Avg mastery across {subjects.length} subject{subjects.length!==1?"s":""}</div></>
+                    ):(
+                      <><div style={{fontSize:15,fontWeight:900,color:C.text}}>No strands assessed yet</div><div style={{fontSize:12,color:C.text2,marginTop:3}}>Record assessments to see mastery progress</div></>
+                    )}
+                    {termStats?.avgAttRate!==null&&termStats?.avgAttRate!==undefined&&(<div style={{fontSize:12,color:C.text2,marginTop:2}}>Avg attendance: <span style={{color:barColor(termStats.avgAttRate),fontWeight:700}}>{termStats.avgAttRate}%</span></div>)}
                   </div>
                 </div>
                 {totalAssessments>0&&(<><PerfBar dist={globalDist} total={totalAssessments}/><div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>{PERF_ORDER.map(p=>globalDist[p]?<PerfChip key={p} perf={p} count={globalDist[p]}/>:null)}</div></>)}
+                {!hasAnyAssessments&&(
+                  <div style={{marginTop:12,background:C.indigoDim,borderRadius:10,padding:"10px 12px"}}>
+                    <div style={{fontSize:12,fontWeight:700,color:C.indigo}}>👋 Welcome Mumbi! Start by recording your first assessment to unlock insights.</div>
+                  </div>
+                )}
               </div>
-            )}
+            ):null}
             {!loading&&atRisk.length>0&&(
               <button onClick={()=>setTab("atrisk")} style={{width:"100%",background:C.redDim,border:`1px solid ${C.red}44`,borderRadius:14,padding:"12px 14px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                 <div><div style={{fontSize:13,fontWeight:800,color:C.red}}>⚠️ {atRisk.length} student{atRisk.length!==1?"s":""} below expectation</div><div style={{fontSize:11,color:"#ef4444",marginTop:2}}>Tap to view and take action</div></div>
@@ -218,12 +261,7 @@ export default function TeacherAcademicsPage(){
             )}
             <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Subject Breakdown</div>
             {loading?(<div style={{display:"flex",flexDirection:"column",gap:10}}>{[1,2,3].map(i=><Skel key={i} h={100}/>)}</div>):subjects.length===0?(
-              <div style={{background:C.surface,borderRadius:16,border:`1.5px dashed ${C.border2}`,padding:"40px 20px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
-                <div style={{fontSize:36,marginBottom:10}}>📚</div>
-                <div style={{fontSize:15,fontWeight:800,color:C.text,marginBottom:6}}>No subjects assigned</div>
-                <div style={{fontSize:13,color:C.text3}}>Go to SubjectHub to claim your subjects.</div>
-                <button onClick={()=>router.push("/teacher/subjecthub")} style={{marginTop:14,padding:"10px 24px",borderRadius:12,background:C.indigo,color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Open SubjectHub</button>
-              </div>
+              <EmptyAction icon="📚" title="No subjects assigned" sub="Go to SubjectHub to claim your subjects." btnLabel="Open SubjectHub" onPress={()=>router.push("/teacher/subjecthub")}/>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {subjects.map(sub=>{
@@ -249,8 +287,8 @@ export default function TeacherAcademicsPage(){
                           {[{label:"Coverage",pct:sub.coveragePct,color:C.sky},{label:"Assessed",pct:sub.assessedPct,color:C.indigo},{label:"Mastered",pct:sub.masteredPct,color:C.emerald}].map(({label,pct,color})=>(
                             <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
                               <div style={{fontSize:10,color:C.text3,fontWeight:600,width:56,flexShrink:0}}>{label}</div>
-                              <div style={{flex:1}}><MiniBar pct={pct??0} color={pct!==null?color:C.border2}/></div>
-                              <div style={{fontSize:10,fontWeight:800,color:pct!==null?color:C.text3,width:30,textAlign:"right"}}>{pct!==null?pct+"%":"—"}</div>
+                              <div style={{flex:1}}><MiniBar pct={pct??0} color={pct!==null&&pct>0?color:C.border2}/></div>
+                              <div style={{fontSize:10,fontWeight:800,color:pct!==null&&pct>0?color:C.text3,width:30,textAlign:"right"}}>{pct!==null?pct+"%":"—"}</div>
                             </div>
                           ))}
                         </div>
@@ -258,6 +296,24 @@ export default function TeacherAcademicsPage(){
                       </div>
                       {isOpen&&(
                         <div style={{borderTop:`1px solid ${C.border}`,padding:"12px 15px",background:C.surface2}}>
+                          {sub.strands.length>0&&(
+                            <div style={{marginBottom:14}}>
+                              <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Strand Coverage</div>
+                              {sub.strands.map(st=>{
+                                const pct=st.total>0?Math.round(((st.assessed+st.mastered)/st.total)*100):0;
+                                const stColor=pct>=70?C.emerald:pct>=30?C.amber:C.text3;
+                                return(
+                                  <div key={st.strand} style={{marginBottom:8}}>
+                                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                                      <span style={{fontSize:11,fontWeight:700,color:C.text2,flex:1,marginRight:8}}>{st.strand}</span>
+                                      <span style={{fontSize:10,fontWeight:800,color:stColor}}>{pct}%</span>
+                                    </div>
+                                    <MiniBar pct={pct} color={stColor} h={4}/>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                           {sub.classes.length>0&&(
                             <div style={{marginBottom:12}}>
                               <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>By Class</div>
@@ -278,14 +334,14 @@ export default function TeacherAcademicsPage(){
                               })}
                             </div>
                           )}
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
                             {[{label:"Lesson Plans",icon:"📖",route:"/teacher/lessonplan?subjectId="+sub.id},{label:"Lesson Notes",icon:"📝",route:"/teacher/lessonnotes"},{label:"Assessment",icon:"📊",route:"/teacher/assessment?subjectId="+sub.id},{label:"Scheme",icon:"📋",route:"/teacher/scheme?subjectId="+sub.id}].map(a=>(
-                              <button key={a.label} onClick={()=>router.push(a.route)} style={{padding:"10px 12px",borderRadius:12,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:8,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+                              <button key={a.label} onClick={()=>router.push(a.route)} style={{padding:"10px 12px",borderRadius:12,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:8}}>
                                 <span style={{fontSize:16}}>{a.icon}</span><span style={{fontSize:12,fontWeight:700,color:C.text2}}>{a.label}</span>
                               </button>
                             ))}
                           </div>
-                          <button onClick={()=>router.push("/teacher/subjecthub")} style={{marginTop:10,width:"100%",padding:10,borderRadius:12,border:"none",background:C.indigoDim,color:C.indigo,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Open in SubjectHub →</button>
+                          <button onClick={()=>router.push("/teacher/subjecthub")} style={{width:"100%",padding:10,borderRadius:12,border:"none",background:C.indigoDim,color:C.indigo,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Open in SubjectHub →</button>
                         </div>
                       )}
                     </div>
@@ -311,16 +367,18 @@ export default function TeacherAcademicsPage(){
         {tab==="gradebook"&&(
           <div style={{animation:"fadeUp 0.25s ease"}}>
             <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>CBC Performance Distribution</div>
-            {loading?(<div style={{display:"flex",flexDirection:"column",gap:12}}>{[1,2,3].map(i=><Skel key={i} h={140}/>)}</div>):subjects.length===0?(<div style={{textAlign:"center",padding:"40px 0",color:C.text3}}>No subjects yet</div>):(
+            {loading?(<div style={{display:"flex",flexDirection:"column",gap:12}}>{[1,2,3].map(i=><Skel key={i} h={140}/>)}</div>):!hasAnyAssessments?(
+              <EmptyAction icon="📊" title="No assessments recorded yet" sub="Record your first CBC assessment to see performance distribution across your classes." btnLabel="Record Assessment" onPress={()=>router.push("/teacher/assessment")}/>
+            ):(
               subjects.map(sub=>{
                 const subTotal=Object.values(sub.perfDist).reduce((a,b)=>a+b,0);
                 return(
                   <div key={sub.id} style={{background:C.surface,borderRadius:16,border:`1px solid ${C.border}`,padding:15,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                      <div><div style={{fontSize:14,fontWeight:800,color:C.text}}>{sub.name}</div><div style={{fontSize:11,color:C.text3,marginTop:2}}>{sub.assessCount} total assessments</div></div>
+                      <div><div style={{fontSize:14,fontWeight:800,color:C.text}}>{sub.name}</div><div style={{fontSize:11,color:C.text3,marginTop:2}}>{sub.assessCount} assessments</div></div>
                       {sub.avgPerfPct!==null&&(<div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:900,color:barColor(sub.avgPerfPct)}}>{sub.avgPerfPct}%</div><div style={{fontSize:9,color:C.text3,fontWeight:700}}>AVG PERF</div></div>)}
                     </div>
-                    {subTotal>0?(<div style={{marginBottom:14}}><PerfBar dist={sub.perfDist} total={subTotal}/><div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>{PERF_ORDER.map(p=>sub.perfDist[p]?(<div key={p} style={{display:"flex",alignItems:"center",gap:4}}><PerfChip perf={p} count={sub.perfDist[p]}/><span style={{fontSize:10,color:C.text3}}>{Math.round((sub.perfDist[p]/subTotal)*100)}%</span></div>):null)}</div></div>):(<div style={{fontSize:12,color:C.text3,marginBottom:12}}>No assessments recorded yet</div>)}
+                    {subTotal>0?(<div style={{marginBottom:14}}><PerfBar dist={sub.perfDist} total={subTotal}/><div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>{PERF_ORDER.map(p=>sub.perfDist[p]?(<div key={p} style={{display:"flex",alignItems:"center",gap:4}}><PerfChip perf={p} count={sub.perfDist[p]}/><span style={{fontSize:10,color:C.text3}}>{Math.round((sub.perfDist[p]/subTotal)*100)}%</span></div>):null)}</div></div>):(<div style={{fontSize:12,color:C.text3,marginBottom:12}}>No assessments yet</div>)}
                     {sub.classes.map(cls=>{
                       const cTotal=Object.values(cls.perfDist).reduce((a,b)=>a+b,0);
                       const eeCount=cls.perfDist["exceeds_expectation"]??0;
@@ -349,8 +407,10 @@ export default function TeacherAcademicsPage(){
               <div style={{fontSize:13,fontWeight:800,color:C.red}}>Students Below Expectation</div>
               <div style={{fontSize:11,color:"#ef4444",marginTop:2}}>Based on CBC assessments this term. Take action early.</div>
             </div>
-            {loading?(<div style={{display:"flex",flexDirection:"column",gap:10}}>{[1,2,3].map(i=><Skel key={i} h={80}/>)}</div>):atRisk.length===0?(
-              <div style={{background:C.surface,borderRadius:16,border:`1.5px dashed ${C.border2}`,padding:"40px 20px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+            {loading?(<div style={{display:"flex",flexDirection:"column",gap:10}}>{[1,2,3].map(i=><Skel key={i} h={80}/>)}</div>):!hasAnyAssessments?(
+              <EmptyAction icon="📋" title="No assessments recorded yet" sub="Record CBC assessments first. At-risk students will appear here automatically." btnLabel="Record Assessment" onPress={()=>router.push("/teacher/assessment")}/>
+            ):atRisk.length===0?(
+              <div style={{background:C.surface,borderRadius:16,border:`1.5px dashed ${C.border2}`,padding:"40px 20px",textAlign:"center"}}>
                 <div style={{fontSize:36,marginBottom:10}}>🎉</div>
                 <div style={{fontSize:15,fontWeight:800,color:C.text,marginBottom:6}}>No students at risk</div>
                 <div style={{fontSize:13,color:C.text3}}>All assessed students are meeting expectations or above.</div>
@@ -376,14 +436,12 @@ export default function TeacherAcademicsPage(){
                     <button onClick={()=>router.push("/teacher/classhub")} style={{marginTop:10,width:"100%",padding:"8px",borderRadius:10,border:`1px solid ${C.border}`,background:C.surface2,color:C.text2,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>View in ClassHub →</button>
                   </div>
                 ))}
-              </div>
-            )}
-            {!loading&&atRisk.length>0&&(
-              <div style={{background:C.indigoDim,borderRadius:14,border:`1px solid ${C.indigo}33`,padding:"12px 14px",marginTop:14}}>
-                <div style={{fontSize:12,fontWeight:800,color:C.indigo,marginBottom:6}}>💡 CBC Intervention Tips</div>
-                {["Group BE students for targeted strand revision","Assign peer learning partners (EE + BE pairings)","Re-assess after focused intervention sessions","Document intervention evidence for TPAD"].map((tip,i)=>(
-                  <div key={i} style={{fontSize:11,color:"#4338ca",marginBottom:4,paddingLeft:12,borderLeft:`2px solid ${C.indigo}`}}>{tip}</div>
-                ))}
+                <div style={{background:C.indigoDim,borderRadius:14,border:`1px solid ${C.indigo}33`,padding:"12px 14px",marginTop:6}}>
+                  <div style={{fontSize:12,fontWeight:800,color:C.indigo,marginBottom:6}}>💡 CBC Intervention Tips</div>
+                  {["Group BE students for targeted strand revision","Assign peer learning partners (EE + BE pairings)","Re-assess after focused intervention sessions","Document intervention evidence for TPAD"].map((tip,i)=>(
+                    <div key={i} style={{fontSize:11,color:"#4338ca",marginBottom:4,paddingLeft:12,borderLeft:`2px solid ${C.indigo}`}}>{tip}</div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -393,34 +451,55 @@ export default function TeacherAcademicsPage(){
           <div style={{animation:"fadeUp 0.25s ease"}}>
             {loading?<Skel h={120}/>:termStats&&(
               <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:18,border:`1px solid ${C.indigo}44`,padding:18,marginBottom:14}}>
-                <div style={{fontSize:10,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>TPAD Impact Score</div>
-                <div style={{fontSize:48,fontWeight:900,color:"#818cf8",letterSpacing:-2}}>{termStats.tpadScore}</div>
-                <div style={{fontSize:12,color:"#c7d2fe",marginTop:2}}>Evidence points this term — ready for TSC countersigning</div>
-                <div style={{marginTop:14}}><MiniBar pct={Math.min((termStats.tpadScore/500)*100,100)} color="#818cf8" h={6}/><div style={{fontSize:10,color:"#a5b4fc",marginTop:4}}>Target: 500 pts per term</div></div>
-              </div>
-            )}
-            <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Evidence Breakdown</div>
-            {loading?(<div style={{display:"flex",flexDirection:"column",gap:8}}>{[1,2,3,4].map(i=><Skel key={i} h={64}/>)}</div>):(
-              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
-                {tpadLines.map(line=>(
-                  <div key={line.label} style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"13px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-                    <div><div style={{fontSize:13,fontWeight:800,color:C.text}}>{line.label}</div><div style={{fontSize:11,color:C.text3,marginTop:2}}>{line.pts} pts each</div></div>
-                    <div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:900,color:line.count>0?C.emerald:C.text3}}>{line.count}</div><div style={{fontSize:10,color:C.text3}}>{line.count*line.pts} pts earned</div></div>
+                <div style={{fontSize:10,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>TPAD Score</div>
+                <div style={{fontSize:48,fontWeight:900,color:"#818cf8",letterSpacing:-2}}>{termStats.tpadFinalScore!==null?termStats.tpadFinalScore:"—"}</div>
+                <div style={{fontSize:12,color:"#c7d2fe",marginTop:2}}>{termStats.tpadStatus?`Status: ${termStats.tpadStatus}`:"No appraisal submitted yet"}</div>
+                <div style={{display:"flex",gap:12,marginTop:12}}>
+                  <div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:"#a5b4fc"}}>{termStats.evidenceCount}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Evidence items</div>
                   </div>
-                ))}
+                  <div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:"#bbf7d0"}}>{termStats.totalLessons}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Lesson plans</div>
+                  </div>
+                  <div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
+                    <div style={{fontSize:18,fontWeight:900,color:"#fde68a"}}>{termStats.totalAssess}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Assessments</div>
+                  </div>
+                </div>
               </div>
             )}
-            <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>TSC Standards Readiness</div>
-            {[{std:"Standard 1",label:"Professional Knowledge",pct:termStats?Math.min(termStats.totalLessons*10,100):0},{std:"Standard 2",label:"Teaching & Learning",pct:termStats?Math.min(termStats.totalAssess*8,100):0},{std:"Standard 3",label:"Assessment for Learning",pct:Math.min(overallMastery,100)},{std:"Standard 4",label:"Professional Development",pct:0}].map(s=>(
-              <div key={s.std} style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"12px 14px",marginBottom:8,boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div><div style={{fontSize:12,fontWeight:800,color:C.text}}>{s.std}</div><div style={{fontSize:11,color:C.text3}}>{s.label}</div></div>
-                  <div style={{fontSize:16,fontWeight:900,color:barColor(s.pct)}}>{s.pct}%</div>
-                </div>
-                <MiniBar pct={s.pct} color={barColor(s.pct)} h={5}/>
+            <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>All 8 TSC Standards</div>
+            {loading?(<div style={{display:"flex",flexDirection:"column",gap:8}}>{TSC_STANDARDS.map((_,i)=><Skel key={i} h={64}/>)}</div>):(
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                {TSC_STANDARDS.map((std,i)=>{
+                  const score=termStats?.tpadStandards[std.key]??null;
+                  const pct=score!==null?Math.round((score/4)*100):0;
+                  return(
+                    <div key={std.key} style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"13px 14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                        <div style={{flex:1,marginRight:8}}>
+                          <div style={{fontSize:10,fontWeight:800,color:C.text3,marginBottom:2}}>Standard {i+1}</div>
+                          <div style={{fontSize:12,fontWeight:700,color:C.text}}>{std.label}</div>
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          <div style={{fontSize:18,fontWeight:900,color:score!==null?barColor(pct):C.text3}}>{score!==null?score+"/4":"—"}</div>
+                        </div>
+                      </div>
+                      <MiniBar pct={score!==null?pct:0} color={score!==null?barColor(pct):C.border2} h={5}/>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-            <button onClick={()=>router.push("/teacher/tpad")} style={{width:"100%",padding:"13px",borderRadius:14,border:"none",background:C.indigoDim,color:C.indigo,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginTop:4}}>Open Full TPAD Dashboard →</button>
+            )}
+            {!loading&&termStats&&termStats.tpadFinalScore===null&&(
+              <div style={{background:C.amberDim,borderRadius:14,border:`1px solid ${C.amber}44`,padding:"12px 14px",marginBottom:12}}>
+                <div style={{fontSize:12,fontWeight:800,color:C.amber,marginBottom:4}}>⚠️ No TPAD appraisal submitted yet</div>
+                <div style={{fontSize:11,color:"#92400e"}}>Submit your self-appraisal on the TPAD dashboard to populate your scores here.</div>
+              </div>
+            )}
+            <button onClick={()=>router.push("/teacher/tpad")} style={{width:"100%",padding:"13px",borderRadius:14,border:"none",background:C.indigoDim,color:C.indigo,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Open Full TPAD Dashboard →</button>
           </div>
         )}
 
