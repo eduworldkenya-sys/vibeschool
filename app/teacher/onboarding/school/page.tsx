@@ -82,6 +82,9 @@ export default function SchoolOnboardingPage() {
   }
 
   async function saveSchoolToProfile(userId: string, schoolId: string): Promise<boolean> {
+    // Refresh session to ensure RLS sees the correct auth.uid()
+    await supabase.auth.refreshSession()
+
     // 1. Update profiles.school_id
     const { error: profileErr } = await supabase
       .from('profiles')
