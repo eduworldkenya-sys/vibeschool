@@ -5,7 +5,6 @@ import { useEffect, useState, useCallback, Suspense, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
-import { ensureStrandsForSubject } from '@/lib/strandSync'
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
 const C = {
@@ -515,12 +514,16 @@ function SchemePageInner() {
     setAddingStrand(false)
     setAddStrandError(null)
 
+    const cls  = classes.find(c => c.id === selectedClass)
+    const grade = cls?.grade ?? ''
+
     const [strandsRes, progressRes] = await Promise.all([
       supabase
-        .from('strands')
+        .from('cbc_strands')
         .select('id,name')
         .eq('subject_id', selectedSubject)
-        .eq('school_id', schoolId),
+        .eq('grade', grade)
+        .order('name'),
       supabase
         .from('strand_progress')
         .select('strand_id,term,week,status,notes')
@@ -533,31 +536,7 @@ function SchemePageInner() {
     if (strandsRes.error)  { setFetchError(strandsRes.error.message);  setFetching(false); return }
     if (progressRes.error) { setFetchError(progressRes.error.message); setFetching(false); return }
 
-    let strandRows = strandsRes.data ?? []
-
-    // Self-heal: if no strands exist yet for this subject/school, try to
-    // derive them from the master KICD curriculum table so a school never
-    // has to be manually seeded before this page (or Assessment / Report
-    // Cards, which share this same `strands` table) can be used.
-    if (strandRows.length === 0) {
-      const cls  = classes.find(c => c.id === selectedClass)
-      const subj = subjects.find(s => s.id === selectedSubject)
-      if (cls && subj) {
-        try {
-          strandRows = await ensureStrandsForSubject({
-            schoolId,
-            subjectId:    selectedSubject,
-            subjectLabel: subj.label,
-            grade:        cls.grade,
-          })
-        } catch {
-          // Non-fatal — curriculum table may have nothing for this
-          // grade/subject yet. Falls through to the manual add-strand flow.
-        }
-      }
-    }
-
-    setStrands(strandRows)
+    setStrands(strandsRes.data ?? [])
     setProgress(progressRes.data ?? [])
     setFetching(false)
   }, [selectedSubject, selectedClass, selectedTerm, schoolId, uid, classes, subjects])
