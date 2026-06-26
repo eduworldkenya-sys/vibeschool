@@ -289,3 +289,7 @@
 ## [2026-06-26 14:59] cdeecfb
 **What:** restyle academics: light theme matching More page aesthetic
 **Status:** ✅ pushed
+
+## [2026-06-26 15:14] 0f9b68f
+**What:** academics: real TPAD scores, strand breakdown, smart empty states, error retry, light theme
+**Status:** ✅ pushed
