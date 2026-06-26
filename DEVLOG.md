@@ -257,3 +257,7 @@
 ## [2026-06-25 09:08] bafeb5e
 **What:** chore: remove fix scripts from repo
 **Status:** ✅ pushed
+
+## [2026-06-26 13:08] be67528
+**What:** update subject insight route
+**Status:** ✅ pushed
