@@ -269,3 +269,7 @@
 ## [2026-06-26 13:30] f7b19b4
 **What:** fix subject insight name, assessed pct, remove seed row mutation
 **Status:** ✅ pushed
+
+## [2026-06-26 13:36] a8fc1bf
+**What:** add teacher academics hub page
+**Status:** ✅ pushed
