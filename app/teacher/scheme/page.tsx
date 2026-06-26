@@ -588,8 +588,16 @@ function SchemePageInner() {
   }, [loading, loadStrands])
 
   useEffect(() => {
+    if (!loading && selectedClass && selectedSubject) {
+      // Reset week to 1 when term changes to avoid stale week selection
+      setSelectedWeek(1)
+      loadStrands()
+    }
+  }, [selectedTerm])
+
+  useEffect(() => {
     if (!loading && selectedClass && selectedSubject) loadStrands()
-  }, [selectedWeek, selectedTerm])
+  }, [selectedWeek])
 
   // ── Update status ─────────────────────────────────────────────
   async function updateStatus(strandId: string, status: string) {
