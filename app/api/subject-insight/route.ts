@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const { subjectName, lCount, aCount, atCount, rCount, strands, weakStrand, avgPerfPct, coveragePct, masteredPct } = await req.json()
     if (!subjectName) return NextResponse.json({ error: 'Missing subjectName' }, { status: 400 })
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) return NextResponse.json({ fact: null, suggestion: null })
 
     const strandContext  = strands?.length > 0 ? `Curriculum strands: ${strands.join(', ')}.` : ''
@@ -33,18 +33,18 @@ ${strandContext} ${weakContext} ${perfContext} ${masteryGap}
 Respond ONLY with valid JSON in this exact format, no preamble, no markdown:
 {"fact":"one surprising fact about ${subjectName} that makes a teacher proud to teach it. Max 2 sentences.","suggestion":"one specific actionable intervention for this teacher based on the data above. If there is a mastery gap or weak strand, address it directly. Max 2 sentences.","interventionType":"reteach|enrich|assess"}`
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'llama-3.3-70b-versatile',
         max_tokens: 400,
         messages: [{ role: 'user', content: prompt }],
       }),
     })
 
     const data = await res.json()
-    const text = data.content?.[0]?.text ?? ''
+    const text = data.choices?.[0]?.message?.content ?? ''
 
     try {
       const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
