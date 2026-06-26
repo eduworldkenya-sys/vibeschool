@@ -38,7 +38,7 @@ interface ClassOption   { id: string; label: string; grade: string }
 interface SubjectOption { id: string; label: string }
 interface Strand        { id: string; name: string; sub_strand: string; topic: string }
 interface Progress      { strand_id: string; term: number; week: number; status: string; notes: string | null }
-interface Term          { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string }
+interface Term          { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string; status: string }
 interface CurriculumRow { id: string; grade: string; subject: string; strand: string; sub_strand: string; topic: string; week: number; term: number }
 
 // ── STATUS CONFIG ──────────────────────────────────────────────
