@@ -265,3 +265,7 @@
 ## [2026-06-26 13:22] d940b3a
 **What:** fix subject insight name, assessed pct, remove seed row mutation
 **Status:** ✅ pushed
+
+## [2026-06-26 13:30] f7b19b4
+**What:** fix subject insight name, assessed pct, remove seed row mutation
+**Status:** ✅ pushed
