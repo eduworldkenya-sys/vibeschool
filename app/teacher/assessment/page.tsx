@@ -339,15 +339,7 @@ function AssessmentInner() {
     const masteryStatus = ['exceeds_expectation','meets_expectation'].includes(selPerf) ? 'mastered' : 'assessed'
     const resolvedStrandName = strands.find(s => s.id === selStrand)?.name ?? null
     if (resolvedStrandName && activeSubjectId) {
-      await supabase
-        .from('learner_outcomes')
-        .update({ status: masteryStatus, score: masteryStatus === 'mastered' ? 100 : 50, assessed_at: new Date().toISOString(), student_id: modalStudent.id })
-        .eq('subject_id', activeSubjectId)
-        .eq('strand', resolvedStrandName)
-        .is('student_id', null)
-        .limit(1)
-
-      // also upsert a student-specific row
+      // upsert student-specific mastery row only
       await supabase
         .from('learner_outcomes')
         .upsert({

@@ -440,7 +440,7 @@ export default function SubjectHubPage() {
       setNextSlot(null)
     }
 
-    const subjectName = activeSubject?.name ?? 'your subject'
+    const subjectName = subjectName2
     if (lCount > 0 || aCount > 0 || atCount > 0 || rCount > 0) {
       try {
         const insightRes = await fetch('/api/subject-insight', {
@@ -492,7 +492,7 @@ export default function SubjectHubPage() {
     if (masteryRows && masteryRows.length > 0) {
       const total = masteryRows.length
       const covered  = masteryRows.filter(r => ['assessed','mastered'].includes(r.status ?? '')).length
-      const assessed = masteryRows.filter(r => ['assessed','mastered'].includes(r.status ?? '')).length
+      const assessed = masteryRows.filter(r => r.status === 'assessed').length
       const mastered = masteryRows.filter(r => r.status === 'mastered').length
       setCoveragePct(Math.round((covered  / total) * 100))
       setAssessedPct(Math.round((assessed / total) * 100))
