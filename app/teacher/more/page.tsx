@@ -6,6 +6,7 @@ import { C } from '@/components/teacher/ui'
 
 const ITEMS = [
   { label: 'Home',         href: '/teacher',                      desc: 'Dashboard — your day at a glance'  },
+  { label: 'Academics',    href: '/teacher/academics',            desc: 'All subjects · mastery · TPAD'     },
   { label: 'SubjectHub',   href: '/teacher/subjecthub',           desc: 'Manage your subjects'              },
   { label: 'Lesson Plans', href: '/teacher/lessonplan',           desc: 'Plan and generate lessons'         },
   { label: 'Lesson Notes', href: '/teacher/lessonnotes',          desc: 'Record what was actually taught'   },
