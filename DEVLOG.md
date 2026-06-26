@@ -273,3 +273,7 @@
 ## [2026-06-26 13:36] a8fc1bf
 **What:** add teacher academics hub page
 **Status:** ✅ pushed
+
+## [2026-06-26 13:37] 8419962
+**What:** add academics to teacher more menu
+**Status:** ✅ pushed
