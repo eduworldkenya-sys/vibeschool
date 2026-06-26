@@ -140,7 +140,7 @@ export default function TeacherAcademicsPage(){
       type AttRow={student_id:string;class_id:string;status:string};
       const subList=(subRes.status==="fulfilled"?subRes.value.data??[]:(console.error("subRes",subRes),[])) as SubRow[];
       const classList=(classRes.status==="fulfilled"?classRes.value.data??[]:(console.error("classRes",classRes),[])) as ClsRow[];
-      const studentCls=(studentClsRes.data??[]) as SClsRow[];
+      const studentCls=(studentClsRes.status==="fulfilled"?studentClsRes.value.data??[]:[]) as SClsRow[];
       const lpData=(lpRes.status==="fulfilled"?lpRes.value.data??[]:(console.error("lpRes",lpRes),[])) as LPRow[];
       const assData=(assRes.status==="fulfilled"?assRes.value.data??[]:(console.error("assRes",assRes),[])) as AssRow[];
       const outcomeData=(outcomeRes.status==="fulfilled"?outcomeRes.value.data??[]:(console.error("outcomeRes",outcomeRes),[])) as OutRow[];
