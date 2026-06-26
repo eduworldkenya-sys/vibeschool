@@ -5,6 +5,7 @@ import { supabase, SUPABASE_URL } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 import { getServerWeek, nairobiDateStr } from '@/lib/time'
 import type { TimetableSlot } from '@/lib/types'
+import { useCredits } from '@/app/teacher/layout'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,7 @@ function Skeleton({ h = 48 }: { h?: number }) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function LessonPlanModal({ slot, onClose }: Props) {
+  const { refreshCredits } = useCredits()
   const [phase,    setPhase]    = useState<Phase>('loading')
   const [sections, setSections] = useState<PlanSections>(EMPTY)
   const [draft,    setDraft]    = useState<PlanSections>(EMPTY)
@@ -297,6 +299,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       }
 
       setSections(parsed)
+      refreshCredits()
 
       // G2
       const { weekStart, dayOfWeek } = await getServerWeek()

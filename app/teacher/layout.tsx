@@ -15,6 +15,10 @@ interface UserCtx { fullName: string; initials: string; school: string }
 const UserContext = createContext<UserCtx>({ fullName: '', initials: '', school: '' });
 export const useUser = () => useContext(UserContext);
 
+interface CreditCtx { creditBalance: number | null; refreshCredits: () => void }
+const CreditContext = createContext<CreditCtx>({ creditBalance: null, refreshCredits: () => {} });
+export const useCredits = () => useContext(CreditContext);
+
 // ── Nav config — single source of truth ──────────────────────────────────────
 const NAV_TABS = [
   { id: "classhub",   label: "Home",      href: "/teacher" },
@@ -698,6 +702,17 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [unreadConnect, setUnreadConnect] = useState(0);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [authReady,     setAuthReady]     = useState(false);
+  const teacherIdRef = useRef<string | null>(null);
+
+  const refreshCredits = useCallback(() => {
+    const uid = teacherIdRef.current;
+    if (!uid) return;
+    supabase.rpc("get_credit_balance", { p_teacher_id: uid })
+      .then(({ data: creditData }) => {
+        if (creditData?.success) setCreditBalance(creditData.balance)
+      })
+      .catch(() => {})
+  }, []);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -801,11 +816,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       }
       setUnreadConnect(unread);
       setAuthReady(true);
-      supabase.rpc("get_credit_balance", { p_teacher_id: user.id })
-        .then(({ data: creditData }) => {
-          if (creditData?.success) setCreditBalance(creditData.balance)
-        })
-        .catch(() => {})
+      teacherIdRef.current = user.id;
+      refreshCredits();
     }
     fetchProfile();
   }, []);
@@ -824,6 +836,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   return (
     <ToastContext.Provider value={{ showToast }}>
       <UserContext.Provider value={userCtx}>
+        <CreditContext.Provider value={{ creditBalance, refreshCredits }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -852,6 +865,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <BottomNav activeId={activeId} />
           {toast && <Toast msg={toast} />}
         </div>
+      </CreditContext.Provider>
       </UserContext.Provider>
     </ToastContext.Provider>
   );
