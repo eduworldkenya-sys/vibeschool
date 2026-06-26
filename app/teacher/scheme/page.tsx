@@ -2,9 +2,10 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense, useMemo } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
+import { ensureStrandsForSubject } from '@/lib/strandSync'
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
 const C = {
@@ -36,10 +37,10 @@ const C = {
 // ── INTERFACES ─────────────────────────────────────────────────
 interface ClassOption   { id: string; label: string; grade: string }
 interface SubjectOption { id: string; label: string }
-interface Strand        { id: string; name: string; sub_strand: string; topic: string }
+interface Strand        { id: string; name: string }
 interface Progress      { strand_id: string; term: number; week: number; status: string; notes: string | null }
-interface Term          { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string; status: string }
-interface CurriculumRow { id: string; grade: string; subject: string; strand: string; sub_strand: string; topic: string; week: number; term: number }
+interface Term          { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string }
+interface CurriculumRow { grade: string; subject: string; strand: string; week: number; term: number }
 
 // ── STATUS CONFIG ──────────────────────────────────────────────
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string; border: string }> = {
@@ -155,14 +156,13 @@ function CoveragePill({ pct }: { pct: number }) {
 
 // ── WEEK GRID ──────────────────────────────────────────────────
 function WeekGrid({
-  totalWks, currentWk, weekCoverage, weekStrandCount, selectedWeek, onSelect
+  totalWks, currentWk, weekCoverage, selectedWeek, onSelect
 }: {
-  totalWks:        number
-  currentWk:       number
-  weekCoverage:    Record<number, number>
-  weekStrandCount: Record<number, number>
-  selectedWeek:    number
-  onSelect:        (w: number) => void
+  totalWks:     number
+  currentWk:    number
+  weekCoverage: Record<number, number>
+  selectedWeek: number
+  onSelect:     (w: number) => void
 }) {
   return (
     <div>
@@ -220,14 +220,6 @@ function WeekGrid({
                 background:   dotColor,
                 boxShadow:    level !== 'empty' ? `0 0 4px ${dotColor}` : 'none',
               }} />
-              {(weekStrandCount[w] ?? 0) > 0 && (
-                <div style={{
-                  fontSize:   8,
-                  fontWeight: 800,
-                  color:      active ? C.indigo : C.text3,
-                  lineHeight: 1,
-                }}>{weekStrandCount[w]}</div>
-              )}
             </div>
           )
         })}
@@ -265,13 +257,12 @@ function WeekGrid({
 
 // ── STRAND CARD ────────────────────────────────────────────────
 function StrandCard({
-  strand, status, isSaving, onUpdate, onGenerate
+  strand, status, isSaving, onUpdate
 }: {
-  strand:     Strand
-  status:     string
-  isSaving:   boolean
-  onUpdate:   (strandId: string, status: string) => void
-  onGenerate: () => void
+  strand:   Strand
+  status:   string
+  isSaving: boolean
+  onUpdate: (strandId: string, status: string) => void
 }) {
   const st = STATUS_STYLE[status] ?? STATUS_STYLE.planned
 
@@ -307,11 +298,6 @@ function StrandCard({
             flex:       1,
             marginRight: 10,
           }}>{strand.name}</div>
-          {strand.sub_strand && (
-            <div style={{ fontSize: 11, color: C.text3, marginTop: 2, marginRight: 10 }}>
-              {strand.sub_strand}{strand.topic ? ` · ${strand.topic}` : ''}
-            </div>
-          )}
 
           <span style={{
             background:   st.bg,
@@ -353,23 +339,6 @@ function StrandCard({
             )
           })}
         </div>
-        <button
-          onClick={onGenerate}
-          style={{
-            marginTop:    8,
-            width:        '100%',
-            padding:      '7px',
-            background:   'linear-gradient(135deg, #4f46e5, #6366f1)',
-            color:        '#fff',
-            border:       'none',
-            borderRadius: 8,
-            fontSize:     11,
-            fontWeight:   700,
-            cursor:       'pointer',
-            fontFamily:   'inherit',
-            letterSpacing: 0.3,
-          }}
-        >✨ Generate Lesson Plan</button>
       </div>
     </div>
   )
@@ -406,7 +375,6 @@ function Chip({
 // ── MAIN INNER ─────────────────────────────────────────────────
 function SchemePageInner() {
   const searchParams = useSearchParams()
-  const router = useRouter()
 
   const [uid,             setUid]             = useState<string | null>(null)
   const [schoolId,        setSchoolId]        = useState<string | null>(null)
@@ -426,6 +394,10 @@ function SchemePageInner() {
   const [fetchError,      setFetchError]      = useState<string | null>(null)
   const [noSchool,        setNoSchool]        = useState(false)
   const [noClasses,       setNoClasses]       = useState(false)
+  const [addingStrand,    setAddingStrand]    = useState(false)
+  const [newStrandName,   setNewStrandName]   = useState('')
+  const [addStrandBusy,   setAddStrandBusy]   = useState(false)
+  const [addStrandError,  setAddStrandError]  = useState<string | null>(null)
 
   // ── Boot ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -474,7 +446,8 @@ function SchemePageInner() {
             .from('academic_terms')
             .select('id,name,term,academic_year,start_date,end_date,status')
             .eq('school_id', sid)
-            .order('term', { ascending: true }),
+            .eq('status', 'active')
+            .single(),
         ])
 
         const classOptions: ClassOption[] = (clRes.data ?? []).map(
@@ -489,14 +462,12 @@ function SchemePageInner() {
           (s: { id: string; name: string }) => ({ id: s.id, label: s.name })
         )
 
-        const allTerms = (termRes.data ?? []) as Term[]
-        // Default to active term, fall back to first term
-        const activeTerm = allTerms.find(t => t.status === 'active') ?? allTerms[0] ?? null
-        setActiveTerm(activeTerm)
+        const term = termRes.data as Term | null
+        setActiveTerm(term)
 
-        if (activeTerm) {
-          const curWeek = currentWeekOf(activeTerm)
-          setSelectedTerm(activeTerm.term)
+        if (term) {
+          const curWeek = currentWeekOf(term)
+          setSelectedTerm(term.term)
           setSelectedWeek(curWeek)
         }
 
@@ -516,11 +487,12 @@ function SchemePageInner() {
         setSelectedSubject(defaultSubject)
 
         // Load curriculum for coverage dots
-        if (activeTerm) {
+        if (term) {
           const grades = Array.from(new Set(classOptions.map(c => c.grade)))
           const { data: currData } = await supabase
             .from('curriculum')
             .select('grade,subject,strand,week,term')
+            .eq('term', term.term)
             .in('grade', grades)
           setCurriculum((currData ?? []) as CurriculumRow[])
         }
@@ -540,23 +512,18 @@ function SchemePageInner() {
     setStrands([])
     setProgress([])
     setFetchError(null)
-
-    const cls  = classes.find(c => c.id === selectedClass)
-    const subj = subjects.find(s => s.id === selectedSubject)
-    if (!cls || !subj) { setFetching(false); return }
+    setAddingStrand(false)
+    setAddStrandError(null)
 
     const [strandsRes, progressRes] = await Promise.all([
       supabase
-        .from('curriculum')
-        .select('id,strand,sub_strand,topic,week,term,grade,subject')
-        .eq('grade', cls.grade)
-        .eq('subject', subj.label)
-        .eq('term', selectedTerm)
-        .eq('week', selectedWeek)
-        .order('strand'),
+        .from('strands')
+        .select('id,name')
+        .eq('subject_id', selectedSubject)
+        .eq('school_id', schoolId),
       supabase
         .from('strand_progress')
-        .select('curriculum_id,term,week,status,notes')
+        .select('strand_id,term,week,status,notes')
         .eq('teacher_id', uid)
         .eq('class_id', selectedClass)
         .eq('subject_id', selectedSubject)
@@ -566,38 +533,65 @@ function SchemePageInner() {
     if (strandsRes.error)  { setFetchError(strandsRes.error.message);  setFetching(false); return }
     if (progressRes.error) { setFetchError(progressRes.error.message); setFetching(false); return }
 
-    const mappedStrands: Strand[] = (strandsRes.data ?? []).map((r: CurriculumRow) => ({
-      id:         r.id,
-      name:       r.strand,
-      sub_strand: r.sub_strand,
-      topic:      r.topic,
-    }))
-    setStrands(mappedStrands)
-    setProgress((progressRes.data ?? []).map((p: { curriculum_id: string; term: number; week: number; status: string; notes: string | null }) => ({
-      strand_id: p.curriculum_id,
-      term:      p.term,
-      week:      p.week,
-      status:    p.status,
-      notes:     p.notes,
-    })))
+    let strandRows = strandsRes.data ?? []
+
+    // Self-heal: if no strands exist yet for this subject/school, try to
+    // derive them from the master KICD curriculum table so a school never
+    // has to be manually seeded before this page (or Assessment / Report
+    // Cards, which share this same `strands` table) can be used.
+    if (strandRows.length === 0) {
+      const cls  = classes.find(c => c.id === selectedClass)
+      const subj = subjects.find(s => s.id === selectedSubject)
+      if (cls && subj) {
+        try {
+          strandRows = await ensureStrandsForSubject({
+            schoolId,
+            subjectId:    selectedSubject,
+            subjectLabel: subj.label,
+            grade:        cls.grade,
+          })
+        } catch {
+          // Non-fatal — curriculum table may have nothing for this
+          // grade/subject yet. Falls through to the manual add-strand flow.
+        }
+      }
+    }
+
+    setStrands(strandRows)
+    setProgress(progressRes.data ?? [])
     setFetching(false)
-  }, [selectedSubject, selectedClass, selectedTerm, selectedWeek, schoolId, uid])
+  }, [selectedSubject, selectedClass, selectedTerm, schoolId, uid, classes, subjects])
 
   useEffect(() => {
     if (!loading) loadStrands()
   }, [loading, loadStrands])
 
-  useEffect(() => {
-    if (!loading && selectedClass && selectedSubject) {
-      // Reset week to 1 when term changes to avoid stale week selection
-      setSelectedWeek(1)
-      loadStrands()
-    }
-  }, [selectedTerm])
+  // ── Manual add-strand fallback ──────────────────────────────────
+  // Used only when the curriculum table has no rows for this grade/subject
+  // at all (a genuine content gap, not just an unseeded school).
+  async function addStrand() {
+    const name = newStrandName.trim()
+    if (!name || !selectedSubject || !schoolId) return
+    setAddStrandBusy(true)
+    setAddStrandError(null)
 
-  useEffect(() => {
-    if (!loading && selectedClass && selectedSubject) loadStrands()
-  }, [selectedWeek])
+    const { data, error } = await supabase
+      .from('strands')
+      .insert({ name, subject_id: selectedSubject, school_id: schoolId })
+      .select('id,name')
+      .single()
+
+    if (error) {
+      setAddStrandError(error.message)
+      setAddStrandBusy(false)
+      return
+    }
+
+    setStrands(prev => [...prev, data])
+    setNewStrandName('')
+    setAddingStrand(false)
+    setAddStrandBusy(false)
+  }
 
   // ── Update status ─────────────────────────────────────────────
   async function updateStatus(strandId: string, status: string) {
@@ -605,16 +599,15 @@ function SchemePageInner() {
     setSaving(strandId)
 
     const { error } = await supabase.from('strand_progress').upsert({
-      teacher_id:    uid,
-      class_id:      selectedClass,
-      subject_id:    selectedSubject,
-      school_id:     schoolId,
-      curriculum_id: strandId,
-      strand_id:     strandId,
+      teacher_id: uid,
+      class_id:   selectedClass,
+      subject_id: selectedSubject,
+      school_id:  schoolId,
+      strand_id:  strandId,
       term:       selectedTerm,
       week:       selectedWeek,
       status,
-    }, { onConflict: 'teacher_id,class_id,curriculum_id,term,week' })
+    }, { onConflict: 'teacher_id,class_id,strand_id,term,week' })
 
     if (!error) {
       setProgress(prev => {
@@ -632,24 +625,6 @@ function SchemePageInner() {
     progress.find(p => p.strand_id === strandId && p.week === selectedWeek)?.status ?? 'planned'
 
   // ── Week coverage dots (synced with curriculum table) ─────────
-  const weekStrandCount = useMemo(() => {
-    const map: Record<number, number> = {}
-    if (!activeTerm || !selectedClass || !selectedSubject) return map
-    const cls  = classes.find(c => c.id === selectedClass)
-    const subj = subjects.find(s => s.id === selectedSubject)
-    if (!cls || !subj) return map
-    const totWks = totalWeeks(activeTerm)
-    for (let w = 1; w <= totWks; w++) {
-      map[w] = curriculum.filter(c =>
-        c.grade   === cls.grade &&
-        c.subject === subj.label &&
-        c.week    === w &&
-        c.term    === selectedTerm
-      ).length
-    }
-    return map
-  }, [activeTerm, selectedClass, selectedSubject, classes, subjects, curriculum, selectedTerm])
-
   const weekCoverage = useMemo(() => {
     const map: Record<number, number> = {}
     if (!activeTerm || !selectedClass || !selectedSubject) return map
@@ -658,7 +633,8 @@ function SchemePageInner() {
     const subj       = subjects.find(s => s.id === selectedSubject)
     if (!cls || !subj) return map
 
-    const totWks = totalWeeks(activeTerm)
+    const totWks  = totalWeeks(activeTerm)
+    const nameToId = new Map(strands.map(s => [s.name, s.id]))
 
     for (let w = 1; w <= totWks; w++) {
       const weekStrands = curriculum.filter(c =>
@@ -667,47 +643,32 @@ function SchemePageInner() {
         c.week    === w &&
         c.term    === selectedTerm
       )
-      const delivered = weekStrands.filter(c =>
-        progress.some(p =>
-          p.strand_id === c.id &&
-          p.week      === w    &&
+      const delivered = weekStrands.filter(c => {
+        const strandId = nameToId.get(c.strand)
+        return strandId != null && progress.some(p =>
+          p.strand_id === strandId &&
+          p.week      === w &&
           p.status    === 'done'
         )
-      ).length
+      }).length
       map[w] = weekStrands.length > 0
         ? Math.round((delivered / weekStrands.length) * 100)
         : 0
     }
     return map
-  }, [activeTerm, selectedClass, selectedSubject, classes, subjects, curriculum, progress, selectedTerm])
+  }, [activeTerm, selectedClass, selectedSubject, classes, subjects, curriculum, progress, selectedTerm, strands])
 
   // ── Derived ───────────────────────────────────────────────────
   const totWks  = activeTerm ? totalWeeks(activeTerm)   : 13
   const curWeek = activeTerm ? currentWeekOf(activeTerm): 1
+  const selectedClassObj   = classes.find(c => c.id === selectedClass)   ?? null
+  const selectedSubjectObj = subjects.find(s => s.id === selectedSubject) ?? null
 
   const donePct = strands.length > 0
     ? Math.round(
         (progress.filter(p => p.status === 'done' && p.week === selectedWeek).length / strands.length) * 100
       )
     : 0
-
-  function handleGenerate(strand: Strand) {
-    const cls  = classes.find(c => c.id === selectedClass)
-    const subj = subjects.find(s => s.id === selectedSubject)
-    if (!cls || !subj || !selectedClass || !selectedSubject) return
-    const params = new URLSearchParams({
-      classId:    selectedClass,
-      subjectId:  selectedSubject,
-      grade:      cls.grade,
-      subject:    subj.label,
-      strand:     strand.name,
-      subStrand:  strand.sub_strand ?? '',
-      topic:      strand.topic ?? '',
-      week:       String(selectedWeek),
-      term:       String(selectedTerm),
-    })
-    router.push(`/teacher/scheme/generate?${params.toString()}`)
-  }
 
   // ── Render ────────────────────────────────────────────────────
   return (
@@ -972,11 +933,20 @@ function SchemePageInner() {
               totalWks={totWks}
               currentWk={curWeek}
               weekCoverage={weekCoverage}
-              weekStrandCount={weekStrandCount}
               selectedWeek={selectedWeek}
               onSelect={setSelectedWeek}
             />
           </div>
+
+          {/* ── LESSON CONTENT (teacher/parent tabs) ── */}
+          {selectedClassObj && selectedSubjectObj && (
+            <LessonPanel
+              gradeLabel={selectedClassObj.grade}
+              subjectLabel={selectedSubjectObj.label}
+              term={selectedTerm}
+              week={selectedWeek}
+            />
+          )}
 
           {/* ── STRANDS CARD ── */}
           <div style={{
@@ -1042,36 +1012,102 @@ function SchemePageInner() {
                 {[1,2,3,4].map(i => <Skeleton key={i} h={80} />)}
               </div>
             ) : strands.length === 0 ? (
-              weekStrandCount[selectedWeek] === 0 && Object.values(weekStrandCount).every(v => v === 0) ? (
-                <EmptyState
-                  icon="📚"
-                  title="Curriculum not loaded for this grade"
-                  desc={`The CBC curriculum for this grade and subject hasn't been added to VibeSchool yet. Check back soon or contact support.`}
-                />
-              ) : (
-                <EmptyState
-                  icon="📭"
-                  title="No strands for this week"
-                  desc={`Week ${selectedWeek} has no content for this subject. Try a different week.`}
-                  action={
-                    selectedWeek > 1 ? (
+              <EmptyState
+                icon="📭"
+                title="No strands yet"
+                desc={
+                  addingStrand
+                    ? 'Add the first strand for this subject.'
+                    : `Week ${selectedWeek} hasn't been set up yet. Add strands or check a different week.`
+                }
+                action={
+                  addingStrand ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 260, margin: '0 auto' }}>
+                      <input
+                        autoFocus
+                        value={newStrandName}
+                        onChange={e => setNewStrandName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') addStrand() }}
+                        placeholder="e.g. Numbers"
+                        style={{
+                          padding:      '9px 12px',
+                          borderRadius: 10,
+                          border:       `1.5px solid ${C.border2}`,
+                          fontSize:     13,
+                          fontFamily:   'inherit',
+                          outline:      'none',
+                        }}
+                      />
+                      {addStrandError && (
+                        <div style={{ fontSize: 11, color: C.red, fontWeight: 600 }}>{addStrandError}</div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                        <button
+                          onClick={addStrand}
+                          disabled={addStrandBusy || !newStrandName.trim()}
+                          style={{
+                            padding:      '8px 16px',
+                            background:   C.indigo,
+                            color:        '#fff',
+                            border:       'none',
+                            borderRadius: 10,
+                            fontSize:     13,
+                            fontWeight:   700,
+                            cursor:       addStrandBusy ? 'not-allowed' : 'pointer',
+                            opacity:      addStrandBusy || !newStrandName.trim() ? 0.6 : 1,
+                            fontFamily:   'inherit',
+                          }}
+                        >{addStrandBusy ? 'Adding…' : 'Add'}</button>
+                        <button
+                          onClick={() => { setAddingStrand(false); setNewStrandName(''); setAddStrandError(null) }}
+                          style={{
+                            padding:      '8px 16px',
+                            background:   C.surface2,
+                            color:        C.text2,
+                            border:       `1.5px solid ${C.border2}`,
+                            borderRadius: 10,
+                            fontSize:     13,
+                            fontWeight:   700,
+                            cursor:       'pointer',
+                            fontFamily:   'inherit',
+                          }}
+                        >Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                       <button
-                        onClick={() => setSelectedWeek(w => w - 1)}
+                        onClick={() => setAddingStrand(true)}
                         style={{
                           padding:      '9px 18px',
-                          background:   C.surface2,
-                          color:        C.text2,
-                          border:       `1.5px solid ${C.border2}`,
+                          background:   `linear-gradient(135deg, ${C.indigo}, #6366f1)`,
+                          color:        '#fff',
+                          border:       'none',
                           borderRadius: 12,
                           fontSize:     13,
                           fontWeight:   700,
                           cursor:       'pointer',
                           fontFamily:   'inherit',
-                        }}>← Try W{selectedWeek - 1}</button>
-                    ) : undefined
-                  }
-                />
-              )
+                        }}>+ Add Strands</button>
+                      {selectedWeek > 1 && (
+                        <button
+                          onClick={() => setSelectedWeek(w => w - 1)}
+                          style={{
+                            padding:      '9px 18px',
+                            background:   C.surface2,
+                            color:        C.text2,
+                            border:       `1.5px solid ${C.border2}`,
+                            borderRadius: 12,
+                            fontSize:     13,
+                            fontWeight:   700,
+                            cursor:       'pointer',
+                            fontFamily:   'inherit',
+                          }}>← Try W{selectedWeek - 1}</button>
+                      )}
+                    </div>
+                  )
+                }
+              />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {strands.map(strand => (
@@ -1081,7 +1117,6 @@ function SchemePageInner() {
                     status={getStatus(strand.id)}
                     isSaving={saving === strand.id}
                     onUpdate={updateStatus}
-                    onGenerate={() => handleGenerate(strand)}
                   />
                 ))}
               </div>

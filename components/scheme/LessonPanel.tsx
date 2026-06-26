@@ -333,7 +333,7 @@ export function LessonPanel({
   }
   const subjectMap: Record<string, Subject> = {
     'Mathematics': 'mathematics', 'English': 'english',
-    'Kiswahili': 'kiswahili', 'Science & Technology': 'science',
+    'Kiswahili': 'kiswahili', 'Science and Technology': 'science',
     'Social Studies': 'socialstudies', 'Home Science': 'homescience',
     'Agriculture': 'agriculture', 'CRE': 'cre',
   }

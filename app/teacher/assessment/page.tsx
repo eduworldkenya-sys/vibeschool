@@ -11,7 +11,7 @@ import { Card, C }                                from '@/components/teacher/ui'
 
 interface ClassOption   { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
-interface StrandOption  { id: string; name: string; sub_strand: string; topic: string }
+interface StrandOption  { id: string; name: string; sub_strand: string }
 interface Student       { id: string; name: string }
 
 interface Assessment {
@@ -214,11 +214,9 @@ function AssessmentInner() {
 
     const clsRes = await supabase.from('classes').select('name').eq('id', classId).single()
     const grade  = clsRes.data?.name ?? ''
-    const subRes = await supabase.from('subjects').select('name').eq('id', subjectId).single()
-    const subjectName = subRes.data?.name ?? ''
 
     const [strandsRes, scRes] = await Promise.all([
-      supabase.from('curriculum').select('id, strand, sub_strand, topic').eq('grade', grade).eq('subject', subjectName).order('strand'),
+      supabase.from('cbc_strands').select('id, name, sub_strand').eq('subject_id', subjectId).eq('grade', grade).order('name'),
       supabase.from('student_classes').select('student_id').eq('class_id', classId).eq('is_current', true),
     ])
 
@@ -227,9 +225,9 @@ function AssessmentInner() {
     const seen = new Set()
     const uniqueStrands: StrandOption[] = []
     for (const r of (strandsRes.data ?? [])) {
-      if (!seen.has(r.strand)) {
-        seen.add(r.strand)
-        uniqueStrands.push({ id: r.id, name: r.strand, sub_strand: r.sub_strand ?? '', topic: r.topic ?? '' })
+      if (!seen.has(r.name)) {
+        seen.add(r.name)
+        uniqueStrands.push({ id: r.id, name: r.name, sub_strand: r.sub_strand ?? '' })
       }
     }
     setStrands(strandsRes.error ? [] : uniqueStrands)
