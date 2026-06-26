@@ -82,20 +82,10 @@ export default function SchoolOnboardingPage() {
   }
 
   async function saveSchoolToProfile(userId: string, schoolId: string): Promise<boolean> {
-    // Refresh session to ensure RLS sees the correct auth.uid()
     await supabase.auth.refreshSession()
 
-    // 1. Update profiles.school_id
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .update({ school_id: schoolId })
-      .eq('id', userId)
-    if (profileErr) {
-      setError('Failed to save your school. Please try again.')
-      return false
-    }
-
-    // 2. Ensure teacher is in school_members — critical for RLS
+    // STEP 1 — school_members FIRST
+    // This satisfies trg_verify_teacher_role which fires when teacher_profiles is inserted
     const { error: memberErr } = await supabase
       .from('school_members')
       .upsert(
@@ -105,6 +95,35 @@ export default function SchoolOnboardingPage() {
     if (memberErr) {
       setError('Failed to register you in the school. Please try again.')
       return false
+    }
+
+    // STEP 2 — profiles.school_id UPDATE
+    // This fires on_teacher_profile_created + trg_ensure_school_member
+    // Both are now safe because school_members row exists
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({ school_id: schoolId })
+      .eq('id', userId)
+    if (profileErr) {
+      setError('Failed to save your school. Please try again.')
+      return false
+    }
+
+    // STEP 3 — self-heal: ensure teacher_profiles row exists
+    // handle_teacher_onboarding should have created it, but verify
+    const { data: tp } = await supabase
+      .from('teacher_profiles')
+      .select('profile_id')
+      .eq('profile_id', userId)
+      .maybeSingle()
+
+    if (!tp) {
+      await supabase
+        .from('teacher_profiles')
+        .upsert(
+          { profile_id: userId, school_id: schoolId },
+          { onConflict: 'profile_id', ignoreDuplicates: true }
+        )
     }
 
     return true

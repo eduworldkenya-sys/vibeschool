@@ -459,13 +459,16 @@ export default function TeacherDashboard() {
     const fullName = profileRes.data?.full_name ?? ''
     const slotIds  = (slotsRes.data ?? []).map((s: any) => s.id)
 
-    const { data: schoolData } = await supabase
-      .from('profiles')
-      .select('school_id')
-      .eq('id', uid)
-      .single()
-
-    const schoolId = schoolData?.school_id ?? null
+    const [memberSchoolRes, teacherSchoolRes, profileSchoolRes] = await Promise.all([
+      supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
+      supabase.from('teacher_profiles').select('school_id').eq('profile_id', uid).maybeSingle(),
+      supabase.from('profiles').select('school_id').eq('id', uid).single(),
+    ])
+    const schoolId =
+      memberSchoolRes.data?.school_id ??
+      teacherSchoolRes.data?.school_id ??
+      profileSchoolRes.data?.school_id ??
+      null
 
     const [schoolRes, attBatchRes] = await Promise.all([
       schoolId

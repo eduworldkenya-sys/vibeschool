@@ -742,7 +742,16 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       const parts   = name.trim().split(" ").filter(Boolean);
       const derived = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
       setInitials(derived);
-      const schoolId = profileData.school_id;
+      // 3-source school resolution
+      const [memberRes, teacherRes] = await Promise.all([
+        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
+        supabase.from("teacher_profiles").select("school_id").eq("profile_id", user.id).maybeSingle(),
+      ])
+      const schoolId =
+        memberRes.data?.school_id ??
+        teacherRes.data?.school_id ??
+        profileData.school_id ??
+        null;
       if (schoolId) {
         const { data: schoolData } = await supabase
           .from("schools")
