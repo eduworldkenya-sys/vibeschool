@@ -59,8 +59,8 @@ const TSC_STANDARDS:{key:string;label:string}[]=[
 ];
 function perfScore(p:string){return({exceeds_expectation:4,meets_expectation:3,approaches_expectation:2,below_expectation:1} as Record<string,number>)[p]??0;}
 function barColor(pct:number){return pct>=70?"#059669":pct>=40?"#d97706":"#dc2626";}
-function termStart(){const n=new Date();return nairobiDateStr(new Date(n.getFullYear(),Math.floor(n.getMonth()/4)*4,1));}
-function currentTerm(){return Math.floor(new Date().getMonth()/4)+1;}
+function currentTerm():number{const m=new Date().getMonth()+1;if(m<=4)return 1;if(m<=8)return 2;if(m<=11)return 3;return 1;}
+function termStart():string{const n=new Date();const y=n.getFullYear();const t=currentTerm();const starts:Record<number,[number,number]>={1:[0,6],2:[4,5],3:[8,1]};const[mo,day]=starts[t];return nairobiDateStr(new Date(y,mo,day));}
 
 function Skel({h=56,radius=12}:{h?:number;radius?:number}){
   return(<div style={{height:h,borderRadius:radius,background:"linear-gradient(90deg,#e4e4e7 25%,#f4f4f5 50%,#e4e4e7 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.4s infinite"}}/>);
@@ -96,6 +96,7 @@ export default function TeacherAcademicsPage(){
   const [atRisk,setAtRisk]=useState<AtRiskStudent[]>([]);
   const [termStats,setTermStats]=useState<TermStat|null>(null);
   const [expanded,setExpanded]=useState<string|null>(null);
+  const [teacherName,setTeacherName]=useState<string|null>(null);
 
   const boot=useCallback(async()=>{
     setLoading(true);setError(null);
@@ -105,24 +106,27 @@ export default function TeacherAcademicsPage(){
       const[teacherRes,memberRes,profileRes]=await Promise.all([
         supabase.from("teacher_profiles").select("school_id").eq("profile_id",user.id).maybeSingle(),
         supabase.from("school_members").select("school_id").eq("profile_id",user.id).maybeSingle(),
-        supabase.from("profiles").select("school_id").eq("id",user.id).single(),
+        supabase.from("profiles").select("school_id,full_name").eq("id",user.id).single(),
       ]);
       const schoolId=memberRes.data?.school_id??teacherRes.data?.school_id??profileRes.data?.school_id??null;
+      const resolvedName=(profileRes.data as {full_name?:string}|null)?.full_name??null;
+      setTeacherName(resolvedName);
+      if(!schoolId){setError("School not found. Contact your admin.");setLoading(false);return;}
       const{data:tcRows}=await supabase.from("teacher_classes").select("class_id, subject_id").eq("teacher_id",user.id);
       const rows=(tcRows??[]) as{class_id:string;subject_id:string}[];
       const subjectIds=Array.from(new Set(rows.map(r=>r.subject_id).filter(Boolean)));
       const classIds=Array.from(new Set(rows.map(r=>r.class_id).filter(Boolean)));
       if(subjectIds.length===0){setLoading(false);return;}
       const tStart=termStart();const tNum=currentTerm();const tYear=new Date().getFullYear();
-      const[subRes,classRes,studentClsRes,lpRes,assRes,outcomeRes,attRes,tpadRes,evidRes]=await Promise.all([
+      const[subRes,classRes,studentClsRes,lpRes,assRes,outcomeRes,attRes,tpadRes,evidRes]=await Promise.allSettled([
         supabase.from("subjects").select("id, name").in("id",subjectIds),
         supabase.from("classes").select("id, name, stream").in("id",classIds),
         classIds.length>0?supabase.from("student_classes").select("student_id, class_id").in("class_id",classIds).eq("is_current",true):Promise.resolve({data:[]}),
         supabase.from("lesson_plans").select("id, subject_id, status").eq("teacher_id",user.id).gte("created_at",tStart),
         schoolId
-          ?supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,performance,term,academic_year").eq("teacher_id",user.id).eq("school_id",schoolId).eq("term",tNum).eq("academic_year",tYear)
-          :supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,performance,term,academic_year").eq("teacher_id",user.id).eq("term",tNum).eq("academic_year",tYear),
-        supabase.from("learner_outcomes").select("subject_id,strand,status").in("subject_id",subjectIds),
+          ?supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,strand_id,performance,term,academic_year").eq("teacher_id",user.id).eq("school_id",schoolId).eq("term",tNum).eq("academic_year",tYear)
+          :supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,strand_id,performance,term,academic_year").eq("teacher_id",user.id).eq("term",tNum).eq("academic_year",tYear),
+        supabase.from("cbc_strands").select("id,subject_id,name").in("subject_id",subjectIds),
         classIds.length>0?supabase.from("attendance").select("student_id,class_id,status").in("class_id",classIds).eq("teacher_id",user.id).gte("date",tStart):Promise.resolve({data:[]}),
         supabase.from("tpad_appraisals").select("final_score,status,standard_1_self,standard_2_self,standard_3_self,standard_4_self,standard_5_self,standard_6_self,standard_7_self,standard_8_self").eq("teacher_id",user.id).order("created_at",{ascending:false}).limit(1).maybeSingle(),
         supabase.from("tpad_evidence").select("id,standard").eq("teacher_id",user.id),
@@ -131,18 +135,18 @@ export default function TeacherAcademicsPage(){
       type ClsRow={id:string;name:string;stream:string|null};
       type SClsRow={student_id:string;class_id:string};
       type LPRow={id:string;subject_id:string;status:string};
-      type AssRow={id:string;student_id:string;subject_id:string;class_id:string;performance:string;term:number;academic_year:number};
-      type OutRow={subject_id:string;strand:string|null;status:string|null};
+      type AssRow={id:string;student_id:string;subject_id:string;class_id:string;strand_id:string|null;performance:string;term:number;academic_year:number};
+      type OutRow={id:string;subject_id:string;name:string};
       type AttRow={student_id:string;class_id:string;status:string};
-      const subList=(subRes.data??[]) as SubRow[];
-      const classList=(classRes.data??[]) as ClsRow[];
+      const subList=(subRes.status==="fulfilled"?subRes.value.data??[]:(console.error("subRes",subRes),[])) as SubRow[];
+      const classList=(classRes.status==="fulfilled"?classRes.value.data??[]:(console.error("classRes",classRes),[])) as ClsRow[];
       const studentCls=(studentClsRes.data??[]) as SClsRow[];
-      const lpData=(lpRes.data??[]) as LPRow[];
-      const assData=(assRes.data??[]) as AssRow[];
-      const outcomeData=(outcomeRes.data??[]) as OutRow[];
-      const attData=(attRes.data??[]) as AttRow[];
-      const tpadRow=tpadRes.data as Record<string,number|string|null>|null;
-      const evidRows=(evidRes.data??[]) as{id:string;standard:string}[];
+      const lpData=(lpRes.status==="fulfilled"?lpRes.value.data??[]:(console.error("lpRes",lpRes),[])) as LPRow[];
+      const assData=(assRes.status==="fulfilled"?assRes.value.data??[]:(console.error("assRes",assRes),[])) as AssRow[];
+      const outcomeData=(outcomeRes.status==="fulfilled"?outcomeRes.value.data??[]:(console.error("outcomeRes",outcomeRes),[])) as OutRow[];
+      const attData=(attRes.status==="fulfilled"?attRes.value.data??[]:(console.error("attRes",attRes),[])) as AttRow[];
+      const tpadRow=(tpadRes.status==="fulfilled"?tpadRes.value.data:(console.error("tpadRes",tpadRes),null)) as Record<string,number|string|null>|null;
+      const evidRows=(evidRes.status==="fulfilled"?evidRes.value.data??[]:(console.error("evidRes",evidRes),[])) as{id:string;standard:string}[];
       const classStudentIds:Record<string,Set<string>>={};
       for(const r of studentCls){if(!classStudentIds[r.class_id])classStudentIds[r.class_id]=new Set();classStudentIds[r.class_id].add(r.student_id);}
       const totalStudents=Object.values(classStudentIds).reduce((s,st)=>s+st.size,0);
@@ -155,11 +159,12 @@ export default function TeacherAcademicsPage(){
       const summaries:SubjectCard[]=subList.map(sub=>{
         const myCls=subClassMap[sub.id]??[];
         const subAss=assData.filter(a=>a.subject_id===sub.id);
-        const outcomes=outcomeData.filter(o=>o.subject_id===sub.id);
-        const total=outcomes.length;
-        const covered=outcomes.filter(o=>["assessed","mastered"].includes(o.status??"")).length;
-        const assessed=outcomes.filter(o=>o.status==="assessed").length;
-        const mastered=outcomes.filter(o=>o.status==="mastered").length;
+        const strandDefs=outcomeData.filter(o=>o.subject_id===sub.id);
+        const totalStudentsInSub=Array.from(new Set(rows.filter(r=>r.subject_id===sub.id).flatMap(r=>{const ids=classStudentIds[r.class_id];return ids?Array.from(ids):[];}))).length;
+        const subMastered=subAss.filter(a=>a.performance==="meets_expectation"||a.performance==="exceeds_expectation");
+        const covered=new Set(subAss.map(a=>a.student_id)).size;
+        const assessed=covered;
+        const mastered=new Set(subMastered.map(a=>a.student_id)).size;
         const perfSum=subAss.reduce((s,a)=>s+perfScore(a.performance),0);
         const avgPerf=subAss.length>0?Math.round((perfSum/(subAss.length*4))*100):null;
         const dist=buildDist(subAss);
@@ -167,12 +172,13 @@ export default function TeacherAcademicsPage(){
         const myAttRates=myCls.map(cid=>classAttRate(cid)).filter((r):r is number=>r!==null);
         const avgAtt=myAttRates.length>0?Math.round(myAttRates.reduce((a,b)=>a+b,0)/myAttRates.length):null;
         const strandMap:Record<string,StrandRow>={};
-        for(const o of outcomes){const s=o.strand??"Unknown";if(!strandMap[s])strandMap[s]={strand:s,total:0,assessed:0,mastered:0};strandMap[s].total++;if(o.status==="assessed")strandMap[s].assessed++;if(o.status==="mastered")strandMap[s].mastered++;}
-        return{id:sub.id,name:sub.name,classes:classRows,lessonCount:lpData.filter(l=>l.subject_id===sub.id).length,assessCount:subAss.length,coveragePct:total>0?Math.round((covered/total)*100):null,assessedPct:total>0?Math.round((assessed/total)*100):null,masteredPct:total>0?Math.round((mastered/total)*100):null,avgPerfPct:avgPerf,perfDist:dist,attRate:avgAtt,strands:Object.values(strandMap)};
+        for(const sd of strandDefs){strandMap[sd.id]={strand:sd.name,total:0,assessed:0,mastered:0};}
+        for(const a of subAss){if(!a.strand_id||!strandMap[a.strand_id])continue;strandMap[a.strand_id].total++;if(a.performance==="meets_expectation"||a.performance==="exceeds_expectation"){strandMap[a.strand_id].mastered++;strandMap[a.strand_id].assessed++;}else if(a.performance==="approaches_expectation"){strandMap[a.strand_id].assessed++;}}
+        return{id:sub.id,name:sub.name,classes:classRows,lessonCount:lpData.filter(l=>l.subject_id===sub.id).length,assessCount:subAss.length,coveragePct:totalStudentsInSub>0?Math.round((covered/totalStudentsInSub)*100):null,assessedPct:totalStudentsInSub>0?Math.round((assessed/totalStudentsInSub)*100):null,masteredPct:totalStudentsInSub>0?Math.round((mastered/totalStudentsInSub)*100):null,avgPerfPct:avgPerf,perfDist:dist,attRate:avgAtt,strands:Object.values(strandMap)};
       });
       setSubjects(summaries);
-      const beStudentMap:Record<string,{subjectNames:string[];beCount:number;classId:string}>={};
-      for(const a of assData){if(a.performance!=="below_expectation")continue;if(!beStudentMap[a.student_id])beStudentMap[a.student_id]={subjectNames:[],beCount:0,classId:a.class_id};beStudentMap[a.student_id].beCount++;const sName=subList.find(s=>s.id===a.subject_id)?.name;if(sName&&!beStudentMap[a.student_id].subjectNames.includes(sName))beStudentMap[a.student_id].subjectNames.push(sName);}
+      const beStudentMap:Record<string,{subjectNames:string[];beStrands:Set<string>;beCount:number;classId:string}>={};
+      for(const a of assData){if(a.performance!=="below_expectation")continue;if(!beStudentMap[a.student_id])beStudentMap[a.student_id]={subjectNames:[],beStrands:new Set(),beCount:0,classId:a.class_id};const strandKey=(a.strand_id??"")+"|"+(a.subject_id??"");if(!beStudentMap[a.student_id].beStrands.has(strandKey)){beStudentMap[a.student_id].beStrands.add(strandKey);beStudentMap[a.student_id].beCount++;}const sName=subList.find(s=>s.id===a.subject_id)?.name;if(sName&&!beStudentMap[a.student_id].subjectNames.includes(sName))beStudentMap[a.student_id].subjectNames.push(sName);}
       const beStudentIds=Object.keys(beStudentMap);
       const studentNames:Record<string,string>={};
       if(beStudentIds.length>0){const{data:studs}=await supabase.from("students").select("id, name").in("id",beStudentIds);for(const s of studs??[])studentNames[s.id]=s.name;}
@@ -203,7 +209,7 @@ export default function TeacherAcademicsPage(){
         <button onClick={()=>router.back()} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>← Back</button>
         <div style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>My Academics</div>
         <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>Term {currentTerm()} Hub</div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginTop:2}}>All subjects · All classes · One view</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:2}}><div style={{fontSize:12,color:"rgba(255,255,255,0.6)"}}>All subjects · All classes · One view</div><button onClick={boot} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>↻ Refresh</button></div>
         {!loading&&termStats&&(
           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginTop:18}}>
             {[{label:"Subjects",value:termStats.subjectCount,color:"#a5b4fc"},{label:"Students",value:termStats.studentCount,color:"#bfdbfe"},{label:"Lessons",value:termStats.totalLessons,color:"#bbf7d0"},{label:"Assessed",value:termStats.totalAssess,color:"#fde68a"},{label:"Att%",value:termStats.avgAttRate!==null?termStats.avgAttRate+"%":"—",color:"#ddd6fe"}].map(s=>(
@@ -248,7 +254,7 @@ export default function TeacherAcademicsPage(){
                 {totalAssessments>0&&(<><PerfBar dist={globalDist} total={totalAssessments}/><div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>{PERF_ORDER.map(p=>globalDist[p]?<PerfChip key={p} perf={p} count={globalDist[p]}/>:null)}</div></>)}
                 {!hasAnyAssessments&&(
                   <div style={{marginTop:12,background:C.indigoDim,borderRadius:10,padding:"10px 12px"}}>
-                    <div style={{fontSize:12,fontWeight:700,color:C.indigo}}>👋 Welcome Mumbi! Start by recording your first assessment to unlock insights.</div>
+                    <div style={{fontSize:12,fontWeight:700,color:C.indigo}}>{`👋 Welcome${teacherName?" "+teacherName:""}! Start by recording your first assessment to unlock insights.`}</div>
                   </div>
                 )}
               </div>
@@ -480,7 +486,7 @@ export default function TeacherAcademicsPage(){
                     <div key={std.key} style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"13px 14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                         <div style={{flex:1,marginRight:8}}>
-                          <div style={{fontSize:10,fontWeight:800,color:C.text3,marginBottom:2}}>Standard {i+1}</div>
+                          <div style={{fontSize:10,fontWeight:800,color:C.text3,marginBottom:2}}>Standard {i+1}{i>=4?" · Self only":""}</div>
                           <div style={{fontSize:12,fontWeight:700,color:C.text}}>{std.label}</div>
                         </div>
                         <div style={{textAlign:"right",flexShrink:0}}>
