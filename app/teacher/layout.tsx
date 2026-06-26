@@ -742,11 +742,17 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       const parts   = name.trim().split(" ").filter(Boolean);
       const derived = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
       setInitials(derived);
-      // 3-source school resolution
+      // 3-source school resolution + onboarding guard
       const [memberRes, teacherRes] = await Promise.all([
         supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("teacher_profiles").select("school_id").eq("profile_id", user.id).maybeSingle(),
+        supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
       ])
+      // Guard: if teacher_profiles missing, onboarding never completed — send back
+      const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding")
+      if (!teacherRes.data?.profile_id && !isOnboardingPath) {
+        window.location.href = "/teacher/onboarding/school";
+        return;
+      }
       const schoolId =
         memberRes.data?.school_id ??
         teacherRes.data?.school_id ??

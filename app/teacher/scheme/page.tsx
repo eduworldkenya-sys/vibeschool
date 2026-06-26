@@ -474,8 +474,7 @@ function SchemePageInner() {
             .from('academic_terms')
             .select('id,name,term,academic_year,start_date,end_date,status')
             .eq('school_id', sid)
-            .eq('status', 'active')
-            .single(),
+            .order('term', { ascending: true }),
         ])
 
         const classOptions: ClassOption[] = (clRes.data ?? []).map(
@@ -490,12 +489,14 @@ function SchemePageInner() {
           (s: { id: string; name: string }) => ({ id: s.id, label: s.name })
         )
 
-        const term = termRes.data as Term | null
-        setActiveTerm(term)
+        const allTerms = (termRes.data ?? []) as Term[]
+        // Default to active term, fall back to first term
+        const activeTerm = allTerms.find(t => t.status === 'active') ?? allTerms[0] ?? null
+        setActiveTerm(activeTerm)
 
-        if (term) {
-          const curWeek = currentWeekOf(term)
-          setSelectedTerm(term.term)
+        if (activeTerm) {
+          const curWeek = currentWeekOf(activeTerm)
+          setSelectedTerm(activeTerm.term)
           setSelectedWeek(curWeek)
         }
 
@@ -515,12 +516,11 @@ function SchemePageInner() {
         setSelectedSubject(defaultSubject)
 
         // Load curriculum for coverage dots
-        if (term) {
+        if (activeTerm) {
           const grades = Array.from(new Set(classOptions.map(c => c.grade)))
           const { data: currData } = await supabase
             .from('curriculum')
             .select('grade,subject,strand,week,term')
-            .eq('term', term.term)
             .in('grade', grades)
           setCurriculum((currData ?? []) as CurriculumRow[])
         }
