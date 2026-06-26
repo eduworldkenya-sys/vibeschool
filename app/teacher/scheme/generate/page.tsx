@@ -77,11 +77,18 @@ function GeneratePageInner() {
       if (!user) return
       setUid(user.id)
 
-      const [memberRes, clRes] = await Promise.all([
+      const [memberRes, teacherRes, profileRes, clRes] = await Promise.all([
         supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('profiles').select('school_id').eq('id', user.id).single(),
         classId ? supabase.from('classes').select('name,stream').eq('id', classId).single() : Promise.resolve({ data: null }),
       ])
-      setSchoolId(memberRes.data?.school_id ?? null)
+      setSchoolId(
+        memberRes.data?.school_id ??
+        teacherRes.data?.school_id ??
+        profileRes.data?.school_id ??
+        null
+      )
       if (clRes.data) {
         const cl = clRes.data as { name: string; stream: string | null }
         setClassName(cl.stream ? `${cl.name} ${cl.stream}` : cl.name)

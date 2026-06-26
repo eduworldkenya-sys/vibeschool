@@ -1034,24 +1034,19 @@ function SchemePageInner() {
                 {[1,2,3,4].map(i => <Skeleton key={i} h={80} />)}
               </div>
             ) : strands.length === 0 ? (
-              <EmptyState
-                icon="📭"
-                title="No strands yet"
-                desc={`Week ${selectedWeek} hasn't been set up yet. Add strands or check a different week.`}
-                action={
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button style={{
-                      padding:      '9px 18px',
-                      background:   `linear-gradient(135deg, ${C.indigo}, #6366f1)`,
-                      color:        '#fff',
-                      border:       'none',
-                      borderRadius: 12,
-                      fontSize:     13,
-                      fontWeight:   700,
-                      cursor:       'pointer',
-                      fontFamily:   'inherit',
-                    }}>+ Add Strands</button>
-                    {selectedWeek > 1 && (
+              weekStrandCount[selectedWeek] === 0 && Object.values(weekStrandCount).every(v => v === 0) ? (
+                <EmptyState
+                  icon="📚"
+                  title="Curriculum not loaded for this grade"
+                  desc={`The CBC curriculum for this grade and subject hasn't been added to VibeSchool yet. Check back soon or contact support.`}
+                />
+              ) : (
+                <EmptyState
+                  icon="📭"
+                  title="No strands for this week"
+                  desc={`Week ${selectedWeek} has no content for this subject. Try a different week.`}
+                  action={
+                    selectedWeek > 1 ? (
                       <button
                         onClick={() => setSelectedWeek(w => w - 1)}
                         style={{
@@ -1065,10 +1060,10 @@ function SchemePageInner() {
                           cursor:       'pointer',
                           fontFamily:   'inherit',
                         }}>← Try W{selectedWeek - 1}</button>
-                    )}
-                  </div>
-                }
-              />
+                    ) : undefined
+                  }
+                />
+              )
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {strands.map(strand => (

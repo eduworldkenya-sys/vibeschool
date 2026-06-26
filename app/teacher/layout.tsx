@@ -748,8 +748,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
       ])
       // Guard: if teacher_profiles missing, onboarding never completed — send back
+      // Skip redirect if independent teacher (no school anywhere) — they can use the app without a school
       const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding")
-      if (!teacherRes.data?.profile_id && !isOnboardingPath) {
+      const hasSchool = !!(memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id)
+      if (!teacherRes.data?.profile_id && !isOnboardingPath && hasSchool) {
         window.location.href = "/teacher/onboarding/school";
         return;
       }
