@@ -6,7 +6,7 @@ export interface PulseSnapshot {
   todaySlots: any[];
   attPending: { class_id: string; class_name: string }[];
   atRisk: { id: string; name: string; reason: string }[];
-  currStats: { subject: string; covered: number; total: number }[];
+  currStats: { subject: string; subjectId: string; classId: string; covered: number; total: number; lessonCount: number }[];
   tpadDays: number | null;
   credits: number | null;
   streak: number;
@@ -149,19 +149,27 @@ export async function fetchPulseData(
 
   // Curriculum coverage — fully parallel
   const tcRows = (tcRes.data ?? []) as any[];
-  const currStats: { subject: string; covered: number; total: number }[] = [];
+  const currStats: { subject: string; subjectId: string; classId: string; covered: number; total: number; lessonCount: number }[] = [];
   await Promise.all(
     tcRows.slice(0, 4).map(async (tc: any) => {
       const subjectName = one(tc.subjects)?.name ?? "Subject";
       const classRes = await supabase.from("classes").select("name").eq("id", tc.class_id).single();
       const gradeName = classRes.data?.name ?? "";
       if (!gradeName) return;
-      const [totalRes, coveredRes] = await Promise.all([
+      const [totalRes, coveredRes, lessonRes] = await Promise.all([
         supabase.from("curriculum").select("*", { count: "exact", head: true }).eq("grade", gradeName).eq("subject", subjectName),
         supabase.from("strand_progress").select("*", { count: "exact", head: true }).eq("teacher_id", userId).eq("subject_id", tc.subject_id).eq("school_id", schoolId).eq("term", activeTermNum).in("status", ["done", "teaching"]),
+        supabase.from("lesson_plans").select("*", { count: "exact", head: true }).eq("teacher_id", userId).eq("subject_id", tc.subject_id).eq("class_id", tc.class_id),
       ]);
       if ((totalRes.count ?? 0) > 0) {
-        currStats.push({ subject: subjectName, covered: coveredRes.count ?? 0, total: totalRes.count ?? 1 });
+        currStats.push({
+          subject: subjectName,
+          subjectId: tc.subject_id,
+          classId: tc.class_id,
+          covered: coveredRes.count ?? 0,
+          total: totalRes.count ?? 1,
+          lessonCount: lessonRes.count ?? 0,
+        });
       }
     })
   );

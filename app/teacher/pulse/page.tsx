@@ -22,6 +22,16 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
+// Deterministic next-step rule — no AI call, hybrid-first approach.
+// Mirrors the Scheme -> Plan -> Assess workflow already used in SubjectHub.
+function nextStepFor(s: { lessonCount: number; covered: number; total: number }): {
+  label: string; icon: string;
+} {
+  if (s.lessonCount === 0) return { label: "Plan your next lesson", icon: "📖" };
+  if (s.total > 0 && s.covered / s.total < 0.3) return { label: "Catch up on curriculum", icon: "📋" };
+  return { label: "Keep going", icon: "✓" };
+}
+
 // ── UI Primitives ─────────────────────────────────────────────────────────────
 
 function Skel({ h = 52, r = 12 }: { h?: number; r?: number }) {
@@ -497,6 +507,7 @@ export default function PulsePage() {
               const termPct = snap?.termProgressPct ?? 50;
               const isBehind = pct < termPct - 15;
               const barColor = pct >= 70 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#ef4444";
+              const next = nextStepFor(s);
               return (
                 <div key={s.subject} style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
@@ -511,6 +522,11 @@ export default function PulsePage() {
                     {/* Term progress marker */}
                     <div style={{ position: "absolute", top: 0, left: `${Math.min(termPct, 99)}%`, width: 2, height: "100%", background: "#6366f1", opacity: 0.5 }} />
                   </div>
+                  <Pressable onClick={() => router.push(`/teacher/lessonplan?subjectId=${s.subjectId}&classId=${s.classId}`)} style={{ marginTop: 6 }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "#6366f1" }}>
+                      <span>{next.icon}</span><span>{next.label}</span>
+                    </div>
+                  </Pressable>
                 </div>
               );
             })}
