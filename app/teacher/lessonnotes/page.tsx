@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { nairobiDateStr } from "@/lib/time";
 import { C } from "@/components/teacher/ui";
@@ -80,6 +80,7 @@ function InputStyle(extra: React.CSSProperties = {}): React.CSSProperties {
 
 export default function LessonNotesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const tidRef = useRef<string | null>(null);
   const sidRef = useRef<string | null>(null);
@@ -228,6 +229,12 @@ export default function LessonNotesPage() {
       week_start:   p.week_start ?? "",
     })));
     setPlansLoading(false);
+
+    // Pre-select plan from URL (arrived via "Mark as Taught" from Lesson Plans)
+    const urlPlanId = searchParams.get("planId");
+    if (urlPlanId && rawPlans.some((p: any) => p.id === urlPlanId)) {
+      setSelectedPlan(urlPlanId);
+    }
   }
 
   function openEdit(note: NoteRow) {
