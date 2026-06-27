@@ -1,11 +1,8 @@
-
 "use client";
 import type { CSSProperties } from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
-// ── Constants ────────────────────────────────────────────────────────────────
 
 const ROLES = ['Teacher', 'Parent', 'Student', 'Admin', 'Global'] as const
 type Role = typeof ROLES[number]
@@ -59,8 +56,6 @@ function friendlyError(msg: string): string {
     if (msg.includes(k)) return v
   return 'Something went wrong. Please try again.'
 }
-
-// ── Styles ───────────────────────────────────────────────────────────────────
 
 const S: Record<string, CSSProperties> = {
   root: {
@@ -312,8 +307,6 @@ function pillStyle(active: boolean, busy: boolean): CSSProperties {
   }
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-
 export default function RootPage() {
   const router = useRouter()
 
@@ -326,7 +319,6 @@ export default function RootPage() {
   const [showPw,       setShowPw]       = useState(false)
   const [showConfirm,  setShowConfirm]  = useState(false)
 
-  // fields
   const [email,           setEmail]           = useState('')
   const [password,        setPassword]        = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -335,13 +327,14 @@ export default function RootPage() {
   const [dob,             setDob]             = useState('')
   const [claimCode,       setClaimCode]       = useState('')
   const [joinCode,        setJoinCode]        = useState('')
+  const [admissionNo,     setAdmissionNo]     = useState('')
+  const [studentPin,      setStudentPin]      = useState('')
 
   const inflightRef  = useRef(false)
-  const passwordRef   = useRef<HTMLInputElement>(null)
+  const passwordRef  = useRef<HTMLInputElement>(null)
   const gInflightRef = useRef(false)
   const isBusy = loading || gLoading
 
-  // ── Session check ──────────────────────────────────────────────
   useEffect(() => {
     let alive = true
     async function check() {
@@ -349,41 +342,34 @@ export default function RootPage() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!alive) return
         if (!user) { setInitialising(false); return }
-
         const { data: rpcRole } = await supabase.rpc('get_my_role')
         if (!alive) return
-
         if (rpcRole) {
           const dest = DASHBOARDS[rpcRole]
           if (dest) {
-            document.cookie = `vibe_role=${rpcRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+            document.cookie = \`vibe_role=\${rpcRole}; path=/; max-age=3600; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
             localStorage.setItem('vs_role', rpcRole)
             window.location.href = dest; return
           }
         }
-      } catch {
-        // RPC or network failed — show login anyway
-      } finally {
-        if (alive) setInitialising(false)
-      }
+      } catch {}
+      finally { if (alive) setInitialising(false) }
     }
     check()
     return () => { alive = false }
-  }, []) // eslint-disable-line
+  }, [])
 
   if (initialising) {
     return (
       <div style={S.loader}>
-        <style>{`
+        <style>{\`
           @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:.8} }
           @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        `}</style>
+        \`}</style>
         <span style={S.loaderText}>Loading…</span>
       </div>
     )
   }
-
-  // ── Handlers ───────────────────────────────────────────────────
 
   async function handleForgotPassword() {
     if (!email.trim()) { setError('Enter your email address first, then click Forgot password.'); return }
@@ -392,60 +378,53 @@ export default function RootPage() {
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${origin}/reset-password?role=${role.toLowerCase()}`,
+        redirectTo: \`\${origin}/reset-password?role=\${role.toLowerCase()}\`,
       })
       if (error) { setError('Could not send reset email. Check the address and try again.'); return }
       setError('✅ Reset link sent — check your inbox.')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   async function handleSignIn() {
     if (inflightRef.current) return
     setError('')
-    if (!email.trim()) { setError('Email is required.'); return }
-    if (!password)     { setError('Password is required.'); return }
-
-    const pw = passwordRef.current?.value || password
-    setPassword('')
+    if (role === 'Student') {
+      if (!admissionNo.trim()) { setError('Enter your admission number.'); return }
+      if (!studentPin)          { setError('Enter your PIN.'); return }
+    } else {
+      if (!email.trim()) { setError('Email is required.'); return }
+      if (!password)     { setError('Password is required.'); return }
+    }
+    const loginEmail = role === 'Student'
+      ? \`\${admissionNo.trim().toLowerCase().replace(/\s/g, '')}@vs.internal\`
+      : email.trim()
+    const loginPassword = role === 'Student' ? studentPin : (passwordRef.current?.value || password)
+    if (role !== 'Student') setPassword('')
     inflightRef.current = true
     setLoading(true)
     let navigated = false
-
     try {
       const { data, error: authErr } = await supabase.auth.signInWithPassword({
-        email: email.trim(), password: pw,
+        email: loginEmail, password: loginPassword,
       })
       if (authErr || !data.user) {
-        setError(friendlyError(authErr?.message ?? ''))
+        setError(role === 'Student'
+          ? 'Wrong admission number or PIN. Ask your teacher if you need help.'
+          : friendlyError(authErr?.message ?? ''))
         return
       }
-
       let userRole: string | null = null
-
       const { data: rpcRole, error: rpcErr } = await supabase.rpc('get_my_role')
       if (!rpcErr && rpcRole) {
         userRole = rpcRole
       } else {
-        const { data: p, error: pErr } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-        if (pErr) {
-          setError('Could not verify your account role. Please try again or contact support.')
-          return
-        }
+        const { data: p } = await supabase.from('profiles').select('role').eq('id', data.user.id).single()
         userRole = p?.role ?? null
       }
-
-      if (!userRole) { setError('No role found for this account. Contact support.'); return }
-
+      if (!userRole) { setError('No role found. Contact support.'); return }
       const dest = DASHBOARDS[userRole]
-      if (!dest) { setError('Unknown role: ' + userRole + '. Contact support.'); return }
-
-      document.cookie = `vibe_role=${userRole}; path=/; max-age=3600; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+      if (!dest) { setError('Unknown role: ' + userRole); return }
+      document.cookie = \`vibe_role=\${userRole}; path=/; max-age=3600; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
       localStorage.setItem('vs_role', userRole)
       navigated = true
       window.location.href = dest
@@ -460,161 +439,120 @@ export default function RootPage() {
   async function handleSignUp() {
     if (inflightRef.current) return
     setError('')
-
-    // Validation
-    if (!fullName.trim())  { setError('Full name is required.'); return }
-    if (role !== 'Student' && !email.trim()) { setError('Email is required.'); return }
-    if (!password)         { setError('Password is required.'); return }
-    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
-    if (role !== 'Student' && password !== confirmPassword) { setError('Passwords do not match.'); return }
-    if ((role === 'Teacher' || role === 'Parent' || role === 'Global') && !country) {
-      setError('Country is required.'); return
+    if (!fullName.trim()) { setError('Full name is required.'); return }
+    if (role === 'Student') {
+      if (!claimCode.trim())     { setError('Claim code is required.'); return }
+      if (!studentPin)            { setError('PIN is required.'); return }
+      if (studentPin.length < 4) { setError('PIN must be at least 4 digits.'); return }
+    } else {
+      if (!email.trim())    { setError('Email is required.'); return }
+      if (!password)        { setError('Password is required.'); return }
+      if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+      if (role !== 'Admin' && password !== confirmPassword) { setError('Passwords do not match.'); return }
     }
+    if ((role === 'Teacher' || role === 'Parent' || role === 'Global') && !country) { setError('Country is required.'); return }
     if (role === 'Global' && !dob) { setError('Date of birth is required.'); return }
-    if (role === 'Student' && !claimCode.trim()) { setError('Claim code is required.'); return }
     if (role === 'Admin' && !joinCode.trim()) { setError('School join code is required.'); return }
-
     inflightRef.current = true
     setLoading(true)
     let navigated = false
-
     try {
-      // Admin — validate join code first
       let schoolId: string | null = null
       let schoolName = ''
-
       if (role === 'Admin') {
         const { data: school, error: schoolErr } = await supabase
-          .from('schools')
-          .select('id, name')
-          .eq('subdomain', joinCode.trim().toLowerCase())
-          .single()
-
-        if (schoolErr || !school) {
-          setError('Invalid school join code.')
-          return
-        }
+          .from('schools').select('id, name').eq('subdomain', joinCode.trim().toLowerCase()).single()
+        if (schoolErr || !school) { setError('Invalid school join code.'); return }
         schoolId = school.id
         schoolName = school.name
       }
-
-      // Create auth user
-      const signupEmail = role === 'Student'
-        ? `${claimCode.trim().toLowerCase()}@student.vibeschool.co.ke`
-        : email.trim()
-
+      if (role === 'Student') {
+        const code = claimCode.trim().toUpperCase()
+        const { data: validateResult, error: validateErr } = await supabase
+          .rpc('redeem_student_claim', { p_code: code })
+        if (validateErr || !validateResult) { setError('Could not validate claim code. Please try again.'); return }
+        const vStatus = validateResult.status
+        if (vStatus === 'not_found')         { setError('Claim code not found. Check with your teacher.'); return }
+        if (vStatus === 'already_claimed')   { setError('This claim code has already been used.'); return }
+        if (vStatus === 'expired')           { setError('Claim code expired. Ask your teacher for a new one.'); return }
+        if (vStatus === 'student_not_found') { setError('Student record not found. Contact your teacher.'); return }
+        const admissionNumber: string = validateResult.admission_number
+        const schoolCode: string      = validateResult.school_code
+        const internalEmail = \`\${schoolCode}_\${admissionNumber.toLowerCase().replace(/\s/g, '')}@vs.internal\`
+        const { data: authData, error: authErr } = await supabase.auth.signUp({
+          email: internalEmail, password: studentPin,
+          options: { data: { role: 'student', full_name: fullName.trim() } },
+        })
+        if (authErr || !authData.user) {
+          setError(authErr?.message?.includes('already registered')
+            ? 'An account already exists for this student. Sign in instead.'
+            : 'Account creation failed. Please try again.')
+          return
+        }
+        if (authData.user.identities && authData.user.identities.length === 0) {
+          setError('An account already exists for this student. Sign in instead.'); return
+        }
+        const userId = authData.user.id
+        const { data: linkResult, error: linkErr } = await supabase
+          .rpc('redeem_student_claim', { p_code: code, p_user_id: userId })
+        if (linkErr || !linkResult || linkResult.status !== 'success') {
+          await supabase.auth.signOut()
+          setError('Account created but linking failed. Please try signing in with your admission number and PIN.')
+          return
+        }
+        if (authData.session) {
+          const maxAge = authData.session.expires_in ?? 3600
+          document.cookie = \`vibe_role=student; path=/; max-age=\${maxAge}; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
+          localStorage.setItem('vs_role', 'student')
+        }
+        navigated = true
+        router.replace('/student')
+        return
+      }
       const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: signupEmail,
-        password,
+        email: email.trim(), password,
         options: { data: { role: ROLE_DB[role], full_name: fullName.trim() } },
       })
-
-      if (authErr || !authData.user) {
-        setError(friendlyError(authErr?.message ?? ''))
-        return
+      if (authErr || !authData.user) { setError(friendlyError(authErr?.message ?? '')); return }
+      if (authData.user.identities && authData.user.identities.length === 0) {
+        setError('An account with this email already exists. Please sign in instead.'); return
       }
-      if (!authErr && authData.user.identities && authData.user.identities.length === 0) {
-        setError('An account with this email already exists. Please sign in instead.')
-        return
-      }
-
       const userId = authData.user.id
       const dbRole = ROLE_DB[role]
-
-      // Insert profile — never use pending_admin, use real role
       const profilePayload: Record<string, unknown> = {
         full_name: fullName.trim(),
-        ...(country && { country_code: country }),
-        ...(dob     && { date_of_birth: dob }),
+        ...(country  && { country_code: country }),
+        ...(dob      && { date_of_birth: dob }),
         ...(schoolId && { school_id: schoolId }),
       }
-
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .update(profilePayload)
-        .eq('id', userId)
-        .select('id')
-
+      const { error: profileErr } = await supabase.from('profiles').update(profilePayload).eq('id', userId).select('id')
       if (profileErr) {
         await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-        setError('Account setup failed. Please try again.')
-        return
+        document.cookie = 'vibe_role=; path=/; max-age=0'
+        setError('Account setup failed. Please try again.'); return
       }
-
-      // Teacher — add to school_members after profile created
-      // (school link happens in onboarding, self-heal via resolveSchoolId)
-
-      // Parent — add to school_members if school known
       if (role === 'Parent' && schoolId) {
         await supabase.from('school_members').upsert(
           { school_id: schoolId, profile_id: userId, role: 'parent' },
           { onConflict: 'school_id,profile_id', ignoreDuplicates: true }
         )
       }
-
-      // Admin joining existing school — use RPC for atomicity
       if (role === 'Admin' && schoolId) {
         await supabase.rpc('join_school_as_admin', {
-          p_user_id:   userId,
-          p_full_name: fullName.trim(),
-          p_school_id: schoolId,
+          p_user_id: userId, p_full_name: fullName.trim(), p_school_id: schoolId,
         })
       }
-
-      // Student — use atomic RPC instead of 4 separate writes
-      if (role === 'Student') {
-        const code = claimCode.trim().toUpperCase()
-        const { data: claimResult, error: claimErr } = await supabase
-          .rpc('redeem_student_claim', {
-            p_code:    code,
-            p_user_id: userId,
-          })
-
-        if (claimErr || !claimResult) {
-          await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-          setError('Failed to link your student account. Please try again.')
-          return
-        }
-
-        switch (claimResult) {
-          case 'not_found':
-            await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-            setError('Claim code not found. Check with your teacher.')
-            return
-          case 'already_claimed':
-            await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-            setError('This claim code has already been used.')
-            return
-          case 'expired':
-            await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-            setError('Claim code expired. Ask your teacher for a new one.')
-            return
-          case 'student_not_found':
-            await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-            setError('Student record not found. Contact your teacher.')
-            return
-        }
-      }
-
-      // Admin pending — show WhatsApp/email prompt
       if (role === 'Admin') {
         const waText = encodeURIComponent(
-          `Hello, I just registered as a VibeSchool admin and need approval.\nName: ${fullName}\nEmail: ${email}\nSchool: ${schoolName}`
+          \`Hello, I just registered as a VibeSchool admin and need approval.\nName: \${fullName}\nEmail: \${email}\nSchool: \${schoolName}\`
         )
-        router.replace(`/admin/pending?name=${encodeURIComponent(fullName)}&email=${encodeURIComponent(email)}&school=${encodeURIComponent(schoolName)}&wa=${waText}`)
+        router.replace(\`/admin/pending?name=\${encodeURIComponent(fullName)}&email=\${encodeURIComponent(email)}&school=\${encodeURIComponent(schoolName)}&wa=\${waText}\`)
         navigated = true
         return
       }
-
       if (authData.session) {
         const maxAge = authData.session.expires_in ?? 3600
-        document.cookie = `vibe_role=${dbRole}; path=/; max-age=${maxAge}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+        document.cookie = \`vibe_role=\${dbRole}; path=/; max-age=\${maxAge}; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
         localStorage.setItem('vs_role', dbRole)
       }
       navigated = true
@@ -630,26 +568,14 @@ export default function RootPage() {
     setError('')
     gInflightRef.current = true
     setGLoading(true)
-
-    const redirectTo =
-      window.location.origin +
-      '/auth/callback' +
-      '?intent=' + tab +
-      '&role='   + encodeURIComponent(ROLE_DB[role])
-
-    const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    })
-
+    const redirectTo = window.location.origin + '/auth/callback' + '?intent=' + tab + '&role=' + encodeURIComponent(ROLE_DB[role])
+    const { error: oauthErr } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
     if (oauthErr) {
       setError(oauthErr.message || 'Google sign in failed.')
       setGLoading(false)
       gInflightRef.current = false
     }
   }
-
-  // ── Render ─────────────────────────────────────────────────────
 
   const ROLE_NOTES: Record<Role, string> = {
     Teacher: 'Manage your classes, lessons and students.',
@@ -661,168 +587,133 @@ export default function RootPage() {
 
   return (
     <>
-      <style>{`
+      <style>{\`
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulse  { 0%,100%{opacity:.2} 50%{opacity:.8} }
         input::placeholder { color: rgba(255,255,255,0.18); }
         select option { background: #0A0A1E; color: #fff; }
         a:hover { color: rgba(200,168,75,0.8) !important; }
-      `}</style>
-
+      \`}</style>
       <div style={S.root}>
         <div style={S.glow} />
-
         <div style={S.wrap}>
-
-          {/* Wordmark */}
-          <div style={S.wordmark}>
-            Vibe<span style={S.gold}>School</span>
-          </div>
+          <div style={S.wordmark}>Vibe<span style={S.gold}>School</span></div>
           <p style={S.tagline}>Freedom · Learn · Explore</p>
-          <a href="/global" style={S.exploreLink}>
-            Explore free — no account needed →
-          </a>
-
+          <a href="/global" style={S.exploreLink}>Explore free — no account needed →</a>
           <div style={S.box}>
-
-            {/* Tabs */}
             <div style={S.tabs}>
-              <button style={tabStyle(tab === 'signin')} onClick={() => { setTab('signin'); setError('') }}>
-                Sign In
-              </button>
-              <button style={{ ...tabStyle(tab === 'signup'), borderRight: 'none' }} onClick={() => { setTab('signup'); setError('') }}>
-                Sign Up
-              </button>
+              <button style={tabStyle(tab === 'signin')} onClick={() => { setTab('signin'); setError('') }}>Sign In</button>
+              <button style={{ ...tabStyle(tab === 'signup'), borderRight: 'none' }} onClick={() => { setTab('signup'); setError('') }}>Sign Up</button>
             </div>
-
-            {/* Role pills */}
             <p style={S.roleLabel}>{tab === 'signin' ? 'I am a' : 'Sign up as'}</p>
             <div style={S.roles}>
               {ROLES.map(r => (
-                <button
-                  key={r}
-                  style={pillStyle(role === r, isBusy)}
-                  onClick={() => { if (!isBusy) { if (r === 'Admin') { router.push(tab === 'signin' ? '/admin/login' : '/admin/signup'); return } setRole(r); setError('') } }}
-                >
+                <button key={r} style={pillStyle(role === r, isBusy)}
+                  onClick={() => { if (!isBusy) { if (r === 'Admin') { router.push(tab === 'signin' ? '/admin/login' : '/admin/signup'); return } setRole(r); setError('') } }}>
                   {r}
                 </button>
               ))}
             </div>
-
-            {/* Error */}
             {error && <div style={S.error}>{error}</div>}
-
-            {/* ── SIGN IN ── */}
             {tab === 'signin' && (
               <>
-                <label style={S.fieldLabel}>Email</label>
-                <input
-                  style={S.input}
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  disabled={isBusy}
-                />
-
-                <label style={S.fieldLabel}>Password</label>
-                <div style={S.inputWrap}>
-                  <input
-                    style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
-                    ref={passwordRef}
-                    type={showPw ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    name="password"
-                    placeholder="••••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleSignIn() }}
-                    disabled={isBusy}
-                  />
-                  <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>
-                    {showPw ? '🙈' : '👁'}
-                  </button>
-                </div>
-
-                <div style={S.forgotRow}>
-                  <button style={S.forgot} onClick={handleForgotPassword}>
-                    Forgot password?
-                  </button>
-                </div>
-
-                <button
-                  style={{ ...S.submit, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
-                  onClick={handleSignIn}
-                  disabled={isBusy}
-                >
+                {role === 'Student' ? (
+                  <>
+                    <label style={S.fieldLabel}>Admission Number</label>
+                    <input style={S.input} type="text" autoComplete="username" placeholder="e.g. ADM001"
+                      value={admissionNo} onChange={e => setAdmissionNo(e.target.value.toUpperCase())} disabled={isBusy} />
+                    <label style={S.fieldLabel}>PIN</label>
+                    <div style={S.inputWrap}>
+                      <input style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                        type={showPw ? 'text' : 'password'} autoComplete="current-password" inputMode="numeric"
+                        placeholder="Your 4–6 digit PIN" value={studentPin}
+                        onChange={e => setStudentPin(e.target.value.replace(/\D/g, ''))}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSignIn() }} disabled={isBusy} />
+                      <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>{showPw ? '🙈' : '👁'}</button>
+                    </div>
+                    <div style={{ ...S.forgotRow, justifyContent: 'flex-start' }}>
+                      <span style={{ ...S.forgot, cursor: 'default', color: 'rgba(255,255,255,0.25)' }}>
+                        Forgot PIN? Ask your class teacher to reset it.
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label style={S.fieldLabel}>Email</label>
+                    <input style={S.input} type="email" autoComplete="email" placeholder="you@example.com"
+                      value={email} onChange={e => setEmail(e.target.value)} disabled={isBusy} />
+                    <label style={S.fieldLabel}>Password</label>
+                    <div style={S.inputWrap}>
+                      <input style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                        ref={passwordRef} type={showPw ? 'text' : 'password'} autoComplete="current-password"
+                        name="password" placeholder="••••••••••" value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSignIn() }} disabled={isBusy} />
+                      <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>{showPw ? '🙈' : '👁'}</button>
+                    </div>
+                    <div style={S.forgotRow}>
+                      <button style={S.forgot} onClick={handleForgotPassword}>Forgot password?</button>
+                    </div>
+                  </>
+                )}
+                <button style={{ ...S.submit, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleSignIn} disabled={isBusy}>
                   {loading ? 'Signing in…' : 'Sign In'}
                 </button>
-
-                <div style={S.divider}>
-                  <div style={S.divLine} />
-                  <span style={S.divText}>or</span>
-                  <div style={S.divLine} />
-                </div>
-
-                <button
-                  style={{ ...S.googleBtn, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
-                  onClick={handleGoogle}
-                  disabled={isBusy}
-                >
-                  <GoogleIcon />
-                  {gLoading ? 'Connecting…' : 'Continue with Google'}
+                <div style={S.divider}><div style={S.divLine} /><span style={S.divText}>or</span><div style={S.divLine} /></div>
+                <button style={{ ...S.googleBtn, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleGoogle} disabled={isBusy}>
+                  <GoogleIcon />{gLoading ? 'Connecting…' : 'Continue with Google'}
                 </button>
               </>
             )}
-
-            {/* ── SIGN UP ── */}
             {tab === 'signup' && (
               <>
                 <p style={S.signupNote}>{ROLE_NOTES[role]}</p>
-
                 <label style={S.fieldLabel}>Full Name</label>
-                <input style={S.input} type="text" autoComplete="name"
-                  placeholder="Your full name"
+                <input style={S.input} type="text" autoComplete="name" placeholder="Your full name"
                   value={fullName} onChange={e => setFullName(e.target.value)} disabled={isBusy} />
-
                 {role !== 'Student' && (
                   <>
                     <label style={S.fieldLabel}>Email</label>
-                    <input style={S.input} type="email" autoComplete="email"
-                      placeholder="you@example.com"
+                    <input style={S.input} type="email" autoComplete="email" placeholder="you@example.com"
                       value={email} onChange={e => setEmail(e.target.value)} disabled={isBusy} />
                   </>
                 )}
-
-                <label style={S.fieldLabel}>Password</label>
-                <div style={S.inputWrap}>
-                  <input
-                    style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
-                    type={showPw ? 'text' : 'password'}
-                    autoComplete="new-password" placeholder="Min 8 characters"
-                    value={password} onChange={e => setPassword(e.target.value)} disabled={isBusy}
-                  />
-                  <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>
-                    {showPw ? '🙈' : '👁'}
-                  </button>
-                </div>
-
-                <label style={{ ...S.fieldLabel, marginTop: 14 }}>Confirm Password</label>
-                <div style={S.inputWrap}>
-                  <input
-                    style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
-                    type={showConfirm ? 'text' : 'password'}
-                    autoComplete="new-password" placeholder="Repeat password"
-                    value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={isBusy}
-                    onKeyDown={e => { if (e.key === 'Enter') handleSignUp() }}
-                  />
-                  <button style={S.eyeBtn} type="button" onClick={() => setShowConfirm(v => !v)}>
-                    {showConfirm ? '🙈' : '👁'}
-                  </button>
-                </div>
-
-                {/* Country — Teacher, Parent, Global */}
+                {role !== 'Student' && (
+                  <>
+                    <label style={S.fieldLabel}>Password</label>
+                    <div style={S.inputWrap}>
+                      <input style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                        type={showPw ? 'text' : 'password'} autoComplete="new-password" placeholder="Min 8 characters"
+                        value={password} onChange={e => setPassword(e.target.value)} disabled={isBusy} />
+                      <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>{showPw ? '🙈' : '👁'}</button>
+                    </div>
+                    <label style={{ ...S.fieldLabel, marginTop: 14 }}>Confirm Password</label>
+                    <div style={S.inputWrap}>
+                      <input style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                        type={showConfirm ? 'text' : 'password'} autoComplete="new-password" placeholder="Repeat password"
+                        value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={isBusy}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSignUp() }} />
+                      <button style={S.eyeBtn} type="button" onClick={() => setShowConfirm(v => !v)}>{showConfirm ? '🙈' : '👁'}</button>
+                    </div>
+                  </>
+                )}
+                {role === 'Student' && (
+                  <>
+                    <label style={S.fieldLabel}>PIN</label>
+                    <div style={S.inputWrap}>
+                      <input style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
+                        type={showPw ? 'text' : 'password'} autoComplete="new-password" inputMode="numeric"
+                        placeholder="4–6 digit PIN (you choose)" maxLength={6} value={studentPin}
+                        onChange={e => setStudentPin(e.target.value.replace(/\D/g, ''))} disabled={isBusy} />
+                      <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>{showPw ? '🙈' : '👁'}</button>
+                    </div>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 6, marginBottom: 0 }}>
+                      Remember this PIN — your teacher can reset it if you forget.
+                    </p>
+                  </>
+                )}
                 {(role === 'Teacher' || role === 'Parent' || role === 'Global') && (
                   <>
                     <label style={{ ...S.fieldLabel, marginTop: 14 }}>Country</label>
@@ -832,75 +723,45 @@ export default function RootPage() {
                     </select>
                   </>
                 )}
-
-                {/* DOB — Global only */}
                 {role === 'Global' && (
                   <>
                     <label style={{ ...S.fieldLabel, marginTop: 0 }}>Date of Birth</label>
-                    <input style={S.input} type="date"
-                      value={dob} onChange={e => setDob(e.target.value)} disabled={isBusy} />
+                    <input style={S.input} type="date" value={dob} onChange={e => setDob(e.target.value)} disabled={isBusy} />
                   </>
                 )}
-
-                {/* Claim code — Student */}
                 {role === 'Student' && (
                   <>
                     <label style={{ ...S.fieldLabel, marginTop: 14 }}>Claim Code</label>
-                    <input style={S.input} type="text"
-                      placeholder="Code from your teacher"
-                      value={claimCode}
-                      onChange={e => setClaimCode(e.target.value.toUpperCase())}
-                      disabled={isBusy} />
+                    <input style={{ ...S.input, letterSpacing: 4, fontFamily: 'monospace', textAlign: 'center' }}
+                      type="text" placeholder="From your teacher" maxLength={6} value={claimCode}
+                      onChange={e => setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} disabled={isBusy} />
                   </>
                 )}
-
-                {/* Join code — Admin */}
                 {role === 'Admin' && (
                   <>
                     <label style={{ ...S.fieldLabel, marginTop: 14 }}>School Join Code</label>
-                    <input style={S.input} type="text"
-                      placeholder="e.g. kwi-4821"
-                      value={joinCode}
-                      onChange={e => setJoinCode(e.target.value)}
-                      disabled={isBusy} />
+                    <input style={S.input} type="text" placeholder="e.g. kwi-4821"
+                      value={joinCode} onChange={e => setJoinCode(e.target.value)} disabled={isBusy} />
                   </>
                 )}
-
-                <button
-                  style={{ ...S.submit, marginTop: 8, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
-                  onClick={handleSignUp}
-                  disabled={isBusy}
-                >
+                <button style={{ ...S.submit, marginTop: 8, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleSignUp} disabled={isBusy}>
                   {loading ? 'Creating account…' : 'Create Account'}
                 </button>
-
-                <div style={S.divider}>
-                  <div style={S.divLine} />
-                  <span style={S.divText}>or</span>
-                  <div style={S.divLine} />
-                </div>
-
-                <button
-                  style={{ ...S.googleBtn, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
-                  onClick={handleGoogle}
-                  disabled={isBusy}
-                >
-                  <GoogleIcon />
-                  {gLoading ? 'Connecting…' : 'Continue with Google'}
+                <div style={S.divider}><div style={S.divLine} /><span style={S.divText}>or</span><div style={S.divLine} /></div>
+                <button style={{ ...S.googleBtn, opacity: isBusy ? 0.45 : 1, cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                  onClick={handleGoogle} disabled={isBusy}>
+                  <GoogleIcon />{gLoading ? 'Connecting…' : 'Continue with Google'}
                 </button>
               </>
             )}
-
           </div>
-
-          {/* Legal */}
           <p style={S.legal}>
             By continuing you agree to our{' '}
             <a href="/legal/terms" style={{ color: 'rgba(200,168,75,0.4)', textDecoration: 'none' }}>Terms</a>
             {' '}and{' '}
             <a href="/legal/privacy" style={{ color: 'rgba(200,168,75,0.4)', textDecoration: 'none' }}>Privacy Policy</a>
           </p>
-
         </div>
       </div>
     </>
