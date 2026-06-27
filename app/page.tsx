@@ -479,7 +479,7 @@ export default function RootPage() {
         const admissionNumber: string = validateResult.admission_number
         const schoolCode: string      = validateResult.school_code
         const internalEmail = `\${schoolCode}_\${admissionNumber.toLowerCase().replace(/\s/g, '')}@vs.internal`
-        const { data: authData, error: authErr } = await supabase.auth.signUp({
+        const createRes = await fetch('/api/create-student-account', {
           email: internalEmail, password: studentPin,
           options: { data: { role: 'student', full_name: fullName.trim() } },
         })
@@ -509,7 +509,7 @@ export default function RootPage() {
         router.replace('/student')
         return
       }
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
+      const createRes = await fetch('/api/create-student-account', {
         email: email.trim(), password,
         options: { data: { role: ROLE_DB[role], full_name: fullName.trim() } },
       })
