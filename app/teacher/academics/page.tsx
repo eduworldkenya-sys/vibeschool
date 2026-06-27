@@ -97,6 +97,36 @@ export default function TeacherAcademicsPage(){
   const [termStats,setTermStats]=useState<TermStat|null>(null);
   const [expanded,setExpanded]=useState<string|null>(null);
   const [teacherName,setTeacherName]=useState<string|null>(null);
+  const [insight,setInsight]=useState<string|null>(null);
+  const [insightLoading,setInsightLoading]=useState(false);
+
+  function rulesInsight(subs:SubjectCard[],risk:AtRiskStudent[],stats:TermStat|null,name:string|null):string{
+    const t=name?` ${name}`:"";
+    if(!stats||stats.totalAssess===0)return `👋 Welcome${t}! Record your first CBC assessment to unlock insights.`;
+    const weak=subs.filter(s=>s.masteredPct!==null&&s.masteredPct<40);
+    const strong=subs.filter(s=>s.masteredPct!==null&&s.masteredPct>=70);
+    const lowAtt=stats.avgAttRate!==null&&stats.avgAttRate<60;
+    if(risk.length>3&&weak.length>0)return `⚠️ ${risk.length} students are below expectation in ${weak.map(s=>s.name).join(", ")}. Group them for targeted strand revision before end of term.`;
+    if(weak.length>0&&lowAtt)return `📉 Low attendance (${stats.avgAttRate}%) may be driving weak mastery in ${weak[0].name}. Prioritise catch-up sessions.`;
+    if(weak.length>0)return `📚 ${weak.map(s=>s.name).join(" and ")} need${weak.length===1?"s":""} attention — mastery below 40%. Consider re-teaching key strands.`;
+    if(strong.length===subs.length&&subs.length>0)return `🎯 Excellent term${t}! All ${subs.length} subjects are on track. Keep documenting evidence for TPAD.`;
+    if(risk.length>0)return `👀 ${risk.length} student${risk.length>1?"s are":" is"} at risk. Check their ClassHub profiles and assign peer learning partners.`;
+    if(stats.totalLessons===0)return `📚 No lesson plans recorded yet this term${t}. Add plans to strengthen your TPAD evidence.`;
+    return `✓ Term ${currentTerm()} looking good${t}. ${stats.totalAssess} assessments recorded across ${stats.subjectCount} subject${stats.subjectCount!==1?"s":""}.`;
+  }
+
+  async function fetchAIInsight(subs:SubjectCard[],risk:AtRiskStudent[],stats:TermStat,name:string|null){
+    if(stats.totalAssess<5)return;
+    setInsightLoading(true);
+    try{
+      const summary={term:currentTerm(),teacher:name??"Teacher",subjects:subs.map(s=>({name:s.name,mastery:s.masteredPct,assessed:s.assessCount,coverage:s.coveragePct})),atRisk:risk.length,avgAtt:stats.avgAttRate,lessons:stats.totalLessons};
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-haiku-4-5",max_tokens:120,system:"You are a CBC teaching coach. Give ONE specific, actionable insight in 1-2 sentences max. Be direct, warm, practical. No preamble. Use an emoji at the start.",messages:[{role:"user",content:`Term ${summary.term} data for ${summary.teacher}: ${JSON.stringify(summary.subjects)}. At-risk: ${summary.atRisk}. Avg attendance: ${summary.avgAtt}%. Lesson plans: ${summary.lessons}. Give one insight.`}]})}  );
+      const d=await res.json();
+      const text=d?.content?.[0]?.text?.trim();
+      if(text)setInsight(text);
+    }catch(e){console.error("AI insight",e);}
+    finally{setInsightLoading(false);}
+  }
 
   const boot=useCallback(async()=>{
     setLoading(true);setError(null);
@@ -188,7 +218,10 @@ export default function TeacherAcademicsPage(){
       const avgAttRate=allAttRates.length>0?Math.round(allAttRates.reduce((a,b)=>a+b,0)/allAttRates.length):null;
       const tpadStandards:Record<string,number|null>={};
       for(const s of TSC_STANDARDS)tpadStandards[s.key]=tpadRow?((tpadRow[s.key] as number|null)??null):null;
-      setTermStats({totalLessons:lpData.length,totalAssess:assData.length,subjectCount:subList.length,studentCount:totalStudents,avgAttRate,tpadFinalScore:tpadRow?(tpadRow.final_score as number|null):null,tpadStatus:tpadRow?(tpadRow.status as string|null):null,tpadStandards,evidenceCount:evidRows.length});
+      const finalStats={totalLessons:lpData.length,totalAssess:assData.length,subjectCount:subList.length,studentCount:totalStudents,avgAttRate,tpadFinalScore:tpadRow?(tpadRow.final_score as number|null):null,tpadStatus:tpadRow?(tpadRow.status as string|null):null,tpadStandards,evidenceCount:evidRows.length};
+      setTermStats(finalStats);
+      setInsight(rulesInsight(summaries,atRiskList,finalStats,resolvedName));
+      if(finalStats.totalAssess>=5)fetchAIInsight(summaries,atRiskList,finalStats,resolvedName);
     }catch(e){console.error("Academics boot",e);setError("Failed to load. Tap to retry.");}finally{setLoading(false);}
   },[router]);
 
@@ -235,6 +268,7 @@ export default function TeacherAcademicsPage(){
 
         {tab==="overview"&&(
           <div style={{animation:"fadeUp 0.25s ease"}}>
+            {insight&&!loading&&(<div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:14,padding:"13px 15px",marginBottom:12}}><div style={{fontSize:9,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>{insightLoading?"✨ Upgrading...":"✨ Twin Insight"}</div><div style={{fontSize:13,fontWeight:600,color:"#e0e7ff",lineHeight:1.5}}>{insight}</div></div>)}
             {loading?<Skel h={130}/>:subjects.length>0?(
               <div style={{background:C.surface,borderRadius:16,border:`1px solid ${C.border}`,padding:16,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
                 <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>Overall Mastery</div>
