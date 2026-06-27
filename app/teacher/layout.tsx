@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
@@ -21,19 +21,23 @@ export const useCredits = () => useContext(CreditContext);
 
 // ── Nav config — single source of truth ──────────────────────────────────────
 const NAV_TABS = [
-  { id: "classhub",   label: "Home",      href: "/teacher" },
-  { id: "vibelearn",  label: "VibeLearn", href: "/teacher/vibelearn"  },
-  { id: "lessonplan", label: "Plans",     href: "/teacher/lessonplan" },
-  { id: "assessment", label: "Assess",    href: "/teacher/assessment" },
-  { id: "more",       label: "More",      href: "/teacher/more"       },
+  { id: "pulse",    label: "Pulse",    href: "/teacher/pulse"    },
+  { id: "teach",    label: "Teach",    href: "/teacher/subjecthub" },
+  { id: "twin",     label: "Twin",     href: "/teacher/twin"     },
+  { id: "students", label: "Students", href: "/teacher/classhub" },
+  { id: "me",       label: "Me",       href: "/teacher/profile"  },
 ] as const;
 
 type TabId = typeof NAV_TABS[number]["id"];
 
 function tabIdFromPath(path: string): TabId {
-  if (path === "/teacher" || path === "/teacher/") return "classhub";
-  const match = NAV_TABS.find(t => path.startsWith(t.href));
-  return (match?.id ?? "classhub") as TabId;
+  if (path === "/teacher" || path === "/teacher/") return "pulse";
+  if (path.startsWith("/teacher/pulse"))     return "pulse";
+  if (path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/lessonnotes") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn/indexer")) return "teach";
+  if (path.startsWith("/teacher/twin"))      return "twin";
+  if (path.startsWith("/teacher/classhub") || path.startsWith("/teacher/students") || path.startsWith("/teacher/attendance") || path.startsWith("/teacher/timetable") || path.startsWith("/teacher/assessment") || path.startsWith("/teacher/results") || path.startsWith("/teacher/schoolhub")) return "students";
+  if (path.startsWith("/teacher/profile") || path.startsWith("/teacher/credits") || path.startsWith("/teacher/tpad") || path.startsWith("/teacher/vibelearn") || path.startsWith("/teacher/vibeconnect") || path.startsWith("/teacher/settings") || path.startsWith("/teacher/help") || path.startsWith("/teacher/more") || path.startsWith("/teacher/academics")) return "me";
+  return "pulse";
 }
 
 function IconClassHub({ size = 22 }: { size?: number }) {
@@ -81,11 +85,11 @@ function IconMore({ size = 22 }: { size?: number }) {
 }
 
 const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
-  classhub:   (a) => <IconClassHub  size={a ? 23 : 21} />,
-  vibelearn:  (a) => <IconVibeLearn size={a ? 23 : 21} />,
-  lessonplan: (a) => <IconPlans     size={a ? 23 : 21} />,
-  assessment: (a) => <IconAssess    size={a ? 23 : 21} />,
-  more:       (a) => <IconMore      size={a ? 23 : 21} />,
+  pulse:    (a) => <IconPulse    size={a ? 23 : 21} />,
+  teach:    (a) => <IconTeach    size={a ? 23 : 21} />,
+  twin:     (a) => <IconTwin     size={a ? 23 : 21} />,
+  students: (a) => <IconStudents size={a ? 23 : 21} />,
+  me:       (a) => <IconMe       size={a ? 23 : 21} />,
 };
 
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
@@ -295,6 +299,21 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   )
 }
 
+function IconPulse({ size = 22 }: { size?: number }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>)
+}
+function IconTeach({ size = 22 }: { size?: number }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>)
+}
+function IconTwin({ size = 22 }: { size?: number }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>)
+}
+function IconStudents({ size = 22 }: { size?: number }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>)
+}
+function IconMe({ size = 22 }: { size?: number }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>)
+}
 function IconAttendance({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -421,37 +440,35 @@ function IconTPAD({ size = 22 }: { size?: number }) {
 interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
 const TRAY_ITEMS: Record<string, TrayItem[]> = {
-  classhub: [
-    { label: "Classes",    icon: <IconClassHub   size={24} />, href: "/teacher"               },
-    { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance"    },
-    { label: "Timetable",  icon: <IconTimetable  size={24} />, href: "/teacher/timetable"     },
-    { label: "SchoolHub",  icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub"     },
+  pulse: [],
+  teach: [
+    { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"        },
+    { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"            },
+    { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan"        },
+    { label: "Notes",       icon: <IconVibeLearn  size={24} />, href: "/teacher/lessonnotes"       },
+    { label: "Resources",   icon: <IconResources  size={24} />, href: "/teacher/resources"         },
+    { label: "Indexer",     icon: <IconIndexer    size={24} />, href: "/teacher/vibelearn/indexer" },
   ],
-  vibelearn: [
-    { label: "VibeLearn",   icon: <IconVibeLearn   size={24} />, href: "/teacher/vibelearn"         },
-    { label: "Indexer",     icon: <IconIndexer     size={24} />, href: "/teacher/vibelearn/indexer" },
-    { label: "Resources",   icon: <IconResources   size={24} />, href: "/teacher/resources"         },
-    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect"       },
-  ],
-  lessonplan: [
-    { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"  },
-    { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan"  },
-    { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"      },
-    { label: "Notes",       icon: <IconVibeLearn  size={24} />, href: "/teacher/lessonnotes" },
-  ],
-  assessment: [
+  twin: [],
+  students: [
+    { label: "Classes",      icon: <IconClassHub   size={24} />, href: "/teacher/classhub"                },
+    { label: "Students",     icon: <IconStudents   size={24} />, href: "/teacher/students"                },
+    { label: "Attendance",   icon: <IconAttendance size={24} />, href: "/teacher/attendance"              },
+    { label: "Timetable",    icon: <IconTimetable  size={24} />, href: "/teacher/timetable"               },
     { label: "Assessment",   icon: <IconAssess     size={24} />, href: "/teacher/assessment"              },
     { label: "Results",      icon: <IconResults    size={24} />, href: "/teacher/results"                 },
     { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card/all" },
-    { label: "Students",     icon: <IconAttendance size={24} />, href: "/teacher/students"                },
+    { label: "SchoolHub",    icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub"               },
   ],
-  more: [
-    { label: "Profile",   icon: <IconProfile   size={24} />, href: "/teacher/profile"  },
-    { label: "Settings",  icon: <IconSettings  size={24} />, href: "/teacher/settings" },
-    { label: "TPAD",      icon: <IconTPAD      size={24} />, href: "/teacher/tpad"     },
-    { label: "Credits",   icon: <IconVibeLearn size={24} />, href: "/teacher/credits"  },
-    { label: "Help",      icon: <IconHelp      size={24} />, href: "/teacher/help"     },
-    { label: "All Tools", icon: <IconMore      size={24} />, href: "/teacher/more"     },
+  me: [
+    { label: "Profile",     icon: <IconProfile     size={24} />, href: "/teacher/profile"     },
+    { label: "Credits",     icon: <IconVibeLearn   size={24} />, href: "/teacher/credits"     },
+    { label: "TPAD",        icon: <IconTPAD        size={24} />, href: "/teacher/tpad"        },
+    { label: "VibeLearn",   icon: <IconVibeLearn   size={24} />, href: "/teacher/vibelearn"   },
+    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect" },
+    { label: "Academics",   icon: <IconAssess      size={24} />, href: "/teacher/academics"   },
+    { label: "Settings",    icon: <IconSettings    size={24} />, href: "/teacher/settings"    },
+    { label: "Help",        icon: <IconHelp        size={24} />, href: "/teacher/help"        },
   ],
 }
 
@@ -463,6 +480,8 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
   useEffect(() => { setOpenTray(null) }, [pathname])
 
   function handleTab(t: typeof NAV_TABS[number]) {
+    if (t.id === "twin")  { setOpenTray(null); router.push("/teacher/twin");  return }
+    if (t.id === "pulse") { setOpenTray(null); router.push("/teacher/pulse"); return }
     setOpenTray(prev => prev === t.id ? null : t.id)
   }
 
@@ -535,19 +554,19 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
                 transition: "color 0.15s", position: "relative",
               }}
             >
-              {isActive && (
+              {isActive && t.id !== "twin" && (
                 <div style={{ position: "absolute", top: 0, width: 28, height: 3, background: C.accent, borderRadius: "0 0 4px 4px" }} />
               )}
-              {t.id === "vibelearn" && isActive && (
-                <div style={{ position: "absolute", width: 44, height: 44, borderRadius: "50%", background: "rgba(16,185,129,0.08)", top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
+              {t.id === "twin" && (
+                <div style={{ position:"absolute", width:46, height:46, borderRadius:"50%", background:isActive?"linear-gradient(135deg,#0f172a,#1e1b4b)":"linear-gradient(135deg,rgba(16,185,129,0.12),rgba(30,27,75,0.08))", border:`1.5px solid ${isActive?"rgba(16,185,129,0.7)":"rgba(16,185,129,0.3)"}`, top:"50%", left:"50%", transform:"translate(-50%,-54%)", pointerEvents:"none", boxShadow:isActive?"0 0 12px rgba(16,185,129,0.4)":"none", transition:"all 0.2s" }} />
               )}
               {showBadge && (
                 <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>
                   {unreadLearn}
                 </span>
               )}
-              <span style={{ lineHeight: 1 }}>{NAV_ICONS[t.id]?.(isActive)}</span>
-              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1 }}>
+              <span style={{ lineHeight: 1, position:"relative", zIndex:1, color:t.id==="twin"&&isActive?"#10b981":undefined }}>{NAV_ICONS[t.id]?.(isActive)}</span>
+              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1, position:"relative", zIndex:1, color:t.id==="twin"?(isActive?"#10b981":"#6b7280"):undefined }}>
                 {t.label}
               </span>
             </button>
@@ -561,7 +580,7 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
 function TopBar({ school, initials, unreadConnect, creditBalance }: { school: string; initials: string; unreadConnect: number; creditBalance: number | null }) {
   const router   = useRouter();
   const pathname = usePathname();
-  const isRoot   = pathname === "/teacher" || pathname === "/teacher/";
+  const isRoot   = pathname === "/teacher" || pathname === "/teacher/" || pathname.startsWith("/teacher/pulse");
 
   return (
     <div style={{
@@ -695,6 +714,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const activeId = tabIdFromPath(pathname);
 
   const [twinOpen,      setTwinOpen]      = useState(false);
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams?.get("twin") === "1") setTwinOpen(true);
+  }, [searchParams]);
   const [toast,         setToast]         = useState<string | null>(null);
   const [school,        setSchool]        = useState("");
   const [initials,      setInitials]      = useState("");
@@ -862,7 +885,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
-          <BottomNav activeId={activeId} />
+          <BottomNav activeId={activeId} unreadLearn={0} />
           {toast && <Toast msg={toast} />}
         </div>
       </CreditContext.Provider>
