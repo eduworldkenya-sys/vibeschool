@@ -482,12 +482,25 @@ function AssessmentInner() {
       {/* ── Header ── */}
       <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
         {activeClassId && (
-          <button
-            onClick={() => router.push('/teacher/classhub/' + activeClassId)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10, padding: '6px 14px', borderRadius: 10, background: '#f3f4f6', border: 'none', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            ← View Class
-          </button>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => router.push('/teacher/classhub/' + activeClassId)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: '#f3f4f6', border: 'none', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              ← View Class
+            </button>
+            {activeSubject && (
+              <button
+                onClick={() => {
+                  const desc = `Assessed ${activeSubject.name}${activeClass ? ' for ' + activeClass.name + (activeClass.stream ? ' ' + activeClass.stream : '') : ''} on ${new Date().toLocaleDateString('en-KE')}`
+                  router.push('/teacher/tpad/evidence?desc=' + encodeURIComponent(desc) + '&source=assessment')
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: '#ede9fe', border: 'none', color: '#5b21b6', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                🏅 Add TPAD Evidence
+              </button>
+            )}
+          </div>
         )}
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0a0a0a' }}>CBC Assessment</h1>
         <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>
