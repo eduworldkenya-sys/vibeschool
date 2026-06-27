@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useRef, useCallback, createContext, useContext, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
@@ -708,16 +708,21 @@ function Toast({ msg }: { msg: string }) {
   );
 }
 
+function SearchParamWatcher({ onTwin }: { onTwin: () => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams?.get("twin") === "1") onTwin();
+  }, [searchParams, onTwin]);
+  return null;
+}
+
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const activeId = tabIdFromPath(pathname);
 
   const [twinOpen,      setTwinOpen]      = useState(false);
-  const searchParams = useSearchParams();
-  useEffect(() => {
-    if (searchParams?.get("twin") === "1") setTwinOpen(true);
-  }, [searchParams]);
+  // searchParams handled in SearchParamWatcher (see JSX below)
 
   const [toast,         setToast]         = useState<string | null>(null);
   const [school,        setSchool]        = useState("");
@@ -886,6 +891,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+          <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <BottomNav activeId={activeId} unreadLearn={0} />
           {toast && <Toast msg={toast} />}
         </div>
