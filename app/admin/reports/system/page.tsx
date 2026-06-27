@@ -101,11 +101,9 @@ export default function SystemReportPage() {
   }
 
   async function fetchNotifications() {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200)
+    // notifications table not yet created — return empty
+    const data: any[] = []
+    const error = null
     if (error) { console.error(error); return }
     const rows: NotifRow[] = (data || []).map((r: any) => ({
       title: r.title ?? r.subject ?? '—',
