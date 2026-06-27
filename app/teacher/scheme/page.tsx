@@ -515,7 +515,7 @@ function SchemePageInner() {
     setAddStrandError(null)
 
     const cls  = classes.find(c => c.id === selectedClass)
-    const grade = cls?.grade ?? ''
+    const grade = cls?.name ?? ''
 
     const [strandsRes, progressRes] = await Promise.all([
       supabase
