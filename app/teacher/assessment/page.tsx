@@ -93,6 +93,8 @@ function AssessmentInner() {
   const searchParams = useSearchParams()
 
   const [teacherId,        setTeacherId]        = useState<string | null>(null)
+  const [syncPromptStrand, setSyncPromptStrand] = useState<string | null>(null)
+  const [syncing,          setSyncing]           = useState(false)
   const [schoolId,         setSchoolId]         = useState<string | null>(null)
   const [classes,          setClasses]          = useState<ClassOption[]>([])
   const [subjects,         setSubjects]         = useState<SubjectOption[]>([])
@@ -291,6 +293,45 @@ function AssessmentInner() {
 
   // ── Save (insert or update) ────────────────────────────────────────────────
 
+  // Same week-derivation formula as Scheme's currentWeekOf — keeps strand_progress.week consistent
+  async function syncStrandProgress(strandId: string) {
+    if (!teacherId || !activeClassId || !activeSubjectId || !schoolId) return
+    setSyncing(true)
+    try {
+      const { data: termRow } = await supabase
+        .from('academic_terms')
+        .select('start_date, end_date, term')
+        .eq('school_id', schoolId)
+        .eq('status', 'active')
+        .single()
+      if (!termRow) { setSyncing(false); setSyncPromptStrand(null); return }
+      const start = new Date(termRow.start_date)
+      const end = new Date(termRow.end_date)
+      const totalWeeks = isNaN(start.getTime()) || isNaN(end.getTime())
+        ? 13
+        : Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7)))
+      const now = Date.now()
+      const week = now < start.getTime()
+        ? 1
+        : Math.max(1, Math.min(Math.floor((now - start.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1, totalWeeks))
+
+      await supabase.from('strand_progress').upsert({
+        teacher_id: teacherId,
+        class_id:   activeClassId,
+        subject_id: activeSubjectId,
+        school_id:  schoolId,
+        strand_id:  strandId,
+        term:       termRow.term ?? selectedTerm,
+        week,
+        status: 'teaching',
+      }, { onConflict: 'teacher_id,class_id,strand_id,term,week' })
+    } catch {
+      // Non-blocking — assessment already saved successfully regardless of sync outcome
+    }
+    setSyncing(false)
+    setSyncPromptStrand(null)
+  }
+
   async function saveAssessment() {
     if (saving) return
     if (!selStrand)       { setSaveError('Select a strand'); return }
@@ -347,7 +388,10 @@ function AssessmentInner() {
 
     if (saveErr || !data) { setSaveError(saveErr?.message ?? 'Failed to save'); setSaving(false); return }
     setAssessments(prev => [data as Assessment, ...prev])
+    const savedStrandId = selStrand
     closeModal()
+    // Hybrid: offer to sync curriculum progress — teacher confirms, nothing writes automatically
+    setSyncPromptStrand(savedStrandId)
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
@@ -478,6 +522,29 @@ function AssessmentInner() {
 
   return (
     <div style={{ padding: '0 0 80px', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+
+      {/* Hybrid curriculum sync prompt — appears after saving an assessment */}
+      {syncPromptStrand && (
+        <div style={{ margin: '12px 16px 0', padding: '12px 14px', borderRadius: 12, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#5b21b6' }}>Update curriculum progress for this strand?</span>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button
+              disabled={syncing}
+              onClick={() => syncStrandProgress(syncPromptStrand)}
+              style={{ padding: '5px 12px', borderRadius: 8, border: 'none', background: '#5b21b6', color: '#fff', fontWeight: 700, fontSize: 11, cursor: syncing ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+            >
+              {syncing ? '...' : 'Yes'}
+            </button>
+            <button
+              disabled={syncing}
+              onClick={() => setSyncPromptStrand(null)}
+              style={{ padding: '5px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: '#5b21b6', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
