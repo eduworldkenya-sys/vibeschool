@@ -347,7 +347,7 @@ export default function RootPage() {
         if (rpcRole) {
           const dest = DASHBOARDS[rpcRole]
           if (dest) {
-            document.cookie = \`vibe_role=\${rpcRole}; path=/; max-age=3600; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
+            document.cookie = `vibe_role=\${rpcRole}; path=/; max-age=3600; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}`
             localStorage.setItem('vs_role', rpcRole)
             window.location.href = dest; return
           }
@@ -362,10 +362,10 @@ export default function RootPage() {
   if (initialising) {
     return (
       <div style={S.loader}>
-        <style>{\`
+        <style>{`
           @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:.8} }
           @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        \`}</style>
+        `}</style>
         <span style={S.loaderText}>Loading…</span>
       </div>
     )
@@ -378,7 +378,7 @@ export default function RootPage() {
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: \`\${origin}/reset-password?role=\${role.toLowerCase()}\`,
+        redirectTo: `\${origin}/reset-password?role=\${role.toLowerCase()}`,
       })
       if (error) { setError('Could not send reset email. Check the address and try again.'); return }
       setError('✅ Reset link sent — check your inbox.')
@@ -396,7 +396,7 @@ export default function RootPage() {
       if (!password)     { setError('Password is required.'); return }
     }
     const loginEmail = role === 'Student'
-      ? \`\${admissionNo.trim().toLowerCase().replace(/\s/g, '')}@vs.internal\`
+      ? `\${admissionNo.trim().toLowerCase().replace(/\s/g, '')}@vs.internal`
       : email.trim()
     const loginPassword = role === 'Student' ? studentPin : (passwordRef.current?.value || password)
     if (role !== 'Student') setPassword('')
@@ -424,7 +424,7 @@ export default function RootPage() {
       if (!userRole) { setError('No role found. Contact support.'); return }
       const dest = DASHBOARDS[userRole]
       if (!dest) { setError('Unknown role: ' + userRole); return }
-      document.cookie = \`vibe_role=\${userRole}; path=/; max-age=3600; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
+      document.cookie = `vibe_role=\${userRole}; path=/; max-age=3600; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}`
       localStorage.setItem('vs_role', userRole)
       navigated = true
       window.location.href = dest
@@ -478,7 +478,7 @@ export default function RootPage() {
         if (vStatus === 'student_not_found') { setError('Student record not found. Contact your teacher.'); return }
         const admissionNumber: string = validateResult.admission_number
         const schoolCode: string      = validateResult.school_code
-        const internalEmail = \`\${schoolCode}_\${admissionNumber.toLowerCase().replace(/\s/g, '')}@vs.internal\`
+        const internalEmail = `\${schoolCode}_\${admissionNumber.toLowerCase().replace(/\s/g, '')}@vs.internal`
         const { data: authData, error: authErr } = await supabase.auth.signUp({
           email: internalEmail, password: studentPin,
           options: { data: { role: 'student', full_name: fullName.trim() } },
@@ -502,7 +502,7 @@ export default function RootPage() {
         }
         if (authData.session) {
           const maxAge = authData.session.expires_in ?? 3600
-          document.cookie = \`vibe_role=student; path=/; max-age=\${maxAge}; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
+          document.cookie = `vibe_role=student; path=/; max-age=\${maxAge}; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}`
           localStorage.setItem('vs_role', 'student')
         }
         navigated = true
@@ -544,15 +544,15 @@ export default function RootPage() {
       }
       if (role === 'Admin') {
         const waText = encodeURIComponent(
-          \`Hello, I just registered as a VibeSchool admin and need approval.\nName: \${fullName}\nEmail: \${email}\nSchool: \${schoolName}\`
+          `Hello, I just registered as a VibeSchool admin and need approval.\nName: \${fullName}\nEmail: \${email}\nSchool: \${schoolName}`
         )
-        router.replace(\`/admin/pending?name=\${encodeURIComponent(fullName)}&email=\${encodeURIComponent(email)}&school=\${encodeURIComponent(schoolName)}&wa=\${waText}\`)
+        router.replace(`/admin/pending?name=\${encodeURIComponent(fullName)}&email=\${encodeURIComponent(email)}&school=\${encodeURIComponent(schoolName)}&wa=\${waText}`)
         navigated = true
         return
       }
       if (authData.session) {
         const maxAge = authData.session.expires_in ?? 3600
-        document.cookie = \`vibe_role=\${dbRole}; path=/; max-age=\${maxAge}; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}\`
+        document.cookie = `vibe_role=\${dbRole}; path=/; max-age=\${maxAge}; samesite=lax\${location.protocol === 'https:' ? '; secure' : ''}`
         localStorage.setItem('vs_role', dbRole)
       }
       navigated = true
@@ -587,13 +587,13 @@ export default function RootPage() {
 
   return (
     <>
-      <style>{\`
+      <style>{`
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes pulse  { 0%,100%{opacity:.2} 50%{opacity:.8} }
         input::placeholder { color: rgba(255,255,255,0.18); }
         select option { background: #0A0A1E; color: #fff; }
         a:hover { color: rgba(200,168,75,0.8) !important; }
-      \`}</style>
+      `}</style>
       <div style={S.root}>
         <div style={S.glow} />
         <div style={S.wrap}>
