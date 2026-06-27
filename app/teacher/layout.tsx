@@ -457,7 +457,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Timetable",    icon: <IconTimetable  size={24} />, href: "/teacher/timetable"               },
     { label: "Assessment",   icon: <IconAssess     size={24} />, href: "/teacher/assessment"              },
     { label: "Results",      icon: <IconResults    size={24} />, href: "/teacher/results"                 },
-    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card/all" },
+    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card" },
     { label: "SchoolHub",    icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub"               },
   ],
   me: [
