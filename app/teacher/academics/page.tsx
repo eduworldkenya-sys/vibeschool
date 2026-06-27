@@ -31,7 +31,7 @@ interface StrandRow {
   strand:string;total:number;assessed:number;mastered:number;
 }
 interface AtRiskStudent {
-  id:string;name:string;className:string;subjects:string[];beCount:number;attRate:number|null;
+  id:string;name:string;className:string;classId:string;subjects:string[];beCount:number;attRate:number|null;
 }
 interface TermStat {
   totalLessons:number;totalAssess:number;subjectCount:number;studentCount:number;
@@ -181,8 +181,8 @@ export default function TeacherAcademicsPage(){
       for(const a of assData){if(a.performance!=="below_expectation")continue;if(!beStudentMap[a.student_id])beStudentMap[a.student_id]={subjectNames:[],beStrands:new Set(),beCount:0,classId:a.class_id};const strandKey=(a.strand_id??"")+"|"+(a.subject_id??"");if(!beStudentMap[a.student_id].beStrands.has(strandKey)){beStudentMap[a.student_id].beStrands.add(strandKey);beStudentMap[a.student_id].beCount++;}const sName=subList.find(s=>s.id===a.subject_id)?.name;if(sName&&!beStudentMap[a.student_id].subjectNames.includes(sName))beStudentMap[a.student_id].subjectNames.push(sName);}
       const beStudentIds=Object.keys(beStudentMap);
       const studentNames:Record<string,string>={};
-      if(beStudentIds.length>0){const{data:studs}=await supabase.from("students").select("id, name").in("id",beStudentIds);for(const s of studs??[])studentNames[s.id]=s.name;}
-      const atRiskList:AtRiskStudent[]=beStudentIds.map(sid=>{const info=beStudentMap[sid];const cls=classList.find(c=>c.id===info.classId);const clsName=cls?`${cls.name}${cls.stream?" "+cls.stream:""}`:"Unknown";return{id:sid,name:studentNames[sid]??"Student",className:clsName,subjects:info.subjectNames,beCount:info.beCount,attRate:classAttRate(info.classId)};}).sort((a,b)=>b.beCount-a.beCount).slice(0,20);
+      if(beStudentIds.length>0){const{data:studs}=await supabase.from("profiles").select("id, full_name").in("id",beStudentIds);for(const s of studs??[])studentNames[s.id]=s.full_name??s.id;}
+      const atRiskList:AtRiskStudent[]=beStudentIds.map(sid=>{const info=beStudentMap[sid];const cls=classList.find(c=>c.id===info.classId);const clsName=cls?`${cls.name}${cls.stream?" "+cls.stream:""}`:"Unknown";return{id:sid,name:studentNames[sid]??"Student",className:clsName,classId:info.classId,subjects:info.subjectNames,beCount:info.beCount,attRate:classAttRate(info.classId)};}).sort((a,b)=>b.beCount-a.beCount).slice(0,20);
       setAtRisk(atRiskList);
       const allAttRates=classIds.map(cid=>classAttRate(cid)).filter((r):r is number=>r!==null);
       const avgAttRate=allAttRates.length>0?Math.round(allAttRates.reduce((a,b)=>a+b,0)/allAttRates.length):null;
@@ -306,7 +306,7 @@ export default function TeacherAcademicsPage(){
                             <div style={{marginBottom:14}}>
                               <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Strand Coverage</div>
                               {sub.strands.map(st=>{
-                                const pct=st.total>0?Math.round(((st.assessed+st.mastered)/st.total)*100):0;
+                                const pct=st.total>0?Math.round((st.assessed/st.total)*100):0;
                                 const stColor=pct>=70?C.emerald:pct>=30?C.amber:C.text3;
                                 return(
                                   <div key={st.strand} style={{marginBottom:8}}>
@@ -439,7 +439,7 @@ export default function TeacherAcademicsPage(){
                         {s.attRate!==null&&<div style={{fontSize:10,fontWeight:700,color:barColor(s.attRate),marginTop:4}}>Att {s.attRate}%</div>}
                       </div>
                     </div>
-                    <button onClick={()=>router.push("/teacher/classhub")} style={{marginTop:10,width:"100%",padding:"8px",borderRadius:10,border:`1px solid ${C.border}`,background:C.surface2,color:C.text2,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>View in ClassHub →</button>
+                    <button onClick={()=>router.push("/teacher/classhub/"+s.classId)} style={{marginTop:10,width:"100%",padding:"8px",borderRadius:10,border:`1px solid ${C.border}`,background:C.surface2,color:C.text2,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>View in ClassHub →</button>
                   </div>
                 ))}
                 <div style={{background:C.indigoDim,borderRadius:14,border:`1px solid ${C.indigo}33`,padding:"12px 14px",marginTop:6}}>

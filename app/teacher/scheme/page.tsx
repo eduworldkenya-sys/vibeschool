@@ -554,9 +554,10 @@ function SchemePageInner() {
     setAddStrandBusy(true)
     setAddStrandError(null)
 
+    const grade = classes.find(c => c.id === selectedClass)?.grade ?? ''
     const { data, error } = await supabase
-      .from('strands')
-      .insert({ name, subject_id: selectedSubject, school_id: schoolId })
+      .from('cbc_strands')
+      .insert({ name, subject_id: selectedSubject, grade })
       .select('id,name')
       .single()
 
