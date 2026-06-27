@@ -34,7 +34,7 @@ interface NoteRow {
   plan_topic:          string | null;
 }
 
-type ViewState = "list" | "new" | "view" | "edit";
+type ViewState = "list" | "new" | "view" | "edit" | "saved";
 
 const PAR: Record<number, { label: string; color: string; bg: string; emoji: string }> = {
   1: { label: "Very Low",  color: "#7f1d1d", bg: "#fee2e2", emoji: "😞" },
@@ -86,6 +86,7 @@ export default function LessonNotesPage() {
   const sidRef = useRef<string | null>(null);
 
   const [view,          setView]          = useState<ViewState>("list");
+  const [justSaved,     setJustSaved]     = useState<{ classId: string | null; subjectId: string | null } | null>(null);
   const [loading,       setLoading]       = useState(true);
   const [saving,        setSaving]        = useState(false);
   const [deleting,      setDeleting]      = useState(false);
@@ -282,14 +283,22 @@ export default function LessonNotesPage() {
           .eq("id", editingNoteId.current!)
           .eq("teacher_id", tid);
         if (upErr) throw upErr;
+        editingNoteId.current = null;
+        await loadNotes(tid, sid);
+        setView("list");
       } else {
         payload.created_at = new Date().toISOString();
         const { error: insErr } = await supabase.from("lesson_notes").insert(payload);
         if (insErr) throw insErr;
+        editingNoteId.current = null;
+        await loadNotes(tid, sid);
+        // Offer the natural next step — teacher chooses, no forced redirect (hybrid, not automatic)
+        setJustSaved({
+          classId:   (linkedPlan?.class_id   as string | null) ?? null,
+          subjectId: (linkedPlan?.subject_id as string | null) ?? null,
+        });
+        setView("saved");
       }
-      editingNoteId.current = null;
-      await loadNotes(tid, sid);
-      setView("list");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Save failed. Try again.");
     } finally {
@@ -487,6 +496,34 @@ export default function LessonNotesPage() {
 
   if (view === "new")  return renderForm(false);
   if (view === "edit") return renderForm(true);
+
+  if (view === "saved") {
+    return (
+      <div style={{ paddingBottom: 100, padding: "16px" }}>
+        <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>✓</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#111827", marginBottom: 6 }}>Note saved</div>
+          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Want to record an assessment for this lesson now?</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {justSaved?.classId && justSaved?.subjectId && (
+              <button
+                onClick={() => router.push(`/teacher/assessment?classId=${justSaved.classId}&subjectId=${justSaved.subjectId}`)}
+                style={{ padding: "12px", borderRadius: 12, border: "none", background: "#111827", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                📊 Record Assessment
+              </button>
+            )}
+            <button
+              onClick={() => { setJustSaved(null); setView("list"); }}
+              style={{ padding: "12px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#f9fafb", color: "#6b7280", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Not now
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (view === "view" && activeNote) {
     const note = activeNote;
