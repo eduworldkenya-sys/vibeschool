@@ -541,7 +541,7 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
       }}>
         {NAV_TABS.map(t => {
           const isActive  = t.id === activeId || openTray === t.id
-          const showBadge = t.id === "vibelearn" && unreadLearn > 0
+          const showBadge = t.id === "me" && unreadLearn > 0
           return (
             <button
               key={t.id}
@@ -718,6 +718,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     if (searchParams?.get("twin") === "1") setTwinOpen(true);
   }, [searchParams]);
+
   const [toast,         setToast]         = useState<string | null>(null);
   const [school,        setSchool]        = useState("");
   const [initials,      setInitials]      = useState("");

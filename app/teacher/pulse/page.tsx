@@ -5,16 +5,11 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
 import { useCredits } from "@/app/teacher/layout";
-
-interface TimetableSlot {
-  id: string; day_of_week: number; period: number;
-  start_time: string; end_time: string;
-  subject: string; class_name: string; class_id: string;
-}
-interface AtRisk { id: string; name: string; reason: string }
-interface CurriculumStat { covered: number; total: number; subject: string }
+import { PulseTimetableSlot, PulseAtRisk, PulseCurriculumStat } from "@/lib/types";
 
 const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function one(x: any) { return Array.isArray(x) ? x[0] : x; }
 
 function timeStr(t: string) {
   const [h, m] = t.split(":").map(Number);
@@ -39,9 +34,9 @@ export default function PulsePage() {
   const { creditBalance } = useCredits();
   const [loading,    setLoading]    = useState(true);
   const [name,       setName]       = useState("");
-  const [todaySlots, setTodaySlots] = useState<TimetableSlot[]>([]);
-  const [atRisk,     setAtRisk]     = useState<AtRisk[]>([]);
-  const [currStats,  setCurrStats]  = useState<CurriculumStat[]>([]);
+  const [todaySlots, setTodaySlots] = useState<PulseTimetableSlot[]>([]);
+  const [atRisk,     setAtRisk]     = useState<PulseAtRisk[]>([]);
+  const [currStats,  setCurrStats]  = useState<PulseCurriculumStat[]>([]);
   const [tpadDays,   setTpadDays]   = useState<number | null>(null);
   const [attPending, setAttPending] = useState<{class_id:string;class_name:string}[]>([]);
   const [twinMsg,    setTwinMsg]    = useState("");
@@ -55,39 +50,70 @@ export default function PulsePage() {
     ]);
     const sid = memberRes.data?.school_id ?? profileRes.data?.school_id ?? null;
     setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
-    const todayDow = new Date().getDay();
-    const nowMins  = new Date().getHours() * 60 + new Date().getMinutes();
+
+    const rawDow  = new Date().getDay();
+    const todayDow = rawDow === 0 ? 7 : rawDow;
+
     if (sid) {
       const { data: slots } = await supabase
         .from("timetable_slots")
-        .select("id,day_of_week,period,start_time,end_time,subject,class_name:classes(name),class_id")
-        .eq("school_id", sid).eq("teacher_id", user.id).eq("day_of_week", todayDow).order("start_time");
-      const mapped = ((slots ?? []) as any[]).map((s: any) => ({ ...s, class_name: s.class_name?.name ?? "Class" })) as TimetableSlot[];
+        .select("id,day_of_week,period,start_time,end_time,subject_id,class_id,subjects(name),classes(name)")
+        .eq("teacher_id", user.id)
+        .order("start_time");
+      const allSlots = ((slots ?? []) as any[]).map((s: any) => ({
+        id: s.id, day_of_week: s.day_of_week, period: s.period ?? 0,
+        start_time: s.start_time, end_time: s.end_time,
+        subject: one(s.subjects)?.name ?? "Subject",
+        class_name: one(s.classes)?.name ?? "Class",
+        class_id: s.class_id, subject_id: s.subject_id,
+      })) as PulseTimetableSlot[];
+      const mapped = allSlots.filter(s => Number(s.day_of_week) === todayDow);
       setTodaySlots(mapped);
-      const classIds = [...new Set(mapped.map(s => s.class_id))];
-      if (classIds.length > 0) {
+
+      const slotIds = mapped.map(s => s.id);
+      if (slotIds.length > 0) {
         const today = new Date().toISOString().split("T")[0];
-        const { data: attRows } = await supabase.from("attendance").select("class_id").eq("school_id", sid).eq("date", today).in("class_id", classIds);
-        const markedIds = new Set((attRows ?? []).map((a: any) => a.class_id));
-        setAttPending(mapped.filter(s => !markedIds.has(s.class_id)).map(s => ({ class_id: s.class_id, class_name: s.class_name })).filter((v,i,a) => a.findIndex(x => x.class_id === v.class_id) === i));
+        const { data: attRows } = await supabase.from("attendance").select("timetable_slot_id").in("timetable_slot_id", slotIds).gte("timestamp", `${today}T00:00:00`).lte("timestamp", `${today}T23:59:59`);
+        const markedSlotIds = new Set((attRows ?? []).map((a: any) => a.timetable_slot_id));
+        const pendingMap = new Map<string,string>();
+        mapped.filter(s => !markedSlotIds.has(s.id)).forEach(s => pendingMap.set(s.class_id, s.class_name));
+        setAttPending(Array.from(pendingMap, ([class_id, class_name]) => ({ class_id, class_name })));
       }
-      const { data: tpad } = await supabase.from("tpad_cycles").select("deadline").eq("school_id", sid).eq("teacher_id", user.id).gte("deadline", new Date().toISOString().split("T")[0]).order("deadline").limit(1).maybeSingle();
-      if (tpad?.deadline) setTpadDays(Math.ceil((new Date(tpad.deadline).getTime() - Date.now()) / 86400000));
-      const { data: tcRows } = await supabase.from("teacher_classes").select("class_id,subject_id,subjects(name)").eq("school_id", sid).eq("teacher_id", user.id);
+
+      const { data: termRow } = await supabase.from("academic_terms").select("id,term,start_date").eq("school_id", sid).eq("status","active").maybeSingle();
+      const activeTermNum = termRow?.term ?? (Math.floor(new Date().getMonth()/4)+1);
+
+      if (termRow?.id) {
+        const { data: tpadDeadline } = await supabase.from("tpad_deadlines").select("self_appraisal_due").eq("school_id", sid).eq("term_id", termRow.id).maybeSingle();
+        if (tpadDeadline?.self_appraisal_due) setTpadDays(Math.ceil((new Date(tpadDeadline.self_appraisal_due).getTime() - Date.now()) / 86400000));
+      }
+
+      const { data: tcRows } = await supabase.from("teacher_classes").select("class_id,subject_id,subjects(name)").eq("teacher_id", user.id);
       if (tcRows && tcRows.length > 0) {
-        const stats: CurriculumStat[] = [];
+        const stats: PulseCurriculumStat[] = [];
         for (const tc of (tcRows as any[]).slice(0,3)) {
-          const { count: covered } = await supabase.from("strand_progress").select("*",{count:"exact",head:true}).eq("teacher_id",user.id).eq("class_id",tc.class_id).in("status",["done","teaching"]);
-          const { count: total }   = await supabase.from("curriculum").select("*",{count:"exact",head:true});
-          if ((total ?? 0) > 0) stats.push({ subject: tc.subjects?.name ?? "Subject", covered: covered ?? 0, total: total ?? 1 });
+          const subjectName = one(tc.subjects)?.name ?? "Subject";
+          const { data: classRow } = await supabase.from("classes").select("name").eq("id", tc.class_id).single();
+          const gradeName = classRow?.name ?? "";
+          if (!gradeName) continue;
+          const [{ count: total }, { count: covered }] = await Promise.all([
+            supabase.from("curriculum").select("*",{count:"exact",head:true}).eq("grade",gradeName).eq("subject",subjectName),
+            supabase.from("strand_progress").select("*",{count:"exact",head:true}).eq("teacher_id",user.id).eq("subject_id",tc.subject_id).eq("school_id",sid).eq("term",activeTermNum).in("status",["done","teaching"]),
+          ]);
+          if ((total ?? 0) > 0) stats.push({ subject: subjectName, covered: covered ?? 0, total: total ?? 1 });
         }
         setCurrStats(stats);
       }
-      const { data: termRow } = await supabase.from("academic_terms").select("start_date").eq("school_id", sid).eq("status","active").maybeSingle();
+
+      const classIds = Array.from(new Set(mapped.map(s => s.class_id)));
       if (termRow?.start_date && classIds.length > 0) {
-        const { data: absences } = await supabase.from("attendance").select("student_id,profiles(full_name)").eq("school_id",sid).eq("status","absent").in("class_id",classIds).gte("date",termRow.start_date);
+        const { data: absences } = await supabase.from("attendance").select("student_id,students(name)").eq("status","absent").in("class_id",classIds).gte("timestamp",`${termRow.start_date}T00:00:00`);
         const countMap: Record<string,{name:string;count:number}> = {};
-        for (const a of ((absences ?? []) as any[])) { const s=a.student_id; const n=a.profiles?.full_name??"Student"; if(!countMap[s])countMap[s]={name:n,count:0}; countMap[s].count++; }
+        for (const a of ((absences ?? []) as any[])) {
+          const sId = a.student_id; const sName = one(a.students)?.name ?? "Student";
+          if (!countMap[sId]) countMap[sId] = { name: sName, count: 0 };
+          countMap[sId].count++;
+        }
         setAtRisk(Object.entries(countMap).filter(([,v])=>v.count>=3).map(([id,v])=>({id,name:v.name,reason:`Absent ${v.count}x this term`})).slice(0,4));
       }
     }

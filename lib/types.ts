@@ -589,3 +589,27 @@ export interface StudentStreak {
   currentStreak:  number
   lastActiveDate: string
 }
+
+export interface PulseTimetableSlot {
+  id: string
+  day_of_week: number
+  period: number
+  start_time: string
+  end_time: string
+  subject: string
+  class_name: string
+  class_id: string
+  subject_id: string
+}
+
+export interface PulseAtRisk {
+  id: string
+  name: string
+  reason: string
+}
+
+export interface PulseCurriculumStat {
+  covered: number
+  total: number
+  subject: string
+}
