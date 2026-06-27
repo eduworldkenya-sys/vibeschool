@@ -717,6 +717,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const activeId = tabIdFromPath(pathname);
 
   const [twinOpen,      setTwinOpen]      = useState(false);
+  const [twinUnread,    setTwinUnread]    = useState(1);
   // searchParams handled in SearchParamWatcher (see JSX below)
 
   const [toast,         setToast]         = useState<string | null>(null);
@@ -884,8 +885,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           }}>
             {children}
           </main>
-          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinOpen ? 0 : 1} />
-          <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+          <TwinPill onOpen={() => { setTwinOpen(true); setTwinUnread(0); }} unread={twinUnread} />
+          <TwinDrawer open={twinOpen} onClose={() => { setTwinOpen(false); }} />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <BottomNav activeId={activeId} unreadLearn={0} />
           {toast && <Toast msg={toast} />}
