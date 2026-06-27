@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 
@@ -119,6 +120,7 @@ export default function EvidencePage() {
   const [newStandard, setNewStandard] = useState(1)
   const [newSource,   setNewSource]   = useState('manual')
   const [newDesc,     setNewDesc]     = useState('')
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     async function load() {
@@ -184,6 +186,17 @@ export default function EvidencePage() {
     }
     load()
   }, [])
+
+  // Pre-fill from Assessment's "Add TPAD Evidence" link — teacher still confirms before saving
+  useEffect(() => {
+    const urlDesc = searchParams.get('desc')
+    const urlSource = searchParams.get('source')
+    if (urlDesc) {
+      setNewDesc(urlDesc)
+      if (urlSource) setNewSource(urlSource)
+      setShowForm(true)
+    }
+  }, [searchParams])
 
   async function handleAdd() {
     if (!userId || !appraisal) return
