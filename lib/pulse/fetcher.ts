@@ -9,6 +9,8 @@ export interface PulseSnapshot {
   currStats: { subject: string; covered: number; total: number }[];
   tpadDays: number | null;
   credits: number | null;
+  streak: number;
+  termProgressPct: number;
 }
 
 function one(x: any) { return Array.isArray(x) ? x[0] : x; }
@@ -30,7 +32,7 @@ export async function fetchPulseData(
       .order("start_time"),
     supabase
       .from("academic_terms")
-      .select("id,term,start_date")
+      .select("id,term,start_date,end_date")
       .eq("school_id", schoolId)
       .eq("status", "active")
       .maybeSingle(),
@@ -54,12 +56,20 @@ export async function fetchPulseData(
 
   const todaySlots = allSlots.filter(s => Number(s.day_of_week) === todayDow);
   const slotIds = todaySlots.map(s => s.id);
-  const classIds = Array.from(new Set(todaySlots.map(s => s.class_id)));
+  const classIds = Array.from(new Set(todaySlots.map((s: any) => s.class_id as string)));
   const termRow = termRes.data;
   const activeTermNum = termRow?.term ?? (Math.floor(new Date().getMonth() / 4) + 1);
 
-  // Second parallel batch — depends on first batch results
-  const [attTodayRes, tpadRes, absenceRes] = await Promise.all([
+  // Term progress %
+  let termProgressPct = 50;
+  if (termRow?.start_date && termRow?.end_date) {
+    const start = new Date(termRow.start_date).getTime();
+    const end = new Date(termRow.end_date).getTime();
+    const now = Date.now();
+    termProgressPct = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
+  }
+
+  const [attTodayRes, tpadRes, absenceRes, streakRes] = await Promise.all([
     slotIds.length > 0
       ? supabase
           .from("attendance")
@@ -84,6 +94,13 @@ export async function fetchPulseData(
           .in("class_id", classIds)
           .gte("timestamp", `${termRow.start_date}T00:00:00`)
       : Promise.resolve({ data: [] }),
+    // Streak: count consecutive days teacher marked attendance
+    supabase
+      .from("attendance")
+      .select("timestamp")
+      .eq("marked_by", userId)
+      .order("timestamp", { ascending: false })
+      .limit(60),
   ]);
 
   // Attendance pending
@@ -108,14 +125,33 @@ export async function fetchPulseData(
   }
   const atRisk = Object.entries(countMap)
     .filter(([, v]) => v.count >= 3)
+    .sort((a, b) => b[1].count - a[1].count)
     .map(([id, v]) => ({ id, name: v.name, reason: `Absent ${v.count}x this term` }))
     .slice(0, 4);
 
-  // Curriculum coverage — parallel per subject
+  // Streak calculation
+  let streak = 0;
+  const streakRows = (streakRes.data ?? []) as any[];
+  const daysSeen = new Set<string>();
+  for (const r of streakRows) {
+    daysSeen.add(r.timestamp.split("T")[0]);
+  }
+  const checkDate = new Date();
+  for (let i = 0; i < 30; i++) {
+    const d = checkDate.toISOString().split("T")[0];
+    if (daysSeen.has(d)) {
+      streak++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  // Curriculum coverage — fully parallel
   const tcRows = (tcRes.data ?? []) as any[];
   const currStats: { subject: string; covered: number; total: number }[] = [];
   await Promise.all(
-    tcRows.slice(0, 3).map(async (tc: any) => {
+    tcRows.slice(0, 4).map(async (tc: any) => {
       const subjectName = one(tc.subjects)?.name ?? "Subject";
       const classRes = await supabase.from("classes").select("name").eq("id", tc.class_id).single();
       const gradeName = classRes.data?.name ?? "";
@@ -130,5 +166,8 @@ export async function fetchPulseData(
     })
   );
 
-  return { userId, schoolId, todaySlots, attPending, atRisk, currStats, tpadDays, credits };
+  return {
+    userId, schoolId, todaySlots, attPending, atRisk,
+    currStats, tpadDays, credits, streak, termProgressPct,
+  };
 }

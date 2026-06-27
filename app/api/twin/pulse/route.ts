@@ -4,16 +4,28 @@ export async function POST(req: Request) {
   try {
     const { snapshot, signals } = await req.json();
 
-    const prompt = `You are a brief, sharp teacher assistant in a Kenyan school app.
-The teacher's current situation:
+    const termPct = Math.round(snapshot.termProgressPct ?? 50);
+    const behind = (snapshot.currStats ?? [])
+      .filter((s: any) => s.total > 0 && (s.covered / s.total) < 0.4)
+      .map((s: any) => `${s.subject} (${Math.round((s.covered/s.total)*100)}%)`).join(", ");
+
+    const prompt = `You are a sharp, human teacher assistant in a Kenyan school app called VibeSchool.
+Context:
 - Attendance pending: ${snapshot.attPending?.map((c: any) => c.class_name).join(", ") || "none"}
 - At-risk students: ${snapshot.atRisk?.map((s: any) => `${s.name} (${s.reason})`).join(", ") || "none"}
-- Curriculum behind: ${snapshot.currStats?.filter((s: any) => s.total > 0 && (s.covered/s.total) < 0.4).map((s: any) => s.subject).join(", ") || "none"}
+- Curriculum behind: ${behind || "none"}
+- Term is ${termPct}% complete
 - TPAD days left: ${snapshot.tpadDays ?? "not set"}
 - Credits: ${snapshot.credits ?? "unknown"}
-- Signals fired: ${signals.join(", ")}
+- Attendance streak: ${snapshot.streak ?? 0} days
+- Signals: ${signals.join(", ")}
 
-Write ONE sentence. Direct. Specific. Actionable. No greeting. No punctuation flourishes.`;
+Rules:
+- ONE sentence only. Maximum 20 words.
+- Be specific — use actual student names, subject names, numbers from the data.
+- Sound like a thoughtful colleague, not a system alert.
+- No greeting. No punctuation flourishes. No emojis.
+- If streak >= 5, acknowledge it warmly in the message.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -24,7 +36,7 @@ Write ONE sentence. Direct. Specific. Actionable. No greeting. No punctuation fl
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 80,
+        max_tokens: 60,
         messages: [{ role: "user", content: prompt }],
       }),
     });
