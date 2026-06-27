@@ -293,3 +293,7 @@
 ## [2026-06-26 15:14] 0f9b68f
 **What:** academics: real TPAD scores, strand breakdown, smart empty states, error retry, light theme
 **Status:** ✅ pushed
+
+## [2026-06-27 15:14] 2101eae
+**What:** feat: TeachOS — unified teach product page
+**Status:** ✅ pushed
