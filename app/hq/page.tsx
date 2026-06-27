@@ -28,7 +28,7 @@ export default function HQPage() {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    router.replace("/admin/login")
+    router.replace("/hq/login")
   }
 
   const card: React.CSSProperties = {
