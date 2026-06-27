@@ -21,6 +21,7 @@ function json(data: unknown, status = 200) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
+  // G1: verify JWT before anything else
   const authHeader = req.headers.get("authorization") ?? ""
   const token = authHeader.replace("Bearer ", "").trim()
   if (!token) return json({ error: "Missing auth token" }, 401)
@@ -29,30 +30,16 @@ serve(async (req) => {
   const { data: { user }, error: authError } = await adminClient.auth.getUser(token)
   if (authError || !user) return json({ error: "Unauthorized" }, 401)
 
-  // Credit gate — deduct before calling Gemini
-  const { data: creditResult, error: creditError } = await adminClient
-    .rpc('spend_credit', {
-      p_teacher_id: user.id,
-      p_feature:    'lesson_plan',
-      p_amount:     1,
-      p_notes:      'AI lesson plan generation',
-    })
-  if (creditError) {
-    console.error("[generate-lesson-plan] spend_credit RPC error:", creditError)
-    return json({ error: "insufficient_credits" }, 402)
-  }
-  if (!creditResult?.success) {
-    return json({ error: "insufficient_credits", detail: creditResult?.error }, 402)
-  }
-
   try {
     const body = await req.json()
-    const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics } = body
+    const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics, curriculumStrand, curriculumSubStrand } = body
 
+    // G7: input validation — reject early if required fields missing
     if (!topic || !subject || !className) {
       return json({ error: "Missing required fields: topic, subject, className" }, 400)
     }
 
+    // Tavily — G4: wrapped in own try/catch, failure is non-fatal
     let tavilyContext = ""
     if (TAVILY_KEY) {
       try {
@@ -71,6 +58,7 @@ serve(async (req) => {
           .map((r: any) => "- " + r.title + ": " + r.content)
           .join("\n")
       } catch (tavilyErr) {
+        // non-fatal — continue without enrichment
         console.warn("[generate-lesson-plan] Tavily failed:", tavilyErr)
       }
     }
@@ -89,6 +77,9 @@ serve(async (req) => {
       "Number of learners: " + studentCount,
       "Duration: " + duration,
       "Topic: " + topic,
+      curriculumStrand
+        ? "KICD Curriculum strand: " + curriculumStrand + (curriculumSubStrand ? " → " + curriculumSubStrand : "") + ". Align objectives and content explicitly to this strand."
+        : "",
       focus ? "Teacher focus: " + focus : "",
       prevList,
       tavilyContext ? "\nWeb resources for context:\n" + tavilyContext : "",
@@ -150,6 +141,7 @@ serve(async (req) => {
 
     const geminiData = await geminiRes.json()
 
+    // G3: surface Gemini errors clearly
     if (!geminiRes.ok || !geminiData.candidates) {
       console.error("[generate-lesson-plan] Gemini error:", JSON.stringify(geminiData))
       return json({ error: "Gemini generation failed", detail: geminiData?.promptFeedback ?? geminiData }, 502)
@@ -164,6 +156,7 @@ serve(async (req) => {
     return json({ plan: text })
 
   } catch (err) {
+    // G7: no silent swallows
     console.error("[generate-lesson-plan] Unhandled error:", err)
     return json({ error: String(err) }, 500)
   }

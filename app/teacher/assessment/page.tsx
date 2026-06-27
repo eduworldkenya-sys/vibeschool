@@ -5,13 +5,14 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchParams }                        from 'next/navigation'
 import { supabase }                               from '@/lib/supabase'
+import { ensureStrandsForSubject }                from '@/lib/strandSync'
 import { Card, C }                                from '@/components/teacher/ui'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ClassOption   { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
-interface StrandOption  { id: string; name: string; sub_strand: string }
+interface StrandOption  { id: string; name: string }
 interface Student       { id: string; name: string }
 
 interface Assessment {
@@ -212,25 +213,39 @@ function AssessmentInner() {
     setStrands([]); setStudents([]); setAssessments([])
     const currentYear = new Date().getFullYear()
 
-    const clsRes = await supabase.from('classes').select('name').eq('id', classId).single()
-    const grade  = clsRes.data?.name ?? ''
-
     const [strandsRes, scRes] = await Promise.all([
-      supabase.from('cbc_strands').select('id, name, sub_strand').eq('subject_id', subjectId).eq('grade', grade).order('name'),
+      supabase.from('strands').select('id, name').eq('subject_id', subjectId).order('name'),
       supabase.from('student_classes').select('student_id').eq('class_id', classId).eq('is_current', true),
     ])
 
     if (loadId !== loadIdRef.current) return
 
-    const seen = new Set()
-    const uniqueStrands: StrandOption[] = []
-    for (const r of (strandsRes.data ?? [])) {
-      if (!seen.has(r.name)) {
-        seen.add(r.name)
-        uniqueStrands.push({ id: r.id, name: r.name, sub_strand: r.sub_strand ?? '' })
+    let strandRows = strandsRes.error ? [] : (strandsRes.data ?? []) as StrandOption[]
+
+    // Self-heal: same fix as the Scheme of Work tracker — if no strands
+    // exist yet for this subject, derive them from the master KICD
+    // curriculum table so CAT recording never silently blocks on an
+    // empty strand dropdown.
+    if (strandRows.length === 0 && schoolId) {
+      const cls  = classes.find(c => c.id === classId)
+      const subj = subjects.find(s => s.id === subjectId)
+      if (cls && subj) {
+        try {
+          strandRows = await ensureStrandsForSubject({
+            schoolId,
+            subjectId,
+            subjectLabel: subj.name,
+            grade:        cls.name,
+          })
+        } catch {
+          // Non-fatal — curriculum table may have nothing for this
+          // grade/subject yet (e.g. Grade 7/8 currently).
+        }
       }
     }
-    setStrands(strandsRes.error ? [] : uniqueStrands)
+
+    if (loadId !== loadIdRef.current) return
+    setStrands(strandRows)
 
     const studentIds = Array.from(new Set((scRes.data ?? []).map((r: { student_id: string }) => r.student_id)))
     if (studentIds.length === 0) { setStudents([]); setAssessments([]); setDataLoading(false); return }
@@ -332,8 +347,6 @@ function AssessmentInner() {
 
     if (saveErr || !data) { setSaveError(saveErr?.message ?? 'Failed to save'); setSaving(false); return }
     setAssessments(prev => [data as Assessment, ...prev])
-
-
     closeModal()
   }
 
@@ -381,26 +394,6 @@ function AssessmentInner() {
 
     if (bulkErr || !data) { setBulkError(bulkErr?.message ?? 'Failed to save'); setBulkSaving(false); return }
     setAssessments(prev => [...(data as Assessment[]), ...prev])
-
-    // Session 5 — bulk update learner_outcomes mastery
-    const bulkMasteryStatus = ['exceeds_expectation','meets_expectation'].includes(bulkPerf) ? 'mastered' : 'assessed'
-    const bulkStrandName = strands.find(s => s.id === bulkStrand)?.name ?? null
-    if (bulkStrandName && activeSubjectId) {
-      const bulkOutcomeRows = Array.from(bulkSelected).map(sid => ({
-        student_id:   sid,
-        subject_id:   activeSubjectId,
-        strand:       bulkStrandName,
-        outcome_text: bulkSubStrand.trim() || bulkStrandName,
-        status:       bulkMasteryStatus,
-        score:        bulkMasteryStatus === 'mastered' ? 100 : 50,
-        assessed_at:  new Date().toISOString(),
-        school_id:    schoolId,
-      }))
-      await supabase
-        .from('learner_outcomes')
-        .upsert(bulkOutcomeRows, { onConflict: 'student_id,subject_id,strand,outcome_text' })
-    }
-
     setBulkSelected(new Set()); setBulkDone(true); setBulkSaving(false)
     setBulkStrand(''); setBulkPerf(''); setBulkNotes(''); setBulkSubStrand('')
   }
