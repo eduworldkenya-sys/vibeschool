@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase, SUPABASE_URL } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 import { getServerWeek, nairobiDateStr } from '@/lib/time'
+import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
+import { ensureStrandsForSubject } from '@/lib/strandSync'
 import type { TimetableSlot } from '@/lib/types'
-import { useCredits } from '@/app/teacher/layout'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,15 @@ interface Ctx {
   studentCount:   number
   previousTopics: string[]
   students:       Student[]
+}
+
+interface CurriculumSuggestion {
+  strand:    string
+  subStrand: string
+  topic:     string
+  term:      number
+  week:      number
+  strandId:  string | null
 }
 
 interface Props {
@@ -101,7 +111,6 @@ function Skeleton({ h = 48 }: { h?: number }) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function LessonPlanModal({ slot, onClose }: Props) {
-  const { refreshCredits } = useCredits()
   const [phase,    setPhase]    = useState<Phase>('loading')
   const [sections, setSections] = useState<PlanSections>(EMPTY)
   const [draft,    setDraft]    = useState<PlanSections>(EMPTY)
@@ -111,6 +120,8 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
   const [error,    setError]    = useState('')
   const [topic,    setTopic]    = useState('')
   const [focus,    setFocus]    = useState('')
+  const [suggestion,      setSuggestion]      = useState<CurriculumSuggestion | null>(null)
+  const [usedSuggestion,  setUsedSuggestion]  = useState(false)
   const [ctx,      setCtx]      = useState<Ctx>({
     teacherName: '', schoolName: '', schoolId: '',
     studentCount: 0, previousTopics: [], students: [],
@@ -146,22 +157,14 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
 
     const schoolId = prof?.school_id ?? null
 
-    const [schoolRes, studentRes, prevRes] = await Promise.all([
+    const [schoolRes, studentRes, prevRes, classRes] = await Promise.all([
       schoolId
         ? supabase.from('schools').select('name').eq('id', schoolId).single()
         : Promise.resolve({ data: null }),
       // G6: always select id explicitly — never assume id === auth id
-      supabase.from('teacher_classes')
-        .select('class_id')
-        .eq('teacher_id', userId)
-        .eq('class_id', slot.class_id)
-        .maybeSingle()
-        .then(async ({ data: owned }) => {
-          if (!owned) return { data: [] }
-          return supabase.from('students')
-            .select('id, name')
-            .eq('class_id', slot.class_id)
-        }),
+      supabase.from('students')
+        .select('id, name, id')
+        .eq('class_id', slot.class_id),
       supabase.from('lesson_plans')
         .select('topic')
         .eq('teacher_id', userId)
@@ -170,6 +173,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         .not('topic', 'is', null)
         .order('created_at', { ascending: false })
         .limit(5),
+      supabase.from('classes').select('name').eq('id', slot.class_id).single(),
     ])
 
     setCtx({
@@ -180,6 +184,55 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       previousTopics: (prevRes.data ?? []).map((r: any) => r.topic).filter(Boolean),
       students:       (studentRes.data ?? []) as Student[],
     })
+
+    // Connect to the Scheme of Work: look up what the KICD curriculum
+    // says should be taught this week for this exact grade/subject, so
+    // the lesson plan isn't just a freeform topic disconnected from
+    // everything else in the app.
+    const grade = (classRes as any).data?.name ?? null
+    if (schoolId && grade) {
+      try {
+        const term = await getActiveTerm(schoolId)
+        if (term) {
+          const week = currentWeekOf(term)
+          const { data: currRows } = await supabase
+            .from('curriculum')
+            .select('strand, sub_strand, topic')
+            .eq('grade',   grade)
+            .eq('subject', slot.subject)
+            .eq('term',    term.term)
+            .eq('week',    week)
+            .limit(1)
+
+          const currRow = currRows?.[0]
+          if (currRow) {
+            let strandId: string | null = null
+            try {
+              const strands = await ensureStrandsForSubject({
+                schoolId,
+                subjectId:    slot.subject_id,
+                subjectLabel: slot.subject,
+                grade,
+              })
+              strandId = strands.find(s => s.name === currRow.strand)?.id ?? null
+            } catch {
+              // non-fatal — suggestion still useful even without a strand_id
+            }
+
+            setSuggestion({
+              strand:    currRow.strand,
+              subStrand: currRow.sub_strand,
+              topic:     currRow.topic,
+              term:      term.term,
+              week,
+              strandId,
+            })
+          }
+        }
+      } catch {
+        // non-fatal — falls back to plain freeform topic entry
+      }
+    }
   }
 
   async function loadExistingPlan(userId: string) {
@@ -227,14 +280,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       }
     }
     boot()
-    return () => { /* boot is fire-once; no cleanup needed here */ }
   }, [slot.id, slot.class_id, slot.subject_id])
-
-  const abortGenRef = useRef<AbortController | null>(null)
-
-  useEffect(() => {
-    return () => { abortGenRef.current?.abort() }
-  }, [])
 
   async function generate() {
     if (topic.trim() === '') { setError('Please enter a topic first.'); return }
@@ -246,11 +292,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
     setPhase('generating')
     setError('')
 
-    const abortCtrl = new AbortController()
-    abortGenRef.current?.abort()
-    abortGenRef.current = abortCtrl
-    const abortRef = abortCtrl
-
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (user == null) return
@@ -259,7 +300,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         SUPABASE_URL + '/functions/v1/generate-lesson-plan',
         {
           method:  'POST',
-          signal:  abortRef.signal,
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({
             teacher:        ctx.teacherName,
@@ -271,17 +311,13 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
             topic:          topic.trim(),
             focus:          focus.trim() || undefined,
             previousTopics: ctx.previousTopics,
+            curriculumStrand:    usedSuggestion ? suggestion?.strand    : undefined,
+            curriculumSubStrand: usedSuggestion ? suggestion?.subStrand : undefined,
           }),
         }
       )
 
       const json = await res.json()
-      if (res.status === 402 || json.error === 'insufficient_credits') {
-        setError('insufficient_credits')
-        setPhase('form')
-        setBusy('idle')
-        return
-      }
       if (!res.ok || !json.plan) {
         const detail = json.error ?? 'Generation failed. Try again.'
         setError(detail)
@@ -299,7 +335,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       }
 
       setSections(parsed)
-      refreshCredits()
 
       // G2
       const { weekStart, dayOfWeek } = await getServerWeek()
@@ -327,6 +362,27 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       } else {
         const { data: ins } = await supabase.from('lesson_plans').insert(payload).select('id').single()
         if (ins?.id) setPlanId(ins.id)
+      }
+
+      // Close the loop with Scheme of Work: if this plan used the
+      // curriculum-suggested topic, mark that strand as "teaching" for
+      // this class/week — so progress tracked here shows up automatically
+      // on the Scheme of Work / Curriculum Tracker page too.
+      if (usedSuggestion && suggestion?.strandId && ctx.schoolId) {
+        try {
+          await supabase.from('strand_progress').upsert({
+            teacher_id: user.id,
+            class_id:   slot.class_id,
+            subject_id: slot.subject_id,
+            school_id:  ctx.schoolId,
+            strand_id:  suggestion.strandId,
+            term:       suggestion.term,
+            week:       suggestion.week,
+            status:     'teaching',
+          }, { onConflict: 'teacher_id,class_id,strand_id,term,week' })
+        } catch {
+          // non-fatal — the lesson plan itself already saved successfully
+        }
       }
 
       setStatus('draft')
@@ -373,6 +429,19 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
     setBusy('publishing')
     try {
       await supabase.from('lesson_plans').update({ status: 'published' }).eq('id', currentId)
+      if (ctx.students.length > 0) {
+        await supabase.from('notifications').insert(
+          ctx.students.map(s => ({
+            school_id:  ctx.schoolId || null,
+            // G6: id not table PK
+            user_id:    s.id,
+            title:      'New Lesson: ' + topic,
+            body:       slot.subject + ' lesson plan published by ' + ctx.teacherName,
+            type:       'lesson_plan',
+            related_id: currentId,
+          }))
+        )
+      }
       setStatus('published')
       showToast('Published to students ✓')
     } catch (err) {
@@ -391,9 +460,58 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
 
     setBusy('sharing')
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user == null) return
+
+      const summary = [
+        'Topic: ' + topic, '',
+        'Learning Objectives:', sections.objectives, '',
+        sections.homework ? 'Homework:\n' + sections.homework : '',
+      ].filter(Boolean).join('\n')
+
+      if (ctx.students.length > 0) {
+        await supabase.from('parent_messages').insert(
+          ctx.students.map(s => ({
+            school_id:    ctx.schoolId,
+            teacher_id:   user.id,
+            student_id:   s.id,
+            channel:      'app',
+            subject:      slot.subject + ' — Lesson: ' + topic,
+            body:         summary,
+            generated_by: 'lesson_plan',
+            sent_at:      new Date().toISOString(),
+            created_at:   new Date().toISOString(),
+          }))
+        )
+      }
+
       await supabase.from('lesson_plans').update({ status: 'shared_to_parents' }).eq('id', currentId)
+
+      if (sections.homework.trim() !== '') {
+        const due = new Date()
+        due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
+        const { data: hw } = await supabase.from('homework').insert({
+          class_id:     slot.class_id,
+          teacher_id:   user.id,
+          title:        topic + ' — Homework',
+          subject:      slot.subject,
+          instructions: sections.homework.trim(),
+          type:         'written',
+          due_date:     nairobiDateStr(due),
+        }).select('id').single()
+
+        if (hw?.id) {
+          const questions = sections.homework
+            .split('\n')
+            .filter((l: string) => l.trim().endsWith('?') || /^\d+\./.test(l.trim()))
+            .slice(0, 5)
+            .map((q: string, i: number) => ({ homework_id: hw.id, question: q.trim(), order_num: i + 1 }))
+          if (questions.length > 0) await supabase.from('homework_questions').insert(questions)
+        }
+      }
+
       setStatus('shared_to_parents')
-      showToast('Shared to parents ✓')
+      showToast('Shared to parents + homework synced ✓')
     } catch (err) {
       console.error('[LessonPlanModal] shareToParents', err)
       setError('Share failed. Try again.')
@@ -488,13 +606,44 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
                   {ctx.previousTopics.join(' → ')}
                 </div>
               )}
+              {suggestion && (
+                <div style={{
+                  background: usedSuggestion ? '#eef2ff' : '#fafafa',
+                  border: '1.5px solid ' + (usedSuggestion ? '#c7d2fe' : C.border),
+                  borderRadius: 12, padding: '12px 14px', marginBottom: 16,
+                }}>
+                  <div style={{
+                    fontSize: 10, fontWeight: 800, color: usedSuggestion ? '#4338ca' : C.textMuted,
+                    letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
+                  }}>📘 From Scheme of Work · Week {suggestion.week}, Term {suggestion.term}</div>
+                  <div style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{suggestion.topic}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
+                    {suggestion.strand}{suggestion.subStrand ? ' → ' + suggestion.subStrand : ''}
+                  </div>
+                  {!usedSuggestion && (
+                    <button
+                      onClick={() => { setTopic(suggestion.topic); setUsedSuggestion(true) }}
+                      style={{
+                        marginTop: 8, padding: '7px 14px', borderRadius: 8, border: 'none',
+                        background: C.accent, color: '#fff', fontSize: 12, fontWeight: 800,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >Use This Topic</button>
+                  )}
+                  {usedSuggestion && (
+                    <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#4338ca' }}>
+                      ✓ Will sync to Scheme of Work as "Teaching" on save
+                    </div>
+                  )}
+                </div>
+              )}
               <div style={{ marginBottom: 16 }}>
                 <label style={{
                   fontSize: 11, fontWeight: 800, color: C.textMuted,
                   letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6,
                 }}>Topic *</label>
                 <input
-                  value={topic} onChange={e => setTopic(e.target.value)}
+                  value={topic} onChange={e => { setTopic(e.target.value); setUsedSuggestion(false) }}
                   placeholder="Topic e.g. Fractions on a Number Line"
                   style={{
                     width: '100%', padding: '12px 14px', borderRadius: 10,
@@ -519,31 +668,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
                   }}
                 />
               </div>
-              {error === 'insufficient_credits' ? (
-                <div style={{
-                  background: '#fef3c7', border: '1.5px solid #f59e0b',
-                  borderRadius: 12, padding: '14px 16px', marginBottom: 16,
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#92400e', marginBottom: 6 }}>
-                    🪙 Not enough credits
-                  </div>
-                  <div style={{ fontSize: 12, color: '#78350f', marginBottom: 12 }}>
-                    You need 1 credit to generate a lesson plan.
-                  </div>
-                  <button
-                    onClick={() => { onClose(); window.location.href = '/teacher/credits' }}
-                    style={{
-                      padding: '9px 18px', borderRadius: 10, border: 'none',
-                      background: '#f59e0b', color: '#fff', fontSize: 13,
-                      fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
-                    Top Up Credits →
-                  </button>
-                </div>
-              ) : error !== '' ? (
-                <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>
-              ) : null}
+              {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
               <button onClick={generate} disabled={isbusy} style={{
                 width: '100%', padding: '14px', borderRadius: 12, border: 'none',
                 background: C.accent, color: '#fff', fontSize: 15, fontWeight: 800,
