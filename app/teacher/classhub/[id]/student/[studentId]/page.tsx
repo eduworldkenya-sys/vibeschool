@@ -145,6 +145,16 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
     await onReload()
   }
 
+
+  async function handleResetPin() {
+    const newPin = prompt('Enter new PIN for ' + student.name + ' (4-6 digits):')
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/reset-student-pin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session?.access_token ?? '') }, body: JSON.stringify({ student_auth_id: student.profile_id, new_pin: newPin }) })
+    const result = await res.json()
+    if (result.ok) alert('PIN reset for ' + student.name)
+    else alert('Failed: ' + result.error)
+  }
+
   async function handleCopy(code: string) {
     await navigator.clipboard.writeText(code)
     setCopied(true)
@@ -259,13 +269,16 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
                 </a>
               </div>
             </div>
+            {student.profile_id && (
+              <button onClick={handleResetPin} style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #ef4444', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', marginTop: 6 }}>
+                Reset Student PIN
+              </button>
+            )}
             <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
               {genning ? 'Generating…' : '🔄 Regenerate Both Codes'}
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>No claim codes yet</p>
             <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
               {genning ? 'Generating…' : 'Generate Codes'}
             </button>
