@@ -1,10 +1,87 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { fetchPulseData } from "@/lib/pulse/fetcher";
 import { Btn, C, TwinDot } from "./ui";
 
 interface Message { role: "user" | "twin"; text: string; }
 interface Props { open: boolean; onClose: () => void; }
+
+async function buildTwinContext(userId: string): Promise<{ ctx: string; firstName: string; credits: number | null }> {
+  const today = new Date().toLocaleDateString("en-KE", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+
+  const profileRes = await supabase
+    .from("profiles")
+    .select("full_name, school_id")
+    .eq("id", userId)
+    .single();
+
+  const fullName = profileRes.data?.full_name ?? "Teacher";
+  const firstName = fullName.split(" ")[0];
+  const schoolId = profileRes.data?.school_id ?? null;
+
+  const schoolRes = schoolId
+    ? await supabase.from("schools").select("name").eq("id", schoolId).single()
+    : { data: null };
+  const schoolName = schoolRes.data?.name ?? "Independent";
+
+  let snap: Awaited<ReturnType<typeof fetchPulseData>> | null = null;
+  try {
+    if (schoolId) {
+      const credRes = await supabase.rpc("get_credit_balance", { p_teacher_id: userId });
+      const credits = credRes.data?.success ? (credRes.data.balance ?? null) : null;
+      snap = await fetchPulseData(userId, schoolId, credits);
+    }
+  } catch { snap = null; }
+
+  const pendingIds = new Set((snap?.attPending ?? []).map(c => c.class_id));
+  const classLines: string[] = [];
+
+  if (snap && snap.todaySlots.length > 0) {
+    const seenClasses = new Set<string>();
+    for (const slot of snap.todaySlots) {
+      if (seenClasses.has(slot.class_id)) continue;
+      seenClasses.add(slot.class_id);
+      const attStatus = pendingIds.has(slot.class_id) ? "NOT SUBMITTED" : "Submitted";
+      const curr = snap.currStats.find(c => c.classId === slot.class_id);
+      const coverageLine = curr && curr.total > 0
+        ? `Scheme: ${curr.covered}/${curr.total} strands covered (${Math.round((curr.covered / curr.total) * 100)}%)`
+        : "Scheme: No curriculum data";
+      classLines.push(`- ${slot.class_name}, ${slot.subject}\n  Attendance today: ${attStatus}\n  ${coverageLine}`);
+    }
+  } else if (snap && snap.currStats.length > 0) {
+    for (const c of snap.currStats) {
+      const pct = c.total > 0 ? Math.round((c.covered / c.total) * 100) : 0;
+      classLines.push(`- ${c.subject}: ${c.covered}/${c.total} strands (${pct}%)`);
+    }
+  }
+
+  const riskLines = (snap?.atRisk ?? [])
+    .map(s => `  • ${s.name} — ${s.reason}`)
+    .join("\n");
+
+  const termPct = snap ? Math.round(snap.termProgressPct) : null;
+  const credits = snap?.credits ?? null;
+
+  const ctx = [
+    `Teacher: ${fullName}`,
+    `School: ${schoolName}`,
+    `Today: ${today}`,
+    termPct !== null ? `Term progress: ${termPct}% complete` : null,
+    credits !== null ? `Credits remaining: ${credits}` : null,
+    snap?.streak && snap.streak >= 3 ? `Attendance streak: ${snap.streak} consecutive days` : null,
+    "",
+    classLines.length > 0 ? `Classes today:\n${classLines.join("\n")}` : "No classes scheduled today.",
+    riskLines ? `\nAt-risk students:\n${riskLines}` : null,
+    snap?.tpadDays !== null && snap?.tpadDays !== undefined && snap.tpadDays <= 14
+      ? `\nTPAD self-appraisal due in ${snap.tpadDays} day${snap.tpadDays === 1 ? "" : "s"}.`
+      : null,
+  ].filter(Boolean).join("\n");
+
+  return { ctx, firstName, credits };
+}
 
 export default function TwinDrawer({ open, onClose }: Props) {
   const [input,     setInput]     = useState("");
@@ -12,6 +89,7 @@ export default function TwinDrawer({ open, onClose }: Props) {
   const [firstName, setFirstName] = useState("");
   const [messages,  setMessages]  = useState<Message[]>([]);
   const [context,   setContext]   = useState("");
+  const [loading,   setLoading]   = useState(true);
   const bottomRef   = useRef<HTMLDivElement>(null);
   const initialised = useRef(false);
 
@@ -21,49 +99,20 @@ export default function TwinDrawer({ open, onClose }: Props) {
 
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
-
-      const [profileRes, classesRes] = await Promise.all([
-        supabase.from("profiles").select("full_name, school_id").eq("id", data.user.id).single(),
-        supabase.from("classes").select("id, name, stream, subject").eq("teacher_id", data.user.id),
-      ]);
-
-      const name     = profileRes.data?.full_name?.split(" ")[0] ?? "there";
-      const schoolId = profileRes.data?.school_id;
-      setFirstName(name);
-
-      const classIds = (classesRes.data ?? []).map((c: { id: string }) => c.id);
-      const [schoolRes, studentsRes] = await Promise.all([
-        schoolId
-          ? supabase.from("schools").select("name").eq("id", schoolId).single()
-          : Promise.resolve({ data: null }),
-        classIds.length > 0
-          ? supabase.from("students").select("class_id").in("class_id", classIds)
-          : Promise.resolve({ data: [] }),
-      ]);
-
-      const schoolName = schoolRes.data?.name ?? "Unknown School";
-      const countMap: Record<string, number> = {};
-      for (const s of (studentsRes.data ?? [])) {
-        countMap[s.class_id] = (countMap[s.class_id] ?? 0) + 1;
+      try {
+        const { ctx, firstName: name, credits } = await buildTwinContext(data.user.id);
+        setContext(ctx);
+        setFirstName(name);
+        const credLine = credits !== null ? ` You have ${credits} credit${credits === 1 ? "" : "s"}.` : "";
+        setMessages([{
+          role: "twin",
+          text: `Ready, ${name}.${credLine} Ask me about your classes, attendance, students, or lesson plans.`,
+        }]);
+      } catch {
+        setMessages([{ role: "twin", text: "Ready. Ask me anything about your classes." }]);
+      } finally {
+        setLoading(false);
       }
-
-      const classLines = (classesRes.data ?? [])
-        .map((c: { id: string; name: string; stream: string; subject: string }) =>
-          `- ${c.name}${c.stream ? ` (${c.stream})` : ""}, Subject: ${c.subject}, Students: ${countMap[c.id] ?? 0}`
-        ).join("\n");
-
-      const ctx = `Teacher: ${profileRes.data?.full_name ?? name}
-School: ${schoolName}
-Classes:
-${classLines || "- No classes yet"}
-Today: ${new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`;
-
-      setContext(ctx);
-
-      setMessages([{
-        role: "twin",
-        text: `Good day, ${name}. I know your classes and I am ready to help. Ask me about attendance, lesson plans, student performance, or anything else.`,
-      }]);
     });
   }, []);
 
@@ -152,7 +201,13 @@ Today: ${new Date().toLocaleDateString("en-KE", { weekday: "long", year: "numeri
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {messages.map((m, i) => (
+          {loading && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div>
+              <TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} />
+            </div>
+          )}
+          {!loading && messages.map((m, i) => (
             <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
               {m.role === "twin" && (
                 <div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0, color: C.accent }}>✦</div>
