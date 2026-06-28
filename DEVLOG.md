@@ -333,3 +333,7 @@
 ## [2026-06-28 22:56] 7ae7b32
 **What:** teacher grading: submission list + grade per student with mark and feedback
 **Status:** ✅ pushed
+
+## [2026-06-28 23:15] f6795c3
+**What:** homework: school_id scoping, clickable cards, submission counts, manual grading, book photo required
+**Status:** ✅ pushed
