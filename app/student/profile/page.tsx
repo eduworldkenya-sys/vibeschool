@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useTheme } from '@/app/student/layout'
 
 const C = {
   bg: '#f0f2f5', surface: '#ffffff', border: '#e5e7eb',
@@ -19,9 +20,9 @@ interface ProfileData {
 }
 
 interface StudentData {
-  name:              string
-  admission_number:  string
-  class_name:        string
+  name:             string
+  admission_number: string
+  class_name:       string
 }
 
 interface GuardianData {
@@ -42,9 +43,10 @@ function Skeleton({ h = 44 }: { h?: number }) {
 
 export default function StudentProfilePage() {
   const router = useRouter()
-  const [loading,  setLoading]  = useState(true)
+  const { theme, setTheme } = useTheme()
+  const [loading,   setLoading]   = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
-  const [profile,  setProfile]  = useState<ProfileData>({
+  const [profile,   setProfile]   = useState<ProfileData>({
     full_name: '', date_of_birth: '', gender: '', avatar_url: '',
   })
   const [student,  setStudent]  = useState<StudentData>({
@@ -64,12 +66,8 @@ export default function StudentProfilePage() {
         const uid = authData.user.id
 
         const [profileRes, studentRes] = await Promise.all([
-          supabase.from('profiles')
-            .select('full_name, date_of_birth, gender, avatar_url')
-            .eq('id', uid).single(),
-          supabase.from('students')
-            .select('name, admission_number, class_id')
-            .eq('profile_id', uid).single(),
+          supabase.from('profiles').select('full_name, date_of_birth, gender, avatar_url').eq('id', uid).single(),
+          supabase.from('students').select('name, admission_number, class_id').eq('profile_id', uid).single(),
         ])
 
         if (profileRes.error) {
@@ -89,9 +87,7 @@ export default function StudentProfilePage() {
         const s = studentRes.data
         let className = ''
         if (s?.class_id) {
-          const { data: cls } = await supabase
-            .from('classes').select('name, stream')
-            .eq('id', s.class_id).single()
+          const { data: cls } = await supabase.from('classes').select('name, stream').eq('id', s.class_id).single()
           if (cls) className = cls.name + (cls.stream ? ' ' + cls.stream : '')
         }
 
@@ -101,15 +97,11 @@ export default function StudentProfilePage() {
           class_name:       className,
         })
 
-        // Guardian — via parent_student_links, needs the student row's own id (not profile_id)
-        const { data: studentRow } = await supabase
-          .from('students').select('id').eq('profile_id', uid).single()
+        const { data: studentRow } = await supabase.from('students').select('id').eq('profile_id', uid).single()
         if (studentRow?.id) {
           const { data: link } = await supabase
-            .from('parent_student_links')
-            .select('parent_id')
-            .eq('student_id', studentRow.id)
-            .maybeSingle()
+            .from('parent_student_links').select('parent_id')
+            .eq('student_id', studentRow.id).maybeSingle()
           if (link?.parent_id) {
             const [parentProfileRes, parentExtraRes] = await Promise.all([
               supabase.from('profiles').select('full_name, phone').eq('id', link.parent_id).single(),
@@ -117,7 +109,7 @@ export default function StudentProfilePage() {
             ])
             setGuardian({
               full_name:    parentProfileRes.data?.full_name ?? '',
-              phone:        parentProfileRes.data?.phone      ?? '',
+              phone:        parentProfileRes.data?.phone     ?? '',
               relationship: parentExtraRes.data?.relationship ?? '',
             })
           }
@@ -133,17 +125,11 @@ export default function StudentProfilePage() {
 
   return (
     <div style={{ background: C.bg, minHeight: '100%', padding: 16 }}>
-      <style>{`
-        @keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
-      `}</style>
+      <style>{`@keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }`}</style>
 
       <button
         onClick={() => router.push('/student')}
-        style={{
-          background: 'none', border: 'none', color: C.textMuted,
-          fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16,
-          padding: 0, display: 'flex', alignItems: 'center', gap: 4,
-        }}
+        style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
       >
         ← Back
       </button>
@@ -155,21 +141,13 @@ export default function StudentProfilePage() {
           {[1, 2, 3].map(i => <Skeleton key={i} h={56} />)}
         </div>
       ) : pageError ? (
-        <div style={{
-          padding: '10px 14px', borderRadius: 10, background: '#fef2f2',
-          border: '1px solid #fecaca', color: C.error, fontSize: 13,
-        }}>
+        <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: C.error, fontSize: 13 }}>
           {pageError}
         </div>
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: '50%',
-              background: C.accentLight, border: `2px solid ${C.accent}`,
-              overflow: 'hidden', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28,
-            }}>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: C.accentLight, border: `2px solid ${C.accent}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
               {profile.avatar_url
                 ? <img src={profile.avatar_url} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : '👤'
@@ -189,15 +167,10 @@ export default function StudentProfilePage() {
             {[
               { label: 'Admission Number', value: student.admission_number || '—' },
               { label: 'Class',            value: student.class_name || '—' },
-              { label: 'Date of Birth',    value: profile.date_of_birth
-                  ? new Date(profile.date_of_birth).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' })
-                  : '—' },
+              { label: 'Date of Birth',    value: profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' },
               { label: 'Gender',           value: profile.gender || '—' },
             ].map(row => (
-              <div key={row.label} style={{
-                background: C.surface, borderRadius: 12, padding: '12px 16px',
-                border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between',
-              }}>
+              <div key={row.label} style={{ background: C.surface, borderRadius: 12, padding: '12px 16px', border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{row.label}</span>
                 <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{row.value}</span>
               </div>
@@ -213,10 +186,7 @@ export default function StudentProfilePage() {
                   { label: 'Relationship', value: guardian.relationship || '—' },
                   { label: 'Phone',        value: guardian.phone        || '—' },
                 ].map(row => (
-                  <div key={row.label} style={{
-                    background: C.surface, borderRadius: 12, padding: '12px 16px',
-                    border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between',
-                  }}>
+                  <div key={row.label} style={{ background: C.surface, borderRadius: 12, padding: '12px 16px', border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{row.label}</span>
                     <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{row.value}</span>
                   </div>
@@ -225,10 +195,22 @@ export default function StudentProfilePage() {
             </>
           )}
 
-          <div style={{
-            marginTop: 20, padding: '14px 16px', borderRadius: 12,
-            border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center',
-          }}>
+          {/* Theme toggle */}
+          <h2 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: '24px 0 10px' }}>Display Theme</h2>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['light', 'dark', 'auto'] as const).map(t => (
+              <button key={t} onClick={() => setTheme(t)} style={{
+                flex: 1, padding: '10px 4px', borderRadius: 12, border: 'none',
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                background: theme === t ? C.accent : C.surface,
+                color:      theme === t ? '#fff'   : C.textMuted,
+              }}>
+                {t === 'light' ? '☀️ Light' : t === 'dark' ? '🌙 Dark' : '⚙️ Auto'}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 20, padding: '14px 16px', borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center' }}>
             <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
               Need to update your details? Ask your class teacher or school admin.
             </p>
