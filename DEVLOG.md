@@ -321,3 +321,7 @@
 ## [2026-06-28 21:48] 7a6713c
 **What:** student nav: 3 tabs (Home, My Work, Me) — remove Play, vibelearn routes to Me
 **Status:** ✅ pushed
+
+## [2026-06-28 21:57] d9fb528
+**What:** fix: use homework cache key in My Work page
+**Status:** ✅ pushed
