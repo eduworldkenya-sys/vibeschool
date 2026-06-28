@@ -204,6 +204,11 @@ export default function LearnPage() {
                   })}
                 </div>
               )}
+              {homework.length > 0 && (
+                <button onClick={() => router.push("/student/homework")} style={{ marginTop: 10, width: "100%", padding: "10px 0", background: "none", border: "1px solid var(--vs-border)", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "var(--vs-accent)", cursor: "pointer", fontFamily: "inherit" }}>
+                  View All Homework →
+                </button>
+              )}
             </Section>
           )}
 
