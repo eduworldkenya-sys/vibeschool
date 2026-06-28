@@ -24,6 +24,12 @@ interface StudentData {
   class_name:        string
 }
 
+interface GuardianData {
+  full_name:    string
+  phone:        string
+  relationship: string
+}
+
 function Skeleton({ h = 44 }: { h?: number }) {
   return (
     <div style={{
@@ -44,6 +50,7 @@ export default function StudentProfilePage() {
   const [student,  setStudent]  = useState<StudentData>({
     name: '', admission_number: '', class_name: '',
   })
+  const [guardian, setGuardian] = useState<GuardianData | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -93,6 +100,28 @@ export default function StudentProfilePage() {
           admission_number: s?.admission_number ?? '',
           class_name:       className,
         })
+
+        // Guardian — via parent_student_links, needs the student row's own id (not profile_id)
+        const { data: studentRow } = await supabase
+          .from('students').select('id').eq('profile_id', uid).single()
+        if (studentRow?.id) {
+          const { data: link } = await supabase
+            .from('parent_student_links')
+            .select('parent_id')
+            .eq('student_id', studentRow.id)
+            .maybeSingle()
+          if (link?.parent_id) {
+            const [parentProfileRes, parentExtraRes] = await Promise.all([
+              supabase.from('profiles').select('full_name, phone').eq('id', link.parent_id).single(),
+              supabase.from('parent_profiles').select('relationship').eq('profile_id', link.parent_id).maybeSingle(),
+            ])
+            setGuardian({
+              full_name:    parentProfileRes.data?.full_name ?? '',
+              phone:        parentProfileRes.data?.phone      ?? '',
+              relationship: parentExtraRes.data?.relationship ?? '',
+            })
+          }
+        }
       } catch {
         setPageError('Unexpected error. Please refresh.')
       } finally {
@@ -174,6 +203,27 @@ export default function StudentProfilePage() {
               </div>
             ))}
           </div>
+
+          {guardian && (
+            <>
+              <h2 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: '24px 0 10px' }}>Guardian</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { label: 'Name',         value: guardian.full_name    || '—' },
+                  { label: 'Relationship', value: guardian.relationship || '—' },
+                  { label: 'Phone',        value: guardian.phone        || '—' },
+                ].map(row => (
+                  <div key={row.label} style={{
+                    background: C.surface, borderRadius: 12, padding: '12px 16px',
+                    border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between',
+                  }}>
+                    <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{row.label}</span>
+                    <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <div style={{
             marginTop: 20, padding: '14px 16px', borderRadius: 12,
