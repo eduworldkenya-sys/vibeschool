@@ -140,6 +140,18 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
   if (snap.streak >= 3) intents["my_streak"] = `You are on a ${snap.streak}-day attendance streak. Keep it going.`;
   intents["term_progress"] = `The term is ${Math.round(snap.termProgressPct)}% complete.`;
 
+  if (snap.unreadMessages > 0) {
+    intents["unread_messages"] = `You have ${snap.unreadMessages} unread message thread${snap.unreadMessages === 1 ? "" : "s"} in VibeConnect.`;
+  } else {
+    intents["unread_messages"] = "No unread messages in VibeConnect.";
+  }
+  if (snap.homeworkDue && snap.homeworkDue.length > 0) {
+    const next = snap.homeworkDue[0];
+    intents["homework_due"] = `Next homework due: "${next.title}" (${next.subject}) on ${new Date(next.due_date).toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "short" })}.`;
+  } else {
+    intents["homework_due"] = "No homework due in the next 7 days.";
+  }
+
   return intents;
 }
 
@@ -160,6 +172,8 @@ export function resolveIntent(query: string, brain: TwinBrainState): string | nu
     [/today|schedule|what.*have|my class/,       "what_do_i_have_today"],
     [/streak|consistent|days in a row/,          "my_streak"],
     [/term.*progress|how far.*term/,             "term_progress"],
+    [/message|unread|vibeconnect|inbox/,         "unread_messages"],
+    [/homework|due|assignment/,                  "homework_due"],
   ];
   for (const [pattern, key] of matchers) {
     if (pattern.test(q) && brain.intents[key]) return brain.intents[key];
@@ -183,7 +197,22 @@ function saveCache(brain: TwinBrainState) {
 
 export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
   const cached = loadCached(userId);
-  if (cached && !cached.isStale) return cached;
+  if (cached && !cached.isStale) {
+    try {
+      const { data: memRows } = await supabase
+        .from("twin_memory")
+        .select("type, content, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (memRows && memRows.length > (cached.recentMemory?.length ?? 0)) {
+        const updated = { ...cached, recentMemory: memRows.reverse() };
+        saveCache(updated);
+        return updated;
+      }
+    } catch {}
+    return cached;
+  }
 
   const [profileRes, memberRes, teacherRes] = await Promise.all([
     supabase.from("profiles").select("full_name, school_id").eq("id", userId).single(),
@@ -272,6 +301,16 @@ export function buildContextString(brain: TwinBrainState): string {
   if (fingerprint.lastConcern) lines.push(`Last concern: "${fingerprint.lastConcern}"`);
   lines.push(`Twin interactions: ${fingerprint.totalQueries}`);
 
+  if (snap?.unreadMessages && snap.unreadMessages > 0) {
+    lines.push(`\nUnread VibeConnect messages: ${snap.unreadMessages} thread${snap.unreadMessages === 1 ? "" : "s"} waiting.`);
+  }
+  if (snap?.homeworkDue && snap.homeworkDue.length > 0) {
+    const hwLines = snap.homeworkDue
+      .map((h: { title: string; subject: string; due_date: string }) =>
+        `  • ${h.title} (${h.subject}) — due ${new Date(h.due_date).toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })}`
+      ).join("\n");
+    lines.push(`\nHomework due this week:\n${hwLines}`);
+  }
   const { recentMemory } = brain;
   if (recentMemory && recentMemory.length > 0) {
     const memLines = recentMemory

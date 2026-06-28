@@ -11,6 +11,8 @@ export interface PulseSnapshot {
   credits: number | null;
   streak: number;
   termProgressPct: number;
+  unreadMessages: number;
+  homeworkDue: { title: string; subject: string; due_date: string; class_id: string }[];
 }
 
 function one(x: any) { return Array.isArray(x) ? x[0] : x; }
@@ -69,7 +71,7 @@ export async function fetchPulseData(
     termProgressPct = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
   }
 
-  const [attTodayRes, tpadRes, absenceRes, streakRes] = await Promise.all([
+  const [attTodayRes, tpadRes, absenceRes, streakRes, vcUnreadRes, homeworkRes] = await Promise.all([
     slotIds.length > 0
       ? supabase
           .from("attendance")
@@ -101,6 +103,20 @@ export async function fetchPulseData(
       .eq("marked_by", userId)
       .order("timestamp", { ascending: false })
       .limit(60),
+    supabase
+      .from("vc_participants")
+      .select("thread_id, last_read_at")
+      .eq("profile_id", userId),
+    classIds.length > 0
+      ? supabase
+          .from("homework")
+          .select("title, subject, due_date, class_id")
+          .eq("school_id", schoolId)
+          .eq("teacher_id", userId)
+          .gte("due_date", today)
+          .lte("due_date", new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0])
+          .order("due_date")
+      : Promise.resolve({ data: [] }),
   ]);
 
   // Attendance pending
@@ -128,6 +144,36 @@ export async function fetchPulseData(
     .sort((a, b) => b[1].count - a[1].count)
     .map(([id, v]) => ({ id, name: v.name, reason: `Absent ${v.count}x this term` }))
     .slice(0, 4);
+
+  // Unread VibeConnect messages
+  let unreadMessages = 0;
+  try {
+    const participants = (vcUnreadRes.data ?? []) as any[];
+    if (participants.length > 0) {
+      const threadIds2 = participants.map((p: any) => p.thread_id);
+      const readMap: Record<string, string> = {};
+      participants.forEach((p: any) => { readMap[p.thread_id] = p.last_read_at ?? "1970-01-01T00:00:00Z"; });
+      const { data: unreadRows } = await supabase
+        .from("vc_messages")
+        .select("thread_id, created_at")
+        .in("thread_id", threadIds2)
+        .neq("sender_id", userId)
+        .is("deleted_at", null);
+      const unreadSet = new Set(
+        ((unreadRows ?? []) as any[])
+          .filter((r: any) => r.created_at > (readMap[r.thread_id] ?? "1970-01-01T00:00:00Z"))
+          .map((r: any) => r.thread_id)
+      );
+      unreadMessages = unreadSet.size;
+    }
+  } catch { unreadMessages = 0; }
+
+  const homeworkDue = ((homeworkRes.data ?? []) as any[]).map((h: any) => ({
+    title: h.title ?? "Homework",
+    subject: h.subject ?? "",
+    due_date: h.due_date ?? "",
+    class_id: h.class_id ?? "",
+  }));
 
   // Streak calculation
   let streak = 0;
@@ -177,5 +223,6 @@ export async function fetchPulseData(
   return {
     userId, schoolId, todaySlots, attPending, atRisk,
     currStats, tpadDays, credits, streak, termProgressPct,
+    unreadMessages, homeworkDue,
   };
 }
