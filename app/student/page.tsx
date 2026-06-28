@@ -54,13 +54,18 @@ export default function StudentHomePage() {
       setFirstName(name.split(' ')[0] || 'Student')
 
       // Student row
-      const { data: student } = await supabase
+      const { data: student, error: studentErr } = await supabase
         .from('students')
         .select('id, name, admission_number, class_id')
         .eq('profile_id', user.id)
         .single()
 
+      if (studentErr) {
+        console.error('[student/page] student query failed:', JSON.stringify(studentErr), 'user.id:', user.id)
+      }
+
       if (!student) {
+        console.error('[student/page] no student row found for user.id:', user.id)
         router.push('/student/claim')
         return
       }
