@@ -329,3 +329,7 @@
 ## [2026-06-28 22:11] fc629e7
 **What:** fix: use homework cache key in My Work page
 **Status:** ✅ pushed
+
+## [2026-06-28 22:56] 7ae7b32
+**What:** teacher grading: submission list + grade per student with mark and feedback
+**Status:** ✅ pushed
