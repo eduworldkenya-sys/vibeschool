@@ -301,3 +301,7 @@
 ## [2026-06-28 12:13] c8e7cb5
 **What:** add VibeTwin smart-without-AI build with fuzzy registry and brain
 **Status:** ✅ pushed
+
+## [2026-06-28 18:27] 6ea955e
+**What:** feat: student app phase 1 — cache, context, theme, layout, BottomNav, OfflineBar, dashboard fix
+**Status:** ✅ pushed
