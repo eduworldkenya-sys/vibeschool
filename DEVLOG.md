@@ -305,3 +305,7 @@
 ## [2026-06-28 18:27] 6ea955e
 **What:** feat: student app phase 1 — cache, context, theme, layout, BottomNav, OfflineBar, dashboard fix
 **Status:** ✅ pushed
+
+## [2026-06-28 18:30] dd93d3d
+**What:** feat: student resources page — CSS vars, SVG icons, cache, context
+**Status:** ✅ pushed
