@@ -337,3 +337,7 @@
 ## [2026-06-28 23:15] f6795c3
 **What:** homework: school_id scoping, clickable cards, submission counts, manual grading, book photo required
 **Status:** ✅ pushed
+
+## [2026-06-28 23:26] 0076318
+**What:** homework A: priority ordering, auto-bands, class average
+**Status:** ✅ pushed
