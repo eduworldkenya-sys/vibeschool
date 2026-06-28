@@ -5,6 +5,9 @@
 import { supabase } from "@/lib/supabase";
 import { fetchPulseData, PulseSnapshot } from "@/lib/pulse/fetcher";
 import { runRules } from "@/lib/pulse/rules";
+import { TWIN_REGISTRY } from "@/lib/twin/registry";
+import { fuzzyMatch } from "@/lib/twin/fuzzy";
+import { TwinReply, TwinAction, TwinRegistryEntry } from "@/lib/types";
 
 const BRAIN_KEY  = "vibe_twin_brain_v1";
 const BRAIN_TTL  = 30 * 60 * 1000;
@@ -173,7 +176,6 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
     intents["homework_due"] = "No homework due in the next 7 days.";
   }
 
-  // Students overview — combines all student signals
   const studentParts: string[] = [];
   if (snap.consecutiveAbsences.length > 0) {
     studentParts.push(`Absent right now: ${snap.consecutiveAbsences.map(s => `${s.name} (${s.days} days in a row)`).join(", ")}.`);
@@ -204,38 +206,96 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
   return intents;
 }
 
-export function resolveIntent(query: string, brain: TwinBrainState): string | null {
+const LEGACY_MATCHERS: [RegExp, string][] = [
+  [/attend|mark|submit|roll call/,                     "attendance_status"],
+  [/pending|not done|haven.t marked/,                  "what_is_pending"],
+  [/have i marked|did i mark/,                         "have_i_marked"],
+  [/at.risk|absentee|concern/,                         "at_risk_students"],
+  [/who.*absent|frequent/,                             "who_is_absent"],
+  [/worried about|student concern/,                    "student_concerns"],
+  [/absent.*days|days.*absent|missing.*row|row.*miss/, "consecutive_absent"],
+  [/absent.*streak|consecutive/,                       "absent_streak"],
+  [/behind|coverage|curriculum|strand|scheme/,         "am_i_behind"],
+  [/curriculum status|subject status/,                 "curriculum_status"],
+  [/credit|balance|how many credit/,                   "how_many_credits"],
+  [/credit.*low|running out/,                          "credits_status"],
+  [/tpad|appraisal|deadline/,                          "tpad_status"],
+  [/today|schedule|what.*have|my class/,               "what_do_i_have_today"],
+  [/streak|consistent|days in a row/,                  "my_streak"],
+  [/term.*progress|how far.*term/,                     "term_progress"],
+  [/message|unread|vibeconnect|inbox/,                 "unread_messages"],
+  [/homework|due|assignment/,                          "homework_due"],
+  [/lesson plan|no plan|plan.*today|filed/,            "missed_plans"],
+  [/^students?$|my students|tell me.*students|students overview/, "students_overview"],
+  [/how many students|class size|how many kids/,       "how_many_students"],
+  [/student.*perform|class.*perform|how.*class doing/, "student_performance"],
+  [/who needs help|who.*struggle|follow up|check on/,  "who_needs_help"],
+];
+
+function matchLegacy(query: string, brain: TwinBrainState): { key: string; text: string } | null {
   const q = query.toLowerCase().trim();
-  const matchers: [RegExp, string][] = [
-    [/attend|mark|submit|roll call/,                     "attendance_status"],
-    [/pending|not done|haven.t marked/,                  "what_is_pending"],
-    [/have i marked|did i mark/,                         "have_i_marked"],
-    [/at.risk|absentee|concern/,                         "at_risk_students"],
-    [/who.*absent|frequent/,                             "who_is_absent"],
-    [/worried about|student concern/,                    "student_concerns"],
-    [/absent.*days|days.*absent|missing.*row|row.*miss/, "consecutive_absent"],
-    [/absent.*streak|consecutive/,                       "absent_streak"],
-    [/behind|coverage|curriculum|strand|scheme/,         "am_i_behind"],
-    [/curriculum status|subject status/,                 "curriculum_status"],
-    [/credit|balance|how many credit/,                   "how_many_credits"],
-    [/credit.*low|running out/,                          "credits_status"],
-    [/tpad|appraisal|deadline/,                          "tpad_status"],
-    [/today|schedule|what.*have|my class/,               "what_do_i_have_today"],
-    [/streak|consistent|days in a row/,                  "my_streak"],
-    [/term.*progress|how far.*term/,                     "term_progress"],
-    [/message|unread|vibeconnect|inbox/,                 "unread_messages"],
-    [/homework|due|assignment/,                          "homework_due"],
-    [/lesson plan|no plan|plan.*today|filed/,            "missed_plans"],
-    [/^students?$|my students|tell me.*students|students overview/, "students_overview"],
-    [/how many students|class size|how many kids/,       "how_many_students"],
-    [/student.*perform|class.*perform|how.*class doing/, "student_performance"],
-    [/who needs help|who.*struggle|follow up|check on/,  "who_needs_help"],
-    [/absent.*days|days.*absent|missing.*row/,           "consecutive_absent"],
-    [/absent.*streak|consecutive/,                       "absent_streak"],
-  ];
-  for (const [pattern, key] of matchers) {
-    if (pattern.test(q) && brain.intents[key]) return brain.intents[key];
+  for (const [pattern, key] of LEGACY_MATCHERS) {
+    if (pattern.test(q) && brain.intents[key]) return { key, text: brain.intents[key] };
   }
+  return null;
+}
+
+export function resolveIntent(query: string, brain: TwinBrainState): string | null {
+  const matched = matchLegacy(query, brain);
+  return matched ? matched.text : null;
+}
+
+function scheduleActions(brain: TwinBrainState): TwinAction[] {
+  const snap = brain.snap;
+  if (!snap || snap.todaySlots.length === 0) return [];
+  const seen = new Set<string>();
+  const actions: TwinAction[] = [];
+  for (const slot of snap.todaySlots as any[]) {
+    if (seen.has(slot.class_id)) continue;
+    seen.add(slot.class_id);
+    actions.push({
+      label: `${slot.class_name} · ${slot.subject}`,
+      route: `/teacher/attendance?classId=${slot.class_id}`,
+    });
+  }
+  return actions;
+}
+
+function replyFromEntry(entry: TwinRegistryEntry, brain: TwinBrainState): TwinReply {
+  if (entry.type === "navigate" && entry.route) {
+    return {
+      text: `Opening ${entry.label}…`,
+      actions: [{ label: `Open ${entry.label}`, route: entry.route }],
+      source: "nav",
+    };
+  }
+  const text = brain.intents[entry.id] ?? `${entry.label} — no data available right now.`;
+  return { text, source: "js" };
+}
+
+export function resolveTwinReply(query: string, brain: TwinBrainState): TwinReply | null {
+  const legacy = matchLegacy(query, brain);
+  if (legacy) {
+    const actions = (legacy.key === "what_do_i_have_today" || legacy.key === "my_schedule")
+      ? scheduleActions(brain)
+      : undefined;
+    return { text: legacy.text, actions, source: "js" };
+  }
+
+  const q = query.toLowerCase().trim();
+  const exact = TWIN_REGISTRY.find(e => e.keywords.some(k => k.toLowerCase() === q));
+  if (exact) return replyFromEntry(exact, brain);
+
+  const fuzzy = fuzzyMatch(query, TWIN_REGISTRY);
+  if (fuzzy.kind === "confident") return replyFromEntry(fuzzy.entry, brain);
+  if (fuzzy.kind === "ambiguous") {
+    return {
+      text: "Did you mean:",
+      actions: fuzzy.candidates.map(c => ({ label: c.entry.label, resolveQuery: c.entry.keywords[0] })),
+      source: "fuzzy",
+    };
+  }
+
   return null;
 }
 

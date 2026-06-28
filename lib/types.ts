@@ -613,3 +613,30 @@ export interface PulseCurriculumStat {
   total: number
   subject: string
 }
+
+export interface TwinAction {
+  label:        string
+  route?:       string
+  resolveQuery?: string
+}
+
+export interface TwinReply {
+  text:    string
+  actions?: TwinAction[]
+  source:  "js" | "nav" | "fuzzy"
+}
+
+export interface TwinRegistryEntry {
+  id:       string
+  type:     "answer" | "navigate"
+  keywords: string[]
+  route?:   string
+  label:    string
+}
+
+export interface TwinMessage {
+  role:    "user" | "twin"
+  text:    string
+  source?: "js" | "ai" | "offline" | "nav" | "fuzzy"
+  actions?: TwinAction[]
+}

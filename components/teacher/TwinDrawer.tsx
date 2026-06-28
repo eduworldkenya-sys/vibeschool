@@ -1,13 +1,14 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Btn, C, TwinDot } from "./ui";
 import {
-  loadTwinBrain, resolveIntent, updateFingerprint,
+  loadTwinBrain, resolveTwinReply, updateFingerprint,
   buildContextString, TwinBrainState,
 } from "@/lib/twin/brain";
+import { TwinMessage, TwinAction } from "@/lib/types";
 
-interface Message { role: "user" | "twin"; text: string; source?: "js" | "ai" | "offline"; }
 interface Props { open: boolean; onClose: () => void; }
 
 const MAX_HISTORY = 10;
@@ -22,9 +23,10 @@ async function saveToMemory(userId: string, userMsg: string, twinReply: string) 
 }
 
 export default function TwinDrawer({ open, onClose }: Props) {
+  const router = useRouter();
   const [input,     setInput]     = useState("");
   const [thinking,  setThinking]  = useState(false);
-  const [messages,  setMessages]  = useState<Message[]>([]);
+  const [messages,  setMessages]  = useState<TwinMessage[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [listening, setListening] = useState(false);
   const [offline,   setOffline]   = useState(false);
@@ -72,6 +74,27 @@ export default function TwinDrawer({ open, onClose }: Props) {
     r.start(); recognRef.current = r; setListening(true);
   }
 
+  function handleChipTap(action: TwinAction) {
+    if (action.route) {
+      setMessages(m => [...m, { role: "user", text: action.label }]);
+      onClose();
+      router.push(action.route);
+      return;
+    }
+    if (action.resolveQuery) {
+      const brain = brainRef.current;
+      setMessages(m => [...m, { role: "user", text: action.label }]);
+      if (!brain) return;
+      const reply = resolveTwinReply(action.resolveQuery, brain);
+      if (reply) {
+        const updatedFp = updateFingerprint(userIdRef.current!, action.resolveQuery, brain);
+        brainRef.current = { ...brain, fingerprint: updatedFp };
+        setMessages(m => [...m, { role: "twin", text: reply.text, source: reply.source, actions: reply.actions }]);
+        if (userIdRef.current) saveToMemory(userIdRef.current, action.resolveQuery, reply.text);
+      }
+    }
+  }
+
   const send = useCallback(async () => {
     if (!input.trim() || thinking) return;
     const userMsg = input.trim();
@@ -81,13 +104,13 @@ export default function TwinDrawer({ open, onClose }: Props) {
     const brain = brainRef.current;
     try {
       if (brain) {
-        const jsAnswer = resolveIntent(userMsg, brain);
-        if (jsAnswer) {
+        const reply = resolveTwinReply(userMsg, brain);
+        if (reply) {
           const updatedFp = updateFingerprint(userIdRef.current!, userMsg, brain);
           brainRef.current = { ...brain, fingerprint: updatedFp };
-          setMessages(m => [...m, { role: "twin", text: jsAnswer, source: "js" }]);
+          setMessages(m => [...m, { role: "twin", text: reply.text, source: reply.source, actions: reply.actions }]);
           setThinking(false);
-          if (userIdRef.current) saveToMemory(userIdRef.current, userMsg, jsAnswer);
+          if (userIdRef.current) saveToMemory(userIdRef.current, userMsg, reply.text);
           return;
         }
       }
@@ -150,16 +173,31 @@ export default function TwinDrawer({ open, onClose }: Props) {
             </div>
           )}
           {!loading && messages.map((m, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
-              {m.role === "twin" && (
-                <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.source === "offline" ? "#fef3c7" : C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0, color: m.source === "offline" ? "#92400e" : C.accent }}>
-                  {m.source === "offline" ? "○" : "✦"}
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 6 }}>
+              <div style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8, width: "100%" }}>
+                {m.role === "twin" && (
+                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.source === "offline" ? "#fef3c7" : C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0, color: m.source === "offline" ? "#92400e" : C.accent }}>
+                    {m.source === "offline" ? "○" : "✦"}
+                  </div>
+                )}
+                <div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "4px 16px 16px 16px", background: m.role === "user" ? C.accent : C.surface, color: m.role === "user" ? "#fff" : C.textPrimary, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                  {m.text}
+                  {m.source && m.source !== "ai" && m.source !== "offline" && <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>instant · no AI used</div>}
+                </div>
+              </div>
+              {m.role === "twin" && m.actions && m.actions.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 34 }}>
+                  {m.actions.map((a, ai) => (
+                    <button
+                      key={ai}
+                      onClick={() => handleChipTap(a)}
+                      style={{ padding: "6px 12px", borderRadius: 14, border: `1px solid ${C.accent}`, background: C.accentLight, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                    >
+                      {a.label}
+                    </button>
+                  ))}
                 </div>
               )}
-              <div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "4px 16px 16px 16px", background: m.role === "user" ? C.accent : C.surface, color: m.role === "user" ? "#fff" : C.textPrimary, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                {m.text}
-                {m.source === "js" && <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>instant · no AI used</div>}
-              </div>
             </div>
           ))}
           {thinking && (
