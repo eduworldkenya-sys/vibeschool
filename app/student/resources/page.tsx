@@ -140,7 +140,7 @@ export default function StudentResourcesPage() {
   const filtered = filter === "all" ? resources : resources.filter(r => r.type === filter);
 
   if (idLoading || (loading && resources.length === 0)) return (
-    <div className="space-y-3 pt-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
       <Skel h={40} radius={12} />
       <Skel h={80} radius={12} />
       <Skel h={80} radius={12} />

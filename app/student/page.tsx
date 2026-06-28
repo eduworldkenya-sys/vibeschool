@@ -162,9 +162,9 @@ export default function StudentHomePage() {
   const isLoading = idLoading || (loading && !data);
 
   if (isLoading) return (
-    <div className="animate-pulse space-y-3 pt-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
       <Skel h={90}  radius={16} />
-      <div className="flex gap-3">
+      <div style={{ display: "flex", gap: 12 }}>
         <Skel h={80} radius={12} />
         <Skel h={80} radius={12} />
         <Skel h={80} radius={12} />

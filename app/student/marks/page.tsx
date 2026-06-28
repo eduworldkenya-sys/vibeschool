@@ -125,7 +125,7 @@ export default function MarksPage() {
   const isLoading = idLoading || (loading && exams.length === 0 && cbc.length === 0 && grades.length === 0);
 
   if (isLoading) return (
-    <div className="space-y-3 pt-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
       <Skel h={44} radius={12} /><Skel h={80} radius={12} /><Skel h={80} radius={12} />
     </div>
   );

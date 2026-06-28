@@ -108,7 +108,7 @@ export default function HomeworkDetailPage() {
   }
 
   if (idLoading || loading) return (
-    <div className="space-y-3 pt-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
       <Skel h={24} radius={8} w="60%" /><Skel h={100} radius={12} /><Skel h={160} radius={12} />
     </div>
   );
