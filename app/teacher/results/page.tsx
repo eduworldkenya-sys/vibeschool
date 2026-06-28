@@ -42,9 +42,9 @@ type Tier = 1 | 2 | 3
 // Used for Grade 4–9 exams. PP1–3 assessments use EE/ME/AE/BE via Assessment page.
 
 function getGrade(marks: number): string {
-  if (marks >= 75) return 'EE'
-  if (marks >= 50) return 'ME'
-  if (marks >= 25) return 'AE'
+  if (marks >= 80) return 'EE'
+  if (marks >= 60) return 'ME'
+  if (marks >= 40) return 'AE'
   return 'BE'
 }
 
@@ -950,7 +950,7 @@ function ResultsInner() {
                 <div style={{ padding: '14px', borderRadius: 14, background: '#FFFBF5', border: '1px solid #EDE0CE' }}>
                   <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#78716c' }}>Grade distribution</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {['A','A-','B+','B','B-','C+','C','C-','D+','D','D-','E'].map(g => {
+                    {['EE','ME','AE','BE'].map(g => {
                       const count = analysis.grades[g] ?? 0
                       if (count === 0) return null
                       const gc    = gradeColor(g)
