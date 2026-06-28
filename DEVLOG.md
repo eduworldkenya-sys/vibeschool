@@ -353,3 +353,7 @@
 ## [2026-06-29 00:13] 47cd592
 **What:** homework: clickable teacher cards, photo upload, home page urgency
 **Status:** ✅ pushed
+
+## [2026-06-29 02:04] 7bd7f81
+**What:** fix: photo_url in Submission interface and select
+**Status:** ✅ pushed
