@@ -61,12 +61,12 @@ export default function StudentHomePage() {
         .single()
 
       if (studentErr) {
-        console.error('[student/page] student query failed:', JSON.stringify(studentErr), 'user.id:', user.id)
+        router.push('/student/claim?debug=' + encodeURIComponent(JSON.stringify(studentErr)) + '&uid=' + user.id)
+        return
       }
 
       if (!student) {
-        console.error('[student/page] no student row found for user.id:', user.id)
-        router.push('/student/claim')
+        router.push('/student/claim?debug=no_row&uid=' + user.id)
         return
       }
 
