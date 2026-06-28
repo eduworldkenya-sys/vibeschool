@@ -18,7 +18,6 @@ export function runRules(data: PulseSnapshot): RulesOutput {
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
 
-  // Rule 1 — Attendance not marked (CRITICAL)
   if (data.attPending.length > 0) {
     signals.push(`attendance_pending:${data.attPending.length}`);
     confidence += 40;
@@ -26,7 +25,6 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     message = `${data.attPending.map(c => c.class_name).join(", ")} — attendance not marked yet.`;
   }
 
-  // Rule 1b — Lesson starting in 10 minutes, warn early (PREDICTIVE)
   if (data.attPending.length === 0 && data.todaySlots.length > 0) {
     const nextUnmarked = data.todaySlots.find(s => {
       const [h, m] = s.start_time.split(":").map(Number);
@@ -39,7 +37,6 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     }
   }
 
-  // Rule 2 — TPAD deadline close (URGENT)
   if (data.tpadDays !== null && data.tpadDays <= 7) {
     signals.push(`tpad_due:${data.tpadDays}d`);
     confidence += 30;
@@ -47,7 +44,14 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     if (!message) message = `TPAD self-appraisal due in ${data.tpadDays} day${data.tpadDays === 1 ? "" : "s"}. Don't leave it to the last hour.`;
   }
 
-  // Rule 3 — At-risk students with pattern detection
+  if (data.consecutiveAbsences.length > 0) {
+    const top = data.consecutiveAbsences[0];
+    signals.push(`consecutive_absent:${top.name}:${top.days}d`);
+    confidence += 35;
+    if (priority !== "critical") priority = "urgent";
+    if (!message) message = `${top.name} has been absent ${top.days} days in a row — follow up before today's class.`;
+  }
+
   if (data.atRisk.length > 0) {
     signals.push(`at_risk:${data.atRisk.length}`);
     confidence += 25;
@@ -61,7 +65,16 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     }
   }
 
-  // Rule 4 — Curriculum critically behind
+  if (data.missedLessonPlans.length > 0) {
+    signals.push(`missing_plans:${data.missedLessonPlans.length}`);
+    confidence += 20;
+    if (priority === "calm") priority = "normal";
+    if (!message) {
+      const missing = data.missedLessonPlans.map(p => `${p.className} (${p.subject})`).join(", ");
+      message = `No lesson plan filed this week for: ${missing}.`;
+    }
+  }
+
   const behind = data.currStats.filter(s => s.total > 0 && (s.covered / s.total) < 0.4);
   const termPct = data.termProgressPct ?? 50;
   if (behind.length > 0) {
@@ -76,7 +89,6 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     }
   }
 
-  // Rule 5 — Credits low
   if (data.credits !== null && data.credits <= 3) {
     signals.push(`credits_low:${data.credits}`);
     confidence += 15;
@@ -84,21 +96,18 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     if (!message) message = `Only ${data.credits} credit${data.credits === 1 ? "" : "s"} left. Top up before generating plans.`;
   }
 
-  // Rule 6 — Streak recognition
   if (data.streak && data.streak >= 5 && signals.length === 0) {
     signals.push(`streak:${data.streak}`);
     confidence = 88;
     message = `${data.streak} days straight. That kind of consistency is what students remember years later.`;
   }
 
-  // Rule 7 — No lessons today
   if (data.todaySlots.length === 0 && signals.length === 0) {
     signals.push("no_lessons");
     confidence = 90;
     message = "No lessons today. Use the time to plan next week or update your scheme of work.";
   }
 
-  // Rule 8 — All clear
   if (signals.length === 0) {
     confidence = 85;
     const h = now.getHours();

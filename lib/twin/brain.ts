@@ -101,6 +101,17 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
     intents["who_is_absent"]    = "No chronic absentees detected this term.";
   }
 
+  if (snap.consecutiveAbsences.length > 0) {
+    const top = snap.consecutiveAbsences[0];
+    intents["consecutive_absent"] = `${top.name} has been absent ${top.days} days in a row — follow up today.`;
+    intents["absent_streak"] = snap.consecutiveAbsences
+      .map(s => `${s.name} (${s.days} consecutive days)`)
+      .join(", ");
+  } else {
+    intents["consecutive_absent"] = "No students with consecutive absences in the last 5 days.";
+    intents["absent_streak"] = "No consecutive absence patterns detected.";
+  }
+
   const behind = snap.currStats.filter(s => s.total > 0 && (s.covered / s.total) < 0.5);
   if (behind.length > 0) {
     const b = behind[0];
@@ -137,6 +148,15 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
     intents["my_schedule"]          = intents["what_do_i_have_today"];
   }
 
+  if (snap.missedLessonPlans.length > 0) {
+    const missing = snap.missedLessonPlans.map(p => `${p.className} (${p.subject})`).join(", ");
+    intents["missed_plans"]       = `No lesson plan filed this week for: ${missing}.`;
+    intents["lesson_plan_status"] = intents["missed_plans"];
+  } else {
+    intents["missed_plans"]       = "All today's classes have lesson plans filed this week.";
+    intents["lesson_plan_status"] = intents["missed_plans"];
+  }
+
   if (snap.streak >= 3) intents["my_streak"] = `You are on a ${snap.streak}-day attendance streak. Keep it going.`;
   intents["term_progress"] = `The term is ${Math.round(snap.termProgressPct)}% complete.`;
 
@@ -145,6 +165,7 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
   } else {
     intents["unread_messages"] = "No unread messages in VibeConnect.";
   }
+
   if (snap.homeworkDue && snap.homeworkDue.length > 0) {
     const next = snap.homeworkDue[0];
     intents["homework_due"] = `Next homework due: "${next.title}" (${next.subject}) on ${new Date(next.due_date).toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "short" })}.`;
@@ -158,22 +179,25 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
 export function resolveIntent(query: string, brain: TwinBrainState): string | null {
   const q = query.toLowerCase().trim();
   const matchers: [RegExp, string][] = [
-    [/attend|mark|submit|roll call/,             "attendance_status"],
-    [/pending|not done|haven.t marked/,          "what_is_pending"],
-    [/have i marked|did i mark/,                 "have_i_marked"],
-    [/at.risk|absent|miss|absentee|concern/,     "at_risk_students"],
-    [/who.*absent|frequent/,                     "who_is_absent"],
-    [/worried about|student concern/,            "student_concerns"],
-    [/behind|coverage|curriculum|strand|scheme/, "am_i_behind"],
-    [/curriculum status|subject status/,         "curriculum_status"],
-    [/credit|balance|how many credit/,           "how_many_credits"],
-    [/credit.*low|running out/,                  "credits_status"],
-    [/tpad|appraisal|deadline/,                  "tpad_status"],
-    [/today|schedule|what.*have|my class/,       "what_do_i_have_today"],
-    [/streak|consistent|days in a row/,          "my_streak"],
-    [/term.*progress|how far.*term/,             "term_progress"],
-    [/message|unread|vibeconnect|inbox/,         "unread_messages"],
-    [/homework|due|assignment/,                  "homework_due"],
+    [/attend|mark|submit|roll call/,                     "attendance_status"],
+    [/pending|not done|haven.t marked/,                  "what_is_pending"],
+    [/have i marked|did i mark/,                         "have_i_marked"],
+    [/at.risk|absentee|concern/,                         "at_risk_students"],
+    [/who.*absent|frequent/,                             "who_is_absent"],
+    [/worried about|student concern/,                    "student_concerns"],
+    [/absent.*days|days.*absent|missing.*row|row.*miss/, "consecutive_absent"],
+    [/absent.*streak|consecutive/,                       "absent_streak"],
+    [/behind|coverage|curriculum|strand|scheme/,         "am_i_behind"],
+    [/curriculum status|subject status/,                 "curriculum_status"],
+    [/credit|balance|how many credit/,                   "how_many_credits"],
+    [/credit.*low|running out/,                          "credits_status"],
+    [/tpad|appraisal|deadline/,                          "tpad_status"],
+    [/today|schedule|what.*have|my class/,               "what_do_i_have_today"],
+    [/streak|consistent|days in a row/,                  "my_streak"],
+    [/term.*progress|how far.*term/,                     "term_progress"],
+    [/message|unread|vibeconnect|inbox/,                 "unread_messages"],
+    [/homework|due|assignment/,                          "homework_due"],
+    [/lesson plan|no plan|plan.*today|filed/,            "missed_plans"],
   ];
   for (const [pattern, key] of matchers) {
     if (pattern.test(q) && brain.intents[key]) return brain.intents[key];
@@ -285,13 +309,18 @@ export function buildContextString(brain: TwinBrainState): string {
       const att  = pendingIds.has(slot.class_id) ? "NOT SUBMITTED" : "Submitted";
       const curr = snap.currStats.find(c => c.classId === slot.class_id);
       const cov  = curr && curr.total > 0 ? `${curr.covered}/${curr.total} (${Math.round((curr.covered/curr.total)*100)}%)` : "No data";
-      classLines.push(`- ${slot.class_name}, ${slot.subject} | Att: ${att} | Coverage: ${cov}`);
+      const plan = snap.missedLessonPlans.find(p => p.class_id === slot.class_id && p.subject_id === slot.subject_id);
+      const planStatus = plan ? "NO PLAN" : "Plan filed";
+      classLines.push(`- ${slot.class_name}, ${slot.subject} | Att: ${att} | Coverage: ${cov} | Plan: ${planStatus}`);
     }
     lines.push(`Classes today:\n${classLines.join("\n")}`);
   } else { lines.push("No classes today."); }
 
   if (snap && snap.atRisk.length > 0) {
     lines.push(`\nAt-risk:\n${snap.atRisk.map(s => `  • ${s.name} — ${s.reason}`).join("\n")}`);
+  }
+  if (snap && snap.consecutiveAbsences.length > 0) {
+    lines.push(`\nConsecutive absences:\n${snap.consecutiveAbsences.map(s => `  • ${s.name} — ${s.days} days in a row`).join("\n")}`);
   }
   if (snap?.tpadDays !== null && snap?.tpadDays !== undefined && snap.tpadDays <= 14) {
     lines.push(`\nTPAD due in ${snap.tpadDays} day${snap.tpadDays === 1 ? "" : "s"}.`);
@@ -311,6 +340,7 @@ export function buildContextString(brain: TwinBrainState): string {
       ).join("\n");
     lines.push(`\nHomework due this week:\n${hwLines}`);
   }
+
   const { recentMemory } = brain;
   if (recentMemory && recentMemory.length > 0) {
     const memLines = recentMemory

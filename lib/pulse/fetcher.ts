@@ -13,6 +13,8 @@ export interface PulseSnapshot {
   termProgressPct: number;
   unreadMessages: number;
   homeworkDue: { title: string; subject: string; due_date: string; class_id: string }[];
+  missedLessonPlans: { slotId: string; className: string; subject: string; class_id: string; subject_id: string }[];
+  consecutiveAbsences: { studentId: string; name: string; days: number }[];
 }
 
 function one(x: any) { return Array.isArray(x) ? x[0] : x; }
@@ -62,7 +64,6 @@ export async function fetchPulseData(
   const termRow = termRes.data;
   const activeTermNum = termRow?.term ?? (Math.floor(new Date().getMonth() / 4) + 1);
 
-  // Term progress %
   let termProgressPct = 50;
   if (termRow?.start_date && termRow?.end_date) {
     const start = new Date(termRow.start_date).getTime();
@@ -71,7 +72,23 @@ export async function fetchPulseData(
     termProgressPct = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
   }
 
-  const [attTodayRes, tpadRes, absenceRes, streakRes, vcUnreadRes, homeworkRes] = await Promise.all([
+  const monday = new Date();
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const weekStart = monday.toISOString().split("T")[0];
+
+  const last5Days: string[] = [];
+  const d = new Date();
+  let counted = 0;
+  while (counted < 5) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) {
+      last5Days.push(d.toISOString().split("T")[0]);
+      counted++;
+    }
+    d.setDate(d.getDate() - 1);
+  }
+
+  const [attTodayRes, tpadRes, absenceRes, streakRes, vcUnreadRes, homeworkRes, plansRes, recentAttRes] = await Promise.all([
     slotIds.length > 0
       ? supabase
           .from("attendance")
@@ -96,7 +113,6 @@ export async function fetchPulseData(
           .in("class_id", classIds)
           .gte("timestamp", `${termRow.start_date}T00:00:00`)
       : Promise.resolve({ data: [] }),
-    // Streak: count consecutive days teacher marked attendance
     supabase
       .from("attendance")
       .select("timestamp")
@@ -117,21 +133,34 @@ export async function fetchPulseData(
           .lte("due_date", new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0])
           .order("due_date")
       : Promise.resolve({ data: [] }),
+    todaySlots.length > 0
+      ? supabase
+          .from("lesson_plans")
+          .select("class_id, subject_id")
+          .eq("teacher_id", userId)
+          .eq("week_start", weekStart)
+          .in("class_id", todaySlots.map(s => s.class_id))
+      : Promise.resolve({ data: [] }),
+    classIds.length > 0 && last5Days.length > 0
+      ? supabase
+          .from("attendance")
+          .select("student_id, date, status, students(name)")
+          .in("class_id", classIds)
+          .in("date", last5Days)
+          .order("date", { ascending: false })
+      : Promise.resolve({ data: [] }),
   ]);
 
-  // Attendance pending
   const markedIds = new Set((attTodayRes.data ?? []).map((a: any) => a.timetable_slot_id));
   const pendingMap = new Map<string, string>();
   todaySlots.filter(s => !markedIds.has(s.id)).forEach(s => pendingMap.set(s.class_id, s.class_name));
   const attPending = Array.from(pendingMap, ([class_id, class_name]) => ({ class_id, class_name }));
 
-  // TPAD days
   const tpadDue = (tpadRes.data as any)?.self_appraisal_due ?? null;
   const tpadDays = tpadDue
     ? Math.ceil((new Date(tpadDue).getTime() - Date.now()) / 86400000)
     : null;
 
-  // At-risk students
   const countMap: Record<string, { name: string; count: number }> = {};
   for (const a of ((absenceRes.data ?? []) as any[])) {
     const sId = a.student_id;
@@ -145,7 +174,6 @@ export async function fetchPulseData(
     .map(([id, v]) => ({ id, name: v.name, reason: `Absent ${v.count}x this term` }))
     .slice(0, 4);
 
-  // Unread VibeConnect messages
   let unreadMessages = 0;
   try {
     const participants = (vcUnreadRes.data ?? []) as any[];
@@ -175,7 +203,39 @@ export async function fetchPulseData(
     class_id: h.class_id ?? "",
   }));
 
-  // Streak calculation
+  const filedSet = new Set(
+    ((plansRes.data ?? []) as any[]).map((p: any) => `${p.class_id}:${p.subject_id}`)
+  );
+  const missedLessonPlans = todaySlots
+    .filter(s => !filedSet.has(`${s.class_id}:${s.subject_id}`))
+    .map(s => ({
+      slotId: s.id,
+      className: s.class_name,
+      subject: s.subject,
+      class_id: s.class_id,
+      subject_id: s.subject_id,
+    }));
+
+  const recentRows = (recentAttRes.data ?? []) as any[];
+  const studentDayMap: Record<string, { name: string; dates: Set<string> }> = {};
+  for (const r of recentRows) {
+    if (r.status !== "absent") continue;
+    const sid = r.student_id;
+    const sname = one(r.students)?.name ?? "Student";
+    if (!studentDayMap[sid]) studentDayMap[sid] = { name: sname, dates: new Set() };
+    studentDayMap[sid].dates.add(r.date);
+  }
+  const consecutiveAbsences: { studentId: string; name: string; days: number }[] = [];
+  for (const [sid, val] of Object.entries(studentDayMap)) {
+    let streak = 0;
+    for (const day of last5Days) {
+      if (val.dates.has(day)) streak++;
+      else break;
+    }
+    if (streak >= 2) consecutiveAbsences.push({ studentId: sid, name: val.name, days: streak });
+  }
+  consecutiveAbsences.sort((a, b) => b.days - a.days);
+
   let streak = 0;
   const streakRows = (streakRes.data ?? []) as any[];
   const daysSeen = new Set<string>();
@@ -184,8 +244,8 @@ export async function fetchPulseData(
   }
   const checkDate = new Date();
   for (let i = 0; i < 30; i++) {
-    const d = checkDate.toISOString().split("T")[0];
-    if (daysSeen.has(d)) {
+    const dd = checkDate.toISOString().split("T")[0];
+    if (daysSeen.has(dd)) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
     } else {
@@ -193,7 +253,6 @@ export async function fetchPulseData(
     }
   }
 
-  // Curriculum coverage — fully parallel
   const tcRows = (tcRes.data ?? []) as any[];
   const currStats: { subject: string; subjectId: string; classId: string; covered: number; total: number; lessonCount: number }[] = [];
   await Promise.all(
@@ -223,6 +282,6 @@ export async function fetchPulseData(
   return {
     userId, schoolId, todaySlots, attPending, atRisk,
     currStats, tpadDays, credits, streak, termProgressPct,
-    unreadMessages, homeworkDue,
+    unreadMessages, homeworkDue, missedLessonPlans, consecutiveAbsences,
   };
 }
