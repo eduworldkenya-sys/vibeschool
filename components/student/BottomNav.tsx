@@ -22,7 +22,6 @@ function activeTab(path: string): TabId {
     path.startsWith("/student/marks")         ||
     path.startsWith("/student/timetable")     ||
     path.startsWith("/student/fees")          ||
-    path.startsWith("/student/health")        ||
     path.startsWith("/student/notifications")
   ) return "me"
   return "home"
@@ -36,7 +35,6 @@ function IconHome({ active }: { active: boolean }) {
     </svg>
   )
 }
-
 function IconWork({ active }: { active: boolean }) {
   return (
     <svg width={active ? 23 : 21} height={active ? 23 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -47,7 +45,6 @@ function IconWork({ active }: { active: boolean }) {
     </svg>
   )
 }
-
 function IconVibeLearn({ active }: { active: boolean }) {
   return (
     <svg width={active ? 23 : 21} height={active ? 23 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,7 +53,6 @@ function IconVibeLearn({ active }: { active: boolean }) {
     </svg>
   )
 }
-
 function IconPlay({ active }: { active: boolean }) {
   return (
     <svg width={active ? 23 : 21} height={active ? 23 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -64,7 +60,6 @@ function IconPlay({ active }: { active: boolean }) {
     </svg>
   )
 }
-
 function IconMe({ active }: { active: boolean }) {
   return (
     <svg width={active ? 23 : 21} height={active ? 23 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -88,12 +83,18 @@ export default function BottomNav() {
   const current  = activeTab(pathname)
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t
-                 bg-white border-gray-200
-                 dark:bg-[#0F0F1A] dark:border-[#2D2D4E]"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
+    <nav style={{
+      position:        "fixed",
+      bottom:          0,
+      left:            0,
+      right:           0,
+      zIndex:          50,
+      display:         "flex",
+      height:          64,
+      borderTop:       "1px solid var(--vs-nav-border)",
+      background:      "var(--vs-nav-bg)",
+      paddingBottom:   "env(safe-area-inset-bottom)",
+    }}>
       {TABS.map(tab => {
         const isActive = tab.id === current
         const Icon     = ICONS[tab.id]
@@ -101,17 +102,38 @@ export default function BottomNav() {
           <button
             key={tab.id}
             onClick={() => router.push(tab.href)}
-            className={`relative flex flex-1 flex-col items-center justify-center gap-1 border-none bg-transparent cursor-pointer transition-colors duration-150
-              ${isActive
-                ? "text-[#5B4EE8] dark:text-[#7C6EF8]"
-                : "text-gray-400 dark:text-[#9090B0]"
-              }`}
+            style={{
+              position:       "relative",
+              flex:           1,
+              display:        "flex",
+              flexDirection:  "column",
+              alignItems:     "center",
+              justifyContent: "center",
+              gap:            4,
+              border:         "none",
+              background:     "transparent",
+              cursor:         "pointer",
+              color:          isActive ? "var(--vs-accent)" : "var(--vs-muted)",
+              transition:     "color 0.15s",
+            }}
           >
             {isActive && (
-              <span className="absolute top-0 w-7 h-0.5 rounded-b bg-[#5B4EE8] dark:bg-[#7C6EF8]" />
+              <span style={{
+                position:     "absolute",
+                top:          0,
+                width:        28,
+                height:       2,
+                borderRadius: "0 0 4px 4px",
+                background:   "var(--vs-accent)",
+              }} />
             )}
             <Icon active={isActive} />
-            <span className={`text-[10px] leading-none ${isActive ? "font-bold" : "font-medium"}`}>
+            <span style={{
+              fontSize:   10,
+              lineHeight: 1,
+              fontWeight: isActive ? 800 : 500,
+              fontFamily: "inherit",
+            }}>
               {tab.label}
             </span>
           </button>
