@@ -9,7 +9,7 @@ import { C } from "@/components/teacher/ui";
 interface Student { id: string; name: string; admission_number: string; }
 interface Question { id: string; question: string; order_num: number; }
 interface Answer { question_id: string; answer_text: string | null; }
-interface Submission { id: string; student_id: string; status: "pending"|"submitted"|"marked"; mark: number|null; feedback: string|null; submitted_at: string|null; answers: Answer[]; }
+interface Submission { id: string; student_id: string; status: "pending"|"submitted"|"marked"; mark: number|null; feedback: string|null; submitted_at: string|null; photo_url: string|null; answers: Answer[]; }
 interface HWInfo { title: string; subject: string; instructions: string|null; due_date: string; type: string; }
 
 type View = "list"|"grade";
@@ -79,7 +79,7 @@ function GradingInner() {
         ? supabase.from("students").select("id,name,admission_number").eq("class_id",classId).eq("school_id",sid).order("name")
         : supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
       supabase.from("homework_questions").select("id,question,order_num").eq("homework_id",hwId).order("order_num"),
-      supabase.from("homework_submissions").select("id,student_id,status,mark,feedback,submitted_at").eq("homework_id",hwId),
+      supabase.from("homework_submissions").select("id,student_id,status,mark,feedback,submitted_at,photo_url").eq("homework_id",hwId),
     ]);
 
     if (hwRes.error) { setLoadError("Could not load homework"); setLoading(false); return; }
@@ -204,6 +204,13 @@ function GradingInner() {
           {sub && questions.length===0 && (
             <div style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
               <div style={{fontSize:13,color:C.textMuted}}>Book assignment — submitted on {sub.submitted_at?new Date(sub.submitted_at).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"unknown date"}.</div>
+              {sub.photo_url && (
+                <div style={{marginTop:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>Student's Work</div>
+                  <img src={sub.photo_url} alt="Student work" style={{width:"100%",borderRadius:10,objectFit:"cover",maxHeight:360,display:"block"}} />
+                  <a href={sub.photo_url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",marginTop:8,fontSize:12,color:C.accent,fontWeight:600}}>Open full image ↗</a>
+                </div>
+              )}
             </div>
           )}
           <div style={{background:"#fff",borderRadius:16,padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>

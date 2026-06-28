@@ -1,170 +1,207 @@
 "use client";
+export const dynamic = "force-dynamic";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TOKENS, ROUTES } from "@/lib/tokens";
+import { supabase } from "@/lib/supabase";
+import { TOKENS } from "@/lib/tokens";
 
-interface Assignment {
-  id: string;
-  childOwner: string;
-  title: string;
-  subject: string;
-  subjectIcon: string;
-  dueDateISO: string;
-  totalPoints: number;
-  status: "pending" | "overdue" | "completed";
-  scoreEarned?: number;
+interface Child { id: string; name: string; class_id: string | null; }
+interface HWItem {
+  id:        string;
+  title:     string;
+  subject:   string;
+  due_date:  string;
+  type:      string;
+  status:    "pending" | "submitted" | "marked" | "overdue";
+  mark:      number | null;
+  childId:   string;
+  childName: string;
 }
 
-const MOCK_ASSIGNMENTS: Assignment[] = [
-  { id: "hw-01", childOwner: "Jaden", title: "Insha: Maisha ya Nyumbani na Shambani", subject: "Shughuli za Kiswahili", subjectIcon: "🌍", dueDateISO: "2026-05-23T08:00:00.000Z", totalPoints: 20, status: "pending" },
-  { id: "hw-02", childOwner: "Jaden", title: "Long Division & Remainders Workbook (Ex. 4B)", subject: "Mathematics Activities", subjectIcon: "📐", dueDateISO: "2026-05-25T13:00:00.000Z", totalPoints: 50, status: "pending" },
-  { id: "hw-03", childOwner: "Jaden", title: "Phonetics & Reading Fluency Audio Check", subject: "English Language Arts", subjectIcon: "📚", dueDateISO: "2026-05-21T16:00:00.000Z", totalPoints: 30, status: "overdue" },
-  { id: "hw-04", childOwner: "Jaden", title: "Metamorphosis Diagram & Labeling Project", subject: "Science & Environmental", subjectIcon: "🌱", dueDateISO: "2026-05-18T14:14:00.000Z", totalPoints: 40, status: "completed", scoreEarned: 38 },
-  { id: "hw-05", childOwner: "Liam", title: "Primary Color Mixing & Shading Canvas", subject: "Creative Arts Activities", subjectIcon: "🎨", dueDateISO: "2026-05-21T12:00:00.000Z", totalPoints: 20, status: "overdue" },
-  { id: "hw-06", childOwner: "Liam", title: "Number Patterns & Sequence Matching", subject: "Mathematics Activities", subjectIcon: "📐", dueDateISO: "2026-05-24T09:00:00.000Z", totalPoints: 15, status: "pending" }
-];
+function isOverdue(due: string): boolean {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(due); d.setHours(0,0,0,0);
+  return d < today;
+}
 
-export default function TodaysBriefing() {
+function daysUntil(d: string): number {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const due = new Date(d); due.setHours(0,0,0,0);
+  return Math.round((due.getTime()-t.getTime())/86400000);
+}
+
+function dueBadge(due: string, status: HWItem["status"]) {
+  if (status==="marked")    return { label:"Marked",    bg:"#d1fae5", color:"#065f46" };
+  if (status==="submitted") return { label:"Submitted", bg:"#dbeafe", color:"#1e40af" };
+  if (status==="overdue")   return { label:"Overdue",   bg:"#fee2e2", color:"#991b1b" };
+  const n = daysUntil(due);
+  if (n===0) return { label:"Due Today",    bg:"#fef3c7", color:"#92400e" };
+  if (n===1) return { label:"Due Tomorrow", bg:"#fff7ed", color:"#c2410c" };
+  return { label:`Due in ${n}d`, bg:"#f0fdf4", color:"#166534" };
+}
+
+export default function ParentHomeworkPage() {
   const router = useRouter();
-  const childrenList = Array.from(new Set(MOCK_ASSIGNMENTS.map(a => a.childOwner)));
-  const [activeChild, setActiveChild] = useState<string>("Jaden");
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [children,     setChildren]     = useState<Child[]>([]);
+  const [activeChild,  setActiveChild]  = useState<string | null>(null);
+  const [hwList,       setHwList]       = useState<HWItem[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [hwLoading,    setHwLoading]    = useState(false);
 
-  const list = MOCK_ASSIGNMENTS.filter(a => a.childOwner === activeChild);
-  const overdue = list.filter(a => a.status === "overdue");
-  const pending = list.filter(a => a.status === "pending");
-  const completed = list.filter(a => a.status === "completed");
+  // Load parent's children
+  useEffect(() => {
+    async function loadChildren() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: links } = await supabase
+        .from("parent_student_links")
+        .select("student_id")
+        .eq("parent_id", user.id);
+
+      if (!links || links.length === 0) { setLoading(false); return; }
+
+      const ids = links.map(l => l.student_id);
+      const { data: students } = await supabase
+        .from("students")
+        .select("id, name, class_id")
+        .in("id", ids)
+        .order("name");
+
+      const kids = (students ?? []) as Child[];
+      setChildren(kids);
+      if (kids.length > 0) setActiveChild(kids[0].id);
+      setLoading(false);
+    }
+    loadChildren();
+  }, []);
+
+  // Load homework when active child changes
+  useEffect(() => {
+    if (!activeChild) return;
+    const child = children.find(c => c.id === activeChild);
+    if (!child?.class_id) { setHwList([]); return; }
+
+    async function loadHW() {
+      setHwLoading(true);
+      const [hwRes, subRes] = await Promise.all([
+        supabase.from("homework").select("id,title,subject,due_date,type").eq("class_id", child!.class_id!).order("due_date", { ascending: true }),
+        supabase.from("homework_submissions").select("homework_id,status,mark").eq("student_id", activeChild!),
+      ]);
+
+      const subMap = new Map<string, { status: string; mark: number | null }>();
+      for (const s of (subRes.data ?? [])) subMap.set(s.homework_id, { status: s.status, mark: s.mark });
+
+      const items: HWItem[] = ((hwRes.data ?? []) as { id:string; title:string; subject:string; due_date:string; type:string }[]).map(h => {
+        const sub = subMap.get(h.id);
+        let status: HWItem["status"] = "pending";
+        if (sub?.status === "marked")    status = "marked";
+        else if (sub?.status === "submitted") status = "submitted";
+        else if (isOverdue(h.due_date))  status = "overdue";
+        return { ...h, status, mark: sub?.mark ?? null, childId: activeChild!, childName: child!.name };
+      });
+
+      setHwList(items);
+      setHwLoading(false);
+    }
+    loadHW();
+  }, [activeChild, children]);
+
+  const overdue   = hwList.filter(h => h.status === "overdue");
+  const pending   = hwList.filter(h => h.status === "pending");
+  const done      = hwList.filter(h => h.status === "submitted" || h.status === "marked");
+
+  if (loading) return (
+    <div style={{ padding: 24, fontFamily: TOKENS.fontFamily, color: TOKENS.textMuted, textAlign: "center" }}>Loading…</div>
+  );
+
+  if (children.length === 0) return (
+    <div style={{ padding: 24, fontFamily: TOKENS.fontFamily, textAlign: "center" }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>🔗</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: TOKENS.textPrimary, marginBottom: 6 }}>No children linked yet</div>
+      <div style={{ fontSize: 13, color: TOKENS.textMuted }}>Ask your school to link your account to your child.</div>
+    </div>
+  );
 
   return (
-    <div style={{ maxWidth: "480px", margin: "0 auto", padding: "24px 16px", backgroundColor: TOKENS.bgDefault, minHeight: "100vh", fontFamily: TOKENS.fontFamily, color: TOKENS.textPrimary, WebkitFontSmoothing: "antialiased", MozOsxFontSmoothing: "grayscale" }}>
-      
-      {/* Multi-Child Navigation Segmented Control */}
-      <div style={{ display: "flex", gap: "8px", background: "#f1f5f9", padding: "4px", borderRadius: "14px", marginBottom: "20px" }}>
-        {childrenList.map((name) => {
-          const isActive = activeChild === name;
-          return (
-            <button
-              key={name}
-              onClick={() => setActiveChild(name)}
-              style={{ flex: 1, padding: "10px", border: "none", borderRadius: "10px", fontSize: "13px", fontWeight: "700", fontFamily: TOKENS.fontBody, cursor: "pointer", backgroundColor: isActive ? TOKENS.bgCard : "transparent", color: isActive ? TOKENS.textPrimary : TOKENS.textMuted, boxShadow: isActive ? "0 2px 4px rgba(0,0,0,0.04)" : "none", transition: "all 0.2s" }}
-            >
-              {name} • {name === "Jaden" ? "Gr. 3" : "Gr. 1"}
-            </button>
-          );
-        })}
-      </div>
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px 100px", fontFamily: TOKENS.fontFamily, color: TOKENS.textPrimary }}>
 
-      {/* Hero Summary Card */}
-      {overdue.length > 0 ? (
-        <div style={{ backgroundColor: TOKENS.overdueBg, border: `1px solid ${TOKENS.overdueBorder}`, borderRadius: TOKENS.radiusCard, padding: "20px", marginBottom: "24px" }}>
-          <h1 style={{ fontFamily: TOKENS.fontHeader, fontSize: "22px", margin: 0, color: TOKENS.overdueText }}>{overdue.length} thing needs attention tonight</h1>
-          <p style={{ fontFamily: TOKENS.fontBody, fontSize: "14px", margin: "4px 0 0 0", color: TOKENS.textPrimary }}>Action is required on outstanding tasks for {activeChild}.</p>
-        </div>
-      ) : (
-        <div style={{ backgroundColor: TOKENS.completedBg, border: `1px solid ${TOKENS.completedBorder}`, borderRadius: TOKENS.radiusCard, padding: "20px", marginBottom: "24px" }}>
-          <h1 style={{ fontFamily: TOKENS.fontHeader, fontSize: "22px", margin: 0, color: TOKENS.completedText }}>{activeChild} is all clear 🌟</h1>
-          <p style={{ fontFamily: TOKENS.fontBody, fontSize: "14px", margin: "4px 0 0 0", color: TOKENS.textPrimary }}>All current assignments are completed or turned in.</p>
+      {/* Child switcher */}
+      {children.length > 1 && (
+        <div style={{ display: "flex", gap: 8, background: "#f1f5f9", padding: 4, borderRadius: 14, marginBottom: 20 }}>
+          {children.map(c => (
+            <button key={c.id} onClick={() => setActiveChild(c.id)} style={{ flex: 1, padding: "10px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, fontFamily: TOKENS.fontFamily, cursor: "pointer", background: activeChild===c.id ? "#fff" : "transparent", color: activeChild===c.id ? TOKENS.textPrimary : TOKENS.textMuted, boxShadow: activeChild===c.id ? "0 2px 4px rgba(0,0,0,0.06)" : "none", transition: "all 0.2s" }}>
+              {c.name}
+            </button>
+          ))}
         </div>
       )}
 
-      {/* 7-Day Week Snapshot Strip */}
-      <div style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderRadius: "16px", padding: "12px", marginBottom: "24px", display: "flex", justifyContent: "space-between", textAlign: "center" }}>
-        {[
-          { label: "M", status: "clear" },
-          { label: "T", status: "clear" },
-          { label: "W", status: "completed" },
-          { label: "T", status: "overdue" },
-          { label: "F", status: "pending" },
-          { label: "S", status: "clear" },
-          { label: "S", status: "clear" }
-        ].map((day, idx) => (
-          <div key={idx} style={{ flex: 1 }}>
-            <span style={{ fontSize: "11px", fontWeight: "700", color: TOKENS.textMuted, fontFamily: TOKENS.fontBody }}>{day.label}</span>
-            <div style={{ height: "6px", width: "6px", borderRadius: "50%", margin: "6px auto 0 auto", backgroundColor: day.status === "overdue" ? TOKENS.danger : day.status === "pending" ? TOKENS.warning : day.status === "completed" ? TOKENS.success : "transparent" }} />
-          </div>
-        ))}
-      </div>
+      {/* Hero */}
+      {overdue.length > 0 ? (
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 16, padding: "20px", marginBottom: 20 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#991b1b", marginBottom: 4 }}>⚠️ {overdue.length} overdue</div>
+          <div style={{ fontSize: 13, color: TOKENS.textPrimary }}>Action needed for {children.find(c=>c.id===activeChild)?.name}.</div>
+        </div>
+      ) : (
+        <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 16, padding: "20px", marginBottom: 20 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#166534", marginBottom: 4 }}>✅ All clear</div>
+          <div style={{ fontSize: 13, color: TOKENS.textPrimary }}>{children.find(c=>c.id===activeChild)?.name} has no overdue work.</div>
+        </div>
+      )}
 
-      {/* Dynamic Narrative Timeline Stream */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-        
-        {overdue.length > 0 && (
-          <div>
-            <h2 style={{ fontFamily: TOKENS.fontHeader, fontSize: "14px", textTransform: "uppercase", letterSpacing: "1px", color: TOKENS.overdueText, margin: "0 0 12px 0" }}>⚠️ Overdue</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {overdue.map(a => {
-                const isHovered = hoveredId === a.id;
-                return (
-                  <div
-                    key={a.id}
-                    onClick={() => router.push(ROUTES.homeworkDetail(a.id))}
-                    onMouseEnter={() => setHoveredId(a.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                    style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderLeft: `6px solid ${TOKENS.danger}`, borderRadius: TOKENS.radiusCard, padding: "16px", cursor: "pointer", transform: isHovered ? "translateY(-2px) scale(1.01)" : "scale(1)", boxShadow: isHovered ? "0 12px 24px rgba(0,0,0,0.04)" : "none", transition: "all 0.2s ease" }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                      <span style={{ fontSize: "12px", fontWeight: "700", color: TOKENS.textMuted, fontFamily: TOKENS.fontBody }}>{a.subject}</span>
-                      <span style={{ fontSize: "11px", fontWeight: "800", color: TOKENS.overdueText, backgroundColor: TOKENS.overdueBg, padding: "2px 8px", borderRadius: "6px" }}>Action Needed</span>
-                    </div>
-                    <h3 style={{ fontFamily: TOKENS.fontHeader, fontSize: "16px", margin: 0, color: TOKENS.textPrimary }}>{a.title}</h3>
-                  </div>
-                );
-              })}
+      {hwLoading ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: TOKENS.textMuted }}>Loading homework…</div>
+      ) : hwList.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: TOKENS.textMuted }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📭</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>No homework posted yet</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {overdue.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#991b1b", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>⚠️ Overdue</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {overdue.map(h => <HWCard key={h.id} h={h} onClick={() => router.push(`/parent/homework/${h.id}`)} />)}
+              </div>
             </div>
-          </div>
-        )}
-
-        {pending.length > 0 && (
-          <div>
-            <h2 style={{ fontFamily: TOKENS.fontHeader, fontSize: "14px", textTransform: "uppercase", letterSpacing: "1px", color: TOKENS.textMuted, margin: "0 0 12px 0" }}>⏳ Upcoming This Week</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {pending.map(a => {
-                const isHovered = hoveredId === a.id;
-                return (
-                  <div
-                    key={a.id}
-                    onClick={() => router.push(ROUTES.homeworkDetail(a.id))}
-                    onMouseEnter={() => setHoveredId(a.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                    style={{ backgroundColor: TOKENS.bgCard, border: `1px solid ${TOKENS.borderDefault}`, borderLeft: `6px solid ${TOKENS.warning}`, borderRadius: TOKENS.radiusCard, padding: "16px", cursor: "pointer", transform: isHovered ? "translateY(-2px) scale(1.01)" : "scale(1)", boxShadow: isHovered ? "0 12px 24px rgba(0,0,0,0.04)" : "none", transition: "all 0.2s ease" }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                      <span style={{ fontSize: "12px", fontWeight: "700", color: TOKENS.textMuted, fontFamily: TOKENS.fontBody }}>{a.subject}</span>
-                      <span style={{ fontSize: "11px", fontWeight: "700", color: TOKENS.pendingText }}>Due Soon</span>
-                    </div>
-                    <h3 style={{ fontFamily: TOKENS.fontHeader, fontSize: "16px", margin: 0, color: TOKENS.textPrimary }}>{a.title}</h3>
-                  </div>
-                );
-              })}
+          )}
+          {pending.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: TOKENS.textMuted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>⏳ Upcoming</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {pending.map(h => <HWCard key={h.id} h={h} onClick={() => router.push(`/parent/homework/${h.id}`)} />)}
+              </div>
             </div>
-          </div>
-        )}
-
-        {completed.length > 0 && (
-          <div>
-            <h2 style={{ fontFamily: TOKENS.fontHeader, fontSize: "14px", textTransform: "uppercase", letterSpacing: "1px", color: TOKENS.completedText, margin: "0 0 12px 0" }}>🎉 Completed</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {completed.map(a => (
-                <div
-                  key={a.id}
-                  onClick={() => router.push(ROUTES.homeworkDetail(a.id))}
-                  style={{ backgroundColor: TOKENS.completedBg, border: `1px solid ${TOKENS.completedBorder}`, borderRadius: TOKENS.radiusCard, padding: "14px 16px", cursor: "pointer", opacity: 0.85 }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <span style={{ fontSize: "11px", fontWeight: "700", color: TOKENS.completedText, fontFamily: TOKENS.fontBody }}>{a.subject}</span>
-                      <h4 style={{ fontFamily: TOKENS.fontHeader, fontSize: "15px", margin: 0, color: TOKENS.textPrimary, textDecoration: "line-through" }}>{a.title}</h4>
-                    </div>
-                    <span style={{ fontSize: "14px", fontWeight: "900", color: TOKENS.completedText }}>{a.scoreEarned ? Math.round((a.scoreEarned / a.totalPoints) * 100) : 0}%</span>
-                  </div>
-                </div>
-              ))}
+          )}
+          {done.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#166534", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>✅ Done</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {done.map(h => <HWCard key={h.id} h={h} onClick={() => router.push(`/parent/homework/${h.id}`)} />)}
+              </div>
             </div>
-          </div>
-        )}
-
-      </div>
+          )}
+        </div>
+      )}
     </div>
+  );
+}
+
+function HWCard({ h, onClick }: { h: HWItem; onClick: () => void }) {
+  const badge = dueBadge(h.due_date, h.status);
+  return (
+    <button onClick={onClick} style={{ width: "100%", textAlign: "left", background: "#fff", border: "1px solid #e5e7eb", borderLeft: `5px solid ${h.status==="overdue"?"#ef4444":h.status==="marked"||h.status==="submitted"?"#10b981":"#f59e0b"}`, borderRadius: 14, padding: "14px 16px", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: TOKENS.textPrimary, flex: 1, lineHeight: 1.4 }}>{h.title}</div>
+        <span style={{ padding: "3px 8px", borderRadius: 20, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{badge.label}</span>
+      </div>
+      <div style={{ fontSize: 12, color: TOKENS.textMuted }}>{h.subject} · Due {new Date(h.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</div>
+      {h.status==="marked" && h.mark!==null && (
+        <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: "#065f46" }}>Score: {h.mark} marks</div>
+      )}
+    </button>
   );
 }
