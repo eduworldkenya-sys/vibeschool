@@ -31,11 +31,25 @@ function similarity(a: string, b: string): number {
   return score;
 }
 
+function wordOverlapScore(query: string, keyword: string): number {
+  const qWords = query.split(/\s+/).filter(Boolean);
+  const kWords = keyword.split(/\s+/).filter(Boolean);
+  if (qWords.length === 0 || kWords.length === 0) return 0;
+  let hits = 0;
+  for (const qw of qWords) {
+    if (kWords.some(kw => kw === qw || kw.startsWith(qw) || qw.startsWith(kw))) hits++;
+  }
+  return hits / Math.max(qWords.length, kWords.length);
+}
+
 function bestKeywordScore(query: string, keywords: string[]): number {
   let best = 0;
   for (const kw of keywords) {
-    const s = similarity(query, kw.toLowerCase());
-    if (s > best) best = s;
+    const kwl = kw.toLowerCase();
+    const charScore = similarity(query, kwl);
+    const wordScore = wordOverlapScore(query, kwl);
+    const combined = Math.max(charScore, (charScore * 0.6) + (wordScore * 0.4));
+    if (combined > best) best = combined;
   }
   return best;
 }
@@ -60,7 +74,12 @@ export function fuzzyMatch(query: string, registry: TwinRegistryEntry[]): FuzzyR
 
   const scored: FuzzyCandidate[] = registry
     .map(entry => ({ entry, score: bestKeywordScore(q, entry.keywords) }))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (a.entry.type === "answer" && b.entry.type !== "answer") return -1;
+    if (b.entry.type === "answer" && a.entry.type !== "answer") return 1;
+    return 0;
+  });
 
   const top    = scored[0];
   const second = scored[1];

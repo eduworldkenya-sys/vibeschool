@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Btn, C, TwinDot } from "./ui";
 import {
   loadTwinBrain, resolveTwinReply, updateFingerprint,
-  buildContextString, TwinBrainState,
+  buildContextString, buildOpeningBrief, TwinBrainState,
 } from "@/lib/twin/brain";
 import { TwinMessage, TwinAction } from "@/lib/types";
 
@@ -30,6 +30,7 @@ export default function TwinDrawer({ open, onClose }: Props) {
   const [loading,   setLoading]   = useState(true);
   const [listening, setListening] = useState(false);
   const [offline,   setOffline]   = useState(false);
+  const [upcomingWarning, setUpcomingWarning] = useState<string | null>(null);
   const bottomRef   = useRef<HTMLDivElement>(null);
   const initialised = useRef(false);
   const brainRef    = useRef<TwinBrainState | null>(null);
@@ -46,12 +47,8 @@ export default function TwinDrawer({ open, onClose }: Props) {
       try {
         const brain = await loadTwinBrain(data.user.id);
         brainRef.current = brain;
-        const { firstName, snap, rulesOutput } = brain;
-        const credLine = snap?.credits !== null && snap?.credits !== undefined
-          ? ` ${snap.credits} credit${snap.credits === 1 ? "" : "s"} remaining.` : "";
-        const openingInsight = rulesOutput?.priority === "critical" || rulesOutput?.priority === "urgent"
-          ? `\n\n⚡ ${rulesOutput.message}` : "";
-        setMessages([{ role: "twin", text: `Ready, ${firstName}.${credLine}${openingInsight}`, source: "js" }]);
+        if (brain.rulesOutput?.upcomingWarning) setUpcomingWarning(brain.rulesOutput.upcomingWarning);
+        setMessages([{ role: "twin", text: buildOpeningBrief(brain), source: "js" }]);
       } catch {
         setMessages([{ role: "twin", text: "Ready. Ask me anything.", source: "offline" }]);
       } finally { setLoading(false); }
@@ -165,6 +162,12 @@ export default function TwinDrawer({ open, onClose }: Props) {
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
+        {upcomingWarning && (
+          <div style={{ background: "#fef3c7", borderBottom: "1px solid #fde68a", padding: "8px 16px", fontSize: 12, color: "#92400e", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+            <span>⏰ {upcomingWarning}</span>
+            <button onClick={() => setUpcomingWarning(null)} style={{ background: "none", border: "none", color: "#92400e", cursor: "pointer", fontSize: 14, lineHeight: 1 }}>×</button>
+          </div>
+        )}
         <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>

@@ -255,25 +255,28 @@ export async function fetchPulseData(
 
   const tcRows = (tcRes.data ?? []) as any[];
   const currStats: { subject: string; subjectId: string; classId: string; covered: number; total: number; lessonCount: number }[] = [];
-  await Promise.all(
-    tcRows.slice(0, 4).map(async (tc: any) => {
+  await Promise.allSettled(
+    tcRows.map(async (tc: any) => {
       const subjectName = one(tc.subjects)?.name ?? "Subject";
       const classRes = await supabase.from("classes").select("name").eq("id", tc.class_id).single();
       const gradeName = classRes.data?.name ?? "";
       if (!gradeName) return;
-      const [totalRes, coveredRes, lessonRes] = await Promise.all([
+      const [totalRes, coveredRes, lessonRes] = await Promise.allSettled([
         supabase.from("curriculum").select("*", { count: "exact", head: true }).eq("grade", gradeName).eq("subject", subjectName),
         supabase.from("strand_progress").select("*", { count: "exact", head: true }).eq("teacher_id", userId).eq("subject_id", tc.subject_id).eq("school_id", schoolId).eq("term", activeTermNum).in("status", ["done", "teaching"]),
         supabase.from("lesson_plans").select("*", { count: "exact", head: true }).eq("teacher_id", userId).eq("subject_id", tc.subject_id).eq("class_id", tc.class_id),
       ]);
-      if ((totalRes.count ?? 0) > 0) {
+      const totalCount   = totalRes.status   === "fulfilled" ? ((totalRes as any).value?.count   ?? 0) : 0;
+      const coveredCount = coveredRes.status === "fulfilled" ? ((coveredRes as any).value?.count ?? 0) : 0;
+      const lessonCount  = lessonRes.status  === "fulfilled" ? ((lessonRes as any).value?.count  ?? 0) : 0;
+      if (totalCount > 0) {
         currStats.push({
           subject: subjectName,
           subjectId: tc.subject_id,
           classId: tc.class_id,
-          covered: coveredRes.count ?? 0,
-          total: totalRes.count ?? 1,
-          lessonCount: lessonRes.count ?? 0,
+          covered: coveredCount,
+          total: totalCount,
+          lessonCount,
         });
       }
     })
