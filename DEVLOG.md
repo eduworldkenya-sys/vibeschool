@@ -297,3 +297,7 @@
 ## [2026-06-27 15:14] 2101eae
 **What:** feat: TeachOS — unified teach product page
 **Status:** ✅ pushed
+
+## [2026-06-28 12:13] c8e7cb5
+**What:** add VibeTwin smart-without-AI build with fuzzy registry and brain
+**Status:** ✅ pushed
