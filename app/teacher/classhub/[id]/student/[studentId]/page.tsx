@@ -279,6 +279,8 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
             </button>
           </div>
         ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>No claim codes yet</p>
             <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
               {genning ? 'Generating…' : 'Generate Codes'}
             </button>

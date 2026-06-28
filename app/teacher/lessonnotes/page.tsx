@@ -32,6 +32,7 @@ interface NoteRow {
   subject_name:        string;
   plan_title:          string | null;
   plan_topic:          string | null;
+  published:           boolean;
 }
 
 type ViewState = "list" | "new" | "view" | "edit" | "saved";
@@ -102,6 +103,8 @@ export default function LessonNotesPage() {
   const [participation, setParticipation] = useState<number>(3);
   const [challenges,    setChallenges]    = useState<string>("");
   const [homework,      setHomework]      = useState<string>("");
+  const [publishing,    setPublishing]    = useState<string | null>(null);
+  const [publishError,  setPublishError]  = useState<string | null>(null);
 
   const editingNoteId = useRef<string | null>(null);
 
@@ -155,15 +158,20 @@ export default function LessonNotesPage() {
     const subjectIds = Array.from(new Set(noteList.map((n: any) => n.subject_id).filter(Boolean)));
     const planIds    = Array.from(new Set(noteList.filter((n: any) => n.lesson_plan_id).map((n: any) => n.lesson_plan_id as string)));
 
-    const [clsRes, subjRes, planRes] = await Promise.all([
+    const [clsRes, subjRes, planRes, contentRes] = await Promise.all([
       classIds.length   > 0 ? supabase.from("classes").select("id,name,stream").in("id", classIds)    : Promise.resolve({ data: [] }),
       subjectIds.length > 0 ? supabase.from("subjects").select("id,name").in("id", subjectIds)         : Promise.resolve({ data: [] }),
       planIds.length    > 0 ? supabase.from("lesson_plans").select("id,title,topic").in("id", planIds) : Promise.resolve({ data: [] }),
+      // Publish status: a lesson_content row of type 'lesson_note' tied to this
+      // note's lesson_plan_id means it's already live for parents/students —
+      // this is the same table app/student/learn and app/parent/vibe-learn read.
+      planIds.length    > 0 ? supabase.from("lesson_content").select("lesson_plan_id").in("lesson_plan_id", planIds).eq("content_type", "lesson_note") : Promise.resolve({ data: [] }),
     ]);
 
     const clsMap  = Object.fromEntries(((clsRes.data  ?? []) as any[]).map(c => [c.id, c.name + (c.stream ? " " + c.stream : "")]));
     const subjMap = Object.fromEntries(((subjRes.data ?? []) as any[]).map(s => [s.id, s.name]));
     const planMap = Object.fromEntries(((planRes.data ?? []) as any[]).map(p => [p.id, { title: p.title, topic: p.topic }]));
+    const publishedPlanIds = new Set(((contentRes.data ?? []) as any[]).map(c => c.lesson_plan_id));
 
     setNotes(noteList.map((n: any) => ({
       id:                  n.id,
@@ -179,6 +187,7 @@ export default function LessonNotesPage() {
       subject_name:        n.subject_id ? (subjMap[n.subject_id] ?? "Unknown Subject") : "",
       plan_title:          n.lesson_plan_id ? (planMap[n.lesson_plan_id]?.title ?? null) : null,
       plan_topic:          n.lesson_plan_id ? (planMap[n.lesson_plan_id]?.topic ?? null) : null,
+      published:           n.lesson_plan_id ? publishedPlanIds.has(n.lesson_plan_id) : false,
     })));
   }
 
@@ -338,6 +347,70 @@ export default function LessonNotesPage() {
     }
   }
 
+  async function publishNote(note: NoteRow) {
+    if (!note.lesson_plan_id) {
+      setPublishError("Link a lesson plan to this note (edit it) before publishing — that's how parents and students find it.");
+      return;
+    }
+    const tid = tidRef.current;
+    const sid = sidRef.current;
+    if (!tid) return;
+
+    setPublishing(note.id);
+    setPublishError(null);
+
+    try {
+      const studentCopy = [
+        "We covered: " + note.what_was_taught,
+        note.homework_set ? "Homework: " + note.homework_set : "",
+      ].filter(Boolean).join("\n\n");
+
+      const teacherCopy = [
+        "What was taught: " + note.what_was_taught,
+        "Participation: " + (PAR[note.participation_score ?? 3]?.label ?? "—"),
+        note.challenges   ? "Challenges: " + note.challenges   : "",
+        note.homework_set ? "Homework: "   + note.homework_set : "",
+      ].filter(Boolean).join("\n\n");
+
+      // Re-publishing an already-live note updates the same row instead of
+      // creating a duplicate, so later edits sync through automatically.
+      const { data: existing } = await supabase
+        .from("lesson_content")
+        .select("id")
+        .eq("lesson_plan_id", note.lesson_plan_id)
+        .eq("content_type", "lesson_note")
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { error: updErr } = await supabase
+          .from("lesson_content")
+          .update({ student_copy: studentCopy, teacher_copy: teacherCopy, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+        if (updErr) throw updErr;
+      } else {
+        const { error: insErr } = await supabase
+          .from("lesson_content")
+          .insert({
+            school_id:      sid,
+            teacher_id:     tid,
+            lesson_plan_id: note.lesson_plan_id,
+            content_type:   "lesson_note",
+            teacher_copy:   teacherCopy,
+            student_copy:   studentCopy,
+            generated_by:   "teacher",
+          });
+        if (insErr) throw insErr;
+      }
+
+      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, published: true } : n));
+      if (activeNote?.id === note.id) setActiveNote({ ...note, published: true });
+    } catch (e: unknown) {
+      setPublishError(e instanceof Error ? e.message : "Publish failed. Try again.");
+    } finally {
+      setPublishing(null);
+    }
+  }
+
   const linkedPlanForForm = plans.find(p => p.id === selectedPlan) ?? null;
   const avgParticipation  = notes.length
     ? (notes.reduce((s, n) => s + (n.participation_score ?? 0), 0) / notes.length).toFixed(1)
@@ -481,6 +554,7 @@ export default function LessonNotesPage() {
                     <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: parMeta.bg, color: parMeta.color }}>{parMeta.emoji} {parMeta.label}</span>
                     {note.homework_set && <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>📚 HW set</span>}
                     {note.challenges  && <span style={{ fontSize: 11, color: "#92400e", fontWeight: 600 }}>⚠️ Challenges noted</span>}
+                    {note.published   && <span style={{ fontSize: 11, color: "#065f46", fontWeight: 700 }}>📣 Published</span>}
                   </div>
                 </div>
               );
@@ -566,6 +640,25 @@ export default function LessonNotesPage() {
             <div style={{ background: "#eff6ff", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "4px solid #3b82f6" }}>
               <div style={{ fontSize: 10, fontWeight: 800, color: "#1d4ed8", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>📚 Homework Set</div>
               <div style={{ fontSize: 14, color: "#1e3a8a", lineHeight: 1.7 }}>{note.homework_set}</div>
+            </div>
+          )}
+          {publishError && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>{publishError}</div>}
+          {note.lesson_plan_id ? (
+            note.published ? (
+              <div style={{ background: "#d1fae5", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#065f46" }}>✓ Published — visible to parents &amp; students</div>
+                <button onClick={() => publishNote(note)} disabled={publishing === note.id} style={{ padding: "7px 12px", borderRadius: 8, border: "1.5px solid #065f46", background: "#fff", color: "#065f46", fontSize: 12, fontWeight: 700, cursor: publishing === note.id ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+                  {publishing === note.id ? "…" : "🔄 Sync"}
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => publishNote(note)} disabled={publishing === note.id} style={{ width: "100%", padding: "13px", borderRadius: 12, border: "none", background: publishing === note.id ? "#9ca3af" : "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: publishing === note.id ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                {publishing === note.id ? "Publishing…" : "📣 Publish to Parents & Students"}
+              </button>
+            )
+          ) : (
+            <div style={{ background: "#f3f4f6", borderRadius: 12, padding: "12px 14px", fontSize: 12, color: "#6b7280", textAlign: "center" }}>
+              Link a lesson plan to this note (✏️ Edit) to enable publishing.
             </div>
           )}
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
