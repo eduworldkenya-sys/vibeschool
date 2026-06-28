@@ -221,6 +221,7 @@ export default function StudentHomePage() {
             sub:   data.pendingHW > 0 ? "pending" : "No pending",
             icon:  <IconWork />,
             color: data.pendingHW > 0 ? "var(--vs-warning)" : "var(--vs-success)",
+            href:  "/student/homework",
           },
           {
             label: "My Progress",
@@ -230,8 +231,9 @@ export default function StudentHomePage() {
             color: "var(--vs-accent)",
           },
         ].map(s => (
-          <div
+          <button
             key={s.label}
+            onClick={() => (s as {href?: string}).href && router.push((s as {href?: string}).href!)}
             style={{
               flex:          1,
               background:    "var(--vs-card)",
@@ -239,6 +241,8 @@ export default function StudentHomePage() {
               borderRadius:  12,
               padding:       "12px 8px",
               textAlign:     "center",
+              cursor:        (s as {href?: string}).href ? "pointer" : "default",
+              fontFamily:    "inherit",
             }}
           >
             <div style={{ color: s.color, display: "flex", justifyContent: "center", marginBottom: 4 }}>
@@ -247,9 +251,26 @@ export default function StudentHomePage() {
             <div style={{ fontSize: 17, fontWeight: 800, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 10, fontWeight: 700, color: "var(--vs-muted)", marginTop: 2 }}>{s.label}</div>
             <div style={{ fontSize: 9, color: "var(--vs-muted)", marginTop: 1 }}>{s.sub}</div>
-          </div>
+          </button>
         ))}
       </div>
+
+      {/* Due Today banner */}
+      {data.pendingHW > 0 && (
+        <button
+          onClick={() => router.push("/student/homework")}
+          style={{ width: "100%", background: "linear-gradient(135deg, #fef3c7, #fde68a)", border: "1px solid #f59e0b", borderRadius: 14, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", fontFamily: "inherit" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>📚</span>
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e" }}>{data.pendingHW} assignment{data.pendingHW !== 1 ? "s" : ""} pending</div>
+              <div style={{ fontSize: 11, color: "#b45309", marginTop: 1 }}>Tap to see your homework</div>
+            </div>
+          </div>
+          <span style={{ fontSize: 18, color: "#b45309" }}>›</span>
+        </button>
+      )}
 
       {/* Today timetable */}
       <div style={{
