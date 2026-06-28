@@ -7,7 +7,7 @@ import { fetchPulseData, PulseSnapshot } from "@/lib/pulse/fetcher";
 import { runRules } from "@/lib/pulse/rules";
 
 const BRAIN_KEY  = "vibe_twin_brain_v1";
-const BRAIN_TTL  = 5 * 60 * 1000;
+const BRAIN_TTL  = 30 * 60 * 1000;
 
 export interface TeacherFingerprint {
   peakHour:           number;
@@ -21,17 +21,18 @@ export interface TeacherFingerprint {
 }
 
 export interface TwinBrainState {
-  userId:      string;
-  schoolId:    string;
-  fullName:    string;
-  firstName:   string;
-  schoolName:  string;
-  snap:        PulseSnapshot | null;
-  fingerprint: TeacherFingerprint;
-  rulesOutput: ReturnType<typeof runRules> | null;
-  intents:     Record<string, string>;
-  loadedAt:    number;
-  isStale:     boolean;
+  userId:        string;
+  schoolId:      string;
+  fullName:      string;
+  firstName:     string;
+  schoolName:    string;
+  snap:          PulseSnapshot | null;
+  fingerprint:   TeacherFingerprint;
+  rulesOutput:   ReturnType<typeof runRules> | null;
+  intents:       Record<string, string>;
+  recentMemory:  { type: string; content: string; created_at: string }[];
+  loadedAt:      number;
+  isStale:       boolean;
 }
 
 function defaultFingerprint(): TeacherFingerprint {
@@ -184,12 +185,31 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
   const cached = loadCached(userId);
   if (cached && !cached.isStale) return cached;
 
-  const profileRes = await supabase.from("profiles").select("full_name, school_id").eq("id", userId).single();
-  const fullName   = profileRes.data?.full_name ?? "Teacher";
-  const firstName  = fullName.split(" ")[0];
-  const schoolId   = profileRes.data?.school_id ?? "";
+  const [profileRes, memberRes, teacherRes] = await Promise.all([
+    supabase.from("profiles").select("full_name, school_id").eq("id", userId).single(),
+    supabase.from("school_members").select("school_id").eq("profile_id", userId).maybeSingle(),
+    supabase.from("teacher_profiles").select("school_id").eq("profile_id", userId).maybeSingle(),
+  ]);
+  const fullName  = profileRes.data?.full_name ?? "Teacher";
+  const firstName = fullName.split(" ")[0];
+  const schoolId  =
+    memberRes.data?.school_id ??
+    teacherRes.data?.school_id ??
+    profileRes.data?.school_id ??
+    "";
   const schoolRes  = schoolId ? await supabase.from("schools").select("name").eq("id", schoolId).single() : { data: null };
   const schoolName = schoolRes.data?.name ?? "Independent";
+
+  let recentMemory: { type: string; content: string; created_at: string }[] = [];
+  try {
+    const { data: memRows } = await supabase
+      .from("twin_memory")
+      .select("type, content, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    recentMemory = (memRows ?? []).reverse();
+  } catch { recentMemory = cached?.recentMemory ?? []; }
 
   let snap: PulseSnapshot | null = null;
   try {
@@ -206,7 +226,7 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
 
   const brain: TwinBrainState = {
     userId, schoolId, fullName, firstName, schoolName,
-    snap, rulesOutput, intents, fingerprint,
+    snap, rulesOutput, intents, fingerprint, recentMemory,
     loadedAt: Date.now(), isStale: false,
   };
   saveCache(brain);
@@ -251,6 +271,15 @@ export function buildContextString(brain: TwinBrainState): string {
   if (fingerprint.studentsCaredAbout.length > 0) lines.push(`Teacher focuses on: ${fingerprint.studentsCaredAbout.join(", ")}`);
   if (fingerprint.lastConcern) lines.push(`Last concern: "${fingerprint.lastConcern}"`);
   lines.push(`Twin interactions: ${fingerprint.totalQueries}`);
+
+  const { recentMemory } = brain;
+  if (recentMemory && recentMemory.length > 0) {
+    const memLines = recentMemory
+      .filter(m => m.type === "teacher_query" || m.type === "teacher_reply")
+      .map(m => `  [${m.type === "teacher_query" ? "Teacher" : "Twin"}]: ${m.content}`)
+      .join("\n");
+    if (memLines) lines.push(`\nRecent conversation history:\n${memLines}`);
+  }
 
   return lines.filter(Boolean).join("\n");
 }

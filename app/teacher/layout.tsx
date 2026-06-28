@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
+import { loadTwinBrain } from "@/lib/twin/brain";
 import OfflineBar from "@/components/teacher/OfflineBar";
 
 interface ToastCtx { showToast: (msg: string) => void }
@@ -813,6 +814,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       teacherIdRef.current = user.id;
       setAuthReady(true);
       refreshCredits();
+      try {
+        const brain = await loadTwinBrain(user.id);
+        const p = brain.rulesOutput?.priority;
+        setTwinUnread(p === "critical" || p === "urgent" ? 1 : 0);
+      } catch { setTwinUnread(0); }
 
       const { data: participation } = await supabase
         .from('vc_participants')
