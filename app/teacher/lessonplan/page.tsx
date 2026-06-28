@@ -83,6 +83,7 @@ function LessonPlanInner() {
   const [histLoading, setHistLoading] = useState(true)
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
   const [toast,       setToast]       = useState('')
+  const [schoolId,    setSchoolId]    = useState<string | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -94,6 +95,20 @@ function LessonPlanInner() {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      // Resolve schoolId — same 3-source fallback used in Assessment/Pulse
+      const [memberRes, teacherRes, profileRes] = await Promise.all([
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle(),
+      ])
+      const resolvedSchoolId =
+        memberRes.data?.school_id ??
+        teacherRes.data?.school_id ??
+        profileRes.data?.school_id ??
+        null
+      setSchoolId(resolvedSchoolId)
+
       const [slotsRes, plansRes] = await Promise.all([
         supabase.from('timetable_slots')
           .select('id,start_time,end_time,room,class_id,subject_id,day_of_week')
