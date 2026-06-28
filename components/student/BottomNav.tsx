@@ -3,26 +3,27 @@
 import { useRouter, usePathname } from "next/navigation"
 
 const TABS = [
-  { id: "home",      label: "Home",      href: "/student"           },
-  { id: "work",      label: "My Work",   href: "/student/learn"     },
-  { id: "vibelearn", label: "VibeLearn", href: "/student/vibelearn" },
-  { id: "play",      label: "Play",      href: "/student/funhub"    },
-  { id: "me",        label: "Me",        href: "/student/profile"   },
+  { id: "home", label: "Home",    href: "/student"         },
+  { id: "work", label: "My Work", href: "/student/learn"   },
+  { id: "me",   label: "Me",      href: "/student/profile" },
 ] as const
 
 type TabId = typeof TABS[number]["id"]
 
 function activeTab(path: string): TabId {
   if (path === "/student" || path === "/student/") return "home"
-  if (path.startsWith("/student/learn") || path.startsWith("/student/homework") || path.startsWith("/student/lesson")) return "work"
-  if (path.startsWith("/student/vibelearn")) return "vibelearn"
-  if (path.startsWith("/student/funhub"))    return "play"
+  if (
+    path.startsWith("/student/learn")    ||
+    path.startsWith("/student/homework") ||
+    path.startsWith("/student/lesson")
+  ) return "work"
   if (
     path.startsWith("/student/profile")       ||
     path.startsWith("/student/marks")         ||
     path.startsWith("/student/timetable")     ||
     path.startsWith("/student/fees")          ||
-    path.startsWith("/student/notifications")
+    path.startsWith("/student/notifications") ||
+    path.startsWith("/student/vibelearn")
   ) return "me"
   return "home"
 }
@@ -45,21 +46,6 @@ function IconWork({ active }: { active: boolean }) {
     </svg>
   )
 }
-function IconVibeLearn({ active }: { active: boolean }) {
-  return (
-    <svg width={active ? 23 : 21} height={active ? 23 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <polygon points="10 8 16 12 10 16 10 8"/>
-    </svg>
-  )
-}
-function IconPlay({ active }: { active: boolean }) {
-  return (
-    <svg width={active ? 23 : 21} height={active ? 23 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </svg>
-  )
-}
 function IconMe({ active }: { active: boolean }) {
   return (
     <svg width={active ? 23 : 21} height={active ? 23 : 21} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -70,11 +56,9 @@ function IconMe({ active }: { active: boolean }) {
 }
 
 const ICONS: Record<TabId, ({ active }: { active: boolean }) => React.ReactNode> = {
-  home:      IconHome,
-  work:      IconWork,
-  vibelearn: IconVibeLearn,
-  play:      IconPlay,
-  me:        IconMe,
+  home: IconHome,
+  work: IconWork,
+  me:   IconMe,
 }
 
 export default function BottomNav() {
@@ -84,16 +68,16 @@ export default function BottomNav() {
 
   return (
     <nav style={{
-      position:        "fixed",
-      bottom:          0,
-      left:            0,
-      right:           0,
-      zIndex:          50,
-      display:         "flex",
-      height:          64,
-      borderTop:       "1px solid var(--vs-nav-border)",
-      background:      "var(--vs-nav-bg)",
-      paddingBottom:   "env(safe-area-inset-bottom)",
+      position:      "fixed",
+      bottom:        0,
+      left:          0,
+      right:         0,
+      zIndex:        50,
+      display:       "flex",
+      height:        64,
+      borderTop:     "1px solid var(--vs-nav-border)",
+      background:    "var(--vs-nav-bg)",
+      paddingBottom: "env(safe-area-inset-bottom)",
     }}>
       {TABS.map(tab => {
         const isActive = tab.id === current
