@@ -1,8 +1,19 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { fetchPulseData } from "@/lib/pulse/fetcher";
 import { Btn, C, TwinDot } from "./ui";
+
+const MAX_HISTORY = 10;
+
+async function saveToMemory(userId: string, userMsg: string, twinReply: string) {
+  try {
+    await supabase.from("twin_memory").insert([
+      { user_id: userId, type: "teacher_query",  content: userMsg.slice(0, 300),   subject: "general" },
+      { user_id: userId, type: "teacher_reply",  content: twinReply.slice(0, 300), subject: "general" },
+    ]);
+  } catch { /* non-critical */ }
+}
 
 interface Message { role: "user" | "twin"; text: string; }
 interface Props { open: boolean; onClose: () => void; }
@@ -90,8 +101,11 @@ export default function TwinDrawer({ open, onClose }: Props) {
   const [messages,  setMessages]  = useState<Message[]>([]);
   const [context,   setContext]   = useState("");
   const [loading,   setLoading]   = useState(true);
+  const [listening, setListening] = useState(false);
   const bottomRef   = useRef<HTMLDivElement>(null);
   const initialised = useRef(false);
+  const userIdRef   = useRef<string | null>(null);
+  const recognRef   = useRef<any>(null);
 
   useEffect(() => {
     if (initialised.current) return;
@@ -99,6 +113,7 @@ export default function TwinDrawer({ open, onClose }: Props) {
 
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
+      userIdRef.current = data.user.id;
       try {
         const { ctx, firstName: name, credits } = await buildTwinContext(data.user.id);
         setContext(ctx);
@@ -122,7 +137,26 @@ export default function TwinDrawer({ open, onClose }: Props) {
     }
   }, [messages, thinking, open]);
 
-  async function send() {
+  function toggleVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) { recognRef.current?.stop(); setListening(false); return; }
+    const r = new SR();
+    r.lang = "en";
+    r.continuous = false;
+    r.interimResults = false;
+    r.onresult = (e: any) => {
+      const t = e.results[0]?.[0]?.transcript ?? "";
+      if (t) setInput(prev => (prev + " " + t).trim());
+    };
+    r.onend  = () => setListening(false);
+    r.onerror = () => setListening(false);
+    r.start();
+    recognRef.current = r;
+    setListening(true);
+  }
+
+  const send = useCallback(async () => {
     if (!input.trim() || thinking) return;
     const userMsg = input.trim();
     setInput("");
@@ -130,35 +164,30 @@ export default function TwinDrawer({ open, onClose }: Props) {
     setThinking(true);
 
     try {
-      const history = messages.map(m => ({
+      const historyRaw = [...messages, { role: "user" as const, text: userMsg }].slice(-MAX_HISTORY);
+      const history = historyRaw.map(m => ({
         role:    m.role === "twin" ? "assistant" : "user",
         content: m.text,
       }));
 
-      const sessionRes = await supabase.auth.getSession()
-      const token = sessionRes.data.session?.access_token ?? ""
-      const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/super-action", {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ?? "";
+      const response = await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL + "/functions/v1/twin-chat", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          context,
-          firstName,
-          messages: [
-            ...history,
-            { role: "user", content: userMsg },
-          ],
-        }),
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ context, firstName, messages: history }),
       });
 
       const data  = await response.json();
       const reply = data.reply ?? "I could not process that. Please try again.";
       setMessages(m => [...m, { role: "twin", text: reply }]);
+      if (userIdRef.current) saveToMemory(userIdRef.current, userMsg, reply);
     } catch {
       setMessages(m => [...m, { role: "twin", text: "Something went wrong. Check your connection and try again." }]);
     } finally {
       setThinking(false);
     }
-  }
+  }, [input, thinking, messages, context, firstName]);
 
   return (
     <>
@@ -193,7 +222,7 @@ export default function TwinDrawer({ open, onClose }: Props) {
             <div>
               <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Your Twin</div>
               <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
-                {thinking ? "Thinking…" : "Always here · Knows your classes"}
+                {loading ? "Reading your day…" : thinking ? "Thinking…" : "Knows your school · Remembers you"}
               </div>
             </div>
           </div>
@@ -237,12 +266,13 @@ export default function TwinDrawer({ open, onClose }: Props) {
           <div ref={bottomRef} />
         </div>
 
-        <div style={{ padding: "10px 14px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexShrink: 0 }}>
+        <div style={{ padding: "10px 14px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
+          <button onClick={toggleVoice} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", flexShrink: 0, background: listening ? "#ef4444" : C.accentLight, color: listening ? "#fff" : C.accent, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15, transition: "all 0.2s" }} title={listening ? "Stop" : "Speak"}>{listening ? "■" : "🎤"}</button>
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder="Ask your Twin anything about your classes…"
+            placeholder={listening ? "Listening…" : "Ask your Twin anything…"}
             style={{ flex: 1, padding: "9px 13px", borderRadius: 10, border: `1.5px solid ${C.border}`, outline: "none", fontSize: 13, fontFamily: "inherit", color: C.textPrimary }}
           />
           <Btn onClick={send}>{thinking ? "…" : "Send"}</Btn>
