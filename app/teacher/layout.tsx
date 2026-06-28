@@ -809,6 +809,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         setSchool(schoolData?.name ?? "");
       }
 
+      // UI unblocked — unread count fetches async below
+      teacherIdRef.current = user.id;
+      setAuthReady(true);
+      refreshCredits();
+
       const { data: participation } = await supabase
         .from('vc_participants')
         .select('thread_id, last_read_at')
@@ -840,9 +845,6 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         // unread count failed — non-critical
       }
       setUnreadConnect(unread);
-      setAuthReady(true);
-      teacherIdRef.current = user.id;
-      refreshCredits();
     }
     fetchProfile();
   }, []);
