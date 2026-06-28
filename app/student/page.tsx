@@ -230,7 +230,7 @@ export default function StudentHomePage() {
           { label: 'My Marks',    icon: '📝', href: '/student/learn'     },
           { label: 'Resources',   icon: '📚', href: '/student/resources'  },
           { label: 'Timetable',   icon: '🗓', href: null                  },
-          { label: 'My Profile',  icon: '👤', href: null                  },
+          { label: 'My Profile',  icon: '👤', href: '/student/profile'     },
         ].map(q => (
           <button key={q.label} onClick={() => q.href ? router.push(q.href) : null}
             style={{ opacity: q.href ? 1 : 0.45, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '16px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
