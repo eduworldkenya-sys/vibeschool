@@ -717,7 +717,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const activeId = tabIdFromPath(pathname);
 
   const [twinOpen,      setTwinOpen]      = useState(false);
-  const [twinUnread,    setTwinUnread]    = useState(1);
+  const [twinUnread,    setTwinUnread]    = useState(0);
   // searchParams handled in SearchParamWatcher (see JSX below)
 
   const [toast,         setToast]         = useState<string | null>(null);
@@ -746,7 +746,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function fetchProfile() {
-      const _cached = localStorage.getItem('vs_role');
+      const _legacyKey = 'vs_role'; localStorage.removeItem(_legacyKey); const _cached = null;
       if (_cached) {
         try {
           const { role, t } = JSON.parse(_cached);
@@ -776,7 +776,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         window.location.href = "/?role=teacher";
         return;
       }
-      localStorage.setItem('vs_role', JSON.stringify({ role: 'teacher', t: Date.now() }));
+      localStorage.setItem(`vs_role_${user.id}`, JSON.stringify({ role: 'teacher', t: Date.now() }));
       const name  = profileData.full_name ?? "";
       setFullName(name);
       const parts   = name.trim().split(" ").filter(Boolean);
@@ -888,7 +888,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <TwinPill onOpen={() => { setTwinOpen(true); setTwinUnread(0); }} unread={twinUnread} />
           <TwinDrawer open={twinOpen} onClose={() => { setTwinOpen(false); }} />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
-          <BottomNav activeId={activeId} unreadLearn={0} />
+          <BottomNav activeId={activeId}  />
           {toast && <Toast msg={toast} />}
         </div>
       </CreditContext.Provider>
