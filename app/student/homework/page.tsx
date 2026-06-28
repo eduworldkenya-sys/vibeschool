@@ -32,8 +32,8 @@ function dueBadge(due: string, status: HWListItem["status"]) {
   if (status === "marked")    return { label: "Marked",    bg: "#d1fae5", color: "#065f46" };
   if (status === "submitted") return { label: "Submitted", bg: "#d1fae5", color: "#065f46" };
   const n = daysUntil(due);
-  if (n < 0)   return { label: "Overdue",   bg: "#fee2e2", color: "#991b1b" };
-  if (n === 0) return { label: "Due Today", bg: "#fef3c7", color: "#92400e" };
+  if (n < 0)   return { label: "Overdue",     bg: "#fee2e2", color: "#991b1b" };
+  if (n === 0) return { label: "Due Today",   bg: "#fef3c7", color: "#92400e" };
   if (n <= 2)  return { label: `Due in ${n}d`, bg: "#fff7ed", color: "#c2410c" };
   return { label: `Due in ${n}d`, bg: "var(--vs-accent-soft)", color: "var(--vs-accent)" };
 }
@@ -77,8 +77,18 @@ export default function HomeworkListPage() {
     if (cached) { setItems(cached); setLoading(false); }
 
     async function load() {
+      let hwQuery = supabase
+        .from("homework")
+        .select("*")
+        .eq("class_id", identity!.classId)
+        .order("due_date", { ascending: true });
+
+      if (identity!.schoolId) {
+        hwQuery = hwQuery.eq("school_id", identity!.schoolId);
+      }
+
       const [hwRes, subRes] = await Promise.all([
-        supabase.from("homework").select("*").eq("class_id", identity!.classId).order("due_date", { ascending: true }),
+        hwQuery,
         supabase.from("homework_submissions").select("*").eq("student_id", identity!.studentId),
       ]);
 
@@ -89,11 +99,7 @@ export default function HomeworkListPage() {
 
       const result: HWListItem[] = ((hwRes.data as Homework[] | null) ?? []).map(h => {
         const sub = subMap.get(h.id);
-        return {
-          ...h,
-          status: sub?.status ?? "pending",
-          mark:   sub?.mark ?? null,
-        };
+        return { ...h, status: sub?.status ?? "pending", mark: sub?.mark ?? null };
       });
 
       writeCache("homework", identity!.studentId, result);
@@ -116,11 +122,8 @@ export default function HomeworkListPage() {
 
   if (isLoading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
-      <Skel h={90} radius={16} />
-      <Skel h={44} radius={12} />
-      <Skel h={80} radius={12} />
-      <Skel h={80} radius={12} />
-      <Skel h={80} radius={12} />
+      <Skel h={90} radius={16} /><Skel h={44} radius={12} />
+      <Skel h={80} radius={12} /><Skel h={80} radius={12} /><Skel h={80} radius={12} />
     </div>
   );
 
@@ -139,19 +142,17 @@ export default function HomeworkListPage() {
 
   return (
     <div style={{ animation: "slideIn 0.22s ease" }}>
-
-      {/* Hero */}
       <div style={{ background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)", borderRadius: 20, padding: "16px", marginBottom: 16, color: "#fff" }}>
         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 600, marginBottom: 4 }}>MY ASSIGNMENTS</div>
         <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'Bricolage Grotesque', sans-serif", marginBottom: 12 }}>Homework</div>
         <div style={{ display: "flex", gap: 8 }}>
           {[
-            { label: "Total",     value: items.length     },
+            { label: "Total",     value: items.length },
             { label: "Pending",   value: pending.length,  alert: pending.length > 0 },
             { label: "Submitted", value: submitted.length },
             { label: "Overdue",   value: overdue.length,  alert: overdue.length > 0 },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: s.alert ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.15)", borderRadius: 10, padding: "8px 4px", textAlign: "center" }}>
+            <div key={s.label} style={{ flex: 1, background: (s as {alert?:boolean}).alert ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.15)", borderRadius: 10, padding: "8px 4px", textAlign: "center" }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{s.value}</div>
               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", fontWeight: 600, marginTop: 2 }}>{s.label}</div>
             </div>
@@ -159,7 +160,6 @@ export default function HomeworkListPage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
         {FILTERS.map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)} style={{
@@ -174,7 +174,6 @@ export default function HomeworkListPage() {
         ))}
       </div>
 
-      {/* List */}
       {filtered.length === 0 ? (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "48px 24px", textAlign: "center" }}>
           <div style={{ color: "var(--vs-muted)", display: "flex", justifyContent: "center", marginBottom: 12 }}><IconWork /></div>
@@ -197,7 +196,8 @@ export default function HomeworkListPage() {
                 style={{
                   width: "100%", background: "var(--vs-card)", border: "none",
                   borderRadius: 14, padding: 0, cursor: "pointer", fontFamily: "inherit",
-                  textAlign: "left", borderLeft: `4px solid ${overdueItem ? "#ef4444" : h.status !== "pending" ? "#10b981" : "#0f766e"}`,
+                  textAlign: "left",
+                  borderLeft: `4px solid ${overdueItem ? "#ef4444" : h.status !== "pending" ? "#10b981" : "#0f766e"}`,
                   boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                 }}
               >
@@ -206,8 +206,7 @@ export default function HomeworkListPage() {
                     <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", flex: 1, lineHeight: 1.4 }}>{h.title}</div>
                     <span style={{ padding: "3px 8px", borderRadius: 20, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{badge.label}</span>
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: instructionsGap(h) }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: h.instructions ? 8 : 0 }}>
                     <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>{h.subject}</span>
                     <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--vs-border)", flexShrink: 0 }} />
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 20, background: "var(--vs-surface)", color: "var(--vs-muted)" }}>{h.type === "smart" ? "Smart" : "Book"}</span>
@@ -216,19 +215,16 @@ export default function HomeworkListPage() {
                       Due {new Date(h.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
                     </span>
                   </div>
-
                   {h.instructions && (
                     <div style={{ fontSize: 12, color: "var(--vs-muted)", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                       {h.instructions}
                     </div>
                   )}
-
                   {h.status === "marked" && h.mark !== null && (
                     <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "#d1fae5", borderRadius: 20, fontSize: 11, fontWeight: 700, color: "#065f46" }}>
                       <IconCheck /> {h.mark} marks
                     </div>
                   )}
-
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
                     <span style={{ color: "var(--vs-muted)" }}><IconArrow /></span>
                   </div>
@@ -240,8 +236,4 @@ export default function HomeworkListPage() {
       )}
     </div>
   );
-}
-
-function instructionsGap(h: HWListItem): number {
-  return h.instructions ? 8 : 0;
 }

@@ -1,18 +1,18 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { C } from '@/components/teacher/ui'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 
 interface Homework {
-  id:           string
-  title:        string
-  subject:      string
-  instructions: string
-  due_date:     string
-  type:         string
-  created_at:   string
+  id:              string
+  title:           string
+  subject:         string
+  instructions:    string
+  due_date:        string
+  type:            string
+  created_at:      string
   target_group_id: string | null
 }
 
@@ -28,6 +28,7 @@ function HomeworkInner() {
 
   const [list,      setList]      = useState<Homework[]>([])
   const [groups,    setGroups]    = useState<Group[]>([])
+  const [subCounts, setSubCounts] = useState<Map<string, number>>(new Map())
   const [loading,   setLoading]   = useState(true)
   const [showForm,  setShowForm]  = useState(false)
   const [saving,    setSaving]    = useState(false)
@@ -35,13 +36,14 @@ function HomeworkInner() {
   const [classInfo, setClassInfo] = useState<{ name: string; stream: string; subject: string } | null>(null)
   const [subjects,  setSubjects]  = useState<{ id: string; name: string }[]>([])
   const [schoolId,  setSchoolId]  = useState<string | null>(null)
+  const schoolIdRef = useRef<string | null>(null)
 
   const [form, setForm] = useState({
-    title:        '',
-    subject:      '',
-    instructions: '',
-    due_date:     '',
-    type:         'general',
+    title:           '',
+    subject:         '',
+    instructions:    '',
+    due_date:        '',
+    type:            'general',
     target_group_id: '',
   })
 
@@ -49,7 +51,7 @@ function HomeworkInner() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
-    // Ownership check: teacher must own this class via teacher_classes or direct teacher_id
+    // Ownership check
     const { data: owned } = await supabase
       .from('teacher_classes')
       .select('class_id')
@@ -58,38 +60,77 @@ function HomeworkInner() {
       .maybeSingle()
 
     if (!owned) {
-      // Fallback: check classes.teacher_id
       const { data: direct } = await supabase
         .from('classes')
         .select('id')
         .eq('id', classId)
         .eq('teacher_id', user.id)
         .maybeSingle()
-
-      if (!direct) {
-        setLoading(false)
-        router.replace('/teacher/classhub')
-        return
-      }
+      if (!direct) { setLoading(false); router.replace('/teacher/classhub'); return }
     }
 
+    // Resolve school_id
+    let sid = schoolIdRef.current
+    if (!sid) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', user.id)
+        .single()
+      sid = profile?.school_id ?? null
+      if (!sid) {
+        const { data: cls } = await supabase
+          .from('classes')
+          .select('school_id')
+          .eq('id', classId)
+          .single()
+        sid = cls?.school_id ?? null
+      }
+      schoolIdRef.current = sid
+    }
+    setSchoolId(sid)
+
     const [hwRes, clsRes, grpRes, subjRes] = await Promise.all([
-      supabase.from('homework').select('*').eq('class_id', classId).order('created_at', { ascending: false }),
+      sid
+        ? supabase.from('homework').select('*').eq('class_id', classId).eq('school_id', sid).order('created_at', { ascending: false })
+        : supabase.from('homework').select('*').eq('class_id', classId).order('created_at', { ascending: false }),
       supabase.from('classes').select('name, stream, subject, school_id').eq('id', classId).single(),
       supabase.from('class_groups').select('id, name').eq('class_id', classId),
       supabase.from('subjects').select('id, name').order('name'),
     ])
 
-    setList(hwRes.data ?? [])
+    const hw = hwRes.data ?? []
+    setList(hw)
     setClassInfo(clsRes.data)
-    setSchoolId((clsRes.data as { school_id?: string | null } | null)?.school_id ?? null)
+    if (!schoolIdRef.current) {
+      const s = (clsRes.data as { school_id?: string | null } | null)?.school_id ?? null
+      schoolIdRef.current = s
+      setSchoolId(s)
+    }
     setGroups(grpRes.data ?? [])
     setSubjects(subjRes.data ?? [])
     if (clsRes.data?.subject) setForm(f => ({ ...f, subject: clsRes.data!.subject }))
+
+    // Fetch submission counts for all homework in one query
+    if (hw.length > 0) {
+      const hwIds = hw.map((h: Homework) => h.id)
+      const { data: subs } = await supabase
+        .from('homework_submissions')
+        .select('homework_id')
+        .in('homework_id', hwIds)
+      const counts = new Map<string, number>()
+      for (const s of (subs ?? [])) {
+        counts.set(s.homework_id, (counts.get(s.homework_id) ?? 0) + 1)
+      }
+      setSubCounts(counts)
+    }
+
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [classId])
+  const loadRef = useRef(load)
+  loadRef.current = load
+  useEffect(() => { loadRef.current() }, [classId])
 
   async function handleSubmit() {
     setError('')
@@ -101,14 +142,14 @@ function HomeworkInner() {
     if (!user) return
 
     const { error: err } = await supabase.from('homework').insert({
-      class_id:     classId,
-      teacher_id:   user.id,
-      school_id:    schoolId,
-      title:        form.title.trim(),
-      subject:      form.subject.trim(),
-      instructions: form.instructions.trim(),
-      due_date:     form.due_date,
-      type:         form.type,
+      class_id:        classId,
+      teacher_id:      user.id,
+      school_id:       schoolId,
+      title:           form.title.trim(),
+      subject:         form.subject.trim(),
+      instructions:    form.instructions.trim(),
+      due_date:        form.due_date,
+      type:            form.type,
       target_group_id: form.target_group_id || null,
     })
 
@@ -116,7 +157,7 @@ function HomeworkInner() {
     if (err) { setError(err.message); return }
     setForm(f => ({ ...f, title: '', instructions: '', due_date: '' }))
     setShowForm(false)
-    load()
+    loadRef.current()
   }
 
   function formatDate(iso: string) {
@@ -127,8 +168,7 @@ function HomeworkInner() {
     const todayNairobi = new Date(
       new Date().toLocaleString('en-US', { timeZone: 'Africa/Nairobi' })
     ).toISOString().split('T')[0]
-    const dueDate = due.split('T')[0].slice(0, 10)
-    return dueDate < todayNairobi
+    return due.split('T')[0].slice(0, 10) < todayNairobi
   }
 
   const inputStyle: React.CSSProperties = {
@@ -137,7 +177,6 @@ function HomeworkInner() {
     outline: 'none', fontFamily: 'inherit', background: '#f9fafb',
     boxSizing: 'border-box',
   }
-
   const labelStyle: React.CSSProperties = {
     fontSize: 11, fontWeight: 700, color: C.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.8,
@@ -211,15 +250,15 @@ function HomeworkInner() {
                   <option value="revision">Revision</option>
                 </select>
               </div>
-            </div>
-            <div>
+              <div>
                 <label style={labelStyle}>Assign To</label>
                 <select style={inputStyle} value={form.target_group_id} onChange={e => setForm(f => ({ ...f, target_group_id: e.target.value }))}>
-                  <option value=''>Whole Class</option>
+                  <option value="">Whole Class</option>
                   {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
-{error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
+            </div>
+            {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
             <button onClick={handleSubmit} disabled={saving} style={{ marginTop: 16, width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: saving ? '#99f6e4' : '#0f766e', color: '#fff', fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
               {saving ? 'Saving…' : 'Post Homework'}
             </button>
@@ -232,15 +271,20 @@ function HomeworkInner() {
           <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, margin: '0 0 8px' }}>No homework posted yet</h2>
-            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px', lineHeight: 1.5 }}>Post your first assignment — parents and students will see it instantly in their portal.</p>
+            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px', lineHeight: 1.5 }}>Post your first assignment — parents and students will see it instantly.</p>
             <button onClick={() => setShowForm(true)} style={{ padding: '10px 24px', borderRadius: 12, border: 'none', background: '#0f766e', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>+ Post First Assignment</button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {list.map(h => {
               const overdue = isOverdue(h.due_date)
+              const subCount = subCounts.get(h.id) ?? 0
               return (
-                <div key={h.id} style={{ background: '#fff', borderRadius: 16, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: `4px solid ${overdue ? '#ef4444' : '#0f766e'}` }}>
+                <button
+                  key={h.id}
+                  onClick={() => router.push(`/teacher/classhub/${classId}/homework/${h.id}`)}
+                  style={{ width: '100%', background: '#fff', borderRadius: 16, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: `4px solid ${overdue ? '#ef4444' : '#0f766e'}`, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', borderLeftWidth: 4, borderLeftStyle: 'solid', borderLeftColor: overdue ? '#ef4444' : '#0f766e' }}
+                >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{h.title}</p>
@@ -254,15 +298,20 @@ function HomeworkInner() {
                       <p style={{ fontSize: 11, color: C.textMuted, margin: '4px 0 0', fontWeight: 600 }}>Due {formatDate(h.due_date)}</p>
                     </div>
                   </div>
-                  <div style={{ marginTop: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f3f4f6', color: C.textMuted, textTransform: 'capitalize' }}>{h.type}</span>
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f3f4f6', color: C.textMuted, textTransform: 'capitalize' }}>{h.type}</span>
                       {h.target_group_id && groups.find(g => g.id === h.target_group_id) && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#ede9fe', color: '#6d28d9', marginLeft: 6 }}>
-                          Group: {groups.find(g => g.id === h.target_group_id)?.name}
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#ede9fe', color: '#6d28d9' }}>
+                          {groups.find(g => g.id === h.target_group_id)?.name}
                         </span>
                       )}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: subCount > 0 ? '#0f766e' : C.textMuted }}>
+                      {subCount} submitted ›
+                    </span>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -272,6 +321,7 @@ function HomeworkInner() {
   )
 }
 
+import { Suspense } from 'react'
 export default function HomeworkPage() {
   return (
     <Suspense fallback={<div style={{ padding: 20, color: '#6b7280' }}>Loading…</div>}>

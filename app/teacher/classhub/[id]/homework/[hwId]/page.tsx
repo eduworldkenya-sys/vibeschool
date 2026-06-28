@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
@@ -17,9 +17,9 @@ type View = "list"|"grade";
 const inp: React.CSSProperties = { width:"100%", padding:"11px 14px", borderRadius:10, border:"1px solid #e5e7eb", fontSize:14, color:C.textPrimary, outline:"none", fontFamily:"inherit", background:"#f9fafb", boxSizing:"border-box" };
 
 function statusBadge(s: string) {
-  if (s==="marked")    return { label:"Marked",        bg:"#d1fae5", color:"#065f46" };
-  if (s==="submitted") return { label:"Submitted",     bg:"#fef3c7", color:"#92400e" };
-  return                      { label:"Not submitted", bg:"#f3f4f6", color:"#6b7280" };
+  if (s==="marked")    return { label:"Marked",    bg:"#d1fae5", color:"#065f46" };
+  if (s==="submitted") return { label:"Submitted", bg:"#fef3c7", color:"#92400e" };
+  return                      { label:"Pending",   bg:"#f3f4f6", color:"#6b7280" };
 }
 
 function GradingInner() {
@@ -33,26 +33,51 @@ function GradingInner() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [subMap,    setSubMap]    = useState<Map<string,Submission>>(new Map());
   const [loading,   setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string|null>(null);
   const [view,      setView]      = useState<View>("list");
   const [active,    setActive]    = useState<Student|null>(null);
   const [mark,      setMark]      = useState("");
   const [feedback,  setFeedback]  = useState("");
   const [saving,    setSaving]    = useState(false);
   const [saveOk,    setSaveOk]    = useState(false);
-
-  useEffect(() => { load(); }, [hwId, classId]);
+  const schoolIdRef = useRef<string|null>(null);
 
   async function load() {
     setLoading(true);
+    setLoadError(null);
+
+    // Resolve school_id
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoadError("Not authenticated"); setLoading(false); return; }
+
+    if (!schoolIdRef.current) {
+      const { data: profile } = await supabase.from("profiles").select("school_id").eq("id", user.id).single();
+      let sid = profile?.school_id ?? null;
+      if (!sid) {
+        const { data: cls } = await supabase.from("classes").select("school_id").eq("id", classId).single();
+        sid = cls?.school_id ?? null;
+      }
+      schoolIdRef.current = sid;
+    }
+    const sid = schoolIdRef.current;
+
     const [hwRes, stuRes, qRes, subRes] = await Promise.all([
-      supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id",hwId).single(),
-      supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
+      sid
+        ? supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id",hwId).eq("school_id",sid).single()
+        : supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id",hwId).single(),
+      sid
+        ? supabase.from("students").select("id,name,admission_number").eq("class_id",classId).eq("school_id",sid).order("name")
+        : supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
       supabase.from("homework_questions").select("id,question,order_num").eq("homework_id",hwId).order("order_num"),
       supabase.from("homework_submissions").select("id,student_id,status,mark,feedback,submitted_at").eq("homework_id",hwId),
     ]);
+
+    if (hwRes.error) { setLoadError("Could not load homework"); setLoading(false); return; }
+
     setHw(hwRes.data as HWInfo);
     setStudents((stuRes.data??[]) as Student[]);
     setQuestions((qRes.data??[]) as Question[]);
+
     const subs = (subRes.data??[]) as Omit<Submission,"answers">[];
     const subIds = subs.map(s=>s.id);
     let answers: (Answer&{submission_id:string})[] = [];
@@ -65,6 +90,10 @@ function GradingInner() {
     setSubMap(map);
     setLoading(false);
   }
+
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useEffect(() => { loadRef.current(); }, [hwId, classId]);
 
   function openGrade(student: Student) {
     const sub = subMap.get(student.id);
@@ -79,11 +108,36 @@ function GradingInner() {
     if (!active) return;
     setSaving(true);
     const sub = subMap.get(active.id);
-    if (!sub) { setSaving(false); return; }
-    const {error} = await supabase.from("homework_submissions").update({ mark:mark!==""?Number(mark):null, feedback:feedback.trim()||null, status:"marked" }).eq("id",sub.id);
+
+    if (!sub) {
+      // Student never submitted — create a submission row so teacher can still mark
+      const { data: newSub, error: insErr } = await supabase.from("homework_submissions").insert({
+        homework_id:  hwId,
+        student_id:   active.id,
+        status:       "marked",
+        submitted_at: new Date().toISOString(),
+        mark:         mark!==""?Number(mark):null,
+        feedback:     feedback.trim()||null,
+      }).select().single();
+      if (!insErr && newSub) {
+        const updated = new Map(subMap);
+        updated.set(active.id,{...newSub,answers:[]});
+        setSubMap(updated);
+        setSaveOk(true);
+      }
+      setSaving(false);
+      return;
+    }
+
+    const markVal = mark!==""?Number(mark):null;
+    if (markVal !== null && isNaN(markVal)) { setSaving(false); return; }
+
+    const {error} = await supabase.from("homework_submissions")
+      .update({ mark:markVal, feedback:feedback.trim()||null, status:"marked" })
+      .eq("id",sub.id);
     if (!error) {
       const updated = new Map(subMap);
-      updated.set(active.id,{...sub,mark:mark!==""?Number(mark):null,feedback:feedback.trim()||null,status:"marked"});
+      updated.set(active.id,{...sub,mark:markVal,feedback:feedback.trim()||null,status:"marked"});
       setSubMap(updated);
       setSaveOk(true);
     }
@@ -95,6 +149,7 @@ function GradingInner() {
   const marked    = submitted.filter(s=>subMap.get(s.id)?.status==="marked");
 
   if (loading) return <div style={{padding:20,color:C.textMuted,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Loading…</div>;
+  if (loadError) return <div style={{padding:20,color:"#ef4444",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{loadError}</div>;
 
   if (view==="grade" && active) {
     const sub = subMap.get(active.id);
@@ -110,7 +165,11 @@ function GradingInner() {
           </div>
         </div>
         <div style={{padding:16,display:"flex",flexDirection:"column",gap:14}}>
-          {!sub && <div style={{background:"#fff",borderRadius:16,padding:"20px 16px",textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}><div style={{fontSize:13,color:C.textMuted}}>This student has not submitted yet.</div></div>}
+          {!sub && (
+            <div style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+              <div style={{fontSize:12,color:C.textMuted}}>This student has not submitted — you can still record a mark below.</div>
+            </div>
+          )}
           {sub && questions.length>0 && (
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {questions.map((q,i)=>{
@@ -129,26 +188,24 @@ function GradingInner() {
           )}
           {sub && questions.length===0 && (
             <div style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-              <div style={{fontSize:13,color:C.textMuted}}>Book assignment — student marked as done on {sub.submitted_at?new Date(sub.submitted_at).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"unknown date"}.</div>
+              <div style={{fontSize:13,color:C.textMuted}}>Book assignment — submitted on {sub.submitted_at?new Date(sub.submitted_at).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"unknown date"}.</div>
             </div>
           )}
-          {sub && (
-            <div style={{background:"#fff",borderRadius:16,padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-              <div style={{fontSize:11,fontWeight:800,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>Grade</div>
-              <div style={{marginBottom:12}}>
-                <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Mark</label>
-                <input type="number" value={mark} onChange={e=>setMark(e.target.value)} placeholder="e.g. 18" style={inp} />
-              </div>
-              <div style={{marginBottom:14}}>
-                <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Feedback</label>
-                <textarea value={feedback} onChange={e=>setFeedback(e.target.value)} placeholder="Well done! / Revise fractions…" rows={3} style={{...inp,resize:"vertical"}} />
-              </div>
-              {saveOk && <div style={{fontSize:12,color:"#065f46",background:"#d1fae5",borderRadius:10,padding:"8px 12px",marginBottom:10}}>✓ Grade saved — student will see it now</div>}
-              <button onClick={saveGrade} disabled={saving||!sub} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:saving?"#99f6e4":"#0f766e",color:"#fff",fontWeight:800,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
-                {saving?"Saving…":saveOk?"Update Grade":"Save Grade"}
-              </button>
+          <div style={{background:"#fff",borderRadius:16,padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
+            <div style={{fontSize:11,fontWeight:800,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>Grade</div>
+            <div style={{marginBottom:12}}>
+              <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Mark</label>
+              <input type="number" value={mark} onChange={e=>setMark(e.target.value)} placeholder="e.g. 18" style={inp} />
             </div>
-          )}
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Feedback</label>
+              <textarea value={feedback} onChange={e=>setFeedback(e.target.value)} placeholder="Well done! / Revise fractions…" rows={3} style={{...inp,resize:"vertical"}} />
+            </div>
+            {saveOk && <div style={{fontSize:12,color:"#065f46",background:"#d1fae5",borderRadius:10,padding:"8px 12px",marginBottom:10}}>✓ Grade saved — student will see it now</div>}
+            <button onClick={saveGrade} disabled={saving} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:saving?"#99f6e4":"#0f766e",color:"#fff",fontWeight:800,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
+              {saving?"Saving…":saveOk?"Update Grade":"Save Grade"}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -199,10 +256,15 @@ function GradingInner() {
         {notYet.length>0 && <>
           <div style={{fontSize:11,fontWeight:800,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginTop:8,marginBottom:2}}>Not Submitted</div>
           {notYet.map(s=>(
-            <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:"4px solid #e5e7eb"}}>
-              <div style={{fontSize:13,fontWeight:700,color:C.textMuted}}>{s.name}</div>
-              <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{s.admission_number}</div>
-            </div>
+            <button key={s.id} onClick={()=>openGrade(s)} style={{width:"100%",background:"#fff",borderRadius:14,padding:"14px 16px",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:"4px solid #e5e7eb"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:C.textMuted}}>{s.name}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{s.admission_number}</div>
+                </div>
+                <span style={{fontSize:11,color:C.textMuted}}>Mark manually ›</span>
+              </div>
+            </button>
           ))}
         </>}
       </div>
