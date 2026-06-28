@@ -309,3 +309,7 @@
 ## [2026-06-28 18:30] dd93d3d
 **What:** feat: student resources page — CSS vars, SVG icons, cache, context
 **Status:** ✅ pushed
+
+## [2026-06-28 21:37] 3e719cf
+**What:** delete dead teacher BottomNav component and CSS
+**Status:** ✅ pushed
