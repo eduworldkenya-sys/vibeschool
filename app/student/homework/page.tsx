@@ -28,14 +28,44 @@ function daysUntil(d: string): number {
   return Math.round((due.getTime() - t.getTime()) / 86400000);
 }
 
+// Priority: overdue=0, due today=1, due tomorrow=2, upcoming=3, done=4
+function priorityScore(h: HWListItem): number {
+  if (h.status === "marked" || h.status === "submitted") return 4;
+  const n = daysUntil(h.due_date);
+  if (n < 0)  return 0;
+  if (n === 0) return 1;
+  if (n === 1) return 2;
+  return 3;
+}
+
+function sortByPriority(items: HWListItem[]): HWListItem[] {
+  return [...items].sort((a, b) => {
+    const pa = priorityScore(a);
+    const pb = priorityScore(b);
+    if (pa !== pb) return pa - pb;
+    // Within same priority bucket, sort by due date ascending
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+  });
+}
+
 function dueBadge(due: string, status: HWListItem["status"]) {
-  if (status === "marked")    return { label: "Marked",    bg: "#d1fae5", color: "#065f46" };
-  if (status === "submitted") return { label: "Submitted", bg: "#d1fae5", color: "#065f46" };
+  if (status === "marked")    return { label: "Marked",      bg: "#d1fae5", color: "#065f46" };
+  if (status === "submitted") return { label: "Submitted",   bg: "#d1fae5", color: "#065f46" };
   const n = daysUntil(due);
   if (n < 0)   return { label: "Overdue",     bg: "#fee2e2", color: "#991b1b" };
   if (n === 0) return { label: "Due Today",   bg: "#fef3c7", color: "#92400e" };
-  if (n <= 2)  return { label: `Due in ${n}d`, bg: "#fff7ed", color: "#c2410c" };
+  if (n === 1) return { label: "Due Tomorrow",bg: "#fff7ed", color: "#c2410c" };
+  if (n <= 3)  return { label: `Due in ${n}d`, bg: "#fff7ed", color: "#c2410c" };
   return { label: `Due in ${n}d`, bg: "var(--vs-accent-soft)", color: "var(--vs-accent)" };
+}
+
+function priorityLabel(h: HWListItem): string | null {
+  if (h.status === "marked" || h.status === "submitted") return null;
+  const n = daysUntil(h.due_date);
+  if (n < 0)   return "⚠️ Overdue";
+  if (n === 0) return "🔥 Due Today";
+  if (n === 1) return "⏰ Due Tomorrow";
+  return null;
 }
 
 function IconWork() {
@@ -74,7 +104,7 @@ export default function HomeworkListPage() {
     if (idLoading || !identity || !identity.classId) { setLoading(false); return; }
 
     const cached = readCache<HWListItem[]>("homework", identity.studentId);
-    if (cached) { setItems(cached); setLoading(false); }
+    if (cached) { setItems(sortByPriority(cached)); setLoading(false); }
 
     async function load() {
       let hwQuery = supabase
@@ -102,8 +132,9 @@ export default function HomeworkListPage() {
         return { ...h, status: sub?.status ?? "pending", mark: sub?.mark ?? null };
       });
 
-      writeCache("homework", identity!.studentId, result);
-      setItems(result);
+      const sorted = sortByPriority(result);
+      writeCache("homework", identity!.studentId, sorted);
+      setItems(sorted);
       setLoading(false);
     }
     load();
@@ -113,10 +144,10 @@ export default function HomeworkListPage() {
   const submitted = items.filter(h => h.status === "submitted" || h.status === "marked");
   const overdue   = items.filter(h => h.status === "pending" && isOverdue(h.due_date));
 
-  const filtered = filter === "pending"   ? pending
+  const filtered = filter === "pending"   ? sortByPriority(pending)
     : filter === "submitted" ? submitted
     : filter === "overdue"   ? overdue
-    : items;
+    : items; // already sorted
 
   const isLoading = idLoading || (loading && items.length === 0);
 
@@ -140,8 +171,13 @@ export default function HomeworkListPage() {
     { id: "overdue",   label: "Overdue",   count: overdue.length   },
   ];
 
+  // Group label helpers for "all" view
+  let lastPriority = -1;
+
   return (
     <div style={{ animation: "slideIn 0.22s ease" }}>
+
+      {/* Hero */}
       <div style={{ background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)", borderRadius: 20, padding: "16px", marginBottom: 16, color: "#fff" }}>
         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontWeight: 600, marginBottom: 4 }}>MY ASSIGNMENTS</div>
         <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'Bricolage Grotesque', sans-serif", marginBottom: 12 }}>Homework</div>
@@ -160,6 +196,7 @@ export default function HomeworkListPage() {
         </div>
       </div>
 
+      {/* Filter tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
         {FILTERS.map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)} style={{
@@ -174,6 +211,7 @@ export default function HomeworkListPage() {
         ))}
       </div>
 
+      {/* List */}
       {filtered.length === 0 ? (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "48px 24px", textAlign: "center" }}>
           <div style={{ color: "var(--vs-muted)", display: "flex", justifyContent: "center", marginBottom: 12 }}><IconWork /></div>
@@ -187,53 +225,85 @@ export default function HomeworkListPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filtered.map(h => {
-            const badge = dueBadge(h.due_date, h.status);
+            const badge      = dueBadge(h.due_date, h.status);
             const overdueItem = h.status === "pending" && isOverdue(h.due_date);
-            return (
-              <button
-                key={h.id}
-                onClick={() => router.push(`/student/homework/${h.id}`)}
-                style={{
-                  width: "100%", background: "var(--vs-card)", border: "none",
-                  borderRadius: 14, padding: 0, cursor: "pointer", fontFamily: "inherit",
-                  textAlign: "left",
-                  borderLeft: `4px solid ${overdueItem ? "#ef4444" : h.status !== "pending" ? "#10b981" : "#0f766e"}`,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                }}
-              >
-                <div style={{ padding: "14px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", flex: 1, lineHeight: 1.4 }}>{h.title}</div>
-                    <span style={{ padding: "3px 8px", borderRadius: 20, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{badge.label}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: h.instructions ? 8 : 0 }}>
-                    <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>{h.subject}</span>
-                    <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--vs-border)", flexShrink: 0 }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 20, background: "var(--vs-surface)", color: "var(--vs-muted)" }}>{h.type === "smart" ? "Smart" : "Book"}</span>
-                    <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--vs-border)", flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>
-                      Due {new Date(h.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-                    </span>
-                  </div>
-                  {h.instructions && (
-                    <div style={{ fontSize: 12, color: "var(--vs-muted)", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                      {h.instructions}
-                    </div>
-                  )}
-                  {h.status === "marked" && h.mark !== null && (
-                    <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "#d1fae5", borderRadius: 20, fontSize: 11, fontWeight: 700, color: "#065f46" }}>
-                      <IconCheck /> {h.mark} marks
-                    </div>
-                  )}
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-                    <span style={{ color: "var(--vs-muted)" }}><IconArrow /></span>
-                  </div>
+            const pScore     = priorityScore(h);
+            const pLabel     = priorityLabel(h);
+
+            // Section divider in "all" view
+            let divider: React.ReactNode = null;
+            if (filter === "all" && pScore !== lastPriority) {
+              lastPriority = pScore;
+              const sectionLabels: Record<number, string> = {
+                0: "⚠️ Overdue",
+                1: "🔥 Due Today",
+                2: "⏰ Due Tomorrow",
+                3: "📅 Upcoming",
+                4: "✅ Done",
+              };
+              divider = (
+                <div style={{ fontSize: 10, fontWeight: 800, color: "var(--vs-muted)", textTransform: "uppercase", letterSpacing: 1, marginTop: pScore === 0 ? 0 : 8, marginBottom: 2 }}>
+                  {sectionLabels[pScore]}
                 </div>
-              </button>
+              );
+            }
+
+            return (
+              <div key={h.id}>
+                {divider}
+                <button
+                  onClick={() => router.push(`/student/homework/${h.id}`)}
+                  style={{
+                    width: "100%", background: "var(--vs-card)", border: "none",
+                    borderRadius: 14, padding: 0, cursor: "pointer", fontFamily: "inherit",
+                    textAlign: "left",
+                    borderLeft: `4px solid ${overdueItem ? "#ef4444" : h.status !== "pending" ? "#10b981" : pScore === 1 ? "#f59e0b" : "#0f766e"}`,
+                    boxShadow: `0 1px 3px rgba(0,0,0,0.06)${pScore <= 1 && h.status === "pending" ? ", 0 0 0 1px rgba(239,68,68,0.08)" : ""}`,
+                  }}
+                >
+                  <div style={{ padding: "14px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", flex: 1, lineHeight: 1.4 }}>{h.title}</div>
+                      <span style={{ padding: "3px 8px", borderRadius: 20, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{badge.label}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: h.instructions ? 8 : 0 }}>
+                      <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>{h.subject}</span>
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--vs-border)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 20, background: "var(--vs-surface)", color: "var(--vs-muted)" }}>
+                        {h.type === "smart" ? "Smart" : h.type.charAt(0).toUpperCase() + h.type.slice(1)}
+                      </span>
+                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--vs-border)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>
+                        Due {new Date(h.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                    {h.instructions && (
+                      <div style={{ fontSize: 12, color: "var(--vs-muted)", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: 8 }}>
+                        {h.instructions}
+                      </div>
+                    )}
+                    {h.status === "marked" && h.mark !== null && (
+                      <div style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "#d1fae5", borderRadius: 20, fontSize: 11, fontWeight: 700, color: "#065f46" }}>
+                        <IconCheck /> {h.mark} marks · {autoBandLabel(h.mark)}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                      <span style={{ color: "var(--vs-muted)" }}><IconArrow /></span>
+                    </div>
+                  </div>
+                </button>
+              </div>
             );
           })}
         </div>
       )}
     </div>
   );
+}
+
+function autoBandLabel(mark: number): string {
+  if (mark >= 80) return "Excellent";
+  if (mark >= 60) return "Good";
+  if (mark >= 40) return "Fair";
+  return "Needs Improvement";
 }

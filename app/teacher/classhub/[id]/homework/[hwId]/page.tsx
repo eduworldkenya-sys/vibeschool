@@ -16,10 +16,21 @@ type View = "list"|"grade";
 
 const inp: React.CSSProperties = { width:"100%", padding:"11px 14px", borderRadius:10, border:"1px solid #e5e7eb", fontSize:14, color:C.textPrimary, outline:"none", fontFamily:"inherit", background:"#f9fafb", boxSizing:"border-box" };
 
-function statusBadge(s: string) {
-  if (s==="marked")    return { label:"Marked",    bg:"#d1fae5", color:"#065f46" };
-  if (s==="submitted") return { label:"Submitted", bg:"#fef3c7", color:"#92400e" };
-  return                      { label:"Pending",   bg:"#f3f4f6", color:"#6b7280" };
+function autoBand(mark: number): { label: string; bg: string; color: string } {
+  if (mark >= 80) return { label: "Excellent",        bg: "#d1fae5", color: "#065f46" };
+  if (mark >= 60) return { label: "Good",             bg: "#dbeafe", color: "#1e40af" };
+  if (mark >= 40) return { label: "Fair",             bg: "#fef3c7", color: "#92400e" };
+  return              { label: "Needs Improvement", bg: "#fee2e2", color: "#991b1b" };
+}
+
+function statusBadge(s: string, mark: number|null) {
+  if (s === "marked" && mark !== null) {
+    const band = autoBand(mark);
+    return { label: `${mark}pts · ${band.label}`, bg: band.bg, color: band.color };
+  }
+  if (s === "marked")    return { label: "Marked",    bg: "#d1fae5", color: "#065f46" };
+  if (s === "submitted") return { label: "Submitted", bg: "#fef3c7", color: "#92400e" };
+  return                        { label: "Pending",   bg: "#f3f4f6", color: "#6b7280" };
 }
 
 function GradingInner() {
@@ -46,7 +57,6 @@ function GradingInner() {
     setLoading(true);
     setLoadError(null);
 
-    // Resolve school_id
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoadError("Not authenticated"); setLoading(false); return; }
 
@@ -108,15 +118,16 @@ function GradingInner() {
     if (!active) return;
     setSaving(true);
     const sub = subMap.get(active.id);
+    const markVal = mark!==""?Number(mark):null;
+    if (markVal !== null && isNaN(markVal)) { setSaving(false); return; }
 
     if (!sub) {
-      // Student never submitted — create a submission row so teacher can still mark
       const { data: newSub, error: insErr } = await supabase.from("homework_submissions").insert({
         homework_id:  hwId,
         student_id:   active.id,
         status:       "marked",
         submitted_at: new Date().toISOString(),
-        mark:         mark!==""?Number(mark):null,
+        mark:         markVal,
         feedback:     feedback.trim()||null,
       }).select().single();
       if (!insErr && newSub) {
@@ -128,9 +139,6 @@ function GradingInner() {
       setSaving(false);
       return;
     }
-
-    const markVal = mark!==""?Number(mark):null;
-    if (markVal !== null && isNaN(markVal)) { setSaving(false); return; }
 
     const {error} = await supabase.from("homework_submissions")
       .update({ mark:markVal, feedback:feedback.trim()||null, status:"marked" })
@@ -144,9 +152,16 @@ function GradingInner() {
     setSaving(false);
   }
 
+  const markNum   = mark!==""?Number(mark):null;
+  const liveBand  = markNum!==null && !isNaN(markNum) ? autoBand(markNum) : null;
+
   const submitted = students.filter(s=>subMap.has(s.id));
   const notYet    = students.filter(s=>!subMap.has(s.id));
   const marked    = submitted.filter(s=>subMap.get(s.id)?.status==="marked");
+
+  // Class average of marked submissions
+  const markedMarks = Array.from(subMap.values()).filter(s=>s.status==="marked"&&s.mark!==null).map(s=>s.mark as number);
+  const avg = markedMarks.length>0 ? Math.round(markedMarks.reduce((a,b)=>a+b,0)/markedMarks.length) : null;
 
   if (loading) return <div style={{padding:20,color:C.textMuted,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Loading…</div>;
   if (loadError) return <div style={{padding:20,color:"#ef4444",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{loadError}</div>;
@@ -196,6 +211,11 @@ function GradingInner() {
             <div style={{marginBottom:12}}>
               <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Mark</label>
               <input type="number" value={mark} onChange={e=>setMark(e.target.value)} placeholder="e.g. 18" style={inp} />
+              {liveBand && (
+                <div style={{marginTop:8,display:"inline-flex",alignItems:"center",gap:6,padding:"5px 12px",borderRadius:20,background:liveBand.bg,color:liveBand.color,fontSize:11,fontWeight:800}}>
+                  {liveBand.label}
+                </div>
+              )}
             </div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Feedback</label>
@@ -222,7 +242,12 @@ function GradingInner() {
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          {[{label:"Students",value:students.length},{label:"Submitted",value:submitted.length},{label:"Marked",value:marked.length},{label:"Pending",value:notYet.length}].map(s=>(
+          {[
+            {label:"Students", value:students.length},
+            {label:"Submitted",value:submitted.length},
+            {label:"Marked",   value:marked.length},
+            {label:"Avg",      value:avg!==null?`${avg}pts`:"—"},
+          ].map(s=>(
             <div key={s.label} style={{flex:1,background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"8px 4px",textAlign:"center"}}>
               <div style={{fontSize:16,fontWeight:800,color:"#fff"}}>{s.value}</div>
               <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",fontWeight:600}}>{s.label}</div>
@@ -235,7 +260,7 @@ function GradingInner() {
           <div style={{fontSize:11,fontWeight:800,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Submitted</div>
           {submitted.map(s=>{
             const sub=subMap.get(s.id)!;
-            const badge=statusBadge(sub.status);
+            const badge=statusBadge(sub.status,sub.mark);
             return (
               <button key={s.id} onClick={()=>openGrade(s)} style={{width:"100%",background:"#fff",borderRadius:14,padding:"14px 16px",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",borderLeft:`4px solid ${sub.status==="marked"?"#10b981":"#f59e0b"}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -245,7 +270,6 @@ function GradingInner() {
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label}</span>
-                    {sub.mark!=null && <span style={{fontSize:12,fontWeight:800,color:C.accent}}>{sub.mark}pts</span>}
                     <span style={{color:C.textMuted,fontSize:14}}>›</span>
                   </div>
                 </div>
