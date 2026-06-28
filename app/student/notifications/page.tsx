@@ -28,14 +28,14 @@ function IconBell() {
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
       <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
     </svg>
-  )
+  );
 }
 function IconInfo() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
     </svg>
-  )
+  );
 }
 function IconAlert() {
   return (
@@ -43,7 +43,7 @@ function IconAlert() {
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
       <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
-  )
+  );
 }
 
 function notifIcon(type: string) {
@@ -64,27 +64,23 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (idLoading || !identity) return;
-
     const cached = readCache<Notif[]>("notifications", identity.studentId);
     if (cached) { setNotifs(cached); setLoading(false); }
 
     async function load() {
       const { data } = await supabase
-        .from("notifications")
+        .from("student_notifications")
         .select("id, title, body, type, read, created_at")
-        .eq("user_id", identity!.profileId)
+        .eq("student_id", identity!.studentId)
         .order("created_at", { ascending: false })
         .limit(50);
-
       const result = data ?? [];
       writeCache("notifications", identity!.studentId, result);
       setNotifs(result);
       setLoading(false);
-
-      // Mark all as read
       const unread = result.filter(n => !n.read).map(n => n.id);
       if (unread.length > 0) {
-        await supabase.from("notifications").update({ read: true }).in("id", unread);
+        await supabase.from("student_notifications").update({ read: true }).in("id", unread);
       }
     }
     load();
@@ -93,7 +89,7 @@ export default function NotificationsPage() {
   const isLoading = idLoading || (loading && notifs.length === 0);
 
   if (isLoading) return (
-    <div className="space-y-3 pt-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 8 }}>
       <Skel h={70} radius={12} /><Skel h={70} radius={12} /><Skel h={70} radius={12} />
     </div>
   );
@@ -106,7 +102,6 @@ export default function NotificationsPage() {
           {notifs.filter(n => !n.read).length > 0 ? `${notifs.filter(n => !n.read).length} unread` : "All caught up"}
         </p>
       </div>
-
       {notifs.length === 0 ? (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "60px 24px", textAlign: "center" }}>
           <div style={{ color: "var(--vs-muted)", marginBottom: 8, display: "flex", justifyContent: "center" }}><IconBell /></div>
@@ -115,29 +110,18 @@ export default function NotificationsPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {notifs.map(n => (
-            <div
-              key={n.id}
-              style={{
-                background:   n.read ? "var(--vs-card)" : "var(--vs-accent-soft)",
-                border:       `1px solid ${n.read ? "var(--vs-border)" : "var(--vs-accent)"}`,
-                borderRadius: 14,
-                padding:      "14px 16px",
-                display:      "flex",
-                gap:          12,
-                alignItems:   "flex-start",
-              }}
-            >
-              <div style={{ color: notifColor(n.type), flexShrink: 0, marginTop: 1 }}>
-                {notifIcon(n.type)}
-              </div>
+            <div key={n.id} style={{
+              background: n.read ? "var(--vs-card)" : "var(--vs-accent-soft)",
+              border: `1px solid ${n.read ? "var(--vs-border)" : "var(--vs-accent)"}`,
+              borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start",
+            }}>
+              <div style={{ color: notifColor(n.type), flexShrink: 0, marginTop: 1 }}>{notifIcon(n.type)}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)", marginBottom: 2 }}>{n.title}</div>
                 <div style={{ fontSize: 12, color: "var(--vs-muted)", lineHeight: 1.5 }}>{n.body}</div>
                 <div style={{ fontSize: 10, color: "var(--vs-muted)", marginTop: 6 }}>{timeAgo(n.created_at)}</div>
               </div>
-              {!n.read && (
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--vs-accent)", flexShrink: 0, marginTop: 4 }} />
-              )}
+              {!n.read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--vs-accent)", flexShrink: 0, marginTop: 4 }} />}
             </div>
           ))}
         </div>
