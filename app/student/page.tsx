@@ -1,228 +1,292 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-
-const dark   = '#1e1b4b'
-const accent = '#6366f1'
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { useStudent } from "@/lib/student-context";
+import { readCache, writeCache } from "@/lib/student-cache";
+import Skel from "@/components/student/Skel";
 
 interface DashData {
-  studentName:    string
-  className:      string
-  schoolName:     string
-  admissionNo:    string
-  attendancePct:  number
-  totalPresent:   number
-  totalDays:      number
-  todaySlots:     { subject: string; start: string; end: string; room: string }[]
+  attendancePct:  number;
+  totalPresent:   number;
+  totalDays:      number;
+  pendingHW:      number;
+  todaySlots:     { subject: string; start: string; end: string; room: string }[];
 }
 
 function greeting() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  return 'Good evening'
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-function Skeleton({ w = '100%', h = 16, radius = 8 }: { w?: string | number; h?: number; radius?: number }) {
+// SVG icons
+function IconAttendance() {
   return (
-    <div style={{ width: w, height: h, borderRadius: radius, background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', flexShrink: 0 }} />
-  )
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <polyline points="16 11 18 13 22 9"/>
+    </svg>
+  );
+}
+function IconWork() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="9" y1="13" x2="15" y2="13"/>
+      <line x1="9" y1="17" x2="15" y2="17"/>
+    </svg>
+  );
+}
+function IconClock() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  );
+}
+function IconCalendar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8"  y1="2" x2="8"  y2="6"/>
+      <line x1="3"  y1="10" x2="21" y2="10"/>
+    </svg>
+  );
+}
+function IconMarks() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6"  y1="20" x2="6"  y2="14"/>
+    </svg>
+  );
+}
+function IconArrow() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  );
 }
 
 export default function StudentHomePage() {
-  const router = useRouter()
-  const [data,    setData]    = useState<DashData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [firstName, setFirstName] = useState('')
+  const router              = useRouter();
+  const { identity, loading: idLoading } = useStudent();
+  const [data,    setData]    = useState<DashData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (idLoading || !identity) return;
+
+    // Show cache instantly
+    const cached = readCache<DashData>("dashboard", identity.studentId);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+    }
+
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/'); return }
+      if (!identity) return;
 
-      // Profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, school_id')
-        .eq('id', user.id)
-        .single()
-
-      const name = profile?.full_name ?? ''
-      setFirstName(name.split(' ')[0] || 'Student')
-
-      // Student row
-      const { data: student, error: studentErr } = await supabase
-        .from('students')
-        .select('id, name, admission_number, class_id')
-        .eq('profile_id', user.id)
-        .single()
-
-      if (studentErr) {
-        router.push('/student/claim?debug=' + encodeURIComponent(JSON.stringify(studentErr)) + '&uid=' + user.id)
-        return
-      }
-
-      if (!student) {
-        router.push('/student/claim?debug=no_row&uid=' + user.id)
-        return
-      }
-
-      // Class — null-safe
-      const cls = student.class_id ? (await supabase
-        .from('classes')
-        .select('id, name, stream, school_id')
-        .eq('id', student.class_id)
-        .single()).data : null
-
-      // School — null-safe
-      const school = cls?.school_id ? (await supabase
-        .from('schools')
-        .select('name')
-        .eq('id', cls.school_id)
-        .single()).data : null
-
-      // Attendance — by student_id not class_id
+      // Attendance
       const { data: att } = await supabase
-        .from('attendance')
-        .select('status')
-        .eq('student_id', student.id)
+        .from("attendance")
+        .select("status")
+        .eq("student_id", identity.studentId);
 
-      const totalDays    = att?.length ?? 0
-      const totalPresent = att?.filter(a => a.status === 'present').length ?? 0
-      const attendancePct = totalDays > 0 ? Math.round((totalPresent / totalDays) * 100) : 0
+      const totalDays    = att?.length ?? 0;
+      const totalPresent = att?.filter(a => a.status === "present").length ?? 0;
+      const attendancePct = totalDays > 0 ? Math.round((totalPresent / totalDays) * 100) : 0;
 
-      // Today timetable
-      const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-      const today = days[new Date().getDay()]
+      // Pending homework — day_of_week is integer Mon=1…Sun=7
+      const { data: hw } = await supabase
+        .from("homework")
+        .select("id, homework_submissions(id)")
+        .eq("class_id", identity.classId)
+        .gte("due_date", new Date().toISOString().split("T")[0]);
 
-      const { data: slots } = await supabase
-        .from('timetable_slots')
-        .select('start_time, end_time, room, subject_id')
-        .eq('class_id', student.class_id)
-        .eq('day_of_week', today)
-        .order('start_time', { ascending: true })
+      const pendingHW = (hw ?? []).filter(h => {
+        const subs = (h.homework_submissions as { id: string }[]) ?? [];
+        return subs.length === 0;
+      }).length;
 
-      // Get subject names
-      const subjectIds = Array.from(new Set((slots ?? []).map(s => s.subject_id).filter(Boolean))) as string[]
-      let subjectMap: Record<string, string> = {}
+      // Today timetable — integer day Mon=1 Tue=2 Wed=3 Thu=4 Fri=5 Sat=6 Sun=7
+      const jsDay = new Date().getDay(); // 0=Sun
+      const dayInt = jsDay === 0 ? 7 : jsDay;
 
+      const { data: slots } = identity.classId ? await supabase
+        .from("timetable_slots")
+        .select("start_time, end_time, room, subject_id")
+        .eq("class_id", identity.classId)
+        .eq("day_of_week", dayInt)
+        .order("start_time", { ascending: true }) : { data: [] };
+
+      const subjectIds = Array.from(
+        new Set((slots ?? []).map((s: { subject_id: string }) => s.subject_id).filter(Boolean))
+      ) as string[];
+
+      let subjectMap: Record<string, string> = {};
       if (subjectIds.length > 0) {
         const { data: subjects } = await supabase
-          .from('subjects')
-          .select('id, name')
-          .in('id', subjectIds)
-        subjectMap = Object.fromEntries((subjects ?? []).map(s => [s.id, s.name]))
+          .from("subjects")
+          .select("id, name")
+          .in("id", subjectIds);
+        subjectMap = Object.fromEntries((subjects ?? []).map(s => [s.id, s.name]));
       }
 
-      const todaySlots = (slots ?? []).map(s => ({
-        subject: subjectMap[s.subject_id] ?? 'Lesson',
-        start:   s.start_time?.slice(0, 5) ?? '',
-        end:     s.end_time?.slice(0, 5)   ?? '',
-        room:    s.room ?? '',
-      }))
+      const todaySlots = (slots ?? []).map((s: { subject_id: string; start_time: string; end_time: string; room: string }) => ({
+        subject: subjectMap[s.subject_id] ?? "Lesson",
+        start:   s.start_time?.slice(0, 5) ?? "",
+        end:     s.end_time?.slice(0, 5)   ?? "",
+        room:    s.room ?? "",
+      }));
 
-      setData({
-        studentName:   student.name,
-        className:     cls ? cls.name + (cls.stream ? ' ' + cls.stream : '') : '—',
-        schoolName:    school?.name ?? '—',
-        admissionNo:   student.admission_number ?? '',
-        attendancePct,
-        totalPresent,
-        totalDays,
-        todaySlots,
-      })
-      setLoading(false)
+      const fresh: DashData = { attendancePct, totalPresent, totalDays, pendingHW, todaySlots };
+      writeCache("dashboard", identity.studentId, fresh);
+      setData(fresh);
+      setLoading(false);
     }
-    load()
-  }, [])
 
-  if (loading) return (
-    <div style={{ animation: 'fadeIn 0.2s ease' }}>
-      <div style={{ background: `linear-gradient(135deg,${dark} 0%,#312e81 100%)`, borderRadius: 20, padding: 14, marginBottom: 12 }}>
-        <Skeleton w={120} h={10} />
-        <div style={{ marginTop: 6 }}><Skeleton w={160} h={15} /></div>
+    load();
+  }, [identity, idLoading]);
+
+  const isLoading = idLoading || (loading && !data);
+
+  if (isLoading) return (
+    <div className="animate-pulse space-y-3 pt-2">
+      <Skel h={90}  radius={16} />
+      <div className="flex gap-3">
+        <Skel h={80} radius={12} />
+        <Skel h={80} radius={12} />
+        <Skel h={80} radius={12} />
       </div>
-      <Skeleton h={100} radius={16} />
-      <div style={{ marginTop: 12 }}><Skeleton h={160} radius={16} /></div>
+      <Skel h={180} radius={16} />
+      <Skel h={120} radius={16} />
     </div>
-  )
+  );
 
-  if (!data) return null
+  if (!data || !identity) return null;
+
+  const attColor  = data.attendancePct >= 80 ? "var(--vs-success)" : "var(--vs-warning)";
 
   return (
-    <div style={{ animation: 'slideIn 0.22s ease' }}>
+    <div style={{ animation: "slideIn 0.22s ease" }}>
 
       {/* Hero */}
-      <div style={{ background: `linear-gradient(135deg,${dark} 0%,#312e81 100%)`, borderRadius: 20, padding: '12px 14px', marginBottom: 14, color: '#fff' }}>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 1 }}>
-          {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}
+      <div style={{
+        background:    "linear-gradient(135deg, #1C1A2E 0%, #2D2060 100%)",
+        borderRadius:  20,
+        padding:       "14px 16px",
+        marginBottom:  14,
+        color:         "#fff",
+      }}>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 600, marginBottom: 2 }}>
+          {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}
         </div>
-        <div style={{ fontSize: 15, fontWeight: 800 }}>{greeting()}, {firstName} 👋</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>
-          {data.className} · {data.schoolName}
+        <div style={{ fontSize: 16, fontWeight: 800 }}>
+          {greeting()}, {identity.firstName}
         </div>
-        {data.admissionNo && (
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
-            Adm: {data.admissionNo}
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>
+          {identity.className}{identity.className && identity.schoolName ? " · " : ""}{identity.schoolName}
+        </div>
+        {identity.admissionNo && (
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+            Adm: {identity.admissionNo}
           </div>
         )}
       </div>
 
       {/* Stats row */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
         {[
           {
-            label: 'Attendance',
+            label: "Attendance",
             value: `${data.attendancePct}%`,
             sub:   `${data.totalPresent}/${data.totalDays} days`,
-            color: data.attendancePct >= 80 ? '#d1fae5' : '#fef3c7',
-            text:  data.attendancePct >= 80 ? '#065f46' : '#92400e',
+            icon:  <IconAttendance />,
+            color: attColor,
           },
           {
-            label: 'Marks',
-            value: '—',
-            sub:   'No results yet',
-            color: '#ede9fe',
-            text:  '#4c1d95',
+            label: "My Work",
+            value: data.pendingHW > 0 ? `${data.pendingHW}` : "All done",
+            sub:   data.pendingHW > 0 ? "pending" : "No pending",
+            icon:  <IconWork />,
+            color: data.pendingHW > 0 ? "var(--vs-warning)" : "var(--vs-success)",
           },
           {
-            label: 'Homework',
-            value: '—',
-            sub:   'None due',
-            color: '#e0f2fe',
-            text:  '#075985',
+            label: "My Progress",
+            value: "—",
+            sub:   "View marks",
+            icon:  <IconMarks />,
+            color: "var(--vs-accent)",
           },
         ].map(s => (
-          <div key={s.label} style={{ flex: 1, background: s.color, borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: s.text }}>{s.value}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: s.text, marginTop: 2 }}>{s.label}</div>
-            <div style={{ fontSize: 9, color: s.text, opacity: 0.7, marginTop: 2 }}>{s.sub}</div>
+          <div
+            key={s.label}
+            style={{
+              flex:          1,
+              background:    "var(--vs-card)",
+              border:        "1px solid var(--vs-border)",
+              borderRadius:  12,
+              padding:       "12px 8px",
+              textAlign:     "center",
+            }}
+          >
+            <div style={{ color: s.color, display: "flex", justifyContent: "center", marginBottom: 4 }}>
+              {s.icon}
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--vs-muted)", marginTop: 2 }}>{s.label}</div>
+            <div style={{ fontSize: 9, color: "var(--vs-muted)", marginTop: 1 }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
       {/* Today timetable */}
-      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', padding: 16, marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: dark, marginBottom: 12 }}>
-          📅 Today
+      <div style={{
+        background:   "var(--vs-card)",
+        borderRadius: 16,
+        border:       "1px solid var(--vs-border)",
+        padding:      16,
+        marginBottom: 14,
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ color: "var(--vs-accent)" }}><IconCalendar /></span>
+          My Day
         </div>
         {data.todaySlots.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center', padding: '16px 0' }}>
+          <div style={{ fontSize: 13, color: "var(--vs-muted)", textAlign: "center", padding: "16px 0" }}>
             No lessons scheduled today
           </div>
         ) : (
           data.todaySlots.map((slot, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < data.todaySlots.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-              <div style={{ minWidth: 52, fontSize: 11, fontWeight: 700, color: accent, textAlign: 'center' }}>
-                {slot.start}<br />
-                <span style={{ color: '#9ca3af', fontWeight: 500 }}>{slot.end}</span>
+            <div
+              key={i}
+              style={{
+                display:      "flex",
+                alignItems:   "center",
+                gap:          12,
+                padding:      "10px 0",
+                borderBottom: i < data.todaySlots.length - 1 ? "1px solid var(--vs-border)" : "none",
+              }}
+            >
+              <div style={{ minWidth: 52, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <span style={{ color: "var(--vs-accent)" }}><IconClock /></span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--vs-accent)" }}>{slot.start}</span>
+                <span style={{ fontSize: 10, color: "var(--vs-muted)" }}>{slot.end}</span>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{slot.subject}</div>
-                {slot.room && <div style={{ fontSize: 11, color: '#6b7280' }}>Room {slot.room}</div>}
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{slot.subject}</div>
+                {slot.room && <div style={{ fontSize: 11, color: "var(--vs-muted)" }}>Room {slot.room}</div>}
               </div>
             </div>
           ))
@@ -230,21 +294,37 @@ export default function StudentHomePage() {
       </div>
 
       {/* Quick links */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
         {[
-          { label: 'My Marks',    icon: '📝', href: '/student/learn'     },
-          { label: 'Resources',   icon: '📚', href: '/student/resources'  },
-          { label: 'Timetable',   icon: '🗓', href: null                  },
-          { label: 'My Profile',  icon: '👤', href: '/student/profile'     },
+          { label: "My Progress", icon: <IconMarks />,    href: "/student/marks"     },
+          { label: "Study Room",  icon: <IconWork />,     href: "/student/resources" },
+          { label: "My Day",      icon: <IconCalendar />, href: "/student/timetable" },
+          { label: "School Fees", icon: <IconAttendance />, href: "/student/fees"    },
         ].map(q => (
-          <button key={q.label} onClick={() => q.href ? router.push(q.href) : null}
-            style={{ opacity: q.href ? 1 : 0.45, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '16px 12px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <span style={{ fontSize: 22 }}>{q.icon}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: dark }}>{q.label}</span>
+          <button
+            key={q.label}
+            onClick={() => router.push(q.href)}
+            style={{
+              background:    "var(--vs-card)",
+              border:        "1px solid var(--vs-border)",
+              borderRadius:  14,
+              padding:       "16px 12px",
+              display:       "flex",
+              alignItems:    "center",
+              justifyContent: "space-between",
+              cursor:        "pointer",
+              fontFamily:    "inherit",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ color: "var(--vs-accent)" }}>{q.icon}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{q.label}</span>
+            </div>
+            <span style={{ color: "var(--vs-muted)" }}><IconArrow /></span>
           </button>
         ))}
       </div>
 
     </div>
-  )
+  );
 }

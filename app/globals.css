@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --color-void:       #05050F;
   --color-gold:       #C8A84B;
