@@ -173,6 +173,34 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
     intents["homework_due"] = "No homework due in the next 7 days.";
   }
 
+  // Students overview — combines all student signals
+  const studentParts: string[] = [];
+  if (snap.consecutiveAbsences.length > 0) {
+    studentParts.push(`Absent right now: ${snap.consecutiveAbsences.map(s => `${s.name} (${s.days} days in a row)`).join(", ")}.`);
+  }
+  if (snap.atRisk.length > 0) {
+    studentParts.push(`At-risk this term: ${snap.atRisk.map(s => s.name).join(", ")}.`);
+  }
+  if (snap.homeworkDue.length > 0) {
+    studentParts.push(`Homework due soon: ${snap.homeworkDue.map(h => h.title).join(", ")}.`);
+  }
+  if (studentParts.length > 0) {
+    intents["students_overview"] = studentParts.join(" ");
+  } else {
+    intents["students_overview"] = "No student issues flagged right now.";
+  }
+  intents["how_many_students"] = snap.todaySlots.length > 0
+    ? `You have classes with ${Array.from(new Set(snap.todaySlots.map((s: any) => s.class_name))).join(", ")} today.`
+    : "No classes today.";
+  intents["student_performance"] = snap.currStats.length > 0
+    ? snap.currStats.map(s => `${s.subject}: ${Math.round((s.covered/s.total)*100)}% curriculum covered`).join(", ") + "."
+    : "No curriculum data available.";
+  intents["who_needs_help"] = snap.consecutiveAbsences.length > 0
+    ? `Follow up with: ${snap.consecutiveAbsences.map(s => s.name).join(", ")} — absent multiple days in a row.`
+    : snap.atRisk.length > 0
+    ? `Keep an eye on: ${snap.atRisk.map(s => s.name).join(", ")}.`
+    : "No students flagged as needing urgent follow-up.";
+
   return intents;
 }
 
@@ -198,6 +226,12 @@ export function resolveIntent(query: string, brain: TwinBrainState): string | nu
     [/message|unread|vibeconnect|inbox/,                 "unread_messages"],
     [/homework|due|assignment/,                          "homework_due"],
     [/lesson plan|no plan|plan.*today|filed/,            "missed_plans"],
+    [/^students?$|my students|tell me.*students|students overview/, "students_overview"],
+    [/how many students|class size|how many kids/,       "how_many_students"],
+    [/student.*perform|class.*perform|how.*class doing/, "student_performance"],
+    [/who needs help|who.*struggle|follow up|check on/,  "who_needs_help"],
+    [/absent.*days|days.*absent|missing.*row/,           "consecutive_absent"],
+    [/absent.*streak|consecutive/,                       "absent_streak"],
   ];
   for (const [pattern, key] of matchers) {
     if (pattern.test(q) && brain.intents[key]) return brain.intents[key];
