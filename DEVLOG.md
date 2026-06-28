@@ -317,3 +317,7 @@
 ## [2026-06-28 21:45] 150c5cc
 **What:** delete dead teacher BottomNav component and CSS
 **Status:** ✅ pushed
+
+## [2026-06-28 21:48] 7a6713c
+**What:** student nav: 3 tabs (Home, My Work, Me) — remove Play, vibelearn routes to Me
+**Status:** ✅ pushed
