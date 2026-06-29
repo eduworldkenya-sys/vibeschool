@@ -96,7 +96,7 @@ function GradingInner() {
       answers = (ans??[]) as (Answer&{submission_id:string})[];
     }
     const map = new Map<string,Submission>();
-    for (const s of subs) map.set(s.student_id,{...s,answers:answers.filter(a=>a.submission_id===s.id)});
+    for (const s of subs) map.set(s.student_id,{...s,photo_url:(s as any).photo_url??null,answers:answers.filter(a=>a.submission_id===s.id)});
     setSubMap(map);
     setLoading(false);
   }
@@ -203,13 +203,15 @@ function GradingInner() {
           )}
           {sub && questions.length===0 && (
             <div style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
-              <div style={{fontSize:13,color:C.textMuted}}>Book assignment — submitted on {sub.submitted_at?new Date(sub.submitted_at).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"unknown date"}.</div>
+              <div style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>Student Work</div>
+              <div style={{fontSize:12,color:C.textMuted,marginBottom:sub.photo_url?12:0}}>
+                Submitted on {sub.submitted_at?new Date(sub.submitted_at).toLocaleDateString("en-KE",{day:"numeric",month:"short"}):"unknown date"}.
+              </div>
               {sub.photo_url && (
-                <div style={{marginTop:12}}>
-                  <div style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>Student's Work</div>
-                  <img src={sub.photo_url} alt="Student work" style={{width:"100%",borderRadius:10,objectFit:"cover",maxHeight:360,display:"block"}} />
-                  <a href={sub.photo_url} target="_blank" rel="noopener noreferrer" style={{display:"inline-block",marginTop:8,fontSize:12,color:C.accent,fontWeight:600}}>Open full image ↗</a>
-                </div>
+                <img src={sub.photo_url} alt="Student submitted work" style={{width:"100%",borderRadius:10,objectFit:"cover",maxHeight:360,display:"block"}} />
+              )}
+              {!sub.photo_url && (
+                <div style={{fontSize:12,color:C.textMuted,fontStyle:"italic"}}>No photo uploaded.</div>
               )}
             </div>
           )}
@@ -310,3 +312,4 @@ export default function GradingPage() {
     </Suspense>
   );
 }
+

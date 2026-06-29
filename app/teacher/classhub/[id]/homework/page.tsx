@@ -89,6 +89,47 @@ function HomeworkInner() {
     });
     setSaving(false);
     if (err) { setError(err.message); return; }
+
+    // G4+G5: notify students and parents
+    try {
+      const notifMsg = `New homework: "${form.title.trim()}" (${form.subject.trim()}) — due ${form.due_date}.`;
+      const { data: stuRows } = await supabase
+        .from("students")
+        .select("id")
+        .eq("class_id", classId);
+      if (stuRows && stuRows.length > 0) {
+        await supabase.from("notifications").insert(
+          stuRows.map((st: { id: string }) => ({
+            user_id:   st.id,
+            school_id: schoolId,
+            type:      "homework",
+            title:     "New Homework",
+            message:   notifMsg,
+            is_read:   false,
+          }))
+        );
+        const { data: links } = await supabase
+          .from("parent_student_links")
+          .select("parent_id")
+          .in("student_id", stuRows.map((st: { id: string }) => st.id));
+        if (links && links.length > 0) {
+          const uniqueParents = Array.from(new Set(links.map((l: { parent_id: string }) => l.parent_id))) as string[];
+          await supabase.from("parent_messages").insert(
+            uniqueParents.map((pid: string) => ({
+              parent_id:  pid,
+              teacher_id: user.id,
+              school_id:  schoolId,
+              subject:    "New Homework",
+              message:    notifMsg,
+              is_read:    false,
+            }))
+          );
+        }
+      }
+    } catch (_) {
+      // notifications are best-effort
+    }
+
     setForm(f => ({ ...f, title: "", instructions: "", due_date: "" }));
     setShowForm(false);
     load();
@@ -247,3 +288,4 @@ export default function HomeworkPage() {
     </Suspense>
   );
 }
+

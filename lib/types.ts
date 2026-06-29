@@ -231,19 +231,21 @@ export interface ParentNavTab {
 
 // ─── Homework ─────────────────────────────────────────────────────────────────
 
-export type HomeworkType     = "smart" | "book";
+export type HomeworkType     = "smart" | "general" | "reading" | "writing" | "project" | "revision";
 export type SubmissionStatus = "pending" | "submitted" | "marked";
 
 export interface Homework {
-  id:           string;
-  class_id:     string;
-  teacher_id:   string;
-  title:        string;
-  subject:      string;
-  instructions: string | null;
-  type:         HomeworkType;
-  due_date:     string;
-  created_at:   string;
+  id:              string;
+  class_id:        string;
+  teacher_id:      string;
+  school_id:       string | null;
+  title:           string;
+  subject:         string;
+  instructions:    string | null;
+  type:            HomeworkType;
+  due_date:        string;
+  target_group_id: string | null;
+  created_at:      string;
 }
 
 export interface HomeworkQuestion {
@@ -640,3 +642,4 @@ export interface TwinMessage {
   source?: "js" | "ai" | "offline" | "nav" | "fuzzy"
   actions?: TwinAction[]
 }
+

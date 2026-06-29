@@ -117,17 +117,28 @@ export default function HomeworkListPage() {
         hwQuery = hwQuery.eq("school_id", identity!.schoolId);
       }
 
-      const [hwRes, subRes] = await Promise.all([
+      // G3: fetch student group memberships alongside homework
+      const [hwRes, subRes, grpRes] = await Promise.all([
         hwQuery,
         supabase.from("homework_submissions").select("*").eq("student_id", identity!.studentId),
+        supabase.from("class_group_members").select("group_id").eq("student_id", identity!.studentId),
       ]);
+
+      const myGroupIds = new Set(
+        (grpRes.data ?? []).map((g: { group_id: string }) => g.group_id)
+      );
 
       const subMap = new Map<string, HomeworkSubmission>();
       for (const s of (subRes.data as HomeworkSubmission[] | null) ?? []) {
         subMap.set(s.homework_id, s);
       }
 
-      const result: HWListItem[] = ((hwRes.data as Homework[] | null) ?? []).map(h => {
+      // G3: only show whole-class OR student's group homework
+      const visible = ((hwRes.data as Homework[] | null) ?? []).filter(h =>
+        h.target_group_id === null || myGroupIds.has(h.target_group_id)
+      );
+
+      const result: HWListItem[] = visible.map(h => {
         const sub = subMap.get(h.id);
         return { ...h, status: sub?.status ?? "pending", mark: sub?.mark ?? null };
       });
@@ -307,3 +318,4 @@ function autoBandLabel(mark: number): string {
   if (mark >= 40) return "Fair";
   return "Needs Improvement";
 }
+
