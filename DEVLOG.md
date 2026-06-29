@@ -373,3 +373,6 @@
 ## [2026-06-29 10:02] 137d79f
 **What:** Homework: questions-based submission mode, remove smart type, add questions toggle to create form
 **Status:** ✅ pushed
+## [2026-06-29 14:48] 9a1f5b0
+**What:** fix: teacher onboarding school registration via service role API route
+**Status:** ✅ pushed
