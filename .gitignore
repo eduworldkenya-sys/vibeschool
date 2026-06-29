@@ -63,3 +63,6 @@ env.local
 *.bak2
 .babelrc
 .github/workflows/
+*.tar.gz
+*.deb
+supabase/
