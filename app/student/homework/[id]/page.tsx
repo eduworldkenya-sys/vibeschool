@@ -76,9 +76,7 @@ export default function HomeworkDetailPage() {
 
       const [teachRes, qRes, subRes] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", homework.teacher_id).maybeSingle(),
-        homework.type === "smart"
-          ? supabase.from("homework_questions").select("*").eq("homework_id", homework.id).order("order_num", { ascending: true })
-          : Promise.resolve({ data: [] as HomeworkQuestion[] }),
+        supabase.from("homework_questions").select("*").eq("homework_id", homework.id).order("order_num", { ascending: true }),
         supabase.from("homework_submissions").select("*").eq("homework_id", homework.id).eq("student_id", identity!.studentId).maybeSingle(),
       ]);
 
@@ -116,11 +114,11 @@ export default function HomeworkDetailPage() {
   async function submit() {
     if (!identity || !hw) return;
 
-    if (hw.type === "smart" && !questions.every(q => (draft[q.id] ?? "").trim() !== "")) {
+    if (questions.length > 0 && !questions.every(q => (draft[q.id] ?? "").trim() !== "")) {
       setError("Please answer every question before submitting.");
       return;
     }
-    if (hw.type !== "smart" && !photoFile && !photoPreview) {
+    if (questions.length === 0 && !photoFile && !photoPreview) {
       setError("Please take a photo of your completed work.");
       return;
     }
@@ -167,7 +165,7 @@ export default function HomeworkDetailPage() {
 
     if (subErr || !sub) { setError("Could not submit. Please try again."); setSaving(false); return; }
 
-    if (hw.type === "smart" && questions.length > 0) {
+    if (questions.length > 0) {
       const rows = questions.map(q => ({
         submission_id: sub.id,
         question_id:   q.id,
@@ -213,7 +211,7 @@ export default function HomeworkDetailPage() {
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           {[
-            { label: "Type",      value: hw.type === "smart" ? "Smart" : hw.type.charAt(0).toUpperCase() + hw.type.slice(1) },
+            { label: "Type",      value: hw.type.charAt(0).toUpperCase() + hw.type.slice(1) },
             { label: "Questions", value: questions.length > 0 ? `${questions.length}` : "—" },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.15)", borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>

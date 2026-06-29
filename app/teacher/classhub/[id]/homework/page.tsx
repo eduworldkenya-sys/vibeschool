@@ -37,6 +37,8 @@ function HomeworkInner() {
   const [form, setForm] = useState({
     title: "", subject: "", instructions: "", due_date: "", type: "general", target_group_id: "",
   });
+  const [addQuestions, setAddQuestions] = useState(false);
+  const [questionDrafts, setQuestionDrafts] = useState<string[]>([""]);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -130,6 +132,28 @@ function HomeworkInner() {
       // notifications are best-effort
     }
 
+    // Save questions if any
+    if (addQuestions) {
+      const validQs = questionDrafts.map((q, i) => q.trim()).filter(Boolean);
+      if (validQs.length > 0) {
+        // fetch the homework id we just created
+        const { data: newHw } = await supabase
+          .from("homework")
+          .select("id")
+          .eq("class_id", classId)
+          .eq("teacher_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (newHw) {
+          await supabase.from("homework_questions").insert(
+            validQs.map((q, i) => ({ homework_id: newHw.id, question: q, order_num: i + 1 }))
+          );
+        }
+      }
+    }
+    setAddQuestions(false);
+    setQuestionDrafts([""]);
     setForm(f => ({ ...f, title: "", instructions: "", due_date: "" }));
     setShowForm(false);
     load();
@@ -201,7 +225,6 @@ function HomeworkInner() {
                   <option value="writing">Writing</option>
                   <option value="project">Project</option>
                   <option value="revision">Revision</option>
-                  <option value="smart">Smart (with questions)</option>
                 </select>
               </div>
               <div><label style={lbl}>Assign To</label>
@@ -210,6 +233,38 @@ function HomeworkInner() {
                   {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
+            </div>
+            {/* Add Questions toggle */}
+            <div style={{ marginTop: 4 }}>
+              <button
+                onClick={() => { setAddQuestions(v => !v); setQuestionDrafts([""]); }}
+                style={{ display: "flex", alignItems: "center", gap: 8, background: addQuestions ? "#d1fae5" : "#f3f4f6", border: "none", borderRadius: 10, padding: "10px 14px", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+              >
+                <span style={{ fontSize: 16 }}>{addQuestions ? "✓" : "+"}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: addQuestions ? "#065f46" : "#374151" }}>
+                  {addQuestions ? "Questions added" : "Add questions (optional)"}
+                </span>
+              </button>
+              {addQuestions && (
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {questionDrafts.map((q, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <input
+                        style={{ ...inp, flex: 1 }}
+                        placeholder={`Question ${i + 1}`}
+                        value={q}
+                        onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? e.target.value : x))}
+                      />
+                      {questionDrafts.length > 1 && (
+                        <button onClick={() => setQuestionDrafts(d => d.filter((_, j) => j !== i))} style={{ background: "#fee2e2", border: "none", borderRadius: 8, width: 32, height: 32, color: "#991b1b", cursor: "pointer", fontWeight: 800, fontSize: 16 }}>×</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => setQuestionDrafts(d => [...d, ""])} style={{ background: "none", border: "1px dashed #d1d5db", borderRadius: 10, padding: "8px", color: "#6b7280", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    + Add another question
+                  </button>
+                </div>
+              )}
             </div>
             {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
             <button onClick={handleSubmit} disabled={saving} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 12, border: "none", background: saving ? "#99f6e4" : "#0f766e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
