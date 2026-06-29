@@ -357,3 +357,7 @@
 ## [2026-06-29 02:04] 7bd7f81
 **What:** fix: photo_url in Submission interface and select
 **Status:** ✅ pushed
+
+## [2026-06-29 07:01] f4885b1
+**What:** fix: photo_url in Submission interface and select
+**Status:** ✅ pushed
