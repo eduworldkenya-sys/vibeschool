@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? ""
+const GROQ_KEY = Deno.env.get("GROQ_API_KEY") ?? ""
 const TAVILY_KEY = Deno.env.get("TAVILY_API_KEY") ?? ""
 const SUPABASE_URL     = Deno.env.get("SUPABASE_URL") ?? ""
 const SUPABASE_SERVICE  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -127,30 +127,31 @@ serve(async (req) => {
       "</differentiation>",
     ].filter(Boolean).join("\n")
 
-    const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_KEY,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 4000, temperature: 0.3 },
-        }),
-      }
-    )
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + GROQ_KEY,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 4000,
+        temperature: 0.3,
+      }),
+    })
 
-    const geminiData = await geminiRes.json()
+    const groqData = await groqRes.json()
 
-    // G3: surface Gemini errors clearly
-    if (!geminiRes.ok || !geminiData.candidates) {
-      console.error("[generate-lesson-plan] Gemini error:", JSON.stringify(geminiData))
-      return json({ error: "Gemini generation failed", detail: geminiData?.promptFeedback ?? geminiData }, 502)
+    if (!groqRes.ok || !groqData.choices) {
+      console.error("[generate-lesson-plan] Groq error:", JSON.stringify(groqData))
+      return json({ error: "Groq generation failed", detail: groqData }, 502)
     }
 
-    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
+    const text = groqData.choices?.[0]?.message?.content ?? ""
     if (!text) {
-      console.error("[generate-lesson-plan] Empty Gemini response:", JSON.stringify(geminiData))
-      return json({ error: "Empty response from Gemini" }, 502)
+      console.error("[generate-lesson-plan] Empty Groq response:", JSON.stringify(groqData))
+      return json({ error: "Empty response from Groq" }, 502)
     }
 
     return json({ plan: text })
