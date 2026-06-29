@@ -39,6 +39,10 @@ function HomeworkInner() {
   });
   const [addQuestions, setAddQuestions] = useState(false);
   const [questionDrafts, setQuestionDrafts] = useState<string[]>([""]);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<Homework | null>(null);
+  const [editForm, setEditForm] = useState<{ title: string; instructions: string; due_date: string } | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -157,6 +161,32 @@ function HomeworkInner() {
     setForm(f => ({ ...f, title: "", instructions: "", due_date: "" }));
     setShowForm(false);
     load();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this homework? This cannot be undone.")) return;
+    setDeleting(id);
+    await supabase.from("homework_questions").delete().eq("homework_id", id);
+    await supabase.from("homework_submissions").delete().eq("homework_id", id);
+    await supabase.from("homework").delete().eq("id", id);
+    setList(l => l.filter(h => h.id !== id));
+    setDeleting(null);
+  }
+
+  async function handleEditSave() {
+    if (!editTarget || !editForm) return;
+    setEditSaving(true);
+    const { error } = await supabase.from("homework").update({
+      title:        editForm.title.trim(),
+      instructions: editForm.instructions.trim(),
+      due_date:     editForm.due_date,
+    }).eq("id", editTarget.id);
+    if (!error) {
+      setList(l => l.map(h => h.id === editTarget.id ? { ...h, ...editForm } : h));
+      setEditTarget(null);
+      setEditForm(null);
+    }
+    setEditSaving(false);
   }
 
   function formatDate(iso: string) {
@@ -288,45 +318,85 @@ function HomeworkInner() {
               const overdue = isOverdue(h.due_date);
               const pct     = h.student_count > 0 ? Math.round((h.sub_count / h.student_count) * 100) : 0;
               return (
-                <button
+                <div
                   key={h.id}
-                  onClick={() => router.push(`/teacher/classhub/${classId}/homework/${h.id}`)}
-                  style={{ width: "100%", textAlign: "left", background: "#fff", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: `4px solid ${overdue ? "#ef4444" : "#0f766e"}`, border: "none", cursor: "pointer", fontFamily: "inherit" }}
+                  style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: `4px solid ${overdue ? "#ef4444" : "#0f766e"}`, overflow: "hidden" }}
                 >
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{h.title}</p>
-                      {h.subject && <p style={{ fontSize: 11, color: C.textMuted, margin: "3px 0 0" }}>{h.subject}</p>}
-                      {h.instructions && <p style={{ fontSize: 12, color: C.textMuted, margin: "6px 0 0", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" } as React.CSSProperties}>{h.instructions}</p>}
-                    </div>
-                    <div style={{ flexShrink: 0, textAlign: "right" }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20, background: overdue ? "#fee2e2" : "#d1fae5", color: overdue ? "#991b1b" : "#065f46" }}>
-                        {overdue ? "Overdue" : "Active"}
-                      </span>
-                      <p style={{ fontSize: 11, color: C.textMuted, margin: "4px 0 0", fontWeight: 600 }}>Due {formatDate(h.due_date)}</p>
-                    </div>
-                  </div>
-
-                  {/* Submission progress bar */}
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted, textTransform: "capitalize" }}>{h.type}</span>
-                        {h.target_group_id && groups.find(g => g.id === h.target_group_id) && (
-                          <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#ede9fe", color: "#6d28d9" }}>
-                            {groups.find(g => g.id === h.target_group_id)?.name}
-                          </span>
-                        )}
+                  {/* Edit modal inline */}
+                  {editTarget?.id === h.id && editForm && (
+                    <div style={{ padding: "14px 16px", borderBottom: "1px solid #f3f4f6", background: "#f8fffe" }}>
+                      <p style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.8, margin: "0 0 10px" }}>Edit Homework</p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <input style={inp} value={editForm.title} onChange={e => setEditForm(f => f ? { ...f, title: e.target.value } : f)} placeholder="Title" />
+                        <textarea style={{ ...inp, minHeight: 60, resize: "vertical" }} value={editForm.instructions} onChange={e => setEditForm(f => f ? { ...f, instructions: e.target.value } : f)} placeholder="Instructions" />
+                        <input style={inp} type="date" value={editForm.due_date} onChange={e => setEditForm(f => f ? { ...f, due_date: e.target.value } : f)} />
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: h.sub_count > 0 ? "#0f766e" : C.textMuted }}>
-                        {h.sub_count}/{h.student_count} submitted
-                      </span>
+                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                        <button onClick={handleEditSave} disabled={editSaving} style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", background: "#0f766e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                          {editSaving ? "Saving…" : "Save Changes"}
+                        </button>
+                        <button onClick={() => { setEditTarget(null); setEditForm(null); }} style={{ padding: "9px 14px", borderRadius: 10, border: "none", background: "#f3f4f6", color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                          Cancel
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ height: 4, borderRadius: 99, background: "#f3f4f6", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pct}%`, background: overdue && pct < 100 ? "#ef4444" : "#0f766e", borderRadius: 99, transition: "width 0.4s ease" }} />
+                  )}
+
+                  {/* Card body */}
+                  <button
+                    onClick={() => router.push(`/teacher/classhub/${classId}/homework/${h.id}`)}
+                    style={{ width: "100%", textAlign: "left", background: "none", padding: "14px 16px", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{h.title}</p>
+                        {h.subject && <p style={{ fontSize: 11, color: C.textMuted, margin: "3px 0 0" }}>{h.subject}</p>}
+                        {h.instructions && <p style={{ fontSize: 12, color: C.textMuted, margin: "6px 0 0", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" } as React.CSSProperties}>{h.instructions}</p>}
+                      </div>
+                      <div style={{ flexShrink: 0, textAlign: "right" }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20, background: overdue ? "#fee2e2" : "#d1fae5", color: overdue ? "#991b1b" : "#065f46" }}>
+                          {overdue ? "Overdue" : "Active"}
+                        </span>
+                        <p style={{ fontSize: 11, color: C.textMuted, margin: "4px 0 0", fontWeight: 600 }}>Due {formatDate(h.due_date)}</p>
+                      </div>
                     </div>
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted, textTransform: "capitalize" }}>{h.type}</span>
+                          {h.target_group_id && groups.find(g => g.id === h.target_group_id) && (
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#ede9fe", color: "#6d28d9" }}>
+                              {groups.find(g => g.id === h.target_group_id)?.name}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: h.sub_count > 0 ? "#0f766e" : C.textMuted }}>
+                          {h.sub_count}/{h.student_count} submitted
+                        </span>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 99, background: "#f3f4f6", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, background: overdue && pct < 100 ? "#ef4444" : "#0f766e", borderRadius: 99, transition: "width 0.4s ease" }} />
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Edit / Delete actions */}
+                  <div style={{ display: "flex", borderTop: "1px solid #f3f4f6" }}>
+                    <button
+                      onClick={() => { setEditTarget(h); setEditForm({ title: h.title, instructions: h.instructions ?? "", due_date: h.due_date.slice(0,10) }); }}
+                      style={{ flex: 1, padding: "9px", border: "none", background: "none", color: "#0f766e", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", borderRight: "1px solid #f3f4f6" }}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(h.id)}
+                      disabled={deleting === h.id}
+                      style={{ flex: 1, padding: "9px", border: "none", background: "none", color: deleting === h.id ? C.textMuted : "#ef4444", fontWeight: 700, fontSize: 12, cursor: deleting === h.id ? "wait" : "pointer", fontFamily: "inherit" }}
+                    >
+                      {deleting === h.id ? "Deleting…" : "🗑 Delete"}
+                    </button>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
