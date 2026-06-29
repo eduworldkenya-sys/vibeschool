@@ -376,3 +376,6 @@
 ## [2026-06-29 14:48] 9a1f5b0
 **What:** fix: teacher onboarding school registration via service role API route
 **Status:** ✅ pushed
+## [2026-06-29 14:56] 968d808
+**What:** fix: teacher onboarding school registration via service role API route
+**Status:** ✅ pushed
