@@ -382,3 +382,6 @@
 ## [2026-06-29 14:59] 32bad72
 **What:** chore: remove binary junk files, update gitignore
 **Status:** ✅ pushed
+## [2026-06-29 15:44] 4d35211
+**What:** fix: switch lesson plan generation from Gemini to Groq
+**Status:** ✅ pushed
