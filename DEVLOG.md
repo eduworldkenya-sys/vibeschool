@@ -379,3 +379,6 @@
 ## [2026-06-29 14:56] 968d808
 **What:** fix: teacher onboarding school registration via service role API route
 **Status:** ✅ pushed
+## [2026-06-29 14:59] 32bad72
+**What:** chore: remove binary junk files, update gitignore
+**Status:** ✅ pushed
