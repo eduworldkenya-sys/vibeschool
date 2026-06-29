@@ -278,11 +278,10 @@ function useTeacherData() {
         const uid = authData.user.id
         setUserId(uid)
 
-        const [profileRes, memberRes, teacherRes] = await Promise.all([
+        const [profileRes, teacherRes] = await Promise.all([
           supabase.from('profiles').select(
             'full_name,phone,date_of_birth,country_code,gender,bio,avatar_url,school_id'
           ).eq('id', uid).single(),
-          supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
           supabase.from('teacher_profiles').select(
             'tsc_number,employment_type,nationality,designation,school_id'
           ).eq('profile_id', uid).maybeSingle(),
@@ -295,9 +294,8 @@ function useTeacherData() {
         }
 
         const sid =
-          memberRes.data?.school_id  ??
-          teacherRes.data?.school_id ??
-          profileRes.data?.school_id ??
+          profileRes.data?.school_id  ??
+          teacherRes.data?.school_id  ??
           null
         setSchoolId(sid)
 
@@ -430,26 +428,18 @@ function PersonalInfoSection() {
     }
 
     if (schoolId && selectedClassId && selectedSubjectIds.length > 0) {
-      const { error: deleteError } = await supabase.from('teacher_classes')
-        .delete()
-        .eq('teacher_id', userId)
-        .eq('class_id', selectedClassId)
-
-      if (deleteError) {
-        setSaving(false)
-        setSaveError('Saved profile but failed to update class assignments.')
-        return
-      }
-
       const rows = selectedSubjectIds.map((subId) => ({
         teacher_id: userId, class_id: selectedClassId,
         subject_id: subId,  school_id: schoolId, is_class_teacher: false,
       }))
 
-      const { error: insertError } = await supabase.from('teacher_classes').insert(rows)
-      if (insertError) {
+      const { error: assignError } = await supabase
+        .from('teacher_classes')
+        .upsert(rows, { onConflict: 'teacher_id,class_id,subject_id' })
+
+      if (assignError) {
         setSaving(false)
-        setSaveError('Saved profile but failed to insert class assignments.')
+        setSaveError('Saved profile but failed to update class assignments.')
         return
       }
     }
