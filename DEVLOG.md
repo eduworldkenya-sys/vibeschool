@@ -388,3 +388,6 @@
 ## [2026-06-30 14:18] e26f1c0
 **What:** Homework: edit/delete, bulk grading actions, timetable due indicator
 **Status:** ✅ pushed
+## [2026-06-30 14:42] 7b0c337
+**What:** Twin + Pulse: homework grading awareness — ungraded count tracking, grading intent, Pulse cockpit card
+**Status:** ✅ pushed
