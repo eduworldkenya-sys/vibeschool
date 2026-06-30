@@ -251,7 +251,6 @@ function AttendanceInner() {
       teacher_id: uid,
       school_id:  classSchoolId,
       date:      selectedDate,
-      timestamp:  selectedDate + 'T00:00:00',
       status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
       is_late:    statuses[s.id] === 'late',
       marked_at:  new Date().toISOString(),
@@ -272,6 +271,7 @@ function AttendanceInner() {
       setSaveState('saved')
       setTimeout(() => setSaveState('idle'), 2500)
     } else {
+      console.error('attendance save error:', error)
       setSaveState('error')
     }
     setSaving(false)
