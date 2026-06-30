@@ -385,3 +385,6 @@
 ## [2026-06-29 15:44] 4d35211
 **What:** fix: switch lesson plan generation from Gemini to Groq
 **Status:** ✅ pushed
+## [2026-06-30 14:18] e26f1c0
+**What:** Homework: edit/delete, bulk grading actions, timetable due indicator
+**Status:** ✅ pushed
