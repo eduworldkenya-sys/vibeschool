@@ -14,6 +14,7 @@ interface DashData {
   totalDays:      number;
   pendingHW:      number;
   todaySlots:     { subject: string; start: string; end: string; room: string }[];
+  avgMarksPct:    number | null;
 }
 
 function greeting() {
@@ -150,7 +151,24 @@ export default function StudentHomePage() {
         room:    s.room ?? "",
       }));
 
-      const fresh: DashData = { attendancePct, totalPresent, totalDays, pendingHW, todaySlots };
+      // My Progress — average % across all exam_results on file
+      const { data: examRows } = await supabase
+        .from("exam_results")
+        .select("marks, total_marks, term, academic_year")
+        .eq("student_id", identity.studentId);
+
+      let avgMarksPct: number | null = null;
+      if (examRows && examRows.length > 0) {
+        const valid = examRows.filter(
+          r => typeof r.marks === "number" && typeof r.total_marks === "number" && r.total_marks > 0
+        );
+        if (valid.length > 0) {
+          const pctSum = valid.reduce((sum, r) => sum + (r.marks / r.total_marks) * 100, 0);
+          avgMarksPct = Math.round(pctSum / valid.length);
+        }
+      }
+
+      const fresh: DashData = { attendancePct, totalPresent, totalDays, pendingHW, todaySlots, avgMarksPct };
       writeCache("dashboard", identity.studentId, fresh);
       setData(fresh);
       setLoading(false);
@@ -225,10 +243,15 @@ export default function StudentHomePage() {
           },
           {
             label: "My Progress",
-            value: "—",
-            sub:   "View marks",
+            value: data.avgMarksPct !== null ? `${data.avgMarksPct}%` : "—",
+            sub:   data.avgMarksPct !== null ? "Average" : "No marks yet",
             icon:  <IconMarks />,
-            color: "var(--vs-accent)",
+            color: data.avgMarksPct === null
+                     ? "var(--vs-muted)"
+                     : data.avgMarksPct >= 70 ? "var(--vs-success)"
+                     : data.avgMarksPct >= 50 ? "var(--vs-accent)"
+                     : "var(--vs-warning)",
+            href:  "/student/marks",
           },
         ].map(s => (
           <button
