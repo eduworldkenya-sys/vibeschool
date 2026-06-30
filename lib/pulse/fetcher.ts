@@ -52,6 +52,10 @@ export async function fetchPulseData(
       .eq("teacher_id", userId),
   ]);
 
+  if (slotsRes.error) { console.error("[pulse] timetable_slots query failed:", slotsRes.error.message, slotsRes.error.details, slotsRes.error.hint); }
+  if (termRes.error) { console.error("[pulse] academic_terms query failed:", termRes.error.message); }
+  if (tcRes.error) { console.error("[pulse] teacher_classes query failed:", tcRes.error.message); }
+
   const allSlots = ((slotsRes.data ?? []) as any[]).map((s: any) => ({
     id: s.id,
     day_of_week: s.day_of_week,
