@@ -3,5 +3,12 @@
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "devCommand": "next dev",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/homework-reminders",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }
+
