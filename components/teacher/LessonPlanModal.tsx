@@ -348,7 +348,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         class_id:           slot.class_id,
         subject_id:         slot.subject_id,
         timetable_slot_id:  slot.id,
-        curriculum_unit_id: usedSuggestion ? suggestion?.id ?? null : null,
         week_start:         weekStart,
         day_of_week:        dayOfWeek,
         topic:              topic.trim(),
@@ -501,8 +500,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           instructions:       sections.homework.trim(),
           type:               'written',
           due_date:           nairobiDateStr(due),
-          lesson_plan_id:     currentId,
-          curriculum_unit_id: usedSuggestion ? suggestion?.id ?? null : null,
         }).select('id').single()
 
         if (hw?.id) {

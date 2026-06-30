@@ -13,7 +13,6 @@ interface PlanOption {
   topic:               string;
   class_id:            string | null;
   subject_id:          string | null;
-  curriculum_unit_id:  string | null;
   class_name:          string;
   subject_name:        string;
   week_start:          string;
@@ -210,7 +209,7 @@ export default function LessonNotesPage() {
 
     let q = supabase
       .from("lesson_plans")
-      .select("id, title, topic, week_start, class_id, subject_id, curriculum_unit_id")
+      .select("id, title, topic, week_start, class_id, subject_id")
       .eq("teacher_id", tid)
       .order("week_start", { ascending: false })
       .limit(40);
@@ -235,7 +234,6 @@ export default function LessonNotesPage() {
       topic:               p.topic ?? "",
       class_id:            p.class_id,
       subject_id:          p.subject_id,
-      curriculum_unit_id:  p.curriculum_unit_id ?? null,
       class_name:          p.class_id   ? (clsMap[p.class_id]   ?? "") : "",
       subject_name:        p.subject_id ? (subjMap[p.subject_id] ?? "") : "",
       week_start:          p.week_start ?? "",
@@ -276,7 +274,6 @@ export default function LessonNotesPage() {
       lesson_plan_id:      selectedPlan || null,
       class_id:            linkedPlan?.class_id   ?? null,
       subject_id:          linkedPlan?.subject_id ?? null,
-      curriculum_unit_id:  linkedPlan?.curriculum_unit_id ?? null,
       taught_date:         taughtDate,
       what_was_taught:     whatTaught.trim(),
       participation_score: participation,
