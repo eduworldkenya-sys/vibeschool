@@ -410,7 +410,7 @@ export default function PulsePage() {
       </div>
 
       {/* Stat tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12, animation: "fadeUp 0.3s ease" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12, animation: "fadeUp 0.3s ease" }}>
         <StatTile
           label="Credits" sub="available"
           value={creditBalance !== null ? String(creditBalance) : "…"}
@@ -428,6 +428,12 @@ export default function PulsePage() {
           value={snap?.tpadDays != null ? `${snap.tpadDays}d` : "—"}
           color={(snap?.tpadDays ?? 999) <= 7 ? "#ef4444" : (snap?.tpadDays ?? 999) <= 14 ? "#f59e0b" : "#10b981"}
           onClick={() => router.push("/teacher/tpad")}
+        />
+        <StatTile
+          label="Messages" sub="unread"
+          value={loading && !snap ? "…" : String(snap?.unreadMessages ?? 0)}
+          color={(snap?.unreadMessages ?? 0) > 0 ? "#f59e0b" : "#10b981"}
+          onClick={() => router.push("/teacher/vibeconnect")}
         />
       </div>
 
