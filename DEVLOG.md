@@ -394,3 +394,6 @@
 ## [2026-06-30 14:45] 7a24be2
 **What:** Homework: automated reminder cron for non-submitters, due tomorrow
 **Status:** ✅ pushed
+## [2026-06-30 14:57] b9504e5
+**What:** Fix critical bug: notifications insert used wrong column (message vs body), add TPAD + invoice reminder crons
+**Status:** ✅ pushed
