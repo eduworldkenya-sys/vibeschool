@@ -84,7 +84,7 @@ function parsePlan(raw: string): PlanSections | null {
   const result = { ...EMPTY }
   let filled   = 0
   for (const { key } of SECTION_LABELS) {
-    const m = raw.match(new RegExp('<' + key + '>([\s\S]*?)</' + key + '>'))
+    const m = raw.match(new RegExp('<' + key + '>([\\s\\S]*?)</' + key + '>'))
     if (m) { result[key] = m[1].trim(); filled++ }
   }
   return filled >= 3 ? result : null
