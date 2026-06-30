@@ -82,20 +82,7 @@ interface NextLesson {
   hasPlan: boolean;
 }
 
-function deriveNextLesson(snap: PulseSnapshot): NextLesson | null {
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-
-  const upcoming = snap.todaySlots
-    .filter((s: any) => {
-      const [h, m] = s.start_time.split(":").map(Number);
-      return h * 60 + m >= nowMins;
-    })
-    .sort((a: any, b: any) => a.start_time.localeCompare(b.start_time));
-
-  const slot = upcoming[0];
-  if (!slot) return null;
-
+function toLessonSummary(snap: PulseSnapshot, slot: any): NextLesson {
   // FIX: fetchPulseData() already flattens each slot to class_name/subject
   // strings (see lib/pulse/fetcher.ts ~line 55-65) — there is no nested
   // .classes/.subjects join object on todaySlots entries. Reading
@@ -104,7 +91,6 @@ function deriveNextLesson(snap: PulseSnapshot): NextLesson | null {
   const missing = snap.missedLessonPlans.find(
     (m) => m.class_id === slot.class_id && m.subject_id === slot.subject_id
   );
-
   return {
     id: slot.id,
     className: slot.class_name ?? "Class",
@@ -113,6 +99,38 @@ function deriveNextLesson(snap: PulseSnapshot): NextLesson | null {
     startTime: slot.start_time,
     hasPlan: !missing,
   };
+}
+
+interface LessonGroups {
+  taught: NextLesson[];
+  upcoming: NextLesson[];
+  tomorrow: NextLesson[];
+}
+
+function deriveLessonGroups(snap: PulseSnapshot): LessonGroups {
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+
+  const sortedToday = [...snap.todaySlots].sort((a: any, b: any) =>
+    (a.start_time ?? "").localeCompare(b.start_time ?? "")
+  );
+
+  const taught: NextLesson[] = [];
+  const upcoming: NextLesson[] = [];
+
+  for (const s of sortedToday) {
+    const [h, m] = (s.start_time ?? "0:0").split(":").map(Number);
+    const mins = h * 60 + m;
+    const lesson = toLessonSummary(snap, s);
+    if (mins < nowMins) taught.push(lesson);
+    else upcoming.push(lesson);
+  }
+
+  const tomorrow = [...(snap.tomorrowSlots ?? [])]
+    .sort((a: any, b: any) => (a.start_time ?? "").localeCompare(b.start_time ?? ""))
+    .map((s: any) => toLessonSummary(snap, s));
+
+  return { taught, upcoming, tomorrow };
 }
 
 function Severity({ level }: { level: TeachTask["severity"] }) {
@@ -171,7 +189,7 @@ export default function TeachTodayPage() {
   }
 
   const tasks = buildTeachTasks(snap);
-  const nextLesson = deriveNextLesson(snap);
+  const { taught, upcoming, tomorrow } = deriveLessonGroups(snap);
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, paddingBottom: 96 }}>
@@ -182,43 +200,125 @@ export default function TeachTodayPage() {
         </div>
       </div>
 
-      {/* Next lesson */}
-      <div style={{ padding: "0 16px 16px" }}>
-        <div style={{
-          background: C.card, border: `1px solid ${C.border}`, borderRadius: 14,
-          padding: 16,
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
-            Next lesson
-          </div>
-          {nextLesson ? (
-            <>
-              <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginTop: 6 }}>
-                {nextLesson.subject} — {nextLesson.className}
-              </div>
-              <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
-                {nextLesson.startTime}
-                {nextLesson.hasPlan ? " · plan ready" : " · no plan yet"}
-              </div>
-              {!nextLesson.hasPlan && (
-                <button
-                  onClick={() => router.push(`/teacher/lessonplan?classId=${nextLesson.classId}`)}
-                  style={{
-                    marginTop: 10, padding: "8px 14px", borderRadius: 10, border: "none",
-                    background: C.urgent, color: "#fff", fontSize: 13, fontWeight: 600,
-                  }}
-                >
-                  Write plan now
-                </button>
-              )}
-            </>
-          ) : (
-            <div style={{ fontSize: 14, color: C.muted, marginTop: 6 }}>
-              No more lessons scheduled today.
+      {/* Upcoming lesson today (next one to teach) */}
+      {upcoming.length > 0 && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{
+            background: C.card, border: `1px solid ${C.border}`, borderRadius: 14,
+            padding: 16,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
+              Next lesson
             </div>
-          )}
+            <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginTop: 6 }}>
+              {upcoming[0].subject} — {upcoming[0].className}
+            </div>
+            <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+              {upcoming[0].startTime}
+              {upcoming[0].hasPlan ? " · plan ready" : " · no plan yet"}
+            </div>
+            {!upcoming[0].hasPlan && (
+              <button
+                onClick={() => router.push(`/teacher/lessonplan?classId=${upcoming[0].classId}`)}
+                style={{
+                  marginTop: 10, padding: "8px 14px", borderRadius: 10, border: "none",
+                  background: C.urgent, color: "#fff", fontSize: 13, fontWeight: 600,
+                }}
+              >
+                Write plan now
+              </button>
+            )}
+            {upcoming.length > 1 && (
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 10 }}>
+                +{upcoming.length - 1} more lesson{upcoming.length - 1 === 1 ? "" : "s"} later today
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Lessons already taught today */}
+      {taught.length > 0 && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, marginBottom: 8 }}>
+            Taught today
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {taught.map(l => (
+              <div key={l.id} style={{
+                background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12,
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                    {l.subject} — {l.className}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{l.startTime}</div>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.accent }}>Done</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Nothing left today — show tomorrow or advice */}
+      {upcoming.length === 0 && taught.length === 0 && tomorrow.length === 0 && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{
+            background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16,
+          }}>
+            <div style={{ fontSize: 14, color: C.muted }}>
+              No lessons scheduled today. Good time to get ahead — file a lesson plan or check your curriculum coverage below.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {upcoming.length === 0 && taught.length > 0 && tomorrow.length === 0 && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{
+            background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16,
+          }}>
+            <div style={{ fontSize: 14, color: C.muted }}>
+              That's your last lesson for today — nice work. Nothing else scheduled.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {upcoming.length === 0 && tomorrow.length > 0 && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.muted, marginBottom: 8 }}>
+            Tomorrow
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {tomorrow.map(l => (
+              <button
+                key={l.id}
+                onClick={() => router.push(`/teacher/lessonplan?classId=${l.classId}`)}
+                style={{
+                  background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12,
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  width: "100%", textAlign: "left",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                    {l.subject} — {l.className}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                    {l.startTime}{l.hasPlan ? " · plan ready" : " · no plan yet"}
+                  </div>
+                </div>
+                {!l.hasPlan && (
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.urgent }}>Plan it</div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tasks — closing items weighted equally with prep items */}
       {tasks.length > 0 && (
@@ -269,7 +369,7 @@ export default function TeachTodayPage() {
         </div>
       )}
 
-      {tasks.length === 0 && !nextLesson && (
+      {tasks.length === 0 && upcoming.length === 0 && taught.length === 0 && tomorrow.length === 0 && (
         <div style={{ padding: 16, textAlign: "center", color: C.muted, fontSize: 14 }}>
           You're all caught up for today.
         </div>
