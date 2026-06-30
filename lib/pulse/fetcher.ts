@@ -15,6 +15,7 @@ export interface PulseSnapshot {
   termProgressPct: number;
   unreadMessages: number;
   homeworkDue: { title: string; subject: string; due_date: string; class_id: string }[];
+  homeworkUngraded: { title: string; subject: string; class_id: string; homework_id: string; count: number }[];
   missedLessonPlans: { slotId: string; className: string; subject: string; class_id: string; subject_id: string }[];
   consecutiveAbsences: { studentId: string; name: string; days: number }[];
 }
@@ -94,7 +95,7 @@ export async function fetchPulseData(
     d.setDate(d.getDate() - 1);
   }
 
-  const [attTodayRes, tpadRes, absenceRes, streakRes, vcUnreadRes, homeworkRes, plansRes, recentAttRes] = await Promise.all([
+  const [attTodayRes, tpadRes, absenceRes, streakRes, vcUnreadRes, homeworkRes, plansRes, recentAttRes, ungradedRes] = await Promise.all([
     slotIds.length > 0
       ? supabase
           .from("attendance")
@@ -155,6 +156,14 @@ export async function fetchPulseData(
           .in("date", last5Days)
           .order("date", { ascending: false })
       : Promise.resolve({ data: [] }),
+    classIds.length > 0
+      ? supabase
+          .from("homework")
+          .select("id, title, subject, class_id, homework_submissions(status)")
+          .eq("school_id", schoolId)
+          .eq("teacher_id", userId)
+          .in("class_id", classIds)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const markedIds = new Set((attTodayRes.data ?? []).map((a: any) => a.timetable_slot_id));
@@ -211,6 +220,21 @@ export async function fetchPulseData(
 
   const tomorrowDateStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
   const homeworkDueTomorrow = homeworkDue.filter(h => h.due_date === tomorrowDateStr);
+
+  const homeworkUngraded = ((ungradedRes.data ?? []) as any[])
+    .map((h: any) => {
+      const subs = Array.isArray(h.homework_submissions) ? h.homework_submissions : [];
+      const count = subs.filter((s: any) => s.status === "submitted").length;
+      return {
+        title: h.title ?? "Homework",
+        subject: h.subject ?? "",
+        class_id: h.class_id ?? "",
+        homework_id: h.id,
+        count,
+      };
+    })
+    .filter(h => h.count > 0)
+    .sort((a, b) => b.count - a.count);
 
   const filedSet = new Set(
     ((plansRes.data ?? []) as any[]).map((p: any) => `${p.class_id}:${p.subject_id}`)
@@ -294,6 +318,7 @@ export async function fetchPulseData(
   return {
     userId, schoolId, todaySlots, tomorrowSlots, attPending, atRisk,
     currStats, tpadDays, credits, streak, termProgressPct,
-    unreadMessages, homeworkDue, homeworkDueTomorrow, missedLessonPlans, consecutiveAbsences,
+    unreadMessages, homeworkDue, homeworkDueTomorrow, homeworkUngraded, missedLessonPlans, consecutiveAbsences,
   };
 }
+

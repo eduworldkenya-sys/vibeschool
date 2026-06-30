@@ -269,6 +269,16 @@ function buildIntents(snap: PulseSnapshot | null, name: string): Record<string, 
     intents["homework_due"] = "No homework due in the next 7 days.";
   }
 
+  if (snap.homeworkUngraded?.length > 0) {
+    const totalUngraded = snap.homeworkUngraded.reduce((sum: number, h: any) => sum + h.count, 0);
+    const top = snap.homeworkUngraded[0];
+    intents["homework_grading"] = snap.homeworkUngraded.length === 1
+      ? `"${top.title}" has ${top.count} submission${top.count === 1 ? "" : "s"} waiting to be graded.`
+      : `${totalUngraded} homework submission${totalUngraded === 1 ? "" : "s"} across ${snap.homeworkUngraded.length} assignments are waiting to be graded. "${top.title}" has the most, with ${top.count}.`;
+  } else {
+    intents["homework_grading"] = "Nothing waiting to be graded right now.";
+  }
+
   const studentParts: string[] = [];
   if (snap.consecutiveAbsences.length > 0) studentParts.push(`Absent right now: ${snap.consecutiveAbsences.map((s: any) => `${s.name} (${s.days} days in a row)`).join(", ")}.`);
   if (snap.atRisk.length > 0) studentParts.push(`At-risk this term: ${snap.atRisk.map((s: any) => s.name).join(", ")}.`);
@@ -316,6 +326,7 @@ const SCORED_MATCHERS: [RegExp, string, number][] = [
   [/\bterm.*progress\b|\bhow far.*term\b|\bterm.*left\b/,     "term_progress",         9],
   [/\bmessage\b|\bunread\b|\bvibeconnect\b|\binbox\b/,        "unread_messages",       8],
   [/\bhomework\b|\bdue\b|\bassignment\b/,                     "homework_due",          7],
+  [/\bgrade\b|\bgrading\b|\bmark.*homework\b|\bungraded\b|\bto grade\b/, "homework_grading",  8],
   [/\blesson plan\b|\bno plan\b|\bplan.*today\b|\bfiled\b/,   "missed_plans",          8],
   [/\bhow many students\b|\bclass size\b|\bhow many kids\b/,  "how_many_students",     9],
   [/\bstudent.*perform\b|\bclass.*perform\b|\bhow.*class doing\b/, "student_performance", 9],
@@ -587,6 +598,14 @@ export function buildContextString(brain: TwinBrainState): string {
     lines.push(`\nHomework due this week:\n${hwLines}`);
   }
 
+  if (snap && snap.homeworkUngraded?.length > 0) {
+    const ungLines = snap.homeworkUngraded
+      .map((h: { title: string; subject: string; count: number }) =>
+        `  • ${h.title} (${h.subject}) — ${h.count} submission${h.count === 1 ? "" : "s"} pending`)
+      .join("\n");
+    lines.push(`\nHomework awaiting grading:\n${ungLines}`);
+  }
+
   if (brain.recentLessons?.length > 0) {
     const lessonLines = brain.recentLessons
       .slice(0, 5)
@@ -613,3 +632,4 @@ export function buildContextString(brain: TwinBrainState): string {
 
   return baseContext;
 }
+

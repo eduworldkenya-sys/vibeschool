@@ -461,6 +461,30 @@ export default function PulsePage() {
         </div>
       )}
 
+      {/* Homework ungraded — pending grading */}
+      {(snap?.homeworkUngraded.length ?? 0) > 0 && (
+        <div style={{ animation: "fadeUp 0.335s ease" }}>
+          <Card style={{ borderLeft: "3px solid #6366f1" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <Label text="Homework To Grade" />
+            </div>
+            {snap!.homeworkUngraded.slice(0, 5).map((h, i) => (
+              <Pressable key={`${h.homework_id}-${i}`} onClick={() => router.push(`/teacher/classhub/${h.class_id}/homework/${h.homework_id}`)}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < Math.min(snap!.homeworkUngraded.length, 5) - 1 ? "1px solid #f3f4f6" : "none" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{h.title}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{h.subject}</div>
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#4338ca", background: "#eef2ff", borderRadius: 8, padding: "3px 9px" }}>
+                    {h.count} pending
+                  </div>
+                </div>
+              </Pressable>
+            ))}
+          </Card>
+        </div>
+      )}
+
       {/* Attendance insight — informational, not an alarm. No red, no pulse, no "pending" framing. */}
       {(snap?.attPending.length ?? 0) > 0 && (
         <div style={{ animation: "fadeUp 0.32s ease" }}>
@@ -664,3 +688,4 @@ export default function PulsePage() {
     </div>
   );
 }
+

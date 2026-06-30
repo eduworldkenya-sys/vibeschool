@@ -103,6 +103,26 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     });
   }
 
+  const totalUngraded = data.homeworkUngraded.reduce((sum, h) => sum + h.count, 0);
+  if (totalUngraded > 0) {
+    signals.push(`homework_ungraded:${totalUngraded}`);
+    confidence += 22;
+    if (priority === "calm") priority = "normal";
+    const top = data.homeworkUngraded[0];
+    if (!message) {
+      message = totalUngraded >= 10
+        ? `${totalUngraded} homework submissions are waiting to be graded — students notice the delay.`
+        : `${top.title} has ${top.count} submission${top.count === 1 ? "" : "s"} waiting to be graded.`;
+    }
+    tasks.push({
+      id: "homework_ungraded",
+      label: data.homeworkUngraded.length === 1 ? `Grade "${top.title}"` : `Grade ${data.homeworkUngraded.length} homework sets`,
+      detail: `${totalUngraded} submission${totalUngraded === 1 ? "" : "s"} pending`,
+      severity: totalUngraded >= 10 ? "urgent" : "normal",
+      href: `/teacher/classhub/${top.class_id}/homework/${top.homework_id}`,
+    });
+  }
+
   if (data.missedLessonPlans.length > 0) {
     signals.push(`missing_plans:${data.missedLessonPlans.length}`);
     confidence += 20;
@@ -179,3 +199,4 @@ export function runRules(data: PulseSnapshot): RulesOutput {
 
   return { message, confidence, priority, signals, upcomingWarning, tasks };
 }
+
