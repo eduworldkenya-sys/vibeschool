@@ -437,6 +437,30 @@ export default function PulsePage() {
         />
       </div>
 
+      {/* Homework due — next 7 days */}
+      {(snap?.homeworkDue.length ?? 0) > 0 && (
+        <div style={{ animation: "fadeUp 0.33s ease" }}>
+          <Card style={{ borderLeft: "3px solid #f59e0b" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <Label text="Homework Due — Next 7 Days" />
+            </div>
+            {snap!.homeworkDue.slice(0, 5).map((h, i) => (
+              <Pressable key={`${h.class_id}-${h.title}-${i}`} onClick={() => router.push(`/teacher/classhub/${h.class_id}/homework`)}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < Math.min(snap!.homeworkDue.length, 5) - 1 ? "1px solid #f3f4f6" : "none" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{h.title}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{h.subject}</div>
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#b45309", background: "#fffbeb", borderRadius: 8, padding: "3px 9px" }}>
+                    {h.due_date}
+                  </div>
+                </div>
+              </Pressable>
+            ))}
+          </Card>
+        </div>
+      )}
+
       {/* Attendance pending — inline bottom sheet trigger */}
       {(snap?.attPending.length ?? 0) > 0 && (
         <div style={{ animation: "fadeUp 0.32s ease" }}>
