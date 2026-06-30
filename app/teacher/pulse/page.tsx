@@ -524,6 +524,41 @@ export default function PulsePage() {
         </Card>
       </div>
 
+      {/* Tomorrow preview */}
+      {(snap?.tomorrowSlots.length ?? 0) > 0 && (
+        <div style={{ animation: "fadeUp 0.36s ease" }}>
+          <Card style={{ background: "#f8f7ff", border: "1px solid #e9e6ff" }}>
+            <Label text="Tomorrow" />
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+              {snap!.tomorrowSlots.length} lesson{snap!.tomorrowSlots.length !== 1 ? "s" : ""}
+              {(snap?.homeworkDueTomorrow.length ?? 0) > 0
+                ? ` · ${snap!.homeworkDueTomorrow.length} homework due`
+                : ""}
+            </div>
+            {snap!.tomorrowSlots.slice(0, 4).map((slot: any) => (
+              <Pressable key={slot.id} onClick={() => router.push(`/teacher/classhub/${slot.class_id}`)}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #ece9ff" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{slot.subject}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{slot.class_name}</div>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#6d5dfc" }}>{timeStr(slot.start_time)}</div>
+                </div>
+              </Pressable>
+            ))}
+            {(snap?.homeworkDueTomorrow.length ?? 0) > 0 && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #ece9ff" }}>
+                {snap!.homeworkDueTomorrow.map((h, i) => (
+                  <div key={`${h.class_id}-${i}`} style={{ fontSize: 11, color: "#7c3aed", padding: "3px 0" }}>
+                    📚 {h.title} ({h.subject}) due
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
       {/* Curriculum coverage */}
       {(snap?.currStats.length ?? 0) > 0 && (
         <div style={{ animation: "fadeUp 0.4s ease" }}>

@@ -4,6 +4,8 @@ export interface PulseSnapshot {
   userId: string;
   schoolId: string;
   todaySlots: any[];
+  tomorrowSlots: any[];
+  homeworkDueTomorrow: { title: string; subject: string; due_date: string; class_id: string }[];
   attPending: { class_id: string; class_name: string }[];
   atRisk: { id: string; name: string; reason: string }[];
   currStats: { subject: string; subjectId: string; classId: string; covered: number; total: number; lessonCount: number }[];
@@ -59,6 +61,10 @@ export async function fetchPulseData(
   }));
 
   const todaySlots = allSlots.filter(s => Number(s.day_of_week) === todayDow);
+  const tomorrowDow = todayDow === 7 ? 1 : todayDow + 1;
+  const tomorrowSlots = allSlots
+    .filter(s => Number(s.day_of_week) === tomorrowDow)
+    .sort((a, b) => (a.start_time ?? "").localeCompare(b.start_time ?? ""));
   const slotIds = todaySlots.map(s => s.id);
   const classIds = Array.from(new Set(todaySlots.map((s: any) => s.class_id as string)));
   const termRow = termRes.data;
@@ -203,6 +209,9 @@ export async function fetchPulseData(
     class_id: h.class_id ?? "",
   }));
 
+  const tomorrowDateStr = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+  const homeworkDueTomorrow = homeworkDue.filter(h => h.due_date === tomorrowDateStr);
+
   const filedSet = new Set(
     ((plansRes.data ?? []) as any[]).map((p: any) => `${p.class_id}:${p.subject_id}`)
   );
@@ -283,8 +292,8 @@ export async function fetchPulseData(
   );
 
   return {
-    userId, schoolId, todaySlots, attPending, atRisk,
+    userId, schoolId, todaySlots, tomorrowSlots, attPending, atRisk,
     currStats, tpadDays, credits, streak, termProgressPct,
-    unreadMessages, homeworkDue, missedLessonPlans, consecutiveAbsences,
+    unreadMessages, homeworkDue, homeworkDueTomorrow, missedLessonPlans, consecutiveAbsences,
   };
 }
