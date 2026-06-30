@@ -397,3 +397,6 @@
 ## [2026-06-30 14:57] b9504e5
 **What:** Fix critical bug: notifications insert used wrong column (message vs body), add TPAD + invoice reminder crons
 **Status:** ✅ pushed
+## [2026-06-30 16:43] 29471e5
+**What:** fix: teacher pulse page and fetcher updates
+**Status:** ✅ pushed
