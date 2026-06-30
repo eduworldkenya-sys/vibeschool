@@ -18,6 +18,9 @@ export interface PulseSnapshot {
   homeworkUngraded: { title: string; subject: string; class_id: string; homework_id: string; count: number }[];
   missedLessonPlans: { slotId: string; className: string; subject: string; class_id: string; subject_id: string }[];
   consecutiveAbsences: { studentId: string; name: string; days: number }[];
+  termNumber: number | null;
+  weekNumber: number | null;
+  recentActivity: { type: "attendance" | "lesson_plan"; title: string; subtitle: string; timestamp: string }[];
 }
 
 function one(x: any) { return Array.isArray(x) ? x[0] : x; }
@@ -72,11 +75,13 @@ export async function fetchPulseData(
   const activeTermNum = termRow?.term ?? (Math.floor(new Date().getMonth() / 4) + 1);
 
   let termProgressPct = 50;
+  let weekNumber: number | null = null;
   if (termRow?.start_date && termRow?.end_date) {
     const start = new Date(termRow.start_date).getTime();
     const end = new Date(termRow.end_date).getTime();
     const now = Date.now();
     termProgressPct = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
+    weekNumber = Math.max(1, Math.ceil((now - start) / (7 * 86400000)) + 1);
   }
 
   const monday = new Date();
@@ -95,7 +100,7 @@ export async function fetchPulseData(
     d.setDate(d.getDate() - 1);
   }
 
-  const [attTodayRes, tpadRes, absenceRes, streakRes, vcUnreadRes, homeworkRes, plansRes, recentAttRes, ungradedRes] = await Promise.all([
+  const [attTodayRes, tpadRes, absenceRes, streakRes, vcUnreadRes, homeworkRes, plansRes, recentAttRes, ungradedRes, recentAttMarkedRes, recentPlansRes] = await Promise.all([
     slotIds.length > 0
       ? supabase
           .from("attendance")
@@ -164,6 +169,18 @@ export async function fetchPulseData(
           .eq("teacher_id", userId)
           .in("class_id", classIds)
       : Promise.resolve({ data: [] }),
+    supabase
+      .from("attendance")
+      .select("class_id, timestamp, classes(name)")
+      .eq("marked_by", userId)
+      .order("timestamp", { ascending: false })
+      .limit(5),
+    supabase
+      .from("lesson_plans")
+      .select("id, class_id, subject_id, created_at, classes(name), subjects(name)")
+      .eq("teacher_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   const markedIds = new Set((attTodayRes.data ?? []).map((a: any) => a.timetable_slot_id));
@@ -315,10 +332,28 @@ export async function fetchPulseData(
     })
   );
 
+  const recentActivity: PulseSnapshot["recentActivity"] = [
+    ...((recentAttMarkedRes.data ?? []) as any[]).map((r: any) => ({
+      type: "attendance" as const,
+      title: "Attendance marked",
+      subtitle: one(r.classes)?.name ?? "Class",
+      timestamp: r.timestamp,
+    })),
+    ...((recentPlansRes.data ?? []) as any[]).map((r: any) => ({
+      type: "lesson_plan" as const,
+      title: `Lesson plan filed — ${one(r.subjects)?.name ?? "Subject"}`,
+      subtitle: one(r.classes)?.name ?? "Class",
+      timestamp: r.created_at,
+    })),
+  ]
+    .filter(r => !!r.timestamp)
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 6);
+
   return {
     userId, schoolId, todaySlots, tomorrowSlots, attPending, atRisk,
     currStats, tpadDays, credits, streak, termProgressPct,
     unreadMessages, homeworkDue, homeworkDueTomorrow, homeworkUngraded, missedLessonPlans, consecutiveAbsences,
+    termNumber: termRow?.term ?? null, weekNumber, recentActivity,
   };
 }
-

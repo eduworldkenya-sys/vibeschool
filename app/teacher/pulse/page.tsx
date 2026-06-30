@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useCredits } from "@/app/teacher/layout";
 import { fetchPulseData, PulseSnapshot } from "@/lib/pulse/fetcher";
-import { runRules } from "@/lib/pulse/rules";
+import { runRules, PriorityTask } from "@/lib/pulse/rules";
+import RecentActivity, { ActivityItem } from "@/components/teacher/RecentActivity";
 import {
   fingerprint, readTwinCache, writeTwinCache,
   readSnapCache, writeSnapCache
@@ -21,9 +22,17 @@ function greeting() {
   const h = new Date().getHours();
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
+function relativeTime(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
-// Deterministic next-step rule — no AI call, hybrid-first approach.
-// Mirrors the Scheme -> Plan -> Assess workflow already used in SubjectHub.
 function nextStepFor(s: { lessonCount: number; covered: number; total: number }): {
   label: string; icon: string;
 } {
@@ -31,8 +40,6 @@ function nextStepFor(s: { lessonCount: number; covered: number; total: number })
   if (s.total > 0 && s.covered / s.total < 0.3) return { label: "Catch up on curriculum", icon: "📋" };
   return { label: "Keep going", icon: "✓" };
 }
-
-// ── UI Primitives ─────────────────────────────────────────────────────────────
 
 function Skel({ h = 52, r = 12 }: { h?: number; r?: number }) {
   return (
@@ -108,8 +115,6 @@ function Pressable({ children, onClick, style = {} }: {
   );
 }
 
-// ── Streak Badge ──────────────────────────────────────────────────────────────
-
 function StreakBadge({ streak }: { streak: number }) {
   if (streak < 3) return null;
   const fire = streak >= 14 ? "🔥🔥" : streak >= 7 ? "🔥" : "✦";
@@ -124,8 +129,6 @@ function StreakBadge({ streak }: { streak: number }) {
     </div>
   );
 }
-
-// ── Twin Card ─────────────────────────────────────────────────────────────────
 
 function TwinCard({
   message, aiActive, priority, upcomingWarning, onClick,
@@ -201,8 +204,6 @@ function TwinCard({
   );
 }
 
-// ── Stat Tile ─────────────────────────────────────────────────────────────────
-
 function StatTile({ label, value, sub, color, onClick }: {
   label: string; value: string; sub: string;
   color: string; onClick: () => void;
@@ -228,8 +229,6 @@ function StatTile({ label, value, sub, color, onClick }: {
     </div>
   );
 }
-
-// ── Attendance Bottom Sheet ────────────────────────────────────────────────────
 
 function AttSheet({ classes, onClose, onGo }: {
   classes: { class_id: string; class_name: string }[];
@@ -265,8 +264,6 @@ function AttSheet({ classes, onClose, onGo }: {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
-
 export default function PulsePage() {
   const router = useRouter();
   const { creditBalance } = useCredits();
@@ -279,6 +276,7 @@ export default function PulsePage() {
   const [twinPriority, setTwinPriority] = useState<string>("calm");
   const [twinAiActive, setTwinAiActive] = useState(false);
   const [upcomingWarning, setUpcomingWarning] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<PriorityTask[]>([]);
   const [attSheetOpen, setAttSheetOpen] = useState(false);
 
   const touchStartY = useRef(0);
@@ -289,6 +287,7 @@ export default function PulsePage() {
     setTwinMsg(result.message);
     setTwinPriority(result.priority);
     setUpcomingWarning(result.upcomingWarning);
+    setTasks(result.tasks);
     if (result.confidence >= 70) return;
 
     const fp = fingerprint(data);
@@ -311,7 +310,6 @@ export default function PulsePage() {
   const boot = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else {
-      // Render cached snapshot instantly while fetching
       const cachedSnap = readSnapCache();
       if (cachedSnap) {
         setSnap(cachedSnap);
@@ -320,6 +318,7 @@ export default function PulsePage() {
         setTwinMsg(result.message);
         setTwinPriority(result.priority);
         setUpcomingWarning(result.upcomingWarning);
+        setTasks(result.tasks);
       }
     }
 
@@ -345,7 +344,6 @@ export default function PulsePage() {
 
   useEffect(() => { boot(); }, [boot]);
 
-  // Refresh twin message every 5 minutes if tab is open
   useEffect(() => {
     const interval = setInterval(() => {
       if (snap) resolveTwin(snap);
@@ -353,7 +351,6 @@ export default function PulsePage() {
     return () => clearInterval(interval);
   }, [snap, resolveTwin]);
 
-  // Pull to refresh
   const onTouchStart = (e: React.TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
   const onTouchEnd = (e: React.TouchEvent) => {
     const delta = e.changedTouches[0].clientY - touchStartY.current;
@@ -378,7 +375,6 @@ export default function PulsePage() {
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
       `}</style>
 
-      {/* Pull to refresh indicator */}
       {refreshing && (
         <div style={{ textAlign: "center", padding: "6px 0 10px", animation: "fadeUp 0.2s ease" }}>
           <div style={{ display: "inline-block", width: 16, height: 16, border: "2px solid #10b981", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
@@ -392,7 +388,28 @@ export default function PulsePage() {
             <div style={{ fontSize: 22, fontWeight: 900, color: "#1e1b4b", letterSpacing: -0.5 }}>
               {greeting()}{name ? `, ${name}` : ""}.
             </div>
-            <div style={{ fontSize: 13, color: "#9ca3af", marginTop: 2 }}>{todayName} · {dateStr}</div>
+            <div style={{ fontSize: 13, color: "#9ca3af", marginTop: 2 }}>
+              {todayName} · {dateStr}
+              {snap?.termNumber != null && snap?.weekNumber != null
+                ? ` · Term ${snap.termNumber}, Week ${snap.weekNumber}`
+                : ""}
+            </div>
+            {(() => {
+              if (!snap || snap.todaySlots.length === 0) return null;
+              const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+              const next = snap.todaySlots.find((s: any) => {
+                const [h, m] = s.start_time.split(":").map(Number);
+                return h * 60 + m > nowMins;
+              });
+              if (!next) return null;
+              const [h, m] = next.start_time.split(":").map(Number);
+              const mins = h * 60 + m - nowMins;
+              return (
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#10b981", marginTop: 4 }}>
+                  Next: {next.subject} ({next.class_name}) in {mins < 60 ? `${mins}m` : timeStr(next.start_time)}
+                </div>
+              );
+            })()}
           </div>
           {(snap?.streak ?? 0) >= 3 && <StreakBadge streak={snap!.streak} />}
         </div>
@@ -408,6 +425,38 @@ export default function PulsePage() {
           onClick={() => router.push("/teacher/twin")}
         />
       </div>
+
+      {/* Priority Tasks */}
+      {tasks.length > 0 && (
+        <div style={{ animation: "fadeUp 0.28s ease" }}>
+          <Card>
+            <Label text="Priority Tasks" />
+            {tasks.map((t, i) => {
+              const color = t.severity === "critical" ? "#ef4444" : t.severity === "urgent" ? "#f59e0b" : "#6b7280";
+              const bg = t.severity === "critical" ? "#fef2f2" : t.severity === "urgent" ? "#fffbeb" : "#f9fafb";
+              return (
+                <Pressable key={t.id} onClick={() => router.push(t.href)}>
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "11px 0", borderBottom: i < tasks.length - 1 ? "1px solid #f3f4f6" : "none",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{t.label}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{t.detail}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 9, fontWeight: 800, color, background: bg, borderRadius: 8, padding: "3px 8px", textTransform: "uppercase", letterSpacing: 0.5, flexShrink: 0 }}>
+                      {t.severity}
+                    </div>
+                  </div>
+                </Pressable>
+              );
+            })}
+          </Card>
+        </div>
+      )}
 
       {/* Stat tiles */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12, animation: "fadeUp 0.3s ease" }}>
@@ -461,7 +510,7 @@ export default function PulsePage() {
         </div>
       )}
 
-      {/* Homework ungraded — pending grading */}
+      {/* Homework ungraded */}
       {(snap?.homeworkUngraded.length ?? 0) > 0 && (
         <div style={{ animation: "fadeUp 0.335s ease" }}>
           <Card style={{ borderLeft: "3px solid #6366f1" }}>
@@ -485,7 +534,7 @@ export default function PulsePage() {
         </div>
       )}
 
-      {/* Attendance insight — informational, not an alarm. No red, no pulse, no "pending" framing. */}
+      {/* Attendance insight */}
       {(snap?.attPending.length ?? 0) > 0 && (
         <div style={{ animation: "fadeUp 0.32s ease" }}>
           <Card style={{ borderLeft: "3px solid #10b981" }}>
@@ -533,6 +582,8 @@ export default function PulsePage() {
             const isNow = slotMins <= nowMins && nowMins < endMins;
             const isPast = endMins <= nowMins;
             const isSoon = !isNow && !isPast && slotMins - nowMins <= 10;
+            const planMissing = snap!.missedLessonPlans.some(p => p.slotId === slot.id);
+            const attMarked = !snap!.attPending.some(c => c.class_id === slot.class_id);
             return (
               <Pressable key={slot.id} onClick={() => router.push(`/teacher/classhub/${slot.class_id}`)}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: "1px solid #f3f4f6", opacity: isPast ? 0.45 : 1 }}>
@@ -540,6 +591,16 @@ export default function PulsePage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{slot.subject} — {slot.class_name}</div>
                     <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{timeStr(slot.start_time)} – {timeStr(slot.end_time)}</div>
+                    {!isPast && (
+                      <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: planMissing ? "#ef4444" : "#10b981", background: planMissing ? "#fef2f2" : "#f0fdf4", borderRadius: 6, padding: "2px 6px" }}>
+                          {planMissing ? "No plan" : "Plan ready"}
+                        </span>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: attMarked ? "#10b981" : "#9ca3af", background: attMarked ? "#f0fdf4" : "#f9fafb", borderRadius: 6, padding: "2px 6px" }}>
+                          {attMarked ? "Attendance marked" : "Attendance pending"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {isNow && <div style={{ fontSize: 9, fontWeight: 900, color: "#10b981", background: "#f0fdf4", borderRadius: 8, padding: "3px 8px", letterSpacing: 0.5, textTransform: "uppercase" }}>Now</div>}
                   {isSoon && <div style={{ fontSize: 9, fontWeight: 900, color: "#f59e0b", background: "#fffbeb", borderRadius: 8, padding: "3px 8px", letterSpacing: 0.5, textTransform: "uppercase" }}>Soon</div>}
@@ -610,7 +671,6 @@ export default function PulsePage() {
                   </div>
                   <div style={{ height: 7, background: "#f3f4f6", borderRadius: 4, overflow: "hidden", position: "relative" }}>
                     <div style={{ height: "100%", width: `${pct}%`, background: barColor, borderRadius: 4, transition: "width 0.7s ease" }} />
-                    {/* Term progress marker */}
                     <div style={{ position: "absolute", top: 0, left: `${Math.min(termPct, 99)}%`, width: 2, height: "100%", background: "#6366f1", opacity: 0.5 }} />
                   </div>
                   <Pressable onClick={() => router.push(`/teacher/lessonplan?subjectId=${s.subjectId}&classId=${s.classId}`)} style={{ marginTop: 6 }}>
@@ -629,25 +689,47 @@ export default function PulsePage() {
       )}
 
       {/* At-risk students */}
-      {(snap?.atRisk.length ?? 0) > 0 && (
+      {((snap?.atRisk.length ?? 0) > 0 || (snap?.consecutiveAbsences.length ?? 0) > 0) && (
         <div style={{ animation: "fadeUp 0.45s ease" }}>
           <Card>
             <Label text="Needs Attention" />
-            {snap!.atRisk.map((s, i) => {
-              const count = parseInt(s.reason.match(/\d+/)?.[0] ?? "3");
-              const severity = count >= 7 ? "#ef4444" : count >= 5 ? "#f59e0b" : "#6b7280";
-              return (
-                <Pressable key={s.id} onClick={() => router.push("/teacher/students")}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: i < snap!.atRisk.length - 1 ? "1px solid #f3f4f6" : "none" }}>
-                    <div>
+            {(snap?.consecutiveAbsences.length ?? 0) > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#ef4444", letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 6 }}>
+                  Consecutive Absences
+                </div>
+                {snap!.consecutiveAbsences.slice(0, 3).map((s) => (
+                  <Pressable key={s.studentId} onClick={() => router.push("/teacher/students")}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid #f3f4f6" }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{s.name}</div>
-                      <div style={{ fontSize: 11, color: severity, marginTop: 2, fontWeight: 600 }}>{s.reason}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#ef4444" }}>{s.days} days in a row</div>
                     </div>
-                    <div style={{ width: 9, height: 9, borderRadius: "50%", background: severity, flexShrink: 0 }} />
-                  </div>
-                </Pressable>
-              );
-            })}
+                  </Pressable>
+                ))}
+              </div>
+            )}
+            {(snap?.atRisk.length ?? 0) > 0 && (
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#f59e0b", letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 6 }}>
+                  Frequently Absent
+                </div>
+                {snap!.atRisk.map((s, i) => {
+                  const count = parseInt(s.reason.match(/\d+/)?.[0] ?? "3");
+                  const severity = count >= 7 ? "#ef4444" : count >= 5 ? "#f59e0b" : "#6b7280";
+                  return (
+                    <Pressable key={s.id} onClick={() => router.push("/teacher/students")}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: i < snap!.atRisk.length - 1 ? "1px solid #f3f4f6" : "none" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{s.name}</div>
+                          <div style={{ fontSize: 11, color: severity, marginTop: 2, fontWeight: 600 }}>{s.reason}</div>
+                        </div>
+                        <div style={{ width: 9, height: 9, borderRadius: "50%", background: severity, flexShrink: 0 }} />
+                      </div>
+                    </Pressable>
+                  );
+                })}
+              </div>
+            )}
             <Pressable onClick={() => router.push("/teacher/students")} style={{ marginTop: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#10b981" }}>View all students →</div>
             </Pressable>
@@ -677,6 +759,21 @@ export default function PulsePage() {
         </Card>
       </div>
 
+      {/* Recent Activity */}
+      {(snap?.recentActivity.length ?? 0) > 0 && (
+        <div style={{ animation: "fadeUp 0.55s ease" }}>
+          <RecentActivity
+            items={(snap!.recentActivity as any[]).map((a, i): ActivityItem => ({
+              id: `${a.type}-${i}-${a.timestamp}`,
+              type: a.type,
+              title: a.title,
+              subtitle: a.subtitle,
+              timestamp: relativeTime(a.timestamp),
+            }))}
+          />
+        </div>
+      )}
+
       {/* Attendance bottom sheet */}
       {attSheetOpen && snap && (
         <AttSheet
@@ -688,4 +785,3 @@ export default function PulsePage() {
     </div>
   );
 }
-
