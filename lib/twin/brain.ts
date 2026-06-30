@@ -41,6 +41,7 @@ export interface TwinBrainState {
   rulesOutput:   ReturnType<typeof runRules> | null;
   intents:       Record<string, string>;
   recentMemory:  { type: string; content: string; created_at: string }[];
+  recentLessons: { title: string; topic: string; class_name: string; created_at: string; status: string }[];
   loadedAt:      number;
   isStale:       boolean;
 }
@@ -491,6 +492,23 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
     recentMemory = (memRows ?? []).reverse();
   } catch { recentMemory = cached?.recentMemory ?? []; }
 
+  let recentLessons: { title: string; topic: string; class_name: string; created_at: string; status: string }[] = [];
+  try {
+    const { data: lessonRows } = await supabase
+      .from("lesson_plans")
+      .select("title,topic,created_at,status,classes(name,stream)")
+      .eq("teacher_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(8);
+    recentLessons = (lessonRows ?? []).map((h: any) => ({
+      title: h.title ?? "Untitled",
+      topic: h.topic ?? "",
+      class_name: h.classes ? h.classes.name + (h.classes.stream ? " " + h.classes.stream : "") : "",
+      created_at: h.created_at,
+      status: h.status ?? "draft",
+    }));
+  } catch { recentLessons = cached?.recentLessons ?? []; }
+
   let snap: PulseSnapshot | null = null;
   try {
     if (schoolId) {
@@ -506,7 +524,7 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
 
   const brain: TwinBrainState = {
     userId, schoolId, fullName, firstName, schoolName,
-    snap, rulesOutput, intents, fingerprint, recentMemory,
+    snap, rulesOutput, intents, fingerprint, recentMemory, recentLessons,
     loadedAt: Date.now(), isStale: false,
   };
   saveCache(brain);
@@ -567,6 +585,14 @@ export function buildContextString(brain: TwinBrainState): string {
         `  • ${h.title} (${h.subject}) — due ${new Date(h.due_date).toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })}`)
       .join("\n");
     lines.push(`\nHomework due this week:\n${hwLines}`);
+  }
+
+  if (brain.recentLessons?.length > 0) {
+    const lessonLines = brain.recentLessons
+      .slice(0, 5)
+      .map(l => `  • ${l.class_name || "Class"} — "${l.title}"${l.topic ? ` (${l.topic})` : ""} — ${l.status} — ${new Date(l.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}`)
+      .join("\n");
+    lines.push(`\nRecently taught / planned lessons:\n${lessonLines}`);
   }
 
   const baseContext = lines.filter(Boolean).join("\n");
