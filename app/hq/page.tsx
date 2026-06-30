@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import HQTwinDrawer from "@/components/hq/TwinDrawer"
 
 const deepspace = "#0a1628"
 const panel     = "#0f1d33"
@@ -19,6 +20,7 @@ export default function HQPage() {
   const router = useRouter()
   const [screen, setScreen] = useState<Screen>("home")
   const [navActive, setNavActive] = useState<string>("home")
+  const [twinOpen, setTwinOpen] = useState(false)
 
   function go(s: Screen, nav?: string) {
     setScreen(s)
@@ -458,6 +460,23 @@ export default function HQPage() {
         </div>
         <BottomNav />
       </>}
+
+      {/* ── TWIN FAB ── */}
+      <button
+        onClick={() => setTwinOpen(true)}
+        style={{
+          position: "fixed", right: "16px", bottom: "84px", zIndex: 770,
+          width: "52px", height: "52px", borderRadius: "50%",
+          background: "linear-gradient(135deg,#10b981,#059669)",
+          border: "1.5px solid rgba(16,185,129,0.5)",
+          boxShadow: "0 4px 20px rgba(16,185,129,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "22px", cursor: "pointer", color: "#fff",
+        }}
+        title="Open HQ Twin"
+      >✦</button>
+
+      <HQTwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
     </div>
   )
 }
