@@ -1,15 +1,25 @@
 import { PulseSnapshot } from "./fetcher";
 
+export interface PriorityTask {
+  id: string;
+  label: string;
+  detail: string;
+  severity: "critical" | "urgent" | "normal";
+  href: string;
+}
+
 export interface RulesOutput {
   message: string;
   confidence: number;
   priority: "critical" | "urgent" | "normal" | "calm";
   signals: string[];
   upcomingWarning: string | null;
+  tasks: PriorityTask[];
 }
 
 export function runRules(data: PulseSnapshot): RulesOutput {
   const signals: string[] = [];
+  const tasks: PriorityTask[] = [];
   let confidence = 0;
   let priority: RulesOutput["priority"] = "calm";
   let message = "";
@@ -23,6 +33,13 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     confidence += 40;
     priority = "critical";
     message = `${data.attPending.map(c => c.class_name).join(", ")} — attendance not marked yet.`;
+    tasks.push({
+      id: "attendance_pending",
+      label: "Take attendance",
+      detail: `${data.attPending.length} class${data.attPending.length === 1 ? "" : "es"} not marked yet`,
+      severity: "critical",
+      href: `/teacher/attendance?classId=${data.attPending[0].class_id}`,
+    });
   }
 
   if (data.attPending.length === 0 && data.todaySlots.length > 0) {
@@ -42,6 +59,13 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     confidence += 30;
     if (priority !== "critical") priority = "urgent";
     if (!message) message = `TPAD self-appraisal due in ${data.tpadDays} day${data.tpadDays === 1 ? "" : "s"}. Don't leave it to the last hour.`;
+    tasks.push({
+      id: "tpad_due",
+      label: "Complete TPAD self-appraisal",
+      detail: `Due in ${data.tpadDays} day${data.tpadDays === 1 ? "" : "s"}`,
+      severity: data.tpadDays <= 3 ? "critical" : "urgent",
+      href: "/teacher/tpad/self-appraisal",
+    });
   }
 
   if (data.consecutiveAbsences.length > 0) {
@@ -50,6 +74,13 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     confidence += 35;
     if (priority !== "critical") priority = "urgent";
     if (!message) message = `${top.name} has been absent ${top.days} days in a row — follow up before today's class.`;
+    tasks.push({
+      id: "consecutive_absent",
+      label: `Follow up with ${top.name}`,
+      detail: `Absent ${top.days} days in a row`,
+      severity: top.days >= 5 ? "critical" : "urgent",
+      href: "/teacher/students",
+    });
   }
 
   if (data.atRisk.length > 0) {
@@ -63,6 +94,13 @@ export function runRules(data: PulseSnapshot): RulesOutput {
         ? `${top.name} has missed ${count} lessons this term — this is a pattern, not bad luck. Act today.`
         : `${top.name} has ${top.reason}. A quick check-in could make a difference.`;
     }
+    tasks.push({
+      id: "at_risk",
+      label: data.atRisk.length === 1 ? `Check in with ${top.name}` : `Check in with ${data.atRisk.length} at-risk students`,
+      detail: top.reason,
+      severity: count >= 7 ? "critical" : "urgent",
+      href: "/teacher/students",
+    });
   }
 
   if (data.missedLessonPlans.length > 0) {
@@ -73,6 +111,13 @@ export function runRules(data: PulseSnapshot): RulesOutput {
       const missing = data.missedLessonPlans.map(p => `${p.className} (${p.subject})`).join(", ");
       message = `No lesson plan filed this week for: ${missing}.`;
     }
+    tasks.push({
+      id: "missing_plans",
+      label: "File missing lesson plans",
+      detail: data.missedLessonPlans.map(p => `${p.className} (${p.subject})`).join(", "),
+      severity: "normal",
+      href: "/teacher/lessonplan",
+    });
   }
 
   const behind = data.currStats.filter(s => s.total > 0 && (s.covered / s.total) < 0.4);
@@ -81,12 +126,19 @@ export function runRules(data: PulseSnapshot): RulesOutput {
     signals.push(`curriculum_behind:${behind.map(s => s.subject).join(",")}`);
     confidence += 20;
     if (priority === "calm") priority = "normal";
+    const pct = Math.round((behind[0].covered / behind[0].total) * 100);
     if (!message) {
-      const pct = Math.round((behind[0].covered / behind[0].total) * 100);
       message = termPct > 60
         ? `${behind[0].subject} is at ${pct}% but the term is ${Math.round(termPct)}% done — you need to accelerate.`
         : `${behind[0].subject} coverage is at ${pct}%. Still time to catch up this term.`;
     }
+    tasks.push({
+      id: "curriculum_behind",
+      label: `Catch up on ${behind[0].subject}`,
+      detail: `${pct}% covered · term ${Math.round(termPct)}% done`,
+      severity: termPct > 60 ? "urgent" : "normal",
+      href: "/teacher/scheme",
+    });
   }
 
   if (data.credits !== null && data.credits <= 3) {
@@ -122,5 +174,8 @@ export function runRules(data: PulseSnapshot): RulesOutput {
       : "Day done well. A few notes now saves an hour tomorrow.";
   }
 
-  return { message, confidence, priority, signals, upcomingWarning };
+  const severityRank = { critical: 0, urgent: 1, normal: 2 } as const;
+  tasks.sort((a, b) => severityRank[a.severity] - severityRank[b.severity]);
+
+  return { message, confidence, priority, signals, upcomingWarning, tasks };
 }
