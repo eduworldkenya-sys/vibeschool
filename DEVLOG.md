@@ -400,3 +400,6 @@
 ## [2026-06-30 16:43] 29471e5
 **What:** fix: teacher pulse page and fetcher updates
 **Status:** ✅ pushed
+## [2026-06-30 16:45] 040482b
+**What:** nav: workflow trays (Today/Teach/Classes/Assess/Me), move VibeConnect+Homework into Classes
+**Status:** ✅ pushed
