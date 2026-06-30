@@ -36,6 +36,7 @@ interface Ctx {
 }
 
 interface CurriculumSuggestion {
+  id:        string
   strand:    string
   subStrand: string
   topic:     string
@@ -197,7 +198,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           const week = currentWeekOf(term)
           const { data: currRows } = await supabase
             .from('curriculum')
-            .select('strand, sub_strand, topic')
+            .select('id, strand, sub_strand, topic')
             .eq('grade',   grade)
             .eq('subject', slot.subject)
             .eq('term',    term.term)
@@ -220,6 +221,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
             }
 
             setSuggestion({
+              id:        currRow.id,
               strand:    currRow.strand,
               subStrand: currRow.sub_strand,
               topic:     currRow.topic,
@@ -341,18 +343,19 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       const { data: prof } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
 
       const payload = {
-        teacher_id:        user.id,
-        school_id:         prof?.school_id ?? null,
-        class_id:          slot.class_id,
-        subject_id:        slot.subject_id,
-        timetable_slot_id: slot.id,
-        week_start:        weekStart,
-        day_of_week:       dayOfWeek,
-        topic:             topic.trim(),
-        title:             slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
-        body:              json.plan,
-        status:            'draft',
-        generated_by:      'twin',
+        teacher_id:         user.id,
+        school_id:          prof?.school_id ?? null,
+        class_id:           slot.class_id,
+        subject_id:         slot.subject_id,
+        timetable_slot_id:  slot.id,
+        curriculum_unit_id: usedSuggestion ? suggestion?.id ?? null : null,
+        week_start:         weekStart,
+        day_of_week:        dayOfWeek,
+        topic:              topic.trim(),
+        title:              slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
+        body:               json.plan,
+        status:             'draft',
+        generated_by:       'twin',
       }
 
       // G4: read ref not state
@@ -491,13 +494,15 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         const due = new Date()
         due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
         const { data: hw } = await supabase.from('homework').insert({
-          class_id:     slot.class_id,
-          teacher_id:   user.id,
-          title:        topic + ' — Homework',
-          subject:      slot.subject,
-          instructions: sections.homework.trim(),
-          type:         'written',
-          due_date:     nairobiDateStr(due),
+          class_id:           slot.class_id,
+          teacher_id:         user.id,
+          title:              topic + ' — Homework',
+          subject:            slot.subject,
+          instructions:       sections.homework.trim(),
+          type:               'written',
+          due_date:           nairobiDateStr(due),
+          lesson_plan_id:     currentId,
+          curriculum_unit_id: usedSuggestion ? suggestion?.id ?? null : null,
         }).select('id').single()
 
         if (hw?.id) {

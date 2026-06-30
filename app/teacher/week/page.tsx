@@ -129,7 +129,7 @@ export default function TeacherWeekViewPage() {
         assessRes,
       ] = await Promise.all([
         supabase.from("curriculum")
-          .select("grade,subject,strand,sub_strand,topic,week,term")
+          .select("id,grade,subject,strand,sub_strand,topic,week,term")
           .eq("term", activeTerm.term)
           .eq("week", wk)
           .in("grade", Array.from(new Set(Array.from(gradeMap.values())))),
@@ -140,17 +140,17 @@ export default function TeacherWeekViewPage() {
           .eq("week", wk)
           .in("class_id", classIds),
         supabase.from("lesson_plans")
-          .select("id,class_id,subject_id,week_start")
+          .select("id,class_id,subject_id,week_start,curriculum_unit_id")
           .eq("teacher_id", user.id)
           .eq("week_start", wStart)
           .in("class_id", classIds),
         supabase.from("lesson_notes")
-          .select("id,class_id,subject_id,taught_date")
+          .select("id,class_id,subject_id,taught_date,curriculum_unit_id")
           .eq("teacher_id", user.id)
           .gte("taught_date", wStart)
           .in("class_id", classIds),
         supabase.from("homework")
-          .select("id,class_id,subject,due_date")
+          .select("id,class_id,subject,due_date,curriculum_unit_id")
           .eq("teacher_id", user.id)
           .in("class_id", classIds),
         supabase.from("cbc_assessments")
@@ -170,11 +170,25 @@ export default function TeacherWeekViewPage() {
       const result: SubjectWeekRow[] = combos.map(combo => {
         const grade = gradeMap.get(combo.classId) ?? "";
         const curr = curriculumRows.find(c => c.grade === grade && c.subject === combo.subjectName);
+        const currId: string | null = curr?.id ?? null;
 
         const hasScheme = strandProgress.some(sp => sp.class_id === combo.classId);
-        const hasPlan = plans.some(p => p.class_id === combo.classId && p.subject_id === combo.subjectId);
-        const hasNotes = notes.some(n => n.class_id === combo.classId && n.subject_id === combo.subjectId);
-        const hasHomework = homework.some(h => h.class_id === combo.classId && h.subject === combo.subjectName);
+
+        // Prefer the real curriculum_unit_id FK when a row carries one.
+        // Fall back to grade/subject/week soft-matching for older rows
+        // created before the FK existed (curriculum_unit_id is null on those).
+        const hasPlan = plans.some(p =>
+          p.class_id === combo.classId &&
+          (p.curriculum_unit_id ? p.curriculum_unit_id === currId : p.subject_id === combo.subjectId)
+        );
+        const hasNotes = notes.some(n =>
+          n.class_id === combo.classId &&
+          (n.curriculum_unit_id ? n.curriculum_unit_id === currId : n.subject_id === combo.subjectId)
+        );
+        const hasHomework = homework.some(h =>
+          h.class_id === combo.classId &&
+          (h.curriculum_unit_id ? h.curriculum_unit_id === currId : h.subject === combo.subjectName)
+        );
         const hasAssessment = assessments.some(a => a.class_id === combo.classId && a.subject_id === combo.subjectId);
 
         return {

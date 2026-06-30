@@ -37,7 +37,7 @@ function tabIdFromPath(path: string): TabId {
   if (path.startsWith("/teacher/pulse")) return "today";
   if (path.startsWith("/teacher/twin"))  return "today";
 
-  if (path.startsWith("/teacher/teach-today") || path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/lessonnotes") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn")) return "teach";
+  if (path.startsWith("/teacher/teach-today") || path.startsWith("/teacher/week") || path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/lessonnotes") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn")) return "teach";
 
   if (path.startsWith("/teacher/classhub") || path.startsWith("/teacher/students") || path.startsWith("/teacher/attendance") || path.startsWith("/teacher/homework") || path.startsWith("/teacher/vibeconnect") || path.startsWith("/teacher/timetable")) return "classes";
 
