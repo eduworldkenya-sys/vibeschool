@@ -21,25 +21,31 @@ const CreditContext = createContext<CreditCtx>({ creditBalance: null, refreshCre
 export const useCredits = () => useContext(CreditContext);
 
 // ── Nav config — single source of truth ──────────────────────────────────────
+// v2: workflow-organized trays (Today / Teach / Classes / Assess / Me)
 const NAV_TABS = [
-  { id: "pulse",    label: "Home",     href: "/teacher/pulse"       },
-  { id: "teach",    label: "Teach",    href: "/teacher/subjecthub"  },
-  { id: "students", label: "Students", href: "/teacher/classhub"    },
-  { id: "results",  label: "Results",  href: "/teacher/results"     },
-  { id: "me",       label: "Me",       href: "/teacher/profile"     },
+  { id: "today",   label: "Today",   href: "/teacher/pulse"      },
+  { id: "teach",   label: "Teach",   href: "/teacher/subjecthub" },
+  { id: "classes", label: "Classes", href: "/teacher/classhub"   },
+  { id: "assess",  label: "Assess",  href: "/teacher/results"    },
+  { id: "me",      label: "Me",      href: "/teacher/profile"    },
 ] as const;
 
 type TabId = typeof NAV_TABS[number]["id"];
 
 function tabIdFromPath(path: string): TabId {
-  if (path === "/teacher" || path === "/teacher/") return "pulse";
-  if (path.startsWith("/teacher/pulse"))     return "pulse";
+  if (path === "/teacher" || path === "/teacher/") return "today";
+  if (path.startsWith("/teacher/pulse")) return "today";
+  if (path.startsWith("/teacher/twin"))  return "today";
+
   if (path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/lessonnotes") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn")) return "teach";
-  if (path.startsWith("/teacher/classhub") || path.startsWith("/teacher/students") || path.startsWith("/teacher/attendance") || path.startsWith("/teacher/timetable") || path.startsWith("/teacher/schoolhub")) return "students";
-  if (path.startsWith("/teacher/results") || path.startsWith("/teacher/assessment") || path.startsWith("/teacher/academics")) return "results";
-  if (path.startsWith("/teacher/twin")) return "pulse";
-  if (path.startsWith("/teacher/profile") || path.startsWith("/teacher/credits") || path.startsWith("/teacher/tpad") || path.startsWith("/teacher/vibeconnect") || path.startsWith("/teacher/settings") || path.startsWith("/teacher/help") || path.startsWith("/teacher/more")) return "me";
-  return "pulse";
+
+  if (path.startsWith("/teacher/classhub") || path.startsWith("/teacher/students") || path.startsWith("/teacher/attendance") || path.startsWith("/teacher/homework") || path.startsWith("/teacher/vibeconnect") || path.startsWith("/teacher/timetable")) return "classes";
+
+  if (path.startsWith("/teacher/results") || path.startsWith("/teacher/assessment") || path.startsWith("/teacher/academics")) return "assess";
+
+  if (path.startsWith("/teacher/profile") || path.startsWith("/teacher/credits") || path.startsWith("/teacher/tpad") || path.startsWith("/teacher/schoolhub") || path.startsWith("/teacher/settings") || path.startsWith("/teacher/help") || path.startsWith("/teacher/more")) return "me";
+
+  return "today";
 }
 
 function IconClassHub({ size = 22 }: { size?: number }) {
@@ -87,11 +93,11 @@ function IconMore({ size = 22 }: { size?: number }) {
 }
 
 const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
-  pulse:    (a) => <IconPulse    size={a ? 23 : 21} />,
-  teach:    (a) => <IconTeach    size={a ? 23 : 21} />,
-  students: (a) => <IconStudents size={a ? 23 : 21} />,
-  results:  (a) => <IconAssess   size={a ? 23 : 21} />,
-  me:       (a) => <IconMe       size={a ? 23 : 21} />,
+  today:   (a) => <IconPulse    size={a ? 23 : 21} />,
+  teach:   (a) => <IconTeach    size={a ? 23 : 21} />,
+  classes: (a) => <IconStudents size={a ? 23 : 21} />,
+  assess:  (a) => <IconAssess   size={a ? 23 : 21} />,
+  me:      (a) => <IconMe       size={a ? 23 : 21} />,
 };
 
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
@@ -361,6 +367,16 @@ function IconResources({ size = 22 }: { size?: number }) {
     </svg>
   )
 }
+function IconHomework({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 12h6"/>
+      <path d="M9 16h6"/>
+      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="13 2 13 8 19 8"/>
+    </svg>
+  )
+}
 function IconVibeConnect({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -460,26 +476,27 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Resources",   icon: <IconResources  size={24} />, href: "/teacher/resources"         },
     { label: "VibeLearn",   icon: <IconIndexer    size={24} />, href: "/teacher/vibelearn"         },
   ],
-  students: [
-    { label: "ClassHub",   icon: <IconClassHub   size={24} />, href: "/teacher/classhub"   },
-    { label: "Students",   icon: <IconStudents   size={24} />, href: "/teacher/students"   },
-    { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance" },
-    { label: "Timetable",  icon: <IconTimetable  size={24} />, href: "/teacher/timetable"  },
-    { label: "SchoolHub",  icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub"  },
+  classes: [
+    { label: "My Classes",  icon: <IconClassHub     size={24} />, href: "/teacher/classhub"   },
+    { label: "Students",    icon: <IconStudents     size={24} />, href: "/teacher/students"   },
+    { label: "Attendance",  icon: <IconAttendance   size={24} />, href: "/teacher/attendance" },
+    { label: "Homework",    icon: <IconHomework     size={24} />, href: "/teacher/homework"   },
+    { label: "VibeConnect", icon: <IconVibeConnect  size={24} />, href: "/teacher/vibeconnect" },
+    { label: "Timetable",   icon: <IconTimetable    size={24} />, href: "/teacher/timetable"  },
   ],
-  results: [
+  assess: [
     { label: "Assessment",   icon: <IconAssess     size={24} />, href: "/teacher/assessment"          },
     { label: "Results",      icon: <IconResults    size={24} />, href: "/teacher/results"             },
     { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card" },
     { label: "Academics",    icon: <IconVibeLearn  size={24} />, href: "/teacher/academics"           },
   ],
   me: [
-    { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
-    { label: "Credits",  icon: <IconCredits  size={24} />, href: "/teacher/credits"  },
-    { label: "TPAD",     icon: <IconTPAD     size={24} />, href: "/teacher/tpad"     },
-    { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
-    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect" },
-    { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
+    { label: "Profile",   icon: <IconProfile    size={24} />, href: "/teacher/profile"   },
+    { label: "Credits",   icon: <IconCredits    size={24} />, href: "/teacher/credits"   },
+    { label: "TPAD",      icon: <IconTPAD       size={24} />, href: "/teacher/tpad"      },
+    { label: "School",    icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub" },
+    { label: "Settings",  icon: <IconSettings   size={24} />, href: "/teacher/settings"  },
+    { label: "Help",      icon: <IconHelp       size={24} />, href: "/teacher/help"      },
   ],
 }
 
@@ -491,7 +508,7 @@ function BottomNav({ activeId }: { activeId: string }) {
   useEffect(() => { setOpenTray(null) }, [pathname])
 
   function handleTab(t: typeof NAV_TABS[number]) {
-    if (t.id === "pulse") { setOpenTray(null); router.push("/teacher/pulse"); return }
+    if (t.id === "today") { setOpenTray(null); router.push("/teacher/pulse"); return }
     setOpenTray(prev => prev === t.id ? null : t.id)
   }
 
@@ -520,11 +537,11 @@ function BottomNav({ activeId }: { activeId: string }) {
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 14px" }} />
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 12px 2px" }}>
           {{
-            pulse:    "Home",
-            teach:    "Teaching Tools",
-            students: "My Classes",
-            results:  "Assessment & Results",
-            me:       "My Account",
+            today:   "Home",
+            teach:   "Teaching Tools",
+            classes: "My Classes",
+            assess:  "Assessment & Results",
+            me:      "My Account",
           }[openTray ?? ""] ?? openTray}
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8 }}>
