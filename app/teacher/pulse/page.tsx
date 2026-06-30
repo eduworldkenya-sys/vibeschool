@@ -461,25 +461,27 @@ export default function PulsePage() {
         </div>
       )}
 
-      {/* Attendance pending — inline bottom sheet trigger */}
+      {/* Attendance insight — informational, not an alarm. No red, no pulse, no "pending" framing. */}
       {(snap?.attPending.length ?? 0) > 0 && (
         <div style={{ animation: "fadeUp 0.32s ease" }}>
-          <Card style={{ borderLeft: "3px solid #ef4444" }}>
+          <Card style={{ borderLeft: "3px solid #10b981" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <Label text="Attendance Pending" />
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444", animation: "orbPulse 1.5s infinite" }} />
+              <Label text="Attendance" />
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>
+                {snap!.attPending.length} class{snap!.attPending.length !== 1 ? "es" : ""} not yet marked
+              </div>
             </div>
             {snap!.attPending.map(c => (
               <Pressable key={c.class_id} onClick={() => router.push(`/teacher/attendance?classId=${c.class_id}`)}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{c.class_name}</div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#ef4444", background: "#fef2f2", borderRadius: 8, padding: "3px 9px" }}>Mark Now →</div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: "#10b981", background: "#ecfdf5", borderRadius: 8, padding: "3px 9px" }}>Mark attendance</div>
                 </div>
               </Pressable>
             ))}
             <Pressable onClick={() => setAttSheetOpen(true)} style={{ marginTop: 10 }}>
-              <div style={{ background: "#ef4444", borderRadius: 12, padding: "11px", textAlign: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>
-                Mark All Attendance
+              <div style={{ background: "#f0fdf9", border: "1px solid #10b981", borderRadius: 12, padding: "11px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0d7a5f" }}>
+                Mark all classes
               </div>
             </Pressable>
           </Card>
