@@ -65,4 +65,9 @@ env.local
 .github/workflows/
 *.tar.gz
 *.deb
-supabase/
+
+# Supabase: ignore local/temp state, but TRACK migrations and functions
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+
