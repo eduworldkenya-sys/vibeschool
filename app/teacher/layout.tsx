@@ -821,37 +821,16 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         setTwinUnread(p === "critical" || p === "urgent" ? 1 : 0);
       } catch { setTwinUnread(0); }
 
-      const { data: participation } = await supabase
-        .from('vc_participants')
-        .select('thread_id, last_read_at')
-        .eq('profile_id', user.id);
-
-      const threadIds = (participation ?? []).map((p: { thread_id: string }) => p.thread_id);
-      let unread = 0;
+      // Single round trip via RPC — replaces the 2-query vc_participants/vc_messages waterfall.
+      // NOTE: RPC also excludes soft-deleted messages (deleted_at IS NULL), which the old
+      // client-side query did not filter — a minor correctness improvement, not just a perf one.
       try {
-        if (threadIds.length > 0) {
-          const readMap: Record<string, string> = {};
-          (participation ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => {
-            readMap[p.thread_id] = p.last_read_at ?? '1970-01-01T00:00:00Z';
-          });
-          const { data: unreadRows } = await supabase
-            .from('vc_messages')
-            .select('thread_id, created_at')
-            .in('thread_id', threadIds)
-            .neq('sender_id', user.id);
-          const unreadSet = new Set(
-            (unreadRows ?? [])
-              .filter((r: { thread_id: string; created_at: string }) =>
-                r.created_at > (readMap[r.thread_id] ?? '1970-01-01T00:00:00Z')
-              )
-              .map((r: { thread_id: string }) => r.thread_id)
-          );
-          unread = unreadSet.size;
-        }
+        const { data: unreadCount, error: unreadErr } = await supabase
+          .rpc('get_unread_thread_count', { p_profile_id: user.id });
+        setUnreadConnect(unreadErr ? 0 : (unreadCount ?? 0));
       } catch {
-        // unread count failed — non-critical
+        setUnreadConnect(0);
       }
-      setUnreadConnect(unread);
     }
     fetchProfile();
   }, []);
