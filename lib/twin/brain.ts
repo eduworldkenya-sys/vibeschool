@@ -463,7 +463,7 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
     try {
       const { data: memRows } = await supabase
         .from("twin_memory").select("type, content, created_at")
-        .eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+        .eq("profile_id", userId).order("created_at", { ascending: false }).limit(10);
       if (memRows && memRows.length > (cached.recentMemory?.length ?? 0)) {
         const updated = { ...cached, recentMemory: memRows.reverse() };
         saveCache(updated);
@@ -488,7 +488,7 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
   try {
     const { data: memRows } = await supabase
       .from("twin_memory").select("type, content, created_at")
-      .eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+      .eq("profile_id", userId).order("created_at", { ascending: false }).limit(10);
     recentMemory = (memRows ?? []).reverse();
   } catch { recentMemory = cached?.recentMemory ?? []; }
 

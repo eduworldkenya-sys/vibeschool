@@ -15,10 +15,13 @@ const MAX_HISTORY = 10;
 
 async function saveToMemory(userId: string, userMsg: string, twinReply: string) {
   try {
-    await supabase.from("twin_memory").insert([
-      { user_id: userId, type: "teacher_query", content: userMsg.slice(0, 300),   subject: "general" },
-      { user_id: userId, type: "teacher_reply", content: twinReply.slice(0, 300), subject: "general" },
+    const { error } = await supabase.from("twin_memory").insert([
+      { profile_id: userId, type: "teacher_query", content: userMsg.slice(0, 300),   subject: "general" },
+      { profile_id: userId, type: "teacher_reply", content: twinReply.slice(0, 300), subject: "general" },
     ]);
+    if (error && process.env.NODE_ENV === "development") {
+      console.warn("[TwinMemory] insert failed:", error.message);
+    }
   } catch {}
 }
 
