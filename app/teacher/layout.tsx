@@ -22,7 +22,7 @@ export const useCredits = () => useContext(CreditContext);
 
 // ── Nav config — single source of truth ──────────────────────────────────────
 const NAV_TABS = [
-  { id: "pulse",    label: "Pulse",    href: "/teacher/pulse"       },
+  { id: "pulse",    label: "Home",     href: "/teacher/pulse"       },
   { id: "teach",    label: "Teach",    href: "/teacher/subjecthub"  },
   { id: "students", label: "Students", href: "/teacher/classhub"    },
   { id: "results",  label: "Results",  href: "/teacher/results"     },
@@ -37,6 +37,7 @@ function tabIdFromPath(path: string): TabId {
   if (path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/lessonnotes") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn")) return "teach";
   if (path.startsWith("/teacher/classhub") || path.startsWith("/teacher/students") || path.startsWith("/teacher/attendance") || path.startsWith("/teacher/timetable") || path.startsWith("/teacher/schoolhub")) return "students";
   if (path.startsWith("/teacher/results") || path.startsWith("/teacher/assessment") || path.startsWith("/teacher/academics")) return "results";
+  if (path.startsWith("/teacher/twin")) return "pulse";
   if (path.startsWith("/teacher/profile") || path.startsWith("/teacher/credits") || path.startsWith("/teacher/tpad") || path.startsWith("/teacher/vibeconnect") || path.startsWith("/teacher/settings") || path.startsWith("/teacher/help") || path.startsWith("/teacher/more")) return "me";
   return "pulse";
 }
@@ -437,11 +438,20 @@ function IconTPAD({ size = 22 }: { size?: number }) {
     </svg>
   )
 }
+function IconCredits({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M14.5 8.5A2.5 2.5 0 0 0 12 7a2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1-2.5-1.5"/>
+      <line x1="12" y1="6" x2="12" y2="7"/>
+      <line x1="12" y1="17" x2="12" y2="18"/>
+    </svg>
+  )
+}
 
 interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
 const TRAY_ITEMS: Record<string, TrayItem[]> = {
-  pulse: [],
   teach: [
     { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"        },
     { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"            },
@@ -465,14 +475,15 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
   ],
   me: [
     { label: "Profile",  icon: <IconProfile  size={24} />, href: "/teacher/profile"  },
-    { label: "Credits",  icon: <IconAssess   size={24} />, href: "/teacher/credits"  },
+    { label: "Credits",  icon: <IconCredits  size={24} />, href: "/teacher/credits"  },
     { label: "TPAD",     icon: <IconTPAD     size={24} />, href: "/teacher/tpad"     },
     { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
+    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect" },
     { label: "Help",     icon: <IconHelp     size={24} />, href: "/teacher/help"     },
   ],
 }
 
-function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLearn?: number }) {
+function BottomNav({ activeId }: { activeId: string }) {
   const router   = useRouter()
   const pathname = usePathname()
   const [openTray, setOpenTray] = useState<string | null>(null)
@@ -508,9 +519,15 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 14px" }} />
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 12px 2px" }}>
-          {NAV_TABS.find(t => t.id === openTray)?.label}
+          {{
+            pulse:    "Home",
+            teach:    "Teaching Tools",
+            students: "My Classes",
+            results:  "Assessment & Results",
+            me:       "My Account",
+          }[openTray ?? ""] ?? openTray}
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8 }}>
           {trayItems?.map(item => (
             <button
               key={item.href}
@@ -540,7 +557,6 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
       }}>
         {NAV_TABS.map(t => {
           const isActive  = t.id === activeId || openTray === t.id
-          const showBadge = t.id === "me" && unreadLearn > 0
           return (
             <button
               key={t.id}
@@ -556,11 +572,7 @@ function BottomNav({ activeId, unreadLearn = 0 }: { activeId: string; unreadLear
               {isActive && (
                 <div style={{ position: "absolute", top: 0, width: 28, height: 3, background: C.accent, borderRadius: "0 0 4px 4px" }} />
               )}
-              {showBadge && (
-                <span style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>
-                  {unreadLearn}
-                </span>
-              )}
+
               <span style={{ lineHeight: 1, position:"relative", zIndex:1 }}>{NAV_ICONS[t.id]?.(isActive)}</span>
               <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1, position:"relative", zIndex:1 }}>
                 {t.label}
@@ -747,25 +759,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function fetchProfile() {
-      const _legacyKey = 'vs_role'; localStorage.removeItem(_legacyKey); const _cached = null;
-      if (_cached) {
-        try {
-          const { role, t } = JSON.parse(_cached);
-          const TTL_MS = 30 * 60 * 1000;
-          if (Date.now() - t > TTL_MS) {
-            localStorage.removeItem('vs_role');
-          } else if (role !== 'teacher') {
-            localStorage.removeItem('vs_role');
-            window.location.href = "/?role=teacher";
-            return;
-          }
-        } catch {
-          localStorage.removeItem('vs_role');
-        }
-      }
+      // Legacy non-scoped cache removed — full auth check always runs
 
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) { window.location.href = "/?role=teacher"; return; }
+      if (userErr || !user) { router.replace("/?role=teacher"); return; }
 
       const { data: profileData, error: profileErr } = await supabase
         .from("profiles")
@@ -773,8 +770,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         .eq("id", user.id)
         .single();
       if (profileErr || !profileData || profileData.role !== "teacher") {
-        localStorage.removeItem('vs_role');
-        window.location.href = "/?role=teacher";
+        router.replace("/?role=teacher");
         return;
       }
       localStorage.setItem(`vs_role_${user.id}`, JSON.stringify({ role: 'teacher', t: Date.now() }));
@@ -793,7 +789,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding")
       const hasSchool = !!(memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id)
       if (!teacherRes.data?.profile_id && !isOnboardingPath && hasSchool) {
-        window.location.href = "/teacher/onboarding/school";
+        router.replace("/teacher/onboarding/school");
         return;
       }
       const schoolId =
@@ -801,19 +797,24 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         teacherRes.data?.school_id ??
         profileData.school_id ??
         null;
+
+      // UI unblocked here — school name, Twin brain, and unread count all load async below
+      teacherIdRef.current = user.id;
+      setAuthReady(true);
+      setTimeout(() => refreshCredits(), 2000); // deferred — avoid contending with VC/Twin queries on 2G
+
       if (schoolId) {
-        const { data: schoolData } = await supabase
+        supabase
           .from("schools")
           .select("name")
           .eq("id", schoolId)
-          .single();
-        setSchool(schoolData?.name ?? "");
+          .single()
+          .then(({ data: schoolData }) => {
+            setSchool(schoolData?.name ?? "");
+          })
+          .catch(() => {});
       }
 
-      // UI unblocked — unread count fetches async below
-      teacherIdRef.current = user.id;
-      setAuthReady(true);
-      refreshCredits();
       try {
         const brain = await loadTwinBrain(user.id);
         const p = brain.rulesOutput?.priority;
@@ -859,9 +860,35 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   if (!authReady) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f0f2f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTop: "3px solid #10b981", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
+        <style>{`
+          @keyframes spin    { to { transform: rotate(360deg) } }
+          @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
+          .sk { background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%); background-size:200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+        `}</style>
+        <div style={{ position:"sticky", top:0, height:56, background:"#1e1b4b", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:600 }}>
+          <div className="sk" style={{ width:28, height:28, borderRadius:"50%", opacity:0.3 }} />
+          <div className="sk" style={{ width:100, height:14, opacity:0.3 }} />
+          <div style={{ marginLeft:"auto", display:"flex", gap:10 }}>
+            <div className="sk" style={{ width:28, height:28, borderRadius:"50%", opacity:0.3 }} />
+            <div className="sk" style={{ width:28, height:28, borderRadius:"50%", opacity:0.3 }} />
+          </div>
+        </div>
+        <div style={{ maxWidth:768, margin:"0 auto", padding:"20px 16px" }}>
+          <div className="sk" style={{ height:18, width:"55%", marginBottom:12 }} />
+          <div className="sk" style={{ height:14, width:"80%", marginBottom:8 }} />
+          <div className="sk" style={{ height:14, width:"65%", marginBottom:24 }} />
+          <div className="sk" style={{ height:120, width:"100%", borderRadius:12, marginBottom:12 }} />
+          <div className="sk" style={{ height:80, width:"100%", borderRadius:12 }} />
+        </div>
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, height:64, background:"#fff", borderTop:"1px solid #e5e7eb", display:"flex", alignItems:"center", justifyContent:"space-around", padding:"0 8px", zIndex:700 }}>
+          {[0,1,2,3,4].map(i => (
+            <div key={i} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+              <div className="sk" style={{ width:22, height:22, borderRadius:4 }} />
+              <div className="sk" style={{ width:30, height:8, borderRadius:3 }} />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -871,9 +898,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       <UserContext.Provider value={userCtx}>
         <CreditContext.Provider value={{ creditBalance, refreshCredits }}>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f2f5; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+          body { font-family: var(--font-jakarta, 'Plus Jakarta Sans', system-ui, sans-serif); background: #f0f2f5; overflow-y: auto; -webkit-overflow-scrolling: touch; }
           @keyframes twinPulse { 0%,80%,100%{ transform:scale(0.7); opacity:0.5 } 40%{ transform:scale(1); opacity:1 } }
           @keyframes slideIn   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
           @keyframes fadeIn    { from{ opacity:0 } to{ opacity:1 } }
@@ -896,7 +922,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <TwinPill onOpen={() => { setTwinOpen(true); setTwinUnread(0); }} unread={twinUnread} />
           <TwinDrawer open={twinOpen} onClose={() => { setTwinOpen(false); }} />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
-          <BottomNav activeId={activeId}  />
+          <BottomNav activeId={activeId} />
           {toast && <Toast msg={toast} />}
         </div>
       </CreditContext.Provider>

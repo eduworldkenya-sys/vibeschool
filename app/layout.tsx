@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
-import { Jost, DM_Mono, Cormorant_Garamond } from 'next/font/google'
+import { Jost, DM_Mono, Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 
 const jost = Jost({
@@ -23,6 +23,13 @@ const cormorant = Cormorant_Garamond({
   style: ['italic'],
   display: 'block',
   variable: '--font-serif',
+})
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-jakarta',
 })
 
 
@@ -96,7 +103,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jost.variable} ${dmMono.variable} ${cormorant.variable}`}
+      className={`${jost.variable} ${dmMono.variable} ${cormorant.variable} ${plusJakarta.variable}`}
     >
       <body>
 
