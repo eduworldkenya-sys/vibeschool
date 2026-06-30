@@ -54,6 +54,12 @@ export default function StudentProfilePage() {
   })
   const [guardian, setGuardian] = useState<GuardianData | null>(null)
 
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
+    router.push('/')
+  }
+
   useEffect(() => {
     async function load() {
       try {
@@ -215,6 +221,19 @@ export default function StudentProfilePage() {
               Need to update your details? Ask your class teacher or school admin.
             </p>
           </div>
+
+          {/* Sign out */}
+          <button
+            onClick={handleSignOut}
+            style={{
+              width: '100%', marginTop: 20, padding: '14px 0', borderRadius: 14,
+              border: `2px solid ${C.error}`, background: 'transparent',
+              color: C.error, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Sign Out
+          </button>
         </>
       )}
     </div>
