@@ -391,3 +391,6 @@
 ## [2026-06-30 14:42] 7b0c337
 **What:** Twin + Pulse: homework grading awareness — ungraded count tracking, grading intent, Pulse cockpit card
 **Status:** ✅ pushed
+## [2026-06-30 14:45] 7a24be2
+**What:** Homework: automated reminder cron for non-submitters, due tomorrow
+**Status:** ✅ pushed
