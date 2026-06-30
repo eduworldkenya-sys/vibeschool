@@ -51,6 +51,8 @@ function GradingInner() {
   const [feedback,  setFeedback]  = useState("");
   const [saving,    setSaving]    = useState(false);
   const [saveOk,    setSaveOk]    = useState(false);
+  const [bulkBusy,  setBulkBusy]  = useState(false);
+  const [bulkMsg,   setBulkMsg]   = useState<string|null>(null);
   const schoolIdRef = useRef<string|null>(null);
 
   async function load() {
@@ -163,6 +165,51 @@ function GradingInner() {
   const markedMarks = Array.from(subMap.values()).filter(s=>s.status==="marked"&&s.mark!==null).map(s=>s.mark as number);
   const avg = markedMarks.length>0 ? Math.round(markedMarks.reduce((a,b)=>a+b,0)/markedMarks.length) : null;
 
+  async function markAllSubmittedAsReceived() {
+    const toUpdate = submitted
+      .filter(s => subMap.get(s.id)?.status === "pending")
+      .map(s => subMap.get(s.id)!.id);
+    if (toUpdate.length === 0) { setBulkMsg("Nothing to mark."); return; }
+    setBulkBusy(true);
+    setBulkMsg(null);
+    const { error } = await supabase.from("homework_submissions").update({ status: "submitted" }).in("id", toUpdate);
+    if (error) {
+      setBulkMsg("Could not update submissions.");
+    } else {
+      setBulkMsg(`Marked ${toUpdate.length} submission(s) as received.`);
+      await load();
+    }
+    setBulkBusy(false);
+  }
+
+  async function remindNonSubmitters() {
+    if (notYet.length === 0) { setBulkMsg("Everyone has submitted."); return; }
+    setBulkBusy(true);
+    setBulkMsg(null);
+    try {
+      const dueLabel = hw?.due_date ? new Date(hw.due_date).toLocaleDateString("en-KE",{day:"numeric",month:"short"}) : "soon";
+      const msg = `Reminder: "${hw?.title ?? "Homework"}" is due ${dueLabel}. Please submit.`;
+      const { error } = await supabase.from("notifications").insert(
+        notYet.map(s => ({
+          user_id:   s.id,
+          school_id: schoolIdRef.current,
+          type:      "homework",
+          title:     "Homework Reminder",
+          body:      msg,
+          is_read:   false,
+        }))
+      );
+      if (error) {
+        setBulkMsg("Could not send reminders.");
+      } else {
+        setBulkMsg(`Reminder sent to ${notYet.length} student(s).`);
+      }
+    } catch (_) {
+      setBulkMsg("Could not send reminders.");
+    }
+    setBulkBusy(false);
+  }
+
   if (loading) return <div style={{padding:20,color:C.textMuted,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Loading…</div>;
   if (loadError) return <div style={{padding:20,color:"#ef4444",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{loadError}</div>;
 
@@ -265,6 +312,28 @@ function GradingInner() {
         </div>
       </div>
       <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
+        {/* Bulk actions */}
+        {students.length > 0 && (
+          <div style={{display:"flex",gap:8,marginBottom:4}}>
+            <button
+              onClick={markAllSubmittedAsReceived}
+              disabled={bulkBusy}
+              style={{flex:1,padding:"10px",borderRadius:12,border:"none",background:"#d1fae5",color:"#065f46",fontWeight:700,fontSize:12,cursor:bulkBusy?"wait":"pointer",fontFamily:"inherit"}}
+            >
+              {bulkBusy ? "Working…" : "✓ Mark All Received"}
+            </button>
+            <button
+              onClick={remindNonSubmitters}
+              disabled={bulkBusy}
+              style={{flex:1,padding:"10px",borderRadius:12,border:"none",background:"#fef3c7",color:"#92400e",fontWeight:700,fontSize:12,cursor:bulkBusy?"wait":"pointer",fontFamily:"inherit"}}
+            >
+              {bulkBusy ? "Working…" : "🔔 Remind Non-Submitters"}
+            </button>
+          </div>
+        )}
+        {bulkMsg && (
+          <div style={{fontSize:12,color:C.textMuted,textAlign:"center",marginBottom:4}}>{bulkMsg}</div>
+        )}
         {submitted.length>0 && <>
           <div style={{fontSize:11,fontWeight:800,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Submitted</div>
           {submitted.map(s=>{

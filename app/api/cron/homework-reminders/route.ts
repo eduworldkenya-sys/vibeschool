@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
         .from('notifications')
         .select('id')
         .eq('type', 'homework_reminder')
-        .ilike('message', `%${hw.title}%`)
+        .ilike('body', `%${hw.title}%`)
         .gte('created_at', todayStart.toISOString())
         .in('user_id', notSubmitted.map((s: { id: string }) => s.id))
 
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
           school_id: hw.school_id,
           type:      'homework_reminder',
           title:     'Homework Due Tomorrow',
-          message:   msg,
+          body:      msg,
           is_read:   false,
         }))
       )

@@ -8,6 +8,14 @@
     {
       "path": "/api/cron/homework-reminders",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/tpad-reminders",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/invoice-reminders",
+      "schedule": "0 4 * * *"
     }
   ]
 }

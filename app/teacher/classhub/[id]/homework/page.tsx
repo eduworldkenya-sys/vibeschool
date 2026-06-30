@@ -110,24 +110,25 @@ function HomeworkInner() {
             school_id: schoolId,
             type:      "homework",
             title:     "New Homework",
-            message:   notifMsg,
+            body:      notifMsg,
             is_read:   false,
           }))
         );
         const { data: links } = await supabase
           .from("parent_student_links")
           .select("parent_id")
-          .in("student_id", stuRows.map((st: { id: string }) => st.id));
+          .in("student_id", stuRows.map((st: { id: string }) => st.id))
+          .eq("receives_alerts", true);
         if (links && links.length > 0) {
           const uniqueParents = Array.from(new Set(links.map((l: { parent_id: string }) => l.parent_id))) as string[];
-          await supabase.from("parent_messages").insert(
+          await supabase.from("notifications").insert(
             uniqueParents.map((pid: string) => ({
-              parent_id:  pid,
-              teacher_id: user.id,
-              school_id:  schoolId,
-              subject:    "New Homework",
-              message:    notifMsg,
-              is_read:    false,
+              user_id:   pid,
+              school_id: schoolId,
+              type:      "homework",
+              title:     "New Homework",
+              body:      notifMsg,
+              is_read:   false,
             }))
           );
         }
