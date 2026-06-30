@@ -37,7 +37,7 @@ export async function fetchPulseData(
   const [slotsRes, termRes, tcRes] = await Promise.all([
     supabase
       .from("timetable_slots")
-      .select("id,day_of_week,period,start_time,end_time,subject_id,class_id,subjects(name),classes(name)")
+      .select("id,day_of_week,period,start_time,end_time,subject_id,class_id")
       .eq("teacher_id", userId)
       .order("start_time"),
     supabase
@@ -56,14 +56,32 @@ export async function fetchPulseData(
   if (termRes.error) { console.error("[pulse] academic_terms query failed:", termRes.error.message); }
   if (tcRes.error) { console.error("[pulse] teacher_classes query failed:", tcRes.error.message); }
 
-  const allSlots = ((slotsRes.data ?? []) as any[]).map((s: any) => ({
+  const rawSlots = (slotsRes.data ?? []) as any[];
+  const slotSubjectIds = Array.from(new Set(rawSlots.map((s: any) => s.subject_id).filter(Boolean)));
+  const slotClassIds = Array.from(new Set(rawSlots.map((s: any) => s.class_id).filter(Boolean)));
+
+  const [subjNameRes, classNameRes] = await Promise.all([
+    slotSubjectIds.length > 0
+      ? supabase.from("subjects").select("id,name").in("id", slotSubjectIds)
+      : Promise.resolve({ data: [], error: null }),
+    slotClassIds.length > 0
+      ? supabase.from("classes").select("id,name").in("id", slotClassIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if ((subjNameRes as any).error) { console.error("[pulse] subjects lookup failed:", (subjNameRes as any).error.message); }
+  if ((classNameRes as any).error) { console.error("[pulse] classes lookup failed:", (classNameRes as any).error.message); }
+
+  const subjNameMap = new Map(((subjNameRes.data ?? []) as any[]).map((s: any) => [s.id, s.name]));
+  const classNameMap = new Map(((classNameRes.data ?? []) as any[]).map((c: any) => [c.id, c.name]));
+
+  const allSlots = rawSlots.map((s: any) => ({
     id: s.id,
     day_of_week: s.day_of_week,
     period: s.period ?? 0,
     start_time: s.start_time,
     end_time: s.end_time,
-    subject: one(s.subjects)?.name ?? "Subject",
-    class_name: one(s.classes)?.name ?? "Class",
+    subject: subjNameMap.get(s.subject_id) ?? "Subject",
+    class_name: classNameMap.get(s.class_id) ?? "Class",
     class_id: s.class_id,
     subject_id: s.subject_id,
   }));
