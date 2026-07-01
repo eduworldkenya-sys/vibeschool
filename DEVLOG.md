@@ -412,3 +412,6 @@
 ## [2026-07-01 07:22] 8535179
 **What:** rename Lesson Notes -> Progress Record (route, table, all references) + fix broken student lesson query
 **Status:** ✅ pushed
+## [2026-07-01 07:25] c511202
+**What:** merge preview/week-tray: nav Week tile + Progress Record rename + student lesson fix
+**Status:** ✅ pushed
