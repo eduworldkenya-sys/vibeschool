@@ -131,6 +131,10 @@ export default function LessonNotesPage() {
       sidRef.current = sid;
 
       await loadNotes(user.id, sid);
+
+      if (searchParams.get("planId")) {
+        await openNew();
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load. Please refresh.");
     } finally {
@@ -140,7 +144,7 @@ export default function LessonNotesPage() {
 
   async function loadNotes(tid: string, sid: string | null) {
     let q = supabase
-      .from("lesson_notes")
+      .from("progress_records")
       .select("id, lesson_plan_id, taught_date, what_was_taught, participation_score, challenges, homework_set, class_id, subject_id")
       .eq("teacher_id", tid)
       .order("taught_date", { ascending: false })
@@ -287,7 +291,7 @@ export default function LessonNotesPage() {
       const isEdit = editingNoteId.current !== null;
       if (isEdit) {
         const { error: upErr } = await supabase
-          .from("lesson_notes")
+          .from("progress_records")
           .update(payload)
           .eq("id", editingNoteId.current!)
           .eq("teacher_id", tid);
@@ -297,7 +301,7 @@ export default function LessonNotesPage() {
         setView("list");
       } else {
         payload.created_at = new Date().toISOString();
-        const { error: insErr } = await supabase.from("lesson_notes").insert(payload);
+        const { error: insErr } = await supabase.from("progress_records").insert(payload);
         if (insErr) throw insErr;
         editingNoteId.current = null;
         await loadNotes(tid, sid);
@@ -332,7 +336,7 @@ export default function LessonNotesPage() {
     setDeleting(true);
     try {
       const { error: delErr } = await supabase
-        .from("lesson_notes")
+        .from("progress_records")
         .delete()
         .eq("id", noteId)
         .eq("teacher_id", tid);
@@ -394,7 +398,7 @@ export default function LessonNotesPage() {
             school_id:      sid,
             teacher_id:     tid,
             lesson_plan_id: note.lesson_plan_id,
-            content_type:   "lesson_note",
+            content_type:   "progress_record",
             teacher_copy:   teacherCopy,
             student_copy:   studentCopy,
             generated_by:   "teacher",
@@ -438,7 +442,7 @@ export default function LessonNotesPage() {
             }}
           >←</button>
           <div style={{ fontSize: 17, fontWeight: 800, color: "#111827" }}>
-            {isEdit ? "Edit Note" : "New Lesson Note"}
+            {isEdit ? "Edit Record" : "New Progress Record"}
           </div>
         </div>
         <div style={{ padding: "16px" }}>
@@ -499,9 +503,9 @@ export default function LessonNotesPage() {
             <textarea value={homework} onChange={e => setHomework(e.target.value)} placeholder="What homework or follow-up was assigned…" rows={2} style={InputStyle({ resize: "vertical", lineHeight: "1.6" })} />
           </div>
         </div>
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "12px 16px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))", background: "#fff", borderTop: "1px solid #e5e7eb", zIndex: 50 }}>
+        <div style={{ position: "fixed", bottom: "calc(64px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0, padding: "12px 16px", background: "#fff", borderTop: "1px solid #e5e7eb", zIndex: 720, boxShadow: "0 -2px 8px rgba(0,0,0,0.06)" }}>
           <button onClick={saveNote} disabled={saving || !whatTaught.trim()} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: saving || !whatTaught.trim() ? "#9ca3af" : "linear-gradient(135deg,#065f46 0%,#10b981 100%)", color: "#fff", fontSize: 15, fontWeight: 800, cursor: saving || !whatTaught.trim() ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-            {saving ? "Saving…" : isEdit ? "Update Note" : "Save Note"}
+            {saving ? "Saving…" : isEdit ? "Update Record" : "Save Record"}
           </button>
         </div>
       </div>
@@ -513,7 +517,7 @@ export default function LessonNotesPage() {
       <div style={{ paddingBottom: 100 }}>
         <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
         <div style={{ background: "linear-gradient(135deg,#065f46 0%,#10b981 100%)", padding: "20px 16px 24px" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 4 }}>Lesson Notes</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 4 }}>Progress Records</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 500 }}>Record what was actually delivered in class</div>
           {!loading && notes.length > 0 && (
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
@@ -533,7 +537,7 @@ export default function LessonNotesPage() {
             <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#111827", marginBottom: 6 }}>No lesson notes yet</div>
             <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, maxWidth: 280, margin: "0 auto 24px" }}>After each lesson, record what you taught, how it went, and what homework you set.</div>
-            <button onClick={openNew} style={{ padding: "14px 32px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#065f46 0%,#10b981 100%)", color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>+ Add First Note</button>
+            <button onClick={openNew} style={{ padding: "14px 32px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#065f46 0%,#10b981 100%)", color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>+ Add First Record</button>
           </div>
         )}
         {!loading && notes.length > 0 && (
@@ -576,7 +580,7 @@ export default function LessonNotesPage() {
       <div style={{ paddingBottom: 100, padding: "16px" }}>
         <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <div style={{ fontSize: 32, marginBottom: 10 }}>✓</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: "#111827", marginBottom: 6 }}>Note saved</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#111827", marginBottom: 6 }}>Record saved</div>
           <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Want to record an assessment for this lesson now?</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {justSaved?.classId && justSaved?.subjectId && (
@@ -608,7 +612,7 @@ export default function LessonNotesPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 12px", borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
           <button onClick={() => { setView("list"); setActiveNote(null); }} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #e5e7eb", background: "#f9fafb", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0 }}>←</button>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{note.plan_topic || note.plan_title || "Lesson Note"}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{note.plan_topic || note.plan_title || "Progress Record"}</div>
             <div style={{ fontSize: 12, color: "#6b7280" }}>{[formatDate(note.taught_date), context].filter(Boolean).join(" · ")}</div>
           </div>
         </div>
@@ -668,24 +672,23 @@ export default function LessonNotesPage() {
             </button>
           </div>
         </div>
+        {confirmDelete && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Delete Record?</div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>This cannot be undone.</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                <button onClick={confirmDeleteNote} disabled={deleting} style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: deleting ? '#9ca3af' : '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: deleting ? 'not-allowed' : 'pointer' }}>
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  return (
-    <>
-      {confirmDelete && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Delete Note?</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>This cannot be undone.</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={confirmDeleteNote} style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+  return null;
 }

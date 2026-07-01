@@ -45,7 +45,7 @@ export const TWIN_REGISTRY: TwinRegistryEntry[] = [
   { id: "nav_results",     type: "navigate", route: "/teacher/results",     label: "Results",       keywords: ["results", "report card", "exam results"] },
   { id: "nav_resources",   type: "navigate", route: "/teacher/resources",   label: "Resources",     keywords: ["resources", "materials", "teaching resources"] },
   { id: "nav_settings",    type: "navigate", route: "/teacher/settings",    label: "Settings",      keywords: ["settings", "preferences"] },
-  { id: "nav_lessonnotes", type: "navigate", route: "/teacher/lessonnotes", label: "Lesson Notes",  keywords: ["lesson notes", "lessonnotes"] },
+  { id: "nav_progress", type: "navigate", route: "/teacher/progress", label: "Progress Record",  keywords: ["progress record", "progress records", "lesson notes", "lessonnotes"] },
   { id: "nav_lessonplan",  type: "navigate", route: "/teacher/lessonplan",  label: "Lesson Plan",   keywords: ["lesson plan page", "create lesson plan", "new lesson plan"] },
   { id: "nav_assessment",  type: "navigate", route: "/teacher/assessment",  label: "Assessment",    keywords: ["assessment", "cbc assessment"] },
   { id: "nav_academics",   type: "navigate", route: "/teacher/academics",   label: "Academics",     keywords: ["academics"] },

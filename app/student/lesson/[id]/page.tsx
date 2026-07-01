@@ -48,22 +48,23 @@ export default function LessonPage() {
     async function load() {
       const { data: raw } = await supabase
         .from("lesson_plans")
-        .select("id, title, content_type, student_copy, objectives, day_of_week, subject_id, teacher_id")
+        .select("id, title, objectives, day_of_week, subject_id, teacher_id")
         .eq("id", id)
         .single();
 
       if (!raw) { setLoading(false); return; }
 
-      const [subRes, teachRes] = await Promise.all([
+      const [subRes, teachRes, contentRes] = await Promise.all([
         supabase.from("subjects").select("name").eq("id", raw.subject_id).single(),
         supabase.from("profiles").select("full_name").eq("id", raw.teacher_id).single(),
+        supabase.from("lesson_content").select("content_type, student_copy").eq("lesson_plan_id", raw.id).eq("content_type", "progress_record").maybeSingle(),
       ]);
 
       setLesson({
         id:           raw.id,
         title:        raw.title,
-        content_type: raw.content_type ?? "notes",
-        student_copy: raw.student_copy ?? "",
+        content_type: contentRes.data?.content_type ?? "progress_record",
+        student_copy: contentRes.data?.student_copy ?? "",
         objectives:   raw.objectives   ?? "",
         day:          raw.day_of_week  ?? 0,
         subject:      subRes.data?.name      ?? "Subject",
@@ -117,7 +118,7 @@ export default function LessonPage() {
       <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "16px" }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: "var(--vs-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ color: "var(--vs-accent)" }}><IconBook /></span>
-          Lesson Notes
+          Progress Record
         </div>
         {lesson.student_copy ? (
           <div style={{ fontSize: 14, color: "var(--vs-text)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
@@ -125,7 +126,7 @@ export default function LessonPage() {
           </div>
         ) : (
           <div style={{ fontSize: 13, color: "var(--vs-muted)", textAlign: "center", padding: "20px 0" }}>
-            No notes available yet
+            No progress record published yet
           </div>
         )}
       </div>

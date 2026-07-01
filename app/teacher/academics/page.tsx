@@ -375,7 +375,7 @@ export default function TeacherAcademicsPage(){
                             </div>
                           )}
                           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-                            {[{label:"Lesson Plans",icon:"📖",route:"/teacher/lessonplan?subjectId="+sub.id},{label:"Lesson Notes",icon:"📝",route:"/teacher/lessonnotes"},{label:"Assessment",icon:"📊",route:"/teacher/assessment?subjectId="+sub.id},{label:"Scheme",icon:"📋",route:"/teacher/scheme?subjectId="+sub.id}].map(a=>(
+                            {[{label:"Lesson Plans",icon:"📖",route:"/teacher/lessonplan?subjectId="+sub.id},{label:"Progress Record",icon:"📝",route:"/teacher/progress"},{label:"Assessment",icon:"📊",route:"/teacher/assessment?subjectId="+sub.id},{label:"Scheme",icon:"📋",route:"/teacher/scheme?subjectId="+sub.id}].map(a=>(
                               <button key={a.label} onClick={()=>router.push(a.route)} style={{padding:"10px 12px",borderRadius:12,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:8}}>
                                 <span style={{fontSize:16}}>{a.icon}</span><span style={{fontSize:12,fontWeight:700,color:C.text2}}>{a.label}</span>
                               </button>
@@ -393,7 +393,7 @@ export default function TeacherAcademicsPage(){
               <div style={{marginTop:16}}>
                 <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Quick Actions</div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                  {[{label:"SubjectHub",icon:"🔬",route:"/teacher/subjecthub",bg:C.navy},{label:"Scheme",icon:"📋",route:"/teacher/scheme",bg:"#312e81"},{label:"Assessment",icon:"📊",route:"/teacher/assessment",bg:"#92400e"},{label:"Lesson Plans",icon:"📖",route:"/teacher/lessonplan",bg:"#4c1d95"},{label:"Lesson Notes",icon:"📝",route:"/teacher/lessonnotes",bg:"#064e3b"},{label:"TPAD",icon:"🏅",route:"/teacher/tpad",bg:"#1e3a5f"}].map(a=>(
+                  {[{label:"SubjectHub",icon:"🔬",route:"/teacher/subjecthub",bg:C.navy},{label:"Scheme",icon:"📋",route:"/teacher/scheme",bg:"#312e81"},{label:"Assessment",icon:"📊",route:"/teacher/assessment",bg:"#92400e"},{label:"Lesson Plans",icon:"📖",route:"/teacher/lessonplan",bg:"#4c1d95"},{label:"Progress Record",icon:"📝",route:"/teacher/progress",bg:"#064e3b"},{label:"TPAD",icon:"🏅",route:"/teacher/tpad",bg:"#1e3a5f"}].map(a=>(
                     <button key={a.label} onClick={()=>router.push(a.route)} style={{padding:"12px 4px",borderRadius:14,border:"none",background:a.bg,cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:5,boxShadow:"0 2px 6px rgba(0,0,0,0.1)"}}>
                       <span style={{fontSize:22}}>{a.icon}</span><span style={{fontSize:10,fontWeight:800,color:"#fff",textAlign:"center",lineHeight:1.3}}>{a.label}</span>
                     </button>

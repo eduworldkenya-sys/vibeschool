@@ -9,7 +9,7 @@ const ITEMS = [
   { label: 'Academics',    href: '/teacher/academics',            desc: 'All subjects · mastery · TPAD'     },
   { label: 'SubjectHub',   href: '/teacher/subjecthub',           desc: 'Manage your subjects'              },
   { label: 'Lesson Plans', href: '/teacher/lessonplan',           desc: 'Plan and generate lessons'         },
-  { label: 'Lesson Notes', href: '/teacher/lessonnotes',          desc: 'Record what was actually taught'   },
+  { label: 'Progress Record', href: '/teacher/progress',          desc: 'Record what was actually taught'   },
   { label: 'Scheme',       href: '/teacher/scheme',               desc: 'Curriculum tracker'                },
   { label: 'Timetable',    href: '/teacher/timetable',            desc: 'View your schedule'                },
   { label: 'Attendance',   href: '/teacher/attendance',           desc: 'Mark and review attendance'        },
