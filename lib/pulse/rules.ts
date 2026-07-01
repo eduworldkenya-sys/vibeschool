@@ -32,10 +32,7 @@ function firstCurrentSlot(slots: Slot[]): Slot | null {
     sorted.find((slot) => {
       const [startHour, startMin] = slot.start_time.split(":").map(Number);
       const [endHour, endMin] = slot.end_time.split(":").map(Number);
-      const start = startHour * 60 + startMin;
-      const end = endHour * 60 + endMin;
-
-      return currentMins >= start && currentMins <= end;
+      return currentMins >= startHour * 60 + startMin && currentMins <= endHour * 60 + endMin;
     }) ??
     sorted.find((slot) => {
       const [startHour, startMin] = slot.start_time.split(":").map(Number);
@@ -87,33 +84,87 @@ function nextTaskForSlot(slot: Slot): PriorityTask | null {
     };
   }
 
-  if (slot.marking_status === "completed" && slot.progress_record_status !== "completed") {
-    return {
-      id: `progress-${slot.id}`,
-      label: "Record progress",
-      detail: `Update progress records for ${slot.class_name}.`,
-      severity: "calm",
-      href: `/teacher/progress?classId=${slot.class_id}&subjectId=${slot.subject_id}`,
-    };
+  return null;
+}
+
+function noLessonTasks(snap: PulseSnapshot): PriorityTask[] {
+  const tasks: PriorityTask[] = [];
+
+  if (snap.currStats.length > 0) {
+    const weakest = [...snap.currStats].sort((a, b) => {
+      const ap = a.total > 0 ? a.covered / a.total : 1;
+      const bp = b.total > 0 ? b.covered / b.total : 1;
+      return ap - bp;
+    })[0];
+
+    if (weakest) {
+      tasks.push({
+        id: `scheme-${weakest.classId}-${weakest.subjectId}`,
+        label: "Continue scheme of work",
+        detail: `${weakest.subject} needs the next teaching step.`,
+        severity: "urgent",
+        href: `/teacher/lessonplan?subjectId=${weakest.subjectId}&classId=${weakest.classId}`,
+      });
+    }
   }
 
-  return null;
+  if (snap.homeworkUngraded.length > 0) {
+    const first = snap.homeworkUngraded[0];
+    tasks.push({
+      id: `mark-homework-${first.homework_id}`,
+      label: `Mark ${first.count} homework submission${first.count === 1 ? "" : "s"}`,
+      detail: first.title,
+      severity: "urgent",
+      href: `/teacher/assessment?classId=${first.class_id}`,
+    });
+  }
+
+  if (snap.tomorrowSlots.length > 0) {
+    const first = snap.tomorrowSlots[0];
+    tasks.push({
+      id: `prepare-${first.id}`,
+      label: "Prepare tomorrow’s lesson",
+      detail: `${first.subject} for ${first.class_name}.`,
+      severity: "calm",
+      href: `/teacher/lessonplan?subjectId=${first.subject_id}&classId=${first.class_id}`,
+    });
+  }
+
+  tasks.push(
+    {
+      id: "open-scheme",
+      label: "Review scheme",
+      detail: "Check what should be taught next.",
+      severity: "calm",
+      href: "/teacher/scheme",
+    },
+    {
+      id: "open-homework",
+      label: "Review homework",
+      detail: "Check learner tasks and pending work.",
+      severity: "calm",
+      href: "/teacher/homework",
+    }
+  );
+
+  return tasks.slice(0, 5);
 }
 
 export function runRules(snap: PulseSnapshot): RuleResult {
   const signals: string[] = [];
   const tasks: PriorityTask[] = [];
-
   const activeSlot = firstCurrentSlot(snap.todaySlots);
 
   if (!activeSlot) {
+    const fallbackTasks = noLessonTasks(snap);
+
     return {
-      message: "No lesson is scheduled now. Prepare the next teaching block.",
-      priority: "calm",
+      message: fallbackTasks[0]?.detail ?? "No lesson is scheduled now. Continue your teaching workflow.",
+      priority: fallbackTasks[0]?.severity ?? "calm",
       upcomingWarning: null,
       confidence: 100,
-      signals: ["no_current_lesson"],
-      tasks: [],
+      signals: ["no_current_lesson", "continue_workflow"],
+      tasks: fallbackTasks,
     };
   }
 
@@ -125,15 +176,9 @@ export function runRules(snap: PulseSnapshot): RuleResult {
 
   for (const slot of [...snap.todaySlots].sort(byStartTime)) {
     if (slot.id === activeSlot.id) continue;
-
     const task = nextTaskForSlot(slot);
     if (!task) continue;
-
-    if (!tasks.some((existing) => existing.id === task.id)) {
-      tasks.push(task);
-      signals.push(task.id.split("-")[0]);
-    }
-
+    if (!tasks.some((existing) => existing.id === task.id)) tasks.push(task);
     if (tasks.length >= 5) break;
   }
 
@@ -156,30 +201,13 @@ export function runRules(snap: PulseSnapshot): RuleResult {
       severity: "urgent",
       href: "/teacher/students",
     });
-    signals.push("absence");
   }
 
-  const firstTask = tasks[0] ?? null;
-
-  let message = "Today’s teaching flow is clear.";
-  let priority: TaskSeverity = "calm";
-
-  if (firstTask) {
-    message = firstTask.detail;
-    priority = firstTask.severity;
-  }
-
-  if (snap.missedLessonPlans.length > 0) {
-    signals.push("missing_lesson_plan");
-  }
-
-  if (snap.attPending.length > 0) {
-    signals.push("attendance_pending");
-  }
+  const firstTask = tasks[0];
 
   return {
-    message,
-    priority,
+    message: firstTask?.detail ?? "Today’s teaching flow is clear.",
+    priority: firstTask?.severity ?? "calm",
     upcomingWarning: null,
     confidence: 100,
     signals,
