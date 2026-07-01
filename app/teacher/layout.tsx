@@ -384,6 +384,19 @@ function IconVibeConnect({ size = 22 }: { size?: number }) {
     </svg>
   )
 }
+function IconWeek({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="17" rx="2"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="7" y1="14" x2="7" y2="14.01"/>
+      <line x1="12" y1="14" x2="12" y2="14.01"/>
+      <line x1="17" y1="14" x2="17" y2="14.01"/>
+    </svg>
+  )
+}
 function IconScheme({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -470,6 +483,7 @@ interface TrayItem { label: string; icon: React.ReactNode; href: string }
 const TRAY_ITEMS: Record<string, TrayItem[]> = {
   teach: [
     { label: "Today",       icon: <IconPulse      size={24} />, href: "/teacher/teach-today"       },
+    { label: "Week",        icon: <IconWeek       size={24} />, href: "/teacher/week"              },
     { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"        },
     { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"            },
     { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan"        },
