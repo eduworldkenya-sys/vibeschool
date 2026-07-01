@@ -143,7 +143,7 @@ interface MessageRow {
 
 interface MarkedAttendanceRow {
   class_id: string;
-  timestamp: string;
+  marked_at: string;
   classes?: { name: string } | { name: string }[] | null;
 }
 

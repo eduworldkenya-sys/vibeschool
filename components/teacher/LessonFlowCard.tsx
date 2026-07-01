@@ -1,192 +1,195 @@
 "use client";
+
 import { useState } from "react";
-import { PulseSnapshot } from "@/lib/pulse/fetcher";
-import { buildLessonFlow, FlowStatus } from "@/lib/pulse/lessonFlow";
-import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
+import { PulseSnapshot, Slot, WorkflowState } from "@/lib/pulse/fetcher";
 
-function timeStr(t: string) {
-  const [h, m] = t.split(":").map(Number);
-  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+interface LessonFlowCardProps {
+  slots: Slot[];
+  snap?: PulseSnapshot;
+  teacherId?: string;
+  onNavigate: (href: string) => void;
+  onSaved?: () => void;
 }
 
-function statusColor(status: FlowStatus) {
-  switch (status) {
-    case "done": return { dot: "#10b981", bg: "#f0fdf4", text: "#0d7a5f" };
-    case "pending": return { dot: "#f59e0b", bg: "#fffbeb", text: "#b45309" };
-    case "missing": return { dot: "#ef4444", bg: "#fef2f2", text: "#b91c1c" };
-    case "comingSoon": return { dot: "#d1d5db", bg: "#f9fafb", text: "#9ca3af" };
+type StepName =
+  | "Plan Lesson"
+  | "Take Attendance"
+  | "Teach Lesson"
+  | "Collect Evidence"
+  | "Assign Task"
+  | "Review Submissions"
+  | "Mark Work"
+  | "Record Progress"
+  | "Write Reflection"
+  | "Prepare Next Lesson";
+
+const steps: StepName[] = [
+  "Plan Lesson",
+  "Take Attendance",
+  "Teach Lesson",
+  "Collect Evidence",
+  "Assign Task",
+  "Review Submissions",
+  "Mark Work",
+  "Record Progress",
+  "Write Reflection",
+  "Prepare Next Lesson",
+];
+
+function getStepState(step: StepName, slot: Slot): WorkflowState {
+  switch (step) {
+    case "Plan Lesson":
+      return slot.lesson_plan_id ? "Done" : "Current";
+
+    case "Take Attendance":
+      if (!slot.lesson_plan_id) return "Blocked";
+      return slot.attendance_status === "completed" ? "Done" : "Current";
+
+    case "Teach Lesson":
+      if (slot.attendance_status !== "completed") return "Blocked";
+      return slot.evidence_count > 0 || slot.task_status !== "none" ? "Done" : "Current";
+
+    case "Collect Evidence":
+      if (slot.attendance_status !== "completed") return "Blocked";
+      return slot.evidence_count > 0 ? "Done" : "Not available yet";
+
+    case "Assign Task":
+      if (slot.attendance_status !== "completed") return "Blocked";
+      return slot.task_status !== "none" ? "Done" : "Not available yet";
+
+    case "Review Submissions":
+      if (slot.task_status === "none") return "Not available yet";
+      return slot.submission_count > 0 ? "Done" : "Current";
+
+    case "Mark Work":
+      if (slot.submission_count === 0) return "Blocked";
+      return slot.marking_status === "completed" ? "Done" : "Current";
+
+    case "Record Progress":
+      if (slot.marking_status !== "completed") return "Blocked";
+      return slot.progress_record_status === "completed" ? "Done" : "Not available yet";
+
+    case "Write Reflection":
+      if (slot.marking_status !== "completed") return "Blocked";
+      return slot.reflection_status === "completed" ? "Done" : "Not available yet";
+
+    case "Prepare Next Lesson":
+      if (slot.reflection_status !== "completed") return "Not available yet";
+      return slot.next_lesson_status === "completed" ? "Done" : "Current";
   }
 }
 
-function statusLabel(status: FlowStatus) {
-  switch (status) {
-    case "done": return "Done";
-    case "pending": return "Pending";
-    case "missing": return "Missing";
-    case "comingSoon": return "Soon";
-  }
+function stateStyle(state: WorkflowState) {
+  if (state === "Done") return { color: "#10b981", bg: "#ecfdf5" };
+  if (state === "Current") return { color: "#2563eb", bg: "#eff6ff" };
+  if (state === "Blocked") return { color: "#ef4444", bg: "#fef2f2" };
+  if (state === "Next") return { color: "#7c3aed", bg: "#f5f3ff" };
+  return { color: "#9ca3af", bg: "#f3f4f6" };
 }
 
-function StepRow({
-  step, isLast, onNavigate, onOpenEvidence,
-}: {
-  step: ReturnType<typeof buildLessonFlow>[number];
-  isLast: boolean;
-  onNavigate: (href: string) => void;
-  onOpenEvidence: () => void;
-}) {
-  const c = statusColor(step.status);
-  const [pressed, setPressed] = useState(false);
-  const isEvidence = step.key === "evidence";
-  const clickable = isEvidence || (!!step.href && step.status !== "comingSoon");
-  const handleClick = () => {
-    if (!clickable) return;
-    if (isEvidence) return onOpenEvidence();
-    if (step.href) onNavigate(step.href);
-  };
-  return (
-    <div
-      onClick={handleClick}
-      onPointerDown={() => clickable && setPressed(true)}
-      onPointerUp={() => setPressed(false)}
-      onPointerLeave={() => setPressed(false)}
-      style={{
-        display: "flex", gap: 12, cursor: clickable ? "pointer" : "default",
-        opacity: pressed ? 0.7 : 1, transition: "opacity 0.12s ease",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 12 }}>
-        <div style={{
-          width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
-          background: c.dot, marginTop: 3,
-        }} />
-        {!isLast && <div style={{ width: 2, flex: 1, background: "#e5e7eb", marginTop: 4, minHeight: 22 }} />}
-      </div>
-      <div style={{ flex: 1, paddingBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{step.label}</div>
-          <div style={{
-            fontSize: 9, fontWeight: 800, color: c.text, background: c.bg,
-            borderRadius: 8, padding: "2px 8px", textTransform: "uppercase",
-            letterSpacing: 0.5, flexShrink: 0,
-          }}>
-            {statusLabel(step.status)}
-          </div>
-        </div>
-        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2, lineHeight: 1.4 }}>
-          {step.detail}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function LessonFlowCard({
-  slots, snap, onNavigate, teacherId, onSaved,
-}: {
-  slots: any[];
-  snap: PulseSnapshot;
-  onNavigate: (href: string) => void;
-  teacherId: string;
-  onSaved: () => void;
-}) {
-  const [evidenceSlot, setEvidenceSlot] = useState<any | null>(null);
-  const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
-  const defaultSlot = slots.find((s: any) => {
-    const [h, m] = s.start_time.split(":").map(Number);
-    const [eh, em] = s.end_time.split(":").map(Number);
-    return h * 60 + m <= nowMins && nowMins < eh * 60 + em;
-  }) ?? slots.find((s: any) => {
-    const [h, m] = s.start_time.split(":").map(Number);
-    return h * 60 + m > nowMins;
-  }) ?? slots[0];
-
-  const [openId, setOpenId] = useState<string | null>(defaultSlot?.id ?? null);
+export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
 
   if (slots.length === 0) {
     return (
-      <div style={{
-        background: "#fff", borderRadius: 20, padding: 16, marginBottom: 12,
-        boxShadow: "0 2px 16px rgba(0,0,0,0.06)", textAlign: "center",
-        color: "#9ca3af", fontSize: 13,
-      }}>
-        No lessons scheduled today
+      <div style={{ background: "#fff", borderRadius: 20, padding: 20, textAlign: "center", color: "#6b7280" }}>
+        No lessons scheduled for today.
       </div>
     );
   }
 
-  return (
-    <div style={{ marginBottom: 12 }}>
-      {slots.map((slot: any) => {
-        const isOpen = openId === slot.id;
-        const [h, m] = slot.start_time.split(":").map(Number);
-        const [eh, em] = slot.end_time.split(":").map(Number);
-        const isNow = h * 60 + m <= nowMins && nowMins < eh * 60 + em;
-        const flow = isOpen ? buildLessonFlow(slot, snap) : null;
+  const activeSlot = slots[activeIndex];
 
-        return (
-          <div key={slot.id} style={{
-            background: "#fff", borderRadius: 20, marginBottom: 10,
-            boxShadow: "0 2px 16px rgba(0,0,0,0.06)", overflow: "hidden",
-          }}>
+  const routes: Partial<Record<StepName, string>> = {
+    "Plan Lesson": `/teacher/lessonplan?subjectId=${activeSlot.subject_id}&classId=${activeSlot.class_id}`,
+    "Take Attendance": `/teacher/attendance?classId=${activeSlot.class_id}`,
+    "Teach Lesson": `/teacher/teach?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
+    "Assign Task": `/teacher/homework?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
+    "Mark Work": `/teacher/assessment?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
+  };
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12, marginBottom: 14, borderBottom: "1px solid #f3f4f6" }}>
+        {slots.map((slot, index) => (
+          <button
+            key={slot.id}
+            onClick={() => setActiveIndex(index)}
+            style={{
+              border: "none",
+              borderRadius: 12,
+              padding: "7px 12px",
+              fontSize: 12,
+              fontWeight: 800,
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+              background: index === activeIndex ? "#1e1b4b" : "#f3f4f6",
+              color: index === activeIndex ? "#fff" : "#4b5563",
+            }}
+          >
+            {slot.subject} · {slot.class_name}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 14, fontWeight: 900, color: "#1e1b4b", marginBottom: 4 }}>
+        {activeSlot.subject}
+      </div>
+      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
+        {activeSlot.class_name} · {activeSlot.start_time} - {activeSlot.end_time}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {steps.map((step) => {
+          const state = getStepState(step, activeSlot);
+          const route = routes[step];
+          const enabled = Boolean(route) && state !== "Blocked" && state !== "Not available yet";
+          const badge = stateStyle(state);
+
+          return (
             <div
-              onClick={() => setOpenId(isOpen ? null : slot.id)}
+              key={step}
+              onClick={() => {
+                if (enabled && route) onNavigate(route);
+              }}
               style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "14px 16px", cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "12px",
+                borderRadius: 14,
+                border: state === "Current" ? "1px solid #bfdbfe" : "1px solid #f3f4f6",
+                background: state === "Current" ? "#f8fafc" : "#fff",
+                cursor: enabled ? "pointer" : "default",
+                opacity: state === "Blocked" || state === "Not available yet" ? 0.55 : 1,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{
-                  width: 4, height: 34, borderRadius: 4, flexShrink: 0,
-                  background: isNow ? "#10b981" : "#6366f1",
-                }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>
-                    {slot.subject} — {slot.class_name}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>{step}</div>
+                {!route && (
+                  <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
+                    Will unlock when this workflow page is built.
                   </div>
-                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>
-                    {timeStr(slot.start_time)} – {timeStr(slot.end_time)}
-                    {isNow ? " · Now" : ""}
-                  </div>
-                </div>
+                )}
               </div>
-              <div style={{ fontSize: 12, color: "#9ca3af", transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s ease" }}>
-                ▾
+
+              <div style={{
+                fontSize: 10,
+                fontWeight: 900,
+                textTransform: "uppercase",
+                color: badge.color,
+                background: badge.bg,
+                borderRadius: 999,
+                padding: "5px 8px",
+                whiteSpace: "nowrap",
+              }}>
+                {state}
               </div>
             </div>
-
-            {isOpen && flow && (
-              <div style={{ padding: "0 16px 16px" }}>
-                {flow.map((step, i) => (
-                  <StepRow
-                    key={step.key}
-                    step={step}
-                    isLast={i === flow.length - 1}
-                    onNavigate={onNavigate}
-                    onOpenEvidence={() => setEvidenceSlot(slot)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {evidenceSlot && (
-        <EvidenceCaptureSheet
-          lessonId={
-            snap.todayLessonPlans.find(
-              p => p.class_id === evidenceSlot.class_id && p.subject_id === evidenceSlot.subject_id
-            )?.id ?? null
-          }
-          classId={evidenceSlot.class_id}
-          teacherId={teacherId}
-          defaultTitle={evidenceSlot.subject}
-          onClose={() => setEvidenceSlot(null)}
-          onSaved={onSaved}
-        />
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
