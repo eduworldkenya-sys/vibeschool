@@ -1,202 +1,188 @@
-import { PulseSnapshot } from "./fetcher";
+import { PulseSnapshot, Slot } from "./fetcher";
+
+export type TaskSeverity = "critical" | "urgent" | "calm";
 
 export interface PriorityTask {
   id: string;
   label: string;
   detail: string;
-  severity: "critical" | "urgent" | "normal";
+  severity: TaskSeverity;
   href: string;
 }
 
-export interface RulesOutput {
+export interface RuleResult {
   message: string;
-  confidence: number;
-  priority: "critical" | "urgent" | "normal" | "calm";
-  signals: string[];
+  priority: TaskSeverity;
   upcomingWarning: string | null;
+  confidence: number;
+  signals: string[];
   tasks: PriorityTask[];
 }
 
-export function runRules(data: PulseSnapshot): RulesOutput {
-  const signals: string[] = [];
-  const tasks: PriorityTask[] = [];
-  let confidence = 0;
-  let priority: RulesOutput["priority"] = "calm";
-  let message = "";
-  let upcomingWarning: string | null = null;
-
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-
-  if (data.attPending.length > 0) {
-    signals.push(`attendance_pending:${data.attPending.length}`);
-    confidence += 40;
-    priority = "critical";
-    message = `${data.attPending.map(c => c.class_name).join(", ")} — attendance not marked yet.`;
-    tasks.push({
-      id: "attendance_pending",
-      label: "Take attendance",
-      detail: `${data.attPending.length} class${data.attPending.length === 1 ? "" : "es"} not marked yet`,
-      severity: "critical",
-      href: `/teacher/attendance?classId=${data.attPending[0].class_id}`,
-    });
-  }
-
-  if (data.attPending.length === 0 && data.todaySlots.length > 0) {
-    const nextUnmarked = data.todaySlots.find(s => {
-      const [h, m] = s.start_time.split(":").map(Number);
-      const slotMins = h * 60 + m;
-      return slotMins > nowMins && slotMins - nowMins <= 10;
-    });
-    if (nextUnmarked) {
-      upcomingWarning = `${nextUnmarked.class_name} starts in under 10 minutes — get ready to mark attendance.`;
-      signals.push(`lesson_imminent:${nextUnmarked.class_name}`);
-    }
-  }
-
-  if (data.tpadDays !== null && data.tpadDays <= 7) {
-    signals.push(`tpad_due:${data.tpadDays}d`);
-    confidence += 30;
-    if (priority !== "critical") priority = "urgent";
-    if (!message) message = `TPAD self-appraisal due in ${data.tpadDays} day${data.tpadDays === 1 ? "" : "s"}. Don't leave it to the last hour.`;
-    tasks.push({
-      id: "tpad_due",
-      label: "Complete TPAD self-appraisal",
-      detail: `Due in ${data.tpadDays} day${data.tpadDays === 1 ? "" : "s"}`,
-      severity: data.tpadDays <= 3 ? "critical" : "urgent",
-      href: "/teacher/tpad/self-appraisal",
-    });
-  }
-
-  if (data.consecutiveAbsences.length > 0) {
-    const top = data.consecutiveAbsences[0];
-    signals.push(`consecutive_absent:${top.name}:${top.days}d`);
-    confidence += 35;
-    if (priority !== "critical") priority = "urgent";
-    if (!message) message = `${top.name} has been absent ${top.days} days in a row — follow up before today's class.`;
-    tasks.push({
-      id: "consecutive_absent",
-      label: `Follow up with ${top.name}`,
-      detail: `Absent ${top.days} days in a row`,
-      severity: top.days >= 5 ? "critical" : "urgent",
-      href: "/teacher/students",
-    });
-  }
-
-  if (data.atRisk.length > 0) {
-    signals.push(`at_risk:${data.atRisk.length}`);
-    confidence += 25;
-    if (priority === "calm") priority = "urgent";
-    const top = data.atRisk[0];
-    const count = parseInt(top.reason.match(/\d+/)?.[0] ?? "3");
-    if (!message) {
-      message = count >= 7
-        ? `${top.name} has missed ${count} lessons this term — this is a pattern, not bad luck. Act today.`
-        : `${top.name} has ${top.reason}. A quick check-in could make a difference.`;
-    }
-    tasks.push({
-      id: "at_risk",
-      label: data.atRisk.length === 1 ? `Check in with ${top.name}` : `Check in with ${data.atRisk.length} at-risk students`,
-      detail: top.reason,
-      severity: count >= 7 ? "critical" : "urgent",
-      href: "/teacher/students",
-    });
-  }
-
-  const totalUngraded = data.homeworkUngraded.reduce((sum, h) => sum + h.count, 0);
-  if (totalUngraded > 0) {
-    signals.push(`homework_ungraded:${totalUngraded}`);
-    confidence += 22;
-    if (priority === "calm") priority = "normal";
-    const top = data.homeworkUngraded[0];
-    if (!message) {
-      message = totalUngraded >= 10
-        ? `${totalUngraded} homework submissions are waiting to be graded — students notice the delay.`
-        : `${top.title} has ${top.count} submission${top.count === 1 ? "" : "s"} waiting to be graded.`;
-    }
-    tasks.push({
-      id: "homework_ungraded",
-      label: data.homeworkUngraded.length === 1 ? `Grade "${top.title}"` : `Grade ${data.homeworkUngraded.length} homework sets`,
-      detail: `${totalUngraded} submission${totalUngraded === 1 ? "" : "s"} pending`,
-      severity: totalUngraded >= 10 ? "urgent" : "normal",
-      href: `/teacher/classhub/${top.class_id}/homework/${top.homework_id}`,
-    });
-  }
-
-  if (data.missedLessonPlans.length > 0) {
-    signals.push(`missing_plans:${data.missedLessonPlans.length}`);
-    confidence += 20;
-    if (priority === "calm") priority = "normal";
-    if (!message) {
-      const missing = data.missedLessonPlans.map(p => `${p.className} (${p.subject})`).join(", ");
-      message = `No lesson plan filed this week for: ${missing}.`;
-    }
-    tasks.push({
-      id: "missing_plans",
-      label: "File missing lesson plans",
-      detail: data.missedLessonPlans.map(p => `${p.className} (${p.subject})`).join(", "),
-      severity: "normal",
-      href: "/teacher/lessonplan",
-    });
-  }
-
-  const behind = data.currStats.filter(s => s.total > 0 && (s.covered / s.total) < 0.4);
-  const termPct = data.termProgressPct ?? 50;
-  if (behind.length > 0) {
-    signals.push(`curriculum_behind:${behind.map(s => s.subject).join(",")}`);
-    confidence += 20;
-    if (priority === "calm") priority = "normal";
-    const pct = Math.round((behind[0].covered / behind[0].total) * 100);
-    if (!message) {
-      message = termPct > 60
-        ? `${behind[0].subject} is at ${pct}% but the term is ${Math.round(termPct)}% done — you need to accelerate.`
-        : `${behind[0].subject} coverage is at ${pct}%. Still time to catch up this term.`;
-    }
-    tasks.push({
-      id: "curriculum_behind",
-      label: `Catch up on ${behind[0].subject}`,
-      detail: `${pct}% covered · term ${Math.round(termPct)}% done`,
-      severity: termPct > 60 ? "urgent" : "normal",
-      href: "/teacher/scheme",
-    });
-  }
-
-  if (data.credits !== null && data.credits <= 3) {
-    signals.push(`credits_low:${data.credits}`);
-    confidence += 15;
-    if (priority === "calm") priority = "normal";
-    if (!message) message = `Only ${data.credits} credit${data.credits === 1 ? "" : "s"} left. Top up before generating plans.`;
-  }
-
-  if (data.streak && data.streak >= 5 && signals.length === 0) {
-    signals.push(`streak:${data.streak}`);
-    confidence = 88;
-    message = `${data.streak} days straight. That kind of consistency is what students remember years later.`;
-  }
-
-  if (data.todaySlots.length === 0 && signals.length === 0) {
-    signals.push("no_lessons");
-    confidence = 90;
-    message = "No lessons today. Use the time to plan next week or update your scheme of work.";
-  }
-
-  if (signals.length === 0) {
-    confidence = 85;
-    const h = now.getHours();
-    message = h < 10
-      ? "Early start — you're ahead of most teachers today."
-      : h < 12
-      ? "Morning looking clean. Deliver something memorable in your next lesson."
-      : h < 14
-      ? "Halfway through. Keep the energy up."
-      : h < 17
-      ? "Afternoon — the hardest shift. You've got it."
-      : "Day done well. A few notes now saves an hour tomorrow.";
-  }
-
-  const severityRank = { critical: 0, urgent: 1, normal: 2 } as const;
-  tasks.sort((a, b) => severityRank[a.severity] - severityRank[b.severity]);
-
-  return { message, confidence, priority, signals, upcomingWarning, tasks };
+function byStartTime(a: Slot, b: Slot): number {
+  return a.start_time.localeCompare(b.start_time);
 }
 
+function firstCurrentSlot(slots: Slot[]): Slot | null {
+  const sorted = [...slots].sort(byStartTime);
+  const now = new Date();
+  const currentMins = now.getHours() * 60 + now.getMinutes();
+
+  return (
+    sorted.find((slot) => {
+      const [startHour, startMin] = slot.start_time.split(":").map(Number);
+      const [endHour, endMin] = slot.end_time.split(":").map(Number);
+      const start = startHour * 60 + startMin;
+      const end = endHour * 60 + endMin;
+
+      return currentMins >= start && currentMins <= end;
+    }) ??
+    sorted.find((slot) => {
+      const [startHour, startMin] = slot.start_time.split(":").map(Number);
+      return startHour * 60 + startMin >= currentMins;
+    }) ??
+    sorted[0] ??
+    null
+  );
+}
+
+function nextTaskForSlot(slot: Slot): PriorityTask | null {
+  if (!slot.lesson_plan_id) {
+    return {
+      id: `plan-${slot.id}`,
+      label: "Plan lesson",
+      detail: `${slot.subject} for ${slot.class_name} needs a lesson plan.`,
+      severity: "urgent",
+      href: `/teacher/lessonplan?subjectId=${slot.subject_id}&classId=${slot.class_id}`,
+    };
+  }
+
+  if (slot.attendance_status !== "completed") {
+    return {
+      id: `attendance-${slot.id}`,
+      label: "Take attendance before teaching",
+      detail: `${slot.class_name} is not marked yet.`,
+      severity: "critical",
+      href: `/teacher/attendance?classId=${slot.class_id}`,
+    };
+  }
+
+  if (slot.task_status === "none") {
+    return {
+      id: `task-${slot.id}`,
+      label: "Assign learner work",
+      detail: `Give ${slot.class_name} a task connected to this lesson.`,
+      severity: "calm",
+      href: `/teacher/homework?classId=${slot.class_id}&subjectId=${slot.subject_id}`,
+    };
+  }
+
+  if (slot.submission_count > 0 && slot.marking_status === "pending") {
+    return {
+      id: `mark-${slot.id}`,
+      label: `Mark ${slot.submission_count} submission${slot.submission_count === 1 ? "" : "s"}`,
+      detail: `${slot.class_name} has learner work waiting for marking.`,
+      severity: "critical",
+      href: `/teacher/assessment?classId=${slot.class_id}&subjectId=${slot.subject_id}`,
+    };
+  }
+
+  if (slot.marking_status === "completed" && slot.progress_record_status !== "completed") {
+    return {
+      id: `progress-${slot.id}`,
+      label: "Record progress",
+      detail: `Update progress records for ${slot.class_name}.`,
+      severity: "calm",
+      href: `/teacher/progress?classId=${slot.class_id}&subjectId=${slot.subject_id}`,
+    };
+  }
+
+  return null;
+}
+
+export function runRules(snap: PulseSnapshot): RuleResult {
+  const signals: string[] = [];
+  const tasks: PriorityTask[] = [];
+
+  const activeSlot = firstCurrentSlot(snap.todaySlots);
+
+  if (!activeSlot) {
+    return {
+      message: "No lesson is scheduled now. Prepare the next teaching block.",
+      priority: "calm",
+      upcomingWarning: null,
+      confidence: 100,
+      signals: ["no_current_lesson"],
+      tasks: [],
+    };
+  }
+
+  const activeTask = nextTaskForSlot(activeSlot);
+  if (activeTask) {
+    tasks.push(activeTask);
+    signals.push(activeTask.id.split("-")[0]);
+  }
+
+  for (const slot of [...snap.todaySlots].sort(byStartTime)) {
+    if (slot.id === activeSlot.id) continue;
+
+    const task = nextTaskForSlot(slot);
+    if (!task) continue;
+
+    if (!tasks.some((existing) => existing.id === task.id)) {
+      tasks.push(task);
+      signals.push(task.id.split("-")[0]);
+    }
+
+    if (tasks.length >= 5) break;
+  }
+
+  for (const homework of snap.homeworkUngraded.slice(0, 3)) {
+    tasks.push({
+      id: `homework-mark-${homework.homework_id}`,
+      label: `Mark ${homework.count} homework submission${homework.count === 1 ? "" : "s"}`,
+      detail: `${homework.title}${homework.subject ? ` · ${homework.subject}` : ""}`,
+      severity: "urgent",
+      href: `/teacher/assessment?classId=${homework.class_id}`,
+    });
+  }
+
+  if (snap.consecutiveAbsences.length > 0) {
+    const first = snap.consecutiveAbsences[0];
+    tasks.push({
+      id: `absence-${first.studentId}`,
+      label: "Follow up learner absence",
+      detail: `${first.name} has missed ${first.days} school day${first.days === 1 ? "" : "s"} in a row.`,
+      severity: "urgent",
+      href: "/teacher/students",
+    });
+    signals.push("absence");
+  }
+
+  const firstTask = tasks[0] ?? null;
+
+  let message = "Today’s teaching flow is clear.";
+  let priority: TaskSeverity = "calm";
+
+  if (firstTask) {
+    message = firstTask.detail;
+    priority = firstTask.severity;
+  }
+
+  if (snap.missedLessonPlans.length > 0) {
+    signals.push("missing_lesson_plan");
+  }
+
+  if (snap.attPending.length > 0) {
+    signals.push("attendance_pending");
+  }
+
+  return {
+    message,
+    priority,
+    upcomingWarning: null,
+    confidence: 100,
+    signals,
+    tasks: tasks.slice(0, 6),
+  };
+}
