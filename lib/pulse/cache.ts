@@ -1,54 +1,76 @@
 import { PulseSnapshot } from "./fetcher";
 
-const TWIN_KEY = "pulse_twin_v2";
-const SNAP_KEY = "pulse_snap_v2";
-const TTL_TWIN = 6 * 60 * 60 * 1000;
-const TTL_SNAP = 24 * 60 * 60 * 1000;
-
-interface TwinCache { fp: string; message: string; ts: number }
-interface SnapCache { snapshot: PulseSnapshot; ts: number }
-
-export function fingerprint(data: PulseSnapshot): string {
-  try {
-    return btoa(encodeURIComponent(JSON.stringify({
-      att: data.attPending.length,
-      risk: data.atRisk.map(r => r.id).sort(),
-      tpad: data.tpadDays,
-      credits: data.credits,
-      curr: data.currStats.map(s => `${s.subject}:${s.covered}/${s.total}`).sort(),
-      streak: data.streak,
-    })));
-  } catch { return ""; }
+interface GuideCache {
+  fp: string;
+  message: string;
+  savedAt: string;
 }
 
-export function readTwinCache(): TwinCache | null {
+const GUIDE_CACHE_KEY = "vibeschool.teacher.guide";
+const SNAP_CACHE_KEY = "vibeschool.teacher.pulse.snapshot";
+
+function safeRead<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+
   try {
-    const raw = localStorage.getItem(TWIN_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return null;
-    const p: TwinCache = JSON.parse(raw);
-    if (Date.now() - p.ts > TTL_TWIN) return null;
-    return p;
-  } catch { return null; }
+    return JSON.parse(raw) as T;
+  } catch {
+    window.localStorage.removeItem(key);
+    return null;
+  }
 }
 
-export function writeTwinCache(fp: string, message: string): void {
-  try { localStorage.setItem(TWIN_KEY, JSON.stringify({ fp, message, ts: Date.now() })); } catch {}
+function safeWrite<T>(key: string, value: T): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Offline cache should never break the teaching flow.
+  }
+}
+
+export function fingerprint(snapshot: PulseSnapshot): string {
+  const slotPart = snapshot.todaySlots
+    .map((slot) => [
+      slot.id,
+      slot.lesson_plan_id ?? "no-plan",
+      slot.attendance_status,
+      slot.task_status,
+      slot.submission_count,
+      slot.marking_status,
+    ].join(":"))
+    .join("|");
+
+  return [
+    snapshot.userId,
+    snapshot.schoolId,
+    snapshot.termNumber ?? "no-term",
+    snapshot.weekNumber ?? "no-week",
+    slotPart,
+    snapshot.attPending.length,
+    snapshot.homeworkUngraded.length,
+  ].join("::");
+}
+
+export function readGuideCache(): GuideCache | null {
+  return safeRead<GuideCache>(GUIDE_CACHE_KEY);
+}
+
+export function writeGuideCache(fp: string, message: string): void {
+  safeWrite<GuideCache>(GUIDE_CACHE_KEY, {
+    fp,
+    message,
+    savedAt: new Date().toISOString(),
+  });
 }
 
 export function readSnapCache(): PulseSnapshot | null {
-  try {
-    const raw = localStorage.getItem(SNAP_KEY);
-    if (!raw) return null;
-    const p: SnapCache = JSON.parse(raw);
-    if (Date.now() - p.ts > TTL_SNAP) return null;
-    return p.snapshot;
-  } catch { return null; }
+  return safeRead<PulseSnapshot>(SNAP_CACHE_KEY);
 }
 
 export function writeSnapCache(snapshot: PulseSnapshot): void {
-  try { localStorage.setItem(SNAP_KEY, JSON.stringify({ snapshot, ts: Date.now() })); } catch {}
-}
-
-export function clearCache(): void {
-  try { localStorage.removeItem(TWIN_KEY); localStorage.removeItem(SNAP_KEY); } catch {}
+  safeWrite<PulseSnapshot>(SNAP_CACHE_KEY, snapshot);
 }
