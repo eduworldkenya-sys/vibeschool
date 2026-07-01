@@ -80,11 +80,11 @@ function stateStyle(state: WorkflowState) {
 
 function EmptyWorkflow({ onNavigate }: { onNavigate: (href: string) => void }) {
   const actions = [
-    { label: "Continue scheme of work", detail: "Check what should be taught next.", href: "/teacher/scheme" },
-    { label: "Create next lesson plan", detail: "Prepare the next teaching block.", href: "/teacher/lessonplan" },
-    { label: "Review homework", detail: "Check learner work waiting for action.", href: "/teacher/homework" },
-    { label: "Mark learner work", detail: "Open assessment and update results.", href: "/teacher/assessment" },
-    { label: "Review class progress", detail: "See what needs support before the next lesson.", href: "/teacher/progress" },
+    { label: "Continue scheme", detail: "Check the next strand or lesson sequence.", href: "/teacher/scheme" },
+    { label: "Create lesson plan", detail: "Prepare the next lesson before class time.", href: "/teacher/lessonplan" },
+    { label: "Review homework", detail: "Check assigned work and learner responses.", href: "/teacher/homework" },
+    { label: "Mark work", detail: "Open assessment and update learner results.", href: "/teacher/assessment" },
+    { label: "Prepare tomorrow", detail: "Review tomorrow’s classes and plan ahead.", href: "/teacher/lessonplan" },
   ];
 
   return (
