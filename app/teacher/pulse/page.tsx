@@ -7,6 +7,7 @@ import { useCredits } from "@/app/teacher/layout";
 import { fetchPulseData, PulseSnapshot } from "@/lib/pulse/fetcher";
 import { runRules, PriorityTask } from "@/lib/pulse/rules";
 import RecentActivity, { ActivityItem } from "@/components/teacher/RecentActivity";
+import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 import {
   fingerprint, readTwinCache, writeTwinCache,
   readSnapCache, writeSnapCache
@@ -486,129 +487,27 @@ export default function PulsePage() {
         />
       </div>
 
-      {/* Homework due — next 7 days */}
-      {(snap?.homeworkDue.length ?? 0) > 0 && (
-        <div style={{ animation: "fadeUp 0.33s ease" }}>
-          <Card style={{ borderLeft: "3px solid #f59e0b" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <Label text="Homework Due — Next 7 Days" />
+      {/* Today's lesson flow */}
+      <div style={{ animation: "fadeUp 0.32s ease" }}>
+        <Label text={`Today's Flow — ${todayName}`} />
+        {loading && !snap ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Skel h={72} /><Skel h={72} />
+          </div>
+        ) : (
+          <LessonFlowCard
+            slots={snap?.todaySlots ?? []}
+            snap={snap!}
+            onNavigate={(href) => router.push(href)}
+          />
+        )}
+        {(snap?.attPending.length ?? 0) > 1 && (
+          <Pressable onClick={() => setAttSheetOpen(true)} style={{ marginBottom: 12 }}>
+            <div style={{ background: "#f0fdf9", border: "1px solid #10b981", borderRadius: 12, padding: "11px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0d7a5f" }}>
+              Mark all classes
             </div>
-            {snap!.homeworkDue.slice(0, 5).map((h, i) => (
-              <Pressable key={`${h.class_id}-${h.title}-${i}`} onClick={() => router.push(`/teacher/classhub/${h.class_id}/homework`)}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < Math.min(snap!.homeworkDue.length, 5) - 1 ? "1px solid #f3f4f6" : "none" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{h.title}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{h.subject}</div>
-                  </div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#b45309", background: "#fffbeb", borderRadius: 8, padding: "3px 9px" }}>
-                    {h.due_date}
-                  </div>
-                </div>
-              </Pressable>
-            ))}
-          </Card>
-        </div>
-      )}
-
-      {/* Homework ungraded */}
-      {(snap?.homeworkUngraded.length ?? 0) > 0 && (
-        <div style={{ animation: "fadeUp 0.335s ease" }}>
-          <Card style={{ borderLeft: "3px solid #6366f1" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <Label text="Homework To Grade" />
-            </div>
-            {snap!.homeworkUngraded.slice(0, 5).map((h, i) => (
-              <Pressable key={`${h.homework_id}-${i}`} onClick={() => router.push(`/teacher/classhub/${h.class_id}/homework/${h.homework_id}`)}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < Math.min(snap!.homeworkUngraded.length, 5) - 1 ? "1px solid #f3f4f6" : "none" }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{h.title}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{h.subject}</div>
-                  </div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#4338ca", background: "#eef2ff", borderRadius: 8, padding: "3px 9px" }}>
-                    {h.count} pending
-                  </div>
-                </div>
-              </Pressable>
-            ))}
-          </Card>
-        </div>
-      )}
-
-      {/* Attendance insight */}
-      {(snap?.attPending.length ?? 0) > 0 && (
-        <div style={{ animation: "fadeUp 0.32s ease" }}>
-          <Card style={{ borderLeft: "3px solid #10b981" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <Label text="Attendance" />
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280" }}>
-                {snap!.attPending.length} class{snap!.attPending.length !== 1 ? "es" : ""} not yet marked
-              </div>
-            </div>
-            {snap!.attPending.map(c => (
-              <Pressable key={c.class_id} onClick={() => router.push(`/teacher/attendance?classId=${c.class_id}`)}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{c.class_name}</div>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: "#10b981", background: "#ecfdf5", borderRadius: 8, padding: "3px 9px" }}>Mark attendance</div>
-                </div>
-              </Pressable>
-            ))}
-            <Pressable onClick={() => setAttSheetOpen(true)} style={{ marginTop: 10 }}>
-              <div style={{ background: "#f0fdf9", border: "1px solid #10b981", borderRadius: 12, padding: "11px", textAlign: "center", fontSize: 13, fontWeight: 700, color: "#0d7a5f" }}>
-                Mark all classes
-              </div>
-            </Pressable>
-          </Card>
-        </div>
-      )}
-
-      {/* Today's timetable */}
-      <div style={{ animation: "fadeUp 0.35s ease" }}>
-        <Card>
-          <Label text={`Today — ${todayName}`} />
-          {loading && !snap ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <Skel /><Skel />
-            </div>
-          ) : (snap?.todaySlots.length ?? 0) === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px 0", color: "#9ca3af", fontSize: 13 }}>
-              No lessons scheduled today
-            </div>
-          ) : snap!.todaySlots.map((slot: any) => {
-            const [h, m] = slot.start_time.split(":").map(Number);
-            const slotMins = h * 60 + m;
-            const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
-            const [eh, em] = slot.end_time.split(":").map(Number);
-            const endMins = eh * 60 + em;
-            const isNow = slotMins <= nowMins && nowMins < endMins;
-            const isPast = endMins <= nowMins;
-            const isSoon = !isNow && !isPast && slotMins - nowMins <= 10;
-            const planMissing = snap!.missedLessonPlans.some(p => p.slotId === slot.id);
-            const attMarked = !snap!.attPending.some(c => c.class_id === slot.class_id);
-            return (
-              <Pressable key={slot.id} onClick={() => router.push(`/teacher/classhub/${slot.class_id}`)}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: "1px solid #f3f4f6", opacity: isPast ? 0.45 : 1 }}>
-                  <div style={{ width: 4, height: 46, borderRadius: 4, flexShrink: 0, background: isNow ? "#10b981" : isSoon ? "#f59e0b" : isPast ? "#e5e7eb" : "#6366f1" }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{slot.subject} — {slot.class_name}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{timeStr(slot.start_time)} – {timeStr(slot.end_time)}</div>
-                    {!isPast && (
-                      <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: planMissing ? "#ef4444" : "#10b981", background: planMissing ? "#fef2f2" : "#f0fdf4", borderRadius: 6, padding: "2px 6px" }}>
-                          {planMissing ? "No plan" : "Plan ready"}
-                        </span>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: attMarked ? "#10b981" : "#9ca3af", background: attMarked ? "#f0fdf4" : "#f9fafb", borderRadius: 6, padding: "2px 6px" }}>
-                          {attMarked ? "Attendance marked" : "Attendance pending"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {isNow && <div style={{ fontSize: 9, fontWeight: 900, color: "#10b981", background: "#f0fdf4", borderRadius: 8, padding: "3px 8px", letterSpacing: 0.5, textTransform: "uppercase" }}>Now</div>}
-                  {isSoon && <div style={{ fontSize: 9, fontWeight: 900, color: "#f59e0b", background: "#fffbeb", borderRadius: 8, padding: "3px 8px", letterSpacing: 0.5, textTransform: "uppercase" }}>Soon</div>}
-                </div>
-              </Pressable>
-            );
-          })}
-        </Card>
+          </Pressable>
+        )}
       </div>
 
       {/* Tomorrow preview */}

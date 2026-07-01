@@ -21,6 +21,13 @@ export interface PulseSnapshot {
   termNumber: number | null;
   weekNumber: number | null;
   recentActivity: { type: "attendance" | "lesson_plan"; title: string; subtitle: string; timestamp: string }[];
+  todayLessonPlans: {
+    id: string; class_id: string; subject_id: string;
+    topic: string | null; objectives: string | null;
+  }[];
+  lessonEvidenceCounts: Record<string, number>;
+  lessonReflectionDone: Record<string, boolean>;
+  lessonInterventionCounts: Record<string, number>;
 }
 
 function one(x: any) { return Array.isArray(x) ? x[0] : x; }
@@ -170,7 +177,7 @@ export async function fetchPulseData(
     todaySlots.length > 0
       ? supabase
           .from("lesson_plans")
-          .select("class_id, subject_id")
+          .select("id, class_id, subject_id, topic, objectives")
           .eq("teacher_id", userId)
           .eq("week_start", weekStart)
           .in("class_id", todaySlots.map(s => s.class_id))
@@ -275,9 +282,14 @@ export async function fetchPulseData(
     .filter(h => h.count > 0)
     .sort((a, b) => b.count - a.count);
 
-  const filedSet = new Set(
-    ((plansRes.data ?? []) as any[]).map((p: any) => `${p.class_id}:${p.subject_id}`)
-  );
+  const todayLessonPlans = ((plansRes.data ?? []) as any[]).map((p: any) => ({
+    id: p.id,
+    class_id: p.class_id,
+    subject_id: p.subject_id,
+    topic: p.topic ?? null,
+    objectives: p.objectives ?? null,
+  }));
+  const filedSet = new Set(todayLessonPlans.map(p => `${p.class_id}:${p.subject_id}`));
   const missedLessonPlans = todaySlots
     .filter(s => !filedSet.has(`${s.class_id}:${s.subject_id}`))
     .map(s => ({
@@ -287,6 +299,29 @@ export async function fetchPulseData(
       class_id: s.class_id,
       subject_id: s.subject_id,
     }));
+
+  const todayLessonIds = todayLessonPlans.map(p => p.id);
+  const [evidenceRes, reflectionRes, interventionRes] = todayLessonIds.length > 0
+    ? await Promise.all([
+        supabase.from("lesson_evidence").select("lesson_id").in("lesson_id", todayLessonIds),
+        supabase.from("lesson_reflections").select("lesson_id").in("lesson_id", todayLessonIds),
+        supabase.from("lesson_interventions").select("lesson_id, status").in("lesson_id", todayLessonIds),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }] as any[];
+
+  const lessonEvidenceCounts: Record<string, number> = {};
+  for (const r of ((evidenceRes.data ?? []) as any[])) {
+    lessonEvidenceCounts[r.lesson_id] = (lessonEvidenceCounts[r.lesson_id] ?? 0) + 1;
+  }
+  const lessonReflectionDone: Record<string, boolean> = {};
+  for (const r of ((reflectionRes.data ?? []) as any[])) {
+    lessonReflectionDone[r.lesson_id] = true;
+  }
+  const lessonInterventionCounts: Record<string, number> = {};
+  for (const r of ((interventionRes.data ?? []) as any[])) {
+    if (r.status === "resolved") continue;
+    lessonInterventionCounts[r.lesson_id] = (lessonInterventionCounts[r.lesson_id] ?? 0) + 1;
+  }
 
   const recentRows = (recentAttRes.data ?? []) as any[];
   const studentDayMap: Record<string, { name: string; dates: Set<string> }> = {};
@@ -377,5 +412,6 @@ export async function fetchPulseData(
     currStats, tpadDays, credits, streak, termProgressPct,
     unreadMessages, homeworkDue, homeworkDueTomorrow, homeworkUngraded, missedLessonPlans, consecutiveAbsences,
     termNumber: termRow?.term ?? null, weekNumber, recentActivity,
+    todayLessonPlans, lessonEvidenceCounts, lessonReflectionDone, lessonInterventionCounts,
   };
 }
