@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
+import { refreshPulse } from "@/lib/pulse/refresh";
 
 type AttStatus = 'present' | 'absent' | 'late' | 'excused'
 type Mode = 'class' | 'lesson'
@@ -269,6 +270,7 @@ function AttendanceInner() {
         setActiveSlot(prev => prev ? { ...prev, marked: true } : prev)
       }
       setSaveState('saved')
+      refreshPulse('attendance')
       setTimeout(() => setSaveState('idle'), 2500)
     } else {
       console.error('attendance save error:', error)
