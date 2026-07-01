@@ -406,3 +406,6 @@
 ## [2026-06-30 21:32] f02bf71
 **What:** feat: TeachOS week view at /teacher/week
 **Status:** ✅ pushed
+## [2026-07-01 07:21] 8c56577
+**What:** lessonnotes: fix unreachable delete modal, dead planId deep-link, save button hidden behind nav
+**Status:** ✅ pushed
