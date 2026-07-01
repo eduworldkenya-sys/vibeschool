@@ -40,39 +40,30 @@ function getStepState(step: StepName, slot: Slot): WorkflowState {
   switch (step) {
     case "Plan Lesson":
       return slot.lesson_plan_id ? "Done" : "Current";
-
     case "Take Attendance":
       if (!slot.lesson_plan_id) return "Blocked";
       return slot.attendance_status === "completed" ? "Done" : "Current";
-
     case "Teach Lesson":
       if (slot.attendance_status !== "completed") return "Blocked";
       return slot.evidence_count > 0 || slot.task_status !== "none" ? "Done" : "Current";
-
     case "Collect Evidence":
       if (slot.attendance_status !== "completed") return "Blocked";
       return slot.evidence_count > 0 ? "Done" : "Not available yet";
-
     case "Assign Task":
       if (slot.attendance_status !== "completed") return "Blocked";
       return slot.task_status !== "none" ? "Done" : "Not available yet";
-
     case "Review Submissions":
       if (slot.task_status === "none") return "Not available yet";
       return slot.submission_count > 0 ? "Done" : "Current";
-
     case "Mark Work":
       if (slot.submission_count === 0) return "Blocked";
       return slot.marking_status === "completed" ? "Done" : "Current";
-
     case "Record Progress":
       if (slot.marking_status !== "completed") return "Blocked";
       return slot.progress_record_status === "completed" ? "Done" : "Not available yet";
-
     case "Write Reflection":
       if (slot.marking_status !== "completed") return "Blocked";
       return slot.reflection_status === "completed" ? "Done" : "Not available yet";
-
     case "Prepare Next Lesson":
       if (slot.reflection_status !== "completed") return "Not available yet";
       return slot.next_lesson_status === "completed" ? "Done" : "Current";
@@ -87,18 +78,59 @@ function stateStyle(state: WorkflowState) {
   return { color: "#9ca3af", bg: "#f3f4f6" };
 }
 
+function EmptyWorkflow({ onNavigate }: { onNavigate: (href: string) => void }) {
+  const actions = [
+    { label: "Continue scheme of work", detail: "Check what should be taught next.", href: "/teacher/scheme" },
+    { label: "Create next lesson plan", detail: "Prepare the next teaching block.", href: "/teacher/lessonplan" },
+    { label: "Review homework", detail: "Check learner work waiting for action.", href: "/teacher/homework" },
+    { label: "Mark learner work", detail: "Open assessment and update results.", href: "/teacher/assessment" },
+    { label: "Review class progress", detail: "See what needs support before the next lesson.", href: "/teacher/progress" },
+  ];
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", marginBottom: 12 }}>
+      <div style={{ fontSize: 14, fontWeight: 900, color: "#1e1b4b", marginBottom: 4 }}>
+        No lesson scheduled now.
+      </div>
+      <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>
+        Continue your teaching workflow.
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {actions.map((action) => (
+          <div
+            key={action.href}
+            onClick={() => onNavigate(action.href)}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: 12,
+              borderRadius: 14,
+              border: "1px solid #f3f4f6",
+              cursor: "pointer",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>{action.label}</div>
+              <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{action.detail}</div>
+            </div>
+            <div style={{ fontSize: 18, color: "#10b981" }}>→</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (slots.length === 0) {
-    return (
-      <div style={{ background: "#fff", borderRadius: 20, padding: 20, textAlign: "center", color: "#6b7280" }}>
-        No lessons scheduled for today.
-      </div>
-    );
+    return <EmptyWorkflow onNavigate={onNavigate} />;
   }
 
-  const activeSlot = slots[activeIndex];
+  const activeSlot = slots[Math.min(activeIndex, slots.length - 1)];
 
   const routes: Partial<Record<StepName, string>> = {
     "Plan Lesson": `/teacher/lessonplan?subjectId=${activeSlot.subject_id}&classId=${activeSlot.class_id}`,
@@ -157,7 +189,7 @@ export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProp
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 10,
-                padding: "12px",
+                padding: 12,
                 borderRadius: 14,
                 border: state === "Current" ? "1px solid #bfdbfe" : "1px solid #f3f4f6",
                 background: state === "Current" ? "#f8fafc" : "#fff",
