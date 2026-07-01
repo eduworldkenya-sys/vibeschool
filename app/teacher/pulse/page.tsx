@@ -15,6 +15,7 @@ import {
   writeSnapCache,
 } from "@/lib/pulse/cache";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
+import NextTeachingAction from "@/components/teacher/NextTeachingAction";
 import RecentActivity, { ActivityItem } from "@/components/teacher/RecentActivity";
 import { subscribePulse } from "@/lib/pulse/refresh";
 
@@ -312,6 +313,12 @@ export default function PulsePage() {
       </div>
 
       <GuideCard message={guideMsg} priority={guidePriority} active={guideActive} />
+
+      <NextTeachingAction
+        task={tasks[0] ?? null}
+        hasLessons={snap.todaySlots.length > 0}
+        onNavigate={(href) => router.push(href)}
+      />
 
       {tasks.length > 0 && (
         <Card>
