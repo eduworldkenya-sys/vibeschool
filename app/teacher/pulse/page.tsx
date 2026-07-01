@@ -301,21 +301,9 @@ export default function PulsePage() {
 
       <GuideCard message={guideMsg} priority={guidePriority} active={guideActive} />
 
-      <Label text="Today’s Teaching Flow" />
-      <LessonFlowCard
-        slots={snap.todaySlots}
-        snap={snap}
-        teacherId={snap.userId}
-        onNavigate={(href) => router.push(href)}
-        onSaved={() => {
-          const controller = new AbortController();
-          boot(true, controller.signal);
-        }}
-      />
-
       {tasks.length > 0 && (
         <Card>
-          <Label text="Teaching Tasks" />
+          <Label text="Next Teaching Actions" />
           {tasks.map((task, index) => (
             <Pressable key={task.id} onClick={() => router.push(task.href)}>
               <div style={{
@@ -333,6 +321,18 @@ export default function PulsePage() {
           ))}
         </Card>
       )}
+
+      <Label text="Today’s Teaching Flow" />
+      <LessonFlowCard
+        slots={snap.todaySlots}
+        snap={snap}
+        teacherId={snap.userId}
+        onNavigate={(href) => router.push(href)}
+        onSaved={() => {
+          const controller = new AbortController();
+          boot(true, controller.signal);
+        }}
+      />
 
       {snap.currStats.length > 0 && (
         <Card>
