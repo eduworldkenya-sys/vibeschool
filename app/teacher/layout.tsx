@@ -37,7 +37,7 @@ function tabIdFromPath(path: string): TabId {
   if (path.startsWith("/teacher/pulse")) return "today";
   if (path.startsWith("/teacher/twin"))  return "today";
 
-  if (path.startsWith("/teacher/teach-today") || path.startsWith("/teacher/week") || path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/lessonnotes") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn")) return "teach";
+  if (path.startsWith("/teacher/teach-today") || path.startsWith("/teacher/week") || path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/progress") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn")) return "teach";
 
   if (path.startsWith("/teacher/classhub") || path.startsWith("/teacher/students") || path.startsWith("/teacher/attendance") || path.startsWith("/teacher/homework") || path.startsWith("/teacher/vibeconnect") || path.startsWith("/teacher/timetable")) return "classes";
 
@@ -487,7 +487,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"        },
     { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"            },
     { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan"        },
-    { label: "Notes",       icon: <IconVibeLearn  size={24} />, href: "/teacher/lessonnotes"       },
+    { label: "Progress",    icon: <IconVibeLearn  size={24} />, href: "/teacher/progress"          },
     { label: "Resources",   icon: <IconResources  size={24} />, href: "/teacher/resources"         },
     { label: "VibeLearn",   icon: <IconIndexer    size={24} />, href: "/teacher/vibelearn"         },
   ],

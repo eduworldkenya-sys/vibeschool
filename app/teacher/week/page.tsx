@@ -144,7 +144,7 @@ export default function TeacherWeekViewPage() {
           .eq("teacher_id", user.id)
           .eq("week_start", wStart)
           .in("class_id", classIds),
-        supabase.from("lesson_notes")
+        supabase.from("progress_records")
           .select("id,class_id,subject_id,taught_date")
           .eq("teacher_id", user.id)
           .gte("taught_date", wStart)
@@ -225,7 +225,7 @@ export default function TeacherWeekViewPage() {
     const base: Record<Chip["key"], string> = {
       scheme:   `/teacher/scheme?class_id=${row.classId}&subject_id=${row.subjectId}`,
       plan:     `/teacher/lessonplan?classId=${row.classId}`,
-      notes:    `/teacher/lessonnotes?class_id=${row.classId}&subject_id=${row.subjectId}`,
+      notes:    `/teacher/progress?class_id=${row.classId}&subject_id=${row.subjectId}`,
       homework: `/teacher/homework`,
       assess:   `/teacher/assessment?class_id=${row.classId}&subject_id=${row.subjectId}`,
     };

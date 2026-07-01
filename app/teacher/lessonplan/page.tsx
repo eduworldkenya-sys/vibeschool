@@ -259,7 +259,7 @@ function LessonPlanInner() {
                       {plan ? '📝 Open Plan' : '✦ Create Plan'}
                     </Btn>
                     {(plan?.status === 'published' || plan?.status === 'shared_to_parents') && (
-                      <Btn small variant="ghost" onClick={() => router.push(`/teacher/lessonnotes?planId=${plan.id}&classId=${plan.classId}&subjectId=${plan.subjectId}`)}>
+                      <Btn small variant="ghost" onClick={() => router.push(`/teacher/progress?planId=${plan.id}&classId=${plan.classId}&subjectId=${plan.subjectId}`)}>
                         ✓ Mark as Taught
                       </Btn>
                     )}
