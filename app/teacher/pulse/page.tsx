@@ -16,6 +16,7 @@ import {
 } from "@/lib/pulse/cache";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 import RecentActivity, { ActivityItem } from "@/components/teacher/RecentActivity";
+import { subscribePulse } from "@/lib/pulse/refresh";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -238,6 +239,13 @@ export default function PulsePage() {
     boot(false, controller.signal);
 
     return () => controller.abort();
+  }, [boot]);
+
+  useEffect(() => {
+    return subscribePulse(() => {
+      const controller = new AbortController();
+      boot(true, controller.signal);
+    });
   }, [boot]);
 
   const onTouchStart = (event: React.TouchEvent) => {
