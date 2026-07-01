@@ -7,6 +7,7 @@ import { getServerWeek, nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
 import { ensureStrandsForSubject } from '@/lib/strandSync'
 import type { TimetableSlot } from '@/lib/types'
+import { refreshPulse } from "@/lib/pulse/refresh";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -414,6 +415,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       setSections(draft)
       setPhase('view')
       showToast('Plan saved')
+      refreshPulse('lesson')
     } catch (err) {
       console.error('[LessonPlanModal] saveEdit', err)
       setError('Save failed. Try again.')
