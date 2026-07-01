@@ -71,3 +71,5 @@ supabase/.temp/
 supabase/.branches/
 supabase/.env
 
+supabase-go
+supabase_linux
