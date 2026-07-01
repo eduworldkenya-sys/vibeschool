@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { PulseSnapshot } from "@/lib/pulse/fetcher";
 import { buildLessonFlow, FlowStatus } from "@/lib/pulse/lessonFlow";
+import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
 
 function timeStr(t: string) {
   const [h, m] = t.split(":").map(Number);
@@ -27,18 +28,25 @@ function statusLabel(status: FlowStatus) {
 }
 
 function StepRow({
-  step, isLast, onNavigate,
+  step, isLast, onNavigate, onOpenEvidence,
 }: {
   step: ReturnType<typeof buildLessonFlow>[number];
   isLast: boolean;
   onNavigate: (href: string) => void;
+  onOpenEvidence: () => void;
 }) {
   const c = statusColor(step.status);
   const [pressed, setPressed] = useState(false);
-  const clickable = !!step.href && step.status !== "comingSoon";
+  const isEvidence = step.key === "evidence";
+  const clickable = isEvidence || (!!step.href && step.status !== "comingSoon");
+  const handleClick = () => {
+    if (!clickable) return;
+    if (isEvidence) return onOpenEvidence();
+    if (step.href) onNavigate(step.href);
+  };
   return (
     <div
-      onClick={() => clickable && step.href && onNavigate(step.href)}
+      onClick={handleClick}
       onPointerDown={() => clickable && setPressed(true)}
       onPointerUp={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
@@ -74,12 +82,15 @@ function StepRow({
 }
 
 export default function LessonFlowCard({
-  slots, snap, onNavigate,
+  slots, snap, onNavigate, teacherId, onSaved,
 }: {
   slots: any[];
   snap: PulseSnapshot;
   onNavigate: (href: string) => void;
+  teacherId: string;
+  onSaved: () => void;
 }) {
+  const [evidenceSlot, setEvidenceSlot] = useState<any | null>(null);
   const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
   const defaultSlot = slots.find((s: any) => {
     const [h, m] = s.start_time.split(":").map(Number);
@@ -148,13 +159,34 @@ export default function LessonFlowCard({
             {isOpen && flow && (
               <div style={{ padding: "0 16px 16px" }}>
                 {flow.map((step, i) => (
-                  <StepRow key={step.key} step={step} isLast={i === flow.length - 1} onNavigate={onNavigate} />
+                  <StepRow
+                    key={step.key}
+                    step={step}
+                    isLast={i === flow.length - 1}
+                    onNavigate={onNavigate}
+                    onOpenEvidence={() => setEvidenceSlot(slot)}
+                  />
                 ))}
               </div>
             )}
           </div>
         );
       })}
+
+      {evidenceSlot && (
+        <EvidenceCaptureSheet
+          lessonId={
+            snap.todayLessonPlans.find(
+              p => p.class_id === evidenceSlot.class_id && p.subject_id === evidenceSlot.subject_id
+            )?.id ?? null
+          }
+          classId={evidenceSlot.class_id}
+          teacherId={teacherId}
+          defaultTitle={evidenceSlot.subject}
+          onClose={() => setEvidenceSlot(null)}
+          onSaved={onSaved}
+        />
+      )}
     </div>
   );
 }

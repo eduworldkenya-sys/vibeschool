@@ -499,6 +499,8 @@ export default function PulsePage() {
             slots={snap?.todaySlots ?? []}
             snap={snap!}
             onNavigate={(href) => router.push(href)}
+            teacherId={snap?.userId ?? ""}
+            onSaved={() => boot(true)}
           />
         )}
         {(snap?.attPending.length ?? 0) > 1 && (
