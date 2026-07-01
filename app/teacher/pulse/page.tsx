@@ -127,6 +127,7 @@ export default function PulsePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [name, setName] = useState("");
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
+  const [usingCachedSnap, setUsingCachedSnap] = useState(false);
   const [guideMsg, setGuideMsg] = useState("");
   const [guidePriority, setGuidePriority] = useState("calm");
   const [guideActive, setGuideActive] = useState(false);
@@ -188,6 +189,7 @@ export default function PulsePage() {
       const cached = readSnapCache();
       if (cached) {
         setSnap(cached);
+        setUsingCachedSnap(true);
         setLoading(false);
         const result = runRules(cached);
         setGuideMsg(result.message);
@@ -217,6 +219,7 @@ export default function PulsePage() {
       if (signal?.aborted) return;
 
       setSnap(fresh);
+      setUsingCachedSnap(false);
       writeSnapCache(fresh);
       await resolveGuide(fresh, signal);
     } catch {
@@ -296,6 +299,7 @@ export default function PulsePage() {
           {snap.termNumber != null && snap.weekNumber != null
             ? ` · Term ${snap.termNumber}, Week ${snap.weekNumber}`
             : ""}
+          {usingCachedSnap ? " · Offline copy" : ""}
         </div>
       </div>
 
