@@ -1,11 +1,13 @@
 "use client";
 
 import { PriorityTask } from "@/lib/pulse/rules";
+import { PulseSnapshot } from "@/lib/pulse/fetcher";
 
 interface NextTeachingActionProps {
   task: PriorityTask | null;
   hasLessons: boolean;
   headline?: string | null;
+  snap?: PulseSnapshot;
   onNavigate: (href: string) => void;
 }
 
@@ -13,6 +15,7 @@ export default function NextTeachingAction({
   task,
   hasLessons,
   headline,
+  snap,
   onNavigate,
 }: NextTeachingActionProps) {
   const title =
@@ -27,6 +30,8 @@ export default function NextTeachingAction({
       : "No lesson is scheduled now. Prepare, review, or mark work.");
 
   const href = task?.href ?? (hasLessons ? "/teacher/teach-today" : "/teacher/scheme");
+
+  const lastActivity = snap?.recentActivity[0] ?? null;
 
   return (
     <div
@@ -59,6 +64,20 @@ export default function NextTeachingAction({
       <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.45, marginBottom: 14 }}>
         {detail}
       </div>
+
+      {lastActivity && (
+        <div style={{
+          borderTop: "1px solid rgba(255,255,255,0.14)",
+          paddingTop: 10,
+          marginBottom: 12,
+          fontSize: 11,
+          color: "#cbd5e1",
+          lineHeight: 1.4,
+        }}>
+          Last done: <span style={{ color: "#fff", fontWeight: 800 }}>{lastActivity.title}</span>
+          {lastActivity.subtitle ? ` · ${lastActivity.subtitle}` : ""}
+        </div>
+      )}
 
       <button
         onClick={() => onNavigate(href)}

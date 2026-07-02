@@ -95,13 +95,50 @@ function stepHelp(step: StepName): string {
   return help[step];
 }
 
-function EmptyWorkflow({ onNavigate }: { onNavigate: (href: string) => void }) {
+function EmptyWorkflow({
+  snap,
+  onNavigate,
+}: {
+  snap?: PulseSnapshot;
+  onNavigate: (href: string) => void;
+}) {
+  const weakest = snap?.currStats.length
+    ? [...snap.currStats].sort((a, b) => {
+        const ap = a.total > 0 ? a.covered / a.total : 1;
+        const bp = b.total > 0 ? b.covered / b.total : 1;
+        return ap - bp;
+      })[0]
+    : null;
+
+  const firstUngraded = snap?.homeworkUngraded[0] ?? null;
+  const tomorrow = snap?.tomorrowSlots[0] ?? null;
+
   const actions = [
-    { label: "Continue scheme", detail: "Check the next strand or lesson sequence.", href: "/teacher/scheme" },
-    { label: "Create lesson plan", detail: "Prepare the next lesson before class time.", href: "/teacher/lessonplan" },
+    ...(weakest
+      ? [{
+          label: "Continue scheme",
+          detail: `${weakest.subject} needs the next teaching step.`,
+          href: `/teacher/lessonplan?subjectId=${weakest.subjectId}&classId=${weakest.classId}`,
+        }]
+      : [{ label: "Continue scheme", detail: "Check the next strand or lesson sequence.", href: "/teacher/scheme" }]),
+
+    ...(tomorrow
+      ? [{
+          label: "Prepare tomorrow",
+          detail: `${tomorrow.subject} for ${tomorrow.class_name}.`,
+          href: `/teacher/lessonplan?subjectId=${tomorrow.subject_id}&classId=${tomorrow.class_id}`,
+        }]
+      : [{ label: "Create lesson plan", detail: "Prepare the next lesson before class time.", href: "/teacher/lessonplan" }]),
+
     { label: "Review homework", detail: "Check assigned work and learner responses.", href: "/teacher/homework" },
-    { label: "Mark work", detail: "Open assessment and update learner results.", href: "/teacher/assessment" },
-    { label: "Prepare tomorrow", detail: "Review tomorrow’s classes and plan ahead.", href: "/teacher/lessonplan" },
+
+    ...(firstUngraded
+      ? [{
+          label: "Mark work",
+          detail: `${firstUngraded.count} homework submission${firstUngraded.count === 1 ? "" : "s"} waiting.`,
+          href: `/teacher/assessment?classId=${firstUngraded.class_id}`,
+        }]
+      : [{ label: "Mark work", detail: "Open assessment and update learner results.", href: "/teacher/assessment" }]),
   ];
 
   return (
@@ -140,11 +177,11 @@ function EmptyWorkflow({ onNavigate }: { onNavigate: (href: string) => void }) {
   );
 }
 
-export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProps) {
+export default function LessonFlowCard({ slots, snap, onNavigate }: LessonFlowCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (slots.length === 0) {
-    return <EmptyWorkflow onNavigate={onNavigate} />;
+    return <EmptyWorkflow snap={snap} onNavigate={onNavigate} />;
   }
 
   const activeSlot = slots[Math.min(activeIndex, slots.length - 1)];

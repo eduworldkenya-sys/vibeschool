@@ -333,6 +333,7 @@ export default function PulsePage() {
         task={tasks[0] ?? null}
         hasLessons={snap.todaySlots.length > 0}
         headline={guideHeadline}
+        snap={snap}
         onNavigate={(href) => router.push(href)}
       />
 
