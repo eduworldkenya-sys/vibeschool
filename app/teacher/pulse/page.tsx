@@ -94,10 +94,12 @@ function Skeleton() {
 }
 
 function GuideCard({
+  headline,
   message,
   priority,
   active,
 }: {
+  headline: string | null;
   message: string;
   priority: string;
   active: boolean;
@@ -115,6 +117,11 @@ function GuideCard({
       <div style={{ fontSize: 10, fontWeight: 900, color, textTransform: "uppercase", marginBottom: 6 }}>
         Teaching Guide {active ? "· preparing..." : ""}
       </div>
+      {headline && (
+        <div style={{ fontSize: 18, fontWeight: 950, color: "#fff", lineHeight: 1.2, marginBottom: 6 }}>
+          {headline}
+        </div>
+      )}
       <div style={{ fontSize: 14, fontWeight: 700, color: "#e0e7ff", lineHeight: 1.5 }}>
         {message || "Preparing today’s teaching flow..."}
       </div>
@@ -133,6 +140,7 @@ export default function PulsePage() {
   const [guideMsg, setGuideMsg] = useState("");
   const [guidePriority, setGuidePriority] = useState("calm");
   const [guideActive, setGuideActive] = useState(false);
+  const [guideHeadline, setGuideHeadline] = useState<string | null>(null);
   const [tasks, setTasks] = useState<PriorityTask[]>([]);
 
   const touchStartY = useRef(0);
@@ -146,6 +154,7 @@ export default function PulsePage() {
 
     setGuideMsg(result.message);
     setGuidePriority(result.priority);
+    setGuideHeadline(result.upcomingWarning);
     setTasks(result.tasks);
 
     if (result.confidence >= 70) return;
@@ -196,6 +205,7 @@ export default function PulsePage() {
         const result = runRules(cached);
         setGuideMsg(result.message);
         setGuidePriority(result.priority);
+        setGuideHeadline(result.upcomingWarning);
         setTasks(result.tasks);
       }
     }
@@ -312,7 +322,12 @@ export default function PulsePage() {
         </div>
       </div>
 
-      <GuideCard message={guideMsg} priority={guidePriority} active={guideActive} />
+      <GuideCard
+        headline={guideHeadline}
+        message={guideMsg}
+        priority={guidePriority}
+        active={guideActive}
+      />
 
       <NextTeachingAction
         task={tasks[0] ?? null}
