@@ -1,4 +1,5 @@
 import { PulseSnapshot, Slot } from "./fetcher";
+import { detectTeacherMode } from "./userMode";
 
 export type TaskSeverity = "critical" | "urgent" | "calm";
 
@@ -153,17 +154,18 @@ function noLessonTasks(snap: PulseSnapshot): PriorityTask[] {
 export function runRules(snap: PulseSnapshot): RuleResult {
   const signals: string[] = [];
   const tasks: PriorityTask[] = [];
+  const mode = detectTeacherMode(snap);
   const activeSlot = firstCurrentSlot(snap.todaySlots);
 
   if (!activeSlot) {
     const fallbackTasks = noLessonTasks(snap);
 
     return {
-      message: fallbackTasks[0]?.detail ?? "No lesson is scheduled now. Continue your teaching workflow.",
+      message: fallbackTasks[0]?.detail ?? mode.explanation,
       priority: fallbackTasks[0]?.severity ?? "calm",
-      upcomingWarning: null,
+      upcomingWarning: mode.headline,
       confidence: 100,
-      signals: ["no_current_lesson", "continue_workflow"],
+      signals: ["no_current_lesson", "continue_workflow", `teacher_${mode.mode}`],
       tasks: fallbackTasks,
     };
   }
@@ -206,7 +208,7 @@ export function runRules(snap: PulseSnapshot): RuleResult {
   const firstTask = tasks[0];
 
   return {
-    message: firstTask?.detail ?? "Today’s teaching flow is clear.",
+    message: firstTask?.detail ?? mode.explanation,
     priority: firstTask?.severity ?? "calm",
     upcomingWarning: null,
     confidence: 100,
