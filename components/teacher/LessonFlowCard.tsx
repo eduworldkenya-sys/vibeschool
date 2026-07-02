@@ -71,11 +71,28 @@ function getStepState(step: StepName, slot: Slot): WorkflowState {
 }
 
 function stateStyle(state: WorkflowState) {
-  if (state === "Done") return { color: "#10b981", bg: "#ecfdf5" };
-  if (state === "Current") return { color: "#2563eb", bg: "#eff6ff" };
-  if (state === "Blocked") return { color: "#ef4444", bg: "#fef2f2" };
-  if (state === "Next") return { color: "#7c3aed", bg: "#f5f3ff" };
-  return { color: "#9ca3af", bg: "#f3f4f6" };
+  if (state === "Done") return { color: "#10b981", bg: "#ecfdf5", label: "Done" };
+  if (state === "Current") return { color: "#2563eb", bg: "#eff6ff", label: "Do now" };
+  if (state === "Blocked") return { color: "#ef4444", bg: "#fef2f2", label: "Blocked" };
+  if (state === "Next") return { color: "#7c3aed", bg: "#f5f3ff", label: "Next" };
+  return { color: "#9ca3af", bg: "#f3f4f6", label: "Later" };
+}
+
+function stepHelp(step: StepName): string {
+  const help: Record<StepName, string> = {
+    "Plan Lesson": "Prepare what you will teach.",
+    "Take Attendance": "Mark learners before teaching.",
+    "Teach Lesson": "Start the class activity.",
+    "Collect Evidence": "Save proof of learning when this page is ready.",
+    "Assign Task": "Give learners work linked to the lesson.",
+    "Review Submissions": "Check learner responses.",
+    "Mark Work": "Record marks or achievement.",
+    "Record Progress": "Update learner progress when this page is ready.",
+    "Write Reflection": "Note what worked and what to improve.",
+    "Prepare Next Lesson": "Use today’s progress to plan next.",
+  };
+
+  return help[step];
 }
 
 function EmptyWorkflow({ onNavigate }: { onNavigate: (href: string) => void }) {
@@ -140,6 +157,10 @@ export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProp
     "Mark Work": `/teacher/assessment?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
   };
 
+  const states = steps.map((step) => ({ step, state: getStepState(step, activeSlot) }));
+  const firstCurrentIndex = states.findIndex((item) => item.state === "Current");
+  const firstFutureIndex = states.findIndex((item, index) => index > firstCurrentIndex && item.state !== "Done");
+
   return (
     <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", marginBottom: 12 }}>
       <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12, marginBottom: 14, borderBottom: "1px solid #f3f4f6" }}>
@@ -172,8 +193,14 @@ export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProp
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-        {steps.map((step) => {
-          const state = getStepState(step, activeSlot);
+        {states.map(({ step, state }, index) => {
+          const show =
+            state === "Done" ||
+            index === firstCurrentIndex ||
+            index === firstFutureIndex;
+
+          if (!show) return null;
+
           const route = routes[step];
           const enabled = Boolean(route) && state !== "Blocked" && state !== "Not available yet";
           const badge = stateStyle(state);
@@ -199,11 +226,9 @@ export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProp
             >
               <div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>{step}</div>
-                {!route && (
-                  <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
-                    Will unlock when this workflow page is built.
-                  </div>
-                )}
+                <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
+                  {stepHelp(step)}
+                </div>
               </div>
 
               <div style={{
@@ -216,7 +241,7 @@ export default function LessonFlowCard({ slots, onNavigate }: LessonFlowCardProp
                 padding: "5px 8px",
                 whiteSpace: "nowrap",
               }}>
-                {state}
+                {badge.label}
               </div>
             </div>
           );
