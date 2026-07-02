@@ -1,4 +1,4 @@
-import { PulseSnapshot, Slot, WorkflowState } from "./fetcher";
+import type { PulseSnapshot, Slot, WorkflowState } from "@/lib/types";
 
 export interface LessonFlowStep {
   id: string;

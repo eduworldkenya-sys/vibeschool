@@ -4,7 +4,8 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { fetchPulseData, PulseSnapshot } from "@/lib/pulse/fetcher";
+import { fetchPulseData } from "@/lib/pulse/fetcher";
+import type { PulseSnapshot } from "@/lib/types";
 
 // ── Design tokens (matches existing teacher portal palette) ──────────────
 const C = {

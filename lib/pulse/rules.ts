@@ -1,24 +1,5 @@
-import { PulseSnapshot, Slot } from "./fetcher";
+import type { PulseSnapshot, Slot, TaskSeverity, PriorityTask, RuleResult } from "@/lib/types";
 import { detectTeacherMode } from "./userMode";
-
-export type TaskSeverity = "critical" | "urgent" | "calm";
-
-export interface PriorityTask {
-  id: string;
-  label: string;
-  detail: string;
-  severity: TaskSeverity;
-  href: string;
-}
-
-export interface RuleResult {
-  message: string;
-  priority: TaskSeverity;
-  upcomingWarning: string | null;
-  confidence: number;
-  signals: string[];
-  tasks: PriorityTask[];
-}
 
 function byStartTime(a: Slot, b: Slot): number {
   return a.start_time.localeCompare(b.start_time);

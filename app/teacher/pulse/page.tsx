@@ -5,8 +5,9 @@ export const dynamic = "force-dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { fetchPulseData, PulseSnapshot, ActivityLog } from "@/lib/pulse/fetcher";
-import { runRules, PriorityTask } from "@/lib/pulse/rules";
+import { fetchPulseData } from "@/lib/pulse/fetcher";
+import type { PulseSnapshot, ActivityLog, PriorityTask, ActivityItem } from "@/lib/types";
+import { runRules } from "@/lib/pulse/rules";
 import {
   fingerprint,
   readGuideCache,
@@ -16,7 +17,7 @@ import {
 } from "@/lib/pulse/cache";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 import NextTeachingAction from "@/components/teacher/NextTeachingAction";
-import RecentActivity, { ActivityItem } from "@/components/teacher/RecentActivity";
+import RecentActivity from "@/components/teacher/RecentActivity";
 import { subscribePulse } from "@/lib/pulse/refresh";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

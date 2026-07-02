@@ -643,3 +643,97 @@ export interface TwinMessage {
   actions?: TwinAction[]
 }
 
+// --- Pulse types (moved from lib/pulse/fetcher.ts) ---
+
+export type WorkflowState = "Done" | "Current" | "Next" | "Blocked" | "Not available yet";
+
+export type PulseAttendanceStatus = "none" | "pending" | "completed";
+export type TaskStatus = "none" | "assigned" | "completed";
+export type MarkingStatus = "none" | "pending" | "completed";
+export type RecordStatus = "none" | "pending" | "completed";
+
+export interface Slot {
+  id: string;
+  day_of_week: number;
+  period: number;
+  class_id: string;
+  class_name: string;
+  subject: string;
+  subject_id: string;
+  start_time: string;
+  end_time: string;
+
+  lesson_plan_id: string | null;
+  curriculum_id: string | null;
+  scheme_id: string | null;
+
+  attendance_status: PulseAttendanceStatus;
+  evidence_count: number;
+  task_status: TaskStatus;
+  submission_count: number;
+  marking_status: MarkingStatus;
+  progress_record_status: RecordStatus;
+  reflection_status: RecordStatus;
+  next_lesson_status: RecordStatus;
+}
+
+export interface ActivityLog {
+  id: string;
+  type: "attendance" | "lesson_plan" | "homework";
+  title: string;
+  subtitle: string;
+  timestamp: string;
+}
+
+export interface PulseSnapshot {
+  userId: string;
+  schoolId: string;
+  todaySlots: Slot[];
+  tomorrowSlots: Slot[];
+  homeworkDueTomorrow: { title: string; subject: string; due_date: string; class_id: string }[];
+  attPending: { class_id: string; class_name: string }[];
+  atRisk: { id: string; name: string; reason: string }[];
+  currStats: { subject: string; subjectId: string; classId: string; covered: number; total: number; lessonCount: number }[];
+  tpadDays: number | null;
+  credits: number | null;
+  streak: number;
+  termProgressPct: number;
+  unreadMessages: number;
+  homeworkDue: { title: string; subject: string; due_date: string; class_id: string }[];
+  homeworkUngraded: { title: string; subject: string; class_id: string; homework_id: string; count: number }[];
+  missedLessonPlans: { slotId: string; className: string; subject: string; class_id: string; subject_id: string }[];
+  consecutiveAbsences: { studentId: string; name: string; days: number }[];
+  termNumber: number | null;
+  weekNumber: number | null;
+  recentActivity: ActivityLog[];
+}
+
+// --- Pulse rules/UI types (moved from lib/pulse/rules.ts and components/teacher/RecentActivity.tsx) ---
+
+export type TaskSeverity = "critical" | "urgent" | "calm";
+
+export interface PriorityTask {
+  id: string;
+  label: string;
+  detail: string;
+  severity: TaskSeverity;
+  href: string;
+}
+
+export interface RuleResult {
+  message: string;
+  priority: TaskSeverity;
+  upcomingWarning: string | null;
+  confidence: number;
+  signals: string[];
+  tasks: PriorityTask[];
+}
+
+export interface ActivityItem {
+  id: string;
+  type: "attendance" | "lesson_plan" | "parent_message" | "gradebook" | "twin";
+  title: string;
+  subtitle: string;
+  timestamp: string;
+}
+

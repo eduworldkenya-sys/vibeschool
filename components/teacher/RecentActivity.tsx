@@ -1,12 +1,5 @@
 import styles from './RecentActivity.module.css'
-
-export interface ActivityItem {
-  id: string
-  type: 'attendance' | 'lesson_plan' | 'parent_message' | 'gradebook' | 'twin'
-  title: string
-  subtitle: string
-  timestamp: string
-}
+import type { ActivityItem } from "@/lib/types"
 
 interface Props {
   items: ActivityItem[]

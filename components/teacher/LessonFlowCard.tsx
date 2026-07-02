@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PulseSnapshot, Slot, WorkflowState } from "@/lib/pulse/fetcher";
+import type { PulseSnapshot, Slot, WorkflowState } from "@/lib/types";
 
 interface LessonFlowCardProps {
   slots: Slot[];

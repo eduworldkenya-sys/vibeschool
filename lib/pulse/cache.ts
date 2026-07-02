@@ -1,4 +1,4 @@
-import { PulseSnapshot } from "./fetcher";
+import type { PulseSnapshot } from "@/lib/types";
 
 interface GuideCache {
   fp: string;

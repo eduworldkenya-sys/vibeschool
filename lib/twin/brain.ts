@@ -1,10 +1,11 @@
 // lib/twin/brain.ts
 import { supabase } from "@/lib/supabase";
-import { fetchPulseData, PulseSnapshot } from "@/lib/pulse/fetcher";
+import { fetchPulseData } from "@/lib/pulse/fetcher";
 import { runRules } from "@/lib/pulse/rules";
 import { TWIN_REGISTRY } from "@/lib/twin/registry";
 import { fuzzyMatch } from "@/lib/twin/fuzzy";
 import { TwinReply, TwinAction, TwinRegistryEntry } from "@/lib/types";
+import type { PulseSnapshot } from "@/lib/types";
 
 const BRAIN_KEY     = "vibe_twin_brain_v2";
 const BRAIN_TTL     = 30 * 60 * 1000;

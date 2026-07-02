@@ -1,7 +1,6 @@
 "use client";
 
-import { PriorityTask } from "@/lib/pulse/rules";
-import { PulseSnapshot } from "@/lib/pulse/fetcher";
+import type { PriorityTask, PulseSnapshot } from "@/lib/types";
 
 interface NextTeachingActionProps {
   task: PriorityTask | null;
