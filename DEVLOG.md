@@ -415,3 +415,6 @@
 ## [2026-07-01 07:25] c511202
 **What:** merge preview/week-tray: nav Week tile + Progress Record rename + student lesson fix
 **Status:** ✅ pushed
+## [2026-07-04 02:18] b62bff7
+**What:** feat(pulse): add Today at a Glance strip, progress ring, Quick Actions grid, wire Twin shortcut card
+**Status:** ✅ pushed
