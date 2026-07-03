@@ -18,6 +18,9 @@ import {
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 import NextTeachingAction from "@/components/teacher/NextTeachingAction";
 import RecentActivity from "@/components/teacher/RecentActivity";
+import TodayGlance from "@/components/teacher/TodayGlance";
+import TwinShortcut from "@/components/teacher/TwinShortcut";
+import QuickActions from "@/components/teacher/QuickActions";
 import { subscribePulse } from "@/lib/pulse/refresh";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -323,12 +326,18 @@ export default function PulsePage() {
         </div>
       </div>
 
+      <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
+
+      <QuickActions onNavigate={(href) => router.push(href)} onOpenTwin={() => router.push("/teacher/pulse?twin=1")} />
+
       <GuideCard
         headline={guideHeadline}
         message={guideMsg}
         priority={guidePriority}
         active={guideActive}
       />
+
+      <TwinShortcut onOpen={() => router.push("/teacher/pulse?twin=1")} />
 
       <NextTeachingAction
         task={tasks[0] ?? null}
