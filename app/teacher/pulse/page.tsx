@@ -362,14 +362,14 @@ export default function PulsePage() {
         onNavigate={(href) => router.push(href)}
       />
 
-      {tasks.length > 0 && (
+      {tasks.length > 1 && (
         <Card>
           <Label text="Next Teaching Actions" />
-          {tasks.map((task, index) => (
+          {tasks.slice(1).map((task, index, remaining) => (
             <Pressable key={task.id} onClick={() => router.push(task.href)}>
               <div style={{
                 padding: "11px 0",
-                borderBottom: index < tasks.length - 1 ? "1px solid #f3f4f6" : "none",
+                borderBottom: index < remaining.length - 1 ? "1px solid #f3f4f6" : "none",
               }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
                   {task.label}
