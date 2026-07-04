@@ -427,3 +427,6 @@
 ## [2026-07-04 16:49] 0a98318
 **What:** style(pulse): add per-step icons to LessonFlowCard, no logic changes
 **Status:** ✅ pushed
+## [2026-07-04 16:57] cae9217
+**What:** style(pulse): add icons to Curriculum Progress, Class Support, Prepare Tomorrow rows
+**Status:** ✅ pushed
