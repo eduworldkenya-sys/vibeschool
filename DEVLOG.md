@@ -445,3 +445,6 @@
 ## [2026-07-04 18:55] ce6f3f0
 **What:** Add PulseHeader component with school selector bar, notification/chat badges, schoolName in PulseSnapshot
 **Status:** ✅ pushed
+## [2026-07-04 19:31] 7d6863b
+**What:** Add real avatar photo and functional Class/Subject switcher for teachers with multiple lessons today
+**Status:** ✅ pushed
