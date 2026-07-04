@@ -1,6 +1,7 @@
 "use client";
 
-import type { PriorityTask, PulseSnapshot } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import type { PriorityTask, PulseSnapshot, Slot } from "@/lib/types";
 
 interface NextTeachingActionProps {
   task: PriorityTask | null;
@@ -8,6 +9,33 @@ interface NextTeachingActionProps {
   headline?: string | null;
   snap?: PulseSnapshot;
   onNavigate: (href: string) => void;
+}
+
+function parseTimeToday(time: string): Date | null {
+  const match = time.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const d = new Date();
+  d.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return d;
+}
+
+function useCountdown(target: Date | null): string | null {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!target) return;
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, [target]);
+
+  if (!target) return null;
+  const diffMs = target.getTime() - now;
+  if (diffMs <= 0 || diffMs > 12 * 3600000) return null;
+
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
 export default function NextTeachingAction({
@@ -32,6 +60,21 @@ export default function NextTeachingAction({
 
   const lastActivity = snap?.recentActivity[0] ?? null;
 
+  const nextUpcoming = useMemo(() => {
+    if (!snap) return null;
+
+    const upcoming = snap.todaySlots
+      .filter((slot) => slot.attendance_status === "none")
+      .map((slot) => ({ slot, time: parseTimeToday(slot.start_time) }))
+      .filter((entry): entry is { slot: Slot; time: Date } => Boolean(entry.time))
+      .filter((entry) => entry.time.getTime() > Date.now())
+      .sort((a, b) => a.time.getTime() - b.time.getTime());
+
+    return upcoming[0] ?? null;
+  }, [snap]);
+
+  const countdown = useCountdown(nextUpcoming?.time ?? null);
+
   return (
     <div
       style={{
@@ -43,17 +86,34 @@ export default function NextTeachingAction({
         boxShadow: "0 8px 28px rgba(15,23,42,0.18)",
       }}
     >
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 900,
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-          color: "#86efac",
-          marginBottom: 8,
-        }}
-      >
-        Do this next
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 900,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: "#86efac",
+          }}
+        >
+          Do this next
+        </div>
+
+        {countdown && (
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              color: "#fff",
+              background: "rgba(255,255,255,0.16)",
+              borderRadius: 999,
+              padding: "4px 10px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Starting in {countdown}
+          </div>
+        )}
       </div>
 
       <div style={{ fontSize: 20, fontWeight: 950, lineHeight: 1.2, marginBottom: 6 }}>
