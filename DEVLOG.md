@@ -442,3 +442,6 @@
 ## [2026-07-04 18:50] 50a76a6
 **What:** feat(pulse): add countdown to Do This Next, severity badges on tasks, compact Prepare Tomorrow strip
 **Status:** ✅ pushed
+## [2026-07-04 18:55] ce6f3f0
+**What:** Add PulseHeader component with school selector bar, notification/chat badges, schoolName in PulseSnapshot
+**Status:** ✅ pushed
