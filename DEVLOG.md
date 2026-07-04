@@ -424,3 +424,6 @@
 ## [2026-07-04 16:44] 863f7da
 **What:** feat(pulse): add This Week Overview strip (lessons planned/taught, assignments, engagement %)
 **Status:** ✅ pushed
+## [2026-07-04 16:49] 0a98318
+**What:** style(pulse): add per-step icons to LessonFlowCard, no logic changes
+**Status:** ✅ pushed
