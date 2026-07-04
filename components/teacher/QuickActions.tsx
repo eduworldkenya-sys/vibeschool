@@ -50,14 +50,11 @@ function IconCheck() { return <svg {...iconProps}><path d="M20 6L9 17l-5-5" /></
 function IconPlus() { return <svg {...iconProps}><path d="M12 5v14M5 12h14" /></svg>; }
 function IconClipboard() { return <svg {...iconProps}><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M9 3h6v4H9z" /></svg>; }
 function IconFolder() { return <svg {...iconProps}><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z" /></svg>; }
-function IconSpark() { return <svg {...iconProps}><path d="M12 2l1.8 5.8L20 10l-6.2 2.2L12 18l-1.8-5.8L4 10l6.2-2.2L12 2z" /></svg>; }
 
 export default function QuickActions({
   onNavigate,
-  onOpenTwin,
 }: {
   onNavigate: (href: string) => void;
-  onOpenTwin: () => void;
 }) {
   return (
     <div
@@ -75,7 +72,6 @@ export default function QuickActions({
       <Tile color="#3b82f6" label="New Lesson" icon={<IconPlus />} onClick={() => onNavigate("/teacher/lessonplan")} />
       <Tile color="#f59e0b" label="Add Homework" icon={<IconClipboard />} onClick={() => onNavigate("/teacher/homework")} />
       <Tile color="#8b5cf6" label="Class Resources" icon={<IconFolder />} onClick={() => onNavigate("/teacher/resources")} />
-      <Tile color="#ef4444" label="AI Assistant" icon={<IconSpark />} onClick={onOpenTwin} />
     </div>
   );
 }

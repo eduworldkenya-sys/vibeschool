@@ -343,7 +343,7 @@ export default function PulsePage() {
 
       <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
 
-      <QuickActions onNavigate={(href) => router.push(href)} onOpenTwin={() => router.push("/teacher/pulse?twin=1")} />
+      <QuickActions onNavigate={(href) => router.push(href)} />
 
       <GuideCard
         headline={guideHeadline}
