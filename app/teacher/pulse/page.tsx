@@ -327,7 +327,6 @@ export default function PulsePage() {
         snap={snap}
         name={name}
         avatarUrl={avatarUrl}
-        onOpenChat={() => router.push("/teacher/vibeconnect")}
       />
 
       <div style={{ fontSize: 12, color: "#9ca3af", marginTop: -8, marginBottom: 14 }}>
