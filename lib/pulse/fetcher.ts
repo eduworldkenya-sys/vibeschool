@@ -85,6 +85,17 @@ interface MarkedAttendanceRow {
   classes?: { name: string } | { name: string }[] | null;
 }
 
+interface WeekAttendanceRow {
+  timetable_slot_id: string | null;
+  date: string;
+  status: string;
+}
+
+interface WeekHomeworkRow {
+  id: string;
+  created_at: string | null;
+}
+
 function one<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null;
   return Array.isArray(value) ? value[0] ?? null : value;
@@ -598,6 +609,47 @@ export async function fetchPulseData(
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, 6);
 
+  const weekEnd = (() => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 6);
+    return isoDate(d);
+  })();
+
+  const [weekAttendanceRes, weekHomeworkRes] = await Promise.all([
+    supabase
+      .from("attendance")
+      .select("timetable_slot_id,date,status")
+      .eq("school_id", schoolId)
+      .eq("teacher_id", userId)
+      .gte("date", weekStart)
+      .lte("date", weekEnd),
+    supabase
+      .from("homework")
+      .select("id,created_at")
+      .eq("school_id", schoolId)
+      .eq("teacher_id", userId)
+      .gte("created_at", `${weekStart}T00:00:00`)
+      .lte("created_at", `${weekEnd}T23:59:59`),
+  ]);
+
+  const weekAttendanceRows = (weekAttendanceRes.data ?? []) as WeekAttendanceRow[];
+  const lessonsTaughtSet = new Set(
+    weekAttendanceRows
+      .filter((row) => Boolean(row.timetable_slot_id))
+      .map((row) => `${row.timetable_slot_id}-${row.date}`)
+  );
+  const presentCount = weekAttendanceRows.filter((row) => row.status === "present").length;
+  const engagementPct = weekAttendanceRows.length > 0
+    ? Math.round((presentCount / weekAttendanceRows.length) * 100)
+    : 0;
+
+  const weekOverview = {
+    lessonsPlanned: baseSlots.length,
+    lessonsTaught: lessonsTaughtSet.size,
+    assignmentsGiven: ((weekHomeworkRes.data ?? []) as WeekHomeworkRow[]).length,
+    engagementPct,
+  };
+
   return {
     userId,
     schoolId,
@@ -619,5 +671,6 @@ export async function fetchPulseData(
     termNumber: activeTermNum,
     weekNumber,
     recentActivity,
+    weekOverview,
   };
 }

@@ -706,6 +706,7 @@ export interface PulseSnapshot {
   termNumber: number | null;
   weekNumber: number | null;
   recentActivity: ActivityLog[];
+  weekOverview: { lessonsPlanned: number; lessonsTaught: number; assignmentsGiven: number; engagementPct: number };
 }
 
 // --- Pulse rules/UI types (moved from lib/pulse/rules.ts and components/teacher/RecentActivity.tsx) ---

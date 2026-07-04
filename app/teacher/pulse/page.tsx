@@ -21,6 +21,7 @@ import RecentActivity from "@/components/teacher/RecentActivity";
 import TodayGlance from "@/components/teacher/TodayGlance";
 import TwinShortcut from "@/components/teacher/TwinShortcut";
 import QuickActions from "@/components/teacher/QuickActions";
+import WeekOverview from "@/components/teacher/WeekOverview";
 import { subscribePulse } from "@/lib/pulse/refresh";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -445,6 +446,8 @@ export default function PulsePage() {
           ))}
         </Card>
       )}
+
+      <WeekOverview overview={snap.weekOverview} />
 
       {snap.recentActivity.length > 0 && (
         <RecentActivity
