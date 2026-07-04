@@ -16,6 +16,7 @@ import {
   writeSnapCache,
 } from "@/lib/pulse/cache";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
+import PulseHeader from "@/components/teacher/PulseHeader";
 import NextTeachingAction from "@/components/teacher/NextTeachingAction";
 import RecentActivity from "@/components/teacher/RecentActivity";
 import TodayGlance from "@/components/teacher/TodayGlance";
@@ -25,13 +26,6 @@ import WeekOverview from "@/components/teacher/WeekOverview";
 import { subscribePulse } from "@/lib/pulse/refresh";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-function greeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 
 function relativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -71,29 +65,6 @@ function Label({ text }: { text: string }) {
     }}>
       {text}
     </div>
-  );
-}
-
-function SeverityBadge({ severity }: { severity: "critical" | "urgent" | "calm" }) {
-  const config =
-    severity === "critical"
-      ? { label: "High", color: "#ef4444", bg: "#fef2f2" }
-      : severity === "urgent"
-      ? { label: "Today", color: "#f59e0b", bg: "#fffbeb" }
-      : { label: "Medium", color: "#3b82f6", bg: "#eff6ff" };
-
-  return (
-    <span style={{
-      fontSize: 10,
-      fontWeight: 900,
-      color: config.color,
-      background: config.bg,
-      borderRadius: 999,
-      padding: "3px 9px",
-      whiteSpace: "nowrap",
-    }}>
-      {config.label}
-    </span>
   );
 }
 
@@ -350,18 +321,18 @@ export default function PulsePage() {
         </div>
       )}
 
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "#1e1b4b", letterSpacing: -0.4 }}>
-          {greeting()}{name ? `, ${name}` : ""}.
-        </div>
+      <PulseHeader
+        snap={snap}
+        name={name}
+        onOpenChat={() => router.push("/teacher/vibeconnect")}
+      />
 
-        <div style={{ fontSize: 13, color: "#9ca3af", marginTop: 2 }}>
-          {todayName} · {dateStr}
-          {snap.termNumber != null && snap.weekNumber != null
-            ? ` · Term ${snap.termNumber}, Week ${snap.weekNumber}`
-            : ""}
-          {usingCachedSnap ? " · Offline copy" : ""}
-        </div>
+      <div style={{ fontSize: 12, color: "#9ca3af", marginTop: -8, marginBottom: 14 }}>
+        {todayName} · {dateStr}
+        {snap.termNumber != null && snap.weekNumber != null
+          ? ` · Term ${snap.termNumber}`
+          : ""}
+        {usingCachedSnap ? " · Offline copy" : ""}
       </div>
 
       <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
@@ -387,36 +358,19 @@ export default function PulsePage() {
 
       {tasks.length > 1 && (
         <Card>
-          <Label text="Your Tasks" />
+          <Label text="Next Teaching Actions" />
           {tasks.slice(1).map((task, index, remaining) => (
             <Pressable key={task.id} onClick={() => router.push(task.href)}>
               <div style={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: 10,
                 padding: "11px 0",
                 borderBottom: index < remaining.length - 1 ? "1px solid #f3f4f6" : "none",
               }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <span style={{
-                    marginTop: 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: 999,
-                    border: "2px solid #d1d5db",
-                    flexShrink: 0,
-                  }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
-                      {task.label}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-                      {task.detail}
-                    </div>
-                  </div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
+                  {task.label}
                 </div>
-                <SeverityBadge severity={task.severity} />
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                  {task.detail}
+                </div>
               </div>
             </Pressable>
           ))}
@@ -491,36 +445,22 @@ export default function PulsePage() {
 
       {snap.tomorrowSlots.length > 0 && (
         <Card>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ color: "#8b5cf6", flexShrink: 0 }}><IconClock /></span>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: "#9ca3af", letterSpacing: 1.2, textTransform: "uppercase" }}>
-                  Tomorrow
+          <Label text="Prepare Tomorrow" />
+          {snap.tomorrowSlots.slice(0, 3).map((slot) => (
+            <Pressable key={slot.id} onClick={() => router.push(`/teacher/lessonplan?subjectId=${slot.subject_id}&classId=${slot.class_id}`)}>
+              <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <span style={{ marginTop: 2, color: "#8b5cf6", flexShrink: 0 }}><IconClock /></span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
+                    {slot.subject}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                    {slot.class_name} · {slot.start_time}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b", marginTop: 2 }}>
-                  {snap.tomorrowSlots[0].subject} · {snap.tomorrowSlots[0].class_name}
-                </div>
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 1 }}>
-                  {snap.tomorrowSlots[0].start_time}
-                  {snap.tomorrowSlots.length > 1 ? ` · +${snap.tomorrowSlots.length - 1} more` : ""}
-                </div>
-              </div>
-            </div>
-            <Pressable onClick={() => router.push(`/teacher/lessonplan?subjectId=${snap.tomorrowSlots[0].subject_id}&classId=${snap.tomorrowSlots[0].class_id}`)}>
-              <div style={{
-                background: "#10b981",
-                color: "#fff",
-                fontSize: 12,
-                fontWeight: 800,
-                borderRadius: 999,
-                padding: "8px 16px",
-                whiteSpace: "nowrap",
-              }}>
-                Prepare
               </div>
             </Pressable>
-          </div>
+          ))}
         </Card>
       )}
 

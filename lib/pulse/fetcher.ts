@@ -156,7 +156,7 @@ export async function fetchPulseData(
   const weekStart = getWeekStart(new Date());
   const recentSchoolDays = lastSchoolDays(5);
 
-  const [slotsRes, termRes, teacherClassesRes] = await Promise.all([
+  const [slotsRes, termRes, teacherClassesRes, schoolRes] = await Promise.all([
     supabase
       .from("timetable_slots")
       .select("id,day_of_week,period,start_time,end_time,subject_id,class_id")
@@ -174,11 +174,17 @@ export async function fetchPulseData(
       .select("class_id,subject_id,subjects(name)")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId),
+    supabase
+      .from("schools")
+      .select("name")
+      .eq("id", schoolId)
+      .maybeSingle(),
   ]);
 
   const rawSlots = (slotsRes.data ?? []) as TimetableSlotRow[];
   const termRow = (termRes.data ?? null) as AcademicTermRow | null;
   const teacherClassRows = (teacherClassesRes.data ?? []) as TeacherClassRow[];
+  const schoolName = (schoolRes.data as { name: string } | null)?.name ?? "";
 
   const subjectIds = Array.from(new Set(rawSlots.map((slot) => slot.subject_id).filter(Boolean)));
   const classIdsFromSlots = Array.from(new Set(rawSlots.map((slot) => slot.class_id).filter(Boolean)));
@@ -653,6 +659,7 @@ export async function fetchPulseData(
   return {
     userId,
     schoolId,
+    schoolName,
     todaySlots,
     tomorrowSlots,
     homeworkDueTomorrow,
