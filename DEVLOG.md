@@ -433,3 +433,6 @@
 ## [2026-07-04 17:22] 53b5127
 **What:** fix(pulse): remove redundant AI Assistant tile from QuickActions, Twin now has 2 entry points (FAB + TwinShortcut)
 **Status:** ✅ pushed
+## [2026-07-04 17:24] 84e72a7
+**What:** fix(pulse): remove duplicate task in Next Teaching Actions list, hero card already shows it
+**Status:** ✅ pushed
