@@ -439,3 +439,6 @@
 ## [2026-07-04 17:38] 555d0b4
 **What:** feat(pulse): add Teach Journey status row to LessonFlowCard, driven by existing gating logic
 **Status:** ✅ pushed
+## [2026-07-04 18:50] 50a76a6
+**What:** feat(pulse): add countdown to Do This Next, severity badges on tasks, compact Prepare Tomorrow strip
+**Status:** ✅ pushed
