@@ -95,6 +95,33 @@ function stepHelp(step: StepName): string {
   return help[step];
 }
 
+function stepIcon(step: StepName) {
+  const p = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+
+  switch (step) {
+    case "Plan Lesson":
+      return <svg {...p}><path d="M9 3h6v4H9z" /><rect x="4" y="5" width="16" height="16" rx="2" /></svg>;
+    case "Take Attendance":
+      return <svg {...p}><path d="M20 6L9 17l-5-5" /></svg>;
+    case "Teach Lesson":
+      return <svg {...p}><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M8 21h8" /></svg>;
+    case "Collect Evidence":
+      return <svg {...p}><path d="M4 7h3l2-2h6l2 2h3v12H4z" /><circle cx="12" cy="13" r="3" /></svg>;
+    case "Assign Task":
+      return <svg {...p}><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>;
+    case "Review Submissions":
+      return <svg {...p}><path d="M4 4h16v12H8l-4 4z" /></svg>;
+    case "Mark Work":
+      return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M8.5 12.5l2.5 2.5 5-5" /></svg>;
+    case "Record Progress":
+      return <svg {...p}><path d="M3 20h18M6 20V10M12 20V4M18 20v-7" /></svg>;
+    case "Write Reflection":
+      return <svg {...p}><path d="M4 19V5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M14 3v6h6" /></svg>;
+    case "Prepare Next Lesson":
+      return <svg {...p}><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
+  }
+}
+
 function EmptyWorkflow({
   snap,
   onNavigate,
@@ -261,10 +288,13 @@ export default function LessonFlowCard({ slots, snap, onNavigate }: LessonFlowCa
                 opacity: state === "Blocked" || state === "Not available yet" ? 0.55 : 1,
               }}
             >
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>{step}</div>
-                <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
-                  {stepHelp(step)}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ marginTop: 2, color: "#9ca3af", flexShrink: 0 }}>{stepIcon(step)}</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>{step}</div>
+                  <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
+                    {stepHelp(step)}
+                  </div>
                 </div>
               </div>
 
