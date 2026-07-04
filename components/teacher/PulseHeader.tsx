@@ -85,25 +85,33 @@ function IconChip({
   );
 }
 
-function Avatar({ initials }: { initials: string }) {
+function Avatar({ initials, photoUrl }: { initials: string; photoUrl?: string }) {
   return (
     <div style={{ position: "relative", width: 40, height: 40, flexShrink: 0 }}>
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 999,
-          background: "#1e1b4b",
-          color: "#fff",
-          fontSize: 14,
-          fontWeight: 800,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {initials}
-      </div>
+      {photoUrl ? (
+        <img
+          src={photoUrl}
+          alt="Profile"
+          style={{ width: 40, height: 40, borderRadius: 999, objectFit: "cover" }}
+        />
+      ) : (
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            background: "#1e1b4b",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 800,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {initials}
+        </div>
+      )}
       <span
         style={{
           position: "absolute",
@@ -161,15 +169,18 @@ function greeting(): string {
 export default function PulseHeader({
   snap,
   name,
+  avatarUrl,
   onOpenChat,
   onOpenNotifications,
 }: {
   snap: PulseSnapshot;
   name: string;
+  avatarUrl?: string;
   onOpenChat?: () => void;
   onOpenNotifications?: () => void;
 }) {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
 
   useEffect(() => {
     let cancelled = false;
@@ -192,7 +203,8 @@ export default function PulseHeader({
     ? name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()
     : "";
 
-  const currentSlot = snap.todaySlots[0] ?? null;
+  const currentSlot =
+    snap.todaySlots.find((slot) => slot.id === selectedSlotId) ?? snap.todaySlots[0] ?? null;
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -213,7 +225,7 @@ export default function PulseHeader({
           <IconChip count={unreadNotifications} onClick={onOpenNotifications}>
             <IconBell />
           </IconChip>
-          <Avatar initials={initials} />
+          <Avatar initials={initials} photoUrl={avatarUrl} />
         </div>
       </div>
 
@@ -235,16 +247,46 @@ export default function PulseHeader({
           label="School"
           value={snap.schoolName || "—"}
         />
-        <SelectorItem
-          icon={<span style={{ color: "#10b981" }}>👥</span>}
-          label="Class"
-          value={currentSlot?.class_name ?? "—"}
-        />
-        <SelectorItem
-          icon={<span style={{ color: "#3b82f6" }}>📖</span>}
-          label="Subject"
-          value={currentSlot?.subject ?? "—"}
-        />
+        {snap.todaySlots.length > 1 ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <span style={{ color: "#10b981", flexShrink: 0 }}>👥</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>Class · Subject</div>
+              <select
+                value={currentSlot?.id ?? ""}
+                onChange={(event) => setSelectedSlotId(event.target.value)}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: "#1e1b4b",
+                  border: "none",
+                  background: "transparent",
+                  padding: 0,
+                  maxWidth: 160,
+                }}
+              >
+                {snap.todaySlots.map((slot) => (
+                  <option key={slot.id} value={slot.id}>
+                    {slot.class_name} · {slot.subject}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        ) : (
+          <>
+            <SelectorItem
+              icon={<span style={{ color: "#10b981" }}>👥</span>}
+              label="Class"
+              value={currentSlot?.class_name ?? "—"}
+            />
+            <SelectorItem
+              icon={<span style={{ color: "#3b82f6" }}>📖</span>}
+              label="Subject"
+              value={currentSlot?.subject ?? "—"}
+            />
+          </>
+        )}
         <SelectorItem
           icon={<span>📅</span>}
           label="Week"

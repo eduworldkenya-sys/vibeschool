@@ -148,6 +148,7 @@ export default function PulsePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [name, setName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
   const [usingCachedSnap, setUsingCachedSnap] = useState(false);
   const [guideMsg, setGuideMsg] = useState("");
@@ -229,13 +230,14 @@ export default function PulsePage() {
 
       const [memberRes, profileRes] = await Promise.all([
         supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("full_name,school_id").eq("id", user.id).single(),
+        supabase.from("profiles").select("full_name,school_id,avatar_url").eq("id", user.id).single(),
       ]);
 
       if (signal?.aborted) return;
 
       const schoolId = memberRes.data?.school_id ?? profileRes.data?.school_id ?? null;
       setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
+      setAvatarUrl((profileRes.data as { avatar_url?: string } | null)?.avatar_url ?? "");
 
       if (!schoolId) return;
 
@@ -324,6 +326,7 @@ export default function PulsePage() {
       <PulseHeader
         snap={snap}
         name={name}
+        avatarUrl={avatarUrl}
         onOpenChat={() => router.push("/teacher/vibeconnect")}
       />
 
