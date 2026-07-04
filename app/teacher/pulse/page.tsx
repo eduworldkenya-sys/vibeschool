@@ -98,6 +98,20 @@ function Skeleton() {
   );
 }
 
+const smallIconProps = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+
+function IconBook() {
+  return <svg {...smallIconProps}><path d="M4 4h9a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3z" /><path d="M20 4v13a3 3 0 0 1-3 3h-1" /></svg>;
+}
+
+function IconAlert() {
+  return <svg {...smallIconProps}><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9L2.7 18a1.5 1.5 0 0 0 1.3 2.3h16a1.5 1.5 0 0 0 1.3-2.3L13.7 3.9a1.5 1.5 0 0 0-2.6 0z" /></svg>;
+}
+
+function IconClock() {
+  return <svg {...smallIconProps}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></svg>;
+}
+
 function GuideCard({
   headline,
   message,
@@ -390,7 +404,10 @@ export default function PulsePage() {
             return (
               <div key={`${stat.classId}-${stat.subjectId}`} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 800 }}>
-                  <span>{stat.subject}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#1e1b4b" }}>
+                    <span style={{ color: "#10b981" }}><IconBook /></span>
+                    {stat.subject}
+                  </span>
                   <span>{pct}%</span>
                 </div>
                 <div style={{ height: 7, background: "#f3f4f6", borderRadius: 999, marginTop: 6, overflow: "hidden" }}>
@@ -416,12 +433,15 @@ export default function PulsePage() {
             days: 0,
           }))].slice(0, 4).map((student) => (
             <Pressable key={student.studentId} onClick={() => router.push("/teacher/students")}>
-              <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
-                  {student.name}
-                </div>
-                <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>
-                  Needs teacher follow-up
+              <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <span style={{ marginTop: 2, color: "#ef4444", flexShrink: 0 }}><IconAlert /></span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
+                    {student.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>
+                    Needs teacher follow-up
+                  </div>
                 </div>
               </div>
             </Pressable>
@@ -434,12 +454,15 @@ export default function PulsePage() {
           <Label text="Prepare Tomorrow" />
           {snap.tomorrowSlots.slice(0, 3).map((slot) => (
             <Pressable key={slot.id} onClick={() => router.push(`/teacher/lessonplan?subjectId=${slot.subject_id}&classId=${slot.class_id}`)}>
-              <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6" }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
-                  {slot.subject}
-                </div>
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-                  {slot.class_name} · {slot.start_time}
+              <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <span style={{ marginTop: 2, color: "#8b5cf6", flexShrink: 0 }}><IconClock /></span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
+                    {slot.subject}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                    {slot.class_name} · {slot.start_time}
+                  </div>
                 </div>
               </div>
             </Pressable>
