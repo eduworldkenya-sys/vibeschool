@@ -430,3 +430,6 @@
 ## [2026-07-04 16:57] cae9217
 **What:** style(pulse): add icons to Curriculum Progress, Class Support, Prepare Tomorrow rows
 **Status:** ✅ pushed
+## [2026-07-04 17:22] 53b5127
+**What:** fix(pulse): remove redundant AI Assistant tile from QuickActions, Twin now has 2 entry points (FAB + TwinShortcut)
+**Status:** ✅ pushed
