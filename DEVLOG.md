@@ -436,3 +436,6 @@
 ## [2026-07-04 17:24] 84e72a7
 **What:** fix(pulse): remove duplicate task in Next Teaching Actions list, hero card already shows it
 **Status:** ✅ pushed
+## [2026-07-04 17:38] 555d0b4
+**What:** feat(pulse): add Teach Journey status row to LessonFlowCard, driven by existing gating logic
+**Status:** ✅ pushed
