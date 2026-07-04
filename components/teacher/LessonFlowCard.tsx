@@ -122,6 +122,53 @@ function stepIcon(step: StepName) {
   }
 }
 
+const journeyStages: { label: string; step: StepName; icon: () => JSX.Element }[] = [
+  { label: "Plan", step: "Plan Lesson", icon: () => stepIcon("Plan Lesson")! },
+  { label: "Teach", step: "Teach Lesson", icon: () => stepIcon("Teach Lesson")! },
+  { label: "Notes", step: "Collect Evidence", icon: () => stepIcon("Collect Evidence")! },
+  { label: "Homework", step: "Assign Task", icon: () => stepIcon("Assign Task")! },
+  { label: "Assess", step: "Mark Work", icon: () => stepIcon("Mark Work")! },
+  { label: "Next Lesson", step: "Prepare Next Lesson", icon: () => stepIcon("Prepare Next Lesson")! },
+];
+
+function journeyStatus(state: WorkflowState): { label: string; color: string; bg: string } {
+  if (state === "Done") return { label: "Done", color: "#10b981", bg: "#10b981" };
+  if (state === "Current") return { label: "Ready", color: "#2563eb", bg: "#2563eb" };
+  return { label: "Pending", color: "#9ca3af", bg: "#e5e7eb" };
+}
+
+function TeachJourney({ slot }: { slot: Slot }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid #f3f4f6" }}>
+      {journeyStages.map((stage) => {
+        const state = getStepState(stage.step, slot);
+        const status = journeyStatus(state);
+        const isDone = state === "Done";
+
+        return (
+          <div key={stage.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: isDone ? status.bg : "#fff",
+              border: `2px solid ${status.bg}`,
+              color: isDone ? "#fff" : status.color,
+            }}>
+              {isDone ? <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg> : stage.icon()}
+            </div>
+            <div style={{ fontSize: 9, fontWeight: 800, color: "#1e1b4b", textAlign: "center" }}>{stage.label}</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: status.color, textAlign: "center" }}>{status.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function EmptyWorkflow({
   snap,
   onNavigate,
@@ -227,6 +274,8 @@ export default function LessonFlowCard({ slots, snap, onNavigate }: LessonFlowCa
 
   return (
     <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", marginBottom: 12 }}>
+      <TeachJourney slot={activeSlot} />
+
       <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 12, marginBottom: 14, borderBottom: "1px solid #f3f4f6" }}>
         {slots.map((slot, index) => (
           <button
