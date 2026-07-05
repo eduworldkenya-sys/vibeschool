@@ -466,3 +466,6 @@
 ## [2026-07-05 13:02] a3be43e
 **What:** diag: show error.message on Pulse error boundary
 **Status:** ✅ pushed
+## [2026-07-05 13:15] c2212aa
+**What:** fix: version-gate localStorage snapshot cache + guard array fields in Pulse render, prevents crash from stale/incomplete cached PulseSnapshot
+**Status:** ✅ pushed
