@@ -150,6 +150,7 @@ export default function PulsePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [selectedKey, setSelectedKey] = useState("");
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
   const [usingCachedSnap, setUsingCachedSnap] = useState(false);
   const [guideMsg, setGuideMsg] = useState("");
@@ -324,18 +325,43 @@ export default function PulsePage() {
         </div>
       )}
 
-      <PulseHeader
-        snap={snap}
-        name={name}
-        avatarUrl={avatarUrl}
-      />
+      {(() => {
+        const keyOf = (classId: string, subjectId: string) => `${classId}::${subjectId}`;
+        const defaultKey = snap.todaySlots[0]
+          ? keyOf(snap.todaySlots[0].class_id, snap.todaySlots[0].subject_id)
+          : snap.myClasses[0]
+          ? keyOf(snap.myClasses[0].class_id, snap.myClasses[0].subject_id)
+          : "";
+        const effectiveKey = selectedKey || defaultKey;
+        const [focusClassId, focusSubjectId] = effectiveKey.split("::");
+        const focusSlot = snap.todaySlots.find(
+          (slot) => slot.class_id === focusClassId && slot.subject_id === focusSubjectId
+        );
+        const focusRoster = snap.myClasses.find(
+          (c) => c.class_id === focusClassId && c.subject_id === focusSubjectId
+        );
 
-      <TodayHero
-        snap={snap}
-        onOpenTimetable={() => router.push("/teacher/timetable")}
-        onOpenStudents={() => router.push("/teacher/students")}
-        onOpenAttendance={() => router.push("/teacher/attendance")}
-      />
+        return (
+          <>
+            <PulseHeader
+              snap={snap}
+              name={name}
+              avatarUrl={avatarUrl}
+              selectedKey={effectiveKey}
+              onSelectedKeyChange={setSelectedKey}
+            />
+
+            <TodayHero
+              snap={snap}
+              focusSlot={focusSlot}
+              focusRoster={focusRoster}
+              onOpenTimetable={() => router.push("/teacher/timetable")}
+              onOpenStudents={() => router.push("/teacher/students")}
+              onOpenAttendance={() => router.push("/teacher/attendance")}
+            />
+          </>
+        );
+      })()}
 
       <div style={{ fontSize: 12, color: "#9ca3af", marginTop: -8, marginBottom: 14 }}>
         {todayName} · {dateStr}

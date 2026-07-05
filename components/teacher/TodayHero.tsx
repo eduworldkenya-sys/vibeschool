@@ -128,7 +128,16 @@ function StatPill({
   );
 }
 
-function headlineFor(snap: PulseSnapshot): { tag: string; title: string } {
+function headlineFor(
+  snap: PulseSnapshot,
+  focusSlot?: PulseSnapshot["todaySlots"][number]
+): { tag: string; title: string } {
+  if (focusSlot) {
+    if (focusSlot.attendance_status === "completed") {
+      return { tag: "LESSON TAUGHT", title: `${focusSlot.class_name} · ${focusSlot.subject}` };
+    }
+    return { tag: "TODAY'S LESSON", title: `${focusSlot.class_name} · ${focusSlot.subject}` };
+  }
   const total = snap.todaySlots.length;
   if (total === 0) {
     return { tag: "FREE DAY", title: "No lessons scheduled today" };
@@ -142,23 +151,42 @@ function headlineFor(snap: PulseSnapshot): { tag: string; title: string } {
 
 export default function TodayHero({
   snap,
+  focusSlot,
+  focusRoster,
   onOpenTimetable,
   onOpenStudents,
   onOpenAttendance,
 }: {
   snap: PulseSnapshot;
+  focusSlot?: PulseSnapshot["todaySlots"][number];
+  focusRoster?: PulseSnapshot["myClasses"][number];
   onOpenTimetable?: () => void;
   onOpenStudents?: () => void;
   onOpenAttendance?: () => void;
 }) {
   const weather = useWeather();
-  const { tag, title } = headlineFor(snap);
+  const { tag, title } = headlineFor(snap, focusSlot);
   const markedCount = snap.todaySlots.filter((s) => s.attendance_status === "completed").length;
   const dateStr = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
+
+  const lessonsValue = focusSlot ? 1 : snap.todaySlots.length;
+  const studentsValue = focusSlot && focusRoster ? focusRoster.studentCount : snap.totalStudentsToday;
+  const attendanceValue = focusSlot
+    ? focusSlot.attendance_status === "completed"
+      ? "Marked"
+      : "Not marked"
+    : snap.todaySlots.length > 0
+    ? `${markedCount}/${snap.todaySlots.length}`
+    : "—";
+  const pendingValue = focusSlot
+    ? snap.attPending.some((p) => p.class_id === focusSlot.class_id)
+      ? 1
+      : 0
+    : snap.attPending.length;
 
   return (
     <div
@@ -193,14 +221,10 @@ export default function TodayHero({
       )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <StatPill label="LESSONS" value={snap.todaySlots.length} onClick={onOpenTimetable} />
-        <StatPill label="STUDENTS" value={snap.totalStudentsToday} onClick={onOpenStudents} />
-        <StatPill
-          label="ATTENDANCE"
-          value={snap.todaySlots.length > 0 ? `${markedCount}/${snap.todaySlots.length}` : "—"}
-          onClick={onOpenAttendance}
-        />
-        <StatPill label="PENDING" value={snap.attPending.length} onClick={onOpenAttendance} />
+        <StatPill label="LESSONS" value={lessonsValue} onClick={onOpenTimetable} />
+        <StatPill label="STUDENTS" value={studentsValue} onClick={onOpenStudents} />
+        <StatPill label="ATTENDANCE" value={attendanceValue} onClick={onOpenAttendance} />
+        <StatPill label="PENDING" value={pendingValue} onClick={onOpenAttendance} />
       </div>
     </div>
   );

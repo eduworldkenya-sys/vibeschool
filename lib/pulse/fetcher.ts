@@ -33,6 +33,7 @@ interface TeacherClassRow {
   class_id: string | null;
   subject_id: string;
   subjects?: { name: string } | { name: string }[] | null;
+  classes?: { name: string; stream: string | null } | { name: string; stream: string | null }[] | null;
 }
 
 interface AttendanceSlotRow {
@@ -171,7 +172,7 @@ export async function fetchPulseData(
       .maybeSingle(),
     supabase
       .from("teacher_classes")
-      .select("class_id,subject_id,subjects(name)")
+      .select("class_id,subject_id,subjects(name),classes(name,stream)")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId),
   ]);
@@ -179,6 +180,37 @@ export async function fetchPulseData(
   const rawSlots = (slotsRes.data ?? []) as TimetableSlotRow[];
   const termRow = (termRes.data ?? null) as AcademicTermRow | null;
   const teacherClassRows = (teacherClassesRes.data ?? []) as TeacherClassRow[];
+
+  const myClasses: PulseSnapshot["myClasses"] = teacherClassRows
+    .filter((row) => Boolean(row.class_id))
+    .map((row) => {
+      const cls = one(row.classes);
+      const subj = one(row.subjects);
+      return {
+        class_id: row.class_id as string,
+        class_name: cls ? (cls.stream ? `${cls.name} ${cls.stream}` : cls.name) : "Class",
+        subject_id: row.subject_id,
+        subject: subj?.name ?? "Subject",
+        studentCount: 0,
+      };
+    });
+
+  const allMyClassIds = Array.from(new Set(myClasses.map((c) => c.class_id)));
+  if (allMyClassIds.length > 0) {
+    const { data: rosterRows } = await supabase
+      .from("students")
+      .select("class_id")
+      .in("class_id", allMyClassIds)
+      .is("deleted_at", null);
+
+    const countByClass = new Map<string, number>();
+    for (const row of (rosterRows ?? []) as { class_id: string }[]) {
+      countByClass.set(row.class_id, (countByClass.get(row.class_id) ?? 0) + 1);
+    }
+    for (const c of myClasses) {
+      c.studentCount = countByClass.get(c.class_id) ?? 0;
+    }
+  }
 
   const subjectIds = Array.from(new Set(rawSlots.map((slot) => slot.subject_id).filter(Boolean)));
   const classIdsFromSlots = Array.from(new Set(rawSlots.map((slot) => slot.class_id).filter(Boolean)));
@@ -664,6 +696,7 @@ export async function fetchPulseData(
     userId,
     schoolId,
     todaySlots,
+    myClasses,
     tomorrowSlots,
     homeworkDueTomorrow,
     attPending,

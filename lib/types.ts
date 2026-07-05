@@ -689,6 +689,7 @@ export interface PulseSnapshot {
   userId: string;
   schoolId: string;
   todaySlots: Slot[];
+  myClasses: { class_id: string; class_name: string; subject_id: string; subject: string; studentCount: number }[];
   tomorrowSlots: Slot[];
   homeworkDueTomorrow: { title: string; subject: string; due_date: string; class_id: string }[];
   attPending: { class_id: string; class_name: string }[];

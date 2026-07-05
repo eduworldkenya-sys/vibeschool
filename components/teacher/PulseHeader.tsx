@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { PulseSnapshot } from "@/lib/types";
 
@@ -162,15 +163,19 @@ export default function PulseHeader({
   snap,
   name,
   avatarUrl,
+  selectedKey,
+  onSelectedKeyChange,
   onOpenNotifications,
 }: {
   snap: PulseSnapshot;
   name: string;
   avatarUrl?: string;
+  selectedKey: string;
+  onSelectedKeyChange: (key: string) => void;
   onOpenNotifications?: () => void;
 }) {
+  const router = useRouter();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
 
   useEffect(() => {
     let cancelled = false;
@@ -193,8 +198,16 @@ export default function PulseHeader({
     ? name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()
     : "";
 
-  const currentSlot =
-    snap.todaySlots.find((slot) => slot.id === selectedSlotId) ?? snap.todaySlots[0] ?? null;
+  const key = (classId: string, subjectId: string) => `${classId}::${subjectId}`;
+
+  const [activeClassId, activeSubjectId] = selectedKey.split("::");
+
+  const selectedSlot = snap.todaySlots.find(
+    (slot) => slot.class_id === activeClassId && slot.subject_id === activeSubjectId
+  );
+  const selectedRoster = snap.myClasses.find(
+    (c) => c.class_id === activeClassId && c.subject_id === activeSubjectId
+  );
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -229,24 +242,14 @@ export default function PulseHeader({
           overflowX: "auto",
         }}
       >
-        {snap.todaySlots.length === 0 ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <span style={{ flexShrink: 0 }}>🌤️</span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>Today</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
-                No lessons scheduled
-              </div>
-            </div>
-          </div>
-        ) : snap.todaySlots.length > 1 ? (
+        {snap.myClasses.length > 0 ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <span style={{ color: "#10b981", flexShrink: 0 }}>👥</span>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>Class · Subject</div>
               <select
-                value={currentSlot?.id ?? ""}
-                onChange={(event) => setSelectedSlotId(event.target.value)}
+                value={selectedKey}
+                onChange={(event) => onSelectedKeyChange(event.target.value)}
                 style={{
                   fontSize: 13,
                   fontWeight: 800,
@@ -254,30 +257,31 @@ export default function PulseHeader({
                   border: "none",
                   background: "transparent",
                   padding: 0,
-                  maxWidth: 160,
+                  maxWidth: 170,
                 }}
               >
-                {snap.todaySlots.map((slot) => (
-                  <option key={slot.id} value={slot.id}>
-                    {slot.class_name} · {slot.subject}
+                {snap.myClasses.map((c) => (
+                  <option key={key(c.class_id, c.subject_id)} value={key(c.class_id, c.subject_id)}>
+                    {c.class_name} · {c.subject}
                   </option>
                 ))}
               </select>
+              {!selectedSlot && selectedRoster && (
+                <div
+                  onClick={() => router.push(`/teacher/classhub/${selectedRoster.class_id}`)}
+                  style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, cursor: "pointer", marginTop: 1 }}
+                >
+                  No lesson today · View class →
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          <>
-            <SelectorItem
-              icon={<span style={{ color: "#10b981" }}>👥</span>}
-              label="Class"
-              value={currentSlot?.class_name ?? "—"}
-            />
-            <SelectorItem
-              icon={<span style={{ color: "#3b82f6" }}>📖</span>}
-              label="Subject"
-              value={currentSlot?.subject ?? "—"}
-            />
-          </>
+          <SelectorItem
+            icon={<span style={{ color: "#10b981" }}>👥</span>}
+            label="Class"
+            value="No classes assigned"
+          />
         )}
         <SelectorItem
           icon={<span>📅</span>}
