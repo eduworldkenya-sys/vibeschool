@@ -460,3 +460,6 @@
 ## [2026-07-05 11:20] 440274c
 **What:** Finish Stage 1: lift class/subject selection to page level, TodayHero now filters headline and all 4 stat pills by the selected class when it has a lesson today
 **Status:** ✅ pushed
+## [2026-07-05 11:21] 8f26842
+**What:** Finish Stage 1: lift class/subject selection to page level, TodayHero now filters headline and all 4 stat pills by the selected class when it has a lesson today
+**Status:** ✅ pushed
