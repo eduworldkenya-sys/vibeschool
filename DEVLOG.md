@@ -463,3 +463,6 @@
 ## [2026-07-05 11:21] 8f26842
 **What:** Finish Stage 1: lift class/subject selection to page level, TodayHero now filters headline and all 4 stat pills by the selected class when it has a lesson today
 **Status:** ✅ pushed
+## [2026-07-05 13:02] a3be43e
+**What:** diag: show error.message on Pulse error boundary
+**Status:** ✅ pushed
