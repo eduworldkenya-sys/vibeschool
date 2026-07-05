@@ -454,3 +454,6 @@
 ## [2026-07-05 10:08] 51d110f
 **What:** Remove duplicate chat icon/avatar from PulseHeader; layout.tsx top bar already owns those
 **Status:** ✅ pushed
+## [2026-07-05 10:39] b151b46
+**What:** Remove School field from selector bar, add no-lessons-today state, build TodayHero with real weather and lesson/student/attendance/pending stats
+**Status:** ✅ pushed
