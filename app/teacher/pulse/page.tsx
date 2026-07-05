@@ -158,10 +158,13 @@ export default function PulsePage() {
   const [guideActive, setGuideActive] = useState(false);
   const [guideHeadline, setGuideHeadline] = useState<string | null>(null);
   const [tasks, setTasks] = useState<PriorityTask[]>([]);
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null);
 
   const touchStartY = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef(false);
+  const activeSchoolIdRef = useRef<string | null>(null);
 
   const resolveGuide = useCallback(async (snapshot: PulseSnapshot, signal?: AbortSignal) => {
     const result = runRules(snapshot);
@@ -231,13 +234,26 @@ export default function PulsePage() {
       if (!user || signal?.aborted) return;
 
       const [memberRes, profileRes] = await Promise.all([
-        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
+        supabase.from("school_members").select("school_id").eq("profile_id", user.id),
         supabase.from("profiles").select("full_name,school_id,avatar_url").eq("id", user.id).single(),
       ]);
 
       if (signal?.aborted) return;
 
-      const schoolId = memberRes.data?.school_id ?? profileRes.data?.school_id ?? null;
+      const memberSchoolIds = Array.from(
+        new Set((memberRes.data ?? []).map((row) => row.school_id).filter(Boolean) as string[])
+      );
+
+      if (memberSchoolIds.length > 1 && schools.length === 0) {
+        const { data: schoolRows } = await supabase
+          .from("schools")
+          .select("id,name")
+          .in("id", memberSchoolIds);
+        if (schoolRows) setSchools(schoolRows as { id: string; name: string }[]);
+      }
+
+      const schoolId =
+        activeSchoolIdRef.current ?? memberSchoolIds[0] ?? profileRes.data?.school_id ?? null;
       setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
       setAvatarUrl((profileRes.data as { avatar_url?: string } | null)?.avatar_url ?? "");
 
@@ -261,6 +277,16 @@ export default function PulsePage() {
       fetchingRef.current = false;
     }
   }, [resolveGuide]);
+
+  const handleSchoolChange = useCallback(
+    (id: string) => {
+      activeSchoolIdRef.current = id;
+      setActiveSchoolId(id);
+      setSelectedKey("");
+      boot(true);
+    },
+    [boot]
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -351,6 +377,9 @@ export default function PulsePage() {
               avatarUrl={avatarUrl}
               selectedKey={effectiveKey}
               onSelectedKeyChange={setSelectedKey}
+              schools={schools}
+              activeSchoolId={activeSchoolId ?? snap.schoolId}
+              onSchoolChange={handleSchoolChange}
             />
 
             <TodayHero

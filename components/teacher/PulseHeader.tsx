@@ -166,6 +166,9 @@ export default function PulseHeader({
   selectedKey,
   onSelectedKeyChange,
   onOpenNotifications,
+  schools = [],
+  activeSchoolId,
+  onSchoolChange,
 }: {
   snap: PulseSnapshot;
   name: string;
@@ -173,6 +176,9 @@ export default function PulseHeader({
   selectedKey: string;
   onSelectedKeyChange: (key: string) => void;
   onOpenNotifications?: () => void;
+  schools?: { id: string; name: string }[];
+  activeSchoolId?: string | null;
+  onSchoolChange?: (id: string) => void;
 }) {
   const router = useRouter();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -242,6 +248,33 @@ export default function PulseHeader({
           overflowX: "auto",
         }}
       >
+        {schools.length > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <span style={{ color: "#8b5cf6", flexShrink: 0 }}>🏫</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>School</div>
+              <select
+                value={activeSchoolId ?? ""}
+                onChange={(event) => onSchoolChange?.(event.target.value)}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: "#1e1b4b",
+                  border: "none",
+                  background: "transparent",
+                  padding: 0,
+                  maxWidth: 140,
+                }}
+              >
+                {schools.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
         {snap.myClasses.length > 0 ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <span style={{ color: "#10b981", flexShrink: 0 }}>👥</span>
