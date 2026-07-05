@@ -457,3 +457,6 @@
 ## [2026-07-05 10:39] b151b46
 **What:** Remove School field from selector bar, add no-lessons-today state, build TodayHero with real weather and lesson/student/attendance/pending stats
 **Status:** ✅ pushed
+## [2026-07-05 11:20] 440274c
+**What:** Finish Stage 1: lift class/subject selection to page level, TodayHero now filters headline and all 4 stat pills by the selected class when it has a lesson today
+**Status:** ✅ pushed
