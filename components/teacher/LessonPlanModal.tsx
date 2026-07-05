@@ -497,6 +497,8 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         const { data: hw } = await supabase.from('homework').insert({
           class_id:           slot.class_id,
           teacher_id:         user.id,
+          school_id:          ctx.schoolId || null,
+          lesson_plan_id:     currentId,
           title:              topic + ' — Homework',
           subject:            slot.subject,
           instructions:       sections.homework.trim(),
