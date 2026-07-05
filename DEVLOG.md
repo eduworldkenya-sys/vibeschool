@@ -472,3 +472,6 @@
 ## [2026-07-05 15:51] b4e615c
 **What:** add school selector to teacher pulse header
 **Status:** ✅ pushed
+## [2026-07-05 15:53] 684e50b
+**What:** add onboarding CTA to empty class state
+**Status:** ✅ pushed
