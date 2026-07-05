@@ -688,11 +688,11 @@ export interface ActivityLog {
 export interface PulseSnapshot {
   userId: string;
   schoolId: string;
-  schoolName: string;
   todaySlots: Slot[];
   tomorrowSlots: Slot[];
   homeworkDueTomorrow: { title: string; subject: string; due_date: string; class_id: string }[];
   attPending: { class_id: string; class_name: string }[];
+  totalStudentsToday: number;
   atRisk: { id: string; name: string; reason: string }[];
   currStats: { subject: string; subjectId: string; classId: string; covered: number; total: number; lessonCount: number }[];
   tpadDays: number | null;

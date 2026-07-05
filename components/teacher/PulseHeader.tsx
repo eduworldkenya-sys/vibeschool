@@ -229,12 +229,17 @@ export default function PulseHeader({
           overflowX: "auto",
         }}
       >
-        <SelectorItem
-          icon={<span style={{ color: "#8b5cf6" }}>🏫</span>}
-          label="School"
-          value={snap.schoolName || "—"}
-        />
-        {snap.todaySlots.length > 1 ? (
+        {snap.todaySlots.length === 0 ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <span style={{ flexShrink: 0 }}>🌤️</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>Today</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
+                No lessons scheduled
+              </div>
+            </div>
+          </div>
+        ) : snap.todaySlots.length > 1 ? (
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <span style={{ color: "#10b981", flexShrink: 0 }}>👥</span>
             <div style={{ minWidth: 0 }}>
@@ -277,7 +282,7 @@ export default function PulseHeader({
         <SelectorItem
           icon={<span>📅</span>}
           label="Week"
-          value={snap.weekNumber != null ? `Week ${snap.weekNumber}` : "—"}
+          value={snap.weekNumber != null ? `Week ${snap.weekNumber}` : "No active term"}
         />
       </div>
     </div>

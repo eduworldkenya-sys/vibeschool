@@ -17,6 +17,7 @@ import {
 } from "@/lib/pulse/cache";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 import PulseHeader from "@/components/teacher/PulseHeader";
+import TodayHero from "@/components/teacher/TodayHero";
 import NextTeachingAction from "@/components/teacher/NextTeachingAction";
 import RecentActivity from "@/components/teacher/RecentActivity";
 import TodayGlance from "@/components/teacher/TodayGlance";
@@ -327,6 +328,13 @@ export default function PulsePage() {
         snap={snap}
         name={name}
         avatarUrl={avatarUrl}
+      />
+
+      <TodayHero
+        snap={snap}
+        onOpenTimetable={() => router.push("/teacher/timetable")}
+        onOpenStudents={() => router.push("/teacher/students")}
+        onOpenAttendance={() => router.push("/teacher/attendance")}
       />
 
       <div style={{ fontSize: 12, color: "#9ca3af", marginTop: -8, marginBottom: 14 }}>
