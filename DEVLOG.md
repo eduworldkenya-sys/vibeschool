@@ -469,3 +469,6 @@
 ## [2026-07-05 13:15] c2212aa
 **What:** fix: version-gate localStorage snapshot cache + guard array fields in Pulse render, prevents crash from stale/incomplete cached PulseSnapshot
 **Status:** ✅ pushed
+## [2026-07-05 15:51] b4e615c
+**What:** add school selector to teacher pulse header
+**Status:** ✅ pushed
