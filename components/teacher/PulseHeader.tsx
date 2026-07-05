@@ -125,10 +125,14 @@ function SelectorItem({
   icon,
   label,
   value,
+  actionLabel,
+  onAction,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -147,6 +151,14 @@ function SelectorItem({
         >
           {value}
         </div>
+        {actionLabel && (
+          <div
+            onClick={onAction}
+            style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, cursor: "pointer", marginTop: 1 }}
+          >
+            {actionLabel}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -314,6 +326,8 @@ export default function PulseHeader({
             icon={<span style={{ color: "#10b981" }}>👥</span>}
             label="Class"
             value="No classes assigned"
+            actionLabel="Add your class →"
+            onAction={() => router.push("/teacher/onboarding/class")}
           />
         )}
         <SelectorItem
