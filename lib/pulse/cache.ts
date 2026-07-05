@@ -9,6 +9,35 @@ interface GuideCache {
 const GUIDE_CACHE_KEY = "vibeschool.teacher.guide";
 const SNAP_CACHE_KEY = "vibeschool.teacher.pulse.snapshot";
 
+// Bump this whenever PulseSnapshot's shape changes. Any cached snapshot
+// written under an older version is treated as a cache miss instead of
+// being rendered, so a stale/incomplete object can never reach the page.
+const SNAP_CACHE_VERSION = 2;
+
+interface VersionedSnapCache {
+  v: number;
+  data: PulseSnapshot;
+}
+
+const REQUIRED_SNAP_ARRAY_FIELDS: (keyof PulseSnapshot)[] = [
+  "todaySlots",
+  "tomorrowSlots",
+  "myClasses",
+  "currStats",
+  "homeworkUngraded",
+  "atRisk",
+  "consecutiveAbsences",
+  "recentActivity",
+  "attPending",
+];
+
+function isCompleteSnapshot(data: unknown): data is PulseSnapshot {
+  if (!data || typeof data !== "object") return false;
+  return REQUIRED_SNAP_ARRAY_FIELDS.every((field) =>
+    Array.isArray((data as Record<string, unknown>)[field])
+  );
+}
+
 function safeRead<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
 
@@ -68,9 +97,22 @@ export function writeGuideCache(fp: string, message: string): void {
 }
 
 export function readSnapCache(): PulseSnapshot | null {
-  return safeRead<PulseSnapshot>(SNAP_CACHE_KEY);
+  const wrapped = safeRead<VersionedSnapCache>(SNAP_CACHE_KEY);
+  if (!wrapped) return null;
+
+  if (wrapped.v !== SNAP_CACHE_VERSION || !isCompleteSnapshot(wrapped.data)) {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(SNAP_CACHE_KEY);
+    }
+    return null;
+  }
+
+  return wrapped.data;
 }
 
 export function writeSnapCache(snapshot: PulseSnapshot): void {
-  safeWrite<PulseSnapshot>(SNAP_CACHE_KEY, snapshot);
+  safeWrite<VersionedSnapCache>(SNAP_CACHE_KEY, {
+    v: SNAP_CACHE_VERSION,
+    data: snapshot,
+  });
 }

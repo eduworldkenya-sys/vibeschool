@@ -326,18 +326,20 @@ export default function PulsePage() {
       )}
 
       {(() => {
+        const safeTodaySlots = snap.todaySlots ?? [];
+        const safeMyClasses = snap.myClasses ?? [];
         const keyOf = (classId: string, subjectId: string) => `${classId}::${subjectId}`;
-        const defaultKey = snap.todaySlots[0]
-          ? keyOf(snap.todaySlots[0].class_id, snap.todaySlots[0].subject_id)
-          : snap.myClasses[0]
-          ? keyOf(snap.myClasses[0].class_id, snap.myClasses[0].subject_id)
+        const defaultKey = safeTodaySlots[0]
+          ? keyOf(safeTodaySlots[0].class_id, safeTodaySlots[0].subject_id)
+          : safeMyClasses[0]
+          ? keyOf(safeMyClasses[0].class_id, safeMyClasses[0].subject_id)
           : "";
         const effectiveKey = selectedKey || defaultKey;
         const [focusClassId, focusSubjectId] = effectiveKey.split("::");
-        const focusSlot = snap.todaySlots.find(
+        const focusSlot = safeTodaySlots.find(
           (slot) => slot.class_id === focusClassId && slot.subject_id === focusSubjectId
         );
-        const focusRoster = snap.myClasses.find(
+        const focusRoster = safeMyClasses.find(
           (c) => c.class_id === focusClassId && c.subject_id === focusSubjectId
         );
 
@@ -386,7 +388,7 @@ export default function PulsePage() {
 
       <NextTeachingAction
         task={tasks[0] ?? null}
-        hasLessons={snap.todaySlots.length > 0}
+        hasLessons={(snap.todaySlots ?? []).length > 0}
         headline={guideHeadline}
         snap={snap}
         onNavigate={(href) => router.push(href)}
@@ -425,10 +427,10 @@ export default function PulsePage() {
         }}
       />
 
-      {snap.currStats.length > 0 && (
+      {(snap.currStats ?? []).length > 0 && (
         <Card>
           <Label text="Curriculum Progress" />
-          {snap.currStats.map((stat) => {
+          {(snap.currStats ?? []).map((stat) => {
             const pct = stat.total > 0 ? Math.round((stat.covered / stat.total) * 100) : 0;
 
             return (
@@ -454,10 +456,10 @@ export default function PulsePage() {
         </Card>
       )}
 
-      {(snap.atRisk.length > 0 || snap.consecutiveAbsences.length > 0) && (
+      {((snap.atRisk ?? []).length > 0 || (snap.consecutiveAbsences ?? []).length > 0) && (
         <Card>
           <Label text="Class Support Needed" />
-          {[...snap.consecutiveAbsences.slice(0, 3), ...snap.atRisk.slice(0, 3).map((student) => ({
+          {[...(snap.consecutiveAbsences ?? []).slice(0, 3), ...(snap.atRisk ?? []).slice(0, 3).map((student) => ({
             studentId: student.id,
             name: student.name,
             days: 0,
@@ -479,10 +481,10 @@ export default function PulsePage() {
         </Card>
       )}
 
-      {snap.tomorrowSlots.length > 0 && (
+      {(snap.tomorrowSlots ?? []).length > 0 && (
         <Card>
           <Label text="Prepare Tomorrow" />
-          {snap.tomorrowSlots.slice(0, 3).map((slot) => (
+          {(snap.tomorrowSlots ?? []).slice(0, 3).map((slot) => (
             <Pressable key={slot.id} onClick={() => router.push(`/teacher/lessonplan?subjectId=${slot.subject_id}&classId=${slot.class_id}`)}>
               <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "flex-start", gap: 8 }}>
                 <span style={{ marginTop: 2, color: "#8b5cf6", flexShrink: 0 }}><IconClock /></span>
@@ -502,9 +504,9 @@ export default function PulsePage() {
 
       <WeekOverview overview={snap.weekOverview} />
 
-      {snap.recentActivity.length > 0 && (
+      {(snap.recentActivity ?? []).length > 0 && (
         <RecentActivity
-          items={snap.recentActivity.map((activity: ActivityLog): ActivityItem => ({
+          items={(snap.recentActivity ?? []).map((activity: ActivityLog): ActivityItem => ({
             id: activity.id,
             type: activity.type === "homework" ? "gradebook" : activity.type,
             title: activity.title,
