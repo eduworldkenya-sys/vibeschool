@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/app/teacher/layout";
 import { fetchPulseData } from "@/lib/pulse/fetcher";
 import type { PulseSnapshot, ActivityLog, PriorityTask, ActivityItem } from "@/lib/types";
 import { runRules } from "@/lib/pulse/rules";
@@ -145,6 +146,7 @@ function GuideCard({
 
 export default function PulsePage() {
   const router = useRouter();
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -380,6 +382,7 @@ export default function PulsePage() {
               schools={schools}
               activeSchoolId={activeSchoolId ?? snap.schoolId}
               onSchoolChange={handleSchoolChange}
+              onOpenNotifications={() => showToast("Notifications — coming soon")}
             />
 
             <TodayHero

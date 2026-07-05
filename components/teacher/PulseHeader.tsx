@@ -243,7 +243,6 @@ export default function PulseHeader({
           <IconChip count={unreadNotifications} onClick={onOpenNotifications}>
             <IconBell />
           </IconChip>
-          <Avatar initials={initials} photoUrl={avatarUrl} />
         </div>
       </div>
 
