@@ -451,3 +451,6 @@
 ## [2026-07-04 22:08] 7ae743a
 **What:** Add real avatar photo and functional Class/Subject switcher for teachers with multiple lessons today
 **Status:** ✅ pushed
+## [2026-07-05 10:08] 51d110f
+**What:** Remove duplicate chat icon/avatar from PulseHeader; layout.tsx top bar already owns those
+**Status:** ✅ pushed
