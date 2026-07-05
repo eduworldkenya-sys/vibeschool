@@ -45,6 +45,9 @@ export default function ErrorBoundary({
       <p style={{ fontSize: '0.75rem', color: '#555', letterSpacing: '0.15em', maxWidth: '280px' }}>
         An unexpected error occurred. You can try again or return home.
       </p>
+      <p style={{ fontSize: '0.65rem', color: '#888', letterSpacing: '0.05em', wordBreak: 'break-word', maxWidth: '320px' }}>
+        DEBUG: {error.message || 'no message'}
+      </p>
 
       <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem' }}>
         <span
