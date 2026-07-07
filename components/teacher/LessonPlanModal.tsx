@@ -516,6 +516,32 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         }
       }
 
+      if (sections.assessmentHook.trim() !== '') {
+        await supabase.from('assessments').insert({
+          class_id:       slot.class_id,
+          subject_id:     slot.subject_id,
+          teacher_id:     user.id,
+          school_id:      ctx.schoolId || null,
+          lesson_plan_id: currentId,
+          title:          topic + ' — Assessment',
+          type:           'formative',
+          status:         'published',
+        })
+      }
+
+      if (sections.consolidation.trim() !== '') {
+        await supabase.from('exercises').insert({
+          class_id:       slot.class_id,
+          subject_id:     slot.subject_id,
+          teacher_id:     user.id,
+          school_id:      ctx.schoolId || null,
+          lesson_plan_id: currentId,
+          title:          topic + ' — In-Class Exercise',
+          instructions:   sections.consolidation.trim(),
+          status:         'active',
+        })
+      }
+
       setStatus('shared_to_parents')
       showToast('Shared to parents + homework synced ✓')
     } catch (err) {
