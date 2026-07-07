@@ -5710,6 +5710,7 @@ export type Database = {
           due_date: string | null
           id: string
           instructions: string | null
+          lesson_plan_id: string | null
           school_id: string | null
           subject: string | null
           target_group_id: string | null
@@ -5723,6 +5724,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           instructions?: string | null
+          lesson_plan_id?: string | null
           school_id?: string | null
           subject?: string | null
           target_group_id?: string | null
@@ -5736,6 +5738,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           instructions?: string | null
+          lesson_plan_id?: string | null
           school_id?: string | null
           subject?: string | null
           target_group_id?: string | null
@@ -5744,6 +5747,13 @@ export type Database = {
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "homework_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "homework_class_id_fkey"
             columns: ["class_id"]
@@ -5777,6 +5787,368 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "vibelearn_leaderboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessments: {
+        Row: {
+          class_id: string | null
+          created_at: string | null
+          homework_id: string | null
+          id: string
+          lesson_plan_id: string | null
+          school_id: string | null
+          status: string
+          subject_id: string | null
+          teacher_id: string | null
+          term: number | null
+          title: string
+          type: string
+          updated_at: string | null
+          week: number | null
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string | null
+          homework_id?: string | null
+          id?: string
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          term?: number | null
+          title: string
+          type?: string
+          updated_at?: string | null
+          week?: number | null
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string | null
+          homework_id?: string | null
+          id?: string
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          term?: number | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "homework"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_scores: {
+        Row: {
+          assessment_id: string
+          created_at: string | null
+          id: string
+          remarks: string | null
+          rubric_level: string | null
+          score: number | null
+          student_id: string | null
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          rubric_level?: string | null
+          score?: number | null
+          student_id?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          rubric_level?: string | null
+          score?: number | null
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_scores_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exercises: {
+        Row: {
+          class_id: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          instructions: string | null
+          lesson_plan_id: string | null
+          school_id: string | null
+          status: string
+          subject_id: string | null
+          teacher_id: string | null
+          title: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructions?: string | null
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          title: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructions?: string | null
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercises_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercises_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercises_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercises_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercises_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          class_id: string | null
+          created_at: string | null
+          curriculum_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          lesson_plan_id: string | null
+          school_id: string | null
+          start_date: string | null
+          status: string
+          subject_id: string | null
+          teacher_id: string | null
+          title: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string | null
+          curriculum_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          start_date?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          title: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string | null
+          curriculum_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          start_date?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_submissions: {
+        Row: {
+          created_at: string | null
+          feedback: string | null
+          id: string
+          mark: number | null
+          notes: string | null
+          photo_url: string | null
+          project_id: string
+          status: string
+          student_id: string | null
+          submitted_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          mark?: number | null
+          notes?: string | null
+          photo_url?: string | null
+          project_id: string
+          status?: string
+          student_id?: string | null
+          submitted_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          mark?: number | null
+          notes?: string | null
+          photo_url?: string | null
+          project_id?: string
+          status?: string
+          student_id?: string | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_submissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -6262,6 +6634,7 @@ export type Database = {
           body: string | null
           class_id: string
           created_at: string
+          curriculum_id: string | null
           day_of_week: number
           duration_minutes: number | null
           generated_by: string
@@ -6284,6 +6657,7 @@ export type Database = {
           body?: string | null
           class_id: string
           created_at?: string
+          curriculum_id?: string | null
           day_of_week: number
           duration_minutes?: number | null
           generated_by?: string
@@ -6306,6 +6680,7 @@ export type Database = {
           body?: string | null
           class_id?: string
           created_at?: string
+          curriculum_id?: string | null
           day_of_week?: number
           duration_minutes?: number | null
           generated_by?: string
@@ -6325,6 +6700,13 @@ export type Database = {
           week_start?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lesson_plans_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lesson_plans_school_id_fkey"
             columns: ["school_id"]
