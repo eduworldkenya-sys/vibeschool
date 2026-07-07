@@ -58,6 +58,7 @@ function GeneratePageInner() {
   const topic      = params.get('topic')      ?? ''
   const week       = parseInt(params.get('week') ?? '1')
   const term       = parseInt(params.get('term') ?? '1')
+  const curriculumId = params.get('curriculumId') || null
 
   const [uid,         setUid]         = useState<string | null>(null)
   const [schoolId,    setSchoolId]    = useState<string | null>(null)
@@ -188,6 +189,7 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
       topic:       topic,
       body:        body,
       week_start:  nairobiWeekStart(week - 1),
+      curriculum_id: curriculumId,
       status:      'draft',
     }
 
