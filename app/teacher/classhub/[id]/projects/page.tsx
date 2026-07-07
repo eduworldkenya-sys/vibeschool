@@ -185,7 +185,7 @@ function ProjectsInner() {
               const pct     = p.student_count > 0 ? Math.round((p.sub_count / p.student_count) * 100) : 0;
               return (
                 <div key={p.id} style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: `4px solid ${overdue ? "#ef4444" : "#92400e"}`, overflow: "hidden" }}>
-                  <div style={{ padding: "14px 16px" }}>
+                  <div onClick={() => router.push(`/teacher/classhub/${classId}/projects/${p.id}`)} style={{ padding: "14px 16px", cursor: "pointer" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{p.title}</p>
