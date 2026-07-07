@@ -494,7 +494,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       if (sections.homework.trim() !== '') {
         const due = new Date()
         due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
-        const { data: hw } = await supabase.from('homework').insert({
+        const { data: hw } = await supabase.from('homework').upsert({
           class_id:           slot.class_id,
           teacher_id:         user.id,
           school_id:          ctx.schoolId || null,
@@ -504,9 +504,10 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           instructions:       sections.homework.trim(),
           type:               'written',
           due_date:           nairobiDateStr(due),
-        }).select('id').single()
+        }, { onConflict: 'lesson_plan_id' }).select('id').single()
 
         if (hw?.id) {
+          await supabase.from('homework_questions').delete().eq('homework_id', hw.id)
           const questions = sections.homework
             .split('\n')
             .filter((l: string) => l.trim().endsWith('?') || /^\d+\./.test(l.trim()))
@@ -517,7 +518,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
       }
 
       if (sections.assessmentHook.trim() !== '') {
-        await supabase.from('assessments').insert({
+        await supabase.from('assessments').upsert({
           class_id:       slot.class_id,
           subject_id:     slot.subject_id,
           teacher_id:     user.id,
@@ -526,11 +527,11 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           title:          topic + ' — Assessment',
           type:           'formative',
           status:         'published',
-        })
+        }, { onConflict: 'lesson_plan_id' })
       }
 
       if (sections.consolidation.trim() !== '') {
-        await supabase.from('exercises').insert({
+        await supabase.from('exercises').upsert({
           class_id:       slot.class_id,
           subject_id:     slot.subject_id,
           teacher_id:     user.id,
@@ -539,7 +540,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           title:          topic + ' — In-Class Exercise',
           instructions:   sections.consolidation.trim(),
           status:         'active',
-        })
+        }, { onConflict: 'lesson_plan_id' })
       }
 
       setStatus('shared_to_parents')
