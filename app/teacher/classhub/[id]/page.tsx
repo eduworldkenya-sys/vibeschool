@@ -45,6 +45,7 @@ const CLASS_ACTIONS = [
   { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: '' },
   { id: 'homework',   label: 'Homework',     icon: '📝', bg: '#0f766e', route: '' },
   { id: 'projects',   label: 'Projects',     icon: '🛠️', bg: '#92400e', route: '' },
+  { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
 ]
 
 const SUBJECT_ACTIONS = [
@@ -54,6 +55,7 @@ const SUBJECT_ACTIONS = [
   { id: 'scheme',     label: 'Scheme',       icon: '📋', bg: '#0f4c75', route: '/teacher/scheme' },
   { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#075985', route: '/teacher/timetable' },
   { id: 'projects',   label: 'Projects',     icon: '🛠️', bg: '#92400e', route: '' },
+  { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
 ]
 
 function generateCode(): string {
@@ -206,6 +208,7 @@ function ClassPageInner() {
     if (a.id === 'groups')   route = `/teacher/classhub/${classId}/groups`
     if (a.id === 'homework') route = `/teacher/classhub/${classId}/homework`
     if (a.id === 'projects') route = `/teacher/classhub/${classId}/projects`
+    if (a.id === 'exercises') route = `/teacher/classhub/${classId}/exercises`
     const r = buildRoute(route)
     if (r) router.push(r)
   }
