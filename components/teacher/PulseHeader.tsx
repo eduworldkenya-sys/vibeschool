@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { PulseSnapshot } from "@/lib/types";
 
+const WEEK_TYPE_LABELS: Record<string, string> = {
+  exam: "Exams",
+  midterm_break: "Mid-Term Break",
+  sports: "Sports",
+  holiday: "Holiday",
+};
+
 const iconProps = {
   width: 20,
   height: 20,
@@ -332,7 +339,13 @@ export default function PulseHeader({
         <SelectorItem
           icon={<span>📅</span>}
           label="Week"
-          value={snap.weekNumber != null ? `Week ${snap.weekNumber}` : "No active term"}
+          value={
+            snap.weekNumber == null
+              ? "No active term"
+              : snap.weekType && snap.weekType !== "normal"
+              ? `Week ${snap.weekNumber} · ${WEEK_TYPE_LABELS[snap.weekType] ?? snap.weekType}`
+              : `Week ${snap.weekNumber}`
+          }
         />
       </div>
     </div>

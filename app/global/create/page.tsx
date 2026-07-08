@@ -26,6 +26,15 @@ const FORMAT_CARDS: FormatCardConfig[] = [
     route:       '/global/create/story',
   },
   {
+    icon:        '🎓',
+    title:       'VibeTextbook',
+    subtitle:    'CBC Ebooks & Study Guides',
+    description: 'Curriculum-aligned ebooks organized into units, taggable by subject and grade',
+    accentColor: '#CCFF00',
+    isActive:    true,
+    route:       '/global/create/textbook',
+  },
+  {
     icon:        '📰',
     title:       'VibePress',
     subtitle:    'Magazine & Articles',

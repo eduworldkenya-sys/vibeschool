@@ -146,10 +146,29 @@ function slotKey(classId: string, subjectId: string): string {
   return `${classId}:${subjectId}`;
 }
 
+export interface WeekOverride {
+  termId: string;
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+}
+
+interface ActiveWeekRpcRow {
+  term_id: string;
+  term_number: number;
+  academic_year: number;
+  week_number: number;
+  start_date: string;
+  end_date: string;
+  week_type: string;
+  label: string | null;
+}
+
 export async function fetchPulseData(
   userId: string,
   schoolId: string,
-  credits: number | null
+  credits: number | null,
+  weekOverride?: WeekOverride | null
 ): Promise<PulseSnapshot> {
   const today = isoDate(new Date());
   const todayDow = new Date().getDay() === 0 ? 7 : new Date().getDay();
@@ -157,7 +176,7 @@ export async function fetchPulseData(
   const weekStart = getWeekStart(new Date());
   const recentSchoolDays = lastSchoolDays(5);
 
-  const [slotsRes, termRes, teacherClassesRes] = await Promise.all([
+  const [slotsRes, termRes, teacherClassesRes, activeWeeksRes] = await Promise.all([
     supabase
       .from("timetable_slots")
       .select("id,day_of_week,period,start_time,end_time,subject_id,class_id")
@@ -175,6 +194,7 @@ export async function fetchPulseData(
       .select("class_id,subject_id,subjects(name),classes(name,stream)")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId),
+    supabase.rpc("get_teacher_active_weeks", { p_school_id: schoolId, p_teacher_id: userId }),
   ]);
 
   const rawSlots = (slotsRes.data ?? []) as TimetableSlotRow[];
@@ -269,6 +289,76 @@ export async function fetchPulseData(
   const todayClassIds = Array.from(new Set(todayBaseSlots.map((slot) => slot.class_id)));
   const activeTermNum = termRow?.term ?? null;
   const { termProgressPct, weekNumber } = safeTermProgress(termRow);
+
+  const availableWeeks: PulseSnapshot["availableWeeks"] = (
+    (activeWeeksRes.data ?? []) as ActiveWeekRpcRow[]
+  ).map((row) => ({
+    termId: row.term_id,
+    termNumber: row.term_number,
+    academicYear: row.academic_year,
+    weekNumber: row.week_number,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    weekType: row.week_type,
+    label: row.label,
+  }));
+
+  // Always surface the live current week, even with zero activity logged yet.
+  if (termRow?.id && weekNumber != null) {
+    const alreadyListed = availableWeeks.some(
+      (w) => w.termId === termRow.id && w.weekNumber === weekNumber
+    );
+    if (!alreadyListed) {
+      const liveWeekEnd = (() => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + 6);
+        return isoDate(d);
+      })();
+      availableWeeks.push({
+        termId: termRow.id,
+        termNumber: activeTermNum ?? 0,
+        academicYear: new Date(termRow.start_date ?? today).getFullYear(),
+        weekNumber,
+        startDate: weekStart,
+        endDate: liveWeekEnd,
+        weekType: "normal",
+        label: null,
+      });
+    }
+  }
+
+  const selectedWeek: WeekOverride =
+    weekOverride ??
+    (termRow?.id && weekNumber != null
+      ? {
+          termId: termRow.id,
+          weekNumber,
+          startDate: weekStart,
+          endDate: (() => {
+            const d = new Date(weekStart);
+            d.setDate(d.getDate() + 6);
+            return isoDate(d);
+          })(),
+        }
+      : { termId: "", weekNumber: 0, startDate: weekStart, endDate: weekStart });
+
+  const selectedWeekKey = `${selectedWeek.termId}::${selectedWeek.weekNumber}`;
+
+  let weekType: string | null = null;
+  let weekLabel: string | null = null;
+  if (termRow?.id && weekNumber != null) {
+    const { data: weekRows } = await supabase
+      .from("term_weeks")
+      .select("school_id,week_type,label")
+      .eq("term_id", termRow.id)
+      .eq("week_number", weekNumber)
+      .or(`school_id.eq.${schoolId},school_id.is.null`);
+    const override = (weekRows ?? []).find((r) => r.school_id === schoolId);
+    const national = (weekRows ?? []).find((r) => r.school_id === null);
+    const chosen = override ?? national ?? null;
+    weekType = chosen?.week_type ?? null;
+    weekLabel = chosen?.label ?? null;
+  }
 
   const [attendanceTodayRes, lessonPlansRes, homeworkRes, ungradedHomeworkRes, absenceRes, recentAbsenceRes, streakRes, tpadRes, vcParticipantsRes, recentAttendanceRes, recentPlansRes] =
     await Promise.all([
@@ -651,11 +741,8 @@ export async function fetchPulseData(
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, 6);
 
-  const weekEnd = (() => {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + 6);
-    return isoDate(d);
-  })();
+  const overviewWeekStart = selectedWeek.startDate;
+  const overviewWeekEnd = selectedWeek.endDate;
 
   const [weekAttendanceRes, weekHomeworkRes] = await Promise.all([
     supabase
@@ -663,15 +750,15 @@ export async function fetchPulseData(
       .select("timetable_slot_id,date,status")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId)
-      .gte("date", weekStart)
-      .lte("date", weekEnd),
+      .gte("date", overviewWeekStart)
+      .lte("date", overviewWeekEnd),
     supabase
       .from("homework")
       .select("id,created_at")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId)
-      .gte("created_at", `${weekStart}T00:00:00`)
-      .lte("created_at", `${weekEnd}T23:59:59`),
+      .gte("created_at", `${overviewWeekStart}T00:00:00`)
+      .lte("created_at", `${overviewWeekEnd}T23:59:59`),
   ]);
 
   const weekAttendanceRows = (weekAttendanceRes.data ?? []) as WeekAttendanceRow[];
@@ -695,6 +782,8 @@ export async function fetchPulseData(
   return {
     userId,
     schoolId,
+    availableWeeks,
+    selectedWeekKey,
     todaySlots,
     myClasses,
     tomorrowSlots,
@@ -714,6 +803,8 @@ export async function fetchPulseData(
     consecutiveAbsences,
     termNumber: activeTermNum,
     weekNumber,
+    weekType,
+    weekLabel,
     recentActivity,
     weekOverview,
   };

@@ -151,6 +151,9 @@ export default function TermSettingsPage() {
               <p style={{ fontSize: "12px", color: C.muted, margin: "3px 0 0" }}>{t.start_date} → {t.end_date}</p>
             </div>
             <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+              <button onClick={() => router.push(`/admin/settings/term/${t.id}/weeks`)} style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: "8px", padding: "6px 10px", color: "#8b5cf6", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>
+                Weeks
+              </button>
               {t.status !== "active" && (
                 <button onClick={() => activateTerm(t.id)} style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "8px", padding: "6px 10px", color: C.emerald, fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>
                   Activate

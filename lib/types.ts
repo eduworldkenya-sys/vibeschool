@@ -685,9 +685,22 @@ export interface ActivityLog {
   timestamp: string;
 }
 
+export interface AvailableWeek {
+  termId: string;
+  termNumber: number;
+  academicYear: number;
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  weekType: string;
+  label: string | null;
+}
+
 export interface PulseSnapshot {
   userId: string;
   schoolId: string;
+  availableWeeks: AvailableWeek[];
+  selectedWeekKey: string;
   todaySlots: Slot[];
   myClasses: { class_id: string; class_name: string; subject_id: string; subject: string; studentCount: number }[];
   tomorrowSlots: Slot[];
@@ -707,6 +720,8 @@ export interface PulseSnapshot {
   consecutiveAbsences: { studentId: string; name: string; days: number }[];
   termNumber: number | null;
   weekNumber: number | null;
+  weekType: string | null;
+  weekLabel: string | null;
   recentActivity: ActivityLog[];
   weekOverview: { lessonsPlanned: number; lessonsTaught: number; assignmentsGiven: number; engagementPct: number };
 }
