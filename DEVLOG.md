@@ -475,3 +475,6 @@
 ## [2026-07-05 15:53] 684e50b
 **What:** add onboarding CTA to empty class state
 **Status:** ✅ pushed
+## [2026-07-08 16:20] a64df37
+**What:** add VibeTextbook create page, /global/read discovery feed, and vibe_publications/vibe_chapters RLS migration
+**Status:** ✅ pushed
