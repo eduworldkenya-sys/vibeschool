@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
 
@@ -39,7 +39,7 @@ interface SubjectOption { id: string; label: string }
 interface Strand        { id: string; name: string }
 interface Progress      { strand_id: string; term: number; week: number; status: string; notes: string | null }
 interface Term          { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string }
-interface CurriculumRow { grade: string; subject: string; strand: string; week: number; term: number }
+interface CurriculumRow { id: string; grade: string; subject: string; strand: string; topic: string | null; week: number; term: number }
 
 // ── STATUS CONFIG ──────────────────────────────────────────────
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string; border: string }> = {
@@ -374,6 +374,7 @@ function Chip({
 // ── MAIN INNER ─────────────────────────────────────────────────
 function SchemePageInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
 
   const [uid,             setUid]             = useState<string | null>(null)
   const [schoolId,        setSchoolId]        = useState<string | null>(null)
@@ -490,7 +491,7 @@ function SchemePageInner() {
           const grades = Array.from(new Set(classOptions.map(c => c.grade)))
           const { data: currData } = await supabase
             .from('curriculum')
-            .select('grade,subject,strand,week,term')
+            .select('id,grade,subject,strand,topic,week,term')
             .eq('term', term.term)
             .in('grade', grades)
           setCurriculum((currData ?? []) as CurriculumRow[])
@@ -927,6 +928,43 @@ function SchemePageInner() {
               week={selectedWeek}
             />
           )}
+
+          {/* ── GENERATE AI LESSON PLAN ── */}
+          {selectedClassObj && selectedSubjectObj && (() => {
+            const matched = curriculum.find(c =>
+              c.grade === selectedClassObj.grade &&
+              c.subject === selectedSubjectObj.label &&
+              c.term === selectedTerm &&
+              c.week === selectedWeek
+            )
+            return (
+              <button
+                onClick={() => {
+                  const qs = new URLSearchParams({
+                    classId:   selectedClassObj.id,
+                    subjectId: selectedSubjectObj.id,
+                    grade:     selectedClassObj.grade,
+                    subject:   selectedSubjectObj.label,
+                    strand:    matched?.strand ?? '',
+                    topic:     matched?.topic ?? '',
+                    week:      String(selectedWeek),
+                    term:      String(selectedTerm),
+                    ...(matched ? { curriculumId: matched.id } : {}),
+                  })
+                  router.push(`/teacher/scheme/generate?${qs.toString()}`)
+                }}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: 14, border: 'none',
+                  background: `linear-gradient(135deg, ${C.heroFrom}, ${C.heroTo})`,
+                  color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                  fontFamily: 'inherit', marginBottom: 14, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                ✨ Generate AI Lesson Plan — Week {selectedWeek}
+              </button>
+            )
+          })()}
 
           {/* ── STRANDS CARD ── */}
           <div style={{
