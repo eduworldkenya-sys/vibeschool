@@ -517,18 +517,11 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         }
       }
 
-      if (sections.assessmentHook.trim() !== '') {
-        await supabase.from('assessments').upsert({
-          class_id:       slot.class_id,
-          subject_id:     slot.subject_id,
-          teacher_id:     user.id,
-          school_id:      ctx.schoolId || null,
-          lesson_plan_id: currentId,
-          title:          topic + ' — Assessment',
-          type:           'formative',
-          status:         'published',
-        }, { onConflict: 'lesson_plan_id' })
-      }
+      // NOTE: assessmentHook content lives in lesson_plans.body already.
+      // Actual student scoring happens in /teacher/assessment (cbc_assessments),
+      // which now carries lesson_plan_id for traceability. We deliberately do NOT
+      // auto-insert a score here — that would fabricate an assessment result
+      // before any student was actually observed/graded.
 
       if (sections.consolidation.trim() !== '') {
         await supabase.from('exercises').upsert({
