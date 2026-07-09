@@ -487,3 +487,6 @@
 ## [2026-07-09 23:51] dd43162
 **What:** fix nonexistent school_id filter in getStrandsForSubject
 **Status:** ✅ pushed
+## [2026-07-10 00:07] 28df760
+**What:** fix addStrand missing sub_strand causing insert failures
+**Status:** ✅ pushed
