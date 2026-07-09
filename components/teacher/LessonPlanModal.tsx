@@ -356,6 +356,8 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         body:               json.plan,
         status:             'draft',
         generated_by:       'twin',
+        curriculum_id:      usedSuggestion ? suggestion?.id ?? null : null,
+        strand_id:          usedSuggestion ? suggestion?.strandId ?? null : null,
       }
 
       // G4: read ref not state
