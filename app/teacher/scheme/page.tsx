@@ -396,6 +396,7 @@ function SchemePageInner() {
   const [noClasses,       setNoClasses]       = useState(false)
   const [addingStrand,    setAddingStrand]    = useState(false)
   const [newStrandName,   setNewStrandName]   = useState('')
+  const [newSubStrand,    setNewSubStrand]    = useState('')
   const [addStrandBusy,   setAddStrandBusy]   = useState(false)
   const [addStrandError,  setAddStrandError]  = useState<string | null>(null)
 
@@ -551,6 +552,7 @@ function SchemePageInner() {
   // at all (a genuine content gap, not just an unseeded school).
   async function addStrand() {
     const name = newStrandName.trim()
+    const subStrand = newSubStrand.trim() || name
     if (!name || !selectedSubject || !schoolId) return
     setAddStrandBusy(true)
     setAddStrandError(null)
@@ -558,7 +560,7 @@ function SchemePageInner() {
     const grade = classes.find(c => c.id === selectedClass)?.grade ?? ''
     const { data, error } = await supabase
       .from('cbc_strands')
-      .insert({ name, subject_id: selectedSubject, grade })
+      .insert({ name, subject_id: selectedSubject, grade, sub_strand: subStrand })
       .select('id,name')
       .single()
 
@@ -570,6 +572,7 @@ function SchemePageInner() {
 
     setStrands(prev => [...prev, data])
     setNewStrandName('')
+    setNewSubStrand('')
     setAddingStrand(false)
     setAddStrandBusy(false)
   }
@@ -1044,9 +1047,27 @@ function SchemePageInner() {
                       <input
                         autoFocus
                         value={newStrandName}
-                        onChange={e => setNewStrandName(e.target.value)}
+                        onChange={e => {
+                          const v = e.target.value
+                          setNewStrandName(v)
+                          setNewSubStrand(prev => (prev === newStrandName ? v : prev))
+                        }}
                         onKeyDown={e => { if (e.key === 'Enter') addStrand() }}
-                        placeholder="e.g. Numbers"
+                        placeholder="Strand name, e.g. Numbers"
+                        style={{
+                          padding:      '9px 12px',
+                          borderRadius: 10,
+                          border:       `1.5px solid ${C.border2}`,
+                          fontSize:     13,
+                          fontFamily:   'inherit',
+                          outline:      'none',
+                        }}
+                      />
+                      <input
+                        value={newSubStrand}
+                        onChange={e => setNewSubStrand(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') addStrand() }}
+                        placeholder="Sub-strand, e.g. Whole Numbers"
                         style={{
                           padding:      '9px 12px',
                           borderRadius: 10,
@@ -1077,7 +1098,7 @@ function SchemePageInner() {
                           }}
                         >{addStrandBusy ? 'Adding…' : 'Add'}</button>
                         <button
-                          onClick={() => { setAddingStrand(false); setNewStrandName(''); setAddStrandError(null) }}
+                          onClick={() => { setAddingStrand(false); setNewStrandName(''); setNewSubStrand(''); setAddStrandError(null) }}
                           style={{
                             padding:      '8px 16px',
                             background:   C.surface2,
