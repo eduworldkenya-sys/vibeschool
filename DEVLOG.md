@@ -496,3 +496,6 @@
 ## [2026-07-10 00:46] dc2f56a
 **What:** remove dead strandQueries helper, no longer imported anywhere
 **Status:** ✅ pushed
+## [2026-07-10 00:48] 0c60586
+**What:** resolve cbc_strands through global subject taxonomy, fixes near-empty strand dropdowns
+**Status:** ✅ pushed
