@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchParams }                        from 'next/navigation'
 import { supabase }                               from '@/lib/supabase'
+import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { Card, C }                                from '@/components/teacher/ui'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -214,14 +215,18 @@ function AssessmentInner() {
     setStrands([]); setStudents([]); setAssessments([])
     const currentYear = new Date().getFullYear()
 
-    const cls = classes.find(c => c.id === classId)
+    const cls  = classes.find(c => c.id === classId)
+    const subj = subjects.find(s => s.id === subjectId)
 
     // cbc_strands (national KICD reference) is the single source of
-    // strand identity — see migration 20260709120000. Filtered by
-    // subject + grade, same as the Scheme of Work tracker.
+    // strand identity — see migration 20260709120000. Resolved via the
+    // GLOBAL subject row (school_id IS NULL), not the school's own local
+    // subject_id — cbc_strands is anchored to the national taxonomy.
+    const globalSubjectId = subj ? await resolveGlobalSubjectId(subj.name) : null
+
     const [strandsRes, scRes] = await Promise.all([
-      cls
-        ? supabase.from('cbc_strands').select('id, name').eq('subject_id', subjectId).ilike('grade', cls.name).order('name')
+      cls && globalSubjectId
+        ? supabase.from('cbc_strands').select('id, name').eq('subject_id', globalSubjectId).ilike('grade', cls.name).order('name')
         : Promise.resolve({ data: [], error: null }),
       supabase.from('student_classes').select('student_id').eq('class_id', classId).eq('is_current', true),
     ])
