@@ -5,7 +5,6 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchParams }                        from 'next/navigation'
 import { supabase }                               from '@/lib/supabase'
-import { ensureStrandsForSubject }                from '@/lib/strandSync'
 import { Card, C }                                from '@/components/teacher/ui'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -215,38 +214,21 @@ function AssessmentInner() {
     setStrands([]); setStudents([]); setAssessments([])
     const currentYear = new Date().getFullYear()
 
+    const cls = classes.find(c => c.id === classId)
+
+    // cbc_strands (national KICD reference) is the single source of
+    // strand identity — see migration 20260709120000. Filtered by
+    // subject + grade, same as the Scheme of Work tracker.
     const [strandsRes, scRes] = await Promise.all([
-      supabase.from('strands').select('id, name').eq('subject_id', subjectId).order('name'),
+      cls
+        ? supabase.from('cbc_strands').select('id, name').eq('subject_id', subjectId).ilike('grade', cls.name).order('name')
+        : Promise.resolve({ data: [], error: null }),
       supabase.from('student_classes').select('student_id').eq('class_id', classId).eq('is_current', true),
     ])
 
     if (loadId !== loadIdRef.current) return
 
-    let strandRows = strandsRes.error ? [] : (strandsRes.data ?? []) as StrandOption[]
-
-    // Self-heal: same fix as the Scheme of Work tracker — if no strands
-    // exist yet for this subject, derive them from the master KICD
-    // curriculum table so CAT recording never silently blocks on an
-    // empty strand dropdown.
-    if (strandRows.length === 0 && schoolId) {
-      const cls  = classes.find(c => c.id === classId)
-      const subj = subjects.find(s => s.id === subjectId)
-      if (cls && subj) {
-        try {
-          strandRows = await ensureStrandsForSubject({
-            schoolId,
-            subjectId,
-            subjectLabel: subj.name,
-            grade:        cls.name,
-          })
-        } catch {
-          // Non-fatal — curriculum table may have nothing for this
-          // grade/subject yet (e.g. Grade 7/8 currently).
-        }
-      }
-    }
-
-    if (loadId !== loadIdRef.current) return
+    const strandRows = strandsRes.error ? [] : (strandsRes.data ?? []) as StrandOption[]
     setStrands(strandRows)
 
     const studentIds = Array.from(new Set((scRes.data ?? []).map((r: { student_id: string }) => r.student_id)))

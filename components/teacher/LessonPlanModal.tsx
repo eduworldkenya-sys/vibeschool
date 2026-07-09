@@ -5,7 +5,6 @@ import { supabase, SUPABASE_URL } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 import { getServerWeek, nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
-import { ensureStrandsForSubject } from '@/lib/strandSync'
 import type { TimetableSlot } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
 
@@ -210,13 +209,14 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
           if (currRow) {
             let strandId: string | null = null
             try {
-              const strands = await ensureStrandsForSubject({
-                schoolId,
-                subjectId:    slot.subject_id,
-                subjectLabel: slot.subject,
-                grade,
-              })
-              strandId = strands.find(s => s.name === currRow.strand)?.id ?? null
+              // cbc_strands (national KICD reference) is the single source
+              // of strand identity — see migration 20260709120000.
+              const { data: strandRows } = await supabase
+                .from('cbc_strands')
+                .select('id, name')
+                .eq('subject_id', slot.subject_id)
+                .ilike('grade', grade)
+              strandId = strandRows?.find(s => s.name === currRow.strand)?.id ?? null
             } catch {
               // non-fatal — suggestion still useful even without a strand_id
             }

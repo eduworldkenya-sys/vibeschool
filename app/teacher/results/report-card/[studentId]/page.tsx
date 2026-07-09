@@ -187,7 +187,7 @@ function ReportCardInner(){
       const{data:cbcRows}=await supabase.from("cbc_assessments").select("id,strand_id,sub_strand,assessment_type,performance,term").eq("student_id",studentId).eq("term",(examData as Exam).term);
       const cbc=(cbcRows??[]) as CbcAssessment[];setCbcData(cbc);
       const strandIds=Array.from(new Set(cbc.map(r=>r.strand_id)));
-      if(strandIds.length){const{data:strandsData}=await supabase.from("strands").select("id,name").in("id",strandIds);setStrands((strandsData??[]) as Strand[]);}
+      if(strandIds.length){const{data:strandsData}=await supabase.from("cbc_strands").select("id,name").in("id",strandIds);setStrands((strandsData??[]) as Strand[]);}
       if(cid){
         const{data:allExams}=await supabase.from("exams").select("id,name,term,academic_year,exam_type").eq("class_id",cid).order("academic_year",{ascending:true}).order("term",{ascending:true});
         if(allExams&&allExams.length>1){
