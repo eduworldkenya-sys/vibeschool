@@ -481,3 +481,6 @@
 ## [2026-07-09 10:01] 5b9aaca
 **What:** Fix textbook editing: list shows published+draft with status badges, publishing preserves original published_at, Update/Publish labels reflect live state, RPC dedup call site wired through
 **Status:** ✅ pushed
+## [2026-07-09 23:08] 5533223
+**What:** fix: consolidate strand identity on cbc_strands
+**Status:** ✅ pushed
