@@ -1,5 +1,4 @@
 "use client";
-'use client'
 
 import React, { useRef, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
@@ -125,6 +124,8 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
     onUpdate({ pricing })
   }
 
+  const wasAlreadyLive = publication.status === 'published'
+
   const handlePublish = async () => {
     if (!publication.title?.trim()) { setValidErr("Title is required"); return }
     setValidErr(null)
@@ -169,8 +170,12 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
         {success ? (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div style={{ fontSize: 52, marginBottom: 16 }}>🚀</div>
-            <h3 style={{ fontSize: 22, fontWeight: 800, color: TEXT, margin: '0 0 8px' }}>Published!</h3>
-            <p style={{ color: MUTED, fontSize: 14, margin: '0 0 24px' }}>Your {meta.label} is now live.</p>
+            <h3 style={{ fontSize: 22, fontWeight: 800, color: TEXT, margin: '0 0 8px' }}>
+              {wasAlreadyLive ? 'Updated!' : 'Published!'}
+            </h3>
+            <p style={{ color: MUTED, fontSize: 14, margin: '0 0 24px' }}>
+              {wasAlreadyLive ? `Your changes to ${meta.label} are live.` : `Your ${meta.label} is now live.`}
+            </p>
             <button onClick={() => { setSuccess(false); onClose() }} style={{
               background: ACCENT, color: '#090D16', border: 'none',
               borderRadius: 12, padding: '12px 28px',
@@ -181,7 +186,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: TEXT }}>
-                Publish {meta.label}
+                {wasAlreadyLive ? `Update ${meta.label}` : `Publish ${meta.label}`}
               </h3>
               <button onClick={onClose} style={{
                 background: 'rgba(255,255,255,0.06)', border: 'none',
@@ -334,7 +339,9 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 cursor: publishing ? 'not-allowed' : 'pointer',
                 marginTop: 4,
               }}>
-                {publishing ? 'Publishing…' : `Publish ${meta.label} 🚀`}
+                {publishing
+                  ? (wasAlreadyLive ? 'Updating…' : 'Publishing…')
+                  : (wasAlreadyLive ? `Update ${meta.label} ✓` : `Publish ${meta.label} 🚀`)}
               </button>
             </div>
           </>

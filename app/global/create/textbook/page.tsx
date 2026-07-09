@@ -36,7 +36,6 @@ export default function VibeTextbookPage() {
         .select('*')
         .eq('author_id', user.id)
         .eq('format', 'vibetextbook')
-        .eq('status', 'draft')
         .order('updated_at', { ascending: false })
       setDrafts((data || []) as VibePublication[])
       setLoadingDrafts(false)
@@ -86,18 +85,18 @@ export default function VibeTextbookPage() {
         </button>
 
         <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: '0.1em', marginBottom: 12 }}>
-          YOUR DRAFTS
+          YOUR TEXTBOOKS
         </div>
 
         {loadingDrafts ? (
-          <div style={{ color: MUTED, fontSize: 13 }}>Loading drafts…</div>
+          <div style={{ color: MUTED, fontSize: 13 }}>Loading…</div>
         ) : drafts.length === 0 ? (
           <div style={{
             background: SURF, border: '1px solid ' + BORDER,
             borderRadius: 12, padding: '24px',
             textAlign: 'center', color: MUTED, fontSize: 13,
           }}>
-            No drafts yet. Start your first textbook.
+            No textbooks yet. Start your first one.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -113,8 +112,17 @@ export default function VibeTextbookPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: TEXT, marginBottom: 4 }}>
-                    {d.title || 'Untitled Textbook'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: TEXT }}>
+                      {d.title || 'Untitled Textbook'}
+                    </span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                      color: d.status === 'published' ? ACCENT : MUTED,
+                      border: '1px solid ' + (d.status === 'published' ? ACCENT : BORDER),
+                    }}>
+                      {d.status === 'published' ? 'LIVE' : d.status.toUpperCase()}
+                    </span>
                   </div>
                   <div style={{ fontSize: 11, color: MUTED }}>
                     {"Updated " + new Date(d.updated_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}

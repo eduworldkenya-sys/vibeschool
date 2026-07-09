@@ -71,7 +71,7 @@ export default function ReadPublicationPage() {
       const key = 'read_' + id
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1')
-        await sb.rpc('increment_publication_reads', { pub_id: id })
+        await sb.rpc('increment_publication_reads', { pub_id: id, viewer_id: user?.id ?? null })
       }
 
       const { data: chaps } = await sb

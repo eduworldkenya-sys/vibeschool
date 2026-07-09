@@ -18,9 +18,6 @@ import {
 
 const AUTOSAVE_MS = 3000
 
-// Determines the status a chapter should adopt on publish, based on the
-// publication's pricing model. Chapters the author has already set manually
-// (anything not still 'draft') are left untouched by the bulk transition.
 function chapterStatusForPricing(pricing: PricingModel, chapterNumber: number): ChapterStatus {
   switch (pricing.type) {
     case 'free':
@@ -378,14 +375,6 @@ export function usePublicationDraft(
   }, [mutateActiveChapter])
 
   // ── Publish ───────────────────────────────────────────────────────────────
-  // Publishing the publication row alone does nothing for readers: the reader
-  // only pulls chapters with status in ('published','locked'). So publishing
-  // must also bulk-transition any chapter still sitting at 'draft' into the
-  // right status for the pricing model (free/donation → published,
-  // paid/school_license → locked, freemium → published up to freeChapters
-  // then locked). Chapters the author has already set manually (status !==
-  // 'draft') are left as-is so per-chapter overrides in the sidebar survive
-  // a republish.
   const publishPublication = useCallback(async (): Promise<boolean> => {
     await forceSave()
     const sb = createBrowserClient(
@@ -408,7 +397,10 @@ export function usePublicationDraft(
 
     const { error: pe } = await sb
       .from('vibe_publications')
-      .update({ status: 'published', published_at: now })
+      .update({
+        status: 'published',
+        published_at: pub.published_at ?? now,
+      })
       .eq('id', pub.id)
     if (pe) { setError(pe.message); return false }
 
@@ -424,7 +416,7 @@ export function usePublicationDraft(
 
     setChapters(nextChapters)
     chapRef.current = nextChapters
-    setPublication(prev => prev ? { ...prev, status: 'published', published_at: now } : null)
+    setPublication(prev => prev ? { ...prev, status: 'published', published_at: prev.published_at ?? now } : null)
     return true
   }, [forceSave])
 

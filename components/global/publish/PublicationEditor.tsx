@@ -1,5 +1,4 @@
 "use client";
-'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -262,7 +261,9 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
             cursor: publishing ? 'not-allowed' : 'pointer',
           }}>
-            {publishing ? 'Publishing…' : 'Publish'}
+            {publication?.status === 'published'
+              ? (publishing ? 'Updating…' : 'Update')
+              : (publishing ? 'Publishing…' : 'Publish')}
           </button>
         </div>
       </header>
