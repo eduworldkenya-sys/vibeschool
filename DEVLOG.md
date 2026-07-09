@@ -490,3 +490,6 @@
 ## [2026-07-10 00:07] 28df760
 **What:** fix addStrand missing sub_strand causing insert failures
 **Status:** ✅ pushed
+## [2026-07-10 00:38] f1d6253
+**What:** remove dead strandQueries helper, no longer imported anywhere
+**Status:** ✅ pushed
