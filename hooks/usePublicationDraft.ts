@@ -256,6 +256,7 @@ export function usePublicationDraft(
     setPublication(prev => {
       if (!prev) return null
       const next = { ...prev, ...updates }
+      next.cbc_aligned = Boolean(next.cbc_subject?.trim() && next.cbc_grade?.trim())
       pubRef.current = next
       return next
     })
