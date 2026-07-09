@@ -484,3 +484,6 @@
 ## [2026-07-09 23:08] 5533223
 **What:** fix: consolidate strand identity on cbc_strands
 **Status:** ✅ pushed
+## [2026-07-09 23:51] dd43162
+**What:** fix nonexistent school_id filter in getStrandsForSubject
+**Status:** ✅ pushed
