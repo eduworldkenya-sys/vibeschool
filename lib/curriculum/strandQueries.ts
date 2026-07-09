@@ -2,18 +2,18 @@ import { supabase } from '@/lib/supabase'
 
 interface StrandOption { id: string; name: string }
 
-interface EnsureStrandsParams {
+interface GetStrandsParams {
   schoolId:     string
   subjectId:    string
   subjectLabel: string
   grade:        string
 }
 
-export async function ensureStrandsForSubject({
+export async function getStrandsForSubject({
   schoolId,
   subjectId,
   grade,
-}: EnsureStrandsParams): Promise<StrandOption[]> {
+}: GetStrandsParams): Promise<StrandOption[]> {
   const { data, error } = await supabase
     .from('cbc_strands')
     .select('id, name')
