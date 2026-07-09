@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase, SUPABASE_URL } from '@/lib/supabase'
+import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { C } from '@/components/teacher/ui'
 import { getServerWeek, nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
@@ -210,12 +211,17 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
             let strandId: string | null = null
             try {
               // cbc_strands (national KICD reference) is the single source
-              // of strand identity — see migration 20260709120000.
-              const { data: strandRows } = await supabase
-                .from('cbc_strands')
-                .select('id, name')
-                .eq('subject_id', slot.subject_id)
-                .ilike('grade', grade)
+              // of strand identity — see migration 20260709120000. Resolved
+              // via the GLOBAL subject row (school_id IS NULL), not the
+              // school's own local subject_id.
+              const globalSubjectId = await resolveGlobalSubjectId(slot.subject)
+              const strandRows = globalSubjectId
+                ? (await supabase
+                    .from('cbc_strands')
+                    .select('id, name')
+                    .eq('subject_id', globalSubjectId)
+                    .ilike('grade', grade)).data
+                : []
               strandId = strandRows?.find(s => s.name === currRow.strand)?.id ?? null
             } catch {
               // non-fatal — suggestion still useful even without a strand_id
