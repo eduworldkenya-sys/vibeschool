@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { VibeChapter, PublicationFormat, FORMAT_META } from '@/lib/publishTypes'
+import { VibeChapter, ChapterStatus, PublicationFormat, FORMAT_META } from '@/lib/publishTypes'
 
 const SURF   = '#111827'
 const CARD   = '#1a2235'
@@ -9,6 +9,12 @@ const ACCENT = '#CCFF00'
 const TEXT   = '#ffffff'
 const MUTED  = 'rgba(255,255,255,0.4)'
 const BORDER = 'rgba(255,255,255,0.06)'
+
+const STATUS_META: Record<ChapterStatus, { label: string; color: string }> = {
+  draft:     { label: 'Draft',     color: MUTED   },
+  published: { label: 'Published', color: ACCENT  },
+  locked:    { label: 'Locked',    color: '#FFB020' },
+}
 
 interface Props {
   format:           PublicationFormat
@@ -20,12 +26,13 @@ interface Props {
   onAddChapter:     () => void
   onDeleteChapter:  (id: string) => void
   onTitleChange:    (id: string, title: string) => void
+  onStatusChange:   (id: string, status: ChapterStatus) => void
 }
 
 export function ChapterSidebar({
   format, chapters, activeChapterId,
   isOpen, onClose,
-  onSelectChapter, onAddChapter, onDeleteChapter, onTitleChange,
+  onSelectChapter, onAddChapter, onDeleteChapter, onTitleChange, onStatusChange,
 }: Props) {
   const meta = FORMAT_META[format]
 
@@ -84,6 +91,24 @@ export function ChapterSidebar({
                     padding: 0, boxSizing: 'border-box' as const,
                   }}
                 />
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {(['draft', 'published', 'locked'] as ChapterStatus[]).map(s => {
+                    const on = c.status === s
+                    return (
+                      <button
+                        key={s}
+                        onClick={e => { e.stopPropagation(); onStatusChange(c.id, s) }}
+                        style={{
+                          padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                          cursor: 'pointer',
+                          border: '1px solid ' + (on ? STATUS_META[s].color : BORDER),
+                          background: on ? STATUS_META[s].color + '1a' : 'transparent',
+                          color: on ? STATUS_META[s].color : MUTED,
+                        }}
+                      >{STATUS_META[s].label}</button>
+                    )
+                  })}
+                </div>
                 {chapters.length > 1 && (
                   <button
                     onClick={e => { e.stopPropagation(); onDeleteChapter(c.id) }}

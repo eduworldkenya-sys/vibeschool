@@ -7,6 +7,8 @@ import {
   VibeChapter,
   ContentBlock,
   BlockType,
+  ChapterStatus,
+  PricingModel,
   PublicationFormat,
   emptyPublication,
   emptyChapter,
@@ -16,25 +18,44 @@ import {
 
 const AUTOSAVE_MS = 3000
 
+// Determines the status a chapter should adopt on publish, based on the
+// publication's pricing model. Chapters the author has already set manually
+// (anything not still 'draft') are left untouched by the bulk transition.
+function chapterStatusForPricing(pricing: PricingModel, chapterNumber: number): ChapterStatus {
+  switch (pricing.type) {
+    case 'free':
+    case 'donation':
+      return 'published'
+    case 'paid':
+    case 'school_license':
+      return 'locked'
+    case 'freemium':
+      return chapterNumber <= pricing.freeChapters ? 'published' : 'locked'
+    default:
+      return 'published'
+  }
+}
+
 export interface UsePublicationDraftResult {
-  loading:            boolean
-  saving:             boolean
-  lastSaved:          Date | null
-  error:              string | null
-  publication:        VibePublication | null
-  chapters:           VibeChapter[]
-  activeChapterId:    string | null
-  setActiveChapterId: (id: string) => void
-  updatePublication:  (updates: Partial<VibePublication>) => void
-  updateChapterTitle: (id: string, title: string) => void
-  addChapter:         () => void
-  deleteChapter:      (id: string) => void
-  addBlock:           (type: BlockType, afterBlockId?: string) => void
-  updateBlock:        (blockId: string, content: string, meta?: ContentBlock['meta']) => void
-  deleteBlock:        (blockId: string) => void
-  moveBlock:          (blockId: string, direction: 'up' | 'down') => void
-  publishPublication: () => Promise<boolean>
-  forceSave:          () => Promise<void>
+  loading:              boolean
+  saving:               boolean
+  lastSaved:            Date | null
+  error:                string | null
+  publication:          VibePublication | null
+  chapters:             VibeChapter[]
+  activeChapterId:      string | null
+  setActiveChapterId:   (id: string) => void
+  updatePublication:    (updates: Partial<VibePublication>) => void
+  updateChapterTitle:   (id: string, title: string) => void
+  updateChapterStatus:  (id: string, status: ChapterStatus) => void
+  addChapter:           () => void
+  deleteChapter:        (id: string) => void
+  addBlock:             (type: BlockType, afterBlockId?: string) => void
+  updateBlock:          (blockId: string, content: string, meta?: ContentBlock['meta']) => void
+  deleteBlock:          (blockId: string) => void
+  moveBlock:            (blockId: string, direction: 'up' | 'down') => void
+  publishPublication:   () => Promise<boolean>
+  forceSave:            () => Promise<void>
 }
 
 export function usePublicationDraft(
@@ -251,6 +272,19 @@ export function usePublicationDraft(
     scheduleSave()
   }, [scheduleSave])
 
+  const updateChapterStatus = useCallback((id: string, status: ChapterStatus) => {
+    setChapters(prev => {
+      const next = prev.map(c => c.id !== id ? c : {
+        ...c,
+        status,
+        published_at: status === 'published' ? (c.published_at ?? new Date().toISOString()) : c.published_at,
+      })
+      chapRef.current = next
+      return next
+    })
+    scheduleSave()
+  }, [scheduleSave])
+
   const addChapter = useCallback(() => {
     const pub   = pubRef.current
     const chaps = chapRef.current
@@ -343,18 +377,52 @@ export function usePublicationDraft(
   }, [mutateActiveChapter])
 
   // ── Publish ───────────────────────────────────────────────────────────────
+  // Publishing the publication row alone does nothing for readers: the reader
+  // only pulls chapters with status in ('published','locked'). So publishing
+  // must also bulk-transition any chapter still sitting at 'draft' into the
+  // right status for the pricing model (free/donation → published,
+  // paid/school_license → locked, freemium → published up to freeChapters
+  // then locked). Chapters the author has already set manually (status !==
+  // 'draft') are left as-is so per-chapter overrides in the sidebar survive
+  // a republish.
   const publishPublication = useCallback(async (): Promise<boolean> => {
     await forceSave()
     const sb = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
+    const pub = pubRef.current
+    if (!pub) return false
     const now = new Date().toISOString()
-    const { error: e } = await sb
+
+    const nextChapters: VibeChapter[] = chapRef.current.map(c => {
+      if (c.status !== 'draft') return c
+      const status = chapterStatusForPricing(pub.pricing, c.number)
+      return {
+        ...c,
+        status,
+        published_at: status === 'published' ? now : c.published_at,
+      }
+    })
+
+    const { error: pe } = await sb
       .from('vibe_publications')
       .update({ status: 'published', published_at: now })
-      .eq('id', pubRef.current!.id)
-    if (e) { setError(e.message); return false }
+      .eq('id', pub.id)
+    if (pe) { setError(pe.message); return false }
+
+    if (nextChapters.length > 0) {
+      const { error: ce } = await sb
+        .from('vibe_chapters')
+        .upsert(
+          nextChapters.map(c => ({ ...c, updated_at: now })),
+          { onConflict: 'id' }
+        )
+      if (ce) { setError(ce.message); return false }
+    }
+
+    setChapters(nextChapters)
+    chapRef.current = nextChapters
     setPublication(prev => prev ? { ...prev, status: 'published', published_at: now } : null)
     return true
   }, [forceSave])
@@ -370,6 +438,7 @@ export function usePublicationDraft(
     setActiveChapterId,
     updatePublication,
     updateChapterTitle,
+    updateChapterStatus,
     addChapter,
     deleteChapter,
     addBlock,
