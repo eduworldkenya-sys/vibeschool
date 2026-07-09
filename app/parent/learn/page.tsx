@@ -752,6 +752,21 @@ export default function ParentLearnPage() {
         <div style={{ flex: 1 }}>
           {mainTab === "work" && !contentError && (
             <div>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                <button
+                  onClick={() => router.push("/parent/exercises")}
+                  style={{ flex: 1, padding: "10px", borderRadius: "12px", border: "1px solid #e5e7eb", background: "#fff", color: "#111827", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                >
+                  📐 Exercises
+                </button>
+                <button
+                  onClick={() => router.push("/parent/projects")}
+                  style={{ flex: 1, padding: "10px", borderRadius: "12px", border: "1px solid #e5e7eb", background: "#fff", color: "#111827", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                >
+                  🛠️ Projects
+                </button>
+              </div>
+
               <div style={{ display: "flex", gap: "4px", backgroundColor: "#e5e7eb", padding: "4px", borderRadius: "12px", marginBottom: "16px" }}>
                 {(["pending", "submitted", "marked"] as const).map((subTab) => {
                   const isActive = hwTab === subTab;
