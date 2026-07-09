@@ -168,6 +168,29 @@ export default function MyWorkPage() {
         </div>
       </div>
 
+      {/* Tab switcher */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        {[
+          { label: "Homework",  active: true,  href: null },
+          { label: "Exercises", active: false, href: "/student/exercises" },
+          { label: "Projects",  active: false, href: "/student/projects" },
+        ].map(t => (
+          <button
+            key={t.label}
+            onClick={() => t.href && router.push(t.href)}
+            style={{
+              flex: 1, padding: "9px 4px", borderRadius: 10,
+              border: t.active ? "none" : "1px solid var(--vs-border)",
+              background: t.active ? "var(--vs-accent)" : "var(--vs-card)",
+              color: t.active ? "#fff" : "var(--vs-muted)",
+              fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {/* No class */}
       {!identity?.classId && (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "48px 24px", textAlign: "center" }}>
