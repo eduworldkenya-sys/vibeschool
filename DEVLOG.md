@@ -478,3 +478,6 @@
 ## [2026-07-08 16:20] a64df37
 **What:** add VibeTextbook create page, /global/read discovery feed, and vibe_publications/vibe_chapters RLS migration
 **Status:** ✅ pushed
+## [2026-07-09 10:01] 5b9aaca
+**What:** Fix textbook editing: list shows published+draft with status badges, publishing preserves original published_at, Update/Publish labels reflect live state, RPC dedup call site wired through
+**Status:** ✅ pushed
