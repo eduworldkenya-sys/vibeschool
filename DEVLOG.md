@@ -505,3 +505,6 @@
 ## [2026-07-10 01:03] 9170153
 **What:** resolve cbc_strands through global subject taxonomy, fixes near-empty strand dropdowns
 **Status:** ✅ pushed
+## [2026-07-10 16:45] cde4174
+**What:** fix: strand input text invisible due to inherited white body color
+**Status:** ✅ pushed
