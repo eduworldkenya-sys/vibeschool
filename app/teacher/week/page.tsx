@@ -173,9 +173,14 @@ export default function TeacherWeekViewPage() {
 
         const hasScheme = strandProgress.some(sp => sp.class_id === combo.classId);
 
-        // Soft-matched by class_id + subject (no curriculum_unit_id FK yet —
-        // that column doesn't exist on these tables. See handover notes:
-        // FK migration is a planned next step, not done).
+        // Intentionally matched by class_id + subject, not by the specific
+        // curriculum unit shown above (`curr`) — this is a "did you do the
+        // weekly workflow" checklist, so a freeform plan/note/homework not
+        // tied to this week's scheme suggestion should still count as done.
+        // (curriculum_unit_id exists on lesson_plans/progress_records/homework/
+        // cbc_assessments/curriculum_content but is an unused duplicate of
+        // curriculum_id — confirmed empty everywhere, 2026-07-10. Don't build
+        // against it.)
         const hasPlan = plans.some(p =>
           p.class_id === combo.classId && p.subject_id === combo.subjectId
         );
