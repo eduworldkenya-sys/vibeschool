@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import type { CurriculumRow, LessonPlanCoverageRow } from "@/lib/types"
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
 const C = {
@@ -35,15 +36,6 @@ const C = {
 
 // ── INTERFACES ─────────────────────────────────────────────────
 interface ClassRow    { id: string; name: string; stream: string | null }
-interface SchemeRow   {
-  class_id: string; subject: string; strand: string
-  sub_strand: string; topic: string; status: string
-  week: number; term: number; academic_year: number
-}
-interface CurriculumRow {
-  grade: string; subject: string; strand: string
-  sub_strand: string; topic: string; week: number; term: number
-}
 interface Term {
   id: string; name: string; term: number; academic_year: number
   start_date: string; end_date: string; status: string
@@ -311,14 +303,14 @@ function WeekGrid({
 
 // ── STRAND CARDS ───────────────────────────────────────────────
 function StrandCards({
-  cls, subject, schemes, curriculum, week, term: termNum
+  cls, subject, lessonPlans, curriculum, week, term: termNum
 }: {
-  cls:        ClassRow
-  subject:    string
-  schemes:    SchemeRow[]
-  curriculum: CurriculumRow[]
-  week:       number
-  term:       number
+  cls:         ClassRow
+  subject:     string
+  lessonPlans: LessonPlanCoverageRow[]
+  curriculum:  CurriculumRow[]
+  week:        number
+  term:        number
 }) {
   const weekTopics = curriculum.filter(c =>
     c.grade === cls.name &&
@@ -372,10 +364,10 @@ function StrandCards({
       {strands.map((strand, si) => {
         const strandTopics = weekTopics.filter(t => t.strand === strand)
         const delivered    = strandTopics.filter(t =>
-          schemes.some(s =>
-            s.class_id === cls.id &&
-            s.topic    === t.topic &&
-            s.status   === "delivered"
+          lessonPlans.some(lp =>
+            lp.class_id      === cls.id &&
+            lp.curriculum_id === t.id &&
+            lp.status        !== "draft"
           )
         ).length
         const total  = strandTopics.length
@@ -465,7 +457,7 @@ export default function CurriculumPage() {
   const [toast,         setToast]         = useState("")
   const [term,          setTerm]          = useState<Term | null>(null)
   const [classes,       setClasses]       = useState<ClassRow[]>([])
-  const [schemes,       setSchemes]       = useState<SchemeRow[]>([])
+  const [lessonPlans,   setLessonPlans]   = useState<LessonPlanCoverageRow[]>([])
   const [curriculum,    setCurriculum]    = useState<CurriculumRow[]>([])
   const [selectedClass, setSelectedClass] = useState<string>("all")
   const [expandedClass, setExpandedClass] = useState<string | null>(null)
@@ -519,21 +511,24 @@ export default function CurriculumPage() {
 
       const grades = Array.from(new Set(classList.map(c => c.name)))
 
-      const [schemeRes, currRes] = await Promise.all([
+      const classIds = classList.map(cl => cl.id)
+
+      const [lpRes, currRes] = await Promise.all([
         supabase
-          .from("scheme_of_work")
-          .select("class_id,subject,strand,sub_strand,topic,status,week,term,academic_year")
-          .eq("school_id", p.school_id)
-          .eq("term", activeTerm.term)
-          .eq("academic_year", activeTerm.academic_year),
+          .from("lesson_plans")
+          .select("class_id,curriculum_id,status,week_start")
+          .in("class_id", classIds)
+          .not("curriculum_id", "is", null)
+          .gte("week_start", activeTerm.start_date)
+          .lte("week_start", activeTerm.end_date),
         supabase
           .from("curriculum")
-          .select("grade,subject,strand,sub_strand,topic,week,term")
+          .select("id,grade,subject,strand,sub_strand,topic,week,term")
           .eq("term", activeTerm.term)
           .in("grade", grades),
       ])
 
-      setSchemes((schemeRes.data  ?? []) as SchemeRow[])
+      setLessonPlans((lpRes.data ?? []) as LessonPlanCoverageRow[])
       setCurriculum((currRes.data ?? []) as CurriculumRow[])
     } catch {
       fireToast("Failed to load curriculum data.")
@@ -557,8 +552,8 @@ export default function CurriculumPage() {
 
     for (const cls of classes) {
       const kicdTopics    = curriculum.filter(c => c.grade === cls.name)
-      const schemeRows    = schemes.filter(s => s.class_id === cls.id)
-      const deliveredRows = schemeRows.filter(s => s.status === "delivered")
+      const lpRows        = lessonPlans.filter(lp => lp.class_id === cls.id)
+      const deliveredRows = lpRows.filter(lp => lp.status !== "draft")
       const subjects      = Array.from(new Set(kicdTopics.map(k => k.subject)))
       const total         = kicdTopics.length
       const delivered     = deliveredRows.length
@@ -575,7 +570,7 @@ export default function CurriculumPage() {
       for (const w of totWksArr) {
         const weekTopics    = kicdTopics.filter(k => k.week === w)
         const weekDelivered = weekTopics.filter(k =>
-          schemeRows.some(s => s.topic === k.topic && s.status === "delivered")
+          lpRows.some(lp => lp.curriculum_id === k.id && lp.status !== "draft")
         ).length
         weekCoverage[w] = weekTopics.length > 0
           ? Math.round((weekDelivered / weekTopics.length) * 100)
@@ -586,7 +581,7 @@ export default function CurriculumPage() {
     }
 
     return map
-  }, [classes, curriculum, schemes, term])
+  }, [classes, curriculum, lessonPlans, term])
 
   const subjectCoverageMap = useMemo(() => {
     const map: Record<string, Record<string, {
@@ -596,13 +591,13 @@ export default function CurriculumPage() {
     for (const cls of classes) {
       map[cls.id] = {}
       const kicdTopics = curriculum.filter(c => c.grade === cls.name)
-      const schemeRows = schemes.filter(s => s.class_id === cls.id)
+      const lpRows     = lessonPlans.filter(lp => lp.class_id === cls.id)
       const subjects   = Array.from(new Set(kicdTopics.map(k => k.subject)))
 
       for (const subject of subjects) {
         const subTopics  = kicdTopics.filter(k => k.subject === subject)
         const delivered  = subTopics.filter(k =>
-          schemeRows.some(s => s.topic === k.topic && s.status === "delivered")
+          lpRows.some(lp => lp.curriculum_id === k.id && lp.status !== "draft")
         ).length
         const total = subTopics.length
         const pct   = total > 0 ? Math.round((delivered / total) * 100) : 0
@@ -611,7 +606,7 @@ export default function CurriculumPage() {
     }
 
     return map
-  }, [classes, curriculum, schemes])
+  }, [classes, curriculum, lessonPlans])
 
   // ── Derived values ─────────────────────────────────────────────
   const curWeek   = term ? currentWeekOf(term) : 0
@@ -1019,7 +1014,7 @@ export default function CurriculumPage() {
                                   ? activeSubject
                                   : cov.subjects[0]
                               }
-                              schemes={schemes}
+                              lessonPlans={lessonPlans}
                               curriculum={curriculum}
                               week={selectedWeek ?? curWeek}
                               term={term?.term ?? 1}

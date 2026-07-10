@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import type { LessonPlanCoverageRow } from "@/lib/types"
 
 const dark   = "#0a1628"
 const accent = "#10b981"
@@ -27,11 +28,6 @@ interface ClassRow {
   id: string
   name: string
   stream: string | null
-}
-
-interface SchemeRow {
-  class_id: string
-  status: string
 }
 
 interface GradeRow {
@@ -98,7 +94,7 @@ export default function AcademicsPage() {
   const [toast,     setToast]     = useState("")
   const [term,      setTerm]      = useState<Term | null>(null)
   const [classes,   setClasses]   = useState<ClassRow[]>([])
-  const [schemes,   setSchemes]   = useState<SchemeRow[]>([])
+  const [lessonPlans, setLessonPlans] = useState<LessonPlanCoverageRow[]>([])
   const [grades,    setGrades]    = useState<GradeRow[]>([])
   const [cbcData,   setCbcData]   = useState<CbcRow[]>([])
 
@@ -142,7 +138,7 @@ export default function AcademicsPage() {
 
       if (!activeTerm) { setLoading(false); return }
 
-      await loadAcademicData(p.school_id, activeTerm)
+      await loadAcademicData(p.school_id, activeTerm, classList)
     } catch {
       fireToast("Failed to load academics.")
     } finally {
@@ -150,14 +146,16 @@ export default function AcademicsPage() {
     }
   }
 
-  async function loadAcademicData(sid: string, t: Term) {
-    const [schemeRes, gradeRes, cbcRes] = await Promise.all([
+  async function loadAcademicData(sid: string, t: Term, classList: ClassRow[]) {
+    const classIds = classList.map(cl => cl.id)
+    const [lpRes, gradeRes, cbcRes] = await Promise.all([
       supabase
-        .from("scheme_of_work")
-        .select("class_id,status")
-        .eq("school_id", sid)
-        .eq("term", t.term)
-        .eq("academic_year", t.academic_year),
+        .from("lesson_plans")
+        .select("class_id,curriculum_id,status,week_start")
+        .in("class_id", classIds)
+        .not("curriculum_id", "is", null)
+        .gte("week_start", t.start_date)
+        .lte("week_start", t.end_date),
       supabase
         .from("traditional_grades")
         .select("class_id,marks,out_of")
@@ -172,7 +170,7 @@ export default function AcademicsPage() {
         .eq("academic_year", t.academic_year),
     ])
 
-    setSchemes((schemeRes.data ?? []) as SchemeRow[])
+    setLessonPlans((lpRes.data ?? []) as LessonPlanCoverageRow[])
     setGrades((gradeRes.data ?? []) as GradeRow[])
     setCbcData((cbcRes.data ?? []) as CbcRow[])
   }
@@ -181,7 +179,7 @@ export default function AcademicsPage() {
   const weekPct        = Math.round((currentWeek / 13) * 100)
   const expectedCovPct = weekPct
 
-  const classesWithScheme = new Set(schemes.map(s => s.class_id)).size
+  const classesWithScheme = new Set(lessonPlans.map(lp => lp.class_id)).size
   const schemePct         = classes.length ? Math.round((classesWithScheme / classes.length) * 100) : 0
 
   const classesWithGrades = new Set([
@@ -198,9 +196,9 @@ export default function AcademicsPage() {
   }
 
   function classSchemeStatus(classId: string): "done" | "partial" | "none" {
-    const rows = schemes.filter(s => s.class_id === classId)
+    const rows = lessonPlans.filter(lp => lp.class_id === classId)
     if (!rows.length) return "none"
-    const delivered = rows.filter(s => s.status === "delivered").length
+    const delivered = rows.filter(lp => lp.status !== "draft").length
     if (delivered === rows.length) return "done"
     return "partial"
   }

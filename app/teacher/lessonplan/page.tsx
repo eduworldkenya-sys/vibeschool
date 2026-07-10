@@ -8,34 +8,11 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import LessonPlanModal from '@/components/teacher/LessonPlanModal'
-import type { TimetableSlot } from '@/lib/types'
-
-type LPStatus = 'draft' | 'published' | 'shared_to_parents' | 'missing'
-
-interface PlanRow {
-  id: string
-  classId: string
-  subjectId: string
-  title: string
-  body: string
-  topic: string
-  dayOfWeek: number
-  weekStart: string
-  status: LPStatus
-}
+import type { TimetableSlot, PlanRow, HistoryRow } from '@/lib/types'
 
 interface SlotWithPlan {
   slot: TimetableSlot
   plan: PlanRow | null
-}
-
-interface HistoryRow {
-  id: string
-  title: string
-  topic: string
-  created_at: string
-  status: string
-  class_name: string
 }
 
 function formatTime(t: string) {
@@ -115,7 +92,7 @@ function LessonPlanInner() {
           .eq('teacher_id', user.id)
           .order('start_time', { ascending: true }),
         supabase.from('lesson_plans')
-          .select('id,class_id,subject_id,title,body,topic,day_of_week,week_start,status')
+          .select('id,class_id,subject_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
           .eq('teacher_id', user.id)
           .eq('week_start', weekStart),
       ])
@@ -126,7 +103,9 @@ function LessonPlanInner() {
           id: p.id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '', topic: p.topic ?? '',
           dayOfWeek: p.day_of_week, weekStart: p.week_start,
-          status: (p.status ?? 'draft') as LPStatus,
+          status: (p.status ?? 'draft') as PlanRow['status'],
+          curriculumId: p.curriculum_id ?? null,
+          strandId: p.strand_id ?? null,
         })
       }
 
@@ -164,17 +143,25 @@ function LessonPlanInner() {
       if (!user) return
       let q = supabase
         .from('lesson_plans')
-        .select('id,title,topic,created_at,status,classes(name,stream)')
+        .select('id,title,topic,created_at,status,curriculum_id,strand_id,classes(name,stream),curriculum(week,term,strand)')
         .eq('teacher_id', user.id)
         .order('created_at', { ascending: false })
         .limit(15)
       if (urlClassId) q = q.eq('class_id', urlClassId)
       const { data } = await q
-      setHistory((data ?? []).map((h: any) => ({
-        id: h.id, title: h.title, topic: h.topic,
-        created_at: h.created_at, status: h.status,
-        class_name: h.classes ? h.classes.name + (h.classes.stream ? ' ' + h.classes.stream : '') : '',
-      })))
+      setHistory((data ?? []).map((h: any) => {
+        const curr = Array.isArray(h.curriculum) ? h.curriculum[0] : h.curriculum
+        return {
+          id: h.id, title: h.title, topic: h.topic,
+          created_at: h.created_at, status: h.status,
+          class_name: h.classes ? h.classes.name + (h.classes.stream ? ' ' + h.classes.stream : '') : '',
+          curriculumId: h.curriculum_id ?? null,
+          strandId: h.strand_id ?? null,
+          week: curr?.week ?? null,
+          term: curr?.term ?? null,
+          strand: curr?.strand ?? null,
+        }
+      }))
       setHistLoading(false)
     }
     loadHistory()
@@ -311,6 +298,9 @@ function LessonPlanInner() {
                     </div>
                     <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
                       {h.class_name} · {new Date(h.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {h.week != null && (
+                        <span style={{ marginLeft: 6, fontWeight: 700, color: '#4338ca' }}>· 📘 Wk {h.week}{h.term != null ? ' T' + h.term : ''}</span>
+                      )}
                     </div>
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', marginLeft: 8 }}>{badge.label}</span>

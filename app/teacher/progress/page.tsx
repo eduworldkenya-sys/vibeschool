@@ -263,6 +263,38 @@ export default function LessonNotesPage() {
     setView("edit");
   }
 
+  // Mirrors LessonPlanModal.handleShareToParents' homework write —
+  // same upsert key (lesson_plan_id), same question-split heuristic —
+  // so "homework" set here and homework set pre-lesson land in one place.
+  async function syncHomeworkFromNote(
+    planId: string, teacherId: string, schoolId: string | null, linkedPlan: PlanOption | null
+  ) {
+    if (!homework.trim()) return
+    const due = new Date()
+    due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
+    const { data: hw } = await supabase.from("homework").upsert({
+      class_id:       linkedPlan?.class_id ?? null,
+      teacher_id:     teacherId,
+      school_id:      schoolId,
+      lesson_plan_id: planId,
+      title:          (linkedPlan?.topic || linkedPlan?.title || "Lesson") + " — Homework",
+      subject:        linkedPlan?.subject_name || "",
+      instructions:   homework.trim(),
+      type:           "written",
+      due_date:       nairobiDateStr(due),
+    }, { onConflict: "lesson_plan_id" }).select("id").single();
+
+    if (hw?.id) {
+      await supabase.from("homework_questions").delete().eq("homework_id", hw.id);
+      const questions = homework
+        .split("\n")
+        .filter((l: string) => l.trim().endsWith("?") || /^\d+\./.test(l.trim()))
+        .slice(0, 5)
+        .map((q: string, i: number) => ({ homework_id: hw.id, question: q.trim(), order_num: i + 1 }));
+      if (questions.length > 0) await supabase.from("homework_questions").insert(questions);
+    }
+  }
+
   async function saveNote() {
     if (!whatTaught.trim()) { setError("Please describe what was taught."); return; }
     const tid = tidRef.current;
@@ -296,6 +328,10 @@ export default function LessonNotesPage() {
           .eq("id", editingNoteId.current!)
           .eq("teacher_id", tid);
         if (upErr) throw upErr;
+        if (selectedPlan) {
+          try { await syncHomeworkFromNote(selectedPlan, tid, sid, linkedPlan); }
+          catch (e) { console.error("[progress] homework sync", e); }
+        }
         editingNoteId.current = null;
         await loadNotes(tid, sid);
         setView("list");
@@ -303,6 +339,10 @@ export default function LessonNotesPage() {
         payload.created_at = new Date().toISOString();
         const { error: insErr } = await supabase.from("progress_records").insert(payload);
         if (insErr) throw insErr;
+        if (selectedPlan) {
+          try { await syncHomeworkFromNote(selectedPlan, tid, sid, linkedPlan); }
+          catch (e) { console.error("[progress] homework sync", e); }
+        }
         editingNoteId.current = null;
         await loadNotes(tid, sid);
         // Offer the natural next step — teacher chooses, no forced redirect (hybrid, not automatic)

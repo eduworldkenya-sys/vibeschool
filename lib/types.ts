@@ -604,6 +604,16 @@ export interface PulseTimetableSlot {
   subject_id: string
 }
 
+// ── Admin Curriculum Coverage (app/admin/academics/curriculum) ──
+export interface CurriculumRow {
+  id: string; grade: string; subject: string; strand: string
+  sub_strand: string; topic: string; week: number; term: number
+}
+
+export interface LessonPlanCoverageRow {
+  class_id: string; curriculum_id: string; status: string; week_start: string
+}
+
 export interface PulseAtRisk {
   id: string
   name: string
@@ -614,6 +624,45 @@ export interface PulseCurriculumStat {
   covered: number
   total: number
   subject: string
+}
+
+// ── Lesson Plan curriculum linkage (LessonPlanModal, teacher/lessonplan) ─
+export interface CurriculumSuggestion {
+  id:        string
+  strand:    string
+  subStrand: string
+  topic:     string
+  term:      number
+  week:      number
+  strandId:  string | null
+}
+
+export interface PlanRow {
+  id: string
+  classId: string
+  subjectId: string
+  title: string
+  body: string
+  topic: string
+  dayOfWeek: number
+  weekStart: string
+  status: 'draft' | 'published' | 'shared_to_parents' | 'missing'
+  curriculumId: string | null
+  strandId: string | null
+}
+
+export interface HistoryRow {
+  id: string
+  title: string
+  topic: string
+  created_at: string
+  status: string
+  class_name: string
+  curriculumId: string | null
+  strandId: string | null
+  week: number | null
+  term: number | null
+  strand: string | null
 }
 
 export interface TwinAction {
