@@ -511,3 +511,6 @@
 ## [2026-07-10 16:49] c00c874
 **What:** fix: default text color on teacher/parent layouts to prevent white-on-white inputs
 **Status:** ✅ pushed
+## [2026-07-10 16:58] b0814af
+**What:** fix: strand-name input text invisible (missed in first patch attempt)
+**Status:** ✅ pushed
