@@ -1075,6 +1075,8 @@ function SchemePageInner() {
                           fontSize:     13,
                           fontFamily:   'inherit',
                           outline:      'none',
+                          color:        C.text,
+                          background:   '#ffffff',
                         }}
                       />
                       {addStrandError && (
