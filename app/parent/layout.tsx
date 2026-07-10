@@ -239,7 +239,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
       `}</style>
       <TopBar initials={initials} />
       <OfflineBar />
-      <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px", background: "#f0f2f5" }}>
+      <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px", background: "#f0f2f5", color: "#111827" }}>
         {children}
       </main>
       <BottomNav

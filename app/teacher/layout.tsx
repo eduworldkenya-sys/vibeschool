@@ -927,6 +927,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
             padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
             paddingBottom: 160,
             minHeight:     "calc(100vh - 120px)",
+            color:         "#111827",
           }}>
             {children}
           </main>
