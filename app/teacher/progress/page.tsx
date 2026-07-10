@@ -166,10 +166,11 @@ export default function LessonNotesPage() {
       classIds.length   > 0 ? supabase.from("classes").select("id,name,stream").in("id", classIds)    : Promise.resolve({ data: [] }),
       subjectIds.length > 0 ? supabase.from("subjects").select("id,name").in("id", subjectIds)         : Promise.resolve({ data: [] }),
       planIds.length    > 0 ? supabase.from("lesson_plans").select("id,title,topic").in("id", planIds) : Promise.resolve({ data: [] }),
-      // Publish status: a lesson_content row of type 'lesson_note' tied to this
-      // note's lesson_plan_id means it's already live for parents/students —
-      // this is the same table app/student/learn and app/parent/vibe-learn read.
-      planIds.length    > 0 ? supabase.from("lesson_content").select("lesson_plan_id").in("lesson_plan_id", planIds).eq("content_type", "lesson_note") : Promise.resolve({ data: [] }),
+      // Publish status: a lesson_content row of type 'progress_record' tied to
+      // this note's lesson_plan_id means it's already live for parents/students —
+      // "progress_record" (not "lesson_note") is what publishNote() actually writes
+      // below, and what app/student/lesson/[id]/page.tsx actually queries.
+      planIds.length    > 0 ? supabase.from("lesson_content").select("lesson_plan_id").in("lesson_plan_id", planIds).eq("content_type", "progress_record") : Promise.resolve({ data: [] }),
     ]);
 
     const clsMap  = Object.fromEntries(((clsRes.data  ?? []) as any[]).map(c => [c.id, c.name + (c.stream ? " " + c.stream : "")]));
@@ -422,7 +423,7 @@ export default function LessonNotesPage() {
         .from("lesson_content")
         .select("id")
         .eq("lesson_plan_id", note.lesson_plan_id)
-        .eq("content_type", "lesson_note")
+        .eq("content_type", "progress_record")
         .maybeSingle();
 
       if (existing?.id) {
