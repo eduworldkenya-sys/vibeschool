@@ -635,6 +635,40 @@ function SchemePageInner() {
     setSavingSet(prev => { const n = new Set(prev); n.delete(itemId); return n })
   }
 
+  // ── Update lesson number (TSC scheme document column) ──────────
+  async function updateLessonNumber(itemId: string, lessonNumber: number | null) {
+    if (!schoolId || !uid) return
+    const { error } = await supabase
+      .from('scheme_of_work')
+      .update({ lesson_number: lessonNumber })
+      .eq('id', itemId)
+      .eq('school_id', schoolId)
+      .eq('teacher_id', uid)
+
+    if (error) {
+      setFetchError(`Failed to update lesson number: ${error.message}`)
+    } else {
+      setSchemeItems(prev => prev.map(item => item.id === itemId ? { ...item, lesson_number: lessonNumber } : item))
+    }
+  }
+
+  // ── Update reflection (TSC scheme document column) ─────────────
+  async function updateReflection(itemId: string, reflection: string) {
+    if (!schoolId || !uid) return
+    const { error } = await supabase
+      .from('scheme_of_work')
+      .update({ reflection })
+      .eq('id', itemId)
+      .eq('school_id', schoolId)
+      .eq('teacher_id', uid)
+
+    if (error) {
+      setFetchError(`Failed to update reflection: ${error.message}`)
+    } else {
+      setSchemeItems(prev => prev.map(item => item.id === itemId ? { ...item, reflection } : item))
+    }
+  }
+
   // ── Coverage ──────────────────────────────────────────────────
   const weekCoverage = useMemo(() => {
     const map: Record<number, number> = {}
@@ -797,11 +831,14 @@ function SchemePageInner() {
       </div>
 
       {/* ── LESSON CONTEXT PANEL (label props only — ID props land in the LessonPanel cycle) ── */}
-      {selectedClassObj && selectedSubjectObj && selectedTermObj && (
+      {selectedClassObj && selectedSubjectObj && selectedTermObj && uid && schoolId && selectedClass && selectedSubject && selectedTermId && (
         <LessonPanel
-          gradeLabel={selectedClassObj.grade}
+          teacherId={uid}
+          classId={selectedClass}
+          subjectId={selectedSubject}
           subjectLabel={selectedSubjectObj.label}
-          term={selectedTermObj.term}
+          academicTermId={selectedTermId}
+          schoolId={schoolId}
           week={selectedWeek}
         />
       )}
@@ -950,6 +987,28 @@ function SchemePageInner() {
                               </button>
                             )
                           })}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: C.text3 }}>Lesson #</label>
+                          <input
+                            type="number"
+                            min={1}
+                            defaultValue={item.lesson_number ?? ''}
+                            onBlur={e => updateLessonNumber(item.id, e.target.value ? parseInt(e.target.value) : null)}
+                            style={{ width: 52, padding: '5px 8px', borderRadius: 8, border: `1px solid ${C.border2}`, fontSize: 12, fontFamily: 'inherit', color: C.text }}
+                          />
+                        </div>
+
+                        <div style={{ marginTop: 8 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: C.text3, display: 'block', marginBottom: 4 }}>Reflection</label>
+                          <textarea
+                            defaultValue={item.reflection ?? ''}
+                            placeholder="How did this lesson go? (saved when you tap away)"
+                            onBlur={e => updateReflection(item.id, e.target.value)}
+                            rows={2}
+                            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border2}`, fontSize: 12, fontFamily: 'inherit', color: C.text, resize: 'vertical' }}
+                          />
                         </div>
                       </div>
                     </div>
