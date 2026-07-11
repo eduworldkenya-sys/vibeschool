@@ -59,7 +59,6 @@ function GeneratePageInner() {
   const week       = parseInt(params.get('week') ?? '1')
   const term       = parseInt(params.get('term') ?? '1')
   const curriculumId = params.get('curriculumId') || null
-  const schemeId     = params.get('schemeId')     || null
 
   const [uid,         setUid]         = useState<string | null>(null)
   const [schoolId,    setSchoolId]    = useState<string | null>(null)
@@ -191,7 +190,6 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
       body:        body,
       week_start:  nairobiWeekStart(week - 1),
       curriculum_id: curriculumId,
-      scheme_id:   schemeId,
       status:      'draft',
     }
 
@@ -214,7 +212,7 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
     assessment:   { label: 'Assessment',            icon: '📊' },
   }
 
-  if (!classId || !subjectId || !topic) {
+  if (!classId || !subjectId || !strand) {
     return (
       <div style={{ padding: 24, textAlign: 'center', color: C.text2 }}>
         Missing parameters. Go back and tap Generate from a strand.
