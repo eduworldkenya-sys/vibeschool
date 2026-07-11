@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
 import { getContentForSubject, resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
+import { SchemeOfWorkPrint } from '@/components/scheme/SchemeOfWorkPrint'
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
 const C = {
@@ -39,7 +40,7 @@ interface ClassOption    { id: string; label: string; grade: string }
 interface SubjectOption  { id: string; label: string }
 interface TermRecord     { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string; status: string; school_id: string }
 interface CurriculumRow  { id: string; grade: string; subject: string; strand: string; sub_strand: string | null; topic: string; week: number; term: number }
-interface SchemeItem     { id: string; curriculum_id: string | null; curriculum_content_id: string | null; week: number; strand: string | null; sub_strand: string | null; topic: string; status: string; source: string; lesson_number: number | null; reflection: string | null }
+interface SchemeItem     { id: string; curriculum_id: string | null; curriculum_content_id: string | null; week: number; strand: string | null; sub_strand: string | null; topic: string; status: string; source: string; lesson_number: number | null; reflection: string | null; key_inquiry_question: string | null; learning_resources: string | null; assessment_methods: string | null; learning_experiences: string | null }
 interface AssignmentPair { class_id: string; subject_id: string }
 
 // ── STATUS CONFIG ──────────────────────────────────────────────
@@ -296,6 +297,7 @@ function SchemePageInner() {
   const [fetching,         setFetching]         = useState(false)
   const [fetchError,       setFetchError]       = useState<string | null>(null)
   const [savingSet,        setSavingSet]        = useState<Set<string>>(new Set())
+  const [showPrint,        setShowPrint]        = useState(false)
 
   const [curriculumRows,   setCurriculumRows]   = useState<CurriculumRow[]>([])
   const [loadingCurric,    setLoadingCurric]    = useState(false)
@@ -474,7 +476,7 @@ function SchemePageInner() {
 
     const { data, error } = await supabase
       .from('scheme_of_work')
-      .select('id,curriculum_id,curriculum_content_id,week,strand,sub_strand,topic,status,source,lesson_number,reflection')
+      .select('id,curriculum_id,curriculum_content_id,week,strand,sub_strand,topic,status,source,lesson_number,reflection,key_inquiry_question,learning_resources,assessment_methods,learning_experiences')
       .eq('teacher_id', uid)
       .eq('class_id', selectedClass)
       .eq('subject_id', selectedSubject)
@@ -669,6 +671,26 @@ function SchemePageInner() {
     }
   }
 
+  // ── Generic override-field updater for the 4 TSC document fields ──
+  const TSC_OVERRIDE_FIELDS = ['key_inquiry_question', 'learning_resources', 'assessment_methods', 'learning_experiences'] as const
+  type TscOverrideField = typeof TSC_OVERRIDE_FIELDS[number]
+
+  async function updateTscField(itemId: string, field: TscOverrideField, value: string) {
+    if (!schoolId || !uid) return
+    const { error } = await supabase
+      .from('scheme_of_work')
+      .update({ [field]: value || null })
+      .eq('id', itemId)
+      .eq('school_id', schoolId)
+      .eq('teacher_id', uid)
+
+    if (error) {
+      setFetchError(`Failed to update ${field}: ${error.message}`)
+    } else {
+      setSchemeItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: value || null } : item))
+    }
+  }
+
   // ── Coverage ──────────────────────────────────────────────────
   const weekCoverage = useMemo(() => {
     const map: Record<number, number> = {}
@@ -831,6 +853,25 @@ function SchemePageInner() {
       </div>
 
       {/* ── LESSON CONTEXT PANEL (label props only — ID props land in the LessonPanel cycle) ── */}
+      {selectedClassObj && selectedSubjectObj && selectedTermObj && uid && schoolId && selectedClass && selectedSubject && selectedTermId && schemeItems.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowPrint(true)}
+          style={{ width: '100%', padding: '11px', borderRadius: 12, border: `1.5px solid ${C.border2}`, background: C.surface, color: C.text, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
+        >🖨️ Print / Export Scheme of Work</button>
+      )}
+
+      {showPrint && selectedClassObj && selectedSubjectObj && selectedTermObj && schoolId && (
+        <SchemeOfWorkPrint
+          schoolId={schoolId}
+          className={selectedClassObj.label}
+          subjectLabel={selectedSubjectObj.label}
+          termLabelText={termLabel(selectedTermObj)}
+          items={schemeItems}
+          onClose={() => setShowPrint(false)}
+        />
+      )}
+
       {selectedClassObj && selectedSubjectObj && selectedTermObj && uid && schoolId && selectedClass && selectedSubject && selectedTermId && (
         <LessonPanel
           teacherId={uid}
@@ -1010,6 +1051,29 @@ function SchemePageInner() {
                             style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border2}`, fontSize: 12, fontFamily: 'inherit', color: C.text, resize: 'vertical' }}
                           />
                         </div>
+
+                        <details style={{ marginTop: 8 }}>
+                          <summary style={{ fontSize: 11, fontWeight: 700, color: C.indigo, cursor: 'pointer' }}>TSC document fields (optional overrides)</summary>
+                          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {([
+                              ['key_inquiry_question', 'Key Inquiry Question'],
+                              ['learning_experiences', 'Learning Experiences'],
+                              ['learning_resources', 'Learning Resources'],
+                              ['assessment_methods', 'Assessment Methods'],
+                            ] as const).map(([field, label]) => (
+                              <div key={field}>
+                                <label style={{ fontSize: 11, fontWeight: 700, color: C.text3, display: 'block', marginBottom: 4 }}>{label}</label>
+                                <textarea
+                                  defaultValue={item[field] ?? ''}
+                                  placeholder="Leave blank to use the content default"
+                                  onBlur={e => updateTscField(item.id, field, e.target.value)}
+                                  rows={2}
+                                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border2}`, fontSize: 12, fontFamily: 'inherit', color: C.text, resize: 'vertical' }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       </div>
                     </div>
                   )
