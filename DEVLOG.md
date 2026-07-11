@@ -526,3 +526,6 @@
 ## [2026-07-11 07:58] d63ea68
 **What:** sync: assessments promote scheme items to teaching; last strand_progress writer removed
 **Status:** ✅ pushed
+## [2026-07-11 09:03] 92f022a
+**What:** seamless flow: curriculum_content multi-source + un-deprecate scheme_of_work + derive lesson_plans.curriculum_id from scheme_id
+**Status:** ✅ pushed
