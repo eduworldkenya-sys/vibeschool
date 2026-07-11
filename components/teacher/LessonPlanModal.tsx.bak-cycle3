@@ -187,72 +187,45 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         const term = await getActiveTerm(schoolId)
         if (term) {
           const week = currentWeekOf(term)
-
-          // 1) The teacher's own Scheme of Work is the source of truth
-          //    for what is taught this week — suggest from it first.
-          const { data: schemeRows } = await supabase
-            .from('scheme_of_work')
-            .select('id, curriculum_id, strand, sub_strand, topic')
-            .eq('teacher_id',       userId)
-            .eq('class_id',         slot.class_id)
-            .eq('subject_id',       slot.subject_id)
-            .eq('academic_term_id', term.id)
-            .eq('school_id',        schoolId)
-            .eq('week',             week)
+          const { data: currRows } = await supabase
+            .from('curriculum')
+            .select('id, strand, sub_strand, topic')
+            .eq('grade',   grade)
+            .eq('subject', slot.subject)
+            .eq('term',    term.term)
+            .eq('week',    week)
             .limit(1)
 
-          const schemeRow = schemeRows?.[0]
-          if (schemeRow) {
+          const currRow = currRows?.[0]
+          if (currRow) {
+            let strandId: string | null = null
+            try {
+              // cbc_strands (national KICD reference) is the single source
+              // of strand identity — see migration 20260709120000. Resolved
+              // via the GLOBAL subject row (school_id IS NULL), not the
+              // school's own local subject_id.
+              const globalSubjectId = await resolveGlobalSubjectId(slot.subject)
+              const strandRows = globalSubjectId
+                ? (await supabase
+                    .from('cbc_strands')
+                    .select('id, name')
+                    .eq('subject_id', globalSubjectId)
+                    .ilike('grade', grade)).data
+                : []
+              strandId = strandRows?.find(s => s.name === currRow.strand)?.id ?? null
+            } catch {
+              // non-fatal — suggestion still useful even without a strand_id
+            }
+
             setSuggestion({
-              id:        schemeRow.curriculum_id ?? null,
-              strand:    schemeRow.strand ?? '',
-              subStrand: schemeRow.sub_strand ?? '',
-              topic:     schemeRow.topic,
+              id:        currRow.id,
+              strand:    currRow.strand,
+              subStrand: currRow.sub_strand,
+              topic:     currRow.topic,
               term:      term.term,
               week,
-              strandId:  null,
-              schemeId:  schemeRow.id,
+              strandId,
             })
-          } else {
-            // 2) Fallback: national curriculum guess — teacher has not
-            //    committed a scheme for this term yet.
-            const { data: currRows } = await supabase
-              .from('curriculum')
-              .select('id, strand, sub_strand, topic')
-              .eq('grade',   grade)
-              .eq('subject', slot.subject)
-              .eq('term',    term.term)
-              .eq('week',    week)
-              .limit(1)
-
-            const currRow = currRows?.[0]
-            if (currRow) {
-              let strandId: string | null = null
-              try {
-                const globalSubjectId = await resolveGlobalSubjectId(slot.subject)
-                const strandRows = globalSubjectId
-                  ? (await supabase
-                      .from('cbc_strands')
-                      .select('id, name')
-                      .eq('subject_id', globalSubjectId)
-                      .ilike('grade', grade)).data
-                  : []
-                strandId = strandRows?.find(s => s.name === currRow.strand)?.id ?? null
-              } catch {
-                // non-fatal — suggestion still useful even without a strand_id
-              }
-
-              setSuggestion({
-                id:        currRow.id,
-                strand:    currRow.strand,
-                subStrand: currRow.sub_strand,
-                topic:     currRow.topic,
-                term:      term.term,
-                week,
-                strandId,
-                schemeId:  null,
-              })
-            }
           }
         }
       } catch {
@@ -266,7 +239,7 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
     const { weekStart, dayOfWeek } = await getServerWeek()
     const { data } = await supabase
       .from('lesson_plans')
-      .select('id, title, body, topic, status, curriculum_id, strand_id, scheme_id')
+      .select('id, title, body, topic, status, curriculum_id, strand_id')
       .eq('teacher_id',  userId)
       .eq('class_id',    slot.class_id)
       .eq('subject_id',  slot.subject_id)
@@ -314,7 +287,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
                   term:      currRow.term,
                   week:      currRow.week,
                   strandId:  existing.strand_id ?? null,
-                  schemeId:  existing.scheme_id ?? null,
                 })
                 setUsedSuggestion(true)
               }
@@ -410,7 +382,6 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         generated_by:       'twin',
         curriculum_id:      usedSuggestion ? suggestion?.id ?? null : null,
         strand_id:          usedSuggestion ? suggestion?.strandId ?? null : null,
-        scheme_id:          usedSuggestion ? suggestion?.schemeId ?? null : null,
       }
 
       // G4: read ref not state
@@ -422,16 +393,22 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         if (ins?.id) setPlanId(ins.id)
       }
 
-      // Close the loop with Scheme of Work: if this plan came from a
-      // scheme item, mark that item as "teaching" — the Scheme page
-      // lights up automatically when a lesson is planned from Timetable.
-      if (usedSuggestion && suggestion?.schemeId && ctx.schoolId) {
+      // Close the loop with Scheme of Work: if this plan used the
+      // curriculum-suggested topic, mark that strand as "teaching" for
+      // this class/week — so progress tracked here shows up automatically
+      // on the Scheme of Work / Curriculum Tracker page too.
+      if (usedSuggestion && suggestion?.strandId && ctx.schoolId) {
         try {
-          await supabase.from('scheme_of_work')
-            .update({ status: 'teaching' })
-            .eq('id',         suggestion.schemeId)
-            .eq('school_id',  ctx.schoolId)
-            .eq('teacher_id', user.id)
+          await supabase.from('strand_progress').upsert({
+            teacher_id: user.id,
+            class_id:   slot.class_id,
+            subject_id: slot.subject_id,
+            school_id:  ctx.schoolId,
+            strand_id:  suggestion.strandId,
+            term:       suggestion.term,
+            week:       suggestion.week,
+            status:     'teaching',
+          }, { onConflict: 'teacher_id,class_id,strand_id,term,week' })
         } catch {
           // non-fatal — the lesson plan itself already saved successfully
         }

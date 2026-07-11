@@ -74,10 +74,6 @@ function weekCoverageLevel(pct: number): 'full' | 'partial' | 'empty' {
   return 'empty'
 }
 
-function termLabel(t: TermRecord): string {
-  return t.name.includes(String(t.academic_year)) ? t.name : `${t.name} ${t.academic_year}`
-}
-
 // ── SKELETON ───────────────────────────────────────────────────
 function Skeleton({ h = 56, mb = 8 }: { h?: number; mb?: number }) {
   return (
@@ -729,7 +725,7 @@ function SchemePageInner() {
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4, position: 'relative', zIndex: 1 }}>Scheme of Work</div>
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 2, position: 'relative', zIndex: 1, letterSpacing: -0.3 }}>Curriculum Tracker</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 5, lineHeight: 1.5, position: 'relative', zIndex: 1 }}>
-          {selectedTermObj ? `${termLabel(selectedTermObj)} · ${curWeek > 0 ? `Week ${curWeek} of ${totWks}` : `${totWks} weeks total`}` : "Track coverage across terms and weeks"}
+          {selectedTermObj ? `${selectedTermObj.name} ${selectedTermObj.academic_year} · ${curWeek > 0 ? `Week ${curWeek} of ${totWks}` : `${totWks} weeks total`}` : "Track coverage across terms and weeks"}
         </div>
 
         {schemeItems.length > 0 && selectedWeekItems.length > 0 && (
@@ -773,7 +769,7 @@ function SchemePageInner() {
         </div>
         <div style={{ display: 'flex', gap: 7, marginBottom: 14, overflowX: 'auto' }}>
           {terms.map(t => (
-            <Chip key={t.id} label={termLabel(t)} active={selectedTermId === t.id} color={C.teal} onClick={() => setSelectedTermId(t.id)} />
+            <Chip key={t.id} label={`${t.name} ${t.academic_year}`} active={selectedTermId === t.id} color={C.teal} onClick={() => setSelectedTermId(t.id)} />
           ))}
         </div>
 

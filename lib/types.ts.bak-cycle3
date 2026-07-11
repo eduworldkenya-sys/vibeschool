@@ -628,14 +628,13 @@ export interface PulseCurriculumStat {
 
 // ── Lesson Plan curriculum linkage (LessonPlanModal, teacher/lessonplan) ─
 export interface CurriculumSuggestion {
-  id:        string | null
+  id:        string
   strand:    string
   subStrand: string
   topic:     string
   term:      number
   week:      number
   strandId:  string | null
-  schemeId:  string | null
 }
 
 export interface PlanRow {
