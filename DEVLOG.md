@@ -520,3 +520,6 @@
 ## [2026-07-11 06:54] c3dddcc
 **What:** generate: consume schemeId, write lesson_plans.scheme_id, unblock custom topics
 **Status:** ✅ pushed
+## [2026-07-11 07:57] d0fb02d
+**What:** sync: timetable lesson plans read scheme, write scheme_id, mark teaching; kill strand_progress leak; term label dedupe
+**Status:** ✅ pushed
