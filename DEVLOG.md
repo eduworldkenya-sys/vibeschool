@@ -532,3 +532,6 @@
 ## [2026-07-11 13:28] 3c53da6
 **What:** lesson panel: fix stale call site, read live scheme_of_work + curriculum_content; add lesson_number/reflection inputs to scheme items
 **Status:** ✅ pushed
+## [2026-07-11 13:35] 5171634
+**What:** scheme of work: add TSC override fields (key inquiry, resources, assessment, learning experiences) + print/export view
+**Status:** ✅ pushed
