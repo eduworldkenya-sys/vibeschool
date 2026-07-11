@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from 'rea
 import { useSearchParams, useRouter } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
+import { getContentForSubject, resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
 const C = {
@@ -38,7 +39,7 @@ interface ClassOption    { id: string; label: string; grade: string }
 interface SubjectOption  { id: string; label: string }
 interface TermRecord     { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string; status: string; school_id: string }
 interface CurriculumRow  { id: string; grade: string; subject: string; strand: string; sub_strand: string | null; topic: string; week: number; term: number }
-interface SchemeItem     { id: string; curriculum_id: string | null; week: number; strand: string | null; sub_strand: string | null; topic: string; status: string; source: string }
+interface SchemeItem     { id: string; curriculum_id: string | null; curriculum_content_id: string | null; week: number; strand: string | null; sub_strand: string | null; topic: string; status: string; source: string; lesson_number: number | null; reflection: string | null }
 interface AssignmentPair { class_id: string; subject_id: string }
 
 // ── STATUS CONFIG ──────────────────────────────────────────────
@@ -473,7 +474,7 @@ function SchemePageInner() {
 
     const { data, error } = await supabase
       .from('scheme_of_work')
-      .select('id,curriculum_id,week,strand,sub_strand,topic,status,source')
+      .select('id,curriculum_id,curriculum_content_id,week,strand,sub_strand,topic,status,source,lesson_number,reflection')
       .eq('teacher_id', uid)
       .eq('class_id', selectedClass)
       .eq('subject_id', selectedSubject)
@@ -531,12 +532,22 @@ function SchemePageInner() {
     if (!selectedClass || !selectedSubject || !selectedTermId || !schoolId || !uid || !selectedClassObj || !selectedSubjectObj || !selectedTermObj || curriculumRows.length === 0) return
     setCommitting(true)
 
+    const globalSubjectId = await resolveGlobalSubjectId(selectedSubjectObj.label)
+    const contentByCurriculumId = new Map<string, string | null>()
+    if (globalSubjectId) {
+      await Promise.all(curriculumRows.map(async row => {
+        const content = await getContentForSubject(schoolId, globalSubjectId, uid, row.id)
+        contentByCurriculumId.set(row.id, content?.id ?? null)
+      }))
+    }
+
     const payloads = curriculumRows.map(row => ({
       school_id: schoolId,
       teacher_id: uid,
       class_id: selectedClass,
       subject_id: selectedSubject,
       curriculum_id: row.id,
+      curriculum_content_id: contentByCurriculumId.get(row.id) ?? null,
       academic_term_id: selectedTermId,
       curriculum_type: 'cbc',
       grade: row.grade,
@@ -579,6 +590,7 @@ function SchemePageInner() {
       class_id: selectedClass,
       subject_id: selectedSubject,
       curriculum_id: null,
+      curriculum_content_id: null,
       academic_term_id: selectedTermId,
       curriculum_type: 'custom',
       grade: selectedClassObj.grade,
