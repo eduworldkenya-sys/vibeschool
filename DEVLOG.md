@@ -517,3 +517,6 @@
 ## [2026-07-11 06:51] 6bff270
 **What:** scheme of work: real scheme_of_work write path, delta import, term-anchored
 **Status:** ✅ pushed
+## [2026-07-11 06:54] c3dddcc
+**What:** generate: consume schemeId, write lesson_plans.scheme_id, unblock custom topics
+**Status:** ✅ pushed
