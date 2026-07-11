@@ -36,6 +36,9 @@ export async function getContentForSubject(
   teacherId: string,
   curriculumId: string
 ): Promise<ResolvedContent | null> {
+  // Only 'confirmed' rows are eligible — a pending community submission
+  // must stay invisible until an admin approves it, same guarantee the
+  // ghost profile contribution model gives elsewhere in the app.
   const { data: pref } = await supabase
     .from("content_preferences")
     .select("curriculum_content_id, teacher_id")
@@ -54,19 +57,21 @@ export async function getContentForSubject(
       .select("id, source_type, lesson_context, parent_brief")
       .eq("id", preferredContentId)
       .eq("curriculum_id", curriculumId)
+      .eq("status", "confirmed")
       .maybeSingle()
     if (row) return row as ResolvedContent
     // Preference points at a content row belonging to a different
-    // curriculum unit than the one requested — fall through to kicd
-    // default instead of showing mismatched content.
+    // curriculum unit, or one that isn't confirmed yet — fall through
+    // to the vibeschool default instead of showing mismatched content.
   }
 
-  const { data: kicdRow } = await supabase
+  const { data: defaultRow } = await supabase
     .from("curriculum_content")
     .select("id, source_type, lesson_context, parent_brief")
     .eq("curriculum_id", curriculumId)
-    .eq("source_type", "kicd")
+    .eq("source_type", "vibeschool")
+    .eq("status", "confirmed")
     .maybeSingle()
 
-  return (kicdRow as ResolvedContent) ?? null
+  return (defaultRow as ResolvedContent) ?? null
 }
