@@ -535,3 +535,6 @@
 ## [2026-07-11 13:35] 5171634
 **What:** scheme of work: add TSC override fields (key inquiry, resources, assessment, learning experiences) + print/export view
 **Status:** ✅ pushed
+## [2026-07-11 21:34] e83764f
+**What:** content preferences: only surface confirmed vibeschool/community rows
+**Status:** ✅ pushed
