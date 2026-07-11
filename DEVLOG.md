@@ -529,3 +529,6 @@
 ## [2026-07-11 09:03] 92f022a
 **What:** seamless flow: curriculum_content multi-source + un-deprecate scheme_of_work + derive lesson_plans.curriculum_id from scheme_id
 **Status:** ✅ pushed
+## [2026-07-11 13:28] 3c53da6
+**What:** lesson panel: fix stale call site, read live scheme_of_work + curriculum_content; add lesson_number/reflection inputs to scheme items
+**Status:** ✅ pushed
