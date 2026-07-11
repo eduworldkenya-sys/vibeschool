@@ -280,14 +280,14 @@ function AssessmentInner() {
 
   // ── Save (insert or update) ────────────────────────────────────────────────
 
-  // Same week-derivation formula as Scheme's currentWeekOf — keeps scheme sync week-consistent
+  // Same week-derivation formula as Scheme's currentWeekOf — keeps strand_progress.week consistent
   async function syncStrandProgress(strandId: string) {
     if (!teacherId || !activeClassId || !activeSubjectId || !schoolId) return
     setSyncing(true)
     try {
       const { data: termRow } = await supabase
         .from('academic_terms')
-        .select('id, start_date, end_date, term')
+        .select('start_date, end_date, term')
         .eq('school_id', schoolId)
         .eq('status', 'active')
         .single()
@@ -302,22 +302,16 @@ function AssessmentInner() {
         ? 1
         : Math.max(1, Math.min(Math.floor((now - start.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1, totalWeeks))
 
-      // Assessing a strand this week means its scheme items are at least
-      // "teaching" — promote planned items only, never regress done/cancelled.
-      // Bridge is by strand NAME until assessments carry scheme identity natively.
-      const name = strandName(strandId)
-      if (name !== 'Unknown strand') {
-        await supabase.from('scheme_of_work')
-          .update({ status: 'teaching' })
-          .eq('teacher_id',       teacherId)
-          .eq('class_id',         activeClassId)
-          .eq('subject_id',       activeSubjectId)
-          .eq('academic_term_id', termRow.id)
-          .eq('school_id',        schoolId)
-          .eq('week',             week)
-          .eq('status',           'planned')
-          .ilike('strand',        name)
-      }
+      await supabase.from('strand_progress').upsert({
+        teacher_id: teacherId,
+        class_id:   activeClassId,
+        subject_id: activeSubjectId,
+        school_id:  schoolId,
+        strand_id:  strandId,
+        term:       termRow.term ?? selectedTerm,
+        week,
+        status: 'teaching',
+      }, { onConflict: 'teacher_id,class_id,strand_id,term,week' })
     } catch {
       // Non-blocking — assessment already saved successfully regardless of sync outcome
     }
