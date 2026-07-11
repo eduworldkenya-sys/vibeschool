@@ -514,3 +514,6 @@
 ## [2026-07-10 16:58] b0814af
 **What:** fix: strand-name input text invisible (missed in first patch attempt)
 **Status:** ✅ pushed
+## [2026-07-11 06:51] 6bff270
+**What:** scheme of work: real scheme_of_work write path, delta import, term-anchored
+**Status:** ✅ pushed
