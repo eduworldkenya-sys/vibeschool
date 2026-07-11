@@ -523,3 +523,6 @@
 ## [2026-07-11 07:57] d0fb02d
 **What:** sync: timetable lesson plans read scheme, write scheme_id, mark teaching; kill strand_progress leak; term label dedupe
 **Status:** ✅ pushed
+## [2026-07-11 07:58] d63ea68
+**What:** sync: assessments promote scheme items to teaching; last strand_progress writer removed
+**Status:** ✅ pushed
