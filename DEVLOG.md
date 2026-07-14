@@ -538,3 +538,6 @@
 ## [2026-07-11 21:34] e83764f
 **What:** content preferences: only surface confirmed vibeschool/community rows
 **Status:** ✅ pushed
+## [2026-07-14 23:21] 6bab26b
+**What:** retire kicd source_type, add scheme lesson index column
+**Status:** ✅ pushed
