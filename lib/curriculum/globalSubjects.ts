@@ -20,7 +20,7 @@ export async function resolveGlobalSubjectId(subjectName: string): Promise<strin
 
 export interface ResolvedContent {
   id: string
-  source_type: "kicd" | "publisher" | "school_authored"
+  source_type: "vibeschool" | "publisher" | "school_authored"
   lesson_context: unknown
   parent_brief: unknown
 }
