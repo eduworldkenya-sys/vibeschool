@@ -541,3 +541,6 @@
 ## [2026-07-14 23:21] 6bab26b
 **What:** retire kicd source_type, add scheme lesson index column
 **Status:** ✅ pushed
+## [2026-07-14 23:21] 23397a8
+**What:** retire kicd source_type, add scheme lesson index column
+**Status:** ✅ pushed
