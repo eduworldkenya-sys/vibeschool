@@ -530,6 +530,7 @@ function SchemePageInner() {
       // Published, CBC-aligned ebook chapters linked to a real KICD
       // sub-strand for this grade/subject. Not week-matched yet —
       // cbc_strands.term/week aren't populated. Teacher picks the week.
+      setDebugTrace(t => [...t.slice(-9), `req#${requestId} subjectLabel=${JSON.stringify(selectedSubjectObj.label)} grade=${JSON.stringify(selectedClassObj.grade)}`])
       const globalSubjectId = await resolveGlobalSubjectId(selectedSubjectObj.label)
       setDebugTrace(t => [...t.slice(-9), `req#${requestId} globalSubjectId=${globalSubjectId ?? 'NULL'}`])
       if (globalSubjectId) {
