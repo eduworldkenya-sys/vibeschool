@@ -556,3 +556,6 @@
 ## [2026-07-15 10:59] 67ee243
 **What:** add ebook suggestions to scheme tracker empty state
 **Status:** ✅ pushed
+## [2026-07-15 11:24] fee15a6
+**What:** fix ebook suggestion embed normalization, surface query errors
+**Status:** ✅ pushed
