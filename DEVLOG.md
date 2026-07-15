@@ -547,3 +547,6 @@
 ## [2026-07-15 09:42] c3aa1d8
 **What:** cbc_strands KICD depth stage 1
 **Status:** ✅ pushed
+## [2026-07-15 10:27] 64a62b2
+**What:** sub_strand_id FK columns stage 2
+**Status:** ✅ pushed
