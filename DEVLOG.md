@@ -562,3 +562,6 @@
 ## [2026-07-15 21:32] 472a36f
 **What:** add on-screen debug trace for ebook suggestion fetch
 **Status:** ✅ pushed
+## [2026-07-15 21:39] 2dd15c6
+**What:** log exact subject label input for debugging
+**Status:** ✅ pushed
