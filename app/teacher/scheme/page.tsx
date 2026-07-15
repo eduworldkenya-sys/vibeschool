@@ -537,25 +537,38 @@ function SchemePageInner() {
         const strandIds = (strandRows ?? []).map(r => r.id)
 
         if (strandIds.length > 0) {
-          const { data: chapterRows } = await supabase
+          const { data: chapterRows, error: chapterErr } = await supabase
             .from('vibe_chapters')
             .select('id,title,cbc_strand,learning_outcomes,sub_strand_id,vibe_publications(id,title,cbc_aligned,status)')
             .in('sub_strand_id', strandIds)
             .eq('status', 'published')
 
-          const validChapters = (chapterRows ?? []).filter((c: any) =>
-            c.vibe_publications?.cbc_aligned === true &&
-            c.vibe_publications?.status === 'published'
-          )
+          if (chapterErr) {
+            console.error('ebook suggestion query failed:', chapterErr)
+            setFetchError(`Ebook suggestion query failed: ${chapterErr.message}`)
+          }
+
+          // vibe_publications may come back as a single object or a
+          // one-item array depending on how Supabase resolves the FK —
+          // normalize both shapes.
+          const normalizePub = (pub: any) => Array.isArray(pub) ? pub[0] : pub
+
+          const validChapters = (chapterRows ?? []).filter((c: any) => {
+            const pub = normalizePub(c.vibe_publications)
+            return pub?.cbc_aligned === true && pub?.status === 'published'
+          })
 
           if (requestId === schemeRequestIdRef.current) {
-            setEbookSuggestions(validChapters.map((c: any) => ({
-              chapterId: c.id,
-              chapterTitle: c.title,
-              publicationTitle: c.vibe_publications?.title ?? '',
-              strandName: c.cbc_strand,
-              learningOutcomes: c.learning_outcomes ?? [],
-            })))
+            setEbookSuggestions(validChapters.map((c: any) => {
+              const pub = normalizePub(c.vibe_publications)
+              return {
+                chapterId: c.id,
+                chapterTitle: c.title,
+                publicationTitle: pub?.title ?? '',
+                strandName: c.cbc_strand,
+                learningOutcomes: c.learning_outcomes ?? [],
+              }
+            }))
           }
         } else {
           setEbookSuggestions([])
