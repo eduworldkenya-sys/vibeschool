@@ -559,3 +559,6 @@
 ## [2026-07-15 11:24] fee15a6
 **What:** fix ebook suggestion embed normalization, surface query errors
 **Status:** ✅ pushed
+## [2026-07-15 21:32] 472a36f
+**What:** add on-screen debug trace for ebook suggestion fetch
+**Status:** ✅ pushed
