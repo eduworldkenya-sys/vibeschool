@@ -544,3 +544,6 @@
 ## [2026-07-14 23:21] 23397a8
 **What:** retire kicd source_type, add scheme lesson index column
 **Status:** ✅ pushed
+## [2026-07-15 09:42] c3aa1d8
+**What:** cbc_strands KICD depth stage 1
+**Status:** ✅ pushed
