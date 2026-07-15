@@ -297,6 +297,7 @@ function SchemePageInner() {
   const [schemeItems,      setSchemeItems]      = useState<SchemeItem[]>([])
   const [fetching,         setFetching]         = useState(false)
   const [fetchError,       setFetchError]       = useState<string | null>(null)
+  const [debugTrace,       setDebugTrace]       = useState<string[]>([])
   const [savingSet,        setSavingSet]        = useState<Set<string>>(new Set())
   const [showPrint,        setShowPrint]        = useState(false)
 
@@ -507,7 +508,10 @@ function SchemePageInner() {
         .eq('subject', selectedSubjectObj.label)
         .eq('term', selectedTermObj.term)
 
-      if (requestId !== schemeRequestIdRef.current) return
+      if (requestId !== schemeRequestIdRef.current) {
+        setDebugTrace(t => [...t.slice(-9), `req#${requestId} ABORTED at curriculum-fetch (superseded)`])
+        return
+      }
 
       if (currErr) {
         setFetchError(`Failed to load curriculum: ${currErr.message}`)
@@ -527,6 +531,7 @@ function SchemePageInner() {
       // sub-strand for this grade/subject. Not week-matched yet —
       // cbc_strands.term/week aren't populated. Teacher picks the week.
       const globalSubjectId = await resolveGlobalSubjectId(selectedSubjectObj.label)
+      setDebugTrace(t => [...t.slice(-9), `req#${requestId} globalSubjectId=${globalSubjectId ?? 'NULL'}`])
       if (globalSubjectId) {
         const { data: strandRows } = await supabase
           .from('cbc_strands')
@@ -535,6 +540,7 @@ function SchemePageInner() {
           .ilike('grade', selectedClassObj.grade)
 
         const strandIds = (strandRows ?? []).map(r => r.id)
+        setDebugTrace(t => [...t.slice(-9), `req#${requestId} strandIds.length=${strandIds.length}`])
 
         if (strandIds.length > 0) {
           const { data: chapterRows, error: chapterErr } = await supabase
@@ -542,6 +548,8 @@ function SchemePageInner() {
             .select('id,title,cbc_strand,learning_outcomes,sub_strand_id,vibe_publications(id,title,cbc_aligned,status)')
             .in('sub_strand_id', strandIds)
             .eq('status', 'published')
+
+          setDebugTrace(t => [...t.slice(-9), `req#${requestId} chapterRows=${chapterRows?.length ?? 'null'} err=${chapterErr?.message ?? 'none'}`])
 
           if (chapterErr) {
             console.error('ebook suggestion query failed:', chapterErr)
@@ -557,6 +565,8 @@ function SchemePageInner() {
             const pub = normalizePub(c.vibe_publications)
             return pub?.cbc_aligned === true && pub?.status === 'published'
           })
+
+          setDebugTrace(t => [...t.slice(-9), `req#${requestId} validChapters.length=${validChapters.length} isCurrent=${requestId === schemeRequestIdRef.current}`])
 
           if (requestId === schemeRequestIdRef.current) {
             setEbookSuggestions(validChapters.map((c: any) => {
@@ -854,6 +864,18 @@ function SchemePageInner() {
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 5, lineHeight: 1.5, position: 'relative', zIndex: 1 }}>
           {selectedTermObj ? `${termLabel(selectedTermObj)} · ${curWeek > 0 ? `Week ${curWeek} of ${totWks}` : `${totWks} weeks total`}` : "Track coverage across terms and weeks"}
         </div>
+
+        {debugTrace.length > 0 && (
+          <div style={{ marginTop: 10, padding: 8, borderRadius: 8, background: 'rgba(0,0,0,0.3)', fontSize: 10, fontFamily: 'monospace', color: '#fef3c7', position: 'relative', zIndex: 1, lineHeight: 1.6 }}>
+            {debugTrace.map((line, i) => <div key={i}>{line}</div>)}
+          </div>
+        )}
+
+        {debugTrace.length > 0 && (
+          <div style={{ marginTop: 10, padding: 8, borderRadius: 8, background: 'rgba(0,0,0,0.3)', fontSize: 10, fontFamily: 'monospace', color: '#fef3c7', position: 'relative', zIndex: 1, lineHeight: 1.6 }}>
+            {debugTrace.map((line, i) => <div key={i}>{line}</div>)}
+          </div>
+        )}
 
         {schemeItems.length > 0 && selectedWeekItems.length > 0 && (
           <div style={{ marginTop: 14, position: 'relative', zIndex: 1 }}>
