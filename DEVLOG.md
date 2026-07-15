@@ -553,3 +553,6 @@
 ## [2026-07-15 10:54] 4c0131f
 **What:** sub_strand_id backfill complete
 **Status:** ✅ pushed
+## [2026-07-15 10:59] 67ee243
+**What:** add ebook suggestions to scheme tracker empty state
+**Status:** ✅ pushed
