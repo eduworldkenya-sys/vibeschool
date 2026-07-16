@@ -568,3 +568,6 @@
 ## [2026-07-16 18:07] 53f54cc
 **What:** debug: bump ebook suggestion trace buffer to 40 entries
 **Status:** ✅ pushed
+## [2026-07-16 18:14] 81b0a7b
+**What:** debug: surface resolveGlobalSubjectId error
+**Status:** ✅ pushed
