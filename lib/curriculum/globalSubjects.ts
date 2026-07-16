@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase"
 // copy used for teacher_classes/scheduling. Any cbc_strands query must
 // resolve through the global row by name first — using a school's own
 // local subject_id directly will only ever hit sparse per-school rows.
+export let lastResolveDebug: string = ""
+
 export async function resolveGlobalSubjectId(subjectName: string): Promise<string | null> {
   const { data, error } = await supabase
     .from("subjects")
@@ -14,7 +16,11 @@ export async function resolveGlobalSubjectId(subjectName: string): Promise<strin
     .ilike("name", subjectName)
     .maybeSingle()
 
-  if (error || !data) return null
+  if (error || !data) {
+    lastResolveDebug = JSON.stringify({ code: error?.code ?? null, message: error?.message ?? null, hasData: !!data })
+    return null
+  }
+  lastResolveDebug = "ok"
   return data.id
 }
 
