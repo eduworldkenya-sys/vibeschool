@@ -784,6 +784,15 @@ function SchemePageInner() {
     return Math.round((done / selectedWeekItems.length) * 100)
   }, [selectedWeekItems])
 
+  // Scheduled-but-not-yet-taught share of the week, shown alongside donePct
+  // so a 0%-done week with topics already planned reads as "not started
+  // teaching" rather than looking identical to an empty week.
+  const plannedPct = useMemo(() => {
+    if (selectedWeekItems.length === 0) return 0
+    const planned = selectedWeekItems.filter(i => i.status === 'planned').length
+    return Math.round((planned / selectedWeekItems.length) * 100)
+  }, [selectedWeekItems])
+
   const totWks = selectedTermObj ? totalWeeks(selectedTermObj) : 13
   const selectedTermIsActive = selectedTermObj?.status === 'active'
   const curWeek = selectedTermObj && selectedTermIsActive ? currentWeekOf(selectedTermObj) : 0
@@ -882,10 +891,16 @@ function SchemePageInner() {
           <div style={{ marginTop: 14, position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 600, marginBottom: 6 }}>
               <span>Week {selectedWeek} Coverage</span>
-              <span style={{ color: donePct >= 80 ? '#5eead4' : donePct >= 50 ? '#fcd34d' : '#fca5a5' }}>{donePct}%</span>
+              <span>
+                <span style={{ color: donePct >= 80 ? '#5eead4' : donePct >= 50 ? '#fcd34d' : donePct > 0 ? '#fca5a5' : 'rgba(255,255,255,0.5)' }}>{donePct}% taught</span>
+                {plannedPct > 0 && (
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}> · {plannedPct}% planned</span>
+                )}
+              </span>
             </div>
-            <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
-              <div style={{ height: 5, borderRadius: 99, background: donePct >= 80 ? C.teal : donePct >= 50 ? C.amber : C.red, width: `${donePct}%`, transition: 'width 0.5s ease' }} />
+            <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.2)', overflow: 'hidden', display: 'flex' }}>
+              <div style={{ height: 5, background: donePct >= 80 ? C.teal : donePct >= 50 ? C.amber : C.red, width: `${donePct}%`, transition: 'width 0.5s ease' }} />
+              <div style={{ height: 5, background: 'rgba(255,255,255,0.35)', width: `${plannedPct}%`, transition: 'width 0.5s ease' }} />
             </div>
           </div>
         )}
