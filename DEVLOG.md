@@ -571,3 +571,6 @@
 ## [2026-07-16 18:14] 81b0a7b
 **What:** debug: surface resolveGlobalSubjectId error
 **Status:** ✅ pushed
+## [2026-07-16 20:23] d6de75f
+**What:** fix: add school_id IS NULL to subjects_member_read RLS policy
+**Status:** ✅ pushed
