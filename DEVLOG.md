@@ -565,3 +565,6 @@
 ## [2026-07-15 21:39] 2dd15c6
 **What:** log exact subject label input for debugging
 **Status:** ✅ pushed
+## [2026-07-16 18:07] 53f54cc
+**What:** debug: bump ebook suggestion trace buffer to 40 entries
+**Status:** ✅ pushed
