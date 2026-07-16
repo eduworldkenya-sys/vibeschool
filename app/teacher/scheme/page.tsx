@@ -509,7 +509,7 @@ function SchemePageInner() {
         .eq('term', selectedTermObj.term)
 
       if (requestId !== schemeRequestIdRef.current) {
-        setDebugTrace(t => [...t.slice(-9), `req#${requestId} ABORTED at curriculum-fetch (superseded)`])
+        setDebugTrace(t => [...t.slice(-39), `req#${requestId} ABORTED at curriculum-fetch (superseded)`])
         return
       }
 
@@ -530,9 +530,9 @@ function SchemePageInner() {
       // Published, CBC-aligned ebook chapters linked to a real KICD
       // sub-strand for this grade/subject. Not week-matched yet —
       // cbc_strands.term/week aren't populated. Teacher picks the week.
-      setDebugTrace(t => [...t.slice(-9), `req#${requestId} subjectLabel=${JSON.stringify(selectedSubjectObj.label)} grade=${JSON.stringify(selectedClassObj.grade)}`])
+      setDebugTrace(t => [...t.slice(-39), `req#${requestId} subjectLabel=${JSON.stringify(selectedSubjectObj.label)} grade=${JSON.stringify(selectedClassObj.grade)}`])
       const globalSubjectId = await resolveGlobalSubjectId(selectedSubjectObj.label)
-      setDebugTrace(t => [...t.slice(-9), `req#${requestId} globalSubjectId=${globalSubjectId ?? 'NULL'}`])
+      setDebugTrace(t => [...t.slice(-39), `req#${requestId} globalSubjectId=${globalSubjectId ?? 'NULL'}`])
       if (globalSubjectId) {
         const { data: strandRows } = await supabase
           .from('cbc_strands')
@@ -541,7 +541,7 @@ function SchemePageInner() {
           .ilike('grade', selectedClassObj.grade)
 
         const strandIds = (strandRows ?? []).map(r => r.id)
-        setDebugTrace(t => [...t.slice(-9), `req#${requestId} strandIds.length=${strandIds.length}`])
+        setDebugTrace(t => [...t.slice(-39), `req#${requestId} strandIds.length=${strandIds.length}`])
 
         if (strandIds.length > 0) {
           const { data: chapterRows, error: chapterErr } = await supabase
@@ -550,7 +550,7 @@ function SchemePageInner() {
             .in('sub_strand_id', strandIds)
             .eq('status', 'published')
 
-          setDebugTrace(t => [...t.slice(-9), `req#${requestId} chapterRows=${chapterRows?.length ?? 'null'} err=${chapterErr?.message ?? 'none'}`])
+          setDebugTrace(t => [...t.slice(-39), `req#${requestId} chapterRows=${chapterRows?.length ?? 'null'} err=${chapterErr?.message ?? 'none'}`])
 
           if (chapterErr) {
             console.error('ebook suggestion query failed:', chapterErr)
@@ -567,7 +567,7 @@ function SchemePageInner() {
             return pub?.cbc_aligned === true && pub?.status === 'published'
           })
 
-          setDebugTrace(t => [...t.slice(-9), `req#${requestId} validChapters.length=${validChapters.length} isCurrent=${requestId === schemeRequestIdRef.current}`])
+          setDebugTrace(t => [...t.slice(-39), `req#${requestId} validChapters.length=${validChapters.length} isCurrent=${requestId === schemeRequestIdRef.current}`])
 
           if (requestId === schemeRequestIdRef.current) {
             setEbookSuggestions(validChapters.map((c: any) => {
