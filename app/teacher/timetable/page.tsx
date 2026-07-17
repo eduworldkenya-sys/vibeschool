@@ -14,6 +14,7 @@ interface Slot {
   subjectId: string
   subject:   string
   className: string
+  grade:     string
   room:      string
   startTime: string
   endTime:   string
@@ -366,6 +367,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [selected,        setSelected]         = useState<Slot | null>(null)
   const [showAddSlot,     setShowAddSlot]      = useState(false)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
+  const [allocations,     setAllocations]      = useState<Record<string, number>>({})
+  const [showLoadCheck,   setShowLoadCheck]    = useState(false)
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
   const isMounted = useRef(true)
@@ -458,8 +461,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       ;(subjectsRes.data ?? []).forEach((s: {id: string, name: string}) => { subjectMap[s.id] = s.name })
 
       const classMap: Record<string, string> = {}
+      const gradeMap: Record<string, string> = {}
       ;(classesRes.data ?? []).forEach((c: {id: string, name: string, stream: string|null}) => {
         classMap[c.id] = c.name + (c.stream ? ` ${c.stream}` : '')
+        gradeMap[c.id] = c.name
       })
 
       const mapped: Slot[] = slots.map((s: {id: string, subject_id: string, class_id: string, room: string, start_time: string, end_time: string, day_of_week: number}) => {
@@ -469,6 +474,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           subjectId: s.subject_id,
           subject:   subjectMap[s.subject_id] ?? 'Unknown',
           className: classMap[s.class_id] ?? '',
+          grade:     gradeMap[s.class_id] ?? '',
           room:      s.room ?? '',
           startTime: s.start_time,
           endTime:   s.end_time,
@@ -520,6 +526,54 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     () => new Set(allSlots.map(s => s.className)).size,
     [allSlots]
   )
+
+  // Group this teacher's weekly slots by grade+subject so we can compare
+  // against the KICD allocation target per combination.
+  const weeklyLoad = useMemo(() => {
+    const map: Record<string, { grade: string; subject: string; className: string; count: number }> = {}
+    for (const s of allSlots) {
+      if (!s.grade || !s.subject) continue
+      const key = `${s.grade}::${s.subject}`
+      if (!map[key]) map[key] = { grade: s.grade, subject: s.subject, className: s.className, count: 0 }
+      map[key].count += 1
+    }
+    return Object.values(map)
+  }, [allSlots])
+
+  // Fetch allocation targets only for the grade+subject combos actually
+  // present in this teacher's timetable — no need to pull the whole table.
+  useEffect(() => {
+    let cancelled = false
+    const grades   = Array.from(new Set(weeklyLoad.map(w => w.grade)))
+    const subjects = Array.from(new Set(weeklyLoad.map(w => w.subject)))
+    if (grades.length === 0 || subjects.length === 0) {
+      setAllocations({})
+      return
+    }
+    supabase
+      .from('subject_weekly_allocations')
+      .select('grade, subject_label, lessons_per_week')
+      .in('grade', grades)
+      .in('subject_label', subjects)
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        const map: Record<string, number> = {}
+        for (const row of data as { grade: string; subject_label: string; lessons_per_week: number }[]) {
+          map[`${row.grade}::${row.subject_label}`] = row.lessons_per_week
+        }
+        setAllocations(map)
+      })
+    return () => { cancelled = true }
+  }, [weeklyLoad])
+
+  // Only combos where we actually have a target AND it doesn't match —
+  // matches on target are not shown, same "silent unless actionable" rule
+  // as the scheme page's coverage indicators.
+  const loadMismatches = useMemo(() => {
+    return weeklyLoad
+      .map(w => ({ ...w, target: allocations[`${w.grade}::${w.subject}`] ?? null }))
+      .filter(w => w.target !== null && w.count !== w.target)
+  }, [weeklyLoad, allocations])
 
   // FIX [LOGIC-06]: on weekends show Monday count, not 0
   const todayCount = useMemo(
@@ -694,6 +748,45 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           </div>
         )}
       </div>
+
+      {/* Weekly Load Check — only visible when a class+subject combo is
+          off the KICD allocation target. Silent otherwise, same rule as
+          the scheme page's coverage indicators. */}
+      {!loading && loadMismatches.length > 0 && (
+        <div
+          className="no-print"
+          style={{
+            marginBottom: 14, borderRadius: 14, border: `1px solid ${C.border}`,
+            background: C.surface, overflow: 'hidden',
+          }}
+        >
+          <button
+            onClick={() => setShowLoadCheck(v => !v)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>
+              ⚠️ {loadMismatches.length} subject{loadMismatches.length !== 1 ? 's' : ''} off weekly allocation
+            </span>
+            <span style={{ fontSize: 12, color: C.textMuted }}>{showLoadCheck ? 'Hide' : 'Show'}</span>
+          </button>
+          {showLoadCheck && (
+            <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {loadMismatches.map(m => (
+                <div key={`${m.grade}::${m.subject}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                  <span style={{ color: C.textPrimary, fontWeight: 600 }}>{m.subject} · {m.className}</span>
+                  <span style={{ color: m.count < (m.target ?? 0) ? '#d97706' : '#dc2626', fontWeight: 700 }}>
+                    {m.count} of {m.target} · {m.count < (m.target ?? 0) ? 'under' : 'over'} allocation
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Day tabs */}
       <div
