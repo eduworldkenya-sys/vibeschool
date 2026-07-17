@@ -589,3 +589,6 @@
 ## [2026-07-17 08:39] 469341b
 **What:** feat: timetable weekly load check vs KICD allocation
 **Status:** ✅ pushed
+## [2026-07-17 15:10] 55595f5
+**What:** fix: wire Pulse Twin to real Claude route, real confidence heuristic, evidence/reflection/progress data, and 5 missing LessonFlowCard step routes
+**Status:** ✅ pushed
