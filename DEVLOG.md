@@ -583,3 +583,6 @@
 ## [2026-07-17 08:17] efb2337
 **What:** feat: seed subject_weekly_allocations with KICD Grade 1-6 lesson counts, add missing lower primary composite subjects
 **Status:** ✅ pushed
+## [2026-07-17 08:34] ea4ead8
+**What:** feat: show scheduled-vs-KICD-allocation lesson count on scheme page
+**Status:** ✅ pushed
