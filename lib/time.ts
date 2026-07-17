@@ -16,6 +16,15 @@ export function nairobiDayOfWeek(d: Date = new Date()): number {
   return map[weekday] ?? 1
 }
 
+// Adds `days` (positive or negative) to a Nairobi calendar date string and
+// returns the resulting Nairobi calendar date string. Anchoring at noon UTC
+// avoids any DST/midnight edge cases (Nairobi has no DST, fixed UTC+3).
+export function nairobiDateAdd(dateStr: string, days: number): string {
+  const anchor = new Date(`${dateStr}T12:00:00Z`)
+  anchor.setUTCDate(anchor.getUTCDate() + days)
+  return nairobiDateStr(anchor)
+}
+
 export async function getServerWeek(): Promise<{ weekStart: string; dayOfWeek: number }> {
   const dow = nairobiDayOfWeek()
   const anchor = new Date(`${nairobiDateStr()}T12:00:00Z`)

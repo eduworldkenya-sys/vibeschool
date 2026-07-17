@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { Slot, ActivityLog, PulseSnapshot } from "@/lib/types";
-import { nairobiDateStr } from "@/lib/time";
+import { nairobiDateStr, nairobiDayOfWeek, nairobiDateAdd, getServerWeek } from "@/lib/time";
 
 interface TimetableSlotRow {
   id: string;
@@ -102,24 +102,16 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
-function isoDate(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
-function getWeekStart(date: Date): string {
-  const monday = new Date(date);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  return isoDate(monday);
-}
-
-function lastSchoolDays(count: number): string[] {
+function lastSchoolDays(count: number, todayNairobi: string): string[] {
   const days: string[] = [];
-  const current = new Date();
+  let cursor = todayNairobi;
+  let offset = 0;
 
   while (days.length < count) {
-    const dow = current.getDay();
-    if (dow !== 0 && dow !== 6) days.push(isoDate(current));
-    current.setDate(current.getDate() - 1);
+    cursor = offset === 0 ? todayNairobi : nairobiDateAdd(todayNairobi, -offset);
+    const dow = nairobiDayOfWeek(new Date(`${cursor}T12:00:00Z`));
+    if (dow !== 6 && dow !== 7) days.push(cursor); // 6=Sat, 7=Sun per nairobiDayOfWeek
+    offset += 1;
   }
 
   return days;
@@ -170,12 +162,14 @@ export async function fetchPulseData(
   credits: number | null,
   weekOverride?: WeekOverride | null
 ): Promise<PulseSnapshot> {
-  const today = isoDate(new Date());
-  const todayNairobi = nairobiDateStr(); // used only for the effective-date filter below — see note in Fix 6 reply re: `today`/`todayDow` above using toISOString (UTC), not this file's scope to fix
-  const todayDow = new Date().getDay() === 0 ? 7 : new Date().getDay();
+  // Single Nairobi-calendar source of truth: today's date, its day-of-week,
+  // and the week start all derive from the same `getServerWeek()` call so
+  // effective-date filtering and day-of-week filtering can never disagree.
+  const today = nairobiDateStr();
+  const { weekStart, dayOfWeek: todayDow } = await getServerWeek();
   const tomorrowDow = todayDow === 7 ? 1 : todayDow + 1;
-  const weekStart = getWeekStart(new Date());
-  const recentSchoolDays = lastSchoolDays(5);
+  const tomorrowDate = nairobiDateAdd(today, 1);
+  const recentSchoolDays = lastSchoolDays(5, today);
 
   const [slotsRes, termRes, teacherClassesRes, activeWeeksRes] = await Promise.all([
     supabase
@@ -183,8 +177,8 @@ export async function fetchPulseData(
       .select("id,day_of_week,start_time,end_time,subject_id,class_id")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId)
-      .lte("effective_from", todayNairobi)
-      .or(`effective_until.is.null,effective_until.gte.${todayNairobi}`)
+      .lte("effective_from", today)
+      .or(`effective_until.is.null,effective_until.gte.${today}`)
       .order("start_time"),
     supabase
       .from("academic_terms")
@@ -316,11 +310,7 @@ export async function fetchPulseData(
       (w) => w.termId === termRow.id && w.weekNumber === weekNumber
     );
     if (!alreadyListed) {
-      const liveWeekEnd = (() => {
-        const d = new Date(weekStart);
-        d.setDate(d.getDate() + 6);
-        return isoDate(d);
-      })();
+      const liveWeekEnd = nairobiDateAdd(weekStart, 6);
       availableWeeks.push({
         termId: termRow.id,
         termNumber: activeTermNum ?? 0,
@@ -341,11 +331,7 @@ export async function fetchPulseData(
           termId: termRow.id,
           weekNumber,
           startDate: weekStart,
-          endDate: (() => {
-            const d = new Date(weekStart);
-            d.setDate(d.getDate() + 6);
-            return isoDate(d);
-          })(),
+          endDate: nairobiDateAdd(weekStart, 6),
         }
       : { termId: "", weekNumber: 0, startDate: weekStart, endDate: weekStart });
 
@@ -396,7 +382,7 @@ export async function fetchPulseData(
             .eq("school_id", schoolId)
             .eq("teacher_id", userId)
             .gte("due_date", today)
-            .lte("due_date", isoDate(new Date(Date.now() + 7 * 86400000)))
+            .lte("due_date", nairobiDateAdd(today, 7))
             .order("due_date")
         : Promise.resolve({ data: [] as HomeworkRow[] }),
 
@@ -489,7 +475,6 @@ export async function fetchPulseData(
     class_id: homework.class_id ?? "",
   }));
 
-  const tomorrowDate = isoDate(new Date(Date.now() + 86400000));
   const homeworkDueTomorrow = homeworkDue.filter((homework) => homework.due_date === tomorrowDate);
 
   const ungradedRows = (ungradedHomeworkRes.data ?? []) as HomeworkRow[];
@@ -637,15 +622,14 @@ export async function fetchPulseData(
   consecutiveAbsences.sort((a, b) => b.days - a.days);
 
   const streakRows = (streakRes.data ?? []) as { marked_at: string }[];
-  const markedDays = new Set(streakRows.map((row) => isoDate(new Date(row.marked_at))));
-  const streakDate = new Date();
+  const markedDays = new Set(streakRows.map((row) => nairobiDateStr(new Date(row.marked_at))));
+  let streakCursor = today;
   let streak = 0;
 
   for (let i = 0; i < 30; i += 1) {
-    const day = isoDate(streakDate);
-    if (!markedDays.has(day)) break;
+    if (!markedDays.has(streakCursor)) break;
     streak += 1;
-    streakDate.setDate(streakDate.getDate() - 1);
+    streakCursor = nairobiDateAdd(streakCursor, -1);
   }
 
   const tpadDue = (tpadRes.data as { self_appraisal_due: string | null } | null)?.self_appraisal_due ?? null;
