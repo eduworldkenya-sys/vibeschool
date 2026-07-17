@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { Slot, ActivityLog, PulseSnapshot } from "@/lib/types";
-import { nairobiDateStr, nairobiDayOfWeek, nairobiDateAdd, getServerWeek } from "@/lib/time";
+import { nairobiDateStr, nairobiDayOfWeek, nairobiDateAdd } from "@/lib/time";
 
 interface TimetableSlotRow {
   id: string;
@@ -162,11 +162,13 @@ export async function fetchPulseData(
   credits: number | null,
   weekOverride?: WeekOverride | null
 ): Promise<PulseSnapshot> {
-  // Single Nairobi-calendar source of truth: today's date, its day-of-week,
-  // and the week start all derive from the same `getServerWeek()` call so
-  // effective-date filtering and day-of-week filtering can never disagree.
-  const today = nairobiDateStr();
-  const { weekStart, dayOfWeek: todayDow } = await getServerWeek();
+  // Single clock read (`now`) feeds every date/day-of-week/week-start below,
+  // so effective-date filtering and day-of-week filtering can never disagree
+  // even across the Nairobi midnight boundary.
+  const now = new Date();
+  const today = nairobiDateStr(now);
+  const todayDow = nairobiDayOfWeek(now);
+  const weekStart = nairobiDateAdd(today, -(todayDow - 1));
   const tomorrowDow = todayDow === 7 ? 1 : todayDow + 1;
   const tomorrowDate = nairobiDateAdd(today, 1);
   const recentSchoolDays = lastSchoolDays(5, today);
