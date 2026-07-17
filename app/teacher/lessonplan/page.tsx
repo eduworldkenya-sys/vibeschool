@@ -61,6 +61,7 @@ function LessonPlanInner() {
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
   const [toast,       setToast]       = useState('')
   const [schoolId,    setSchoolId]    = useState<string | null>(null)
+  const [loadError,   setLoadError]   = useState<string | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -70,6 +71,7 @@ function LessonPlanInner() {
   useEffect(() => {
     async function load() {
       setLoading(true)
+      setLoadError(null)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
@@ -86,16 +88,31 @@ function LessonPlanInner() {
         null
       setSchoolId(resolvedSchoolId)
 
+      const today = nairobiDateStr()
+
       const [slotsRes, plansRes] = await Promise.all([
         supabase.from('timetable_slots')
           .select('id,start_time,end_time,room,class_id,subject_id,day_of_week')
           .eq('teacher_id', user.id)
+          .lte('effective_from', today)
+          .or(`effective_until.is.null,effective_until.gte.${today}`)
           .order('start_time', { ascending: true }),
         supabase.from('lesson_plans')
           .select('id,class_id,subject_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
           .eq('teacher_id', user.id)
           .eq('week_start', weekStart),
       ])
+
+      // Either query failing means the page can't be constructed correctly —
+      // don't substitute [] and render a misleading "no classes" / "no plans"
+      // state. Surface one stable error and stop.
+      if (slotsRes.error || plansRes.error) {
+        if (slotsRes.error) console.error('[LessonPlan] timetable_slots query failed:', slotsRes.error)
+        if (plansRes.error) console.error('[LessonPlan] lesson_plans query failed:', plansRes.error)
+        setLoadError('Could not load lesson plans.')
+        setLoading(false)
+        return
+      }
 
       const planMap = new Map<string, PlanRow>()
       for (const p of plansRes.data ?? []) {
@@ -202,7 +219,7 @@ function LessonPlanInner() {
         {urlClassId && (
           <button onClick={() => router.push('/teacher/classhub/' + urlClassId)} style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>← View Class</button>
         )}
-        {!loading && (
+        {!loading && !loadError && (
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             {[
               { label: 'Ready',   value: readyCount,   bg: 'rgba(16,185,129,0.25)' },
@@ -222,6 +239,8 @@ function LessonPlanInner() {
         <SectionLabel>Today &amp; Upcoming</SectionLabel>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
+        ) : loadError ? (
+          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
         ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No classes scheduled</div>
         ) : (
@@ -260,7 +279,9 @@ function LessonPlanInner() {
 
       <Card>
         <SectionLabel>Differentiation Summary</SectionLabel>
-        {(() => {
+        {loadError ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
+        ) : (() => {
           const published  = items.filter(i => i.plan?.status === 'published' || i.plan?.status === 'shared_to_parents').length
           const draft      = items.filter(i => i.plan?.status === 'draft').length
           const noPlan     = items.filter(i => !i.plan).length
