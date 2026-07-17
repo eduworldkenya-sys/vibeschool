@@ -1,7 +1,6 @@
 "use client";
-'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
 
@@ -11,12 +10,24 @@ interface Props {
   onSaved:   () => void
 }
 
-interface ClassOption {
-  id:        string
-  name:      string
-  stream:    string | null
-  subject:   string | null
-  school_id: string | null
+// One row = one real teaching obligation: teacher + school + class + subject.
+interface AssignmentOption {
+  teacherClassId: string
+  schoolId:       string
+  classId:        string
+  subjectId:      string
+  className:      string
+  subjectName:    string
+}
+
+// Shape returned by the Supabase nested select before flattening.
+interface TeacherClassRow {
+  id:         string
+  school_id:  string
+  class_id:   string
+  subject_id: string
+  classes:    { name: string; stream: string | null } | null
+  subjects:   { name: string } | null
 }
 
 const DAYS = [
@@ -52,74 +63,93 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 
-export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
-  const [saving,         setSaving]         = useState(false)
-  const [error,          setError]          = useState<string | null>(null)
-  const [classes,        setClasses]        = useState<ClassOption[]>([])
-  const [classesLoading, setClassesLoading] = useState(true)
+// Maps a raw Supabase/Postgres error to a stable, teacher-facing message.
+// Never show err.message or err.code directly in the UI.
+function toFriendlyError(err: { code?: string; message?: string }): string {
+  if (err.code === '23P01') {
+    // GiST exclusion constraint violation (excl_teacher_overlap / excl_class_overlap)
+    return 'This lesson is already scheduled.'
+  }
+  if (err.code === '42501' || /row-level security/i.test(err.message ?? '')) {
+    return 'You are not assigned to this class and subject.'
+  }
+  if (err.code === '22007' || err.code === '22008' || /time/i.test(err.message ?? '')) {
+    return 'The selected time is invalid.'
+  }
+  return 'Could not save the timetable slot. Try again.'
+}
 
-  const [classId,       setClassId]       = useState('')
-  const [subjectId,     setSubjectId]     = useState<string | null>(null)
-  const [classSchoolId, setClassSchoolId] = useState<string | null>(null)
-  const [dayOfWeek,     setDayOfWeek]     = useState('1')
-  const [startTime,     setStartTime]     = useState('08:00')
-  const [endTime,       setEndTime]       = useState('09:00')
-  const [room,          setRoom]          = useState('')
-  const [effectiveFrom, setEffectiveFrom] = useState('')
+export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
+  const [saving,            setSaving]            = useState(false)
+  const [error,             setError]             = useState<string | null>(null)
+  const [assignments,       setAssignments]       = useState<AssignmentOption[]>([])
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+
+  const [teacherClassId, setTeacherClassId] = useState('')
+  const [dayOfWeek,      setDayOfWeek]      = useState('1')
+  const [startTime,      setStartTime]      = useState('08:00')
+  const [endTime,        setEndTime]        = useState('09:00')
+  const [room,           setRoom]           = useState('')
+  const [effectiveFrom,  setEffectiveFrom]  = useState('')
 
   useEffect(() => {
-    async function loadClasses() {
+    async function loadAssignments() {
       const { data, error: err } = await supabase
-        .from('classes')
-        .select('id, name, stream, subject, school_id')
+        .from('teacher_classes')
+        .select(`
+          id,
+          school_id,
+          class_id,
+          subject_id,
+          classes ( name, stream ),
+          subjects ( name )
+        `)
         .eq('teacher_id', teacherId)
-        .order('name', { ascending: true })
+
       if (err) {
-        setError('Failed to load classes. Please close and try again.')
+        console.error('[Timetable] failed to load teacher_classes', err)
+        setError('Failed to load your assigned classes. Please close and try again.')
+        setAssignmentsLoading(false)
+        return
       }
-      setClasses(data ?? [])
-      setClassesLoading(false)
+
+      const rows = (data ?? []) as unknown as TeacherClassRow[]
+      const options: AssignmentOption[] = rows
+        .filter(r => r.classes && r.subjects) // drop rows with a broken/deleted join target
+        .map(r => ({
+          teacherClassId: r.id,
+          schoolId:       r.school_id,
+          classId:        r.class_id,
+          subjectId:      r.subject_id,
+          className:      r.classes!.stream ? `${r.classes!.name} ${r.classes!.stream}` : r.classes!.name,
+          subjectName:    r.subjects!.name,
+        }))
+        .sort((a, b) => a.className.localeCompare(b.className) || a.subjectName.localeCompare(b.subjectName))
+
+      setAssignments(options)
+      setAssignmentsLoading(false)
     }
-    loadClasses()
+    loadAssignments()
   }, [teacherId])
 
-  async function handleClassChange(id: string) {
-    setClassId(id)
-    setSubjectId(null)
-    setClassSchoolId(null)
-
-    const selected = classes.find(c => c.id === id)
-    if (!selected) return
-
-    // Always use the class's own school_id — never the teacher's profile school_id
-    setClassSchoolId(selected.school_id)
-
-    if (!selected.subject) return
-
-    // Look up subject using the class's school_id
-    const { data } = await supabase
-      .from('subjects')
-      .select('id')
-      .eq('name', selected.subject)
-      .eq('school_id', selected.school_id)
-      .maybeSingle()
-
-    setSubjectId(data?.id ?? null)
-  }
+  const selectedAssignment = assignments.find(a => a.teacherClassId === teacherClassId) ?? null
 
   async function save() {
     setError(null)
-    if (!classId)   { setError('Select a class.');             return }
-    if (!startTime) { setError('Enter start time.');           return }
-    if (!endTime)   { setError('Enter end time.');             return }
-    if (startTime >= endTime) { setError('End time must be after start time.'); return }
+
+    if (!selectedAssignment) { setError('Select a class and subject.'); return }
+    const { schoolId, classId, subjectId } = selectedAssignment
+    if (!schoolId || !classId || !subjectId) { setError('This assignment is missing required data.'); return }
+    if (!startTime) { setError('Enter start time.'); return }
+    if (!endTime)   { setError('Enter end time.');   return }
+    if (startTime >= endTime) { setError('The selected time is invalid.'); return }
 
     setSaving(true)
     const { error: err } = await supabase
       .from('timetable_slots')
       .insert({
-        school_id:      classSchoolId,   // from the class, not teacher profile
         teacher_id:     teacherId,
+        school_id:      schoolId,
         class_id:       classId,
         subject_id:     subjectId,
         day_of_week:    parseInt(dayOfWeek) || 1,
@@ -130,11 +160,13 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
       })
 
     setSaving(false)
-    if (err) { setError(err.message || err.code || JSON.stringify(err)); return }
+    if (err) {
+      console.error('[Timetable] slot creation failed', err)
+      setError(toFriendlyError(err))
+      return
+    }
     onSaved()
   }
-
-  const selectedClass = classes.find(c => c.id === classId)
 
   return (
     <div style={{
@@ -167,30 +199,24 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
         )}
 
         <div>
-          <label style={labelStyle}>Class *</label>
-          {classesLoading ? (
-            <div style={{ fontSize: 13, color: C.textMuted }}>Loading classes…</div>
-          ) : classes.length === 0 ? (
+          <label style={labelStyle}>Class &amp; Subject *</label>
+          {assignmentsLoading ? (
+            <div style={{ fontSize: 13, color: C.textMuted }}>Loading your assignments…</div>
+          ) : assignments.length === 0 ? (
             <div style={{ fontSize: 13, color: C.error }}>
-              No classes found. Please create a class in ClassHub first.
+              No class/subject assignments found. Ask an admin to assign you in ClassHub first.
             </div>
           ) : (
-            <select value={classId} onChange={e => handleClassChange(e.target.value)} style={inputStyle}>
-              <option value="">Select class</option>
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name}{c.stream ? ` ${c.stream}` : ''}{c.subject ? ` — ${c.subject}` : ''}
+            <select value={teacherClassId} onChange={e => setTeacherClassId(e.target.value)} style={inputStyle}>
+              <option value="">Select class &amp; subject</option>
+              {assignments.map(a => (
+                <option key={a.teacherClassId} value={a.teacherClassId}>
+                  {a.className} — {a.subjectName}
                 </option>
               ))}
             </select>
           )}
         </div>
-
-        {selectedClass && (
-          <div style={{ fontSize: 12, color: C.textMuted, background: C.surface, padding: '8px 12px', borderRadius: 8 }}>
-            Subject: <strong>{selectedClass.subject ?? '—'}</strong>
-          </div>
-        )}
 
         <div>
           <label style={labelStyle}>Day *</label>
@@ -220,7 +246,7 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
           <input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputStyle} />
         </div>
 
-        <Btn onClick={save} disabled={saving || classesLoading || classes.length === 0}>
+        <Btn onClick={save} disabled={saving || assignmentsLoading || assignments.length === 0}>
           {saving ? 'Saving…' : 'Add Slot'}
         </Btn>
       </div>
