@@ -604,3 +604,6 @@
 ## [2026-07-18 02:05] 4eab701
 **What:** fix: effective-date filtering on SmartTimetablePreview timetable query
 **Status:** ✅ pushed
+## [2026-07-18 02:09] 2dbce5e
+**What:** fix: visible error state for SmartTimetablePreview query failures
+**Status:** ✅ pushed
