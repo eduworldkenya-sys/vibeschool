@@ -301,6 +301,11 @@ function SchemePageInner() {
   const [savingSet,        setSavingSet]        = useState<Set<string>>(new Set())
   const [showPrint,        setShowPrint]        = useState(false)
 
+  // KICD-mandated lessons/week for the selected grade+subject, null while
+  // loading or when no allocation row exists yet (e.g. Grade 7+, PP1,
+  // or a subject we haven't seeded like French/German).
+  const [weeklyTarget,     setWeeklyTarget]     = useState<number | null>(null)
+
   const [curriculumRows,   setCurriculumRows]   = useState<CurriculumRow[]>([])
   const [ebookSuggestions, setEbookSuggestions] = useState<EbookSuggestion[]>([])
   const [loadingCurric,    setLoadingCurric]    = useState(false)
@@ -324,6 +329,28 @@ function SchemePageInner() {
   const selectedClassObj   = useMemo(() => classes.find(c => c.id === selectedClass) ?? null, [classes, selectedClass])
   const selectedSubjectObj = useMemo(() => allSubjects.find(s => s.id === selectedSubject) ?? null, [allSubjects, selectedSubject])
   const selectedTermObj    = useMemo(() => terms.find(t => t.id === selectedTermId) ?? null, [terms, selectedTermId])
+
+  // Fetch the KICD-mandated lessons/week for whatever grade+subject is
+  // currently selected. Silent when no row exists (grade band or
+  // subject not yet seeded) — same behaviour as the coverage bar, which
+  // only renders when there's real data to show.
+  useEffect(() => {
+    let cancelled = false
+    if (!selectedClassObj?.grade || !selectedSubjectObj?.label) {
+      setWeeklyTarget(null)
+      return
+    }
+    supabase
+      .from('subject_weekly_allocations')
+      .select('lessons_per_week')
+      .eq('grade', selectedClassObj.grade)
+      .eq('subject_label', selectedSubjectObj.label)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setWeeklyTarget(data?.lessons_per_week ?? null)
+      })
+    return () => { cancelled = true }
+  }, [selectedClassObj?.grade, selectedSubjectObj?.label])
 
   // Auto-select paired subject if selection becomes invalid
   useEffect(() => {
@@ -896,6 +923,21 @@ function SchemePageInner() {
               <div style={{ height: 5, background: donePct >= 80 ? C.teal : donePct >= 50 ? C.amber : C.red, width: `${donePct}%`, transition: 'width 0.5s ease' }} />
               <div style={{ height: 5, background: 'rgba(255,255,255,0.35)', width: `${plannedPct}%`, transition: 'width 0.5s ease' }} />
             </div>
+          </div>
+        )}
+
+        {weeklyTarget !== null && (
+          <div style={{ marginTop: schemeItems.length > 0 && selectedWeekItems.length > 0 ? 10 : 14, position: 'relative', zIndex: 1, fontSize: 11, fontWeight: 600 }}>
+            <span style={{ color: selectedWeekItems.length < weeklyTarget ? '#fcd34d' : selectedWeekItems.length === weeklyTarget ? '#5eead4' : '#fca5a5' }}>
+              {selectedWeekItems.length} of {weeklyTarget} lessons scheduled
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {selectedWeekItems.length < weeklyTarget
+                ? ` · under KICD allocation`
+                : selectedWeekItems.length > weeklyTarget
+                ? ` · over KICD allocation`
+                : ` · matches KICD allocation`}
+            </span>
           </div>
         )}
       </div>
