@@ -17,7 +17,7 @@ interface SlotWithPlan {
 
 function formatTime(t: string) {
   const [h, m] = t.split(':').map(Number)
-  return h % 12 || 12 + ':' + String(m).padStart(2, '0') + ' ' + (h >= 12 ? 'PM' : 'AM')
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
 
 function getWeekStart() {
@@ -73,7 +73,11 @@ function LessonPlanInner() {
       setLoading(true)
       setLoadError(null)
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setLoadError('Please sign in to view lesson plans.')
+        setLoading(false)
+        return
+      }
 
       // Resolve schoolId — same 3-source fallback used in Assessment/Pulse
       const [memberRes, teacherRes, profileRes] = await Promise.all([
@@ -88,14 +92,18 @@ function LessonPlanInner() {
         null
       setSchoolId(resolvedSchoolId)
 
-      const today = nairobiDateStr()
+      // Filter by overlap with the *selected* week, not "today" — this page
+      // navigates across weeks via weekStart/offsetWeek, so a slot whose
+      // effective range covers a future or past week must still show up
+      // when that week is selected, even though it isn't active today.
+      const weekEnd = offsetWeek(weekStart, 6)
 
       const [slotsRes, plansRes] = await Promise.all([
         supabase.from('timetable_slots')
           .select('id,start_time,end_time,room,class_id,subject_id,day_of_week')
           .eq('teacher_id', user.id)
-          .lte('effective_from', today)
-          .or(`effective_until.is.null,effective_until.gte.${today}`)
+          .lte('effective_from', weekEnd)
+          .or(`effective_until.is.null,effective_until.gte.${weekStart}`)
           .order('start_time', { ascending: true }),
         supabase.from('lesson_plans')
           .select('id,class_id,subject_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
