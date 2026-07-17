@@ -577,3 +577,6 @@
 ## [2026-07-16 20:28] d8a6b05
 **What:** feat: split scheme coverage bar into taught vs planned %
 **Status:** ✅ pushed
+## [2026-07-17 07:56] fbe088e
+**What:** fix: remove duplicate debugTrace render block in scheme page
+**Status:** ✅ pushed
