@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
+import { nairobiDateStr } from '@/lib/time'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Slot {
@@ -419,11 +420,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
       setTeacherId(user.id)
 
+      const todayStr = nairobiDateStr()
+
       const [slotsResult, memberResult] = await Promise.all([
         supabase
           .from('timetable_slots')
           .select('id, day_of_week, start_time, end_time, room, subject_id, class_id')
           .eq('teacher_id', user.id)
+          .lte('effective_from', todayStr)
+          .or(`effective_until.is.null,effective_until.gte.${todayStr}`)
           .order('day_of_week', { ascending: true })
           .order('start_time',  { ascending: true }),
 
@@ -438,6 +443,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
 
       if (slotsResult.error) {
+        console.error('[Timetable] failed to load active slots', slotsResult.error)
         setLoadError('Could not load your timetable. Please refresh.')
         return
       }
@@ -845,7 +851,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[1, 2, 3].map(i => <Skeleton key={i} h={68} />)}
           </div>
-        ) : daySlots.length === 0 ? (
+        ) : loadError ? null : daySlots.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: C.textMuted, fontSize: 13 }}>
             No lessons scheduled
           </div>
