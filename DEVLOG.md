@@ -580,3 +580,6 @@
 ## [2026-07-17 07:56] fbe088e
 **What:** fix: remove duplicate debugTrace render block in scheme page
 **Status:** ✅ pushed
+## [2026-07-17 08:17] efb2337
+**What:** feat: seed subject_weekly_allocations with KICD Grade 1-6 lesson counts, add missing lower primary composite subjects
+**Status:** ✅ pushed
