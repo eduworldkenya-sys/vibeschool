@@ -1,5 +1,5 @@
 "use client";
-import { nairobiDateStr } from '@/lib/time'
+import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -172,7 +172,8 @@ export default function SmartTimetablePreview() {
 
   useEffect(() => { return () => { isMounted.current = false } }, [])
 
-  const todayDow = new Date().getDay() === 0 ? 7 : new Date().getDay()
+  const now      = new Date()
+  const todayDow = nairobiDayOfWeek(now)
   const DAYS     = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   const DAYS_S   = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -195,7 +196,8 @@ export default function SmartTimetablePreview() {
       if (!user || !isMounted.current) return
 
 
-      const today = nairobiDateStr()
+      const loadNow = new Date()
+      const today = nairobiDateStr(loadNow)
 
       const { data: slots, error: slotsError } = await supabase
         .from('timetable_slots')
