@@ -592,3 +592,6 @@
 ## [2026-07-17 15:10] 55595f5
 **What:** fix: wire Pulse Twin to real Claude route, real confidence heuristic, evidence/reflection/progress data, and 5 missing LessonFlowCard step routes
 **Status:** ✅ pushed
+## [2026-07-18 01:43] b0b2d21
+**What:** fix: Nairobi-anchored date derivation in pulse fetcher
+**Status:** ✅ pushed
