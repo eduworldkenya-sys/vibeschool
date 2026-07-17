@@ -705,7 +705,6 @@ export type RecordStatus = "none" | "pending" | "completed";
 export interface Slot {
   id: string;
   day_of_week: number;
-  period: number;
   class_id: string;
   class_name: string;
   subject: string;

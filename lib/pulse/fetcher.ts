@@ -4,7 +4,6 @@ import type { Slot, ActivityLog, PulseSnapshot } from "@/lib/types";
 interface TimetableSlotRow {
   id: string;
   day_of_week: number;
-  period: number | null;
   start_time: string;
   end_time: string;
   subject_id: string;
@@ -179,7 +178,7 @@ export async function fetchPulseData(
   const [slotsRes, termRes, teacherClassesRes, activeWeeksRes] = await Promise.all([
     supabase
       .from("timetable_slots")
-      .select("id,day_of_week,period,start_time,end_time,subject_id,class_id")
+      .select("id,day_of_week,start_time,end_time,subject_id,class_id")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId)
       .order("start_time"),
@@ -196,6 +195,11 @@ export async function fetchPulseData(
       .eq("teacher_id", userId),
     supabase.rpc("get_teacher_active_weeks", { p_school_id: schoolId, p_teacher_id: userId }),
   ]);
+
+  if (slotsRes.error) {
+    console.error("[Pulse] timetable_slots query failed:", slotsRes.error);
+    throw new Error(`Pulse: failed to load timetable_slots — ${slotsRes.error.message}`);
+  }
 
   const rawSlots = (slotsRes.data ?? []) as TimetableSlotRow[];
   const termRow = (termRes.data ?? null) as AcademicTermRow | null;
@@ -258,7 +262,6 @@ export async function fetchPulseData(
   const baseSlots = rawSlots.map((slot): Slot => ({
     id: slot.id,
     day_of_week: slot.day_of_week,
-    period: slot.period ?? 0,
     start_time: slot.start_time,
     end_time: slot.end_time,
     subject_id: slot.subject_id,
