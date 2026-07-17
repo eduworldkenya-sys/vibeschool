@@ -607,3 +607,6 @@
 ## [2026-07-18 02:09] 2dbce5e
 **What:** fix: visible error state for SmartTimetablePreview query failures
 **Status:** ✅ pushed
+## [2026-07-18 02:14] 3506b83
+**What:** fix: Nairobi day-of-week logic in SmartTimetablePreview
+**Status:** ✅ pushed
