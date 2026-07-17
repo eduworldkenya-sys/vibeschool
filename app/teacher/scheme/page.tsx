@@ -881,12 +881,6 @@ function SchemePageInner() {
           </div>
         )}
 
-        {debugTrace.length > 0 && (
-          <div style={{ marginTop: 10, padding: 8, borderRadius: 8, background: 'rgba(0,0,0,0.3)', fontSize: 10, fontFamily: 'monospace', color: '#fef3c7', position: 'relative', zIndex: 1, lineHeight: 1.6 }}>
-            {debugTrace.map((line, i) => <div key={i}>{line}</div>)}
-          </div>
-        )}
-
         {schemeItems.length > 0 && selectedWeekItems.length > 0 && (
           <div style={{ marginTop: 14, position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 600, marginBottom: 6 }}>
