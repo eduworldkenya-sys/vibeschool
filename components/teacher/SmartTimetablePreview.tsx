@@ -193,15 +193,22 @@ export default function SmartTimetablePreview() {
       if (!user || !isMounted.current) return
 
 
-      const { data: slots } = await supabase
+      const today = nairobiDateStr()
+
+      const { data: slots, error: slotsError } = await supabase
         .from('timetable_slots')
         .select('id, day_of_week, start_time, end_time, room, subject_id, class_id')
         .eq('teacher_id', user.id)
+        .lte('effective_from', today)
+        .or(`effective_until.is.null,effective_until.gte.${today}`)
         .order('start_time', { ascending: true })
 
-      if (!slots || !isMounted.current) return
+      if (slotsError) {
+        console.error('[SmartTimetablePreview] timetable_slots query failed:', slotsError)
+        throw new Error(`SmartTimetablePreview: failed to load timetable_slots — ${slotsError.message}`)
+      }
 
-      const today = nairobiDateStr()
+      if (!slots || !isMounted.current) return
       const slotIds    = slots.map((s: { id: string }) => s.id)
       const subjectIds = Array.from(new Set(slots.map((s: { subject_id: string }) => s.subject_id).filter(Boolean)))
       const classIds   = Array.from(new Set(slots.map((s: { class_id: string }) => s.class_id).filter(Boolean)))
