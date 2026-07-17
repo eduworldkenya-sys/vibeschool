@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { Slot, ActivityLog, PulseSnapshot } from "@/lib/types";
+import { nairobiDateStr } from "@/lib/time";
 
 interface TimetableSlotRow {
   id: string;
@@ -170,6 +171,7 @@ export async function fetchPulseData(
   weekOverride?: WeekOverride | null
 ): Promise<PulseSnapshot> {
   const today = isoDate(new Date());
+  const todayNairobi = nairobiDateStr(); // used only for the effective-date filter below — see note in Fix 6 reply re: `today`/`todayDow` above using toISOString (UTC), not this file's scope to fix
   const todayDow = new Date().getDay() === 0 ? 7 : new Date().getDay();
   const tomorrowDow = todayDow === 7 ? 1 : todayDow + 1;
   const weekStart = getWeekStart(new Date());
@@ -181,6 +183,8 @@ export async function fetchPulseData(
       .select("id,day_of_week,start_time,end_time,subject_id,class_id")
       .eq("school_id", schoolId)
       .eq("teacher_id", userId)
+      .lte("effective_from", todayNairobi)
+      .or(`effective_until.is.null,effective_until.gte.${todayNairobi}`)
       .order("start_time"),
     supabase
       .from("academic_terms")
