@@ -601,3 +601,6 @@
 ## [2026-07-18 01:53] b31c00e
 **What:** fix: single clock read for Nairobi today/dow/weekStart
 **Status:** ✅ pushed
+## [2026-07-18 02:05] 4eab701
+**What:** fix: effective-date filtering on SmartTimetablePreview timetable query
+**Status:** ✅ pushed
