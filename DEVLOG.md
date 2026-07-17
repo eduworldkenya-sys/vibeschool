@@ -586,3 +586,6 @@
 ## [2026-07-17 08:34] ea4ead8
 **What:** feat: show scheduled-vs-KICD-allocation lesson count on scheme page
 **Status:** ✅ pushed
+## [2026-07-17 08:39] 469341b
+**What:** feat: timetable weekly load check vs KICD allocation
+**Status:** ✅ pushed
