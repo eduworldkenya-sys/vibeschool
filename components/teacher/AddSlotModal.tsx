@@ -63,20 +63,35 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 
-// Maps a raw Supabase/Postgres error to a stable, teacher-facing message.
-// Never show err.message or err.code directly in the UI.
-function toFriendlyError(err: { code?: string; message?: string }): string {
-  if (err.code === '23P01') {
-    // GiST exclusion constraint violation (excl_teacher_overlap / excl_class_overlap)
-    return 'This lesson is already scheduled.'
+// The create_timetable_slot RPC raises one of these stable codes as the
+// exception message. Never show err.message from a raw table insert —
+// only these codes, which are our own contract with the database function.
+function toFriendlyError(err: { message?: string }): string {
+  switch ((err.message ?? '').trim()) {
+    case 'TEACHER_CONFLICT':
+      return 'You already have a lesson scheduled at that time.'
+    case 'CLASS_CONFLICT':
+      return 'This class already has a lesson scheduled at that time.'
+    case 'DUPLICATE_SLOT':
+      return 'This exact lesson is already scheduled.'
+    case 'INVALID_TIME':
+      return 'The selected time is invalid.'
+    case 'INVALID_DATE_RANGE':
+      return 'The effective date range is invalid.'
+    case 'ASSIGNMENT_NOT_FOUND':
+      return 'You are not assigned to this class and subject.'
+    default:
+      return 'Could not save the timetable slot. Try again.'
   }
-  if (err.code === '42501' || /row-level security/i.test(err.message ?? '')) {
-    return 'You are not assigned to this class and subject.'
-  }
-  if (err.code === '22007' || err.code === '22008' || /time/i.test(err.message ?? '')) {
-    return 'The selected time is invalid.'
-  }
-  return 'Could not save the timetable slot. Try again.'
+}
+
+// Today's date in Africa/Nairobi, as YYYY-MM-DD for a <input type="date">
+// default value. Avoids ever submitting an ambiguous blank effective_from.
+function nairobiTodayISO(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Nairobi',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date())
 }
 
 export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
@@ -90,7 +105,7 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
   const [startTime,      setStartTime]      = useState('08:00')
   const [endTime,        setEndTime]        = useState('09:00')
   const [room,           setRoom]           = useState('')
-  const [effectiveFrom,  setEffectiveFrom]  = useState('')
+  const [effectiveFrom,  setEffectiveFrom]  = useState(nairobiTodayISO())
 
   useEffect(() => {
     async function loadAssignments() {
@@ -138,26 +153,26 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
     setError(null)
 
     if (!selectedAssignment) { setError('Select a class and subject.'); return }
-    const { schoolId, classId, subjectId } = selectedAssignment
-    if (!schoolId || !classId || !subjectId) { setError('This assignment is missing required data.'); return }
+    const { classId, subjectId } = selectedAssignment
+    if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
     if (!startTime) { setError('Enter start time.'); return }
     if (!endTime)   { setError('Enter end time.');   return }
     if (startTime >= endTime) { setError('The selected time is invalid.'); return }
 
     setSaving(true)
-    const { error: err } = await supabase
-      .from('timetable_slots')
-      .insert({
-        teacher_id:     teacherId,
-        school_id:      schoolId,
-        class_id:       classId,
-        subject_id:     subjectId,
-        day_of_week:    parseInt(dayOfWeek) || 1,
-        start_time:     startTime,
-        end_time:       endTime,
-        room:           room.trim() || null,
-        effective_from: effectiveFrom || null,
-      })
+    // All conflict/assignment/school checks happen inside this one DB
+    // transaction (create_timetable_slot). school_id and teacher_id are
+    // never sent from the client — the RPC derives both from the
+    // caller's own auth identity and their teacher_classes assignment.
+    const { error: err } = await supabase.rpc('create_timetable_slot', {
+      p_class_id:        classId,
+      p_subject_id:      subjectId,
+      p_day_of_week:     parseInt(dayOfWeek) || 1,
+      p_start_time:      startTime,
+      p_end_time:        endTime,
+      p_room:            room.trim() || null,
+      p_effective_from:  effectiveFrom || undefined,
+    })
 
     setSaving(false)
     if (err) {
