@@ -191,7 +191,7 @@ export default function PulsePage() {
     setGuideActive(true);
 
     try {
-      const res = await fetch("/api/guide/pulse", {
+      const res = await fetch("/api/twin/pulse", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ snapshot, signals: result.signals }),

@@ -510,6 +510,37 @@ export async function fetchPulseData(
     homeworkByClass.set(homework.class_id, existing);
   }
 
+  // Resolve every lesson_plan_id that today's slots could carry, so we
+  // can look up real evidence/reflection/progress rows against them
+  // instead of leaving these fields hardcoded.
+  const todayLessonPlanIds = Array.from(
+    new Set(
+      todayBaseSlots
+        .map((slot) => lessonPlanBySlot.get(slot.id) ?? lessonPlanByClassSubject.get(slotKey(slot.class_id, slot.subject_id)) ?? null)
+        .filter((id): id is string => Boolean(id))
+    )
+  );
+
+  const [evidenceRes, progressRes, reflectionRes] = await Promise.all([
+    todayLessonPlanIds.length > 0
+      ? supabase.from("lesson_evidence").select("lesson_id").in("lesson_id", todayLessonPlanIds)
+      : Promise.resolve({ data: [] as { lesson_id: string | null }[] }),
+    todayLessonPlanIds.length > 0
+      ? supabase.from("progress_records").select("lesson_plan_id").in("lesson_plan_id", todayLessonPlanIds)
+      : Promise.resolve({ data: [] as { lesson_plan_id: string | null }[] }),
+    todayLessonPlanIds.length > 0
+      ? supabase.from("lesson_reflections").select("lesson_plan_id").in("lesson_plan_id", todayLessonPlanIds)
+      : Promise.resolve({ data: [] as { lesson_plan_id: string | null }[] }),
+  ]);
+
+  const evidenceCountByLesson = new Map<string, number>();
+  for (const row of (evidenceRes.data ?? [])) {
+    if (!row.lesson_id) continue;
+    evidenceCountByLesson.set(row.lesson_id, (evidenceCountByLesson.get(row.lesson_id) ?? 0) + 1);
+  }
+  const progressDoneLessonIds = new Set((progressRes.data ?? []).map((row) => row.lesson_plan_id).filter(Boolean));
+  const reflectionDoneLessonIds = new Set((reflectionRes.data ?? []).map((row) => row.lesson_plan_id).filter(Boolean));
+
   const todaySlots = todayBaseSlots.map((slot): Slot => {
     const lessonPlanId =
       lessonPlanBySlot.get(slot.id) ??
@@ -535,12 +566,11 @@ export async function fetchPulseData(
       submission_count: submittedCount,
       marking_status: pendingMarkingCount > 0 ? "pending" : submittedCount > 0 ? "completed" : "none",
 
-      // These tables/routes are not confirmed yet, so they stay safe.
       curriculum_id: null,
       scheme_id: null,
-      evidence_count: 0,
-      progress_record_status: "none",
-      reflection_status: "none",
+      evidence_count: lessonPlanId ? (evidenceCountByLesson.get(lessonPlanId) ?? 0) : 0,
+      progress_record_status: lessonPlanId && progressDoneLessonIds.has(lessonPlanId) ? "completed" : "none",
+      reflection_status: lessonPlanId && reflectionDoneLessonIds.has(lessonPlanId) ? "completed" : "none",
       next_lesson_status: "none",
     };
   });

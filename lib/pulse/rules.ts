@@ -132,6 +132,20 @@ function noLessonTasks(snap: PulseSnapshot): PriorityTask[] {
   return tasks.slice(0, 5);
 }
 
+function computeConfidence(snap: PulseSnapshot, isFallback: boolean, taskCount: number): number {
+  // Confidence = how completely the deterministic rule output already
+  // covers what's worth saying. It drops when there are richer signals
+  // (named at-risk students, a notable streak) that only the Twin's
+  // narrated message surfaces, or when there's no active lesson to
+  // anchor a clear single instruction.
+  let score = 100;
+  if (isFallback) score -= 40;
+  if ((snap.atRisk?.length ?? 0) > 0) score -= 20;
+  if ((snap.streak ?? 0) >= 5) score -= 15;
+  if (taskCount === 0) score -= 20;
+  return Math.max(0, Math.min(100, score));
+}
+
 export function runRules(snap: PulseSnapshot): RuleResult {
   const signals: string[] = [];
   const tasks: PriorityTask[] = [];
@@ -145,7 +159,7 @@ export function runRules(snap: PulseSnapshot): RuleResult {
       message: fallbackTasks[0]?.detail ?? mode.explanation,
       priority: fallbackTasks[0]?.severity ?? "calm",
       upcomingWarning: mode.headline,
-      confidence: 100,
+      confidence: computeConfidence(snap, true, fallbackTasks.length),
       signals: ["no_current_lesson", "continue_workflow", `teacher_${mode.mode}`],
       tasks: fallbackTasks,
     };
@@ -192,7 +206,7 @@ export function runRules(snap: PulseSnapshot): RuleResult {
     message: firstTask?.detail ?? mode.explanation,
     priority: firstTask?.severity ?? "calm",
     upcomingWarning: null,
-    confidence: 100,
+    confidence: computeConfidence(snap, false, tasks.length),
     signals,
     tasks: tasks.slice(0, 6),
   };

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { PulseSnapshot, Slot, WorkflowState } from "@/lib/types";
+import EvidenceCaptureSheet from "./EvidenceCaptureSheet";
+import ReflectionSheet from "./ReflectionSheet";
 
 interface LessonFlowCardProps {
   slots: Slot[];
@@ -251,8 +253,10 @@ function EmptyWorkflow({
   );
 }
 
-export default function LessonFlowCard({ slots, snap, onNavigate }: LessonFlowCardProps) {
+export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onSaved }: LessonFlowCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [evidenceSheetOpen, setEvidenceSheetOpen] = useState(false);
+  const [reflectionSheetOpen, setReflectionSheetOpen] = useState(false);
 
   if (slots.length === 0) {
     return <EmptyWorkflow snap={snap} onNavigate={onNavigate} />;
@@ -265,7 +269,18 @@ export default function LessonFlowCard({ slots, snap, onNavigate }: LessonFlowCa
     "Take Attendance": `/teacher/attendance?classId=${activeSlot.class_id}`,
     "Teach Lesson": `/teacher/teach?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
     "Assign Task": `/teacher/homework?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
+    "Review Submissions": `/teacher/homework?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
     "Mark Work": `/teacher/assessment?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
+    "Record Progress": `/teacher/progress?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
+    "Prepare Next Lesson": `/teacher/lessonplan?subjectId=${activeSlot.subject_id}&classId=${activeSlot.class_id}`,
+  };
+
+  // These two steps open an in-page sheet instead of navigating away —
+  // capturing evidence or writing a reflection is a quick, focused action,
+  // not a page-level task like planning or marking.
+  const modalSteps: Partial<Record<StepName, () => void>> = {
+    "Collect Evidence": () => setEvidenceSheetOpen(true),
+    "Write Reflection": () => setReflectionSheetOpen(true),
   };
 
   const states = steps.map((step) => ({ step, state: getStepState(step, activeSlot) }));
@@ -315,14 +330,17 @@ export default function LessonFlowCard({ slots, snap, onNavigate }: LessonFlowCa
           if (!show) return null;
 
           const route = routes[step];
-          const enabled = Boolean(route) && state !== "Blocked" && state !== "Not available yet";
+          const openModal = modalSteps[step];
+          const enabled = Boolean(route || openModal) && state !== "Blocked" && state !== "Not available yet";
           const badge = stateStyle(state);
 
           return (
             <div
               key={step}
               onClick={() => {
-                if (enabled && route) onNavigate(route);
+                if (!enabled) return;
+                if (openModal) { openModal(); return; }
+                if (route) onNavigate(route);
               }}
               style={{
                 display: "flex",
@@ -363,6 +381,28 @@ export default function LessonFlowCard({ slots, snap, onNavigate }: LessonFlowCa
           );
         })}
       </div>
+
+      {evidenceSheetOpen && (
+        <EvidenceCaptureSheet
+          lessonId={activeSlot.lesson_plan_id}
+          classId={activeSlot.class_id}
+          teacherId={teacherId ?? ""}
+          defaultTitle={activeSlot.subject}
+          onClose={() => setEvidenceSheetOpen(false)}
+          onSaved={() => onSaved?.()}
+        />
+      )}
+
+      {reflectionSheetOpen && (
+        <ReflectionSheet
+          lessonId={activeSlot.lesson_plan_id}
+          classId={activeSlot.class_id}
+          subjectId={activeSlot.subject_id}
+          teacherId={teacherId ?? ""}
+          onClose={() => setReflectionSheetOpen(false)}
+          onSaved={() => onSaved?.()}
+        />
+      )}
     </div>
   );
 }
