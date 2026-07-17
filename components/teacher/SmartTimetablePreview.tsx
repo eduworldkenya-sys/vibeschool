@@ -178,6 +178,7 @@ export default function SmartTimetablePreview() {
 
   const [allSlots,    setAllSlots]    = useState<Slot[]>([])
   const [loading,     setLoading]     = useState(true)
+  const [loadError,   setLoadError]   = useState<string | null>(null)
   const [curMin,      setCurMin]      = useState<number>(currentTimeMin())
   const [activeSlide, setActiveSlide] = useState(0)
   const [activeLsn,   setActiveLsn]   = useState(0)
@@ -189,6 +190,7 @@ export default function SmartTimetablePreview() {
 
   const load = useCallback(async () => {
     try {
+      if (isMounted.current) setLoadError(null)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || !isMounted.current) return
 
@@ -205,7 +207,8 @@ export default function SmartTimetablePreview() {
 
       if (slotsError) {
         console.error('[SmartTimetablePreview] timetable_slots query failed:', slotsError)
-        throw new Error(`SmartTimetablePreview: failed to load timetable_slots — ${slotsError.message}`)
+        if (isMounted.current) setLoadError('Could not load timetable preview.')
+        return
       }
 
       if (!slots || !isMounted.current) return
@@ -391,6 +394,16 @@ export default function SmartTimetablePreview() {
       <div style={{ marginBottom: 24 }}>
         <div style={{ height: 200, borderRadius: 20, background: 'linear-gradient(135deg, #1e3a5f, #1a3a2a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Loading…</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ height: 200, borderRadius: 20, background: 'linear-gradient(135deg, #4c1d1d, #2d1010)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{loadError}</span>
         </div>
       </div>
     )
