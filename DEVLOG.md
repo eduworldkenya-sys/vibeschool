@@ -595,3 +595,6 @@
 ## [2026-07-18 01:43] b0b2d21
 **What:** fix: Nairobi-anchored date derivation in pulse fetcher
 **Status:** ✅ pushed
+## [2026-07-18 01:50] fb965bb
+**What:** fix: single clock read for Nairobi today/dow/weekStart
+**Status:** ✅ pushed
