@@ -160,7 +160,7 @@ function LessonPlanInner() {
           id: s.id, subject: subjMap[s.subject_id] ?? 'Unknown',
           class: clsMap[s.class_id] ?? '',
           room: s.room ?? '', start: s.start_time, end: s.end_time,
-          period: 0, status: 'scheduled', planStatus: 'green', attendanceMarked: false,
+          status: 'scheduled', planStatus: 'green', attendanceMarked: false,
           class_id: s.class_id, subject_id: s.subject_id,
         }
         return { slot, plan: planMap.get(s.class_id + ':' + s.subject_id + ':' + s.day_of_week) ?? null }
