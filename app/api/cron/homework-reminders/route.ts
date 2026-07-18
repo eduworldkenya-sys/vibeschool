@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       // 2. Get all students in that class
       const { data: students } = await adminSupabase
         .from('students')
-        .select('id')
+        .select('id, profile_id')
         .eq('class_id', hw.class_id)
 
       if (!students || students.length === 0) continue
@@ -75,13 +75,20 @@ export async function GET(req: NextRequest) {
       const todayStart = new Date()
       todayStart.setHours(0, 0, 0, 0)
 
+      const linkedNotSubmitted = notSubmitted.filter(
+        (s: { id: string; profile_id: string | null }): s is { id: string; profile_id: string } =>
+          typeof s.profile_id === 'string' && s.profile_id.length > 0
+      )
+
+      if (linkedNotSubmitted.length === 0) continue
+
       const { data: existingReminders } = await adminSupabase
         .from('notifications')
         .select('id')
         .eq('type', 'homework_reminder')
         .ilike('body', `%${hw.title}%`)
         .gte('created_at', todayStart.toISOString())
-        .in('user_id', notSubmitted.map((s: { id: string }) => s.id))
+        .in('user_id', linkedNotSubmitted.map((s) => s.profile_id))
 
       // Conservative: if ANY reminder for this homework went out today, skip the whole batch to avoid duplicates
       if (existingReminders && existingReminders.length > 0) {
@@ -91,8 +98,8 @@ export async function GET(req: NextRequest) {
       const msg = `Reminder: "${hw.title}" (${hw.subject}) is due tomorrow. Please submit on time.`
 
       const { error: insertErr } = await adminSupabase.from('notifications').insert(
-        notSubmitted.map((s: { id: string }) => ({
-          user_id:   s.id,
+        linkedNotSubmitted.map((s) => ({
+          user_id:   s.profile_id,
           school_id: hw.school_id,
           type:      'homework_reminder',
           title:     'Homework Due Tomorrow',
@@ -102,8 +109,8 @@ export async function GET(req: NextRequest) {
       )
 
       if (!insertErr) {
-        totalReminders += notSubmitted.length
-        results.push({ homework_id: hw.id, title: hw.title, reminders: notSubmitted.length })
+        totalReminders += linkedNotSubmitted.length
+        results.push({ homework_id: hw.id, title: hw.title, reminders: linkedNotSubmitted.length })
       }
     }
 

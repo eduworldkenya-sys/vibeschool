@@ -6,7 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
 
-interface Student { id: string; name: string; admission_number: string; }
+interface Student { id: string; name: string; admission_number: string; profile_id: string | null; }
 interface Question { id: string; question: string; order_num: number; }
 interface Answer { question_id: string; answer_text: string | null; }
 interface Submission { id: string; student_id: string; status: "pending"|"submitted"|"marked"; mark: number|null; feedback: string|null; submitted_at: string|null; photo_url: string|null; answers: Answer[]; }
@@ -78,8 +78,8 @@ function GradingInner() {
         ? supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id",hwId).eq("school_id",sid).single()
         : supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id",hwId).single(),
       sid
-        ? supabase.from("students").select("id,name,admission_number").eq("class_id",classId).eq("school_id",sid).order("name")
-        : supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
+        ? supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id",classId).eq("school_id",sid).order("name")
+        : supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id",classId).order("name"),
       supabase.from("homework_questions").select("id,question,order_num").eq("homework_id",hwId).order("order_num"),
       supabase.from("homework_submissions").select("id,student_id,status,mark,feedback,submitted_at,photo_url").eq("homework_id",hwId),
     ]);
@@ -189,16 +189,22 @@ function GradingInner() {
     try {
       const dueLabel = hw?.due_date ? new Date(hw.due_date).toLocaleDateString("en-KE",{day:"numeric",month:"short"}) : "soon";
       const msg = `Reminder: "${hw?.title ?? "Homework"}" is due ${dueLabel}. Please submit.`;
-      const { error } = await supabase.from("notifications").insert(
-        notYet.map(s => ({
-          user_id:   s.id,
-          school_id: schoolIdRef.current,
-          type:      "homework",
-          title:     "Homework Reminder",
-          body:      msg,
-          is_read:   false,
-        }))
+      const linkedNotYet = notYet.filter(
+        (s): s is typeof s & { profile_id: string } =>
+          typeof s.profile_id === "string" && s.profile_id.length > 0
       );
+      const { error } = linkedNotYet.length > 0
+        ? await supabase.from("notifications").insert(
+            linkedNotYet.map(s => ({
+              user_id:   s.profile_id,
+              school_id: schoolIdRef.current,
+              type:      "homework",
+              title:     "Homework Reminder",
+              body:      msg,
+              is_read:   false,
+            }))
+          )
+        : { error: null };
       if (error) {
         setBulkMsg("Could not send reminders.");
       } else {

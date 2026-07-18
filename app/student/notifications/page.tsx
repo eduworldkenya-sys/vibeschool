@@ -9,7 +9,7 @@ import Skel from "@/components/student/Skel";
 
 interface Notif {
   id: string; title: string; body: string; type: string;
-  read: boolean; created_at: string;
+  is_read: boolean; created_at: string;
 }
 
 function timeAgo(ts: string): string {
@@ -69,18 +69,22 @@ export default function NotificationsPage() {
 
     async function load() {
       const { data } = await supabase
-        .from("student_notifications")
-        .select("id, title, body, type, read, created_at")
-        .eq("student_id", identity!.studentId)
+        .from("notifications")
+        .select("id, title, body, type, is_read, created_at")
+        .eq("user_id", identity!.profileId)
         .order("created_at", { ascending: false })
         .limit(50);
       const result = data ?? [];
       writeCache("notifications", identity!.studentId, result);
       setNotifs(result);
       setLoading(false);
-      const unread = result.filter(n => !n.read).map(n => n.id);
+      const unread = result.filter(n => !n.is_read).map(n => n.id);
       if (unread.length > 0) {
-        await supabase.from("student_notifications").update({ read: true }).in("id", unread);
+        await supabase
+          .from("notifications")
+          .update({ is_read: true })
+          .eq("user_id", identity!.profileId)
+          .in("id", unread);
       }
     }
     load();
@@ -99,7 +103,7 @@ export default function NotificationsPage() {
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--vs-text)", fontFamily: "'Bricolage Grotesque', sans-serif" }}>Updates</h1>
         <p style={{ fontSize: 12, color: "var(--vs-muted)", marginTop: 2 }}>
-          {notifs.filter(n => !n.read).length > 0 ? `${notifs.filter(n => !n.read).length} unread` : "All caught up"}
+          {notifs.filter(n => !n.is_read).length > 0 ? `${notifs.filter(n => !n.is_read).length} unread` : "All caught up"}
         </p>
       </div>
       {notifs.length === 0 ? (
@@ -111,8 +115,8 @@ export default function NotificationsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {notifs.map(n => (
             <div key={n.id} style={{
-              background: n.read ? "var(--vs-card)" : "var(--vs-accent-soft)",
-              border: `1px solid ${n.read ? "var(--vs-border)" : "var(--vs-accent)"}`,
+              background: n.is_read ? "var(--vs-card)" : "var(--vs-accent-soft)",
+              border: `1px solid ${n.is_read ? "var(--vs-border)" : "var(--vs-accent)"}`,
               borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start",
             }}>
               <div style={{ color: notifColor(n.type), flexShrink: 0, marginTop: 1 }}>{notifIcon(n.type)}</div>
@@ -121,7 +125,7 @@ export default function NotificationsPage() {
                 <div style={{ fontSize: 12, color: "var(--vs-muted)", lineHeight: 1.5 }}>{n.body}</div>
                 <div style={{ fontSize: 10, color: "var(--vs-muted)", marginTop: 6 }}>{timeAgo(n.created_at)}</div>
               </div>
-              {!n.read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--vs-accent)", flexShrink: 0, marginTop: 4 }} />}
+              {!n.is_read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--vs-accent)", flexShrink: 0, marginTop: 4 }} />}
             </div>
           ))}
         </div>

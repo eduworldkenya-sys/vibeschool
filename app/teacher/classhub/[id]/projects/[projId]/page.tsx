@@ -6,7 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
 
-interface Student { id: string; name: string; admission_number: string; }
+interface Student { id: string; name: string; admission_number: string; profile_id: string | null; }
 interface Submission { id: string; student_id: string; status: "pending"|"submitted"|"marked"; mark: number|null; feedback: string|null; notes: string|null; submitted_at: string|null; photo_url: string|null; }
 interface ProjInfo { title: string; description: string|null; due_date: string|null; status: string; }
 
@@ -73,8 +73,8 @@ function GradingInner() {
     const [projRes, stuRes, subRes] = await Promise.all([
       supabase.from("projects").select("title,description,due_date,status").eq("id", projId).single(),
       sid
-        ? supabase.from("students").select("id,name,admission_number").eq("class_id",classId).eq("school_id",sid).order("name")
-        : supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
+        ? supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id",classId).eq("school_id",sid).order("name")
+        : supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id",classId).order("name"),
       supabase.from("project_submissions").select("id,student_id,status,mark,feedback,notes,submitted_at,photo_url").eq("project_id",projId),
     ]);
 
@@ -175,16 +175,22 @@ function GradingInner() {
     try {
       const dueLabel = proj?.due_date ? new Date(proj.due_date).toLocaleDateString("en-KE",{day:"numeric",month:"short"}) : "soon";
       const msg = `Reminder: "${proj?.title ?? "Project"}" is due ${dueLabel}. Please submit.`;
-      const { error } = await supabase.from("notifications").insert(
-        notYet.map(s => ({
-          user_id:   s.id,
-          school_id: schoolIdRef.current,
-          type:      "project",
-          title:     "Project Reminder",
-          body:      msg,
-          is_read:   false,
-        }))
+      const linkedNotYet = notYet.filter(
+        (s): s is typeof s & { profile_id: string } =>
+          typeof s.profile_id === "string" && s.profile_id.length > 0
       );
+      const { error } = linkedNotYet.length > 0
+        ? await supabase.from("notifications").insert(
+            linkedNotYet.map(s => ({
+              user_id:   s.profile_id,
+              school_id: schoolIdRef.current,
+              type:      "project",
+              title:     "Project Reminder",
+              body:      msg,
+              is_read:   false,
+            }))
+          )
+        : { error: null };
       if (error) {
         setBulkMsg("Could not send reminders.");
       } else {

@@ -23,8 +23,9 @@ interface PlanSections {
 }
 
 interface Student {
-  id:   string
-  name: string
+  id:         string
+  name:       string
+  profile_id: string | null
 }
 
 interface Ctx {
@@ -155,9 +156,9 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       schoolId
         ? supabase.from('schools').select('name').eq('id', schoolId).single()
         : Promise.resolve({ data: null }),
-      // G6: always select id explicitly — never assume id === auth id
+      // G6 corrected — notifications need profile_id (auth id), not students.id
       supabase.from('students')
-        .select('id, name, id')
+        .select('id, name, profile_id')
         .eq('class_id', slot.class_id),
       supabase.from('lesson_plans')
         .select('topic')
@@ -501,12 +502,15 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
     setBusy('publishing')
     try {
       await supabase.from('lesson_plans').update({ status: 'published' }).eq('id', currentId)
-      if (ctx.students.length > 0) {
+      const linkedStudents = ctx.students.filter(
+        (s): s is typeof s & { profile_id: string } =>
+          typeof s.profile_id === 'string' && s.profile_id.length > 0
+      )
+      if (linkedStudents.length > 0) {
         await supabase.from('notifications').insert(
-          ctx.students.map(s => ({
+          linkedStudents.map(s => ({
             school_id:  ctx.schoolId || null,
-            // G6: id not table PK
-            user_id:    s.id,
+            user_id:    s.profile_id,
             title:      'New Lesson: ' + topic,
             body:       slot.subject + ' lesson plan published by ' + ctx.teacherName,
             type:       'lesson_plan',

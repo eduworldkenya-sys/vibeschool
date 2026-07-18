@@ -101,19 +101,25 @@ function HomeworkInner() {
       const notifMsg = `New homework: "${form.title.trim()}" (${form.subject.trim()}) — due ${form.due_date}.`;
       const { data: stuRows } = await supabase
         .from("students")
-        .select("id")
+        .select("id, profile_id")
         .eq("class_id", classId);
       if (stuRows && stuRows.length > 0) {
-        await supabase.from("notifications").insert(
-          stuRows.map((st: { id: string }) => ({
-            user_id:   st.id,
-            school_id: schoolId,
-            type:      "homework",
-            title:     "New Homework",
-            body:      notifMsg,
-            is_read:   false,
-          }))
+        const linkedStuRows = stuRows.filter(
+          (st: { id: string; profile_id: string | null }): st is { id: string; profile_id: string } =>
+            typeof st.profile_id === "string" && st.profile_id.length > 0
         );
+        if (linkedStuRows.length > 0) {
+          await supabase.from("notifications").insert(
+            linkedStuRows.map((st) => ({
+              user_id:   st.profile_id,
+              school_id: schoolId,
+              type:      "homework",
+              title:     "New Homework",
+              body:      notifMsg,
+              is_read:   false,
+            }))
+          );
+        }
         const { data: links } = await supabase
           .from("parent_student_links")
           .select("parent_id")
