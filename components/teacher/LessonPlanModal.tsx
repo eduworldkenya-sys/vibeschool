@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase, SUPABASE_URL } from '@/lib/supabase'
 import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { C } from '@/components/teacher/ui'
-import { getServerWeek, nairobiDateStr } from '@/lib/time'
+import { nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
@@ -37,8 +37,10 @@ interface Ctx {
 }
 
 interface Props {
-  slot:    TimetableSlot
-  onClose: () => void
+  slot:       TimetableSlot
+  weekStart:  string
+  taughtDate: string
+  onClose:    () => void
 }
 
 type Phase  = 'loading' | 'form' | 'generating' | 'view' | 'edit'
@@ -102,7 +104,7 @@ function Skeleton({ h = 48 }: { h?: number }) {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function LessonPlanModal({ slot, onClose }: Props) {
+export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }: Props) {
   const [phase,    setPhase]    = useState<Phase>('loading')
   const [sections, setSections] = useState<PlanSections>(EMPTY)
   const [draft,    setDraft]    = useState<PlanSections>(EMPTY)
@@ -262,17 +264,25 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
   }
 
   async function loadExistingPlan(userId: string) {
-    // G2: day/week always from server util, never raw device clock
-    const { weekStart, dayOfWeek } = await getServerWeek()
-    const { data } = await supabase
+    // Fix 14C: lesson_plans' occurrence identity is (timetable_slot_id,
+    // taught_date) — the same pair Fix 14B hardened as a UNIQUE constraint.
+    // Load by that exact pair, not by day_of_week/week_start, which do not
+    // uniquely identify an occurrence on their own.
+    if (!taughtDate) {
+      throw new Error(
+        'LessonPlanModal: taughtDate is missing — cannot resolve occurrence.'
+      )
+    }
+
+    const { data, error } = await supabase
       .from('lesson_plans')
       .select('id, title, body, topic, status, curriculum_id, strand_id, scheme_id')
-      .eq('teacher_id',  userId)
-      .eq('class_id',    slot.class_id)
-      .eq('subject_id',  slot.subject_id)
-      .eq('day_of_week', dayOfWeek)
-      .eq('week_start',  weekStart)
+      .eq('teacher_id', userId)
+      .eq('timetable_slot_id', slot.id)
+      .eq('taught_date', taughtDate)
       .maybeSingle()
+
+    if (error) throw error
     return data ?? null
   }
 
@@ -391,8 +401,16 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
 
       setSections(parsed)
 
-      // G2
-      const { weekStart, dayOfWeek } = await getServerWeek()
+      // Fix 14C: week_start / day_of_week / taught_date come from the exact
+      // occurrence the teacher browsed to (props) — never from the old
+      // server-clock lookup, which always resolved to "now" regardless of
+      // which week was on screen.
+      if (slot.day_of_week == null) {
+        throw new Error('LessonPlanModal: slot.day_of_week is missing — refusing to save to an unknown occurrence.')
+      }
+      if (!taughtDate) {
+        throw new Error('LessonPlanModal: taughtDate is missing — refusing to save to an unknown occurrence.')
+      }
       const { data: prof } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
 
       const payload = {
@@ -402,7 +420,8 @@ export default function LessonPlanModal({ slot, onClose }: Props) {
         subject_id:         slot.subject_id,
         timetable_slot_id:  slot.id,
         week_start:         weekStart,
-        day_of_week:        dayOfWeek,
+        day_of_week:        slot.day_of_week,
+        taught_date:        taughtDate,
         topic:              topic.trim(),
         title:              slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
         body:               json.plan,

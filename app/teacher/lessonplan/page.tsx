@@ -143,12 +143,18 @@ function LessonPlanInner() {
       const clsMap  = Object.fromEntries((clsRes.data ?? []).map((c: any) => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]))
 
       const mapped: SlotWithPlan[] = slots.map((s: any) => {
+        // Fix 14C: carry the browsed occurrence forward on the slot itself —
+        // day_of_week and occurrenceDate must survive into activeSlot, or the
+        // modal has no way to know which real-world date it's saving to.
+        const occurrenceDate = nairobiDateAdd(weekStart, Number(s.day_of_week) - 1)
         const slot: TimetableSlot = {
           id: s.id, subject: subjMap[s.subject_id] ?? 'Unknown',
           class: clsMap[s.class_id] ?? '',
           room: s.room ?? '', start: s.start_time, end: s.end_time,
           status: 'scheduled', planStatus: 'green', attendanceMarked: false,
           class_id: s.class_id, subject_id: s.subject_id,
+          day_of_week: s.day_of_week,
+          occurrenceDate,
         }
         return { slot, plan: planMap.get(s.class_id + ':' + s.subject_id + ':' + s.day_of_week) ?? null }
       })
@@ -339,7 +345,16 @@ function LessonPlanInner() {
       </Card>
 
       {activeSlot && (
-        <LessonPlanModal slot={activeSlot} onClose={() => setActiveSlot(null)} />
+        <LessonPlanModal
+          slot={activeSlot}
+          weekStart={weekStart}
+          // Fix 14C: occurrenceDate is always set in the `mapped` builder
+          // above — asserted rather than optional-chained so a future
+          // regression there fails loudly (as a save error) instead of
+          // silently writing to the wrong date.
+          taughtDate={activeSlot.occurrenceDate!}
+          onClose={() => setActiveSlot(null)}
+        />
       )}
     </>
   )

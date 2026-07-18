@@ -38,6 +38,7 @@ export interface TimetableSlot {
   planStatus:       PlanStatus;
   attendanceMarked: boolean;
   day_of_week?:     number;
+  occurrenceDate?:  string;
 }
 
 export interface Flag {
