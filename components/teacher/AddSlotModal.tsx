@@ -74,6 +74,10 @@ function toFriendlyError(err: { message?: string }): string {
       return 'This class already has a lesson scheduled at that time.'
     case 'DUPLICATE_SLOT':
       return 'This exact lesson is already scheduled.'
+    case 'ROOM_CONFLICT':
+      return 'This room is already being used at that time.'
+    case 'SCHEDULE_CONFLICT':
+      return 'This lesson conflicts with another timetable slot.'
     case 'INVALID_TIME':
       return 'The selected time is invalid.'
     case 'INVALID_DATE_RANGE':
