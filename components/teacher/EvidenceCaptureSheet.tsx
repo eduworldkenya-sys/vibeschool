@@ -54,6 +54,10 @@ export default function EvidenceCaptureSheet({
       setError("Give it a short title.");
       return;
     }
+    if (!lessonId) {
+      setError("Create or open the lesson plan before adding evidence.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {

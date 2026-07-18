@@ -37,6 +37,11 @@ export default function ReflectionSheet({
 
     const { error: insErr } = await supabase.from("lesson_reflections").upsert(
       {
+        // Fix 17B: lesson_plan_id is the canonical FK going forward.
+        // lesson_id is a legacy duplicate FK to the same lesson_plans row —
+        // kept in sync here until all reads are audited and it can be
+        // retired. Do not drop this until then.
+        lesson_id: lessonId,
         lesson_plan_id: lessonId,
         teacher_id: teacherId,
         class_id: classId,
