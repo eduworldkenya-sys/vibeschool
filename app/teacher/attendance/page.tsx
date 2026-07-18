@@ -108,7 +108,7 @@ function AttendanceInner() {
       const [profileRes, memberRes, classesRes, slotsRes] = await Promise.all([
         supabase.from('profiles').select('school_id').eq('id', user.id).single(),
         supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('teacher_classes').select('class_id, is_class_teacher').eq('teacher_id', user.id),
+        supabase.from('teacher_classes').select('class_id, is_class_teacher, classes(id, name, stream, school_id)').eq('teacher_id', user.id),
         supabase.from('timetable_slots')
           .select('id, room, start_time, end_time, class_id, subject_id, day_of_week')
           .eq('teacher_id', user.id)
@@ -118,12 +118,22 @@ function AttendanceInner() {
 
       setSchoolId(memberRes.data?.school_id ?? profileRes.data?.school_id ?? null)
 
-      const loadedClasses: ClassOption[] = (classesRes.data ?? []).map(c => ({
-        id:       c.id,
-        name:     c.name,
-        stream:   c.stream,
-        schoolId: c.school_id ?? null,
-      }))
+      const loadedClasses: ClassOption[] = Array.from(
+        new Map<string, ClassOption>(
+          (classesRes.data ?? [])
+            .map((row: any) => row.classes)
+            .filter(Boolean)
+            .map((classRow: any) => [
+              classRow.id,
+              {
+                id:       classRow.id,
+                name:     classRow.name,
+                stream:   classRow.stream,
+                schoolId: classRow.school_id ?? null,
+              } satisfies ClassOption,
+            ])
+        ).values()
+      )
       setClasses(loadedClasses)
       setClassesLoading(false)
 
