@@ -237,8 +237,7 @@ export default function AttendancePage() {
       marked_at:         new Date().toISOString(),
     }))
     const { error } = await supabase
-      .from("attendance")
-      .upsert(rows, { onConflict: "student_id,date,class_id" })
+      .rpc("upsert_attendance_batch", { p_rows: rows })
     setSaving(false)
     if (error) { fireToast("Error saving — try again."); return }
     fireToast("Student attendance saved.")

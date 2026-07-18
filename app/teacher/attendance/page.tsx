@@ -285,10 +285,7 @@ function AttendanceInner() {
     }))
 
     const { error } = await supabase
-      .from('attendance')
-      .upsert(rows, {
-        onConflict: isLesson ? 'timetable_slot_id,student_id,date' : 'class_id,student_id,date',
-      })
+      .rpc('upsert_attendance_batch', { p_rows: rows })
 
     if (!error) {
       if (isLesson && activeSlot) {
