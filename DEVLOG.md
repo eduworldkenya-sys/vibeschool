@@ -628,3 +628,6 @@
 ## [2026-07-18 21:03] 788f9aa
 **What:** Fix 18H: student notifications user_id chain corrected
 **Status:** ✅ pushed
+## [2026-07-18 21:09] aaf36fb
+**What:** Fix 18H: student notifications — loadError UI state added on top of user_id chain fix
+**Status:** ✅ pushed
