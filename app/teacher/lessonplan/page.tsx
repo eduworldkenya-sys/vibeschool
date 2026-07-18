@@ -1,5 +1,5 @@
 "use client";
-import { nairobiDateStr } from '@/lib/time'
+import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, Suspense } from 'react'
@@ -100,7 +100,7 @@ function LessonPlanInner() {
 
       const [slotsRes, plansRes] = await Promise.all([
         supabase.from('timetable_slots')
-          .select('id,start_time,end_time,room,class_id,subject_id,day_of_week')
+          .select('id,start_time,end_time,room,class_id,subject_id,day_of_week,effective_from,effective_until')
           .eq('teacher_id', user.id)
           .lte('effective_from', weekEnd)
           .or(`effective_until.is.null,effective_until.gte.${weekStart}`)
@@ -134,7 +134,18 @@ function LessonPlanInner() {
         })
       }
 
-      const slots = slotsRes.data ?? []
+      // The SQL query above only confirms the slot's effective range overlaps
+      // the selected week somewhere — not that this slot's specific weekday
+      // occurrence in this week falls inside that range (e.g. a Monday slot
+      // effective from Wednesday shouldn't show for that week's Monday).
+      // day_of_week convention: Monday = 1 ... Sunday = 7.
+      const slots = (slotsRes.data ?? []).filter((slot: any) => {
+        const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
+        return (
+          slot.effective_from <= occurrenceDate &&
+          (slot.effective_until === null || slot.effective_until >= occurrenceDate)
+        )
+      })
       const subjectIds = Array.from(new Set(slots.map((s: any) => s.subject_id).filter(Boolean)))
       const classIds   = Array.from(new Set(slots.map((s: any) => s.class_id).filter(Boolean)))
       const [subjRes, clsRes] = await Promise.all([
