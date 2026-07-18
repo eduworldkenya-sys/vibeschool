@@ -22,6 +22,18 @@ interface Slot {
   dayOfWeek: number
 }
 
+interface WeeklyLoadRow {
+  classId:         string
+  subjectId:       string
+  className:       string
+  stream:          string
+  subjectName:     string
+  grade:           string
+  lessonsPerWeek:  number | null
+  scheduledCount:  number
+  status:          'ZERO' | 'UNDER' | 'OK' | 'OVER' | 'NO_TARGET'
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 function timeToMin(t: string): number {
   if (!t) return 0
@@ -368,7 +380,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [selected,        setSelected]         = useState<Slot | null>(null)
   const [showAddSlot,     setShowAddSlot]      = useState(false)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
-  const [allocations,     setAllocations]      = useState<Record<string, number>>({})
+  const [weeklyLoadRows,  setWeeklyLoadRows]   = useState<WeeklyLoadRow[]>([])
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
@@ -533,53 +545,35 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     [allSlots]
   )
 
-  // Group this teacher's weekly slots by grade+subject so we can compare
-  // against the KICD allocation target per combination.
-  const weeklyLoad = useMemo(() => {
-    const map: Record<string, { grade: string; subject: string; className: string; count: number }> = {}
-    for (const s of allSlots) {
-      if (!s.grade || !s.subject) continue
-      const key = `${s.grade}::${s.subject}`
-      if (!map[key]) map[key] = { grade: s.grade, subject: s.subject, className: s.className, count: 0 }
-      map[key].count += 1
-    }
-    return Object.values(map)
-  }, [allSlots])
-
-  // Fetch allocation targets only for the grade+subject combos actually
-  // present in this teacher's timetable — no need to pull the whole table.
+  // Fetch this teacher's weekly timetable load via RPC — server-side join
+  // across teacher_classes, classes, subjects, subject_weekly_allocations,
+  // and timetable_slots. Replaces client-side grouping (Fix 13).
   useEffect(() => {
     let cancelled = false
-    const grades   = Array.from(new Set(weeklyLoad.map(w => w.grade)))
-    const subjects = Array.from(new Set(weeklyLoad.map(w => w.subject)))
-    if (grades.length === 0 || subjects.length === 0) {
-      setAllocations({})
-      return
-    }
-    supabase
-      .from('subject_weekly_allocations')
-      .select('grade, subject_label, lessons_per_week')
-      .in('grade', grades)
-      .in('subject_label', subjects)
-      .then(({ data }) => {
-        if (cancelled || !data) return
-        const map: Record<string, number> = {}
-        for (const row of data as { grade: string; subject_label: string; lessons_per_week: number }[]) {
-          map[`${row.grade}::${row.subject_label}`] = row.lessons_per_week
-        }
-        setAllocations(map)
-      })
+    supabase.rpc('get_teacher_weekly_timetable_load').then(({ data, error }) => {
+      if (cancelled) return
+      if (error) { console.error('[Timetable] weekly load RPC failed:', error); return }
+      const rows: WeeklyLoadRow[] = (data ?? []).map((r: any) => ({
+        classId:        r.class_id,
+        subjectId:      r.subject_id,
+        className:      r.class_name,
+        stream:         r.stream ?? '',
+        subjectName:    r.subject_name,
+        grade:          r.grade,
+        lessonsPerWeek: r.lessons_per_week,
+        scheduledCount: r.scheduled_count,
+        status:         r.status,
+      }))
+      setWeeklyLoadRows(rows)
+    })
     return () => { cancelled = true }
-  }, [weeklyLoad])
+  }, [teacherId])
 
-  // Only combos where we actually have a target AND it doesn't match —
-  // matches on target are not shown, same "silent unless actionable" rule
-  // as the scheme page's coverage indicators.
-  const loadMismatches = useMemo(() => {
-    return weeklyLoad
-      .map(w => ({ ...w, target: allocations[`${w.grade}::${w.subject}`] ?? null }))
-      .filter(w => w.target !== null && w.count !== w.target)
-  }, [weeklyLoad, allocations])
+  // Only non-OK rows are actionable — OK stays silent, same rule as before.
+  const loadMismatches = useMemo(
+    () => weeklyLoadRows.filter(r => r.status !== 'OK'),
+    [weeklyLoadRows]
+  )
 
   // FIX [LOGIC-06]: on weekends show Monday count, not 0
   const todayCount = useMemo(
@@ -756,8 +750,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       </div>
 
       {/* Weekly Load Check — only visible when a class+subject combo is
-          off the KICD allocation target. Silent otherwise, same rule as
-          the scheme page's coverage indicators. */}
+          off the KICD allocation target, unscheduled, or missing a target.
+          Silent otherwise, same rule as the scheme page's coverage indicators. */}
       {!loading && loadMismatches.length > 0 && (
         <div
           className="no-print"
@@ -781,14 +775,27 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           </button>
           {showLoadCheck && (
             <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {loadMismatches.map(m => (
-                <div key={`${m.grade}::${m.subject}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                  <span style={{ color: C.textPrimary, fontWeight: 600 }}>{m.subject} · {m.className}</span>
-                  <span style={{ color: m.count < (m.target ?? 0) ? '#d97706' : '#dc2626', fontWeight: 700 }}>
-                    {m.count} of {m.target} · {m.count < (m.target ?? 0) ? 'under' : 'over'} allocation
-                  </span>
-                </div>
-              ))}
+              {loadMismatches.map(m => {
+                const label =
+                  m.status === 'ZERO'      ? 'not scheduled' :
+                  m.status === 'UNDER'     ? 'under allocation' :
+                  m.status === 'OVER'      ? 'over allocation' :
+                  'no KICD target set'
+                const color =
+                  m.status === 'NO_TARGET' ? C.textMuted :
+                  m.status === 'OVER'      ? '#dc2626' :
+                  '#d97706'
+                return (
+                  <div key={`${m.classId}::${m.subjectId}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                    <span style={{ color: C.textPrimary, fontWeight: 600 }}>
+                      {m.subjectName} · {m.className}{m.stream ? ' ' + m.stream : ''}
+                    </span>
+                    <span style={{ color, fontWeight: 700 }}>
+                      {m.lessonsPerWeek === null ? `${m.scheduledCount} scheduled` : `${m.scheduledCount} of ${m.lessonsPerWeek}`} · {label}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
