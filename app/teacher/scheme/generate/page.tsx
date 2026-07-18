@@ -135,6 +135,7 @@ function GeneratePageInner() {
         return
       }
       setError(null)
+      setError(null)
       setSlots((data ?? []) as TimetableSlot[])
       setSlotsLoading(false)
     }
