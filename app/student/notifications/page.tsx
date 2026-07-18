@@ -59,8 +59,9 @@ function notifColor(type: string): string {
 
 export default function NotificationsPage() {
   const { identity, loading: idLoading } = useStudent();
-  const [notifs,  setNotifs]  = useState<Notif[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [notifs,    setNotifs]    = useState<Notif[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (idLoading || !identity) return;
@@ -68,23 +69,38 @@ export default function NotificationsPage() {
     if (cached) { setNotifs(cached); setLoading(false); }
 
     async function load() {
-      const { data } = await supabase
+      setLoadError(null);
+      const { data, error } = await supabase
         .from("notifications")
         .select("id, title, body, type, is_read, created_at")
         .eq("user_id", identity!.profileId)
         .order("created_at", { ascending: false })
         .limit(50);
+      if (error) {
+        setLoadError("Notifications could not be loaded.");
+        setLoading(false);
+        return;
+      }
       const result = data ?? [];
       writeCache("notifications", identity!.studentId, result);
       setNotifs(result);
       setLoading(false);
       const unread = result.filter(n => !n.is_read).map(n => n.id);
       if (unread.length > 0) {
-        await supabase
+        const { error: markReadError } = await supabase
           .from("notifications")
           .update({ is_read: true })
           .eq("user_id", identity!.profileId)
           .in("id", unread);
+        if (!markReadError) {
+          setNotifs(current =>
+            current.map(notification =>
+              unread.includes(notification.id)
+                ? { ...notification, is_read: true }
+                : notification
+            )
+          );
+        }
       }
     }
     load();
@@ -106,6 +122,7 @@ export default function NotificationsPage() {
           {notifs.filter(n => !n.is_read).length > 0 ? `${notifs.filter(n => !n.is_read).length} unread` : "All caught up"}
         </p>
       </div>
+      {loadError && <div style={{ fontSize: 12, color: "var(--vs-error, #ef4444)", marginBottom: 10 }}>{loadError}</div>}
       {notifs.length === 0 ? (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 16, padding: "60px 24px", textAlign: "center" }}>
           <div style={{ color: "var(--vs-muted)", marginBottom: 8, display: "flex", justifyContent: "center" }}><IconBell /></div>
