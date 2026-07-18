@@ -1,5 +1,5 @@
 "use client";
-import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
+import { nairobiDateStr, nairobiDateAdd, nairobiWeekStart } from '@/lib/time'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, Suspense } from 'react'
@@ -20,19 +20,6 @@ function formatTime(t: string) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
 
-function getWeekStart() {
-  const d = new Date()
-  const day = d.getDay()
-  const mon = new Date(d.setDate(d.getDate() - day + (day === 0 ? -6 : 1)))
-  return nairobiDateStr(mon)
-}
-
-function offsetWeek(start: string, days: number) {
-  const d = new Date(start + 'T12:00:00')
-  d.setDate(d.getDate() + days)
-  return nairobiDateStr(d)
-}
-
 function Skeleton({ h = 72 }: { h?: number }) {
   return (
     <div style={{
@@ -51,7 +38,7 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
 }
 
 function LessonPlanInner() {
-  const [weekStart,   setWeekStart]   = useState(getWeekStart())
+  const [weekStart,   setWeekStart]   = useState(nairobiWeekStart())
   const router                        = useRouter()
   const urlClassId                    = useSearchParams().get('classId')
   const [items,       setItems]       = useState<SlotWithPlan[]>([])
@@ -93,10 +80,10 @@ function LessonPlanInner() {
       setSchoolId(resolvedSchoolId)
 
       // Filter by overlap with the *selected* week, not "today" — this page
-      // navigates across weeks via weekStart/offsetWeek, so a slot whose
+      // navigates across weeks via weekStart/nairobiDateAdd, so a slot whose
       // effective range covers a future or past week must still show up
       // when that week is selected, even though it isn't active today.
-      const weekEnd = offsetWeek(weekStart, 6)
+      const weekEnd = nairobiDateAdd(weekStart, 6)
 
       const [slotsRes, plansRes] = await Promise.all([
         supabase.from('timetable_slots')
@@ -205,7 +192,7 @@ function LessonPlanInner() {
 
   const readyCount   = items.filter(i => i.plan).length
   const missingCount = items.filter(i => !i.plan).length
-  const isThisWeek   = weekStart === getWeekStart()
+  const isThisWeek   = weekStart === nairobiWeekStart()
 
   return (
     <>
@@ -231,9 +218,9 @@ function LessonPlanInner() {
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{isThisWeek ? "Today's Plans" : 'Week of ' + weekStart}</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 4 }}>Week of {weekStart} · Linked to your timetable.</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button onClick={() => setWeekStart(w => offsetWeek(w, -7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Prev</button>
-          <button onClick={() => setWeekStart(getWeekStart())} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: isThisWeek ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Today</button>
-          <button onClick={() => setWeekStart(w => offsetWeek(w, 7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
+          <button onClick={() => setWeekStart(w => nairobiDateAdd(w, -7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Prev</button>
+          <button onClick={() => setWeekStart(nairobiWeekStart())} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: isThisWeek ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Today</button>
+          <button onClick={() => setWeekStart(w => nairobiDateAdd(w, 7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
         </div>
         {urlClassId && (
           <button onClick={() => router.push('/teacher/classhub/' + urlClassId)} style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>← View Class</button>
