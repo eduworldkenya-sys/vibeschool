@@ -1,6 +1,101 @@
 import { supabase } from '@/lib/supabase'
 import type { OccurrenceKey, Lifecycle, TeachingOccurrence } from '@/lib/teaching/types'
 
+// ── Fix 18C: start_teaching_occurrence RPC contract ─────────────────────────
+
+/**
+ * Every stable error code the start_teaching_occurrence RPC can raise.
+ * These are raw `raise exception 'code'` messages from Postgres — matched
+ * verbatim, not parsed or guessed at. Anything else collapses to 'unknown'
+ * rather than being silently treated as a specific known case.
+ */
+export type StartOccurrenceErrorCode =
+  | 'not_authenticated'
+  | 'slot_not_found'
+  | 'slot_not_owned'
+  | 'invalid_occurrence_date'
+  | 'lesson_plan_required'
+  | 'occurrence_completed'
+  | 'occurrence_cancelled'
+  | 'occurrence_rescheduled'
+  | 'unknown'
+
+const START_OCCURRENCE_ERROR_CODES: ReadonlyArray<Exclude<StartOccurrenceErrorCode, 'unknown'>> = [
+  'not_authenticated',
+  'slot_not_found',
+  'slot_not_owned',
+  'invalid_occurrence_date',
+  'lesson_plan_required',
+  'occurrence_completed',
+  'occurrence_cancelled',
+  'occurrence_rescheduled',
+]
+
+export class StartOccurrenceError extends Error {
+  code: StartOccurrenceErrorCode
+  cause?: unknown
+
+  constructor(code: StartOccurrenceErrorCode, message: string, cause?: unknown) {
+    super(message)
+    this.name = 'StartOccurrenceError'
+    this.code = code
+    this.cause = cause
+  }
+}
+
+/**
+ * The raw persisted row shape returned by start_teaching_occurrence.
+ * Deliberately distinct from TeachingOccurrence (the derived/joined view
+ * resolveOccurrence produces) — this is exactly what the table + RPC hand back.
+ */
+export interface StartedOccurrenceRow {
+  id:                       string
+  timetable_slot_id:        string
+  occurrence_date:          string
+  school_id:                string
+  teacher_id:               string
+  class_id:                 string
+  subject_id:               string
+  lifecycle:                Lifecycle
+  started_at:               string | null
+  started_by:               string | null
+  completed_at:             string | null
+  cancelled_at:             string | null
+  cancelled_reason:         string | null
+  rescheduled_to_slot_id:   string | null
+  rescheduled_to_date:      string | null
+  created_at:               string
+  updated_at:               string
+}
+
+function normalizeStartError(error: { message?: string | null } | null | undefined): StartOccurrenceError {
+  const raw = (error?.message ?? '').trim()
+  // Postgres raise exception messages come through verbatim in .message —
+  // match exactly first; fall back to substring only because some clients
+  // wrap it (e.g. "new row violates ... : lesson_plan_required").
+  const exact = START_OCCURRENCE_ERROR_CODES.find(code => code === raw)
+  const code  = exact ?? START_OCCURRENCE_ERROR_CODES.find(c => raw.includes(c))
+  return new StartOccurrenceError(code ?? 'unknown', raw || 'Failed to start lesson.', error)
+}
+
+/**
+ * Calls the start_teaching_occurrence RPC to transition (or idempotently
+ * confirm) a lesson into in_progress. Never swallows a failure: on any
+ * database error this throws a StartOccurrenceError with a stable .code,
+ * so callers can branch on it instead of parsing free-text messages.
+ */
+export async function startTeachingOccurrence(key: OccurrenceKey): Promise<StartedOccurrenceRow> {
+  const { data, error } = await supabase.rpc('start_teaching_occurrence', {
+    p_timetable_slot_id: key.timetableSlotId,
+    p_occurrence_date:   key.occurrenceDate,
+  })
+
+  if (error) throw normalizeStartError(error)
+  if (!data) throw new StartOccurrenceError('unknown', 'start_teaching_occurrence returned no row.')
+
+  return data as StartedOccurrenceRow
+}
+
 function deriveLifecycle(
   persisted: { lifecycle: Lifecycle } | null,
   lessonPlanId: string | null,

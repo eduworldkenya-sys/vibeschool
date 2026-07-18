@@ -7,8 +7,35 @@ import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
-import { resolveOccurrence } from '@/lib/teaching/occurrence'
+import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
+import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
 import type { TeachingOccurrence, Lifecycle } from '@/lib/teaching/types'
+
+// Fix 18C: human-facing text for each stable RPC error code. Kept next to
+// the CTA that renders it since these are UI strings, not data-layer concerns.
+function startErrorMessage(code: StartOccurrenceErrorCode): string {
+  switch (code) {
+    case 'not_authenticated':
+      return 'Your session expired. Please sign in again.'
+    case 'slot_not_found':
+      return 'This lesson slot no longer exists.'
+    case 'slot_not_owned':
+      return 'This lesson belongs to a different teacher.'
+    case 'invalid_occurrence_date':
+      return 'This date no longer matches the lesson schedule.'
+    case 'occurrence_completed':
+      return 'This lesson was already completed.'
+    case 'occurrence_cancelled':
+      return 'This lesson was cancelled.'
+    case 'occurrence_rescheduled':
+      return 'This lesson was rescheduled.'
+    case 'lesson_plan_required':
+      // Handled by redirect before this ever renders — kept for completeness.
+      return 'A lesson plan is required before starting this lesson.'
+    default:
+      return 'Could not start the lesson. Please try again.'
+  }
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Slot {
@@ -221,10 +248,18 @@ function SlotDrawer({
   const [occLoading, setOccLoading] = useState(false)
   const [occError, setOccError] = useState<string | null>(null)
 
+  // Fix 18C: separate from occError — occError means "couldn't resolve this
+  // occurrence at all"; startError means "resolved fine, but the start
+  // mutation itself failed". Conflating them would blank a good CTA state.
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
+
   useEffect(() => {
     if (!slot) {
       setOccurrence(null)
       setOccError(null)
+      setStarting(false)
+      setStartError(null)
       return
     }
 
@@ -232,6 +267,8 @@ function SlotDrawer({
 
     setOccurrence(null)
     setOccError(null)
+    setStarting(false)
+    setStartError(null)
     setOccLoading(true)
 
     resolveOccurrence({ timetableSlotId: slot.id, occurrenceDate })
@@ -291,6 +328,55 @@ function SlotDrawer({
   }
   const primaryAction = occurrence ? lifecycleAction[occurrence.lifecycle] ?? null : null
   const statusText    = occurrence ? lifecycleStatus[occurrence.lifecycle] ?? null : null
+
+  // Fix 18C: only 'ready' and 'in_progress' ever reach here with a
+  // lessonPlanId already resolved (see deriveLifecycle precedence in
+  // occurrence.ts — lessonPlanId is checked before anything derives
+  // 'ready', and 'in_progress' can only be a persisted, plan-backed row).
+  // 'planned' has no plan yet, so calling the RPC would just guarantee a
+  // lesson_plan_required round trip — skip it and go straight to the plan
+  // flow, same as before Fix 18C.
+  const needsStartMutation =
+    occurrence?.lifecycle === 'ready' || occurrence?.lifecycle === 'in_progress'
+
+  async function handlePrimaryAction() {
+    if (!primaryAction || !occurrence || !slot) return
+    if (starting) return // guards rapid repeat taps beyond the disabled attribute
+
+    if (!needsStartMutation) {
+      onNavigate(primaryAction.url)
+      return
+    }
+
+    setStarting(true)
+    setStartError(null)
+
+    try {
+      const row = await startTeachingOccurrence({
+        timetableSlotId: slot.id,
+        occurrenceDate,
+      })
+      // Update local state from the authoritative row rather than assuming
+      // success — merge lifecycle only, everything else (attendance,
+      // evidence, etc.) is still whatever resolveOccurrence last loaded.
+      setOccurrence(prev => (prev ? { ...prev, lifecycle: row.lifecycle } : prev))
+      onNavigate(primaryAction.url)
+    } catch (err) {
+      const code = err instanceof StartOccurrenceError ? err.code : 'unknown'
+
+      // lesson_plan_required is a guided redirect, not a failure state —
+      // the teacher just needs to create the plan first.
+      if (code === 'lesson_plan_required') {
+        onNavigate(lessonUrl)
+        return
+      }
+
+      // Every other code: stay put, restore the button, surface the reason.
+      setStartError(startErrorMessage(code))
+    } finally {
+      setStarting(false)
+    }
+  }
 
   return (
     <>
@@ -383,7 +469,16 @@ function SlotDrawer({
               ⚠ {occError}
             </div>
           )}
-          {!occError && statusText && (
+          {!occError && startError && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 10,
+              background: '#fef2f2', border: '1px solid #fca5a5',
+              fontSize: 12, fontWeight: 600, color: '#b91c1c',
+            }}>
+              ⚠ {startError}
+            </div>
+          )}
+          {!occError && !startError && statusText && (
             <div style={{
               padding: '10px 12px', borderRadius: 10,
               background: 'var(--surface-raised, #f9fafb)',
@@ -394,11 +489,11 @@ function SlotDrawer({
           )}
           {!occError && (occLoading || primaryAction) && (
             <Btn
-              disabled={occLoading || !primaryAction}
+              disabled={occLoading || starting || !primaryAction}
               style={{ width: '100%', justifyContent: 'center' }}
-              onClick={() => { if (primaryAction) onNavigate(primaryAction.url) }}
+              onClick={handlePrimaryAction}
             >
-              {occLoading ? 'Loading lesson…' : primaryAction?.label}
+              {occLoading ? 'Loading lesson…' : starting ? 'Starting lesson…' : primaryAction?.label}
             </Btn>
           )}
           <Btn
