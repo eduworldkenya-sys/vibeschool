@@ -619,3 +619,6 @@
 ## [2026-07-18 11:19] d1b21a0
 **What:** fix15: occurrence-date slot filtering, error handling, weekday guard
 **Status:** ✅ pushed
+## [2026-07-18 16:14] f66d975
+**What:** fix 17D: lesson-scoped attendance routing for 5 exact-slot callers
+**Status:** ✅ pushed
