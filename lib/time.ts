@@ -25,6 +25,12 @@ export function nairobiDateAdd(dateStr: string, days: number): string {
   return nairobiDateStr(anchor)
 }
 
+export function nairobiWeekStart(date = new Date()): string {
+  const dow = nairobiDayOfWeek(date)
+  const today = nairobiDateStr(date)
+  return nairobiDateAdd(today, -(dow - 1))
+}
+
 export async function getServerWeek(): Promise<{ weekStart: string; dayOfWeek: number }> {
   const dow = nairobiDayOfWeek()
   const anchor = new Date(`${nairobiDateStr()}T12:00:00Z`)
