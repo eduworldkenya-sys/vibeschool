@@ -6,6 +6,7 @@ import { TWIN_REGISTRY } from "@/lib/twin/registry";
 import { fuzzyMatch } from "@/lib/twin/fuzzy";
 import { TwinReply, TwinAction, TwinRegistryEntry } from "@/lib/types";
 import type { PulseSnapshot } from "@/lib/types";
+import { nairobiDateStr } from "@/lib/time";
 
 const BRAIN_KEY     = "vibe_twin_brain_v2";
 const BRAIN_TTL     = 30 * 60 * 1000;
@@ -360,10 +361,18 @@ function scheduleActions(brain: TwinBrainState): TwinAction[] {
   if (!snap || snap.todaySlots.length === 0) return [];
   const seen = new Set<string>();
   const actions: TwinAction[] = [];
+  const today = nairobiDateStr();
   for (const slot of snap.todaySlots as any[]) {
-    if (seen.has(slot.class_id)) continue;
-    seen.add(slot.class_id);
-    actions.push({ label: `${slot.class_name} · ${slot.subject}`, route: `/teacher/attendance?classId=${slot.class_id}` });
+    if (seen.has(slot.id)) continue;
+    seen.add(slot.id);
+    actions.push({
+      label: `${slot.class_name} · ${slot.subject}`,
+      route:
+        `/teacher/attendance?mode=lesson` +
+        `&classId=${encodeURIComponent(slot.class_id)}` +
+        `&timetableSlotId=${encodeURIComponent(slot.id)}` +
+        `&date=${encodeURIComponent(today)}`,
+    });
   }
   return actions;
 }

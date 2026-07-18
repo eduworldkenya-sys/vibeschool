@@ -65,14 +65,19 @@ function Skeleton({ h = 56 }: { h?: number }) {
 function AttendanceInner() {
   const router       = useRouter()
   const searchParams = useSearchParams()
-  const urlClassId   = searchParams.get('classId')
-  const urlDate      = searchParams.get('date')
+  const urlMode            = searchParams.get('mode')
+  const urlClassId         = searchParams.get('classId')
+  const urlDate            = searchParams.get('date')
+  const urlTimetableSlotId = searchParams.get('timetableSlotId')
+  const requestedMode: Mode =
+    urlMode === 'lesson' && Boolean(urlTimetableSlotId) && Boolean(urlDate) ? 'lesson' : 'class'
   const today        = nairobiDateStr()
 
-  const [mode,            setMode]            = useState<Mode>(urlClassId ? 'class' : 'class')
+  const [mode,            setMode]            = useState<Mode>(requestedMode)
   const [selectedDate,    setSelectedDate]    = useState(urlDate ?? today)
   const [uid,             setUid]             = useState<string | null>(null)
   const [schoolId,        setSchoolId]        = useState<string | null>(null)
+  const [slotError,       setSlotError]       = useState<string | null>(null)
 
   // class mode
   const [classes,         setClasses]         = useState<ClassOption[]>([])
@@ -165,7 +170,18 @@ function AttendanceInner() {
       setSlots(mapped)
       setSlotsLoading(false)
 
-      if (mode === 'lesson') {
+      if (requestedMode === 'lesson' && urlTimetableSlotId) {
+        const matched = mapped.find(
+          s => s.id === urlTimetableSlotId && (!urlClassId || s.classId === urlClassId)
+        )
+        if (matched) {
+          setActiveSlot(matched)
+          setSlotError(null)
+        } else {
+          setActiveSlot(null)
+          setSlotError('This timetable lesson could not be found for the selected class and date.')
+        }
+      } else if (mode === 'lesson') {
         const first = mapped.find(s => !s.marked) ?? mapped[0] ?? null
         if (first) setActiveSlot(first)
       }
@@ -238,7 +254,17 @@ function AttendanceInner() {
   async function save() {
     if (!uid) return
     if (mode === 'class' && !activeClassId) return
-    if (mode === 'lesson' && !activeSlot) return
+    if (mode === 'lesson') {
+      if (!activeSlot?.id) {
+        setSlotError('Select a timetable lesson before saving attendance.')
+        return
+      }
+      if (!urlDate) {
+        setSlotError('The lesson date is missing.')
+        return
+      }
+    }
+    setSlotError(null)
     setSaving(true)
     setSaveState('idle')
 
@@ -251,7 +277,7 @@ function AttendanceInner() {
       class_id:   isLesson ? activeSlot!.classId : activeClassId!,
       teacher_id: uid,
       school_id:  classSchoolId,
-      date:      selectedDate,
+      date:      isLesson ? urlDate! : selectedDate,
       status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
       is_late:    statuses[s.id] === 'late',
       marked_at:  new Date().toISOString(),
@@ -303,7 +329,13 @@ function AttendanceInner() {
         {/* MODE TOGGLE */}
         <div style={{ display: 'flex', gap: 8, marginTop: 12, marginBottom: 12 }}>
           {(['class', 'lesson'] as Mode[]).map(m => (
-            <button key={m} onClick={() => { setMode(m); setStudents([]); setStatuses({}) }} style={{ flex: 1, padding: '9px 8px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 12, background: mode === m ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: mode === m ? '#065f46' : 'rgba(255,255,255,0.85)', transition: 'all 0.15s' }}>
+            <button key={m} onClick={() => {
+              setMode(m)
+              setStudents([])
+              setStatuses({})
+              setSlotError(null)
+              if (m === 'class') setActiveSlot(null)
+            }} style={{ flex: 1, padding: '9px 8px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 12, background: mode === m ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: mode === m ? '#065f46' : 'rgba(255,255,255,0.85)', transition: 'all 0.15s' }}>
               {m === 'class' ? '🏫 Class Register' : '📖 Lesson Register'}
             </button>
           ))}
@@ -347,6 +379,9 @@ function AttendanceInner() {
       {mode === 'lesson' && (
         <Card>
           <SectionLabel>Select Period</SectionLabel>
+          {mode === 'lesson' && slotError && (
+            <div style={{ fontSize: 12, color: C.error, fontWeight: 700, marginBottom: 10 }}>{slotError}</div>
+          )}
           {slotsLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[1,2,3].map(i => <Skeleton key={i} h={56} />)}</div>
           ) : slots.length === 0 ? (
@@ -433,6 +468,7 @@ function AttendanceInner() {
               ))}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
+                {mode === 'lesson' && slotError && <span style={{ fontSize: 13, color: C.error, fontWeight: 700 }}>{slotError}</span>}
                 {saveState === 'saved' && <span style={{ fontSize: 13, color: C.accent, fontWeight: 700 }}>✓ Saved</span>}
                 {saveState === 'error' && <span style={{ fontSize: 13, color: C.error, fontWeight: 700 }}>Error — try again</span>}
                 <Btn onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Attendance'}</Btn>

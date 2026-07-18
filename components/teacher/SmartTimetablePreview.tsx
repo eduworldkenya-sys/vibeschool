@@ -439,7 +439,12 @@ export default function SmartTimetablePreview() {
               <div key={slot.id} style={{ scrollSnapAlign: 'start', animation: `fadeUp 0.3s ease ${i * 60}ms both` }}>
                 <LessonCard
                   slot={slot}
-                  onAttend={() => router.push('/teacher/attendance?classId=' + slot.classId)}
+                  onAttend={() => router.push(
+                    '/teacher/attendance?mode=lesson' +
+                    '&classId=' + encodeURIComponent(slot.classId) +
+                    '&timetableSlotId=' + encodeURIComponent(slot.id) +
+                    '&date=' + encodeURIComponent(nairobiDateStr())
+                  )}
                   onPlan={()   => router.push('/teacher/lessonplan?classId=' + slot.classId + '&subjectId=' + slot.subjectId)}
                   onClass={()  => router.push('/teacher/classhub/' + slot.classId)}
                 />

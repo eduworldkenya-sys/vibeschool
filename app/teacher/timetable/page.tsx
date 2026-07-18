@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
-import { nairobiDateStr } from '@/lib/time'
+import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Slot {
@@ -201,13 +201,15 @@ const SlotCard = React.memo(function SlotCard({
 function SlotDrawer({
   slot,
   curMin,
+  occurrenceDate,
   onClose,
   onNavigate,
 }: {
-  slot:       Slot | null
-  curMin:     number
-  onClose:    () => void
-  onNavigate: (url: string) => void
+  slot:           Slot | null
+  curMin:         number
+  occurrenceDate: string
+  onClose:        () => void
+  onNavigate:     (url: string) => void
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -226,8 +228,12 @@ function SlotDrawer({
     if (delta > 120) onClose()  // FIX [UI-06]: increased threshold from 80 to 120px
   }
 
-  const today         = localDateStr()
-  const attendanceUrl = `/teacher/attendance?classId=${encodeURIComponent(slot.classId)}&date=${today}&subject=${encodeURIComponent(slot.subject)}`
+  const attendanceUrl =
+    `/teacher/attendance?mode=lesson` +
+    `&classId=${encodeURIComponent(slot.classId)}` +
+    `&timetableSlotId=${encodeURIComponent(slot.id)}` +
+    `&date=${encodeURIComponent(occurrenceDate)}` +
+    `&subject=${encodeURIComponent(slot.subject)}`
   const lessonUrl = `/teacher/lessonplan?subject=${encodeURIComponent(slot.subject)}&classId=${slot.classId}`;
   const homeworkUrl = `/teacher/classhub/${slot.classId}/homework`;
 
@@ -906,6 +912,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       <SlotDrawer
         slot={selected}
         curMin={curMin}
+        occurrenceDate={nairobiDateAdd(nairobiDateStr(), activeDow - todayDow)}
         onClose={() => setSelected(null)}
         onNavigate={handleNavigate}  // FIX [FATAL-03]: single router instance passed down
       />

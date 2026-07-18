@@ -1,5 +1,6 @@
 import type { PulseSnapshot, Slot, TaskSeverity, PriorityTask, RuleResult } from "@/lib/types";
 import { detectTeacherMode } from "./userMode";
+import { nairobiDateStr } from "@/lib/time";
 
 function byStartTime(a: Slot, b: Slot): number {
   return a.start_time.localeCompare(b.start_time);
@@ -42,7 +43,11 @@ function nextTaskForSlot(slot: Slot): PriorityTask | null {
       label: "Take attendance before teaching",
       detail: `${slot.class_name} is not marked yet.`,
       severity: "critical",
-      href: `/teacher/attendance?classId=${slot.class_id}`,
+      href:
+        `/teacher/attendance?mode=lesson` +
+        `&classId=${encodeURIComponent(slot.class_id)}` +
+        `&timetableSlotId=${encodeURIComponent(slot.id)}` +
+        `&date=${encodeURIComponent(nairobiDateStr())}`,
     };
   }
 

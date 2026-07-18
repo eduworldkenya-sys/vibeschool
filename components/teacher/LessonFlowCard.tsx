@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { PulseSnapshot, Slot, WorkflowState } from "@/lib/types";
 import EvidenceCaptureSheet from "./EvidenceCaptureSheet";
 import ReflectionSheet from "./ReflectionSheet";
+import { nairobiDateStr } from "@/lib/time";
 
 interface LessonFlowCardProps {
   slots: Slot[];
@@ -266,7 +267,11 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
 
   const routes: Partial<Record<StepName, string>> = {
     "Plan Lesson": `/teacher/lessonplan?subjectId=${activeSlot.subject_id}&classId=${activeSlot.class_id}`,
-    "Take Attendance": `/teacher/attendance?classId=${activeSlot.class_id}`,
+    "Take Attendance":
+      `/teacher/attendance?mode=lesson` +
+      `&classId=${encodeURIComponent(activeSlot.class_id)}` +
+      `&timetableSlotId=${encodeURIComponent(activeSlot.id)}` +
+      `&date=${encodeURIComponent(nairobiDateStr())}`,
     "Teach Lesson": `/teacher/teach?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
     "Assign Task": `/teacher/homework?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
     "Review Submissions": `/teacher/homework?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
