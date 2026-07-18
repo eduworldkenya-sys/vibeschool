@@ -622,3 +622,6 @@
 ## [2026-07-18 16:14] f66d975
 **What:** fix 17D: lesson-scoped attendance routing for 5 exact-slot callers
 **Status:** ✅ pushed
+## [2026-07-18 20:55] 6533dce
+**What:** Fix 18H: student notifications user_id chain corrected
+**Status:** ✅ pushed
