@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
 import { getActiveTerm, currentWeekOf, totalWeeksOf, type ActiveTerm } from "@/lib/academicTerm";
-import { nairobiDateStr } from "@/lib/time";
+import { nairobiDateAdd, nairobiWeekStart } from "@/lib/time";
 
 interface SubjectWeekRow {
   classId: string;
@@ -32,14 +32,6 @@ function Skeleton({ h = 56, w = "100%" }: { h?: number; w?: string }) {
       backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite", flexShrink: 0,
     }} />
   );
-}
-
-function weekStartOf(offsetWeeks: number): string {
-  const dow = new Date(new Date().toLocaleString("en-US", { timeZone: "Africa/Nairobi" })).getDay();
-  const diffToMon = dow === 0 ? -6 : 1 - dow;
-  const d = new Date(`${nairobiDateStr()}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + diffToMon + offsetWeeks * 7);
-  return nairobiDateStr(d);
 }
 
 interface Chip { key: "scheme" | "plan" | "notes" | "homework" | "assess"; label: string; done: boolean; }
@@ -92,7 +84,7 @@ export default function TeacherWeekViewPage() {
       if (!activeTerm) { setError("No active term. Contact your admin."); setLoading(false); return; }
       setTerm(activeTerm);
 
-      const wStart = weekStartOf(offset);
+      const wStart = nairobiDateAdd(nairobiWeekStart(), offset * 7);
       const baseWeek = currentWeekOf(activeTerm);
       const wk = Math.max(1, baseWeek + offset);
       setWeekNum(wk);
