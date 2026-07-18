@@ -33,7 +33,7 @@ export interface TimetableSlot {
   room:             string;
   start:            string;
   end:              string;
-  period:           number;
+  period?:          number;
   status:           SlotStatus;
   planStatus:       PlanStatus;
   attendanceMarked: boolean;

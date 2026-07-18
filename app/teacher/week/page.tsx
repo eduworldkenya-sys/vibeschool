@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
 import { getActiveTerm, currentWeekOf, totalWeeksOf, type ActiveTerm } from "@/lib/academicTerm";
-import { nairobiDateAdd, nairobiWeekStart } from "@/lib/time";
+import { nairobiDateAdd, nairobiWeekStart, nairobiDateStr } from "@/lib/time";
 
 interface SubjectWeekRow {
   classId: string;
