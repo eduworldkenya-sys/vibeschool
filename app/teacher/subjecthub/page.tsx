@@ -344,7 +344,7 @@ export default function SubjectHubPage() {
     const gradeRes = firstClassId ? await supabase.from('classes').select('name').eq('id', firstClassId).single() : { data: null }
     const gradeForCurriculum = gradeRes.data?.name ?? ''
 
-    const [lpRes, assRes, attRes, slotRes, resRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes] = await Promise.all([
+    const [lpRes, assRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes, attRes, slotRes, resRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
