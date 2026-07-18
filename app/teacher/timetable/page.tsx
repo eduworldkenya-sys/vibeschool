@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
+import { resolveOccurrence } from '@/lib/teaching/occurrence'
+import type { TeachingOccurrence, Lifecycle } from '@/lib/teaching/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Slot {
@@ -215,6 +217,42 @@ function SlotDrawer({
 
   const touchStartY = useRef<number>(0)
 
+  const [occurrence, setOccurrence] = useState<TeachingOccurrence | null>(null)
+  const [occLoading, setOccLoading] = useState(false)
+  const [occError, setOccError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!slot) {
+      setOccurrence(null)
+      setOccError(null)
+      return
+    }
+
+    let cancelled = false
+
+    setOccurrence(null)
+    setOccError(null)
+    setOccLoading(true)
+
+    resolveOccurrence({ timetableSlotId: slot.id, occurrenceDate })
+      .then(result => {
+        if (cancelled) return
+        if (!result) {
+          setOccError('This lesson occurrence could not be resolved.')
+          return
+        }
+        setOccurrence(result)
+      })
+      .catch(() => {
+        if (!cancelled) setOccError('This lesson occurrence could not be loaded.')
+      })
+      .finally(() => {
+        if (!cancelled) setOccLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [slot?.id, occurrenceDate])
+
   if (!slot) return null
 
   const isNow  = timeToMin(slot.startTime) <= curMin && timeToMin(slot.endTime) > curMin
@@ -236,6 +274,23 @@ function SlotDrawer({
     `&subject=${encodeURIComponent(slot.subject)}`
   const lessonUrl = `/teacher/lessonplan?subject=${encodeURIComponent(slot.subject)}&classId=${slot.classId}`;
   const homeworkUrl = `/teacher/classhub/${slot.classId}/homework`;
+
+  // Fix 18B: truthful lifecycle CTA. Only lifecycles with a real destination
+  // get a clickable action; exceptional states show status text until their
+  // workflows (Fix 18C+) exist. No label claims a mutation it doesn't perform.
+  const lifecycleAction: Partial<Record<Lifecycle, { label: string; url: string }>> = {
+    planned:     { label: 'Prepare Lesson',  url: lessonUrl },
+    ready:       { label: 'Open Lesson',     url: lessonUrl },
+    in_progress: { label: 'Continue Lesson', url: lessonUrl },
+    completed:   { label: 'Review Lesson',   url: lessonUrl },
+  }
+  const lifecycleStatus: Partial<Record<Lifecycle, string>> = {
+    missed:      'This lesson was missed. Recovery flow is not available yet.',
+    cancelled:   'This lesson was cancelled.',
+    rescheduled: 'This lesson was rescheduled.',
+  }
+  const primaryAction = occurrence ? lifecycleAction[occurrence.lifecycle] ?? null : null
+  const statusText    = occurrence ? lifecycleStatus[occurrence.lifecycle] ?? null : null
 
   return (
     <>
@@ -319,7 +374,35 @@ function SlotDrawer({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {occError && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 10,
+              background: '#fef2f2', border: '1px solid #fca5a5',
+              fontSize: 12, fontWeight: 600, color: '#b91c1c',
+            }}>
+              ⚠ {occError}
+            </div>
+          )}
+          {!occError && statusText && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 10,
+              background: 'var(--surface-raised, #f9fafb)',
+              fontSize: 12, fontWeight: 600, color: C.textMuted,
+            }}>
+              {statusText}
+            </div>
+          )}
+          {!occError && (occLoading || primaryAction) && (
+            <Btn
+              disabled={occLoading || !primaryAction}
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => { if (primaryAction) onNavigate(primaryAction.url) }}
+            >
+              {occLoading ? 'Loading lesson…' : primaryAction?.label}
+            </Btn>
+          )}
           <Btn
+            variant="ghost"
             style={{ width: '100%', justifyContent: 'center' }}
             onClick={() => onNavigate(attendanceUrl)}
           >
