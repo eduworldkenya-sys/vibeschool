@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { nairobiWeekStart, nairobiDateAdd } from '@/lib/time'
 
 const C = {
   bg:          '#f8fafc',
@@ -37,13 +38,17 @@ interface GeneratedPlan {
   assessment:   string
 }
 
-function nairobiWeekStart(weekOffset = 0): string {
-  const d = new Date()
-  const day = d.getDay()
-  const mon = new Date(d)
-  mon.setDate(d.getDate() - day + (day === 0 ? -6 : 1) + weekOffset * 7)
-  return mon.toISOString().split('T')[0]
+interface TimetableSlot {
+  id:              string
+  day_of_week:     number
+  start_time:      string
+  end_time:        string
+  room:            string | null
+  effective_from:  string
+  effective_until: string | null
 }
+
+const DAY_NAMES: Record<number, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri' }
 
 function GeneratePageInner() {
   const params     = useSearchParams()
@@ -73,6 +78,11 @@ function GeneratePageInner() {
   const [editSection, setEditSection] = useState<keyof GeneratedPlan | null>(null)
   const [editValue,   setEditValue]   = useState('')
 
+  const [slots,        setSlots]        = useState<TimetableSlot[] | null>(null)
+  const [slotsLoading, setSlotsLoading] = useState(false)
+  const [weekOffset,   setWeekOffset]   = useState(0)
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
+
   useEffect(() => {
     async function boot() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -98,6 +108,56 @@ function GeneratePageInner() {
     }
     boot()
   }, [classId])
+
+  // Fetch the timetable occurrences this generated plan could be assigned to.
+  // These are the only valid save targets — the plan is not written to
+  // lesson_plans until the teacher picks one.
+  useEffect(() => {
+    if (!generated || !uid || !classId || !subjectId) return
+    let cancelled = false
+    async function loadSlots() {
+      setSlots(null)
+      setSlotsLoading(true)
+      setSelectedSlotId(null)
+      const { data, error: slotsError } = await supabase
+        .from('timetable_slots')
+        .select('id,day_of_week,start_time,end_time,room,effective_from,effective_until')
+        .eq('teacher_id', uid)
+        .eq('class_id', classId)
+        .eq('subject_id', subjectId)
+        .order('day_of_week', { ascending: true })
+        .order('start_time', { ascending: true })
+      if (cancelled) return
+      if (slotsError) {
+        setSlots([])
+        setSlotsLoading(false)
+        setError('Could not load matching timetable lessons.')
+        return
+      }
+      setError(null)
+      setSlots((data ?? []) as TimetableSlot[])
+      setSlotsLoading(false)
+    }
+    loadSlots()
+    return () => { cancelled = true }
+  }, [generated, uid, classId, subjectId])
+
+  const selectedWeekStart = nairobiDateAdd(nairobiWeekStart(), weekOffset * 7)
+
+  // A slot is a valid target for the selected week only if THIS slot's
+  // specific weekday occurrence in that week falls inside its effective
+  // range — not merely that the range overlaps the week somewhere. E.g. a
+  // Monday slot effective from Wednesday must not show for that week's
+  // Monday even though the week overall overlaps effective_from.
+  const slotsForSelectedWeek = (slots ?? []).filter(s => {
+    const occurrenceDate = nairobiDateAdd(selectedWeekStart, s.day_of_week - 1)
+    return (
+      s.effective_from <= occurrenceDate &&
+      (s.effective_until === null || s.effective_until >= occurrenceDate)
+    )
+  })
+
+  const selectedSlot = slotsForSelectedWeek.find(s => s.id === selectedSlotId) ?? null
 
   async function generate() {
     setGenerating(true)
@@ -168,7 +228,11 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
   }
 
   async function savePlan() {
-    if (!generated || !uid || !classId || !subjectId) return
+    if (!generated || !uid || !classId || !subjectId || !selectedSlot) return
+    if (selectedSlot.day_of_week < 1 || selectedSlot.day_of_week > 5) {
+      setError('This lesson slot is outside the supported Monday–Friday lesson-plan week.')
+      return
+    }
     setSaving(true)
     setError(null)
 
@@ -181,18 +245,24 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
       assessment:   generated.assessment,
     })
 
+    const taughtDate = nairobiDateAdd(selectedWeekStart, selectedSlot.day_of_week - 1)
+
     const payload = {
-      teacher_id:  uid,
-      school_id:   schoolId,
-      class_id:    classId,
-      subject_id:  subjectId,
-      title:       `${subject} — ${className} — ${topic}`,
-      topic:       topic,
-      body:        body,
-      week_start:  nairobiWeekStart(week - 1),
-      curriculum_id: curriculumId,
-      scheme_id:   schemeId,
-      status:      'draft',
+      teacher_id:        uid,
+      school_id:         schoolId,
+      class_id:          classId,
+      subject_id:        subjectId,
+      title:              `${subject} — ${className} — ${topic}`,
+      topic:              topic,
+      body:               body,
+      timetable_slot_id: selectedSlot.id,
+      week_start:         selectedWeekStart,
+      day_of_week:        selectedSlot.day_of_week,
+      taught_date:        taughtDate,
+      curriculum_id:      curriculumId,
+      scheme_id:          schemeId,
+      status:             'draft',
+      generated_by:       'twin',
     }
 
     const { error: saveError } = await supabase.from('lesson_plans').insert(payload)
@@ -457,6 +527,74 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
               </div>
             )}
 
+            {/* Assign to lesson — bind this draft to a real timetable occurrence */}
+            <div style={{
+              background:   C.surface,
+              borderRadius: 16,
+              border:       `1px solid ${C.border}`,
+              padding:      16,
+              marginBottom: 10,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.text, marginBottom: 10 }}>
+                📌 Assign to Lesson
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <button
+                  onClick={() => { setWeekOffset(w => w - 1); setSelectedSlotId(null) }}
+                  style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
+                >‹</button>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                  Week of {selectedWeekStart}{weekOffset === 0 ? ' (this week)' : ''}
+                </span>
+                <button
+                  onClick={() => { setWeekOffset(w => w + 1); setSelectedSlotId(null) }}
+                  style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
+                >›</button>
+              </div>
+
+              {slotsLoading && (
+                <div style={{ fontSize: 12, color: C.text3 }}>Loading timetable…</div>
+              )}
+
+              {!slotsLoading && slotsForSelectedWeek.length === 0 && (
+                <div style={{
+                  background: C.amberLight, border: '1px solid #fcd34d',
+                  borderRadius: 10, padding: 12,
+                }}>
+                  <div style={{ fontSize: 12, color: C.text, marginBottom: 8 }}>
+                    No timetable lesson exists for this class and subject in this week. Add the lesson to your timetable before creating a lesson plan.
+                  </div>
+                  <a
+                    href="/teacher/timetable"
+                    style={{ fontSize: 12, fontWeight: 700, color: C.indigo, textDecoration: 'none' }}
+                  >Go to Timetable →</a>
+                </div>
+              )}
+
+              {!slotsLoading && slotsForSelectedWeek.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {slotsForSelectedWeek.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => setSelectedSlotId(s.id)}
+                      style={{
+                        textAlign: 'left', padding: '10px 12px',
+                        borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1.5px solid ${selectedSlotId === s.id ? C.indigo : C.border}`,
+                        background: selectedSlotId === s.id ? C.indigoLight : C.surface,
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                        {DAY_NAMES[s.day_of_week] ?? s.day_of_week} · {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
+                      </span>
+                      {s.room && <span style={{ fontSize: 11, color: C.text3 }}> · {s.room}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Action buttons */}
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button
@@ -472,17 +610,18 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
               >🔄 Regenerate</button>
               <button
                 onClick={savePlan}
-                disabled={saving || saved}
+                disabled={saving || saved || !selectedSlot}
                 style={{
                   flex: 2, padding: '12px',
                   background: saved ? C.green : `linear-gradient(135deg, ${C.teal}, #0f766e)`,
                   color: '#fff', border: 'none',
                   borderRadius: 12, fontSize: 13, fontWeight: 800,
-                  cursor: saving || saved ? 'not-allowed' : 'pointer',
+                  cursor: (saving || saved || !selectedSlot) ? 'not-allowed' : 'pointer',
+                  opacity: !selectedSlot && !saved ? 0.6 : 1,
                   fontFamily: 'inherit',
                 }}
               >
-                {saved ? '✅ Saved! Redirecting...' : saving ? 'Saving...' : '💾 Save to Lesson Plans'}
+                {saved ? '✅ Saved! Redirecting...' : saving ? 'Saving...' : !selectedSlot ? 'Select a lesson slot above' : '💾 Save to Lesson Plans'}
               </button>
             </div>
           </>

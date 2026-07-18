@@ -93,7 +93,7 @@ function LessonPlanInner() {
           .or(`effective_until.is.null,effective_until.gte.${weekStart}`)
           .order('start_time', { ascending: true }),
         supabase.from('lesson_plans')
-          .select('id,class_id,subject_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
+          .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
           .eq('teacher_id', user.id)
           .eq('week_start', weekStart),
       ])
@@ -111,7 +111,8 @@ function LessonPlanInner() {
 
       const planMap = new Map<string, PlanRow>()
       for (const p of plansRes.data ?? []) {
-        planMap.set(p.class_id + ':' + p.subject_id + ':' + p.day_of_week, {
+        if (!p.timetable_slot_id) continue
+        planMap.set(p.timetable_slot_id, {
           id: p.id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '', topic: p.topic ?? '',
           dayOfWeek: p.day_of_week, weekStart: p.week_start,
@@ -156,7 +157,7 @@ function LessonPlanInner() {
           day_of_week: s.day_of_week,
           occurrenceDate,
         }
-        return { slot, plan: planMap.get(s.class_id + ':' + s.subject_id + ':' + s.day_of_week) ?? null }
+        return { slot, plan: planMap.get(s.id) ?? null }
       })
 
       setItems(mapped)
