@@ -613,3 +613,6 @@
 ## [2026-07-18 10:57] 0bb7077
 **What:** fix15: occurrence-date slot filtering, error handling, weekday guard
 **Status:** ✅ pushed
+## [2026-07-18 11:18] be8e21f
+**What:** fix15: occurrence-date slot filtering, error handling, weekday guard
+**Status:** ✅ pushed
