@@ -610,3 +610,6 @@
 ## [2026-07-18 02:14] 3506b83
 **What:** fix: Nairobi day-of-week logic in SmartTimetablePreview
 **Status:** ✅ pushed
+## [2026-07-18 10:57] 0bb7077
+**What:** fix15: occurrence-date slot filtering, error handling, weekday guard
+**Status:** ✅ pushed
