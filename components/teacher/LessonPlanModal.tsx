@@ -8,6 +8,34 @@ import { nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
+import { completeTeachingOccurrence, fetchOccurrenceLifecycle, CompleteOccurrenceError } from '@/lib/teaching/occurrence'
+import type { CompleteOccurrenceErrorCode } from '@/lib/teaching/occurrence'
+import type { Lifecycle } from '@/lib/teaching/types'
+import ReflectionSheet from '@/components/teacher/ReflectionSheet'
+
+// Fix 18D: human-facing text for each stable complete_teaching_occurrence
+// error code. Same convention as startErrorMessage in app/teacher/timetable/page.tsx.
+function completeErrorMessage(code: CompleteOccurrenceErrorCode): string {
+  switch (code) {
+    case 'not_authenticated':
+      return 'Your session expired. Please sign in again.'
+    case 'slot_not_found':
+      return 'This lesson slot no longer exists.'
+    case 'slot_not_owned':
+      return 'This lesson belongs to a different teacher.'
+    case 'occurrence_not_found':
+    case 'occurrence_not_started':
+      return 'This lesson has not been started yet.'
+    case 'occurrence_cancelled':
+      return 'This lesson was cancelled.'
+    case 'occurrence_rescheduled':
+      return 'This lesson was rescheduled.'
+    case 'invalid_occurrence_date':
+      return 'This date no longer matches the lesson schedule.'
+    default:
+      return 'Could not complete the lesson. Please try again.'
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -126,6 +154,19 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   const planIdRef = useRef<string | null>(null)
   const [planId, _setPlanId] = useState<string | null>(null)
   function setPlanId(id: string) { planIdRef.current = id; _setPlanId(id) }
+
+  // Fix 18D: teacherId is required — ReflectionSheet's real prop signature
+  // demands `teacherId: string` (confirmed against components/teacher/
+  // ReflectionSheet.tsx), and boot()'s auth.getUser() result isn't otherwise
+  // exposed outside its own closure.
+  const [teacherId,      setTeacherId]      = useState<string | null>(null)
+  // occLifecycle is fetched separately from `status` above — status is the
+  // publish/share pipeline (lesson_plans.status), a different axis from
+  // teaching_occurrences.lifecycle entirely.
+  const [occLifecycle,   setOccLifecycle]   = useState<Lifecycle | null>(null)
+  const [completing,     setCompleting]     = useState(false)
+  const [completeError,  setCompleteError]  = useState<string | null>(null)
+  const [showReflection, setShowReflection] = useState(false)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -292,11 +333,27 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (user == null) { setError('Not signed in.'); setPhase('form'); return }
+        setTeacherId(user.id)
 
         const [, existing] = await Promise.all([
           loadContext(user.id),
           loadExistingPlan(user.id),
         ])
+
+        // Fix 18D: isolated from the load above on purpose. A transient
+        // occurrence-read failure should disable the completion CTA and
+        // show a lifecycle-specific error — it must not block the lesson
+        // plan itself from loading, unlike loadContext/loadExistingPlan
+        // failing, which genuinely is fatal to the workspace.
+        try {
+          const lifecycle = taughtDate
+            ? await fetchOccurrenceLifecycle({ timetableSlotId: slot.id, occurrenceDate: taughtDate })
+            : null
+          setOccLifecycle(lifecycle)
+        } catch (lifecycleErr) {
+          console.error('[LessonPlanModal] occurrenceLifecycle', lifecycleErr)
+          setCompleteError('Could not load the lesson completion state.')
+        }
 
         if (existing != null && existing.body) {
           // G3: check null before trusting parse
@@ -618,6 +675,39 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
     }
   }
 
+  // Fix 18D: the lesson workspace's own completion CTA — separate from the
+  // timetable drawer's start CTA (Fix 18C). Only renders when occLifecycle
+  // === 'in_progress' (see render below), but the RPC itself is still the
+  // sole source of truth on whether the transition is actually valid.
+  //
+  // Product rule: completing a lesson occurrence is a teaching-workflow
+  // event only. It never writes to scheme_of_work or curriculum progress —
+  // that update path is separate and explicit. Do not extend this handler
+  // to touch it. Reflection/evidence stay pending after this call; only
+  // lifecycle + completed_at change.
+  async function handleCompleteLesson() {
+    if (!taughtDate || completing) return
+
+    setCompleting(true)
+    setCompleteError(null)
+
+    try {
+      const row = await completeTeachingOccurrence({
+        timetableSlotId: slot.id,
+        occurrenceDate:   taughtDate,
+      })
+      setOccLifecycle(row.lifecycle)
+      showToast('Lesson marked complete ✓')
+      setShowReflection(true)
+    } catch (err) {
+      const code = err instanceof CompleteOccurrenceError ? err.code : 'unknown'
+      console.error('[LessonPlanModal] completeLesson', err)
+      setCompleteError(completeErrorMessage(code))
+    } finally {
+      setCompleting(false)
+    }
+  }
+
   const isbusy      = busy !== 'idle'
   const statusBadge = STATUS_BADGE[status]
 
@@ -851,6 +941,32 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 16, borderTop: '1px solid ' + C.border, marginTop: 8 }}>
+                {completeError && (
+                  <div style={{
+                    padding: '10px 12px', borderRadius: 10,
+                    background: '#fef2f2', border: '1px solid #fca5a5',
+                    fontSize: 12, fontWeight: 600, color: '#b91c1c',
+                  }}>
+                    ⚠ {completeError}
+                  </div>
+                )}
+                {occLifecycle === 'in_progress' && (
+                  <button onClick={handleCompleteLesson} disabled={completing} style={{
+                    width: '100%', padding: '13px', borderRadius: 12, border: 'none',
+                    background: '#059669', color: '#fff', fontSize: 13, fontWeight: 800,
+                    cursor: completing ? 'not-allowed' : 'pointer', opacity: completing ? 0.7 : 1, fontFamily: 'inherit',
+                  }}>
+                    {completing ? 'Completing lesson…' : '✅ Complete Lesson'}
+                  </button>
+                )}
+                {occLifecycle === 'completed' && (
+                  <div style={{
+                    padding: '12px 16px', borderRadius: 12, background: '#d1fae5',
+                    color: '#065f46', fontSize: 13, fontWeight: 700, textAlign: 'center',
+                  }}>
+                    ✓ Lesson completed
+                  </div>
+                )}
                 {status === 'draft' && (
                   <button onClick={handlePublish} disabled={isbusy} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
@@ -940,6 +1056,17 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
 
         </div>
       </div>
+
+      {showReflection && teacherId && (
+        <ReflectionSheet
+          lessonId={planId}
+          classId={slot.class_id}
+          subjectId={slot.subject_id}
+          teacherId={teacherId}
+          onClose={() => setShowReflection(false)}
+          onSaved={() => showToast('Reflection saved ✓')}
+        />
+      )}
     </>
   )
 }
