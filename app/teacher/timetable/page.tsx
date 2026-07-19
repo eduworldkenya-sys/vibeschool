@@ -318,26 +318,36 @@ function SlotDrawer({
   const lifecycleAction: Partial<Record<Lifecycle, { label: string; url: string }>> = {
     planned:     { label: 'Prepare Lesson',  url: lessonUrl },
     ready:       { label: 'Open Lesson',     url: lessonUrl },
+    // Fix 18C: 'missed' now gets a real CTA. It routes through the same RPC
+    // as ready/in_progress — the RPC decides whether that succeeds
+    // (missed + exact plan -> in_progress) or redirects to the plan flow
+    // (missed + no plan -> lesson_plan_required), so no client-side branch
+    // is needed here beyond needsStartMutation including 'missed'.
+    missed:      { label: 'Start Lesson',    url: lessonUrl },
     in_progress: { label: 'Continue Lesson', url: lessonUrl },
     completed:   { label: 'Review Lesson',   url: lessonUrl },
   }
   const lifecycleStatus: Partial<Record<Lifecycle, string>> = {
-    missed:      'This lesson was missed. Recovery flow is not available yet.',
     cancelled:   'This lesson was cancelled.',
     rescheduled: 'This lesson was rescheduled.',
   }
   const primaryAction = occurrence ? lifecycleAction[occurrence.lifecycle] ?? null : null
   const statusText    = occurrence ? lifecycleStatus[occurrence.lifecycle] ?? null : null
 
-  // Fix 18C: only 'ready' and 'in_progress' ever reach here with a
-  // lessonPlanId already resolved (see deriveLifecycle precedence in
-  // occurrence.ts — lessonPlanId is checked before anything derives
-  // 'ready', and 'in_progress' can only be a persisted, plan-backed row).
-  // 'planned' has no plan yet, so calling the RPC would just guarantee a
-  // lesson_plan_required round trip — skip it and go straight to the plan
-  // flow, same as before Fix 18C.
+  // Fix 18C: 'ready', 'in_progress', and 'missed' all reach the RPC.
+  // 'ready' and a plan-backed 'in_progress' are the straightforward cases
+  // (see deriveLifecycle precedence in occurrence.ts). 'missed' is included
+  // because the RPC itself is the source of truth on whether a missed slot
+  // can still be started — a missed occurrence with an exact lesson plan
+  // transitions to in_progress; one without a plan gets lesson_plan_required
+  // and is redirected below, same as any other missing-plan case.
+  // 'planned' is excluded on purpose: it never has a plan yet, so calling
+  // the RPC would just guarantee a lesson_plan_required round trip — skip
+  // it and go straight to the plan flow.
   const needsStartMutation =
-    occurrence?.lifecycle === 'ready' || occurrence?.lifecycle === 'in_progress'
+    occurrence?.lifecycle === 'ready' ||
+    occurrence?.lifecycle === 'in_progress' ||
+    occurrence?.lifecycle === 'missed'
 
   async function handlePrimaryAction() {
     if (!primaryAction || !occurrence || !slot) return

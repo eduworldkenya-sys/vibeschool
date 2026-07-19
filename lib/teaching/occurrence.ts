@@ -79,6 +79,25 @@ function normalizeStartError(error: { message?: string | null } | null | undefin
 }
 
 /**
+ * Runtime guard for the RPC's return value. Checked before the caller ever
+ * trusts the row — catches an unexpectedly-shaped payload (e.g. PostgREST
+ * wrapping the result in an array) instead of letting a bad shape flow
+ * silently into UI state as if it were a valid StartedOccurrenceRow.
+ */
+function isStartedOccurrenceRow(value: unknown): value is StartedOccurrenceRow {
+  if (!value || typeof value !== 'object') return false
+
+  const row = value as Partial<StartedOccurrenceRow>
+
+  return (
+    typeof row.id === 'string' &&
+    typeof row.timetable_slot_id === 'string' &&
+    typeof row.occurrence_date === 'string' &&
+    typeof row.lifecycle === 'string'
+  )
+}
+
+/**
  * Calls the start_teaching_occurrence RPC to transition (or idempotently
  * confirm) a lesson into in_progress. Never swallows a failure: on any
  * database error this throws a StartOccurrenceError with a stable .code,
@@ -91,9 +110,12 @@ export async function startTeachingOccurrence(key: OccurrenceKey): Promise<Start
   })
 
   if (error) throw normalizeStartError(error)
-  if (!data) throw new StartOccurrenceError('unknown', 'start_teaching_occurrence returned no row.')
 
-  return data as StartedOccurrenceRow
+  if (!isStartedOccurrenceRow(data)) {
+    throw new StartOccurrenceError('unknown', 'start_teaching_occurrence returned an invalid row.')
+  }
+
+  return data
 }
 
 function deriveLifecycle(
