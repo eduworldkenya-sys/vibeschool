@@ -2,6 +2,12 @@
 -- This is the correct trigger point (see Fix 18E-B, which removed the
 -- premature write at lesson-plan generation time). Guarded by status='planned'
 -- so it only fires once and never overwrites a later/other status.
+--
+-- v2: self-healing on the idempotent in_progress branch (an occurrence
+-- started before this fix existed, with its scheme still stuck on
+-- 'planned', gets repaired on the next Start Lesson retry instead of
+-- staying disconnected forever). Also scopes + orders the lesson_plans
+-- lookup deterministically, and hardens execute privileges explicitly.
 
 create or replace function public.start_teaching_occurrence(
   p_timetable_slot_id uuid,
@@ -56,10 +62,14 @@ begin
     raise exception 'invalid_occurrence_date';
   end if;
 
-  select id, scheme_id into v_plan, v_scheme_id
+  select id, scheme_id
+    into v_plan, v_scheme_id
     from public.lesson_plans
    where timetable_slot_id = p_timetable_slot_id
      and taught_date = p_occurrence_date
+     and teacher_id = v_uid
+     and school_id = v_slot.school_id
+   order by updated_at desc nulls last, created_at desc
    limit 1;
 
   if v_plan is null then
@@ -80,6 +90,15 @@ begin
     elsif v_occ.lifecycle = 'rescheduled' then
       raise exception 'occurrence_rescheduled';
     elsif v_occ.lifecycle = 'in_progress' then
+      if v_scheme_id is not null then
+        update public.scheme_of_work
+           set status = 'teaching'
+         where id = v_scheme_id
+           and school_id = v_slot.school_id
+           and teacher_id = v_uid
+           and status = 'planned';
+      end if;
+
       return v_occ;
     end if;
 
@@ -125,3 +144,7 @@ begin
   return v_occ;
 end;
 $$;
+
+revoke all on function public.start_teaching_occurrence(uuid, date) from public;
+revoke execute on function public.start_teaching_occurrence(uuid, date) from anon;
+grant execute on function public.start_teaching_occurrence(uuid, date) to authenticated;
