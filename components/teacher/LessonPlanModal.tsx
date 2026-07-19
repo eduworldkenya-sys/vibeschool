@@ -178,6 +178,14 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   const [planId, _setPlanId] = useState<string | null>(null)
   function setPlanId(id: string) { planIdRef.current = id; _setPlanId(id) }
 
+  // Fix 18E-D correction: the persisted lesson plan's own scheme_id — never
+  // derived from suggestion?.schemeId, which is transient UI input and may
+  // not reflect the plan that was actually saved/completed. Populated from
+  // the loaded plan row and from the row returned after insert/update.
+  // Reset whenever boot() reruns for a different slot/date, or stays null
+  // when no persisted plan exists.
+  const planSchemeIdRef = useRef<string | null>(null)
+
   // Fix 18D: teacherId is required — ReflectionSheet's real prop signature
   // demands `teacherId: string` (confirmed against components/teacher/
   // ReflectionSheet.tsx), and boot()'s auth.getUser() result isn't otherwise
@@ -364,6 +372,10 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         if (user == null) { setError('Not signed in.'); setPhase('form'); return }
         setTeacherId(user.id)
 
+        // Fix 18E-D correction: reset for this boot pass — repopulated below
+        // only if a persisted plan with a scheme link actually loads.
+        planSchemeIdRef.current = null
+
         const [, existing] = await Promise.all([
           loadContext(user.id),
           loadExistingPlan(user.id),
@@ -391,6 +403,9 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
           if (existing.topic)  setTopic(existing.topic)
           if (existing.status) setStatus(existing.status as Status)
           setPlanId(existing.id)
+          // Fix 18E-D correction: source of truth for the coverage-prompt
+          // gate is the persisted row's own scheme_id, not the suggestion.
+          planSchemeIdRef.current = existing.scheme_id ?? null
 
           // Carry the curriculum identity this plan was actually generated
           // against — not loadContext's guess for the CURRENT week, which
@@ -522,10 +537,18 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       // G4: read ref not state
       const currentId = planIdRef.current
       if (currentId != null) {
-        await supabase.from('lesson_plans').update(payload).eq('id', currentId)
+        const { data: upd } = await supabase.from('lesson_plans')
+          .update(payload)
+          .eq('id', currentId)
+          .select('id, scheme_id')
+          .single()
+        // Fix 18E-D correction: populate from the row returned by the
+        // update itself, not from payload — the row is the source of truth.
+        planSchemeIdRef.current = upd?.scheme_id ?? null
       } else {
-        const { data: ins } = await supabase.from('lesson_plans').insert(payload).select('id').single()
+        const { data: ins } = await supabase.from('lesson_plans').insert(payload).select('id, scheme_id').single()
         if (ins?.id) setPlanId(ins.id)
+        planSchemeIdRef.current = ins?.scheme_id ?? null
       }
 
       // Fix 18E-B: scheme status is no longer set here. Lesson-plan
@@ -720,8 +743,15 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       // id or plan id — so the coverage prompt always targets the exact
       // occurrence that was just completed. Rendered only once the
       // reflection sheet (if any) has closed — see render below.
-      setCoverageError(null)
-      setCoveragePromptOccurrenceId(row.id)
+      // Gated on planSchemeIdRef (the persisted plan's own scheme_id), never
+      // on suggestion?.schemeId. Lessons with no scheme link (custom/manual
+      // plans, scheme_id null) must never trigger this prompt.
+      if (planSchemeIdRef.current) {
+        setCoverageError(null)
+        setCoveragePromptOccurrenceId(row.id)
+      } else {
+        setCoveragePromptOccurrenceId(null)
+      }
       // Only offer reflection if a plan is actually persisted — otherwise
       // ReflectionSheet would render with lessonId={null} and silently fail.
       if (planIdRef.current) {
@@ -736,10 +766,12 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
     }
   }
 
-  // Fix 18E-D: the only path that may set scheme_of_work.status = 'done'.
-  // Runs the guarded mark_scheme_item_covered RPC — never a direct
-  // .from('scheme_of_work').update(). A failure here shows inline and never
-  // reverses the already-successful lesson completion above.
+  // Fix 18E-D: guarded occurrence-based path for marking the linked scheme
+  // item done. Runs the guarded mark_scheme_item_covered RPC — never a
+  // direct .from('scheme_of_work').update() here. The Scheme page's manual
+  // updateStatus(...) remains a separate valid path. A failure here shows
+  // inline and never reverses the already-successful lesson completion
+  // above.
   async function handleMarkCovered() {
     if (!coveragePromptOccurrenceId || markingCovered) return
 

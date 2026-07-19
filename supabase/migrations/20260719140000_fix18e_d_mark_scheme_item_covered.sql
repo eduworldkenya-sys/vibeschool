@@ -1,5 +1,7 @@
--- Fix 18E-D: mark_scheme_item_covered — the only path allowed to set
--- scheme_of_work.status = 'done'. Client code must never write that status
+-- Fix 18E-D: mark_scheme_item_covered — guarded occurrence-based path for
+-- advancing a linked scheme item from 'teaching' to 'done' after lesson
+-- completion. The Scheme page's manual updateStatus(...) remains a
+-- separate valid path for teachers to change scheme_of_work.status
 -- directly. Guarded: teacher must own the occurrence, occurrence must be
 -- 'completed', a linked lesson plan + scheme item must exist, and the
 -- scheme item must currently be 'teaching'. Never touches 'planned' or
@@ -9,7 +11,10 @@
 create or replace function public.mark_scheme_item_covered(
   p_occurrence_id uuid
 )
-returns public.scheme_of_work
+returns table (
+  scheme_id uuid,
+  status    text
+)
 language plpgsql
 security definer
 set search_path = public
@@ -76,7 +81,9 @@ begin
   end if;
 
   if v_scheme.status = 'done' then
-    return v_scheme;
+    return query
+    select v_scheme.id, v_scheme.status;
+    return;
   end if;
 
   if v_scheme.status <> 'teaching' then
@@ -88,7 +95,8 @@ begin
    where id = v_scheme.id
   returning * into v_scheme;
 
-  return v_scheme;
+  return query
+  select v_scheme.id, v_scheme.status;
 end;
 $$;
 

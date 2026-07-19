@@ -261,81 +261,56 @@ function normalizeMarkCoveredError(error: { message?: string | null } | null | u
 }
 
 /**
- * The raw persisted row shape returned by mark_scheme_item_covered — the
- * full scheme_of_work row, mirroring how TeachingOccurrenceRow mirrors
- * teaching_occurrences.
+ * The minimal result shape returned by mark_scheme_item_covered. The RPC
+ * returns table (scheme_id uuid, status text) — only the fields the
+ * client actually relies on, not the full scheme_of_work row.
  */
-export interface SchemeOfWorkRow {
-  id:                     string
-  school_id:              string
-  teacher_id:             string
-  class_id:               string | null
-  subject_id:             string | null
-  curriculum_id:          string | null
-  curriculum_type:        string | null
-  grade:                  string | null
-  subject:                string | null
-  term:                   number | null
-  week:                   number | null
-  date:                   string | null
-  day_of_week:            string | null
-  period:                 number | null
-  strand:                 string | null
-  sub_strand:             string | null
-  topic:                  string | null
-  objectives:             string | null
-  resources:              string | null
-  reference:              string | null
-  rollcall:               string | null
-  remarks:                string | null
-  status:                 string
-  created_at:             string
-  updated_at:             string | null
-  academic_term_id:       string | null
-  source:                 string | null
-  lesson_number:          number | null
-  reflection:              string | null
-  curriculum_content_id:  string | null
-  key_inquiry_question:   string | null
-  learning_resources:     string | null
-  assessment_methods:     string | null
-  learning_experiences:   string | null
-  sub_strand_id:          string | null
+export interface MarkCoveredResult {
+  scheme_id: string
+  status:    'done'
 }
 
-function isSchemeOfWorkRow(value: unknown): value is SchemeOfWorkRow {
+function isMarkCoveredResult(value: unknown): value is MarkCoveredResult {
   if (!value || typeof value !== 'object') return false
 
-  const row = value as Partial<SchemeOfWorkRow>
+  const row = value as Partial<MarkCoveredResult>
 
-  return typeof row.id === 'string' && typeof row.status === 'string'
+  return typeof row.scheme_id === 'string' && row.status === 'done'
 }
 
 /**
  * Calls the mark_scheme_item_covered RPC to advance the scheme item linked
  * to a completed occurrence's lesson plan from 'teaching' to 'done'.
  *
- * This is the ONLY path that may set scheme_of_work.status = 'done'. Never
- * call `.from('scheme_of_work').update({ status: 'done' })` directly from
- * the client — the RPC enforces ownership, that the occurrence is actually
- * completed, and that the scheme item is currently 'teaching' (never
- * downgrades 'done', never touches 'planned' or any other status).
+ * Guarded occurrence-based path: never call
+ * `.from('scheme_of_work').update({ status: 'done' })` directly from the
+ * client for this flow — the RPC enforces ownership, that the occurrence
+ * is actually completed, and that the scheme item is currently 'teaching'
+ * (never downgrades 'done', never touches 'planned' or any other status).
+ * The Scheme page's manual updateStatus(...) remains a separate valid
+ * path for teachers to change status directly.
  *
- * Idempotent: calling this again on an already-'done' item returns the row
- * unchanged rather than erroring, so a duplicate tap/retry is always safe.
+ * Idempotent: calling this again on an already-'done' item returns the
+ * result unchanged rather than erroring, so a duplicate tap/retry is
+ * always safe.
+ *
+ * Supabase RPCs declared `returns table (...)` come back as an array —
+ * normalize to a single row before validating.
  */
-export async function markSchemeItemCovered(occurrenceId: string): Promise<SchemeOfWorkRow> {
+export async function markSchemeItemCovered(occurrenceId: string): Promise<MarkCoveredResult> {
   const { data, error } = await supabase.rpc('mark_scheme_item_covered', {
     p_occurrence_id: occurrenceId,
   })
 
   if (error) throw normalizeMarkCoveredError(error)
 
-  if (!isSchemeOfWorkRow(data)) {
-    throw new MarkSchemeCoveredError('unknown', 'mark_scheme_item_covered returned an invalid row.')
+  const row = Array.isArray(data) ? data[0] : data
+
+  if (!isMarkCoveredResult(row)) {
+    throw new MarkSchemeCoveredError('unknown', 'mark_scheme_item_covered returned an invalid result.')
   }
 
-  return data
+  return row
 }
 
 /**
