@@ -125,11 +125,15 @@ export default function TeacherWeekViewPage() {
           .eq("term", activeTerm.term)
           .eq("week", wk)
           .in("grade", Array.from(new Set(Array.from(gradeMap.values())))),
-        supabase.from("strand_progress")
-          .select("class_id,curriculum_id,term,week")
+        // Fix 18E-A: scheme_of_work is the real coverage truth.
+        // Only done rows are returned because this collection is consumed
+        // as completed curriculum progress, not merely scheduled work.
+        supabase.from("scheme_of_work")
+          .select("class_id,curriculum_id,term,week,status")
           .eq("teacher_id", user.id)
           .eq("term", activeTerm.term)
           .eq("week", wk)
+          .eq("status", "done")
           .in("class_id", classIds),
         supabase.from("lesson_plans")
           .select("id,class_id,subject_id,week_start")

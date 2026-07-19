@@ -350,7 +350,7 @@ export default function SubjectHubPage() {
       supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('id, strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
-      schoolId ? supabase.from('strand_progress').select('curriculum_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
+      schoolId ? supabase.from('scheme_of_work').select('curriculum_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
       supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
       Promise.resolve({ data: [] }),

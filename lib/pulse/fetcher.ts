@@ -685,21 +685,26 @@ export async function fetchPulseData(
       if (!gradeName) return;
 
       const [totalRes, coveredRes, lessonRes] = await Promise.allSettled([
-        supabase
-          .from("curriculum")
-          .select("*", { count: "exact", head: true })
-          .eq("grade", gradeName)
-          .eq("subject", subjectName),
         activeTermNum
           ? supabase
-              .from("strand_progress")
+              .from("scheme_of_work")
               .select("*", { count: "exact", head: true })
               .eq("school_id", schoolId)
               .eq("teacher_id", userId)
               .eq("subject_id", teacherClass.subject_id)
               .eq("class_id", teacherClass.class_id)
               .eq("term", activeTermNum)
-              .in("status", ["done", "teaching"])
+          : Promise.resolve({ count: 0 }),
+        activeTermNum
+          ? supabase
+              .from("scheme_of_work")
+              .select("*", { count: "exact", head: true })
+              .eq("school_id", schoolId)
+              .eq("teacher_id", userId)
+              .eq("subject_id", teacherClass.subject_id)
+              .eq("class_id", teacherClass.class_id)
+              .eq("term", activeTermNum)
+              .eq("status", "done")
           : Promise.resolve({ count: 0 }),
         supabase
           .from("lesson_plans")
