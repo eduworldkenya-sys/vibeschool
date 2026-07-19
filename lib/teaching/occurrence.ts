@@ -79,6 +79,23 @@ function normalizeStartError(error: { message?: string | null } | null | undefin
 }
 
 /**
+ * Mirrors the Lifecycle union in types.ts. Kept as a runtime Set (rather than
+ * trusting the type-level union alone) because this guard's whole purpose is
+ * to catch a payload that doesn't actually match the type it's cast to —
+ * checking against the type wouldn't catch anything a bad payload couldn't
+ * already lie its way past.
+ */
+const LIFECYCLES: ReadonlySet<string> = new Set([
+  'planned',
+  'ready',
+  'in_progress',
+  'completed',
+  'missed',
+  'cancelled',
+  'rescheduled',
+])
+
+/**
  * Runtime guard for the RPC's return value. Checked before the caller ever
  * trusts the row — catches an unexpectedly-shaped payload (e.g. PostgREST
  * wrapping the result in an array) instead of letting a bad shape flow
@@ -93,7 +110,8 @@ function isStartedOccurrenceRow(value: unknown): value is StartedOccurrenceRow {
     typeof row.id === 'string' &&
     typeof row.timetable_slot_id === 'string' &&
     typeof row.occurrence_date === 'string' &&
-    typeof row.lifecycle === 'string'
+    typeof row.lifecycle === 'string' &&
+    LIFECYCLES.has(row.lifecycle)
   )
 }
 
