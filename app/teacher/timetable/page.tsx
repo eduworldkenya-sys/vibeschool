@@ -497,6 +497,16 @@ function SlotDrawer({
               {statusText}
             </div>
           )}
+          {!occError && !startError && occurrence?.lifecycle === 'missed' && (
+            <div style={{
+              display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 6,
+              padding: '5px 10px', borderRadius: 999,
+              background: '#fffbeb', border: '1px solid #fcd34d',
+              fontSize: 11, fontWeight: 700, color: '#92400e',
+            }}>
+              ⏱ Missed lesson
+            </div>
+          )}
           {!occError && (occLoading || primaryAction) && (
             <Btn
               disabled={occLoading || starting || !primaryAction}
