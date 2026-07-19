@@ -8,10 +8,11 @@ import { nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
-import { completeTeachingOccurrence, fetchOccurrenceLifecycle, CompleteOccurrenceError } from '@/lib/teaching/occurrence'
-import type { CompleteOccurrenceErrorCode } from '@/lib/teaching/occurrence'
+import { completeTeachingOccurrence, fetchOccurrenceLifecycle, CompleteOccurrenceError, markSchemeItemCovered, MarkSchemeCoveredError } from '@/lib/teaching/occurrence'
+import type { CompleteOccurrenceErrorCode, MarkCoveredErrorCode } from '@/lib/teaching/occurrence'
 import type { Lifecycle } from '@/lib/teaching/types'
 import ReflectionSheet from '@/components/teacher/ReflectionSheet'
+import CoverageSheet from '@/components/teacher/CoverageSheet'
 
 // Fix 18D: human-facing text for each stable complete_teaching_occurrence
 // error code. Same convention as startErrorMessage in app/teacher/timetable/page.tsx.
@@ -34,6 +35,28 @@ function completeErrorMessage(code: CompleteOccurrenceErrorCode): string {
       return 'This date no longer matches the lesson schedule.'
     default:
       return 'Could not complete the lesson. Please try again.'
+  }
+}
+
+// Fix 18E-D: human-facing text for each stable mark_scheme_item_covered error code.
+function coveredErrorMessage(code: MarkCoveredErrorCode): string {
+  switch (code) {
+    case 'not_authenticated':
+      return 'Your session expired. Please sign in again.'
+    case 'occurrence_not_found':
+      return 'This lesson could not be found.'
+    case 'occurrence_not_owned':
+      return 'This lesson belongs to a different teacher.'
+    case 'occurrence_not_completed':
+      return 'Complete the lesson before marking coverage.'
+    case 'lesson_plan_not_found':
+      return 'No lesson plan is linked to this lesson.'
+    case 'scheme_item_not_found':
+      return 'No scheme item is linked to this lesson.'
+    case 'scheme_item_not_ready':
+      return "This scheme item isn't in a state that can be marked covered."
+    default:
+      return 'Could not update the scheme. Please try again.'
   }
 }
 
@@ -167,6 +190,12 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   const [completing,     setCompleting]     = useState(false)
   const [completeError,  setCompleteError]  = useState<string | null>(null)
   const [showReflection, setShowReflection] = useState(false)
+  // Fix 18E-D: set from the RPC-returned completed occurrence's own id —
+  // never a slot id or plan id — so the coverage prompt always targets the
+  // exact occurrence that was just completed, not a stale/derived key.
+  const [coveragePromptOccurrenceId, setCoveragePromptOccurrenceId] = useState<string | null>(null)
+  const [markingCovered, setMarkingCovered] = useState(false)
+  const [coverageError, setCoverageError] = useState<string | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -687,6 +716,12 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       })
       setOccLifecycle(row.lifecycle)
       showToast('Lesson marked complete ✓')
+      // Fix 18E-D: use the RPC-returned occurrence's own id — never a slot
+      // id or plan id — so the coverage prompt always targets the exact
+      // occurrence that was just completed. Rendered only once the
+      // reflection sheet (if any) has closed — see render below.
+      setCoverageError(null)
+      setCoveragePromptOccurrenceId(row.id)
       // Only offer reflection if a plan is actually persisted — otherwise
       // ReflectionSheet would render with lessonId={null} and silently fail.
       if (planIdRef.current) {
@@ -699,6 +734,36 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
     } finally {
       setCompleting(false)
     }
+  }
+
+  // Fix 18E-D: the only path that may set scheme_of_work.status = 'done'.
+  // Runs the guarded mark_scheme_item_covered RPC — never a direct
+  // .from('scheme_of_work').update(). A failure here shows inline and never
+  // reverses the already-successful lesson completion above.
+  async function handleMarkCovered() {
+    if (!coveragePromptOccurrenceId || markingCovered) return
+
+    setMarkingCovered(true)
+    setCoverageError(null)
+
+    try {
+      await markSchemeItemCovered(coveragePromptOccurrenceId)
+      setCoveragePromptOccurrenceId(null)
+      showToast('Marked covered in scheme ✓')
+      refreshPulse('lesson')
+    } catch (err) {
+      const code = err instanceof MarkSchemeCoveredError ? err.code : 'unknown'
+      console.error('[LessonPlanModal] markCovered', err)
+      setCoverageError(coveredErrorMessage(code))
+    } finally {
+      setMarkingCovered(false)
+    }
+  }
+
+  function handleDismissCoverage() {
+    if (markingCovered) return
+    setCoverageError(null)
+    setCoveragePromptOccurrenceId(null)
   }
 
   const isbusy      = busy !== 'idle'
@@ -1058,6 +1123,19 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
           teacherId={teacherId}
           onClose={() => setShowReflection(false)}
           onSaved={() => showToast('Reflection saved ✓')}
+        />
+      )}
+
+      {/* Fix 18E-D: gated on !showReflection so the coverage prompt only
+          appears once the reflection sheet has closed (save or dismiss) —
+          never stacked on top of it. If there's no lesson plan to reflect
+          on, showReflection never opens and this shows immediately. */}
+      {!showReflection && coveragePromptOccurrenceId && (
+        <CoverageSheet
+          marking={markingCovered}
+          error={coverageError}
+          onMarkCovered={handleMarkCovered}
+          onDismiss={handleDismissCoverage}
         />
       )}
     </>

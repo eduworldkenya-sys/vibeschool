@@ -213,6 +213,131 @@ export async function completeTeachingOccurrence(key: OccurrenceKey): Promise<Te
   return data
 }
 
+// ── Fix 18E-D: mark_scheme_item_covered RPC contract ────────────────────────
+
+/**
+ * Every stable error code the mark_scheme_item_covered RPC can raise.
+ * Distinct from Start/CompleteOccurrenceErrorCode — this RPC's preconditions
+ * are about the occurrence's completion state and the scheme item's own
+ * status, not slot ownership or occurrence-date validity.
+ */
+export type MarkCoveredErrorCode =
+  | 'not_authenticated'
+  | 'occurrence_not_found'
+  | 'occurrence_not_owned'
+  | 'occurrence_not_completed'
+  | 'lesson_plan_not_found'
+  | 'scheme_item_not_found'
+  | 'scheme_item_not_ready'
+  | 'unknown'
+
+const MARK_COVERED_ERROR_CODES: ReadonlyArray<Exclude<MarkCoveredErrorCode, 'unknown'>> = [
+  'not_authenticated',
+  'occurrence_not_found',
+  'occurrence_not_owned',
+  'occurrence_not_completed',
+  'lesson_plan_not_found',
+  'scheme_item_not_found',
+  'scheme_item_not_ready',
+]
+
+export class MarkSchemeCoveredError extends Error {
+  code: MarkCoveredErrorCode
+  cause?: unknown
+
+  constructor(code: MarkCoveredErrorCode, message: string, cause?: unknown) {
+    super(message)
+    this.name = 'MarkSchemeCoveredError'
+    this.code = code
+    this.cause = cause
+  }
+}
+
+function normalizeMarkCoveredError(error: { message?: string | null } | null | undefined): MarkSchemeCoveredError {
+  const raw = (error?.message ?? '').trim()
+  const exact = MARK_COVERED_ERROR_CODES.find(code => code === raw)
+  const code  = exact ?? MARK_COVERED_ERROR_CODES.find(c => raw.includes(c))
+  return new MarkSchemeCoveredError(code ?? 'unknown', raw || 'Failed to mark scheme item covered.', error)
+}
+
+/**
+ * The raw persisted row shape returned by mark_scheme_item_covered — the
+ * full scheme_of_work row, mirroring how TeachingOccurrenceRow mirrors
+ * teaching_occurrences.
+ */
+export interface SchemeOfWorkRow {
+  id:                     string
+  school_id:              string
+  teacher_id:             string
+  class_id:               string | null
+  subject_id:             string | null
+  curriculum_id:          string | null
+  curriculum_type:        string | null
+  grade:                  string | null
+  subject:                string | null
+  term:                   number | null
+  week:                   number | null
+  date:                   string | null
+  day_of_week:            string | null
+  period:                 number | null
+  strand:                 string | null
+  sub_strand:             string | null
+  topic:                  string | null
+  objectives:             string | null
+  resources:              string | null
+  reference:              string | null
+  rollcall:               string | null
+  remarks:                string | null
+  status:                 string
+  created_at:             string
+  updated_at:             string | null
+  academic_term_id:       string | null
+  source:                 string | null
+  lesson_number:          number | null
+  reflection:              string | null
+  curriculum_content_id:  string | null
+  key_inquiry_question:   string | null
+  learning_resources:     string | null
+  assessment_methods:     string | null
+  learning_experiences:   string | null
+  sub_strand_id:          string | null
+}
+
+function isSchemeOfWorkRow(value: unknown): value is SchemeOfWorkRow {
+  if (!value || typeof value !== 'object') return false
+
+  const row = value as Partial<SchemeOfWorkRow>
+
+  return typeof row.id === 'string' && typeof row.status === 'string'
+}
+
+/**
+ * Calls the mark_scheme_item_covered RPC to advance the scheme item linked
+ * to a completed occurrence's lesson plan from 'teaching' to 'done'.
+ *
+ * This is the ONLY path that may set scheme_of_work.status = 'done'. Never
+ * call `.from('scheme_of_work').update({ status: 'done' })` directly from
+ * the client — the RPC enforces ownership, that the occurrence is actually
+ * completed, and that the scheme item is currently 'teaching' (never
+ * downgrades 'done', never touches 'planned' or any other status).
+ *
+ * Idempotent: calling this again on an already-'done' item returns the row
+ * unchanged rather than erroring, so a duplicate tap/retry is always safe.
+ */
+export async function markSchemeItemCovered(occurrenceId: string): Promise<SchemeOfWorkRow> {
+  const { data, error } = await supabase.rpc('mark_scheme_item_covered', {
+    p_occurrence_id: occurrenceId,
+  })
+
+  if (error) throw normalizeMarkCoveredError(error)
+
+  if (!isSchemeOfWorkRow(data)) {
+    throw new MarkSchemeCoveredError('unknown', 'mark_scheme_item_covered returned an invalid row.')
+  }
+
+  return data
+}
+
 /**
  * Reuses the existing LIFECYCLES set (defined above for
  * isTeachingOccurrenceRow) rather than declaring a second one — one source
