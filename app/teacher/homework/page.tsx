@@ -118,13 +118,16 @@ export default function TeacherHomeworkPage() {
             { label: "Total",   value: items.length },
             { label: "Active",  value: active.length },
             { label: "Overdue", value: overdue.length },
-            { label: "Pending", value: totalPending },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.15)", borderRadius: 10, padding: "8px 4px", textAlign: "center" }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{s.value}</div>
               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{s.label}</div>
             </div>
           ))}
+        </div>
+        <div style={{ marginTop: 10, background: "rgba(255,255,255,0.12)", borderRadius: 10, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>Learner submissions awaiting</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{totalPending}</span>
         </div>
       </div>
 
@@ -186,10 +189,14 @@ export default function TeacherHomeworkPage() {
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted, textTransform: "capitalize" }}>{h.type}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: h.sub_count > 0 ? "#0f766e" : C.textMuted }}>{h.sub_count}/{h.total_count} submitted</span>
+                      {h.total_count === 0 ? (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#b45309" }}>No learners enrolled</span>
+                      ) : (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: h.sub_count > 0 ? "#0f766e" : C.textMuted }}>{h.sub_count}/{h.total_count} submitted</span>
+                      )}
                     </div>
                     <div style={{ height: 4, borderRadius: 99, background: "#f3f4f6", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pct}%`, background: over && pct < 100 ? "#ef4444" : "#0f766e", borderRadius: 99, transition: "width 0.4s ease" }} />
+                      <div style={{ height: "100%", width: h.total_count === 0 ? "0%" : `${pct}%`, background: h.total_count === 0 ? "#f3f4f6" : (over && pct < 100 ? "#ef4444" : "#0f766e"), borderRadius: 99, transition: "width 0.4s ease" }} />
                     </div>
                   </div>
                 </button>
