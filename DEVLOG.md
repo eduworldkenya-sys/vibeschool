@@ -634,3 +634,6 @@
 ## [2026-07-19 14:26] 55ad98e
 **What:** round corners on All Homework hero card
 **Status:** ✅ pushed
+## [2026-07-19 14:38] dfe6bc1
+**What:** add class stream identity to homework page
+**Status:** ✅ pushed
