@@ -95,14 +95,21 @@ function HomeworkInner() {
       setError("Your session has expired. Please sign in again.");
       return;
     }
-    const { error: err } = await supabase.from("homework").insert({
-      class_id: classId, teacher_id: user.id, school_id: schoolId,
-      title: form.title.trim(), subject: form.subject.trim(),
-      instructions: form.instructions.trim(), due_date: form.due_date,
-      type: form.type, target_group_id: form.target_group_id || null,
-    });
+    const { data: createdHomework, error: homeworkError } = await supabase
+      .from("homework")
+      .insert({
+        class_id: classId, teacher_id: user.id, school_id: schoolId,
+        title: form.title.trim(), subject: form.subject.trim(),
+        instructions: form.instructions.trim(), due_date: form.due_date,
+        type: form.type, target_group_id: form.target_group_id || null,
+      })
+      .select("id")
+      .single();
     setSaving(false);
-    if (err) { setError(err.message); return; }
+    if (homeworkError || !createdHomework || !createdHomework.id) {
+      setError(homeworkError?.message ?? "Homework could not be created. Please try again.");
+      return;
+    }
 
     // G4+G5: notify students and parents
     try {
@@ -155,20 +162,9 @@ function HomeworkInner() {
     if (addQuestions) {
       const validQs = questionDrafts.map((q, i) => q.trim()).filter(Boolean);
       if (validQs.length > 0) {
-        // fetch the homework id we just created
-        const { data: newHw } = await supabase
-          .from("homework")
-          .select("id")
-          .eq("class_id", classId)
-          .eq("teacher_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-        if (newHw) {
-          await supabase.from("homework_questions").insert(
-            validQs.map((q, i) => ({ homework_id: newHw.id, question: q, order_num: i + 1 }))
-          );
-        }
+        await supabase.from("homework_questions").insert(
+          validQs.map((q, i) => ({ homework_id: createdHomework.id, question: q, order_num: i + 1 }))
+        );
       }
     }
     setAddQuestions(false);
