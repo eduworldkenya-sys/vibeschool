@@ -499,20 +499,9 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         if (ins?.id) setPlanId(ins.id)
       }
 
-      // Close the loop with Scheme of Work: if this plan came from a
-      // scheme item, mark that item as "teaching" — the Scheme page
-      // lights up automatically when a lesson is planned from Timetable.
-      if (usedSuggestion && suggestion?.schemeId && ctx.schoolId) {
-        try {
-          await supabase.from('scheme_of_work')
-            .update({ status: 'teaching' })
-            .eq('id',         suggestion.schemeId)
-            .eq('school_id',  ctx.schoolId)
-            .eq('teacher_id', user.id)
-        } catch {
-          // non-fatal — the lesson plan itself already saved successfully
-        }
-      }
+      // Fix 18E-B: scheme status is no longer set here. Lesson-plan
+      // generation is not evidence teaching has started — occurrence
+      // start is (see Fix 18E-C). Scheme stays 'planned' until then.
 
       setStatus('draft')
       setPhase('view')
