@@ -95,7 +95,7 @@ export default function TeacherHomeworkPage() {
 
   return (
     <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: "100vh" }}>
-      <div style={{ background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)", padding: "20px 16px 28px" }}>
+      <div style={{ background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)", padding: "20px 16px 28px", borderRadius: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
           <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10, width: 36, height: 36, color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{"<"}</button>
           <div>
