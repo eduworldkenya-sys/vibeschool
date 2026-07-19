@@ -91,9 +91,19 @@ function ClassPageInner() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }
 
-    const classQuery = isSubject
-      ? supabase.from('classes').select('name, stream, subject').eq('id', classId).single()
-      : supabase.from('classes').select('name, stream, subject').eq('id', classId).eq('teacher_id', user.id).single()
+    // Fix 19c: teacher_classes is the ONLY assignment truth. The old
+    // classes.teacher_id fallback silently acted as a second truth.
+    if (!isSubject) {
+      const { data: ownRow } = await supabase
+        .from('teacher_classes')
+        .select('class_id')
+        .eq('teacher_id', user.id)
+        .eq('class_id', classId)
+        .limit(1)
+        .maybeSingle()
+      if (!ownRow) { router.push('/teacher/classhub'); return }
+    }
+    const classQuery = supabase.from('classes').select('name, stream, subject').eq('id', classId).single()
 
     const [clsRes, studsRes, requestsRes] = await Promise.all([
       classQuery,

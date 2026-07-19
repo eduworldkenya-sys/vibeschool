@@ -248,16 +248,17 @@ export default function ParentMessagesPage() {
 
       if (classIds.length === 0) { setSuggestionsLoading(false); return }
 
-      // Get homeroom teachers and subject teachers
-      const [classRes, tcRes] = await Promise.all([
-        supabase.from('classes').select('teacher_id').in('id', classIds),
-        supabase.from('teacher_classes').select('teacher_id').in('class_id', classIds),
-      ])
+      // Fix 19c: teacher_classes is the only assignment truth — homeroom
+      // teachers are included there via is_class_teacher, so the old
+      // classes.teacher_id query is retired.
+      const { data: tcRows } = await supabase
+        .from('teacher_classes')
+        .select('teacher_id')
+        .in('class_id', classIds)
 
-      const teacherIds = Array.from(new Set([
-        ...(classRes.data ?? []).map((c: { teacher_id: string }) => c.teacher_id),
-        ...(tcRes.data ?? []).map((t: { teacher_id: string }) => t.teacher_id),
-      ].filter(Boolean)))
+      const teacherIds = Array.from(new Set(
+        (tcRows ?? []).map((t: { teacher_id: string }) => t.teacher_id).filter(Boolean)
+      ))
 
       if (teacherIds.length === 0) { setSuggestionsLoading(false); return }
 
