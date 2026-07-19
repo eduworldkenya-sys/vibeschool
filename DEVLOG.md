@@ -640,3 +640,6 @@
 ## [2026-07-19 15:27] 9215fa3
 **What:** add class stream identity to homework page
 **Status:** ✅ pushed
+## [2026-07-19 16:18] 21f09d7
+**What:** separate assignment stats from submission stats, handle zero-roster case
+**Status:** ✅ pushed
