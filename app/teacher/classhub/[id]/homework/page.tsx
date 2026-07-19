@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { C } from "@/components/teacher/ui";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useParams } from "next/navigation";
 
@@ -29,6 +29,7 @@ function HomeworkInner() {
   const [loading,   setLoading]   = useState(true);
   const [showForm,  setShowForm]  = useState(false);
   const [saving,    setSaving]    = useState(false);
+  const submitInFlightRef = useRef(false);
   const [error,     setError]     = useState("");
   const [classInfo, setClassInfo] = useState<{ name: string; stream: string; subject: string } | null>(null);
   const [subjects,  setSubjects]  = useState<{ id: string; name: string }[]>([]);
@@ -88,90 +89,95 @@ function HomeworkInner() {
       setError("Class information is still loading. Please wait a moment and try again.");
       return;
     }
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setSaving(false);
-      setError("Your session has expired. Please sign in again.");
-      return;
-    }
-    const { data: createdHomework, error: homeworkError } = await supabase
-      .from("homework")
-      .insert({
-        class_id: classId, teacher_id: user.id, school_id: schoolId,
-        title: form.title.trim(), subject: form.subject.trim(),
-        instructions: form.instructions.trim(), due_date: form.due_date,
-        type: form.type, target_group_id: form.target_group_id || null,
-      })
-      .select("id")
-      .single();
-    setSaving(false);
-    if (homeworkError || !createdHomework || !createdHomework.id) {
-      setError(homeworkError?.message ?? "Homework could not be created. Please try again.");
-      return;
-    }
-
-    // G4+G5: notify students and parents
     try {
-      const notifMsg = `New homework: "${form.title.trim()}" (${form.subject.trim()}) — due ${form.due_date}.`;
-      const { data: stuRows } = await supabase
-        .from("students")
-        .select("id, profile_id")
-        .eq("class_id", classId);
-      if (stuRows && stuRows.length > 0) {
-        const linkedStuRows = stuRows.filter(
-          (st: { id: string; profile_id: string | null }): st is { id: string; profile_id: string } =>
-            typeof st.profile_id === "string" && st.profile_id.length > 0
-        );
-        if (linkedStuRows.length > 0) {
-          await supabase.from("notifications").insert(
-            linkedStuRows.map((st) => ({
-              user_id:   st.profile_id,
-              school_id: schoolId,
-              type:      "homework",
-              title:     "New Homework",
-              body:      notifMsg,
-              is_read:   false,
-            }))
-          );
-        }
-        const { data: links } = await supabase
-          .from("parent_student_links")
-          .select("parent_id")
-          .in("student_id", stuRows.map((st: { id: string }) => st.id))
-          .eq("receives_alerts", true);
-        if (links && links.length > 0) {
-          const uniqueParents = Array.from(new Set(links.map((l: { parent_id: string }) => l.parent_id))) as string[];
-          await supabase.from("notifications").insert(
-            uniqueParents.map((pid: string) => ({
-              user_id:   pid,
-              school_id: schoolId,
-              type:      "homework",
-              title:     "New Homework",
-              body:      notifMsg,
-              is_read:   false,
-            }))
-          );
-        }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Your session has expired. Please sign in again.");
+        return;
       }
-    } catch (_) {
-      // notifications are best-effort
-    }
+      const { data: createdHomework, error: homeworkError } = await supabase
+        .from("homework")
+        .insert({
+          class_id: classId, teacher_id: user.id, school_id: schoolId,
+          title: form.title.trim(), subject: form.subject.trim(),
+          instructions: form.instructions.trim(), due_date: form.due_date,
+          type: form.type, target_group_id: form.target_group_id || null,
+        })
+        .select("id")
+        .single();
+      if (homeworkError || !createdHomework || !createdHomework.id) {
+        setError(homeworkError?.message ?? "Homework could not be created. Please try again.");
+        return;
+      }
 
-    // Save questions if any
-    if (addQuestions) {
-      const validQs = questionDrafts.map((q, i) => q.trim()).filter(Boolean);
-      if (validQs.length > 0) {
-        await supabase.from("homework_questions").insert(
-          validQs.map((q, i) => ({ homework_id: createdHomework.id, question: q, order_num: i + 1 }))
-        );
+      // G4+G5: notify students and parents
+      try {
+        const notifMsg = `New homework: "${form.title.trim()}" (${form.subject.trim()}) — due ${form.due_date}.`;
+        const { data: stuRows } = await supabase
+          .from("students")
+          .select("id, profile_id")
+          .eq("class_id", classId);
+        if (stuRows && stuRows.length > 0) {
+          const linkedStuRows = stuRows.filter(
+            (st: { id: string; profile_id: string | null }): st is { id: string; profile_id: string } =>
+              typeof st.profile_id === "string" && st.profile_id.length > 0
+          );
+          if (linkedStuRows.length > 0) {
+            await supabase.from("notifications").insert(
+              linkedStuRows.map((st) => ({
+                user_id:   st.profile_id,
+                school_id: schoolId,
+                type:      "homework",
+                title:     "New Homework",
+                body:      notifMsg,
+                is_read:   false,
+              }))
+            );
+          }
+          const { data: links } = await supabase
+            .from("parent_student_links")
+            .select("parent_id")
+            .in("student_id", stuRows.map((st: { id: string }) => st.id))
+            .eq("receives_alerts", true);
+          if (links && links.length > 0) {
+            const uniqueParents = Array.from(new Set(links.map((l: { parent_id: string }) => l.parent_id))) as string[];
+            await supabase.from("notifications").insert(
+              uniqueParents.map((pid: string) => ({
+                user_id:   pid,
+                school_id: schoolId,
+                type:      "homework",
+                title:     "New Homework",
+                body:      notifMsg,
+                is_read:   false,
+              }))
+            );
+          }
+        }
+      } catch (_) {
+        // notifications are best-effort
       }
+
+      // Save questions if any
+      if (addQuestions) {
+        const validQs = questionDrafts.map((q, i) => q.trim()).filter(Boolean);
+        if (validQs.length > 0) {
+          await supabase.from("homework_questions").insert(
+            validQs.map((q, i) => ({ homework_id: createdHomework.id, question: q, order_num: i + 1 }))
+          );
+        }
+      }
+      setAddQuestions(false);
+      setQuestionDrafts([""]);
+      setForm(f => ({ ...f, title: "", instructions: "", due_date: "" }));
+      setShowForm(false);
+      load();
+    } finally {
+      submitInFlightRef.current = false;
+      setSaving(false);
     }
-    setAddQuestions(false);
-    setQuestionDrafts([""]);
-    setForm(f => ({ ...f, title: "", instructions: "", due_date: "" }));
-    setShowForm(false);
-    load();
   }
 
   async function handleDelete(id: string) {
