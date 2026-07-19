@@ -631,3 +631,6 @@
 ## [2026-07-18 21:09] aaf36fb
 **What:** Fix 18H: student notifications — loadError UI state added on top of user_id chain fix
 **Status:** ✅ pushed
+## [2026-07-19 14:26] 55ad98e
+**What:** round corners on All Homework hero card
+**Status:** ✅ pushed
