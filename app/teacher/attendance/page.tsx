@@ -113,6 +113,11 @@ function AttendanceInner() {
           .select('id, room, start_time, end_time, class_id, subject_id, day_of_week')
           .eq('teacher_id', user.id)
           .eq('day_of_week', dow === 0 ? 7 : dow)
+          // Fix 19: only slots active on the selected attendance date.
+          // effective_from is NOT NULL (verified live), so the strict form
+          // matches the established pattern in lessonplan/page.tsx.
+          .lte('effective_from', selectedDate)
+          .or(`effective_until.is.null,effective_until.gte.${selectedDate}`)
           .order('start_time', { ascending: true }),
       ])
 

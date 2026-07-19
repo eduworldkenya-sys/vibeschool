@@ -344,6 +344,10 @@ export default function SubjectHubPage() {
     const gradeRes = firstClassId ? await supabase.from('classes').select('name').eq('id', firstClassId).single() : { data: null }
     const gradeForCurriculum = gradeRes.data?.name ?? ''
 
+    // Fix 19: subjecthub has no selected-date context — active means today
+    // in Africa/Nairobi (lib/time.ts is the single source of truth for this).
+    const slotActiveDate = nairobiDateStr()
+
     const [lpRes, assRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes, attRes, slotRes, resRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
@@ -352,7 +356,7 @@ export default function SubjectHubPage() {
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       schoolId ? supabase.from('scheme_of_work').select('curriculum_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
-      supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId),
+      supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId).lte('effective_from', slotActiveDate).or(`effective_until.is.null,effective_until.gte.${slotActiveDate}`),
       Promise.resolve({ data: [] }),
     ])
 
