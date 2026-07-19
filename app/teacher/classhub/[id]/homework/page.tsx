@@ -84,9 +84,17 @@ function HomeworkInner() {
     setError("");
     if (!form.title.trim()) { setError("Title is required"); return; }
     if (!form.due_date)     { setError("Due date is required"); return; }
+    if (!schoolId) {
+      setError("Class information is still loading. Please wait a moment and try again.");
+      return;
+    }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setSaving(false);
+      setError("Your session has expired. Please sign in again.");
+      return;
+    }
     const { error: err } = await supabase.from("homework").insert({
       class_id: classId, teacher_id: user.id, school_id: schoolId,
       title: form.title.trim(), subject: form.subject.trim(),
@@ -304,8 +312,8 @@ function HomeworkInner() {
               )}
             </div>
             {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
-            <button onClick={handleSubmit} disabled={saving} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 12, border: "none", background: saving ? "#99f6e4" : "#0f766e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-              {saving ? "Saving…" : "Post Homework"}
+            <button onClick={handleSubmit} disabled={saving || !schoolId} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 12, border: "none", background: (saving || !schoolId) ? "#99f6e4" : "#0f766e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (saving || !schoolId) ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+              {saving ? "Saving…" : !schoolId ? "Loading class…" : "Post Homework"}
             </button>
           </div>
         )}
