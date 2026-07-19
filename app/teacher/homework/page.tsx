@@ -13,6 +13,7 @@ interface HWItem {
   type:        string;
   class_id:    string;
   class_name:  string;
+  class_stream: string;
   sub_count:   number;
   total_count: number;
 }
@@ -42,7 +43,7 @@ export default function TeacherHomeworkPage() {
 
       const [tcRes, clsRes] = await Promise.all([
         supabase.from("teacher_classes").select("class_id").eq("teacher_id", user.id),
-        supabase.from("classes").select("id, name").eq("teacher_id", user.id),
+        supabase.from("classes").select("id, name, stream").eq("teacher_id", user.id),
       ]);
 
       const classIds = Array.from(new Set([
@@ -59,28 +60,37 @@ export default function TeacherHomeworkPage() {
           .eq("teacher_id", user.id)
           .order("due_date", { ascending: false }),
         supabase.from("students").select("id, class_id").in("class_id", classIds),
-        supabase.from("classes").select("id, name").in("id", classIds),
+        supabase.from("classes").select("id, name, stream").in("id", classIds),
       ]);
 
-      const clsMap = new Map<string, string>();
-      for (const c of (allClsRes.data ?? [])) clsMap.set(c.id, c.name);
+      const clsMap = new Map<string, { name: string; stream: string }>();
+      for (const c of (allClsRes.data ?? [])) {
+        clsMap.set(c.id, {
+          name: c.name,
+          stream: typeof c.stream === "string" ? c.stream.trim() : "",
+        });
+      }
 
       const stuCountMap = new Map<string, number>();
       for (const st of (stuRes.data ?? [])) {
         stuCountMap.set(st.class_id, (stuCountMap.get(st.class_id) ?? 0) + 1);
       }
 
-      const result: HWItem[] = ((hwRes.data ?? []) as any[]).map(h => ({
-        id:          h.id,
-        title:       h.title,
-        subject:     h.subject,
-        due_date:    h.due_date,
-        type:        h.type,
-        class_id:    h.class_id,
-        class_name:  clsMap.get(h.class_id) ?? "Unknown Class",
-        sub_count:   (h.homework_submissions ?? []).length,
-        total_count: stuCountMap.get(h.class_id) ?? 0,
-      }));
+      const result: HWItem[] = ((hwRes.data ?? []) as any[]).map(h => {
+        const classInfo = clsMap.get(h.class_id);
+        return {
+          id:           h.id,
+          title:        h.title,
+          subject:      h.subject,
+          due_date:     h.due_date,
+          type:         h.type,
+          class_id:     h.class_id,
+          class_name:   classInfo?.name ?? "Unknown Class",
+          class_stream: classInfo?.stream ?? "",
+          sub_count:    (h.homework_submissions ?? []).length,
+          total_count:  stuCountMap.get(h.class_id) ?? 0,
+        };
+      });
 
       setItems(result);
       setLoading(false);
@@ -160,7 +170,11 @@ export default function TeacherHomeworkPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 14, fontWeight: 800, color: "#111827", margin: 0 }}>{h.title}</p>
-                      <p style={{ fontSize: 11, color: C.textMuted, margin: "3px 0 0" }}>{h.class_name} {h.subject}</p>
+                      <p style={{ fontSize: 11, color: C.textMuted, margin: "3px 0 0" }}>
+  {h.class_name}
+  {h.class_stream ? ` • ${h.class_stream}` : ""}
+  {h.subject ? ` • ${h.subject}` : ""}
+</p>
                     </div>
                     <div style={{ flexShrink: 0, textAlign: "right" }}>
                       <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20, background: over ? "#fee2e2" : "#d1fae5", color: over ? "#991b1b" : "#065f46" }}>
