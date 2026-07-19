@@ -643,3 +643,6 @@
 ## [2026-07-19 16:18] 21f09d7
 **What:** separate assignment stats from submission stats, handle zero-roster case
 **Status:** ✅ pushed
+## [2026-07-19 16:37] d7cd563
+**What:** guard homework submit against missing schoolId
+**Status:** ✅ pushed
