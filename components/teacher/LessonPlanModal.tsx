@@ -698,7 +698,11 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       })
       setOccLifecycle(row.lifecycle)
       showToast('Lesson marked complete ✓')
-      setShowReflection(true)
+      // Only offer reflection if a plan is actually persisted — otherwise
+      // ReflectionSheet would render with lessonId={null} and silently fail.
+      if (planIdRef.current) {
+        setShowReflection(true)
+      }
     } catch (err) {
       const code = err instanceof CompleteOccurrenceError ? err.code : 'unknown'
       console.error('[LessonPlanModal] completeLesson', err)
@@ -1057,7 +1061,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         </div>
       </div>
 
-      {showReflection && teacherId && (
+      {showReflection && teacherId && planId && (
         <ReflectionSheet
           lessonId={planId}
           classId={slot.class_id}

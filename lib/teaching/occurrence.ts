@@ -48,7 +48,7 @@ export class StartOccurrenceError extends Error {
  * Deliberately distinct from TeachingOccurrence (the derived/joined view
  * resolveOccurrence produces) — this is exactly what the table + RPC hand back.
  */
-export interface StartedOccurrenceRow {
+export interface TeachingOccurrenceRow {
   id:                       string
   timetable_slot_id:        string
   occurrence_date:          string
@@ -99,12 +99,12 @@ const LIFECYCLES: ReadonlySet<string> = new Set([
  * Runtime guard for the RPC's return value. Checked before the caller ever
  * trusts the row — catches an unexpectedly-shaped payload (e.g. PostgREST
  * wrapping the result in an array) instead of letting a bad shape flow
- * silently into UI state as if it were a valid StartedOccurrenceRow.
+ * silently into UI state as if it were a valid TeachingOccurrenceRow.
  */
-function isStartedOccurrenceRow(value: unknown): value is StartedOccurrenceRow {
+function isTeachingOccurrenceRow(value: unknown): value is TeachingOccurrenceRow {
   if (!value || typeof value !== 'object') return false
 
-  const row = value as Partial<StartedOccurrenceRow>
+  const row = value as Partial<TeachingOccurrenceRow>
 
   return (
     typeof row.id === 'string' &&
@@ -121,7 +121,7 @@ function isStartedOccurrenceRow(value: unknown): value is StartedOccurrenceRow {
  * database error this throws a StartOccurrenceError with a stable .code,
  * so callers can branch on it instead of parsing free-text messages.
  */
-export async function startTeachingOccurrence(key: OccurrenceKey): Promise<StartedOccurrenceRow> {
+export async function startTeachingOccurrence(key: OccurrenceKey): Promise<TeachingOccurrenceRow> {
   const { data, error } = await supabase.rpc('start_teaching_occurrence', {
     p_timetable_slot_id: key.timetableSlotId,
     p_occurrence_date:   key.occurrenceDate,
@@ -129,11 +129,122 @@ export async function startTeachingOccurrence(key: OccurrenceKey): Promise<Start
 
   if (error) throw normalizeStartError(error)
 
-  if (!isStartedOccurrenceRow(data)) {
+  if (!isTeachingOccurrenceRow(data)) {
     throw new StartOccurrenceError('unknown', 'start_teaching_occurrence returned an invalid row.')
   }
 
   return data
+}
+
+// ── Fix 18D: complete_teaching_occurrence RPC contract ──────────────────────
+
+/**
+ * Every stable error code the complete_teaching_occurrence RPC can raise.
+ * Distinct from StartOccurrenceErrorCode on purpose — completion has its own
+ * precondition ('occurrence_not_started' has no equivalent on the start
+ * side, and 'lesson_plan_required' has no equivalent here, since a plan is
+ * already guaranteed to exist by the time an occurrence reached in_progress).
+ */
+export type CompleteOccurrenceErrorCode =
+  | 'not_authenticated'
+  | 'slot_not_found'
+  | 'slot_not_owned'
+  | 'occurrence_not_found'
+  | 'occurrence_not_started'
+  | 'occurrence_cancelled'
+  | 'occurrence_rescheduled'
+  | 'invalid_occurrence_date'
+  | 'unknown'
+
+const COMPLETE_OCCURRENCE_ERROR_CODES: ReadonlyArray<Exclude<CompleteOccurrenceErrorCode, 'unknown'>> = [
+  'not_authenticated',
+  'slot_not_found',
+  'slot_not_owned',
+  'occurrence_not_found',
+  'occurrence_not_started',
+  'occurrence_cancelled',
+  'occurrence_rescheduled',
+  'invalid_occurrence_date',
+]
+
+export class CompleteOccurrenceError extends Error {
+  code: CompleteOccurrenceErrorCode
+  cause?: unknown
+
+  constructor(code: CompleteOccurrenceErrorCode, message: string, cause?: unknown) {
+    super(message)
+    this.name = 'CompleteOccurrenceError'
+    this.code = code
+    this.cause = cause
+  }
+}
+
+function normalizeCompleteError(error: { message?: string | null } | null | undefined): CompleteOccurrenceError {
+  const raw = (error?.message ?? '').trim()
+  const exact = COMPLETE_OCCURRENCE_ERROR_CODES.find(code => code === raw)
+  const code  = exact ?? COMPLETE_OCCURRENCE_ERROR_CODES.find(c => raw.includes(c))
+  return new CompleteOccurrenceError(code ?? 'unknown', raw || 'Failed to complete lesson.', error)
+}
+
+/**
+ * Calls the complete_teaching_occurrence RPC to transition (or idempotently
+ * confirm) a lesson into completed. Only in_progress -> completed and
+ * completed -> completed (idempotent) succeed; every other lifecycle raises
+ * occurrence_not_started, occurrence_cancelled, or occurrence_rescheduled.
+ *
+ * Deliberately does not touch scheme_of_work / curriculum progress — the
+ * standing product rule is that completing a lesson occurrence is not the
+ * same event as advancing scheme progress, which happens through its own
+ * explicit rule elsewhere. Callers must not infer scheme completion from
+ * this resolving successfully.
+ */
+export async function completeTeachingOccurrence(key: OccurrenceKey): Promise<TeachingOccurrenceRow> {
+  const { data, error } = await supabase.rpc('complete_teaching_occurrence', {
+    p_timetable_slot_id: key.timetableSlotId,
+    p_occurrence_date:   key.occurrenceDate,
+  })
+
+  if (error) throw normalizeCompleteError(error)
+
+  if (!isTeachingOccurrenceRow(data)) {
+    throw new CompleteOccurrenceError('unknown', 'complete_teaching_occurrence returned an invalid row.')
+  }
+
+  return data
+}
+
+/**
+ * Reuses the existing LIFECYCLES set (defined above for
+ * isTeachingOccurrenceRow) rather than declaring a second one — one source
+ * of truth for which strings are valid Lifecycle values.
+ */
+function isLifecycle(value: unknown): value is Lifecycle {
+  return typeof value === 'string' && LIFECYCLES.has(value)
+}
+
+/**
+ * Lightweight lifecycle lookup for callers (e.g. the lesson workspace) that
+ * only need the persisted lifecycle to decide which CTA to show — not the
+ * full attendance/evidence/homework/reflection join resolveOccurrence does.
+ * Returns null if no teaching_occurrences row exists yet for this key (i.e.
+ * the occurrence was never started). Validates the fetched value rather
+ * than asserting it, since this reads directly off the table with no
+ * RPC-level shape guarantee.
+ */
+export async function fetchOccurrenceLifecycle(key: OccurrenceKey): Promise<Lifecycle | null> {
+  const { data, error } = await supabase
+    .from('teaching_occurrences')
+    .select('lifecycle')
+    .eq('timetable_slot_id', key.timetableSlotId)
+    .eq('occurrence_date', key.occurrenceDate)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+  if (!isLifecycle(data.lifecycle)) {
+    throw new Error('teaching_occurrences returned an invalid lifecycle.')
+  }
+  return data.lifecycle
 }
 
 function deriveLifecycle(
