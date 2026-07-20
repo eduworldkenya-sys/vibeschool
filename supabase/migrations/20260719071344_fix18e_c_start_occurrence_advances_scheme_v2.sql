@@ -1,23 +1,17 @@
--- Fix 18E-C: lesson occurrence start advances scheme_of_work planned -> teaching.
--- This is the correct trigger point (see Fix 18E-B, which removed the
--- premature write at lesson-plan generation time). Guarded by status='planned'
--- so it only fires once and never overwrites a later/other status.
---
--- v2: self-healing on the idempotent in_progress branch (an occurrence
--- started before this fix existed, with its scheme still stuck on
--- 'planned', gets repaired on the next Start Lesson retry instead of
--- staying disconnected forever). Also scopes + orders the lesson_plans
--- lookup deterministically, and hardens execute privileges explicitly.
+-- RECOVERED 2026-07-20 from live pg_get_functiondef (version 20260719071344).
+-- The deployed start_teaching_occurrence: advisory-locked, plan-gated,
+-- effective-window and isodow validated, idempotent, and advances the linked
+-- scheme_of_work item from planned to teaching on start.
 
 create or replace function public.start_teaching_occurrence(
   p_timetable_slot_id uuid,
   p_occurrence_date date
 )
-returns public.teaching_occurrences
+returns teaching_occurrences
 language plpgsql
 security definer
-set search_path = public
-as $$
+set search_path to 'public'
+as $function$
 declare
   v_uid        uuid := auth.uid();
   v_slot       record;
@@ -143,8 +137,10 @@ begin
 
   return v_occ;
 end;
-$$;
+$function$;
 
-revoke all on function public.start_teaching_occurrence(uuid, date) from public;
+-- Live grant state (post-fix18c lockdown, carried forward):
+revoke execute on function public.start_teaching_occurrence(uuid, date) from public;
 revoke execute on function public.start_teaching_occurrence(uuid, date) from anon;
 grant execute on function public.start_teaching_occurrence(uuid, date) to authenticated;
+grant execute on function public.start_teaching_occurrence(uuid, date) to service_role;

@@ -1,24 +1,13 @@
--- Fix 18E-D: mark_scheme_item_covered — guarded occurrence-based path for
--- advancing a linked scheme item from 'teaching' to 'done' after lesson
--- completion. The Scheme page's manual updateStatus(...) remains a
--- separate valid path for teachers to change scheme_of_work.status
--- directly. Guarded: teacher must own the occurrence, occurrence must be
--- 'completed', a linked lesson plan + scheme item must exist, and the
--- scheme item must currently be 'teaching'. Never touches 'planned' or
--- 'cancelled'. Idempotent on an already-'done' item (no-op success, not
--- an error) so retries/duplicate taps are always safe.
+-- RECOVERED 2026-07-20 from live pg_get_functiondef (version 20260719091655).
+-- The deployed mark_scheme_item_covered: completion-gated, ownership-checked,
+-- idempotent on done, minimal TABLE(scheme_id, status) return.
 
-create or replace function public.mark_scheme_item_covered(
-  p_occurrence_id uuid
-)
-returns table (
-  scheme_id uuid,
-  status    text
-)
+create or replace function public.mark_scheme_item_covered(p_occurrence_id uuid)
+returns table(scheme_id uuid, status text)
 language plpgsql
 security definer
-set search_path = public
-as $$
+set search_path to 'public'
+as $function$
 declare
   v_uid       uuid := auth.uid();
   v_occ       record;
@@ -51,6 +40,12 @@ begin
     raise exception 'occurrence_not_completed';
   end if;
 
+  -- LATENT LIVE DEFECT, preserved verbatim for baseline fidelity: the bare
+  -- scheme_id below is ambiguous against this function's scheme_id OUT
+  -- parameter (plpgsql variable_conflict defaults to error). The function has
+  -- never executed in production (zero teaching_occurrences), so the error
+  -- has never fired. Qualifying it is a behavioural fix for a later
+  -- migration, not for baseline recovery.
   select id, scheme_id
     into v_plan, v_scheme_id
     from public.lesson_plans
@@ -98,8 +93,10 @@ begin
   return query
   select v_scheme.id, v_scheme.status;
 end;
-$$;
+$function$;
 
-revoke all on function public.mark_scheme_item_covered(uuid) from public;
+-- Live grant state:
+revoke execute on function public.mark_scheme_item_covered(uuid) from public;
 revoke execute on function public.mark_scheme_item_covered(uuid) from anon;
 grant execute on function public.mark_scheme_item_covered(uuid) to authenticated;
+grant execute on function public.mark_scheme_item_covered(uuid) to service_role;
