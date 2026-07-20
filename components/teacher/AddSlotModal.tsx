@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
 
@@ -69,21 +69,23 @@ const labelStyle: React.CSSProperties = {
 function toFriendlyError(err: { message?: string }): string {
   switch ((err.message ?? '').trim()) {
     case 'TEACHER_CONFLICT':
-      return 'You already have a lesson scheduled at that time.'
+      return 'Teacher already has a lesson at this time.'
     case 'CLASS_CONFLICT':
-      return 'This class already has a lesson scheduled at that time.'
-    case 'DUPLICATE_SLOT':
-      return 'This exact lesson is already scheduled.'
+      return 'This class already has a lesson at this time.'
     case 'ROOM_CONFLICT':
-      return 'This room is already being used at that time.'
-    case 'SCHEDULE_CONFLICT':
-      return 'This lesson conflicts with another timetable slot.'
-    case 'INVALID_TIME':
-      return 'The selected time is invalid.'
-    case 'INVALID_DATE_RANGE':
-      return 'The effective date range is invalid.'
-    case 'ASSIGNMENT_NOT_FOUND':
-      return 'You are not assigned to this class and subject.'
+      return 'This room is already occupied.'
+    case 'INVALID_ASSIGNMENT':
+      return 'You are not assigned to teach this subject for this class.'
+    case 'SCHOOL_MISMATCH':
+      return 'You are not assigned to teach this subject for this class.'
+    case 'INVALID_DAY':
+      return 'Choose a valid day.'
+    case 'INVALID_TIME_RANGE':
+      return 'End time must be after start time.'
+    case 'INVALID_EFFECTIVE_RANGE':
+      return 'Effective end date cannot be before the start date.'
+    case 'UNAUTHENTICATED':
+      return 'Your session expired. Please sign in again.'
     default:
       return 'Could not save the timetable slot. Try again.'
   }
@@ -110,6 +112,21 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
   const [endTime,        setEndTime]        = useState('09:00')
   const [room,           setRoom]           = useState('')
   const [effectiveFrom,  setEffectiveFrom]  = useState(nairobiTodayISO())
+
+  // Synchronous guard against duplicate submission. `saving` (React state)
+  // only disables the button on the *next* render — a fast double-tap can
+  // fire two calls to save() before that re-render happens. This ref is
+  // set/cleared synchronously inside save() itself, closing that gap.
+  const submittingRef = useRef(false)
+
+  function resetForm() {
+    setTeacherClassId('')
+    setDayOfWeek('1')
+    setStartTime('08:00')
+    setEndTime('09:00')
+    setRoom('')
+    setEffectiveFrom(nairobiTodayISO())
+  }
 
   useEffect(() => {
     async function loadAssignments() {
@@ -154,6 +171,10 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
   const selectedAssignment = assignments.find(a => a.teacherClassId === teacherClassId) ?? null
 
   async function save() {
+    // Synchronous re-entrancy guard — closes the double-tap gap that the
+    // `saving` state alone can't catch (see submittingRef declaration above).
+    if (submittingRef.current) return
+
     setError(null)
 
     if (!selectedAssignment) { setError('Select a class and subject.'); return }
@@ -161,8 +182,9 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
     if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
     if (!startTime) { setError('Enter start time.'); return }
     if (!endTime)   { setError('Enter end time.');   return }
-    if (startTime >= endTime) { setError('The selected time is invalid.'); return }
+    if (startTime >= endTime) { setError('End time must be after start time.'); return }
 
+    submittingRef.current = true
     setSaving(true)
     // All conflict/assignment/school checks happen inside this one DB
     // transaction (create_timetable_slot). school_id and teacher_id are
@@ -179,11 +201,19 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
     })
 
     setSaving(false)
+    submittingRef.current = false
+
     if (err) {
       console.error('[Timetable] slot creation failed', err)
+      // Form values are intentionally left untouched here so a recoverable
+      // error (e.g. a conflict) doesn't force the teacher to re-enter
+      // everything.
       setError(toFriendlyError(err))
       return
     }
+
+    // Only reset on confirmed success — never on a recoverable error.
+    resetForm()
     onSaved()
   }
 
