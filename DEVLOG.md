@@ -646,3 +646,6 @@
 ## [2026-07-19 16:37] d7cd563
 **What:** guard homework submit against missing schoolId
 **Status:** ✅ pushed
+## [2026-07-20 08:01] 19d9645
+**What:** TBL-001: repair malformed and misversioned migration filenames to live ledger keys
+**Status:** ✅ pushed
