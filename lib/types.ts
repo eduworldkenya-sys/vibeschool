@@ -239,13 +239,14 @@ export interface Homework {
   id:              string;
   class_id:        string;
   teacher_id:      string;
-  school_id:       string | null;
+  school_id:       string;
   title:           string;
   subject:         string;
   instructions:    string | null;
   type:            HomeworkType;
   due_date:        string;
   target_group_id: string | null;
+  lesson_plan_id:  string | null;
   created_at:      string;
 }
 

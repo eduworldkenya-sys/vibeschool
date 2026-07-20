@@ -30,6 +30,7 @@ function HomeworkInner() {
   const [showForm,  setShowForm]  = useState(false);
   const [saving,    setSaving]    = useState(false);
   const submitInFlightRef = useRef(false);
+  const pendingHomeworkIdRef = useRef<string | null>(null);
   const [error,     setError]     = useState("");
   const [classInfo, setClassInfo] = useState<{ name: string; stream: string; subject: string } | null>(null);
   const [subjects,  setSubjects]  = useState<{ id: string; name: string }[]>([]);
@@ -93,82 +94,103 @@ function HomeworkInner() {
     submitInFlightRef.current = true;
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Your session has expired. Please sign in again.");
-        return;
-      }
-      const { data: createdHomework, error: homeworkError } = await supabase
-        .from("homework")
-        .insert({
-          class_id: classId, teacher_id: user.id, school_id: schoolId,
-          title: form.title.trim(), subject: form.subject.trim(),
-          instructions: form.instructions.trim(), due_date: form.due_date,
-          type: form.type, target_group_id: form.target_group_id || null,
-        })
-        .select("id")
-        .single();
-      if (homeworkError || !createdHomework || !createdHomework.id) {
-        setError(homeworkError?.message ?? "Homework could not be created. Please try again.");
-        return;
-      }
+      const isRetry = pendingHomeworkIdRef.current !== null;
+      let homeworkId = pendingHomeworkIdRef.current;
 
-      // G4+G5: notify students and parents
-      try {
-        const notifMsg = `New homework: "${form.title.trim()}" (${form.subject.trim()}) — due ${form.due_date}.`;
-        const { data: stuRows } = await supabase
-          .from("students")
-          .select("id, profile_id")
-          .eq("class_id", classId);
-        if (stuRows && stuRows.length > 0) {
-          const linkedStuRows = stuRows.filter(
-            (st: { id: string; profile_id: string | null }): st is { id: string; profile_id: string } =>
-              typeof st.profile_id === "string" && st.profile_id.length > 0
-          );
-          if (linkedStuRows.length > 0) {
-            await supabase.from("notifications").insert(
-              linkedStuRows.map((st) => ({
-                user_id:   st.profile_id,
-                school_id: schoolId,
-                type:      "homework",
-                title:     "New Homework",
-                body:      notifMsg,
-                is_read:   false,
-              }))
-            );
-          }
-          const { data: links } = await supabase
-            .from("parent_student_links")
-            .select("parent_id")
-            .in("student_id", stuRows.map((st: { id: string }) => st.id))
-            .eq("receives_alerts", true);
-          if (links && links.length > 0) {
-            const uniqueParents = Array.from(new Set(links.map((l: { parent_id: string }) => l.parent_id))) as string[];
-            await supabase.from("notifications").insert(
-              uniqueParents.map((pid: string) => ({
-                user_id:   pid,
-                school_id: schoolId,
-                type:      "homework",
-                title:     "New Homework",
-                body:      notifMsg,
-                is_read:   false,
-              }))
-            );
-          }
+      if (isRetry) {
+        const validQs = questionDrafts.map((q) => q.trim()).filter(Boolean);
+        if (validQs.length === 0) {
+          setError("Add at least one question to save, or tap Cancel to leave this homework without questions.");
+          return;
         }
-      } catch (_) {
-        // notifications are best-effort
       }
 
-      // Save questions if any
+      if (!homeworkId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setError("Your session has expired. Please sign in again.");
+          return;
+        }
+        const { data: createdHomework, error: homeworkError } = await supabase
+          .from("homework")
+          .insert({
+            class_id: classId, teacher_id: user.id, school_id: schoolId,
+            title: form.title.trim(), subject: form.subject.trim(),
+            instructions: form.instructions.trim(), due_date: form.due_date,
+            type: form.type, target_group_id: form.target_group_id || null,
+          })
+          .select("id")
+          .single();
+        if (homeworkError || !createdHomework || !createdHomework.id) {
+          setError(homeworkError?.message ?? "Homework could not be created. Please try again.");
+          return;
+        }
+        homeworkId = createdHomework.id;
+        pendingHomeworkIdRef.current = homeworkId;
+
+        // G4+G5: notify students and parents (first attempt only — never resent on retry)
+        try {
+          const notifMsg = `New homework: "${form.title.trim()}" (${form.subject.trim()}) — due ${form.due_date}.`;
+          const { data: stuRows } = await supabase
+            .from("students")
+            .select("id, profile_id")
+            .eq("class_id", classId);
+          if (stuRows && stuRows.length > 0) {
+            const linkedStuRows = stuRows.filter(
+              (st: { id: string; profile_id: string | null }): st is { id: string; profile_id: string } =>
+                typeof st.profile_id === "string" && st.profile_id.length > 0
+            );
+            if (linkedStuRows.length > 0) {
+              await supabase.from("notifications").insert(
+                linkedStuRows.map((st) => ({
+                  user_id:   st.profile_id,
+                  school_id: schoolId,
+                  type:      "homework",
+                  title:     "New Homework",
+                  body:      notifMsg,
+                  is_read:   false,
+                }))
+              );
+            }
+            const { data: links } = await supabase
+              .from("parent_student_links")
+              .select("parent_id")
+              .in("student_id", stuRows.map((st: { id: string }) => st.id))
+              .eq("receives_alerts", true);
+            if (links && links.length > 0) {
+              const uniqueParents = Array.from(new Set(links.map((l: { parent_id: string }) => l.parent_id))) as string[];
+              await supabase.from("notifications").insert(
+                uniqueParents.map((pid: string) => ({
+                  user_id:   pid,
+                  school_id: schoolId,
+                  type:      "homework",
+                  title:     "New Homework",
+                  body:      notifMsg,
+                  is_read:   false,
+                }))
+              );
+            }
+          }
+        } catch (_) {
+          // notifications are best-effort
+        }
+      }
+
+      // Save questions if any (runs on both first attempt and retry)
       if (addQuestions) {
         const validQs = questionDrafts.map((q, i) => q.trim()).filter(Boolean);
         if (validQs.length > 0) {
-          await supabase.from("homework_questions").insert(
-            validQs.map((q, i) => ({ homework_id: createdHomework.id, question: q, order_num: i + 1 }))
+          const { error: questionsError } = await supabase.from("homework_questions").insert(
+            validQs.map((q, i) => ({ homework_id: homeworkId, question: q, order_num: i + 1 }))
           );
+          if (questionsError) {
+            setError("Homework was created, but its questions could not be saved. Your question drafts are still here. Tap Post Homework to retry the questions only.");
+            return;
+          }
         }
       }
+
+      pendingHomeworkIdRef.current = null;
       setAddQuestions(false);
       setQuestionDrafts([""]);
       setForm(f => ({ ...f, title: "", instructions: "", due_date: "" }));
@@ -232,7 +254,7 @@ function HomeworkInner() {
               </p>
             </div>
           </div>
-          <button onClick={() => setShowForm(v => !v)} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: showForm ? "rgba(255,255,255,0.2)" : "#fff", color: showForm ? "#fff" : "#0f766e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={() => { pendingHomeworkIdRef.current = null; setShowForm(v => !v); }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: showForm ? "rgba(255,255,255,0.2)" : "#fff", color: showForm ? "#fff" : "#0f766e", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
             {showForm ? "Cancel" : "+ New"}
           </button>
         </div>
