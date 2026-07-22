@@ -486,7 +486,9 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
 
       const json = await res.json()
       if (!res.ok || !json.plan) {
-        const detail = json.error ?? 'Generation failed. Try again.'
+        const detail = json.error === 'insufficient_credits'
+          ? (json.message ?? 'You have no Vibe Credits. Buy credits to generate lesson plans.')
+          : (json.error ?? 'Generation failed. Try again.')
         setError(detail)
         setPhase('form')
         setBusy('idle')
@@ -495,7 +497,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       // G3: null check on parse
       const parsed = parsePlan(json.plan)
       if (parsed == null) {
-        setError('Gemini returned an unreadable plan. Try again.')
+        setError('The AI returned an unreadable plan. Try again.')
         setPhase('form')
         setBusy('idle')
         return
