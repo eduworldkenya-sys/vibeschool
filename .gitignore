@@ -73,3 +73,7 @@ supabase/.env
 
 supabase-go
 supabase_linux
+
+# local patch-workflow backups — never commit
+.tbl*-backups/
+.audit-backups/
