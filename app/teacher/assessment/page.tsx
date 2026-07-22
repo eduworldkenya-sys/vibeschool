@@ -215,14 +215,15 @@ function AssessmentInner() {
     setStrands([]); setStudents([]); setAssessments([])
     const currentYear = new Date().getFullYear()
 
-    const cls  = classes.find(c => c.id === classId)
-    const subj = subjects.find(s => s.id === subjectId)
+    const cls = classes.find(c => c.id === classId)
 
     // cbc_strands (national KICD reference) is the single source of
     // strand identity — see migration 20260709120000. Resolved via the
     // GLOBAL subject row (school_id IS NULL), not the school's own local
     // subject_id — cbc_strands is anchored to the national taxonomy.
-    const globalSubjectId = subj ? await resolveGlobalSubjectId(subj.name) : null
+    // TBL-010C: crosses via the FK bridge (subjects.global_subject_id),
+    // not a name match — subjectId is already this school's subject id.
+    const globalSubjectId = await resolveGlobalSubjectId(subjectId)
 
     const [strandsRes, scRes] = await Promise.all([
       cls && globalSubjectId

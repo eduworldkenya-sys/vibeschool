@@ -487,7 +487,9 @@ export function LessonPanel({
         // back to resolving preference live, same as commitScheme does.
         const needsFallback = schemeItems.filter((s) => !map[s.id] && s.curriculum_id)
         if (needsFallback.length > 0) {
-          const globalSubjectId = await resolveGlobalSubjectId(subjectLabel)
+          // TBL-010C: crosses via the FK bridge (subjects.global_subject_id),
+          // not a name match.
+          const globalSubjectId = await resolveGlobalSubjectId(subjectId)
           if (globalSubjectId) {
             await Promise.all(needsFallback.map(async (item) => {
               const content = await getContentForSubject(schoolId, globalSubjectId, teacherId, item.curriculum_id as string)

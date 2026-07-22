@@ -355,7 +355,9 @@ function SlotDrawer({
     `&timetableSlotId=${encodeURIComponent(slot.id)}` +
     `&date=${encodeURIComponent(occurrenceDate)}` +
     `&subject=${encodeURIComponent(slot.subject)}`
-  const lessonUrl = `/teacher/lessonplan?subject=${encodeURIComponent(slot.subject)}&classId=${slot.classId}`;
+  // TBL-010C: identity in the URL, not a display name — subjectId is
+  // the school subject's real id, already on the Slot view model.
+  const lessonUrl = `/teacher/lessonplan?subjectId=${encodeURIComponent(slot.subjectId)}&classId=${slot.classId}`;
   const homeworkUrl = `/teacher/classhub/${slot.classId}/homework`;
 
   // Fix 18B: truthful lifecycle CTA. Only lifecycles with a real destination

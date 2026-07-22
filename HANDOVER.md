@@ -852,3 +852,45 @@ is complete and the session is explicitly instructed to continue.
 - Next: TBL-010C — repoint the 4 callers above to id-first, plus the
   timetable lessonUrl (name -> subjectId) and any curriculum-by-name
   lookups that can anchor through subject context.
+
+
+---
+
+## TBL-010C — Consumer migration (2026-07-22)
+
+- All 5 crossings repointed to the TBL-010B id-first resolver; the
+  deprecated name-based resolveGlobalSubjectIdByName now has ZERO
+  callers anywhere in the codebase — the TBL-010B interim window is
+  closed.
+- Every site already had the real subjects.id sitting in scope, so no
+  new plumbing was needed — just the swap:
+  - app/teacher/assessment/page.tsx: loadData's own `subjectId` param
+    replaces `subj.name`; the now-dead `subj` lookup removed.
+  - app/teacher/scheme/page.tsx (x2 — loadScheme's ebook suggestions
+    and commitScheme's content auto-link): `selectedSubject` (state,
+    already an id) replaces `selectedSubjectObj.label`. The debug trace
+    referencing `lastResolveDebug` (only ever set by the name adapter,
+    would have gone permanently stale the moment this repoint landed)
+    was updated in the same edit; the now-unused import dropped.
+  - components/teacher/LessonPlanModal.tsx: `slot.subject_id` (already
+    on the same slot object) replaces `slot.subject` (display name).
+  - components/scheme/LessonPanel.tsx: `subjectId` (already a sibling
+    prop next to subjectLabel) replaces `subjectLabel`.
+- app/teacher/timetable/page.tsx: lessonUrl now carries
+  `subjectId=<uuid>` (slot.subjectId, already on the view model)
+  instead of `subject=<display name>`. Confirmed app/teacher/lessonplan
+  reads neither param today (derives subject_id from the resolved slot
+  itself) — this is a pure identity-correctness fix with zero
+  behavioral change to that page.
+- Boundary held exactly: the 6 files named in the directive, nothing
+  else. Homework schema, display-only id->name rendering, and the
+  pre-existing scheme_of_work orphan row were not touched.
+- tsc: zero net new errors against the TBL-010B baseline.
+- The 4 features that soft-degraded in the TBL-010B interim window
+  (assessment strand picker, scheme ebook suggestions, scheme/
+  LessonPanel content auto-link) are restored to full function, now
+  running on the durable id->id bridge instead of a name match.
+- Next: TBL-010D — regression audit proving timetable, lesson plans,
+  attendance, homework, recovery, reports, and Pulse all resolve one
+  subject through one path, then remove the now-unused
+  resolveGlobalSubjectIdByName adapter.

@@ -310,7 +310,9 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
             if (currRow) {
               let strandId: string | null = null
               try {
-                const globalSubjectId = await resolveGlobalSubjectId(slot.subject)
+                // TBL-010C: crosses via the FK bridge
+                // (subjects.global_subject_id), not a name match.
+                const globalSubjectId = await resolveGlobalSubjectId(slot.subject_id)
                 const strandRows = globalSubjectId
                   ? (await supabase
                       .from('cbc_strands')

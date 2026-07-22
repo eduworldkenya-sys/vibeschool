@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from 'rea
 import { useSearchParams, useRouter } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
-import { getContentForSubject, resolveGlobalSubjectId, lastResolveDebug } from '@/lib/curriculum/globalSubjects'
+import { getContentForSubject, resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { SchemeOfWorkPrint } from '@/components/scheme/SchemeOfWorkPrint'
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
@@ -558,8 +558,10 @@ function SchemePageInner() {
       // sub-strand for this grade/subject. Not week-matched yet —
       // cbc_strands.term/week aren't populated. Teacher picks the week.
       setDebugTrace(t => [...t.slice(-39), `req#${requestId} subjectLabel=${JSON.stringify(selectedSubjectObj.label)} grade=${JSON.stringify(selectedClassObj.grade)}`])
-      const globalSubjectId = await resolveGlobalSubjectId(selectedSubjectObj.label)
-      setDebugTrace(t => [...t.slice(-39), `req#${requestId} globalSubjectId=${globalSubjectId ?? 'NULL'}`, `req#${requestId} resolveDebug=${lastResolveDebug}`])
+      // TBL-010C: crosses via the FK bridge (subjects.global_subject_id),
+      // not a name match — selectedSubject is already this school's id.
+      const globalSubjectId = await resolveGlobalSubjectId(selectedSubject)
+      setDebugTrace(t => [...t.slice(-39), `req#${requestId} globalSubjectId=${globalSubjectId ?? 'NULL'}`])
       if (globalSubjectId) {
         const { data: strandRows } = await supabase
           .from('cbc_strands')
@@ -627,7 +629,9 @@ function SchemePageInner() {
     if (!selectedClass || !selectedSubject || !selectedTermId || !schoolId || !uid || !selectedClassObj || !selectedSubjectObj || !selectedTermObj || curriculumRows.length === 0) return
     setCommitting(true)
 
-    const globalSubjectId = await resolveGlobalSubjectId(selectedSubjectObj.label)
+    // TBL-010C: crosses via the FK bridge (subjects.global_subject_id),
+    // not a name match — selectedSubject is already this school's id.
+    const globalSubjectId = await resolveGlobalSubjectId(selectedSubject)
     const contentByCurriculumId = new Map<string, string | null>()
     if (globalSubjectId) {
       await Promise.all(curriculumRows.map(async row => {
