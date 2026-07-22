@@ -184,6 +184,81 @@ export async function loadTeacherTimetableForRange(
   return (data ?? []) as CanonicalTimetableSlot[];
 }
 
+export interface LoadClassTimetableOptions {
+  classId: string;
+  schoolId: string;
+  activeOn: string;
+}
+
+/**
+ * Canonical active timetable loader for class-scoped consumers
+ * (student surfaces). Mirrors loadActiveTeacherTimetable:
+ * - class isolation
+ * - school isolation
+ * - effective-date filtering
+ * - canonical ordering
+ */
+export async function loadActiveClassTimetable(
+  options: LoadClassTimetableOptions
+): Promise<CanonicalTimetableSlot[]> {
+  const { classId, schoolId, activeOn } = options;
+
+  if (!classId) {
+    throw new TimetableEngineError(
+      "Timetable class identity is required.",
+      "MISSING_CLASS_ID"
+    );
+  }
+
+  if (!schoolId) {
+    throw new TimetableEngineError(
+      "Timetable school identity is required.",
+      "MISSING_SCHOOL_ID"
+    );
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(activeOn)) {
+    throw new TimetableEngineError(
+      "Timetable active date must use YYYY-MM-DD.",
+      "INVALID_ACTIVE_DATE"
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("timetable_slots")
+    .select(
+      [
+        "id",
+        "school_id",
+        "teacher_id",
+        "class_id",
+        "subject_id",
+        "day_of_week",
+        "start_time",
+        "end_time",
+        "room",
+        "effective_from",
+        "effective_until",
+      ].join(",")
+    )
+    .eq("school_id", schoolId)
+    .eq("class_id", classId)
+    .lte("effective_from", activeOn)
+    .or(`effective_until.is.null,effective_until.gte.${activeOn}`)
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    throw new TimetableEngineError(
+      "Failed to load the active class timetable.",
+      error.message
+    );
+  }
+
+  return (data ?? []) as CanonicalTimetableSlot[];
+}
+
 export function timetableSlotsForDay(
   slots: readonly CanonicalTimetableSlot[],
   dayOfWeek: number
