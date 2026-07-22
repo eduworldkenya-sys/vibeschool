@@ -1,5 +1,7 @@
 "use client";
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
+import { loadActiveTeacherTimetable } from '@/lib/timetable/engine'
+import { getSchoolId } from '@/lib/getSchoolId'
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -199,16 +201,26 @@ export default function SmartTimetablePreview() {
       const loadNow = new Date()
       const today = nairobiDateStr(loadNow)
 
-      const { data: slots, error: slotsError } = await supabase
-        .from('timetable_slots')
-        .select('id, day_of_week, start_time, end_time, room, subject_id, class_id')
-        .eq('teacher_id', user.id)
-        .lte('effective_from', today)
-        .or(`effective_until.is.null,effective_until.gte.${today}`)
-        .order('start_time', { ascending: true })
+      // TBL-007F2: timetable reads go through the canonical engine only
+      // (teacher isolation, school isolation, effective-date filtering,
+      // canonical ordering). The engine requires a school identity;
+      // without one there is no canonical timetable to preview.
+      const resolvedSchoolId = await getSchoolId(user.id)
+      if (!isMounted.current) return
+      if (!resolvedSchoolId) {
+        if (isMounted.current) setAllSlots([])
+        return
+      }
 
-      if (slotsError) {
-        console.error('[SmartTimetablePreview] timetable_slots query failed:', slotsError)
+      let slots
+      try {
+        slots = await loadActiveTeacherTimetable({
+          teacherId: user.id,
+          schoolId: resolvedSchoolId,
+          activeOn: today,
+        })
+      } catch (err) {
+        console.error('[SmartTimetablePreview] canonical timetable load failed:', err)
         if (isMounted.current) setLoadError('Could not load timetable preview.')
         return
       }
@@ -240,10 +252,7 @@ export default function SmartTimetablePreview() {
 
       const markedIds = new Set((attRes.data ?? []).map((r: { timetable_slot_id: string }) => r.timetable_slot_id))
 
-      const mapped: Slot[] = slots.map((s: {
-        id: string; subject_id: string; class_id: string
-        room: string; start_time: string; end_time: string; day_of_week: number
-      }) => ({
+      const mapped: Slot[] = slots.map((s) => ({
         id:               s.id,
         classId:          s.class_id,
         subjectId:        s.subject_id,
