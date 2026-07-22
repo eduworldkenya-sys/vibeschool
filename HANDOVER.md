@@ -773,3 +773,26 @@ is complete and the session is explicitly instructed to continue.
   the timetable would make future-week recoveries browsable before their
   week; the date model added here is the prerequisite for it.
 - Next milestone: TBL-010 — subject identity unification.
+
+
+---
+
+## TBL-009D — Week anchor and count corrections (2026-07-22)
+
+- Reviewer-found remainder from TBL-009C, all three fixed:
+  1. Monday rollover: load() did not depend on the week, so at
+     Sunday->Monday midnight the page kept the previous week's range
+     result — recurring open-ended slots survived, but the new week's
+     BOUNDED slots (recovery slots above all) stayed invisible until a
+     manual refresh. weekStart is now state, resynced by the minute
+     timer, dateForDow anchors on it (weekStart + dow - 1), and load()
+     depends on it — the rollover swaps dates AND reloads the dataset.
+  2. Cancel-mode subtitle no longer claims "missed on" the recovery's
+     own date; it reads "recovery on {date}".
+  3. Hero and Week Summary counted timetable DEFINITIONS overlapping
+     the week; they now count rendered lessons via the per-date filtered
+     seven-day set (renderedWeekSlots), and uniqueClasses derives from
+     the same set so all header numbers agree with what is displayed.
+- Boundary held: RecoverySheet.tsx, timetable page, HANDOVER only.
+  tsc delta: zero net new errors.
+- Next milestone: TBL-010 — subject identity unification.

@@ -654,6 +654,12 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // TBL-009C: weekday is Nairobi-anchored so the day tabs and the dates
   // derived from them can never disagree across a timezone/midnight boundary.
   const [todayDow, setTodayDow] = useState<number>(() => nairobiDayOfWeek())
+  // TBL-009D: the WEEK is the source of truth for every date the page
+  // renders. Held in state and resynced by the minute timer so the
+  // Sunday->Monday rollover swaps the whole dataset: dateForDow moves AND
+  // load() reruns (weekStart is in its deps), pulling the new week's
+  // bounded slots — e.g. recovery slots — that the old range never held.
+  const [weekStart, setWeekStart] = useState<string>(() => nairobiWeekStart())
 
   const isWeekend    = todayDow === 6 || todayDow === 7
   const effectiveDow = todayDow
@@ -666,8 +672,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // date. This is what makes one-day recovery slots appear on exactly
   // their own date and nowhere else.
   const dateForDow = useCallback(
-    (dow: number) => nairobiDateAdd(nairobiDateStr(), dow - todayDow),
-    [todayDow]
+    (dow: number) => nairobiDateAdd(weekStart, dow - 1),
+    [weekStart]
   )
   const slotActiveOn = useCallback(
     (s: Slot, date: string) =>
@@ -700,6 +706,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     const id = setInterval(() => {
       setCurMin(currentTimeMin())
       setTodayDow(nairobiDayOfWeek())  // FIX [LOGIC-02] + TBL-009C: keep day current, Nairobi-anchored
+      const nextWeekStart = nairobiWeekStart()  // TBL-009D: week rollover triggers reload via load()'s deps
+      setWeekStart(current => current === nextWeekStart ? current : nextWeekStart)
     }, 60_000)
     return () => clearInterval(id)
   }, [])
@@ -764,12 +772,11 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       // scheduled for later this week is invisible until its date arrives.
       // Per the engine contract, per-date effectiveness is validated at
       // render time via slotActiveOn.
-      const weekStartStr = nairobiWeekStart()
       const slots = await loadTeacherTimetableForRange({
         teacherId: user.id,
         schoolId,
-        rangeStart: weekStartStr,
-        rangeEnd: nairobiDateAdd(weekStartStr, 6),
+        rangeStart: weekStart,
+        rangeEnd: nairobiDateAdd(weekStart, 6),
       })
 
       if (!isMounted.current) return
@@ -826,7 +833,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         setLoading(false)  // FIX [FATAL-02]: always runs, but only if still mounted
       }
     }
-  }, [router])
+  }, [router, weekStart])
 
   useEffect(() => {
     load()
@@ -853,10 +860,21 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     [daySlots, isToday, curMin, nowSlot]
   )
 
-  const totalLessons  = allSlots.length
+  // TBL-009D: the range loader returns timetable DEFINITIONS overlapping
+  // the week; what the teacher sees is the per-date filtered set. The hero
+  // and Week Summary must count rendered lessons, not definitions — two
+  // revisions of the same weekday overlapping different halves of the week
+  // are one lesson per date, not two.
+  const renderedWeekSlots = useMemo(
+    () => DAYS.flatMap(day =>
+      allSlots.filter(s => s.dayOfWeek === day.dow && slotActiveOn(s, dateForDow(day.dow)))
+    ),
+    [allSlots, slotActiveOn, dateForDow]
+  )
+  const totalLessons  = renderedWeekSlots.length
   const uniqueClasses = useMemo(
-    () => new Set(allSlots.map(s => s.className)).size,
-    [allSlots]
+    () => new Set(renderedWeekSlots.map(s => s.className)).size,
+    [renderedWeekSlots]
   )
 
   // Fetch this teacher's weekly timetable load via RPC — server-side join

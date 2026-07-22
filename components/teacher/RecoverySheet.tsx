@@ -191,7 +191,9 @@ export default function RecoverySheet({
           {ctx.mode === 'schedule' ? 'Recover Missed Lesson' : 'Cancel Recovery'}
         </div>
         <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 14 }}>
-          {ctx.subject} · missed on {ctx.dateLabel}
+          {ctx.subject} · {ctx.mode === 'schedule'
+            ? `missed on ${ctx.dateLabel}`
+            : `recovery on ${ctx.dateLabel}`}
         </div>
 
         {done ? (
