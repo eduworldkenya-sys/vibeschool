@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type { Slot, ActivityLog, PulseSnapshot } from "@/lib/types";
 import { nairobiDateStr, nairobiDayOfWeek, nairobiDateAdd } from "@/lib/time";
+import { loadActiveTeacherTimetable } from "@/lib/timetable/engine";
 
 interface TimetableSlotRow {
   id: string;
@@ -174,14 +175,19 @@ export async function fetchPulseData(
   const recentSchoolDays = lastSchoolDays(5, today);
 
   const [slotsRes, termRes, teacherClassesRes, activeWeeksRes] = await Promise.all([
-    supabase
-      .from("timetable_slots")
-      .select("id,day_of_week,start_time,end_time,subject_id,class_id")
-      .eq("school_id", schoolId)
-      .eq("teacher_id", userId)
-      .lte("effective_from", today)
-      .or(`effective_until.is.null,effective_until.gte.${today}`)
-      .order("start_time"),
+    loadActiveTeacherTimetable({
+      schoolId,
+      teacherId: userId,
+      activeOn: today,
+    })
+      .then((data) => ({ data, error: null }))
+      .catch((error: unknown) => ({
+        data: null,
+        error:
+          error instanceof Error
+            ? error
+            : new Error("Unknown timetable engine failure"),
+      })),
     supabase
       .from("academic_terms")
       .select("id,term,start_date,end_date")
