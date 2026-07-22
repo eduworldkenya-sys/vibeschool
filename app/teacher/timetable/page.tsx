@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
+import { loadActiveTeacherTimetable } from '@/lib/timetable/engine'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
 import type { TeachingOccurrence, Lifecycle } from '@/lib/teaching/types'
@@ -638,33 +639,34 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       const todayStr = nairobiDateStr()
 
-      const [slotsResult, memberResult] = await Promise.all([
-        supabase
-          .from('timetable_slots')
-          .select('id, day_of_week, start_time, end_time, room, subject_id, class_id')
-          .eq('teacher_id', user.id)
-          .lte('effective_from', todayStr)
-          .or(`effective_until.is.null,effective_until.gte.${todayStr}`)
-          .order('day_of_week', { ascending: true })
-          .order('start_time',  { ascending: true }),
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', user.id)
+        .single()
 
+      if (!isMounted.current) return
 
-        supabase
-          .from('profiles')
-          .select('school_id')  // timetable existing
-          .eq('id', user.id)
-          .single(),
-      ])
-
-      if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
-
-      if (slotsResult.error) {
-        console.error('[Timetable] failed to load active slots', slotsResult.error)
-        setLoadError('Could not load your timetable. Please refresh.')
+      if (profileError) {
+        console.error('[Timetable] failed to resolve teacher school', profileError)
+        setSchoolError('Could not determine your school. Please refresh.')
         return
       }
 
-      const slots = slotsResult.data ?? []
+      const schoolId = profile?.school_id
+
+      if (!schoolId) {
+        setSchoolError('Your teacher profile is not connected to a school.')
+        return
+      }
+
+      const slots = await loadActiveTeacherTimetable({
+        teacherId: user.id,
+        schoolId,
+        activeOn: todayStr,
+      })
+
+      if (!isMounted.current) return
 
       // Fetch subject and class names separately
       const subjectIds = Array.from(new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean)))
@@ -689,7 +691,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         gradeMap[c.id] = c.name
       })
 
-      const mapped: Slot[] = slots.map((s: {id: string, subject_id: string, class_id: string, room: string, start_time: string, end_time: string, day_of_week: number}) => {
+      const mapped: Slot[] = slots.map((s) => {
         return {
           id:        s.id,
           classId:   s.class_id,
