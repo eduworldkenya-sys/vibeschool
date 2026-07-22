@@ -20,6 +20,13 @@ export interface LoadTeacherTimetableOptions {
   activeOn: string;
 }
 
+export interface LoadTeacherTimetableRangeOptions {
+  teacherId: string;
+  schoolId: string;
+  rangeStart: string;
+  rangeEnd: string;
+}
+
 export class TimetableEngineError extends Error {
   readonly causeMessage: string;
 
@@ -93,6 +100,83 @@ export async function loadActiveTeacherTimetable(
   if (error) {
     throw new TimetableEngineError(
       "Failed to load the active teacher timetable.",
+      error.message
+    );
+  }
+
+  return (data ?? []) as CanonicalTimetableSlot[];
+}
+
+/**
+ * Load timetable definitions whose effective ranges overlap a requested
+ * calendar range.
+ *
+ * Consumers must still validate each slot's concrete weekday occurrence
+ * against effective_from/effective_until.
+ */
+export async function loadTeacherTimetableForRange(
+  options: LoadTeacherTimetableRangeOptions
+): Promise<CanonicalTimetableSlot[]> {
+  const { teacherId, schoolId, rangeStart, rangeEnd } = options;
+
+  if (!teacherId) {
+    throw new TimetableEngineError(
+      "Timetable teacher identity is required.",
+      "MISSING_TEACHER_ID"
+    );
+  }
+
+  if (!schoolId) {
+    throw new TimetableEngineError(
+      "Timetable school identity is required.",
+      "MISSING_SCHOOL_ID"
+    );
+  }
+
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+  if (!datePattern.test(rangeStart) || !datePattern.test(rangeEnd)) {
+    throw new TimetableEngineError(
+      "Timetable range dates must use YYYY-MM-DD.",
+      "INVALID_DATE_RANGE"
+    );
+  }
+
+  if (rangeStart > rangeEnd) {
+    throw new TimetableEngineError(
+      "Timetable range start cannot be after range end.",
+      "INVALID_DATE_RANGE"
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("timetable_slots")
+    .select(
+      [
+        "id",
+        "school_id",
+        "teacher_id",
+        "class_id",
+        "subject_id",
+        "day_of_week",
+        "start_time",
+        "end_time",
+        "room",
+        "effective_from",
+        "effective_until",
+      ].join(",")
+    )
+    .eq("school_id", schoolId)
+    .eq("teacher_id", teacherId)
+    .lte("effective_from", rangeEnd)
+    .or(`effective_until.is.null,effective_until.gte.${rangeStart}`)
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    throw new TimetableEngineError(
+      "Failed to load the teacher timetable range.",
       error.message
     );
   }

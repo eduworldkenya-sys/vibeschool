@@ -1,5 +1,7 @@
 "use client";
 import { nairobiDateStr, nairobiDateAdd, nairobiWeekStart } from '@/lib/time'
+import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
+import type { CanonicalTimetableSlot } from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, Suspense } from 'react'
@@ -85,25 +87,36 @@ function LessonPlanInner() {
       // when that week is selected, even though it isn't active today.
       const weekEnd = nairobiDateAdd(weekStart, 6)
 
-      const [slotsRes, plansRes] = await Promise.all([
-        supabase.from('timetable_slots')
-          .select('id,start_time,end_time,room,class_id,subject_id,day_of_week,effective_from,effective_until')
-          .eq('teacher_id', user.id)
-          .lte('effective_from', weekEnd)
-          .or(`effective_until.is.null,effective_until.gte.${weekStart}`)
-          .order('start_time', { ascending: true }),
-        supabase.from('lesson_plans')
-          .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
-          .eq('teacher_id', user.id)
-          .eq('week_start', weekStart),
-      ])
+      if (!resolvedSchoolId) {
+        setLoadError('Your teacher profile is not connected to a school.')
+        setLoading(false)
+        return
+      }
 
-      // Either query failing means the page can't be constructed correctly —
-      // don't substitute [] and render a misleading "no classes" / "no plans"
-      // state. Surface one stable error and stop.
-      if (slotsRes.error || plansRes.error) {
-        if (slotsRes.error) console.error('[LessonPlan] timetable_slots query failed:', slotsRes.error)
-        if (plansRes.error) console.error('[LessonPlan] lesson_plans query failed:', plansRes.error)
+      let timetableSlots: CanonicalTimetableSlot[]
+
+      try {
+        timetableSlots = await loadTeacherTimetableForRange({
+          teacherId: user.id,
+          schoolId: resolvedSchoolId,
+          rangeStart: weekStart,
+          rangeEnd: weekEnd,
+        })
+      } catch (error) {
+        console.error('[LessonPlan] canonical timetable range failed:', error)
+        setLoadError('Could not load lesson plans.')
+        setLoading(false)
+        return
+      }
+
+      const plansRes = await supabase
+        .from('lesson_plans')
+        .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
+        .eq('teacher_id', user.id)
+        .eq('week_start', weekStart)
+
+      if (plansRes.error) {
+        console.error('[LessonPlan] lesson_plans query failed:', plansRes.error)
         setLoadError('Could not load lesson plans.')
         setLoading(false)
         return
@@ -127,15 +140,19 @@ function LessonPlanInner() {
       // occurrence in this week falls inside that range (e.g. a Monday slot
       // effective from Wednesday shouldn't show for that week's Monday).
       // day_of_week convention: Monday = 1 ... Sunday = 7.
-      const slots = (slotsRes.data ?? []).filter((slot: any) => {
+      const slots = timetableSlots.filter(slot => {
         const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
         return (
           slot.effective_from <= occurrenceDate &&
           (slot.effective_until === null || slot.effective_until >= occurrenceDate)
         )
       })
-      const subjectIds = Array.from(new Set(slots.map((s: any) => s.subject_id).filter(Boolean)))
-      const classIds   = Array.from(new Set(slots.map((s: any) => s.class_id).filter(Boolean)))
+      const subjectIds = Array.from(
+        new Set(slots.map(s => s.subject_id).filter(Boolean))
+      )
+      const classIds = Array.from(
+        new Set(slots.map(s => s.class_id).filter(Boolean))
+      )
       const [subjRes, clsRes] = await Promise.all([
         subjectIds.length > 0 ? supabase.from('subjects').select('id,name').in('id', subjectIds) : Promise.resolve({ data: [] }),
         classIds.length > 0   ? supabase.from('classes').select('id,name,stream').in('id', classIds) : Promise.resolve({ data: [] }),
@@ -143,7 +160,7 @@ function LessonPlanInner() {
       const subjMap = Object.fromEntries((subjRes.data ?? []).map((s: any) => [s.id, s.name]))
       const clsMap  = Object.fromEntries((clsRes.data ?? []).map((c: any) => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]))
 
-      const mapped: SlotWithPlan[] = slots.map((s: any) => {
+      const mapped: SlotWithPlan[] = slots.map(s => {
         // Fix 14C: carry the browsed occurrence forward on the slot itself —
         // day_of_week and occurrenceDate must survive into activeSlot, or the
         // modal has no way to know which real-world date it's saving to.
