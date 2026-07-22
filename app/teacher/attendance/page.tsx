@@ -1,5 +1,9 @@
 "use client";
 import { nairobiDateStr } from '@/lib/time'
+import {
+  loadActiveTeacherTimetable,
+  timetableSlotsForDay,
+} from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
@@ -103,25 +107,55 @@ function AttendanceInner() {
       if (!user) return
       setUid(user.id)
 
-      const dow = new Date(selectedDate + 'T12:00:00').getDay()
+      const browserDow = new Date(selectedDate + 'T12:00:00').getDay()
+      const selectedDow = browserDow === 0 ? 7 : browserDow
 
-      const [profileRes, memberRes, classesRes, slotsRes] = await Promise.all([
-        supabase.from('profiles').select('school_id').eq('id', user.id).single(),
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('teacher_classes').select('class_id, is_class_teacher, classes(id, name, stream, school_id)').eq('teacher_id', user.id),
-        supabase.from('timetable_slots')
-          .select('id, room, start_time, end_time, class_id, subject_id, day_of_week')
-          .eq('teacher_id', user.id)
-          .eq('day_of_week', dow === 0 ? 7 : dow)
-          // Fix 19: only slots active on the selected attendance date.
-          // effective_from is NOT NULL (verified live), so the strict form
-          // matches the established pattern in lessonplan/page.tsx.
-          .lte('effective_from', selectedDate)
-          .or(`effective_until.is.null,effective_until.gte.${selectedDate}`)
-          .order('start_time', { ascending: true }),
+      const [profileRes, memberRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('school_members')
+          .select('school_id')
+          .eq('profile_id', user.id)
+          .maybeSingle(),
       ])
 
-      setSchoolId(memberRes.data?.school_id ?? profileRes.data?.school_id ?? null)
+      const resolvedSchoolId =
+        memberRes.data?.school_id ??
+        profileRes.data?.school_id ??
+        null
+
+      setSchoolId(resolvedSchoolId)
+
+      if (!resolvedSchoolId) {
+        setSlotError('Your teacher profile is not connected to a school.')
+        setClasses([])
+        setSlots([])
+        setClassesLoading(false)
+        setSlotsLoading(false)
+        return
+      }
+
+      const [classesRes, activeTimetable] = await Promise.all([
+        supabase
+          .from('teacher_classes')
+          .select('class_id, is_class_teacher, classes(id, name, stream, school_id)')
+          .eq('teacher_id', user.id)
+          .eq('school_id', resolvedSchoolId),
+        loadActiveTeacherTimetable({
+          teacherId: user.id,
+          schoolId: resolvedSchoolId,
+          activeOn: selectedDate,
+        }),
+      ])
+
+      const rawSlots = timetableSlotsForDay(
+        activeTimetable,
+        selectedDow
+      )
 
       const loadedClasses: ClassOption[] = Array.from(
         new Map<string, ClassOption>(
@@ -146,10 +180,9 @@ function AttendanceInner() {
         setActiveClassId(loadedClasses[0].id)
       }
 
-      // fetch subjects and classes for slots separately
-      const rawSlots = slotsRes.data ?? []
-      const subjectIds = Array.from(new Set(rawSlots.map((s: any) => s.subject_id).filter(Boolean)))
-      const classIds   = Array.from(new Set(rawSlots.map((s: any) => s.class_id).filter(Boolean)))
+      // Fetch subject and class labels for canonical timetable slots.
+      const subjectIds = Array.from(new Set(rawSlots.map(s => s.subject_id).filter(Boolean)))
+      const classIds = Array.from(new Set(rawSlots.map(s => s.class_id).filter(Boolean)))
 
       const [subjRes, clsRes] = await Promise.all([
         subjectIds.length > 0 ? supabase.from('subjects').select('id,name').in('id', subjectIds) : Promise.resolve({ data: [] }),
@@ -159,7 +192,7 @@ function AttendanceInner() {
       const subjMap = Object.fromEntries((subjRes.data ?? []).map((s: any) => [s.id, s.name]))
       const clsMap  = Object.fromEntries((clsRes.data ?? []).map((c: any) => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]))
 
-      const slotIds = rawSlots.map((s: any) => s.id)
+      const slotIds = rawSlots.map(s => s.id)
       let markedSet = new Set<string>()
       if (slotIds.length > 0) {
         const { data: attRows } = await supabase
@@ -171,7 +204,7 @@ function AttendanceInner() {
         markedSet = new Set((attRows ?? []).map((r: any) => r.timetable_slot_id))
       }
 
-      const mapped: TSlot[] = rawSlots.map((s: any) => ({
+      const mapped: TSlot[] = rawSlots.map(s => ({
         id:      s.id,
         classId: s.class_id,
         subject: subjMap[s.subject_id] ?? 'Unknown',
