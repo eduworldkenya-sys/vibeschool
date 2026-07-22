@@ -348,3 +348,12 @@ Continue only the active fix.
 Do not restart the timetable audit.
 
 Do not begin the next fix unless the current fix is committed, marked VERIFIED, and the session is explicitly instructed to continue.
+
+---
+
+DATE: 2026-07-22
+SESSION: Out-of-sequence TBL-005 preflight implementation
+ACTION: Added the read-only TBL-005 timetable constraint preflight SQL and its static validator. The implementation was committed while TBL-002 remained the formally active fix.
+EVIDENCE: "python3 scripts/validate-tbl005-preflight.py" passed. Equivalent read-only checks against Supabase project "yauqsxggtuxuykcbrtzf" returned zero invalid rows for timetable slot references, assignment matching, school consistency, weekday values, time ranges, and effective-date ranges.
+RESULT: Implementation commit f5fd1b6 exists, but TBL-005 remains OPEN and is not VERIFIED. No database migration, DDL, data repair, RLS change, or migration-ledger write occurred. TBL-002 remains the active fix. TBL-005 must be revisited in sequence, run using the exact repository SQL file against the confirmed target environment, and then formally verified.
+
