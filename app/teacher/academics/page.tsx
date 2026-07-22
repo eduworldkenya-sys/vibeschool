@@ -147,28 +147,69 @@ export default function TeacherAcademicsPage(){
       const subjectIds=Array.from(new Set(rows.map(r=>r.subject_id).filter(Boolean)));
       const classIds=Array.from(new Set(rows.map(r=>r.class_id).filter(Boolean)));
       if(subjectIds.length===0){setLoading(false);return;}
+
+      type SubRow={id:string;name:string;global_subject_id:string|null};
+
+      const{
+        data:subRows,
+        error:subError,
+      }=await supabase
+        .from("subjects")
+        .select("id, name, global_subject_id")
+        .in("id",subjectIds);
+
+      if(subError){
+        throw new Error(`Failed to load assigned subjects: ${subError.message}`);
+      }
+
+      const subList=(subRows??[]) as SubRow[];
+      const loadedSubjectIds=new Set(subList.map(subject=>subject.id));
+      const missingSubjectIds=subjectIds.filter(subjectId=>!loadedSubjectIds.has(subjectId));
+
+      if(missingSubjectIds.length>0){
+        throw new Error(`Assigned subjects could not be resolved: ${missingSubjectIds.join(", ")}`);
+      }
+
+      const globalSubjectIds=Array.from(
+        new Set(
+          subList
+            .map(subject=>subject.global_subject_id)
+            .filter((id):id is string=>Boolean(id))
+        )
+      );
+
+      const globalSubjectIdBySchoolId=new Map(
+        subList.map(subject=>[subject.id,subject.global_subject_id])
+      );
+
+      const unlinkedSubjects=subList.filter(subject=>!subject.global_subject_id);
+
+      if(unlinkedSubjects.length>0){
+        console.error(
+          "Academics: assigned subjects missing global identity",
+          {subjectIds:unlinkedSubjects.map(subject=>subject.id)}
+        );
+      }
+
       const tStart=termStart();const tNum=currentTerm();const tYear=new Date().getFullYear();
-      const[subRes,classRes,studentClsRes,lpRes,assRes,outcomeRes,attRes,tpadRes,evidRes]=await Promise.allSettled([
-        supabase.from("subjects").select("id, name").in("id",subjectIds),
+      const[classRes,studentClsRes,lpRes,assRes,outcomeRes,attRes,tpadRes,evidRes]=await Promise.allSettled([
         supabase.from("classes").select("id, name, stream").in("id",classIds),
         classIds.length>0?supabase.from("student_classes").select("student_id, class_id").in("class_id",classIds).eq("is_current",true):Promise.resolve({data:[]}),
         supabase.from("lesson_plans").select("id, subject_id, status").eq("teacher_id",user.id).gte("created_at",tStart),
         schoolId
           ?supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,strand_id,performance,term,academic_year").eq("teacher_id",user.id).eq("school_id",schoolId).eq("term",tNum).eq("academic_year",tYear)
           :supabase.from("cbc_assessments").select("id,student_id,subject_id,class_id,strand_id,performance,term,academic_year").eq("teacher_id",user.id).eq("term",tNum).eq("academic_year",tYear),
-        supabase.from("cbc_strands").select("id,subject_id,name").in("subject_id",subjectIds),
+        supabase.from("cbc_strands").select("id,subject_id,name").in("subject_id",globalSubjectIds),
         classIds.length>0?supabase.from("attendance").select("student_id,class_id,status").in("class_id",classIds).eq("teacher_id",user.id).gte("date",tStart):Promise.resolve({data:[]}),
         supabase.from("tpad_appraisals").select("final_score,status,standard_1_self,standard_2_self,standard_3_self,standard_4_self,standard_5_self,standard_6_self,standard_7_self,standard_8_self").eq("teacher_id",user.id).order("created_at",{ascending:false}).limit(1).maybeSingle(),
         supabase.from("tpad_evidence").select("id,standard").eq("teacher_id",user.id),
       ]);
-      type SubRow={id:string;name:string};
       type ClsRow={id:string;name:string;stream:string|null};
       type SClsRow={student_id:string;class_id:string};
       type LPRow={id:string;subject_id:string;status:string};
       type AssRow={id:string;student_id:string;subject_id:string;class_id:string;strand_id:string|null;performance:string;term:number;academic_year:number};
       type OutRow={id:string;subject_id:string;name:string};
       type AttRow={student_id:string;class_id:string;status:string};
-      const subList=(subRes.status==="fulfilled"?subRes.value.data??[]:(console.error("subRes",subRes),[])) as SubRow[];
       const classList=(classRes.status==="fulfilled"?classRes.value.data??[]:(console.error("classRes",classRes),[])) as ClsRow[];
       const studentCls=(studentClsRes.status==="fulfilled"?studentClsRes.value.data??[]:[]) as SClsRow[];
       const lpData=(lpRes.status==="fulfilled"?lpRes.value.data??[]:(console.error("lpRes",lpRes),[])) as LPRow[];
@@ -189,7 +230,8 @@ export default function TeacherAcademicsPage(){
       const summaries:SubjectCard[]=subList.map(sub=>{
         const myCls=subClassMap[sub.id]??[];
         const subAss=assData.filter(a=>a.subject_id===sub.id);
-        const strandDefs=outcomeData.filter(o=>o.subject_id===sub.id);
+        const globalSubjectId=globalSubjectIdBySchoolId.get(sub.id);
+        const strandDefs=globalSubjectId?outcomeData.filter(o=>o.subject_id===globalSubjectId):[];
         const totalStudentsInSub=Array.from(new Set(rows.filter(r=>r.subject_id===sub.id).flatMap(r=>{const ids=classStudentIds[r.class_id];return ids?Array.from(ids):[];}))).length;
         const subMastered=subAss.filter(a=>a.performance==="meets_expectation"||a.performance==="exceeds_expectation");
         const covered=new Set(subAss.map(a=>a.student_id)).size;

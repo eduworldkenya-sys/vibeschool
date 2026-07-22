@@ -976,3 +976,32 @@ is complete and the session is explicitly instructed to continue.
 - Next: TBL-010E (academics strand fix) and TBL-010F (orphan row
   disposition) as independent micro-fixes; TBL-012 for
   `homework.subject_id` when scheduled.
+
+---
+
+## TBL-010E — Academics strand taxonomy repointed to global subject id (2026-07-22)
+
+- Root cause confirmed in `app/teacher/academics/page.tsx`: the page queried
+  `cbc_strands.subject_id` using school-scoped subject ids sourced from
+  `teacher_classes.subject_id`, while all live `cbc_strands` rows are keyed
+  to global subject ids.
+- Live verification before the patch confirmed 1,269 strands on global
+  subjects and zero strands on school subjects.
+- A second downstream mismatch was also fixed: strand definitions were being
+  filtered with `o.subject_id === sub.id`, comparing a global taxonomy id
+  against a school subject id.
+- The assigned-subject query now runs as a preliminary awaited query inside
+  `boot()` and selects `id`, `name`, and `global_subject_id`.
+- The patch builds:
+  - a deduplicated `globalSubjectIds` list for the `cbc_strands` query;
+  - a `globalSubjectIdBySchoolId` map for subject-card aggregation.
+- Query errors and missing assigned-subject rows are treated as hard load
+  failures instead of silently producing a partial Academics dashboard.
+- An existing school subject without `global_subject_id` is logged as a data
+  anomaly and receives empty strand detail; there is no fallback to name
+  matching.
+- `cbc_assessments` matching remains intentionally keyed to the operational
+  school subject id.
+- File boundary: `app/teacher/academics/page.tsx`, `HANDOVER.md`,
+  `scripts/tbl010e_verify.sh`.
+- No migration, schema change, RLS change, or database write was required.
