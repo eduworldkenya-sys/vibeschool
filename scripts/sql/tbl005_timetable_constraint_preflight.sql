@@ -1,5 +1,3 @@
-\set ON_ERROR_STOP on
-
 /*
  * TBL-005 — Timetable constraint data preconditions
  *
