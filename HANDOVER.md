@@ -1005,3 +1005,27 @@ is complete and the session is explicitly instructed to continue.
 - File boundary: `app/teacher/academics/page.tsx`, `HANDOVER.md`,
   `scripts/tbl010e_verify.sh`.
 - No migration, schema change, RLS change, or database write was required.
+
+---
+
+## TBL-010F — Orphan Scheme of Work identity repaired (2026-07-22)
+
+- Repaired the known `scheme_of_work` row:
+  `ed83edb5-3323-4c3a-8179-08add352974d`.
+- The row previously had both `school_id` and `subject_id` set to `NULL`.
+- Live identity was resolved deterministically through:
+  - class `8a8f97c2-adf0-44a7-8b9f-7f3cec9fd612`;
+  - school `c51ec2ae-5b70-4f69-887d-54eb9f312db7`;
+  - teacher/class English assignment;
+  - school subject `3f280c11-d2e7-48c3-9eba-d0c56e073c51`.
+- The migration guards the expected teacher, class, school, subject, term,
+  week, topic, status, source, assignment uniqueness, affected-row count,
+  and final repaired state.
+- The repair was applied to Supabase and verified live.
+- Final live check returned zero remaining identity-null conditions for the
+  target row.
+- No application code, RLS policy, or schema structure was changed.
+- Files:
+  - `supabase/migrations/20260722190000_tbl010f_repair_orphan_scheme_identity.sql`
+  - `scripts/tbl010f_verify.sh`
+  - `HANDOVER.md`
