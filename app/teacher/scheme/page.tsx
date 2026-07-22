@@ -528,11 +528,20 @@ function SchemePageInner() {
     // Delta: which national curriculum items are not yet in this teacher's scheme
     if (selectedClassObj && selectedSubjectObj && selectedTermObj) {
       setLoadingCurric(true)
+      const globalSubjectId = await resolveGlobalSubjectId(selectedSubject)
+
+      if (!globalSubjectId) {
+        setFetchError("This subject is not linked to the national curriculum taxonomy.")
+        setLoadingCurric(false)
+        setFetching(false)
+        return
+      }
+
       const { data: currData, error: currErr } = await supabase
         .from('curriculum')
         .select('id,grade,subject,strand,sub_strand,topic,week,term')
         .eq('grade', selectedClassObj.grade)
-        .eq('subject', selectedSubjectObj.label)
+        .eq('global_subject_id', globalSubjectId)
         .eq('term', selectedTermObj.term)
 
       if (requestId !== schemeRequestIdRef.current) {
@@ -558,10 +567,9 @@ function SchemePageInner() {
       // sub-strand for this grade/subject. Not week-matched yet —
       // cbc_strands.term/week aren't populated. Teacher picks the week.
       setDebugTrace(t => [...t.slice(-39), `req#${requestId} subjectLabel=${JSON.stringify(selectedSubjectObj.label)} grade=${JSON.stringify(selectedClassObj.grade)}`])
-      // TBL-010C: crosses via the FK bridge (subjects.global_subject_id),
-      // not a name match — selectedSubject is already this school's id.
-      const globalSubjectId = await resolveGlobalSubjectId(selectedSubject)
-      setDebugTrace(t => [...t.slice(-39), `req#${requestId} globalSubjectId=${globalSubjectId ?? 'NULL'}`])
+      // TBL-010H: globalSubjectId was already resolved above and is now
+      // used for both curriculum and strand taxonomy queries.
+      setDebugTrace(t => [...t.slice(-39), `req#${requestId} globalSubjectId=${globalSubjectId}`])
       if (globalSubjectId) {
         const { data: strandRows } = await supabase
           .from('cbc_strands')
