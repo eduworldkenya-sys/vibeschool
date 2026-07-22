@@ -1,0 +1,1563 @@
+{
+  "metadata": {
+    "fix_id": "TBL-002",
+    "title": "Classify every migration",
+    "generated_at": "2026-07-20T20:43:48.448797+00:00",
+    "repository": "eduworldkenya-sys/vibeschool",
+    "repository_source": "current GitHub main, as provided in uploaded repository snapshot",
+    "supabase_project_id": "yauqsxggtuxuykcbrtzf",
+    "supabase_project_ref": "yauqsxggtuxuykcbrtzf",
+    "live_ledger_snapshot_captured_at": "2026-07-20T00:00:00Z",
+    "live_ledger_snapshot_source": "Supabase:list_migrations (schema_migrations), captured this session",
+    "method": "Local migrations were scanned directly from supabase/migrations/. Live migrations were read via Supabase:list_migrations against project yauqsxggtuxuykcbrtzf and embedded as a snapshot (see live_ledger_snapshot below) so the validator can check classification completeness without further Supabase access. Matching between local and live is by version key (and, informationally, by name). No live migration SQL body was fetched, diffed, executed, or repaired. No Supabase writes were made.",
+    "counts": {
+      "local_total": 60,
+      "live_total": 72,
+      "matched": 58,
+      "local_only": 2,
+      "live_only": 14,
+      "documented_only": 2,
+      "historical_pseudo": 1,
+      "classification_entries_total": 77
+    },
+    "allowed_classifications": [
+      "PARITY_APPLIED",
+      "SYNTHETIC_BASELINE",
+      "PENDING_DEPLOYMENT",
+      "HISTORICAL_PLACEHOLDER",
+      "MISSING_REPO_SOURCE",
+      "STALE_REPO_ONLY",
+      "UNEXPECTED_LIVE_ONLY",
+      "NAME_MISMATCH",
+      "DUPLICATE_LOCAL_VERSION"
+    ]
+  },
+  "local_ledger": [
+    {
+      "version": "20260521083057",
+      "file": "20260521083057_report_schedules.sql",
+      "name": "report_schedules"
+    },
+    {
+      "version": "20260521083115",
+      "file": "20260521083115_report_comparisons.sql",
+      "name": "report_comparisons"
+    },
+    {
+      "version": "20260521204108",
+      "file": "20260521204108_funhub_schema.sql",
+      "name": "funhub_schema"
+    },
+    {
+      "version": "20260523",
+      "file": "20260523_class_groups.sql",
+      "name": "class_groups"
+    },
+    {
+      "version": "20260523000001",
+      "file": "20260523000001_funhub_questions_seed.sql",
+      "name": "funhub_questions_seed"
+    },
+    {
+      "version": "20260525210349",
+      "file": "20260525210349_add_timetable_slot_id_to_lesson_plans.sql",
+      "name": "add_timetable_slot_id_to_lesson_plans"
+    },
+    {
+      "version": "20260531",
+      "file": "20260531_claim_codes_role.sql",
+      "name": "claim_codes_role"
+    },
+    {
+      "version": "20260531120000",
+      "file": "20260531120000_twin_schema.sql",
+      "name": "twin_schema"
+    },
+    {
+      "version": "20260619",
+      "file": "20260619_vibeexam.sql",
+      "name": "vibeexam"
+    },
+    {
+      "version": "20260619000001",
+      "file": "20260619000001_learn_schema.sql",
+      "name": "learn_schema"
+    },
+    {
+      "version": "20260624",
+      "file": "20260624_tpad_standards_5_8.sql",
+      "name": "tpad_standards_5_8"
+    },
+    {
+      "version": "20260626100000",
+      "file": "20260626100000_fix_teacher_onboarding_trigger.sql",
+      "name": "fix_teacher_onboarding_trigger"
+    },
+    {
+      "version": "20260626110000",
+      "file": "20260626110000_onboard_teacher_class_rpc.sql",
+      "name": "onboard_teacher_class_rpc"
+    },
+    {
+      "version": "20260626120000",
+      "file": "20260626120000_academic_terms_unique_constraint.sql",
+      "name": "academic_terms_unique_constraint"
+    },
+    {
+      "version": "20260630",
+      "file": "20260630_get_unread_thread_count.sql",
+      "name": "get_unread_thread_count"
+    },
+    {
+      "version": "20260701130000",
+      "file": "20260701130000_lesson_evidence_homework_sync.sql",
+      "name": "lesson_evidence_homework_sync"
+    },
+    {
+      "version": "20260701140000",
+      "file": "20260701140000_lesson_evidence_bucket.sql",
+      "name": "lesson_evidence_bucket"
+    },
+    {
+      "version": "20260705150000",
+      "file": "20260705150000_term_weeks.sql",
+      "name": "term_weeks"
+    },
+    {
+      "version": "20260705160000",
+      "file": "20260705160000_teacher_os_graph_fixes.sql",
+      "name": "teacher_os_graph_fixes"
+    },
+    {
+      "version": "20260705180000",
+      "file": "20260705180000_teacher_active_weeks.sql",
+      "name": "teacher_active_weeks"
+    },
+    {
+      "version": "20260707120000",
+      "file": "20260707120000_dedup_lesson_plan_autorows.sql",
+      "name": "dedup_lesson_plan_autorows"
+    },
+    {
+      "version": "20260708120000",
+      "file": "20260708120000_merge_assessment_concepts.sql",
+      "name": "merge_assessment_concepts"
+    },
+    {
+      "version": "20260708130000",
+      "file": "20260708130000_exercise_submissions.sql",
+      "name": "exercise_submissions"
+    },
+    {
+      "version": "20260708140000",
+      "file": "20260708140000_deprecate_lesson_notes.sql",
+      "name": "deprecate_lesson_notes"
+    },
+    {
+      "version": "20260709060000",
+      "file": "20260709060000_deprecate_scheme_of_work.sql",
+      "name": "deprecate_scheme_of_work"
+    },
+    {
+      "version": "20260709070000",
+      "file": "20260709070000_reflection_and_lesson_loop.sql",
+      "name": "reflection_and_lesson_loop"
+    },
+    {
+      "version": "20260709080000",
+      "file": "20260709080000_vibe_publications_baseline.sql",
+      "name": "vibe_publications_baseline"
+    },
+    {
+      "version": "20260711090000",
+      "file": "20260711090000_scheme_of_work_seamless_flow.sql",
+      "name": "scheme_of_work_seamless_flow"
+    },
+    {
+      "version": "20260711120000",
+      "file": "20260711120000_scheme_tsc_override_columns.sql",
+      "name": "scheme_tsc_override_columns"
+    },
+    {
+      "version": "20260711150000",
+      "file": "20260711150000_scheme_curriculum_content_lesson_index.sql",
+      "name": "scheme_curriculum_content_lesson_index"
+    },
+    {
+      "version": "20260713120000",
+      "file": "20260713120000_retire_kicd_source_type.sql",
+      "name": "retire_kicd_source_type"
+    },
+    {
+      "version": "20260715090000",
+      "file": "20260715090000_cbc_strands_kicd_depth.sql",
+      "name": "cbc_strands_kicd_depth"
+    },
+    {
+      "version": "20260715110000",
+      "file": "20260715110000_sub_strand_id_fk_stage2.sql",
+      "name": "sub_strand_id_fk_stage2"
+    },
+    {
+      "version": "20260715130000",
+      "file": "20260715130000_sub_strand_id_backfill.sql",
+      "name": "sub_strand_id_backfill"
+    },
+    {
+      "version": "20260716180000",
+      "file": "20260716180000_fix_subjects_global_read_rls.sql",
+      "name": "fix_subjects_global_read_rls"
+    },
+    {
+      "version": "20260717090000",
+      "file": "20260717090000_seed_subject_weekly_allocations.sql",
+      "name": "seed_subject_weekly_allocations"
+    },
+    {
+      "version": "20260717162232",
+      "file": "20260717162232_add_timetable_overlap_exclusion_constraints.sql",
+      "name": "add_timetable_overlap_exclusion_constraints"
+    },
+    {
+      "version": "20260717162241",
+      "file": "20260717162241_fix_timetable_admin_rls_assignment_check.sql",
+      "name": "fix_timetable_admin_rls_assignment_check"
+    },
+    {
+      "version": "20260717214543",
+      "file": "20260717214543_make_teacher_classes_class_id_not_null.sql",
+      "name": "make_teacher_classes_class_id_not_null"
+    },
+    {
+      "version": "20260717215951",
+      "file": "20260717215951_upgrade_overlap_constraints_to_date_aware.sql",
+      "name": "upgrade_overlap_constraints_to_date_aware"
+    },
+    {
+      "version": "20260718054252",
+      "file": "20260718054252_timetable_room_conflict_fix12.sql",
+      "name": "timetable_room_conflict_fix12"
+    },
+    {
+      "version": "20260718054908",
+      "file": "20260718054908_fix13_teacher_weekly_timetable_load.sql",
+      "name": "fix13_teacher_weekly_timetable_load"
+    },
+    {
+      "version": "20260718072516",
+      "file": "20260718072516_fix15_retire_legacy_lesson_plan_uq.sql",
+      "name": "fix15_retire_legacy_lesson_plan_uq"
+    },
+    {
+      "version": "20260718084257",
+      "file": "20260718084257_fix17b_repair_lesson_reflections_identity.sql",
+      "name": "fix17b_repair_lesson_reflections_identity"
+    },
+    {
+      "version": "20260718151116",
+      "file": "20260718151116_18a_teaching_occurrences.sql",
+      "name": "18a_teaching_occurrences"
+    },
+    {
+      "version": "20260718184018",
+      "file": "20260718184018_fix18c_start_teaching_occurrence.sql",
+      "name": "fix18c_start_teaching_occurrence"
+    },
+    {
+      "version": "20260719040346",
+      "file": "20260719040346_fix18d_complete_teaching_occurrence.sql",
+      "name": "fix18d_complete_teaching_occurrence"
+    },
+    {
+      "version": "20260719045935",
+      "file": "20260719045935_fix18e_c_start_occurrence_advances_scheme.sql",
+      "name": "fix18e_c_start_occurrence_advances_scheme"
+    },
+    {
+      "version": "20260719071344",
+      "file": "20260719071344_fix18e_c_start_occurrence_advances_scheme_v2.sql",
+      "name": "fix18e_c_start_occurrence_advances_scheme_v2"
+    },
+    {
+      "version": "20260719083738",
+      "file": "20260719083738_fix18e_d_mark_scheme_item_covered.sql",
+      "name": "fix18e_d_mark_scheme_item_covered"
+    },
+    {
+      "version": "20260719091655",
+      "file": "20260719091655_fix18e_d_mark_scheme_item_covered_minimal_return.sql",
+      "name": "fix18e_d_mark_scheme_item_covered_minimal_return"
+    },
+    {
+      "version": "20260719104505",
+      "file": "20260719104505_fix20_timetable_slot_editing_rpcs.sql",
+      "name": "fix20_timetable_slot_editing_rpcs"
+    },
+    {
+      "version": "20260719104519",
+      "file": "20260719104519_fix21_school_periods.sql",
+      "name": "fix21_school_periods"
+    },
+    {
+      "version": "20260719104530",
+      "file": "20260719104530_fix22_generate_daily_occurrences.sql",
+      "name": "fix22_generate_daily_occurrences"
+    },
+    {
+      "version": "20260719104547",
+      "file": "20260719104547_fix23_suggest_recovery_slots.sql",
+      "name": "fix23_suggest_recovery_slots"
+    },
+    {
+      "version": "20260719104600",
+      "file": "20260719104600_fix24_scheme_pacing_status.sql",
+      "name": "fix24_scheme_pacing_status"
+    },
+    {
+      "version": "20260719104615",
+      "file": "20260719104615_fix25_timetable_quality_report.sql",
+      "name": "fix25_timetable_quality_report"
+    },
+    {
+      "version": "20260719104629",
+      "file": "20260719104629_fix26_timetable_analytics.sql",
+      "name": "fix26_timetable_analytics"
+    },
+    {
+      "version": "20260719104656",
+      "file": "20260719104656_fix27_timetable_snapshots.sql",
+      "name": "fix27_timetable_snapshots"
+    },
+    {
+      "version": "20260720123500",
+      "file": "20260720123500_fix28_create_timetable_slot_error_codes_and_grants.sql",
+      "name": "fix28_create_timetable_slot_error_codes_and_grants"
+    }
+  ],
+  "live_ledger_snapshot": [
+    {
+      "version": "20260520000000",
+      "name": "timetable_foundation_baseline"
+    },
+    {
+      "version": "20260521083057",
+      "name": "report_schedules"
+    },
+    {
+      "version": "20260521083115",
+      "name": "report_comparisons"
+    },
+    {
+      "version": "20260521204108",
+      "name": "funhub_schema"
+    },
+    {
+      "version": "20260523",
+      "name": "class_groups"
+    },
+    {
+      "version": "20260523000001",
+      "name": "funhub_questions_seed"
+    },
+    {
+      "version": "20260525210349",
+      "name": "add_timetable_slot_id_to_lesson_plans"
+    },
+    {
+      "version": "20260531",
+      "name": "claim_codes_role"
+    },
+    {
+      "version": "20260531120000",
+      "name": "twin_schema"
+    },
+    {
+      "version": "20260619",
+      "name": "vibeexam"
+    },
+    {
+      "version": "20260619000001",
+      "name": "learn_schema"
+    },
+    {
+      "version": "20260624",
+      "name": "tpad_standards_5_8"
+    },
+    {
+      "version": "20260626100000",
+      "name": "fix_teacher_onboarding_trigger"
+    },
+    {
+      "version": "20260626110000",
+      "name": "onboard_teacher_class_rpc"
+    },
+    {
+      "version": "20260626120000",
+      "name": "academic_terms_unique_constraint"
+    },
+    {
+      "version": "20260630",
+      "name": "get_unread_thread_count"
+    },
+    {
+      "version": "20260701130000",
+      "name": "lesson_evidence_homework_sync"
+    },
+    {
+      "version": "20260701140000",
+      "name": "lesson_evidence_bucket"
+    },
+    {
+      "version": "20260705150000",
+      "name": "term_weeks"
+    },
+    {
+      "version": "20260705160000",
+      "name": "teacher_os_graph_fixes"
+    },
+    {
+      "version": "20260705180000",
+      "name": "teacher_active_weeks"
+    },
+    {
+      "version": "20260707120000",
+      "name": "dedup_lesson_plan_autorows"
+    },
+    {
+      "version": "20260708120000",
+      "name": "merge_assessment_concepts"
+    },
+    {
+      "version": "20260708130000",
+      "name": "exercise_submissions"
+    },
+    {
+      "version": "20260708140000",
+      "name": "deprecate_lesson_notes"
+    },
+    {
+      "version": "20260709060000",
+      "name": "deprecate_scheme_of_work"
+    },
+    {
+      "version": "20260709070000",
+      "name": "reflection_and_lesson_loop"
+    },
+    {
+      "version": "20260709080000",
+      "name": "vibe_publications_baseline"
+    },
+    {
+      "version": "20260711090000",
+      "name": "scheme_of_work_seamless_flow"
+    },
+    {
+      "version": "20260711120000",
+      "name": "scheme_tsc_override_columns"
+    },
+    {
+      "version": "20260713120000",
+      "name": "retire_kicd_source_type"
+    },
+    {
+      "version": "20260715090000",
+      "name": "cbc_strands_kicd_depth"
+    },
+    {
+      "version": "20260715110000",
+      "name": "sub_strand_id_fk_stage2"
+    },
+    {
+      "version": "20260715130000",
+      "name": "sub_strand_id_backfill"
+    },
+    {
+      "version": "20260716180000",
+      "name": "fix_subjects_global_read_rls"
+    },
+    {
+      "version": "20260717090000",
+      "name": "seed_subject_weekly_allocations"
+    },
+    {
+      "version": "20260717162232",
+      "name": "add_timetable_overlap_exclusion_constraints"
+    },
+    {
+      "version": "20260717162241",
+      "name": "fix_timetable_admin_rls_assignment_check"
+    },
+    {
+      "version": "20260717214543",
+      "name": "make_teacher_classes_class_id_not_null"
+    },
+    {
+      "version": "20260717215951",
+      "name": "upgrade_overlap_constraints_to_date_aware"
+    },
+    {
+      "version": "20260717220005",
+      "name": "create_timetable_slot_rpc"
+    },
+    {
+      "version": "20260718054252",
+      "name": "timetable_room_conflict_fix12"
+    },
+    {
+      "version": "20260718054908",
+      "name": "fix13_teacher_weekly_timetable_load"
+    },
+    {
+      "version": "20260718062000",
+      "name": "fix14a_lesson_plans_occurrence_identity"
+    },
+    {
+      "version": "20260718072516",
+      "name": "fix15_retire_legacy_lesson_plan_uq"
+    },
+    {
+      "version": "20260718082408",
+      "name": "retire_uq_lesson_plan_constraint"
+    },
+    {
+      "version": "20260718084257",
+      "name": "fix17b_repair_lesson_reflections_identity"
+    },
+    {
+      "version": "20260718141521",
+      "name": "fix17e_lock_down_attendance_rpc_grants"
+    },
+    {
+      "version": "20260718151116",
+      "name": "18a_teaching_occurrences"
+    },
+    {
+      "version": "20260718184018",
+      "name": "fix18c_start_teaching_occurrence"
+    },
+    {
+      "version": "20260718184230",
+      "name": "fix18c_revoke_anon_execute"
+    },
+    {
+      "version": "20260719040346",
+      "name": "fix18d_complete_teaching_occurrence"
+    },
+    {
+      "version": "20260719045935",
+      "name": "fix18e_c_start_occurrence_advances_scheme"
+    },
+    {
+      "version": "20260719071344",
+      "name": "fix18e_c_start_occurrence_advances_scheme_v2"
+    },
+    {
+      "version": "20260719083738",
+      "name": "fix18e_d_mark_scheme_item_covered"
+    },
+    {
+      "version": "20260719091655",
+      "name": "fix18e_d_mark_scheme_item_covered_minimal_return"
+    },
+    {
+      "version": "20260719104505",
+      "name": "fix20_timetable_slot_editing_rpcs"
+    },
+    {
+      "version": "20260719104519",
+      "name": "fix21_school_periods"
+    },
+    {
+      "version": "20260719104530",
+      "name": "fix22_generate_daily_occurrences"
+    },
+    {
+      "version": "20260719104547",
+      "name": "fix23_suggest_recovery_slots"
+    },
+    {
+      "version": "20260719104600",
+      "name": "fix24_scheme_pacing_status"
+    },
+    {
+      "version": "20260719104615",
+      "name": "fix25_timetable_quality_report"
+    },
+    {
+      "version": "20260719104629",
+      "name": "fix26_timetable_analytics"
+    },
+    {
+      "version": "20260719104656",
+      "name": "fix27_timetable_snapshots"
+    },
+    {
+      "version": "20260719132810",
+      "name": "homework_school_id_not_null"
+    },
+    {
+      "version": "20260720142114",
+      "name": "fix28_create_timetable_slot_error_codes_and_grants"
+    },
+    {
+      "version": "20260720143830",
+      "name": "drop_legacy_slot_overlap_trigger"
+    },
+    {
+      "version": "20260720143840",
+      "name": "lock_teaching_occurrence_writes"
+    },
+    {
+      "version": "20260720143847",
+      "name": "lesson_plans_day_of_week_1_7"
+    },
+    {
+      "version": "20260720143903",
+      "name": "fix18e_d_qualify_scheme_id"
+    },
+    {
+      "version": "20260720143912",
+      "name": "revoke_anon_timetable_rpcs"
+    },
+    {
+      "version": "20260720200607",
+      "name": "fix28_create_timetable_slot_error_codes_and_grants"
+    }
+  ],
+  "entries": [
+    {
+      "version": "20260521083057",
+      "kind": "matched",
+      "local_file": "20260521083057_report_schedules.sql",
+      "live_name": "report_schedules",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260521083115",
+      "kind": "matched",
+      "local_file": "20260521083115_report_comparisons.sql",
+      "live_name": "report_comparisons",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260521204108",
+      "kind": "matched",
+      "local_file": "20260521204108_funhub_schema.sql",
+      "live_name": "funhub_schema",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260523",
+      "kind": "matched",
+      "local_file": "20260523_class_groups.sql",
+      "live_name": "class_groups",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260523000001",
+      "kind": "matched",
+      "local_file": "20260523000001_funhub_questions_seed.sql",
+      "live_name": "funhub_questions_seed",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260525210349",
+      "kind": "matched",
+      "local_file": "20260525210349_add_timetable_slot_id_to_lesson_plans.sql",
+      "live_name": "add_timetable_slot_id_to_lesson_plans",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260531",
+      "kind": "matched",
+      "local_file": "20260531_claim_codes_role.sql",
+      "live_name": "claim_codes_role",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260531120000",
+      "kind": "matched",
+      "local_file": "20260531120000_twin_schema.sql",
+      "live_name": "twin_schema",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260619",
+      "kind": "matched",
+      "local_file": "20260619_vibeexam.sql",
+      "live_name": "vibeexam",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260619000001",
+      "kind": "matched",
+      "local_file": "20260619000001_learn_schema.sql",
+      "live_name": "learn_schema",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260624",
+      "kind": "matched",
+      "local_file": "20260624_tpad_standards_5_8.sql",
+      "live_name": "tpad_standards_5_8",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260626100000",
+      "kind": "matched",
+      "local_file": "20260626100000_fix_teacher_onboarding_trigger.sql",
+      "live_name": "fix_teacher_onboarding_trigger",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260626110000",
+      "kind": "matched",
+      "local_file": "20260626110000_onboard_teacher_class_rpc.sql",
+      "live_name": "onboard_teacher_class_rpc",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260626120000",
+      "kind": "matched",
+      "local_file": "20260626120000_academic_terms_unique_constraint.sql",
+      "live_name": "academic_terms_unique_constraint",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260630",
+      "kind": "matched",
+      "local_file": "20260630_get_unread_thread_count.sql",
+      "live_name": "get_unread_thread_count",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260701130000",
+      "kind": "matched",
+      "local_file": "20260701130000_lesson_evidence_homework_sync.sql",
+      "live_name": "lesson_evidence_homework_sync",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260701140000",
+      "kind": "matched",
+      "local_file": "20260701140000_lesson_evidence_bucket.sql",
+      "live_name": "lesson_evidence_bucket",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260705150000",
+      "kind": "matched",
+      "local_file": "20260705150000_term_weeks.sql",
+      "live_name": "term_weeks",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260705160000",
+      "kind": "matched",
+      "local_file": "20260705160000_teacher_os_graph_fixes.sql",
+      "live_name": "teacher_os_graph_fixes",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260705180000",
+      "kind": "matched",
+      "local_file": "20260705180000_teacher_active_weeks.sql",
+      "live_name": "teacher_active_weeks",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260707120000",
+      "kind": "matched",
+      "local_file": "20260707120000_dedup_lesson_plan_autorows.sql",
+      "live_name": "dedup_lesson_plan_autorows",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260708120000",
+      "kind": "matched",
+      "local_file": "20260708120000_merge_assessment_concepts.sql",
+      "live_name": "merge_assessment_concepts",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260708130000",
+      "kind": "matched",
+      "local_file": "20260708130000_exercise_submissions.sql",
+      "live_name": "exercise_submissions",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260708140000",
+      "kind": "matched",
+      "local_file": "20260708140000_deprecate_lesson_notes.sql",
+      "live_name": "deprecate_lesson_notes",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260709060000",
+      "kind": "matched",
+      "local_file": "20260709060000_deprecate_scheme_of_work.sql",
+      "live_name": "deprecate_scheme_of_work",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260709070000",
+      "kind": "matched",
+      "local_file": "20260709070000_reflection_and_lesson_loop.sql",
+      "live_name": "reflection_and_lesson_loop",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260709080000",
+      "kind": "matched",
+      "local_file": "20260709080000_vibe_publications_baseline.sql",
+      "live_name": "vibe_publications_baseline",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260711090000",
+      "kind": "matched",
+      "local_file": "20260711090000_scheme_of_work_seamless_flow.sql",
+      "live_name": "scheme_of_work_seamless_flow",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260711120000",
+      "kind": "matched",
+      "local_file": "20260711120000_scheme_tsc_override_columns.sql",
+      "live_name": "scheme_tsc_override_columns",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260713120000",
+      "kind": "matched",
+      "local_file": "20260713120000_retire_kicd_source_type.sql",
+      "live_name": "retire_kicd_source_type",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260715090000",
+      "kind": "matched",
+      "local_file": "20260715090000_cbc_strands_kicd_depth.sql",
+      "live_name": "cbc_strands_kicd_depth",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260715110000",
+      "kind": "matched",
+      "local_file": "20260715110000_sub_strand_id_fk_stage2.sql",
+      "live_name": "sub_strand_id_fk_stage2",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260715130000",
+      "kind": "matched",
+      "local_file": "20260715130000_sub_strand_id_backfill.sql",
+      "live_name": "sub_strand_id_backfill",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260716180000",
+      "kind": "matched",
+      "local_file": "20260716180000_fix_subjects_global_read_rls.sql",
+      "live_name": "fix_subjects_global_read_rls",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260717090000",
+      "kind": "matched",
+      "local_file": "20260717090000_seed_subject_weekly_allocations.sql",
+      "live_name": "seed_subject_weekly_allocations",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260717162232",
+      "kind": "matched",
+      "local_file": "20260717162232_add_timetable_overlap_exclusion_constraints.sql",
+      "live_name": "add_timetable_overlap_exclusion_constraints",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260717162241",
+      "kind": "matched",
+      "local_file": "20260717162241_fix_timetable_admin_rls_assignment_check.sql",
+      "live_name": "fix_timetable_admin_rls_assignment_check",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260717214543",
+      "kind": "matched",
+      "local_file": "20260717214543_make_teacher_classes_class_id_not_null.sql",
+      "live_name": "make_teacher_classes_class_id_not_null",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260717215951",
+      "kind": "matched",
+      "local_file": "20260717215951_upgrade_overlap_constraints_to_date_aware.sql",
+      "live_name": "upgrade_overlap_constraints_to_date_aware",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260718054252",
+      "kind": "matched",
+      "local_file": "20260718054252_timetable_room_conflict_fix12.sql",
+      "live_name": "timetable_room_conflict_fix12",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260718054908",
+      "kind": "matched",
+      "local_file": "20260718054908_fix13_teacher_weekly_timetable_load.sql",
+      "live_name": "fix13_teacher_weekly_timetable_load",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260718072516",
+      "kind": "matched",
+      "local_file": "20260718072516_fix15_retire_legacy_lesson_plan_uq.sql",
+      "live_name": "fix15_retire_legacy_lesson_plan_uq",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260718084257",
+      "kind": "matched",
+      "local_file": "20260718084257_fix17b_repair_lesson_reflections_identity.sql",
+      "live_name": "fix17b_repair_lesson_reflections_identity",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260718151116",
+      "kind": "matched",
+      "local_file": "20260718151116_18a_teaching_occurrences.sql",
+      "live_name": "18a_teaching_occurrences",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260718184018",
+      "kind": "matched",
+      "local_file": "20260718184018_fix18c_start_teaching_occurrence.sql",
+      "live_name": "fix18c_start_teaching_occurrence",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719040346",
+      "kind": "matched",
+      "local_file": "20260719040346_fix18d_complete_teaching_occurrence.sql",
+      "live_name": "fix18d_complete_teaching_occurrence",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719045935",
+      "kind": "matched",
+      "local_file": "20260719045935_fix18e_c_start_occurrence_advances_scheme.sql",
+      "live_name": "fix18e_c_start_occurrence_advances_scheme",
+      "classification": "HISTORICAL_PLACEHOLDER",
+      "notes": "Interim fix18e implementation. Present and identical-key in both repo and live ledger, but functionally superseded by 20260719071344 (fix18e_c_start_occurrence_advances_scheme_v2). Kept in history per project convention of not rewriting applied migrations.",
+      "follow_up": "No action required. Superseding version 20260719071344 is the authoritative implementation. Do not remove or renumber either file.",
+      "related_versions": [
+        "20260719071344"
+      ],
+      "name_match": true
+    },
+    {
+      "version": "20260719071344",
+      "kind": "matched",
+      "local_file": "20260719071344_fix18e_c_start_occurrence_advances_scheme_v2.sql",
+      "live_name": "fix18e_c_start_occurrence_advances_scheme_v2",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719083738",
+      "kind": "matched",
+      "local_file": "20260719083738_fix18e_d_mark_scheme_item_covered.sql",
+      "live_name": "fix18e_d_mark_scheme_item_covered",
+      "classification": "HISTORICAL_PLACEHOLDER",
+      "notes": "Interim fix18e implementation. Present and identical-key in both repo and live ledger, but functionally superseded by 20260719091655 (fix18e_d_mark_scheme_item_covered_minimal_return). Kept in history per project convention of not rewriting applied migrations.",
+      "follow_up": "No action required. Superseding version 20260719091655 is the authoritative implementation. Do not remove or renumber either file.",
+      "related_versions": [
+        "20260719091655"
+      ],
+      "name_match": true
+    },
+    {
+      "version": "20260719091655",
+      "kind": "matched",
+      "local_file": "20260719091655_fix18e_d_mark_scheme_item_covered_minimal_return.sql",
+      "live_name": "fix18e_d_mark_scheme_item_covered_minimal_return",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104505",
+      "kind": "matched",
+      "local_file": "20260719104505_fix20_timetable_slot_editing_rpcs.sql",
+      "live_name": "fix20_timetable_slot_editing_rpcs",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104519",
+      "kind": "matched",
+      "local_file": "20260719104519_fix21_school_periods.sql",
+      "live_name": "fix21_school_periods",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104530",
+      "kind": "matched",
+      "local_file": "20260719104530_fix22_generate_daily_occurrences.sql",
+      "live_name": "fix22_generate_daily_occurrences",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104547",
+      "kind": "matched",
+      "local_file": "20260719104547_fix23_suggest_recovery_slots.sql",
+      "live_name": "fix23_suggest_recovery_slots",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104600",
+      "kind": "matched",
+      "local_file": "20260719104600_fix24_scheme_pacing_status.sql",
+      "live_name": "fix24_scheme_pacing_status",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104615",
+      "kind": "matched",
+      "local_file": "20260719104615_fix25_timetable_quality_report.sql",
+      "live_name": "fix25_timetable_quality_report",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104629",
+      "kind": "matched",
+      "local_file": "20260719104629_fix26_timetable_analytics.sql",
+      "live_name": "fix26_timetable_analytics",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260719104656",
+      "kind": "matched",
+      "local_file": "20260719104656_fix27_timetable_snapshots.sql",
+      "live_name": "fix27_timetable_snapshots",
+      "classification": "PARITY_APPLIED",
+      "notes": "Local migration filename version and name correspond to a live ledger entry of the same version.",
+      "follow_up": null,
+      "related_versions": [],
+      "name_match": true
+    },
+    {
+      "version": "20260711150000",
+      "kind": "local_only",
+      "local_file": "20260711150000_scheme_curriculum_content_lesson_index.sql",
+      "live_name": null,
+      "classification": "STALE_REPO_ONLY",
+      "notes": "No live ledger entry exists under version 20260711150000. HANDOVER.md flagged this as 'believed to be stale repository-only'; a direct comparison against the live Supabase migration ledger during this session confirms no matching live version exists.",
+      "follow_up": "Confirmed stale. No repair performed under TBL-002 (migration ledger repair is out of scope/prohibited for this fix). Leave file in place; do not apply, rename, or delete without a separate approved fix.",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260720123500",
+      "kind": "local_only",
+      "local_file": "20260720123500_fix28_create_timetable_slot_error_codes_and_grants.sql",
+      "live_name": null,
+      "classification": "NAME_MISMATCH",
+      "notes": "Repository file 20260720123500_fix28_create_timetable_slot_error_codes_and_grants.sql is the source-controlled representation of the fix28 change, but the live ledger recorded this content under two different version keys (20260720142114 and 20260720200607), neither of which is 20260720123500. Per HANDOVER.md, the executable database change is functionally equivalent across all three version keys, and the later live entry is a harmless redundant reapplication (idempotent REVOKE/GRANT statements).",
+      "follow_up": "Documented and accepted; the live ledger must not be deleted, renamed, or rewritten to reconcile this version-key mismatch. See related live versions 20260720142114 and 20260720200607, both classified MISSING_REPO_SOURCE.",
+      "related_versions": [
+        "20260720142114",
+        "20260720200607"
+      ],
+      "name_match": null
+    },
+    {
+      "version": "20260520000000",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "timetable_foundation_baseline",
+      "classification": "SYNTHETIC_BASELINE",
+      "notes": "Earliest entry in the live ledger, named 'timetable_foundation_baseline'. No corresponding repository migration file exists for this version. Treated as a synthetic baseline representing pre-migration-tracking schema state rather than a reconstructable incremental change.",
+      "follow_up": "No repair attempted under TBL-002 (baseline reconstruction/repair is explicitly out of scope). Documented as a required known entry per HANDOVER.md TBL-002 scope.",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260717220005",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "create_timetable_slot_rpc",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260718062000",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "fix14a_lesson_plans_occurrence_identity",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260718082408",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "retire_uq_lesson_plan_constraint",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260718141521",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "fix17e_lock_down_attendance_rpc_grants",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260718184230",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "fix18c_revoke_anon_execute",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260719132810",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "homework_school_id_not_null",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260720142114",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "fix28_create_timetable_slot_error_codes_and_grants",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "One of two live ledger entries for 'fix28_create_timetable_slot_error_codes_and_grants' (the other is 20260720200607). Repository source-controlled representation is 20260720123500_fix28_create_timetable_slot_error_codes_and_grants.sql (classified NAME_MISMATCH), which is functionally equivalent to both live entries.",
+      "follow_up": "Duplicate live application is documented as a harmless redundant reapplication per HANDOVER.md; idempotent REVOKE/GRANT statements do not by themselves prove an earlier migration failed. The live ledger must not be deleted, renamed, or rewritten to remove either this entry or 20260720200607.",
+      "related_versions": [
+        "20260720200607",
+        "20260720123500"
+      ],
+      "name_match": null
+    },
+    {
+      "version": "20260720143830",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "drop_legacy_slot_overlap_trigger",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260720143840",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "lock_teaching_occurrence_writes",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260720143847",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "lesson_plans_day_of_week_1_7",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260720143903",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "fix18e_d_qualify_scheme_id",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry for 'fix18e_d_qualify_scheme_id'. HANDOVER.md originally expected this content under repository/intended version 20260720120000; no live ledger entry exists under 20260720120000. The actual live version is 20260720143903, and no same-version repository file exists for 20260720143903 either.",
+      "follow_up": "See documented-only entry '20260720120000' (classified NAME_MISMATCH) for the cross-reference. A repository migration file for 20260720143903 should be added in a future fix; not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [
+        "20260720120000"
+      ],
+      "name_match": null
+    },
+    {
+      "version": "20260720143912",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "revoke_anon_timetable_rpcs",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "Live ledger entry with no same-version repository migration file. One of the 14 live-only versions identified by the corrected 2026-07-20 comparison recorded in HANDOVER.md.",
+      "follow_up": "A repository migration file recovering this version's applied change should be added in a future fix. Not performed here (no migration body reconstruction under TBL-002).",
+      "related_versions": [],
+      "name_match": null
+    },
+    {
+      "version": "20260720200607",
+      "kind": "live_only",
+      "local_file": null,
+      "live_name": "fix28_create_timetable_slot_error_codes_and_grants",
+      "classification": "MISSING_REPO_SOURCE",
+      "notes": "One of two live ledger entries for 'fix28_create_timetable_slot_error_codes_and_grants' (the other is 20260720142114). Repository source-controlled representation is 20260720123500_fix28_create_timetable_slot_error_codes_and_grants.sql (classified NAME_MISMATCH), which is functionally equivalent to both live entries.",
+      "follow_up": "Duplicate live application is documented as a harmless redundant reapplication per HANDOVER.md; idempotent REVOKE/GRANT statements do not by themselves prove an earlier migration failed. The live ledger must not be deleted, renamed, or rewritten to remove either this entry or 20260720142114.",
+      "related_versions": [
+        "20260720142114",
+        "20260720123500"
+      ],
+      "name_match": null
+    },
+    {
+      "version": "20260719160000",
+      "kind": "documented_only",
+      "local_file": null,
+      "live_name": null,
+      "classification": "HISTORICAL_PLACEHOLDER",
+      "notes": "Referenced in HANDOVER.md TBL-002 required known entries as '20260719160000_core_link_constraints.sql'. No repository file and no live ledger entry exist under this version. No other reference to this filename was found anywhere in the repository (DEVLOG.md, HANDOVER.md, TIMETABLE_FIX_REGISTER.md, or migration bodies) during this session's search.",
+      "follow_up": "Origin and disposition are undocumented. Treated as a historical placeholder pending future investigation. No file should be created at this version without first establishing what, if anything, was intended here.",
+      "related_versions": [],
+      "name_match": null,
+      "phantom": true
+    },
+    {
+      "version": "20260720120000",
+      "kind": "documented_only",
+      "local_file": null,
+      "live_name": null,
+      "classification": "NAME_MISMATCH",
+      "notes": "Referenced in prior documentation as the intended version for 'fix18e_d_qualify_scheme_id.sql'. No repository file and no live ledger entry exist under 20260720120000. The actual applied content is live under version 20260720143903 (see that entry, classified MISSING_REPO_SOURCE).",
+      "follow_up": "Do not create a repository file at 20260720120000. Any future repository recovery of this content must use version 20260720143903 to match the live ledger.",
+      "related_versions": [
+        "20260720143903"
+      ],
+      "name_match": null,
+      "phantom": true
+    },
+    {
+      "version": "HISTORICAL:assessments_and_assessment_scores_removal",
+      "kind": "historical_pseudo",
+      "local_file": null,
+      "live_name": null,
+      "classification": "HISTORICAL_PLACEHOLDER",
+      "notes": "HANDOVER.md records 'the historical removal of assessments and assessment_scores is undocumented' as a known open migration risk. A search of every migration file in this repository found no DROP TABLE statement for either table; 20260705160000_teacher_os_graph_fixes.sql created both tables, and 20260708120000_merge_assessment_concepts.sql only marked them deprecated via COMMENT ON TABLE (no data or schema removal). The removal referenced in HANDOVER.md therefore predates or falls outside the current migration history and cannot be attributed to a specific version at this time.",
+      "follow_up": "Requires manual history archaeology (git log / prior Supabase project state) outside the scope of TBL-002. Not resolved here; carried forward as an open risk.",
+      "related_versions": [
+        "20260705160000",
+        "20260708120000"
+      ],
+      "name_match": null
+    }
+  ],
+  "required_known_entries": [
+    {
+      "id": "live-only-14",
+      "description": "All 14 live ledger versions with no same-version repository migration file (corrected 2026-07-20 count, per HANDOVER.md).",
+      "satisfied_by": [
+        "20260520000000",
+        "20260717220005",
+        "20260718062000",
+        "20260718082408",
+        "20260718141521",
+        "20260718184230",
+        "20260719132810",
+        "20260720142114",
+        "20260720143830",
+        "20260720143840",
+        "20260720143847",
+        "20260720143903",
+        "20260720143912",
+        "20260720200607"
+      ]
+    },
+    {
+      "id": "stale-repo-only-20260711150000",
+      "description": "Repository-only version 20260711150000.",
+      "satisfied_by": [
+        "20260711150000"
+      ]
+    },
+    {
+      "id": "historical-assessments-removal",
+      "description": "Historical, undocumented removal of assessments and assessment_scores.",
+      "satisfied_by": [
+        "HISTORICAL:assessments_and_assessment_scores_removal"
+      ]
+    },
+    {
+      "id": "fix18e-historical-placeholders",
+      "description": "Historical fix18e placeholder migrations superseded by later versions.",
+      "satisfied_by": [
+        "20260719045935",
+        "20260719083738"
+      ]
+    },
+    {
+      "id": "synthetic-baseline",
+      "description": "Synthetic baseline migration(s).",
+      "satisfied_by": [
+        "20260520000000"
+      ]
+    },
+    {
+      "id": "core-link-constraints-20260719160000",
+      "description": "Documented-only version 20260719160000_core_link_constraints.sql.",
+      "satisfied_by": [
+        "20260719160000"
+      ]
+    },
+    {
+      "id": "qualify-scheme-id-20260720120000",
+      "description": "Documented-only intended version 20260720120000_fix18e_d_qualify_scheme_id.sql.",
+      "satisfied_by": [
+        "20260720120000"
+      ]
+    }
+  ]
+}
