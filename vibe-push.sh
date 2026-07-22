@@ -15,6 +15,14 @@ if [ -n "$TS_ERRORS" ]; then
 fi
 echo "✅ TypeScript clean"
 
+# ── TBL-005 preflight validator check ─────────
+echo "🔍 Checking TBL-005 preflight validator..."
+if ! python3 scripts/validate-tbl005-preflight.py; then
+  echo "❌ TBL-005 validator failed — fix before pushing"
+  exit 1
+fi
+echo "✅ TBL-005 validator clean"
+
 # ── Push ─────────────────────────────────────
 DATE=$(date '+%Y-%m-%d %H:%M')
 BRANCH=$(git rev-parse --abbrev-ref HEAD)

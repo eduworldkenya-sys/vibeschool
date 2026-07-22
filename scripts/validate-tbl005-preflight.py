@@ -11,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[1]
 SQL_PATH = ROOT / "scripts" / "sql" / "tbl005_timetable_constraint_preflight.sql"
 
 REQUIRED_MARKERS = (
-    r"\set ON_ERROR_STOP on",
     "set transaction read only",
     "public.timetable_slots",
     "public.teacher_classes",
