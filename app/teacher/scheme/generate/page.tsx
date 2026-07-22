@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nairobiWeekStart, nairobiDateAdd } from '@/lib/time'
+import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 
 const C = {
   bg:          '#f8fafc',
@@ -112,6 +113,12 @@ function GeneratePageInner() {
   // Fetch the timetable occurrences this generated plan could be assigned to.
   // These are the only valid save targets — the plan is not written to
   // lesson_plans until the teacher picks one.
+  // TBL-007F1: routed through the canonical engine's range loader, keyed to
+  // the browsed week (activeOn=today would wrongly hide future-effective
+  // slots when paging forward). Per the engine contract, the per-occurrence
+  // effectiveness check below (slotsForSelectedWeek) remains the consumer's
+  // responsibility. School identity is required by the engine; without it
+  // there is no canonical timetable to read.
   useEffect(() => {
     if (!generated || !uid || !classId || !subjectId) return
     let cancelled = false
@@ -119,29 +126,38 @@ function GeneratePageInner() {
       setSlots(null)
       setSlotsLoading(true)
       setSelectedSlotId(null)
-      const { data, error: slotsError } = await supabase
-        .from('timetable_slots')
-        .select('id,day_of_week,start_time,end_time,room,effective_from,effective_until')
-        .eq('teacher_id', uid)
-        .eq('class_id', classId)
-        .eq('subject_id', subjectId)
-        .order('day_of_week', { ascending: true })
-        .order('start_time', { ascending: true })
-      if (cancelled) return
-      if (slotsError) {
+      if (!schoolId) {
+        setSlots([])
+        setSlotsLoading(false)
+        return
+      }
+      const weekStart = nairobiDateAdd(nairobiWeekStart(), weekOffset * 7)
+      const weekEnd = nairobiDateAdd(weekStart, 6)
+      try {
+        const canonical = await loadTeacherTimetableForRange({
+          teacherId: uid!,
+          schoolId,
+          rangeStart: weekStart,
+          rangeEnd: weekEnd,
+        })
+        if (cancelled) return
+        const matching = canonical.filter(
+          (s) => s.class_id === classId && s.subject_id === subjectId
+        )
+        setError(null)
+        setSlots(matching as TimetableSlot[])
+        setSlotsLoading(false)
+      } catch (err) {
+        if (cancelled) return
+        console.error('[SchemeGenerate] canonical timetable load failed:', err)
         setSlots([])
         setSlotsLoading(false)
         setError('Could not load matching timetable lessons.')
-        return
       }
-      setError(null)
-      setError(null)
-      setSlots((data ?? []) as TimetableSlot[])
-      setSlotsLoading(false)
     }
     loadSlots()
     return () => { cancelled = true }
-  }, [generated, uid, classId, subjectId])
+  }, [generated, uid, schoolId, classId, subjectId, weekOffset])
 
   const selectedWeekStart = nairobiDateAdd(nairobiWeekStart(), weekOffset * 7)
 
