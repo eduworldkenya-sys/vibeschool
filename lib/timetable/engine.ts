@@ -65,7 +65,7 @@ export async function loadActiveTeacherTimetable(
     );
   }
 
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(activeOn)) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(activeOn)) {
     throw new TimetableEngineError(
       "Timetable active date must use YYYY-MM-DD.",
       "INVALID_ACTIVE_DATE"

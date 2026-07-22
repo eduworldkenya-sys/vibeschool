@@ -1,5 +1,6 @@
 "use client";
-import { nairobiDateStr } from '@/lib/time'
+import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
+import { loadActiveTeacherTimetable, timetableSlotsForDay, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
 import { Card, C } from '@/components/teacher/ui'
 
@@ -348,7 +349,22 @@ export default function SubjectHubPage() {
     // in Africa/Nairobi (lib/time.ts is the single source of truth for this).
     const slotActiveDate = nairobiDateStr()
 
-    const [lpRes, assRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes, attRes, slotRes, resRes] = await Promise.all([
+    // TBL-007E: timetable reads go through the canonical engine only
+    // (teacher isolation, school isolation, effective-date filtering,
+    // canonical ordering). The engine requires a school identity; without
+    // one there is no canonical timetable, so slot-driven UI stays empty.
+    const canonicalSlotsPromise: Promise<CanonicalTimetableSlot[]> = schoolId
+      ? loadActiveTeacherTimetable({
+          teacherId: currentId,
+          schoolId,
+          activeOn: slotActiveDate,
+        }).catch((err) => {
+          console.error('SubjectHub canonical timetable load failed:', err)
+          return []
+        })
+      : Promise.resolve([])
+
+    const [lpRes, assRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes, attRes, canonicalSlots, resRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
@@ -356,7 +372,7 @@ export default function SubjectHubPage() {
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       schoolId ? supabase.from('scheme_of_work').select('curriculum_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
-      supabase.from('timetable_slots').select('id, start_time, end_time, day_of_week, subject_id, class_id, subjects(name), classes(name, stream)').eq('subject_id', subjectId).eq('teacher_id', currentId).lte('effective_from', slotActiveDate).or(`effective_until.is.null,effective_until.gte.${slotActiveDate}`),
+      canonicalSlotsPromise,
       Promise.resolve({ data: [] }),
     ])
 
@@ -426,18 +442,24 @@ export default function SubjectHubPage() {
     }
     setStreak(s)
 
-    const todayDow = now.getDay()
-    const todaySlots = (slotRes.data ?? []).filter((sl: {day_of_week?: number; start_time: string; end_time: string}) => {
-      const slDow = (sl as {day_of_week?: number}).day_of_week
-      if (slDow !== undefined && slDow !== todayDow) return false
+    // Timetable weekday convention: Monday=1 … Sunday=7, anchored to
+    // Africa/Nairobi (lib/time.ts). Slots arrive in canonical order
+    // (day_of_week, start_time, id), so the first match is the next slot.
+    const todayDow = nairobiDayOfWeek(now)
+    const subjectSlots = canonicalSlots.filter((sl) => sl.subject_id === subjectId)
+    const todaySlots = timetableSlotsForDay(subjectSlots, todayDow).filter((sl) => {
       const [h, m] = sl.start_time.split(':').map(Number)
       return (h * 60 + m) > nowMin
     })
     if (todaySlots.length > 0) {
-      const next = todaySlots[0] as {start_time: string; subjects?: {name: string}; classes?: {name: string; stream: string}}
+      const next = todaySlots[0]
+      const nextClassRes = await supabase.from('classes').select('name, stream').eq('id', next.class_id).single()
+      const nextClassLabel = nextClassRes.data
+        ? nextClassRes.data.name + (nextClassRes.data.stream ? ' · ' + nextClassRes.data.stream : '')
+        : ''
       setNextSlot({
-        subject: (next.subjects as {name: string})?.name ?? '',
-        class: (next.classes as {name: string; stream: string})?.name + (((next.classes as {name: string; stream: string})?.stream) ? ' · ' + (next.classes as {name: string; stream: string}).stream : ''),
+        subject: subjectName2,
+        class: nextClassLabel,
         start: next.start_time,
       })
     } else {
