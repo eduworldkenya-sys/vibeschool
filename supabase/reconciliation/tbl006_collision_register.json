@@ -1,0 +1,305 @@
+{
+  "metadata": {
+    "purpose": "TBL-006 forward-collision register: every migration after the timetable foundation baseline that touches a baseline-owned timetable object.",
+    "baseline_version": "20260520000000",
+    "baseline_name": "timetable_foundation_baseline",
+    "baseline_classification": "SYNTHETIC_BASELINE",
+    "baseline_repo_file": null,
+    "baseline_note": "Baseline is live-only (per TIMETABLE_FIX_REGISTER.md TBL-004 closure and migration_classification.json). No repository SQL body exists for it, so baseline-owned objects were identified by exclusion: any table referenced or altered by post-baseline migrations with no CREATE TABLE statement anywhere in the repository migration set is treated as baseline-owned.",
+    "baseline_owned_objects_confirmed": ["public.timetable_slots", "public.teacher_classes"],
+    "baseline_owned_objects_excluded_as_shared_core": ["public.schools", "public.classes", "public.subjects"],
+    "excluded_object_note": "schools/classes/subjects are cross-cutting core tables used far outside the timetable domain and are not treated as timetable-baseline-owned for this register. They are candidates for a separate 'core schema' collision register if needed later, out of TBL-006 scope.",
+    "generated": "2026-07-22",
+    "generated_by": "TBL-006 repository-only static analysis (no live Supabase connection available in this session; no git history available in this session — see limitations)",
+    "limitations": [
+      "No .git directory was present in the analyzed snapshot, so this register was built from repository files only, not from commit history.",
+      "No live Supabase connection was available in this session. Entries below reflect repository file content only. Live schema state (pg_get_constraintdef, actual applied DDL) must be re-confirmed before this register is trusted as final.",
+      "Baseline SQL body does not exist in the repository, so the full baseline-owned object list cannot be enumerated with certainty; only objects with no in-repo CREATE TABLE were inferred as baseline-owned."
+    ]
+  },
+  "required_checks": [
+    "every_later_timetable_migration_present",
+    "every_registered_file_exists",
+    "every_baseline_object_touch_declared",
+    "no_duplicate_or_contradictory_ownership"
+  ],
+  "entries": [
+    {
+      "migration_filename": "20260717162232_add_timetable_overlap_exclusion_constraints.sql",
+      "timestamp": "20260717162232",
+      "object": "public.timetable_slots",
+      "operation": "ADD CONSTRAINT (excl_teacher_overlap, excl_class_overlap, excl_room_overlap)",
+      "collision_type": "SUPERSEDED_BY_LATER",
+      "dependency": "Superseded by 20260717215951 (same constraint names redefined as date-aware).",
+      "risk": "MEDIUM",
+      "required_resolution": "File is marked RECONSTRUCTED (lost from repo, rebuilt from live history 2026-07-19). Confirm the reconstructed text matches what actually ran live before trusting a clean replay.",
+      "resolution_status": "OPEN",
+      "evidence": "File header comment: 'RECONSTRUCTED 2026-07-19 ... Original form created the three overlap exclusion constraints WITHOUT date-range awareness; 20260717215951 upgrades them.'"
+    },
+    {
+      "migration_filename": "20260717162241_fix_timetable_admin_rls_assignment_check.sql",
+      "timestamp": "20260717162241",
+      "object": "public.timetable_slots",
+      "operation": "DROP POLICY / CREATE POLICY (teachers_manage_own_slots, timetable_slots_admin)",
+      "collision_type": "NONE_DETECTED",
+      "dependency": "Depends on timetable_slots existing (baseline).",
+      "risk": "LOW",
+      "required_resolution": "Confirm no other migration recreates these two policy names with a different definition (none found in repo).",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "grep: 'drop policy if exists teachers_manage_own_slots' / 'drop policy if exists timetable_slots_admin' at lines 5,6,19,20."
+    },
+    {
+      "migration_filename": "20260717214543_make_teacher_classes_class_id_not_null.sql",
+      "timestamp": "20260717214543",
+      "object": "public.teacher_classes",
+      "operation": "ALTER COLUMN class_id SET NOT NULL",
+      "collision_type": "NONE_DETECTED",
+      "dependency": "Baseline-owned table; corresponds to register item TBL-023 (Remove nullable assignment class).",
+      "risk": "MEDIUM",
+      "required_resolution": "A clean replay will fail if any existing row has class_id null. TBL-005 preflight already checks this (TBL-023 precondition) per HANDOVER.md TBL-005 closure — confirm that preflight is re-run immediately before this migration on any new environment.",
+      "resolution_status": "COVERED_BY_TBL-005",
+      "evidence": "grep line 17: 'alter table public.teacher_classes'."
+    },
+    {
+      "migration_filename": "20260717215951_upgrade_overlap_constraints_to_date_aware.sql",
+      "timestamp": "20260717215951",
+      "object": "public.timetable_slots",
+      "operation": "DROP CONSTRAINT + ADD CONSTRAINT (excl_teacher_overlap, excl_class_overlap, excl_room_overlap) - date-aware redefinition",
+      "collision_type": "INTENTIONAL_SUPERSESSION",
+      "dependency": "Requires 20260717162232 to have run first (drops constraints that migration created).",
+      "risk": "MEDIUM",
+      "required_resolution": "File is also marked RECONSTRUCTED. The constraint bodies are claimed to match live verbatim (pg_get_constraintdef verified 2026-07-19) - re-verify this claim against current live state before relying on it.",
+      "resolution_status": "OPEN",
+      "evidence": "File header: 'RECONSTRUCTED 2026-07-19 ... constraint bodies below match the live database verbatim (pg_get_constraintdef, verified 2026-07-19).'"
+    },
+    {
+      "migration_filename": "20260718054252_timetable_room_conflict_fix12.sql",
+      "timestamp": "20260718054252",
+      "object": "public.timetable_slots",
+      "operation": "ADD CONSTRAINT excl_room_overlap (no DROP CONSTRAINT IF EXISTS first)",
+      "collision_type": "DUPLICATE_OWNERSHIP",
+      "dependency": "Directly collides with 20260717215951, which already created a constraint of the same name (excl_room_overlap) with an identical gist expression and identical WHERE clause one migration earlier.",
+      "risk": "HIGH",
+      "required_resolution": "On a clean rebuild from blank state, this statement will raise 'constraint \"excl_room_overlap\" for relation \"timetable_slots\" already exists' because 20260717215951 already added a constraint with this exact name and definition. Add 'alter table public.timetable_slots drop constraint if exists excl_room_overlap;' immediately before this ADD CONSTRAINT, or remove this redundant block entirely if the two definitions are truly identical (they appear to be, aside from formatting).",
+      "resolution_status": "OPEN - BLOCKS TBL-011 (isolated clean rebuild)",
+      "evidence": "Direct text comparison: 20260717215951 lines 19-27 and 20260718054252 lines 9-19 both add a constraint named excl_room_overlap on public.timetable_slots with the same gist expression, WHERE (room is not null) clause, and column set (school_id, room, day_of_week, tsrange(...), daterange(effective_from, effective_until, '[]'))."
+    },
+    {
+      "migration_filename": "20260718054252_timetable_room_conflict_fix12.sql",
+      "timestamp": "20260718054252",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION public.create_timetable_slot(...)",
+      "collision_type": "SUPERSEDED_BY_LATER",
+      "dependency": "Redefined again in 20260720123500_fix28_create_timetable_slot_error_codes_and_grants.sql.",
+      "risk": "LOW",
+      "required_resolution": "CREATE OR REPLACE is idempotent for functions; no replay hazard. Confirm parameter signature matches across both definitions if any caller depends on positional args.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "Function name 'create_timetable_slot' appears at line 23 of fix12 and line 42 of fix28."
+    },
+    {
+      "migration_filename": "20260719104519_fix21_school_periods.sql",
+      "timestamp": "20260719104519",
+      "object": "public.timetable_slots",
+      "operation": "ADD COLUMN IF NOT EXISTS period_id",
+      "collision_type": "NONE_DETECTED",
+      "dependency": "References public.school_periods(id), created earlier in the same migration file.",
+      "risk": "LOW",
+      "required_resolution": "None - uses IF NOT EXISTS, safe under retries.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "Line 29: 'alter table public.timetable_slots add column if not exists period_id uuid references public.school_periods(id) on delete set null;'"
+    },
+    {
+      "migration_filename": "20260719104505_fix20_timetable_slot_editing_rpcs.sql",
+      "timestamp": "20260719104505",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION (update_timetable_slot, expire_timetable_slot, delete_timetable_slot, duplicate_active_timetable) + REVOKE/GRANT EXECUTE",
+      "collision_type": "NONE_DETECTED",
+      "dependency": "Reads/writes timetable_slots rows; no schema change to the table itself.",
+      "risk": "LOW",
+      "required_resolution": "None for schema. Functional correctness is out of TBL-006 scope (covered by Phase 3 fixes TBL-045-059).",
+      "resolution_status": "OUT_OF_SCOPE_FOR_TBL-006",
+      "evidence": "grep lines 10, 90, 128, 148, 181-188."
+    },
+    {
+      "migration_filename": "20260718151116_18a_teaching_occurrences.sql",
+      "timestamp": "20260718151116",
+      "object": "public.teaching_occurrences (new table, not baseline-owned)",
+      "operation": "CREATE TABLE + FK to public.timetable_slots",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "New table FK-references baseline-owned timetable_slots. Not a collision on the baseline object itself, but a downstream dependency that assumes timetable_slots.id is stable.",
+      "risk": "LOW",
+      "required_resolution": "None - additive, no baseline object altered.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "grep -ril teaching_occurrence match; table created at CREATE TABLE public.teaching_occurrences per earlier table inventory scan."
+    },
+    {
+      "migration_filename": "20260720123500_fix28_create_timetable_slot_error_codes_and_grants.sql",
+      "timestamp": "20260720123500",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION public.create_timetable_slot(...) + REVOKE/GRANT",
+      "collision_type": "SUPERSESSION_OF_20260718054252",
+      "dependency": "Redefines the function first created in 20260718054252.",
+      "risk": "LOW",
+      "required_resolution": "CREATE OR REPLACE is idempotent. No replay hazard.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "grep lines 42, 177, 181."
+    }
+    ,
+    {
+      "migration_filename": "20260525210349_add_timetable_slot_id_to_lesson_plans.sql",
+      "timestamp": "20260525210349",
+      "object": "public.timetable_slots",
+      "operation": "FK reference only (adds timetable_slot_id to lesson_plans)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "New FK column on lesson_plans referencing timetable_slots.id.",
+      "risk": "LOW",
+      "required_resolution": "None - additive, no baseline object altered.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE public.timetable_slots / public.teacher_classes statement in this file; only a foreign-key column added to lesson_plans."
+    },
+    {
+      "migration_filename": "20260626110000_onboard_teacher_class_rpc.sql",
+      "timestamp": "20260626110000",
+      "object": "public.teacher_classes",
+      "operation": "READ/WRITE via RPC only (no schema change)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "RPC inserts/reads teacher_classes rows.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against teacher_classes in this file."
+    },
+    {
+      "migration_filename": "20260718054908_fix13_teacher_weekly_timetable_load.sql",
+      "timestamp": "20260718054908",
+      "object": "public.timetable_slots, public.teacher_classes",
+      "operation": "CREATE OR REPLACE FUNCTION get_teacher_weekly_timetable_load() (read only)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Reads both tables to compute load; no schema change.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against either table in this file."
+    },
+    {
+      "migration_filename": "20260718072516_fix15_retire_legacy_lesson_plan_uq.sql",
+      "timestamp": "20260718072516",
+      "object": "public.timetable_slots",
+      "operation": "Reference only (lesson_plans unique-constraint retirement referencing timetable_slot_id)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Touches lesson_plans constraints, not timetable_slots itself.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against public.timetable_slots in this file."
+    },
+    {
+      "migration_filename": "20260718184018_fix18c_start_teaching_occurrence.sql",
+      "timestamp": "20260718184018",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION start_teaching_occurrence(...) (reads timetable_slots)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Function reads timetable_slots to resolve the current slot.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against public.timetable_slots in this file."
+    },
+    {
+      "migration_filename": "20260719040346_fix18d_complete_teaching_occurrence.sql",
+      "timestamp": "20260719040346",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION complete_teaching_occurrence(...) (reads timetable_slots)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Function reads timetable_slots.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against public.timetable_slots in this file."
+    },
+    {
+      "migration_filename": "20260719071344_fix18e_c_start_occurrence_advances_scheme_v2.sql",
+      "timestamp": "20260719071344",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION start_teaching_occurrence(...) v2 (reads timetable_slots)",
+      "collision_type": "SUPERSESSION_OF_20260718184018",
+      "dependency": "Redefines the function from 20260718184018.",
+      "risk": "LOW",
+      "required_resolution": "CREATE OR REPLACE is idempotent. No replay hazard.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "Function name 'start_teaching_occurrence' redefined; no ALTER TABLE statement against timetable_slots."
+    },
+    {
+      "migration_filename": "20260719104530_fix22_generate_daily_occurrences.sql",
+      "timestamp": "20260719104530",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION generate_daily_occurrences(...) (reads timetable_slots)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Function reads timetable_slots to generate occurrences.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against public.timetable_slots in this file."
+    },
+    {
+      "migration_filename": "20260719104547_fix23_suggest_recovery_slots.sql",
+      "timestamp": "20260719104547",
+      "object": "public.timetable_slots, public.teacher_classes",
+      "operation": "CREATE OR REPLACE FUNCTION suggest_recovery_slots(...) (reads both)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Function reads both tables.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against either table in this file."
+    },
+    {
+      "migration_filename": "20260719104615_fix25_timetable_quality_report.sql",
+      "timestamp": "20260719104615",
+      "object": "public.timetable_slots",
+      "operation": "CREATE OR REPLACE FUNCTION timetable_quality_report() (reads timetable_slots)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Function reads timetable_slots for reporting.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against public.timetable_slots in this file."
+    },
+    {
+      "migration_filename": "20260719104629_fix26_timetable_analytics.sql",
+      "timestamp": "20260719104629",
+      "object": "public.timetable_slots, public.teacher_classes",
+      "operation": "CREATE OR REPLACE FUNCTION get_timetable_analytics() (reads both)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Function reads both tables for analytics.",
+      "risk": "LOW",
+      "required_resolution": "None for schema.",
+      "resolution_status": "VERIFIED_IN_REPO",
+      "evidence": "No ALTER TABLE statement against either table in this file."
+    },
+    {
+      "migration_filename": "20260719104656_fix27_timetable_snapshots.sql",
+      "timestamp": "20260719104656",
+      "object": "public.timetable_slots, public.teacher_classes",
+      "operation": "CREATE OR REPLACE FUNCTION snapshot_timetable(...), restore_timetable_snapshot(...) (reads/restores both)",
+      "collision_type": "DEPENDENCY_ONLY",
+      "dependency": "Snapshot/restore functions read and can rewrite rows in both tables, but do not alter their schema.",
+      "risk": "MEDIUM",
+      "required_resolution": "restore_timetable_snapshot writes data, not schema - confirm (out of TBL-006 scope) that restore validates against current constraints rather than replaying stale rows blindly. Flagged as a NEW FINDING for the Phase 6 rollback fixes (TBL-105, TBL-106), not fixed here.",
+      "resolution_status": "OUT_OF_SCOPE_FOR_TBL-006 - see NEW FINDINGS",
+      "evidence": "No ALTER TABLE statement against either table; functions perform data-level snapshot/restore."
+    }
+  ],
+  "duplicate_or_contradictory_ownership_flags": [
+    {
+      "object": "public.timetable_slots",
+      "constraint": "excl_room_overlap",
+      "conflicting_migrations": [
+        "20260717215951_upgrade_overlap_constraints_to_date_aware.sql",
+        "20260718054252_timetable_room_conflict_fix12.sql"
+      ],
+      "severity": "HIGH",
+      "reason": "Both migrations ADD CONSTRAINT excl_room_overlap on public.timetable_slots with the same definition. The second does not DROP CONSTRAINT IF EXISTS first. A clean rebuild replay (TBL-011) will fail at this point."
+    }
+  ]
+}
