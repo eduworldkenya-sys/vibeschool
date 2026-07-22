@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
-import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
-import { loadActiveTeacherTimetable } from '@/lib/timetable/engine'
+import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
+import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
@@ -52,6 +52,11 @@ interface Slot {
   startTime: string
   endTime:   string
   dayOfWeek: number
+  // TBL-009C: effective range carried onto the view model so day filtering
+  // can be DATE-aware, not merely weekday-aware — a one-day recovery slot
+  // must appear only on its own date.
+  effectiveFrom:  string
+  effectiveUntil: string | null
 }
 
 interface WeeklyLoadRow {
@@ -646,12 +651,29 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const router = useRouter()
 
   // FIX [LOGIC-02]: todayDow in state so it updates after midnight
-  const [todayDow, setTodayDow] = useState<number>((() => { const d = new Date().getDay(); return d === 0 ? 7 : d })())
+  // TBL-009C: weekday is Nairobi-anchored so the day tabs and the dates
+  // derived from them can never disagree across a timezone/midnight boundary.
+  const [todayDow, setTodayDow] = useState<number>(() => nairobiDayOfWeek())
 
   const isWeekend    = todayDow === 6 || todayDow === 7
   const effectiveDow = todayDow
 
   const [activeDow,       setActiveDow]       = useState(effectiveDow)
+
+  // TBL-009C: explicit visible-week date model. Every day tab maps to a
+  // concrete Nairobi date in the CURRENT week (Monday-anchored), and every
+  // per-day slot filter checks the slot's effective range against that
+  // date. This is what makes one-day recovery slots appear on exactly
+  // their own date and nowhere else.
+  const dateForDow = useCallback(
+    (dow: number) => nairobiDateAdd(nairobiDateStr(), dow - todayDow),
+    [todayDow]
+  )
+  const slotActiveOn = useCallback(
+    (s: Slot, date: string) =>
+      s.effectiveFrom <= date && (s.effectiveUntil === null || s.effectiveUntil >= date),
+    []
+  )
   const [allSlots,        setAllSlots]         = useState<Slot[]>([])
   const [loading,         setLoading]          = useState(true)
   const [loadError,       setLoadError]        = useState<string | null>(null)
@@ -677,7 +699,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   useEffect(() => {
     const id = setInterval(() => {
       setCurMin(currentTimeMin())
-      const rd = new Date().getDay(); setTodayDow(rd === 0 ? 7 : rd)  // FIX [LOGIC-02]: keep day current
+      setTodayDow(nairobiDayOfWeek())  // FIX [LOGIC-02] + TBL-009C: keep day current, Nairobi-anchored
     }, 60_000)
     return () => clearInterval(id)
   }, [])
@@ -737,10 +759,17 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         return
       }
 
-      const slots = await loadActiveTeacherTimetable({
+      // TBL-009C: load every slot whose effective range overlaps the
+      // visible week, not just slots active today — otherwise a recovery
+      // scheduled for later this week is invisible until its date arrives.
+      // Per the engine contract, per-date effectiveness is validated at
+      // render time via slotActiveOn.
+      const weekStartStr = nairobiWeekStart()
+      const slots = await loadTeacherTimetableForRange({
         teacherId: user.id,
         schoolId,
-        activeOn: todayStr,
+        rangeStart: weekStartStr,
+        rangeEnd: nairobiDateAdd(weekStartStr, 6),
       })
 
       if (!isMounted.current) return
@@ -780,6 +809,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           startTime: s.start_time,
           endTime:   s.end_time,
           dayOfWeek: s.day_of_week,
+          effectiveFrom:  s.effective_from,
+          effectiveUntil: s.effective_until,
         }
       })
 
@@ -802,8 +833,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   }, [load])
 
   const daySlots = useMemo(
-    () => allSlots.filter(s => s.dayOfWeek === activeDow),
-    [allSlots, activeDow]
+    () => allSlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
+    [allSlots, activeDow, slotActiveOn, dateForDow]
   )
 
   const isToday = activeDow === todayDow
@@ -860,8 +891,12 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
   // FIX [LOGIC-06]: on weekends show Monday count, not 0
   const todayCount = useMemo(
-    () => allSlots.filter(s => s.dayOfWeek === (isWeekend ? 1 : todayDow)).length,
-    [allSlots, todayDow, isWeekend]
+    () => {
+      const dow = isWeekend ? 1 : todayDow
+      const date = dateForDow(dow)
+      return allSlots.filter(s => s.dayOfWeek === dow && slotActiveOn(s, date)).length
+    },
+    [allSlots, todayDow, isWeekend, slotActiveOn, dateForDow]
   )
 
   
@@ -1090,7 +1125,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
       >
         {DAYS.map(d => {
-          const count    = allSlots.filter(s => s.dayOfWeek === d.dow).length
+          const count    = allSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
           const isActive = activeDow === d.dow
           const isTdy    = d.dow === todayDow
           const wknd     = d.weekend
@@ -1189,7 +1224,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       <SlotDrawer
         slot={selected}
         curMin={curMin}
-        occurrenceDate={nairobiDateAdd(nairobiDateStr(), activeDow - todayDow)}
+        occurrenceDate={dateForDow(activeDow)}
         onClose={() => setSelected(null)}
         onNavigate={handleNavigate}  // FIX [FATAL-03]: single router instance passed down
         onRecover={ctx => setRecoveryCtx(ctx)}

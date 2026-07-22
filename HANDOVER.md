@@ -740,3 +740,36 @@ is complete and the session is explicitly instructed to continue.
   name-based matching; key everything by subject_id; resolve the 15
   global vs school-scoped duplicate subjects and the 3 teacher_classes
   rows on global subjects).
+
+
+---
+
+## TBL-009C — Recovery UX corrections (2026-07-22)
+
+- Reviewer-found defects in TBL-009B, both confirmed real and fixed:
+  1. Layering: the recovery sheet shipped at zIndex 60/61 beneath the
+     slot drawer's 800/810 overlay, so it opened UNDERNEATH the drawer.
+     Now 900/910, above it.
+  2. Future recovery visibility: the page loaded only slots active on
+     today's Nairobi date (loadActiveTeacherTimetable, activeOn=today),
+     so a one-day recovery scheduled later in the week was invisible
+     until its date arrived — the same activeOn=today class fixed for
+     the scheme generator in TBL-007F1. The page now range-loads the
+     visible week (loadTeacherTimetableForRange, Monday..Sunday) and
+     filters per day by DATE, not merely weekday: the Slot view carries
+     effectiveFrom/effectiveUntil and every day tab, count, and list
+     checks the slot's effective range against that tab's concrete date.
+  3. Week-boundary safety: weekday state is now Nairobi-anchored
+     (nairobiDayOfWeek on init and midnight resync) and every tab maps
+     to an explicit current-week Nairobi date via one dateForDow model,
+     so the drawer's occurrence date can never disagree with the tab.
+- Honest visibility: the schedule-success message states the recovery
+  appears on its date's weekday tab during its week — recoveries beyond
+  the visible week are reachable when that week arrives; in-week ones
+  render immediately after reload.
+- Boundary held: RecoverySheet.tsx, timetable page, HANDOVER only.
+  No database, migration, or RPC changes. tsc delta: zero net new errors.
+- Candidate follow-up (not committed to): week prev/next navigation on
+  the timetable would make future-week recoveries browsable before their
+  week; the date model added here is the prerequisite for it.
+- Next milestone: TBL-010 — subject identity unification.

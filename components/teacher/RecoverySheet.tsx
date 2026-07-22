@@ -138,6 +138,7 @@ export default function RecoverySheet({
       setDone({
         kind: 'scheduled',
         detail: `Recovery scheduled for ${date}, ${startTime}\u2013${endTime}.`
+          + ` It appears on your timetable on that date's weekday tab during its week.`
           + ` (recovery ${result.recovery_occurrence_id.slice(0, 8)}\u2026 for missed ${ctx.occurrenceId.slice(0, 8)}\u2026)`,
       })
     } catch (err) {
@@ -173,12 +174,14 @@ export default function RecoverySheet({
     <>
       <div
         onClick={done ? onDone : onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 60 }}
+        // TBL-009C: the slot drawer sits at zIndex 800/810 — this sheet
+        // must layer ABOVE it, not underneath.
+        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 900 }}
       />
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 61,
+          position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 910,
           background: '#fff', borderRadius: '18px 18px 0 0',
           padding: '18px 16px 24px', maxHeight: '85vh', overflowY: 'auto',
           boxShadow: '0 -8px 30px rgba(15,23,42,0.18)',
