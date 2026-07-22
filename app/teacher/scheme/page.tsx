@@ -624,10 +624,77 @@ function SchemePageInner() {
     }
   }, [loading, bootError, loadScheme])
 
+  async function assertSchemeAssignmentIdentity(): Promise<void> {
+    if (!uid || !schoolId || !selectedClass || !selectedSubject) {
+      throw new Error("Scheme identity is incomplete. Reload the page and try again.")
+    }
+
+    const { data, error } = await supabase
+      .from('teacher_classes')
+      .select('class_id,subject_id')
+      .eq('teacher_id', uid)
+      .eq('class_id', selectedClass)
+      .eq('subject_id', selectedSubject)
+
+    if (error) {
+      throw new Error(`Failed to verify teaching assignment: ${error.message}`)
+    }
+
+    if ((data ?? []).length !== 1) {
+      throw new Error(
+        "This class and subject are not uniquely assigned to you. Scheme changes were not saved."
+      )
+    }
+
+    const { data: classRow, error: classError } = await supabase
+      .from('classes')
+      .select('id,school_id')
+      .eq('id', selectedClass)
+      .eq('school_id', schoolId)
+      .maybeSingle()
+
+    if (classError) {
+      throw new Error(`Failed to verify class identity: ${classError.message}`)
+    }
+
+    if (!classRow) {
+      throw new Error(
+        "The selected class does not belong to your active school. Scheme changes were not saved."
+      )
+    }
+
+    const { data: subjectRow, error: subjectError } = await supabase
+      .from('subjects')
+      .select('id,school_id')
+      .eq('id', selectedSubject)
+      .eq('school_id', schoolId)
+      .maybeSingle()
+
+    if (subjectError) {
+      throw new Error(`Failed to verify subject identity: ${subjectError.message}`)
+    }
+
+    if (!subjectRow) {
+      throw new Error(
+        "The selected subject does not belong to your active school. Scheme changes were not saved."
+      )
+    }
+  }
+
   // ── Commit unseeded curriculum references (copy-on-commit) ────
   async function commitScheme() {
     if (!selectedClass || !selectedSubject || !selectedTermId || !schoolId || !uid || !selectedClassObj || !selectedSubjectObj || !selectedTermObj || curriculumRows.length === 0) return
     setCommitting(true)
+    setFetchError(null)
+
+    try {
+      await assertSchemeAssignmentIdentity()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Scheme identity verification failed"
+      setFetchError(message)
+      setCommitting(false)
+      return
+    }
 
     // TBL-010C: crosses via the FK bridge (subjects.global_subject_id),
     // not a name match — selectedSubject is already this school's id.
@@ -682,6 +749,15 @@ function SchemePageInner() {
     if (!topic || !selectedClass || !selectedSubject || !selectedTermId || !schoolId || !uid || !selectedClassObj || !selectedSubjectObj || !selectedTermObj) return
     setAddCustomBusy(true)
     setAddCustomError(null)
+
+    try {
+      await assertSchemeAssignmentIdentity()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Scheme identity verification failed"
+      setAddCustomError(message)
+      setAddCustomBusy(false)
+      return
+    }
 
     const payload = {
       school_id: schoolId,
