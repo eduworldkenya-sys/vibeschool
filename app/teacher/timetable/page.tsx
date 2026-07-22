@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
+import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
 import { loadActiveTeacherTimetable } from '@/lib/timetable/engine'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
@@ -235,12 +236,16 @@ function SlotDrawer({
   occurrenceDate,
   onClose,
   onNavigate,
+  onRecover,
+  onCancelRecovery,
 }: {
   slot:           Slot | null
   curMin:         number
   occurrenceDate: string
   onClose:        () => void
   onNavigate:     (url: string) => void
+  onRecover:        (ctx: RecoverySheetContext) => void
+  onCancelRecovery: (ctx: RecoverySheetContext) => void
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -249,6 +254,14 @@ function SlotDrawer({
   const [occurrence, setOccurrence] = useState<TeachingOccurrence | null>(null)
   const [occLoading, setOccLoading] = useState(false)
   const [occError, setOccError] = useState<string | null>(null)
+
+  // TBL-009B: the composite occurrence carries no row id and no ancestry,
+  // so the recovery actions need one targeted read of the persisted row.
+  // occRowId is the occurrence uuid the writer RPCs take; recoveredFromId
+  // being set marks this occurrence as a recovery (cancellable while
+  // planned/ready). Read-only; all writes stay behind the TBL-009A RPCs.
+  const [occRowId, setOccRowId] = useState<string | null>(null)
+  const [recoveredFromId, setRecoveredFromId] = useState<string | null>(null)
 
   // Fix 18C: separate from occError — occError means "couldn't resolve this
   // occurrence at all"; startError means "resolved fine, but the start
@@ -270,6 +283,8 @@ function SlotDrawer({
       setOccError(null)
       setStarting(false)
       setStartError(null)
+      setOccRowId(null)
+      setRecoveredFromId(null)
       return
     }
 
@@ -279,6 +294,8 @@ function SlotDrawer({
     setOccError(null)
     setStarting(false)
     setStartError(null)
+    setOccRowId(null)
+    setRecoveredFromId(null)
     setOccLoading(true)
 
     resolveOccurrence({ timetableSlotId: slot.id, occurrenceDate })
@@ -289,6 +306,20 @@ function SlotDrawer({
           return
         }
         setOccurrence(result)
+        // TBL-009B: fetch the persisted row's uuid and recovery ancestry.
+        // A derived occurrence with no row yet simply leaves both null,
+        // which correctly hides the recovery actions.
+        supabase
+          .from('teaching_occurrences')
+          .select('id, recovered_from_id')
+          .eq('timetable_slot_id', slot.id)
+          .eq('occurrence_date', occurrenceDate)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (cancelled || !data) return
+            setOccRowId(data.id ?? null)
+            setRecoveredFromId(data.recovered_from_id ?? null)
+          })
       })
       .catch(() => {
         if (!cancelled) setOccError('This lesson occurrence could not be loaded.')
@@ -517,6 +548,40 @@ function SlotDrawer({
               ⏱ Missed lesson
             </div>
           )}
+          {/* TBL-009B: recover a missed lesson through the TBL-009A writer. */}
+          {!occError && occurrence?.lifecycle === 'missed' && occRowId && (
+            <Btn
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => onRecover({
+                mode: 'schedule',
+                occurrenceId: occRowId,
+                classId: slot.classId,
+                subject: slot.subject,
+                dateLabel: occurrenceDate,
+              })}
+            >
+              Recover Lesson
+            </Btn>
+          )}
+          {/* TBL-009B: a recovery still in planned/ready can be cancelled;
+              the original returns to missed. Later lifecycles are real
+              teaching history and the writer refuses them. */}
+          {!occError && occRowId && recoveredFromId
+            && (occurrence?.lifecycle === 'planned' || occurrence?.lifecycle === 'ready') && (
+            <Btn
+              variant="ghost"
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => onCancelRecovery({
+                mode: 'cancel',
+                occurrenceId: occRowId,
+                classId: slot.classId,
+                subject: slot.subject,
+                dateLabel: occurrenceDate,
+              })}
+            >
+              Cancel Recovery
+            </Btn>
+          )}
           {!occError && (occLoading || primaryAction) && (
             <Btn
               disabled={occLoading || starting || !primaryAction}
@@ -593,6 +658,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
   const [selected,        setSelected]         = useState<Slot | null>(null)
   const [showAddSlot,     setShowAddSlot]      = useState(false)
+  // TBL-009B: non-null while the recovery sheet is open; carries the
+  // occurrence/class/subject identity so it survives sheet navigation.
+  const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
   const [weeklyLoadRows,  setWeeklyLoadRows]   = useState<WeeklyLoadRow[]>([])
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
@@ -1124,7 +1192,21 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         occurrenceDate={nairobiDateAdd(nairobiDateStr(), activeDow - todayDow)}
         onClose={() => setSelected(null)}
         onNavigate={handleNavigate}  // FIX [FATAL-03]: single router instance passed down
+        onRecover={ctx => setRecoveryCtx(ctx)}
+        onCancelRecovery={ctx => setRecoveryCtx(ctx)}
       />
+
+      {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
+          or cancel one still in planned/ready. onDone reloads the timetable
+          so the one-day recovery slot appears (or disappears) immediately,
+          and closes the drawer whose occurrence state is now stale. */}
+      {recoveryCtx && (
+        <RecoverySheet
+          ctx={recoveryCtx}
+          onClose={() => setRecoveryCtx(null)}
+          onDone={() => { setRecoveryCtx(null); setSelected(null); load() }}
+        />
+      )}
 
       {/* Add slot modal — only when school confirmed */}
       {showAddSlot && teacherId != null && (

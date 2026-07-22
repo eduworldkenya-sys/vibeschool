@@ -706,3 +706,37 @@ is complete and the session is explicitly instructed to continue.
   the teacher timetable, suggestion surfacing, lesson-plan-required
   messaging, cancellation workflow.
 
+
+
+---
+
+## TBL-009B — Recovery teacher UX (2026-07-22)
+
+- Locked boundary held: only components/teacher/RecoverySheet.tsx (new),
+  app/teacher/timetable/page.tsx, and this file changed. No database,
+  migration, RPC, schema, or unrelated file changes.
+- Drawer: missed occurrences gain a "Recover Lesson" action; recovery
+  occurrences (recovered_from_id set) still in planned/ready gain
+  "Cancel Recovery". The composite occurrence carries no row id, so the
+  drawer makes one read-only fetch of id + recovered_from_id per
+  resolved occurrence; both ids ride the sheet context so original and
+  recovery identity survive navigation.
+- RecoverySheet: suggestions load via suggestRecoverySlots(classId, 14)
+  and are labelled candidates only — availability is confirmed by the
+  writer at schedule time; manual date (today..today+14), start/end
+  times, and optional room are always available. All eleven TBL-009A
+  error codes translate to plain language; conflicts keep the sheet
+  open for another pick. Success view states a lesson plan is still
+  required before the recovery can be started. Cancel mode requires a
+  reason and explains the original returns to missed.
+- Completion path reloads the timetable (one-day recovery slot appears
+  or disappears immediately) and closes the now-stale drawer.
+- Verification: tsc delta consists solely of the pre-existing BtnProps
+  children artifact class (global TS fallback without node_modules);
+  the one real error tsc caught (C.text vs C.textPrimary) was fixed.
+  Heredoc tested end-to-end at a simulated TBL-009A device head,
+  byte-identical output, rerun-idempotent.
+- Next milestone: TBL-010 — subject identity unification (drop
+  name-based matching; key everything by subject_id; resolve the 15
+  global vs school-scoped duplicate subjects and the 3 teacher_classes
+  rows on global subjects).
