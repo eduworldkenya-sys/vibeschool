@@ -74,36 +74,14 @@ export async function getSubjectContext(subjectId: string): Promise<SubjectConte
   }
 }
 
-/**
- * @deprecated TBL-010B compatibility adapter. This is the ORIGINAL
- * name-based crossing (ilike on subject name against the global rows),
- * kept only so the handful of callers TBL-010C hasn't repointed yet
- * (app/teacher/assessment, app/teacher/scheme, LessonPlanModal,
- * LessonPanel) keep working in the interim — they call this under the
- * OLD export name `resolveGlobalSubjectId`, so until TBL-010C updates
- * them to pass a subjectId to the function above, they resolve nothing
- * (soft-fail: each already null-guards, so curriculum/strand lookups
- * degrade to "no content yet" rather than crash). Do not add new
- * callers. Removed in TBL-010D once no operational caller crosses
- * school->global identity through a string.
- */
-export let lastResolveDebug: string = ""
-
-export async function resolveGlobalSubjectIdByName(subjectName: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("subjects")
-    .select("id")
-    .is("school_id", null)
-    .ilike("name", subjectName)
-    .maybeSingle()
-
-  if (error || !data) {
-    lastResolveDebug = JSON.stringify({ code: error?.code ?? null, message: error?.message ?? null, hasData: !!data })
-    return null
-  }
-  lastResolveDebug = "ok"
-  return data.id
-}
+// TBL-010D: the deprecated name-based compatibility adapter and its
+// debug-trace export have been removed. TBL-010C repointed its last
+// callers (app/teacher/assessment, app/teacher/scheme, LessonPlanModal,
+// LessonPanel) to the id-first resolveGlobalSubjectId above; a repo-wide
+// audit confirmed zero remaining imports or calls before this deletion.
+// No runtime path may cross school subject -> global subject through a
+// name/.ilike match again — a name match may exist only in historical
+// migration SQL.
 
 export interface ResolvedContent {
   id: string
