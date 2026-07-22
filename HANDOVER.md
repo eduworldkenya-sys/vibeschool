@@ -16,15 +16,15 @@ CURRENT STATE
 
 Active fix
 
-FIX ID: TBL-003
-TITLE: Correct pending migration handling
+FIX ID: TBL-005
+TITLE: Add data preconditions for constraints
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-002
-TITLE: Classify every migration
+FIX ID: TBL-003
+TITLE: Correct pending migration handling
 STATUS: VERIFIED
 
 Current branch
@@ -425,3 +425,79 @@ Next fix
 
 Do not begin TBL-003 implementation work until this TBL-002 closure commit is
 complete and the session is explicitly instructed to continue.
+---
+
+TBL-003 VERIFIED HANDOVER
+
+Objective
+
+Ensure local migrations that are intentionally awaiting deployment can be
+classified as PENDING_DEPLOYMENT without producing false migration-parity
+failures, while rejecting incomplete or invalid pending classifications.
+
+Result
+
+- TBL-003 status: VERIFIED.
+- PENDING_DEPLOYMENT validation rules are implemented.
+- Current PENDING_DEPLOYMENT entries: 0.
+- Zero pending entries is valid because no current local-only migration meets
+  the declared pending-deployment criteria.
+- Pending classification is never inferred automatically.
+- A pending entry must correspond to exactly one local migration file.
+- A pending migration must be absent from the live ledger snapshot.
+- local_file must match the actual repository filename.
+- reason, target_environment, approval_status, and follow_up are mandatory.
+- approval_status must be AWAITING_APPROVAL, APPROVED, or BLOCKED.
+- STALE_REPO_ONLY remains distinct from PENDING_DEPLOYMENT.
+- No Supabase migration or database write occurred.
+
+Verification
+
+- python3 scripts/test_validate_migration_classification.py
+- Result: TBL-003 SELF-TESTS PASSED — 8/8
+
+Covered scenarios
+
+- valid pending migration passes
+- missing reason fails
+- missing approval status fails
+- already-live migration cannot be pending
+- unclassified local-only migration fails
+- STALE_REPO_ONLY is not treated as pending
+- duplicate local migration versions fail
+- invalid classification values fail
+
+Main classification validation
+
+- python3 scripts/validate-migration-classification.py
+- Result: VALIDATION PASSED
+- Local migrations on disk: 60
+- Live ledger snapshot versions: 72
+- Classification entries: 77
+- Required known entries verified: 7
+
+Implementation evidence
+
+- 3bfe039 — fix(timetable): validate pending migration handling
+- scripts/validate-migration-classification.py
+- scripts/test_validate_migration_classification.py
+- supabase/reconciliation/migration_classification.json
+
+Sequence decision
+
+TBL-004 was already VERIFIED as not applicable. The next active fix is therefore
+TBL-005.
+
+TBL-005 already has an early implementation commit:
+
+- f5fd1b6 — fix(timetable): add TBL-005 constraint preflight
+
+That implementation remains OPEN and must now be verified formally using the
+exact committed repository SQL and validator.
+
+Unrelated file preserved
+
+- patch_tbl004.py remains untracked and was not staged, modified, or deleted.
+
+Do not begin another fix until TBL-003 is committed as VERIFIED and the session
+is explicitly instructed to continue.
