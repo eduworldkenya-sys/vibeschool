@@ -643,3 +643,28 @@ Next fix
 
 Do not begin TBL-006 implementation work until this TBL-005 closure commit
 is complete and the session is explicitly instructed to continue.
+
+
+---
+
+## TBL-008 — Occurrence generation recovered and hardened (2026-07-22)
+
+- Fix 28 audit verdict: never applied. Server engine (generate_daily_occurrences,
+  Fix 22) was intact but had zero client callers; teaching_occurrences held 0 rows.
+- Occurrence identity is formal: UNIQUE (timetable_slot_id, occurrence_date);
+  teacher writes locked to RPCs; RPC inserts ON CONFLICT DO NOTHING.
+- New lib/teaching/occurrenceGuard.ts: ensureDailyOccurrences() session guard —
+  one in-flight call, one successful run per Nairobi day per session, never
+  throws (failures observable in result, logged, retryable), resurrects the
+  lib/teaching/slots.ts wrapper (first import since Fix 22).
+- Wired: fire-and-forget on teacher timetable initialization; awaited at the
+  top of fetchPulseData before occurrence-dependent reads.
+- Live proofs (2026-07-22, impersonated): first call generated=1 (table 0→1);
+  second call generated=0 (idempotent — covers repeated refresh and two-tab
+  at the DB level); no-slot-day generated=0; synthetic yesterday occurrence
+  swept planned→missed then removed; teacher scoping via auth.uid() confirmed;
+  cross-teacher calls did not touch each other's rows.
+- Out of TBL-008 scope, still outstanding from Fix 28: SlotManageModal.tsx +
+  Manage Slot button (slot editing UX); app/api/auth-debug removal.
+- Next: TBL-009 recovery writer.
+

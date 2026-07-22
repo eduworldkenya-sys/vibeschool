@@ -8,6 +8,7 @@ import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import { nairobiDateStr, nairobiDateAdd } from '@/lib/time'
 import { loadActiveTeacherTimetable } from '@/lib/timetable/engine'
+import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
 import type { TeachingOccurrence, Lifecycle } from '@/lib/teaching/types'
@@ -254,6 +255,14 @@ function SlotDrawer({
   // mutation itself failed". Conflating them would blank a good CTA state.
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+
+  // TBL-008: ensure today's occurrences exist (and stale ones are swept to
+  // 'missed') when the timetable initializes. Fire-and-forget: generation
+  // failure must never block the timetable from loading, and the guard
+  // makes the call retryable and session-deduplicated.
+  useEffect(() => {
+    void ensureDailyOccurrences()
+  }, [])
 
   useEffect(() => {
     if (!slot) {

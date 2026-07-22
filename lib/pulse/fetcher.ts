@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { Slot, ActivityLog, PulseSnapshot } from "@/lib/types";
 import { nairobiDateStr, nairobiDayOfWeek, nairobiDateAdd } from "@/lib/time";
 import { loadActiveTeacherTimetable } from "@/lib/timetable/engine";
+import { ensureDailyOccurrences } from "@/lib/teaching/occurrenceGuard";
 
 interface TimetableSlotRow {
   id: string;
@@ -163,6 +164,12 @@ export async function fetchPulseData(
   credits: number | null,
   weekOverride?: WeekOverride | null
 ): Promise<PulseSnapshot> {
+  // TBL-008: today's occurrences must exist (and stale ones be swept to
+  // 'missed') before any occurrence-dependent read below. Awaited, but
+  // non-destructive: the guard never throws, so Pulse loads whether or
+  // not generation succeeded, and failures retry on the next fetch.
+  await ensureDailyOccurrences();
+
   // Single clock read (`now`) feeds every date/day-of-week/week-start below,
   // so effective-date filtering and day-of-week filtering can never disagree
   // even across the Nairobi midnight boundary.
