@@ -309,7 +309,7 @@ PHASE 0 — MIGRATION AND REBUILD SAFETY
 
 ID| Priority| Status| Fix unit| Required result
 TBL-001| P0| VERIFIED| Repair malformed and misversioned migration filenames| Local migration version keys match the intended live ledger keys for all affected files
-TBL-002| P0| OPEN| Classify every migration| Every local and remote migration has exactly one explicit classification
+TBL-002| P0| VERIFIED| Classify every migration| Every local and remote migration has exactly one explicit classification
 TBL-003| P0| OPEN| Correct pending migration handling| Pending migrations are declared and excluded from false parity failures
 TBL-004| P0| VERIFIED| Strengthen baseline guards| N/A -- no replayable SYNTHETIC_BASELINE migration exists in the repository
 TBL-004 closed as N/A: the sole SYNTHETIC_BASELINE entry, 20260520000000_timetable_foundation_baseline, is live-only and has no repository SQL file. No replayable baseline exists to guard.

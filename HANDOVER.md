@@ -16,15 +16,15 @@ CURRENT STATE
 
 Active fix
 
-FIX ID: TBL-002
-TITLE: Classify every migration
+FIX ID: TBL-003
+TITLE: Correct pending migration handling
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-001
-TITLE: Repair malformed and misversioned migration filenames
+FIX ID: TBL-002
+TITLE: Classify every migration
 STATUS: VERIFIED
 
 Current branch
@@ -356,4 +356,72 @@ SESSION: Out-of-sequence TBL-005 preflight implementation
 ACTION: Added the read-only TBL-005 timetable constraint preflight SQL and its static validator. The implementation was committed while TBL-002 remained the formally active fix.
 EVIDENCE: "python3 scripts/validate-tbl005-preflight.py" passed. Equivalent read-only checks against Supabase project "yauqsxggtuxuykcbrtzf" returned zero invalid rows for timetable slot references, assignment matching, school consistency, weekday values, time ranges, and effective-date ranges.
 RESULT: Implementation commit f5fd1b6 exists, but TBL-005 remains OPEN and is not VERIFIED. No database migration, DDL, data repair, RLS change, or migration-ledger write occurred. TBL-002 remains the active fix. TBL-005 must be revisited in sequence, run using the exact repository SQL file against the confirmed target environment, and then formally verified.
+---
 
+TBL-002 VERIFIED HANDOVER
+
+Objective
+
+Create one complete, validated classification of every migration version found
+in the repository or the live Supabase migration ledger.
+
+Result
+
+- TBL-002 status: VERIFIED.
+- Local migration versions classified: 60.
+- Live ledger versions classified: 72.
+- Total classification entries: 77.
+- Required known entries verified: 7.
+- No duplicate local migration version remained unclassified.
+- No local or live migration version remained unclassified.
+- No invalid classification value was present.
+- Every mismatch carried an explicit follow-up.
+- No live database write occurred.
+- No migration body was invented or reconstructed.
+- No migration ledger entry was changed.
+
+Artifacts
+
+- supabase/reconciliation/migration_classification.json
+- supabase/reconciliation/migration_classification.md
+- scripts/validate-migration-classification.py
+
+Verification
+
+- python3 scripts/validate-migration-classification.py
+- Result: VALIDATION PASSED
+- Local migrations on disk: 60
+- Live ledger snapshot versions: 72
+- Classification entries: 77
+- Required known entries verified: 7
+
+Live ledger confirmation
+
+The connected Supabase project was confirmed as:
+
+- project ref: yauqsxggtuxuykcbrtzf
+- live migration entries: 72
+
+The current live ledger still matched the 72-version snapshot embedded in the
+classification artifact when TBL-002 was closed.
+
+Repository evidence
+
+The classification artifacts were committed before closure. Relevant history:
+
+- 2388c63 — add migration reconciliation and timetable slot patch scripts
+- 3bfe039 — validate pending migration handling
+- 45625d4 — close TBL-004 as not applicable
+
+Unrelated files preserved
+
+- patch_tbl004.py remains untracked and was not staged, modified, or deleted.
+
+Next fix
+
+- ID: TBL-003
+- title: Correct pending migration handling
+- status: OPEN
+
+Do not begin TBL-003 implementation work until this TBL-002 closure commit is
+complete and the session is explicitly instructed to continue.
