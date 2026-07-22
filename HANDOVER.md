@@ -796,3 +796,59 @@ is complete and the session is explicitly instructed to continue.
 - Boundary held: RecoverySheet.tsx, timetable page, HANDOVER only.
   tsc delta: zero net new errors.
 - Next milestone: TBL-010 — subject identity unification.
+
+
+---
+
+## TBL-010B — Subject identity bridge, foundation (2026-07-22)
+
+- Replaces the name-match crossing between school subjects (operational:
+  timetable_slots, lesson_plans, scheme_of_work, teacher_classes) and
+  global subjects (taxonomy: 1269 cbc_strands rows, curriculum content)
+  with a real FK: subjects.global_subject_id.
+- Live migration (ledger 20260722142020): column + partial index; two
+  CHECK constraints (no self-link; global subjects never link onward);
+  a BEFORE INSERT/UPDATE trigger enforcing a school subject can only ever
+  link to a global subject (ongoing invariant, not just backfill-time);
+  guarded one-time backfill by normalized exact name (aborts the whole
+  migration on any zero-match or multi-match school subject — none
+  found); generic repair of every teacher_classes row referencing a
+  global subject_id (found live: 3, one teacher/class — 2 had an
+  existing canonical school-id row already and were deleted as
+  duplicates rather than violate uq_teacher_class_subject; 1 had none
+  and was updated in place); a final assertion inside the migration
+  itself that zero teacher_classes rows reference a global subject after
+  repair.
+- All 14 required live proofs verified exactly: 15 global / 6 school /
+  6 linked / 0 unmatched / 0 ambiguous / 0 school-to-school links /
+  0 self-links / 0 teacher_classes on global (was 3; raw teacher_classes
+  count 11->9 confirms 2 deletes + 1 update) / 7-7 slots / 2-2 plans /
+  15-15 scheme / 1269-1269 strands, all still on their expected ids.
+- One unrelated finding, NOT caused by this migration: scheme_of_work
+  has a pre-existing orphan row (subject_id AND school_id both NULL,
+  created 07:17 same day, hours before this migration ran) that the
+  original TBL-010A audit's inner join silently excluded from its 15/15
+  count. Not touched; flagged for separate triage, not a TBL-010 defect.
+- Resolver (lib/curriculum/globalSubjects.ts) rewritten: new id-first
+  primary API — resolveGlobalSubjectId(subjectId), getSubjectName(id),
+  getSubjectContext(id) (one round trip for both ids + name). The
+  original name-based crossing is preserved as a clearly deprecated
+  compatibility adapter, resolveGlobalSubjectIdByName(name), for TBL-010C
+  to use only where still needed.
+- IMPORTANT INTERIM-WINDOW NOTE: the export name `resolveGlobalSubjectId`
+  now means something different (takes an id, not a name). Its 4 current
+  callers — app/teacher/assessment/page.tsx, app/teacher/scheme/page.tsx
+  (x2), components/teacher/LessonPlanModal.tsx,
+  components/scheme/LessonPanel.tsx — are explicitly OUT OF SCOPE for
+  TBL-010B (reserved for TBL-010C) and were NOT touched. They still
+  compile (TS can't see the semantic change) but will pass a subject
+  NAME where an id is now expected, so until TBL-010C repoints them:
+  assessment's strand picker shows an empty list, scheme's ebook-chapter
+  suggestions go empty, and content-preference auto-linking in
+  commitScheme/LessonPanel silently skips. Verified all four call sites
+  are null-guarded (`if (globalSubjectId)`) — this is a soft feature
+  degradation, not a crash or data corruption, but it is real and live
+  the moment this ships. TBL-010C should follow promptly.
+- Next: TBL-010C — repoint the 4 callers above to id-first, plus the
+  timetable lessonUrl (name -> subjectId) and any curriculum-by-name
+  lookups that can anchor through subject context.

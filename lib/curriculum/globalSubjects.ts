@@ -1,14 +1,95 @@
 import { supabase } from "@/lib/supabase"
 
-// cbc_strands is anchored to the national CBC subject taxonomy — 12
-// `subjects` rows with school_id IS NULL, seeded once (2026-06-26) as
-// the master reference. Each school also has its own local `subjects`
-// copy used for teacher_classes/scheduling. Any cbc_strands query must
-// resolve through the global row by name first — using a school's own
-// local subject_id directly will only ever hit sparse per-school rows.
+// TBL-010B: subjects.global_subject_id is now a real FK linking every
+// school subject to its global (national CBC taxonomy) parent — see
+// migration tbl010b_subject_identity_bridge. cbc_strands and curriculum
+// content are anchored to the 15 global rows (school_id IS NULL); the 6
+// school rows are what teacher_classes/timetable_slots/lesson_plans/
+// scheme_of_work actually reference. Global subjects have
+// global_subject_id = NULL (they ARE the root); school subjects have it
+// set to their global parent, enforced by a trigger so it can never point
+// at another school subject.
+
+export interface SubjectContext {
+  /** The id operational tables (timetable_slots, lesson_plans, ...)
+   *  reference. Null when the input was already a global subject. */
+  schoolSubjectId: string | null
+  /** The id cbc_strands / curriculum content are keyed on. */
+  globalSubjectId: string | null
+  name: string
+}
+
+/**
+ * Resolves ANY subjects.id (school-scoped or global) to its GLOBAL
+ * subject id — the id cbc_strands and curriculum content are anchored
+ * to. Replaces the old name-based crossing: no ilike, no ambiguity, a
+ * single FK hop. Returns null if the subject doesn't exist, or is a
+ * school subject with no linked global parent (should not happen after
+ * the TBL-010B backfill + trigger, but callers must not assume it can't).
+ */
+export async function resolveGlobalSubjectId(subjectId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("subjects")
+    .select("id, school_id, global_subject_id")
+    .eq("id", subjectId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data.school_id === null ? data.id : data.global_subject_id
+}
+
+/** Display name for any subjects.id, school-scoped or global. */
+export async function getSubjectName(subjectId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("subjects")
+    .select("name")
+    .eq("id", subjectId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data.name
+}
+
+/**
+ * One read that gives a caller everything subject-identity related for
+ * a given subjects.id: which id operational tables use, which id the
+ * taxonomy uses, and the display name. Prefer this over calling
+ * resolveGlobalSubjectId + getSubjectName separately when a caller needs
+ * both — one round trip instead of two.
+ */
+export async function getSubjectContext(subjectId: string): Promise<SubjectContext | null> {
+  const { data, error } = await supabase
+    .from("subjects")
+    .select("id, name, school_id, global_subject_id")
+    .eq("id", subjectId)
+    .maybeSingle()
+
+  if (error || !data) return null
+
+  const isGlobal = data.school_id === null
+  return {
+    schoolSubjectId: isGlobal ? null : data.id,
+    globalSubjectId: isGlobal ? data.id : data.global_subject_id,
+    name: data.name,
+  }
+}
+
+/**
+ * @deprecated TBL-010B compatibility adapter. This is the ORIGINAL
+ * name-based crossing (ilike on subject name against the global rows),
+ * kept only so the handful of callers TBL-010C hasn't repointed yet
+ * (app/teacher/assessment, app/teacher/scheme, LessonPlanModal,
+ * LessonPanel) keep working in the interim — they call this under the
+ * OLD export name `resolveGlobalSubjectId`, so until TBL-010C updates
+ * them to pass a subjectId to the function above, they resolve nothing
+ * (soft-fail: each already null-guards, so curriculum/strand lookups
+ * degrade to "no content yet" rather than crash). Do not add new
+ * callers. Removed in TBL-010D once no operational caller crosses
+ * school->global identity through a string.
+ */
 export let lastResolveDebug: string = ""
 
-export async function resolveGlobalSubjectId(subjectName: string): Promise<string | null> {
+export async function resolveGlobalSubjectIdByName(subjectName: string): Promise<string | null> {
   const { data, error } = await supabase
     .from("subjects")
     .select("id")
