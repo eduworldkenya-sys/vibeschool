@@ -240,6 +240,14 @@ RESULT: TBL-002 remains OPEN. Its required "migration_classification.json", "mig
 
 ---
 
+
+DATE: 2026-07-22
+SESSION: TBL-003 — correct pending migration handling
+ACTION: Updated "scripts/validate-migration-classification.py" to validate explicit PENDING_DEPLOYMENT entries. Added "scripts/test_validate_migration_classification.py" with isolated fixture-based tests. A pending entry now requires one matching local migration file, absence from the embedded live ledger, an exact local_file match, a non-empty reason, a non-empty target_environment, an approval_status of AWAITING_APPROVAL, APPROVED, or BLOCKED, and a non-empty follow_up.
+EVIDENCE: "python3 scripts/validate-migration-classification.py" passed against the existing TBL-002 classification artifacts. "python3 scripts/test_validate_migration_classification.py" passed all TBL-003 scenarios.
+RESULT: TBL-003 implementation is awaiting approval and commit. No SQL was created, no Supabase migration was created, no Supabase write occurred, no migration ledger repair occurred, and no application code was modified. "20260711150000" remains STALE_REPO_ONLY and was not automatically reclassified.
+
+---
 APPROVAL GATES
 
 Pending approvals
