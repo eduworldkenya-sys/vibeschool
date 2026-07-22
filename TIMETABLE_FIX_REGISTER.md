@@ -311,7 +311,8 @@ ID| Priority| Status| Fix unit| Required result
 TBL-001| P0| VERIFIED| Repair malformed and misversioned migration filenames| Local migration version keys match the intended live ledger keys for all affected files
 TBL-002| P0| OPEN| Classify every migration| Every local and remote migration has exactly one explicit classification
 TBL-003| P0| OPEN| Correct pending migration handling| Pending migrations are declared and excluded from false parity failures
-TBL-004| P0| OPEN| Strengthen baseline guards| Baselines abort when any owned object already exists
+TBL-004| P0| VERIFIED| Strengthen baseline guards| N/A -- no replayable SYNTHETIC_BASELINE migration exists in the repository
+TBL-004 closed as N/A: the sole SYNTHETIC_BASELINE entry, 20260520000000_timetable_foundation_baseline, is live-only and has no repository SQL file. No replayable baseline exists to guard.
 TBL-005| P0| OPEN| Add data preconditions for constraints| Invalid production data is detected before constraints are applied
 TBL-006| P0| OPEN| Build forward-collision register| Every later migration touching baseline-owned objects is identified and resolved
 TBL-007| P0| OPEN| Gate migration repair behind preflight| Repair cannot run without validated unchanged inputs
