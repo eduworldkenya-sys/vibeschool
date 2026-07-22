@@ -3,6 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { nairobiDateStr, nairobiDayOfWeek } from "@/lib/time";
+import { loadActiveClassTimetable } from "@/lib/timetable/engine";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
 import Skel from "@/components/student/Skel";
@@ -25,8 +27,8 @@ const DAYS = [
 ]
 
 function todayInt(): number {
-  const d = new Date().getDay();
-  return d === 0 ? 7 : d;
+  // Timetable weekday convention: Monday=1 … Sunday=7, Africa/Nairobi
+  return nairobiDayOfWeek();
 }
 
 function IconClock() {
@@ -58,15 +60,28 @@ export default function TimetablePage() {
     if (cached) { setSlots(cached); setLoading(false); }
 
     async function load() {
-      const { data: raw } = await supabase
-        .from("timetable_slots")
-        .select("id, day_of_week, start_time, end_time, room, subject_id")
-        .eq("class_id", identity!.classId)
-        .order("day_of_week", { ascending: true })
-        .order("start_time",  { ascending: true });
+      // TBL-007F4: timetable reads go through the canonical engine only
+      // (class isolation, school isolation, effective-date filtering,
+      // canonical ordering). activeOn = today in Africa/Nairobi.
+      // The engine requires a school identity; without one the page keeps
+      // whatever the offline cache holds. On failure the cache is never
+      // overwritten with an empty result.
+      if (!identity!.schoolId) { setLoading(false); return; }
+      let raw
+      try {
+        raw = await loadActiveClassTimetable({
+          classId: identity!.classId!,
+          schoolId: identity!.schoolId,
+          activeOn: nairobiDateStr(),
+        });
+      } catch (err) {
+        console.error("[StudentTimetable] canonical timetable load failed:", err);
+        setLoading(false);
+        return;
+      }
 
       const subjectIds = Array.from(
-        new Set((raw ?? []).map((s: { subject_id: string }) => s.subject_id).filter(Boolean))
+        new Set(raw.map((s) => s.subject_id).filter(Boolean))
       ) as string[];
 
       let subjectMap: Record<string, string> = {};
@@ -76,7 +91,7 @@ export default function TimetablePage() {
         subjectMap = Object.fromEntries((subjects ?? []).map(s => [s.id, s.name]));
       }
 
-      const result: Slot[] = (raw ?? []).map((s: { id: string; day_of_week: number; start_time: string; end_time: string; room: string; subject_id: string }) => ({
+      const result: Slot[] = raw.map((s) => ({
         id:          s.id,
         day_of_week: s.day_of_week,
         start_time:  s.start_time?.slice(0, 5) ?? "",
