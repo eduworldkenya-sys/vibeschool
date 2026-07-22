@@ -1,7 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import type {
+  CancelRecoveryResult,
+  RecoveryScheduleResult,
   RecoverySuggestion,
   SchemePacingRow,
+  ScheduleRecoveryParams,
   TimetableQualityFlag,
   UpdateSlotParams,
 } from '@/lib/teaching/types'
@@ -20,6 +23,10 @@ export type SlotRpcErrorCode =
   | 'snapshot_not_owned' | 'future_slot_has_occurrences'
   | 'TEACHER_CONFLICT' | 'CLASS_CONFLICT' | 'ROOM_CONFLICT'
   | 'SCHEDULE_CONFLICT' | 'DUPLICATE_SLOT'
+  | 'occurrence_not_found' | 'occurrence_not_owned' | 'not_recoverable'
+  | 'invalid_recovery_date' | 'invalid_time_range' | 'school_mismatch'
+  | 'teacher_conflict' | 'class_conflict' | 'room_conflict'
+  | 'not_cancellable' | 'reason_required'
   | 'unknown'
 
 const SLOT_RPC_ERROR_CODES: ReadonlyArray<Exclude<SlotRpcErrorCode, 'unknown'>> = [
@@ -32,6 +39,10 @@ const SLOT_RPC_ERROR_CODES: ReadonlyArray<Exclude<SlotRpcErrorCode, 'unknown'>> 
   'snapshot_not_owned', 'future_slot_has_occurrences',
   'TEACHER_CONFLICT', 'CLASS_CONFLICT', 'ROOM_CONFLICT',
   'SCHEDULE_CONFLICT', 'DUPLICATE_SLOT',
+  'occurrence_not_found', 'occurrence_not_owned', 'not_recoverable',
+  'invalid_recovery_date', 'invalid_time_range', 'school_mismatch',
+  'teacher_conflict', 'class_conflict', 'room_conflict',
+  'not_cancellable', 'reason_required',
 ]
 
 export class SlotRpcError extends Error {
@@ -111,6 +122,32 @@ export async function suggestRecoverySlots(classId: string, daysAhead = 7) {
     p_class_id: classId,
     p_days_ahead: daysAhead,
   })
+}
+
+// ── TBL-009A: recovery writer ──────────────────────────────────────────────
+
+export async function scheduleRecoveryOccurrence(
+  params: ScheduleRecoveryParams,
+): Promise<RecoveryScheduleResult> {
+  const rows = await callRpc<RecoveryScheduleResult[]>('schedule_recovery_occurrence', {
+    p_occurrence_id: params.occurrenceId,
+    p_recovery_date: params.recoveryDate,
+    p_start_time: params.startTime,
+    p_end_time: params.endTime,
+    p_room: params.room ?? null,
+  })
+  return rows[0]
+}
+
+export async function cancelRecoveryOccurrence(
+  recoveryOccurrenceId: string,
+  reason: string,
+): Promise<CancelRecoveryResult> {
+  const rows = await callRpc<CancelRecoveryResult[]>('cancel_recovery_occurrence', {
+    p_recovery_occurrence_id: recoveryOccurrenceId,
+    p_reason: reason,
+  })
+  return rows[0]
 }
 
 // ── Fix 24: scheme pacing ──────────────────────────────────────────────────

@@ -668,3 +668,41 @@ is complete and the session is explicitly instructed to continue.
   Manage Slot button (slot editing UX); app/api/auth-debug removal.
 - Next: TBL-009 recovery writer.
 
+
+
+---
+
+## TBL-009A — Recovery writer, server foundation (2026-07-22)
+
+- Model C + ancestry approved from the TBL-009 decision report: one-day
+  recovery slot (effective_from = effective_until), planned recovery
+  occurrence linked via recovered_from_id, original missed -> rescheduled
+  with forward pointers.
+- Live migrations (ledger 20260722124812, 20260722125012):
+  - tbl009a_recovery_writer — uq_active_recovery_ancestry partial unique
+    index (at most one non-cancelled recovery per original, enforced at
+    the database against any future path), schedule_recovery_occurrence,
+    cancel_recovery_occurrence, grants to authenticated/service_role,
+    revoked from public/anon. Lowercase error codes.
+  - tbl009a_allow_one_day_slot_effective_range — discovered during live
+    verification: chk_effective_range required effective_until STRICTLY
+    after effective_from, forbidding one-day slots entirely. Relaxed to
+    >=. This gap was missed by the investigation (slot CHECK constraints
+    were not inventoried); no existing row violated either form.
+- Verification matrix: all 14 scenarios PASSED live via impersonation —
+  valid recovery (one-day slot + planned + ancestry + pointers), repeat
+  call returns the same recovery, teacher/class/room conflicts raise
+  their codes (isolated per-constraint fixtures), wrong teacher, non-
+  missed original, invalid date/times, cancel reverts original to missed
+  with pointers cleared, in-progress recovery not cancellable, blank
+  reason rejected, duplicate active ancestry impossible even by direct
+  superuser insert, direct client INSERT/UPDATE still blocked by RLS,
+  and post-cancel re-scheduling succeeds. All fixtures removed; live
+  table restored to exactly its pre-test state.
+- Client: scheduleRecoveryOccurrence / cancelRecoveryOccurrence wrappers
+  in lib/teaching/slots.ts; params/result types in lib/teaching/types.ts;
+  eleven new lowercase codes added to SLOT_RPC_ERROR_CODES.
+- Next: TBL-009B — RecoverySheet.tsx + missed-occurrence Recover CTA in
+  the teacher timetable, suggestion surfacing, lesson-plan-required
+  messaging, cancellation workflow.
+

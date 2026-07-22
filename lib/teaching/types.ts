@@ -82,3 +82,26 @@ export interface TimetableQualityFlag {
   severity: 'warn' | 'info'
   detail: string
 }
+
+// ── TBL-009A: recovery writer contracts ────────────────────────────────────
+
+export interface ScheduleRecoveryParams {
+  occurrenceId: string
+  /** YYYY-MM-DD, between today and today + 14 (Africa/Nairobi). */
+  recoveryDate: string
+  /** HH:MM (must be before endTime). */
+  startTime: string
+  endTime: string
+  room?: string | null
+}
+
+export interface RecoveryScheduleResult {
+  recovery_occurrence_id: string
+  recovery_slot_id: string
+  original_lifecycle: string
+}
+
+export interface CancelRecoveryResult {
+  original_occurrence_id: string
+  original_lifecycle: string
+}
