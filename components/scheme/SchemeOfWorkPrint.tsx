@@ -12,6 +12,7 @@ interface PrintSchemeItem {
   sub_strand: string | null
   topic: string
   reflection: string | null
+  objectives: string | null
   key_inquiry_question: string | null
   learning_resources: string | null
   assessment_methods: string | null
@@ -112,7 +113,7 @@ export function SchemeOfWorkPrint({
                     <td>{item.lesson_number ?? "—"}</td>
                     <td>{item.strand ?? "—"}</td>
                     <td>{item.sub_strand ?? "—"}</td>
-                    <td>{d?.outcomes?.length ? d.outcomes.join("; ") : "—"}</td>
+                    <td>{item.objectives || (d?.outcomes?.length ? d.outcomes.join("; ") : "—")}</td>
                     <td>{item.key_inquiry_question || asText(d?.key_inquiry_question)}</td>
                     <td>{item.learning_experiences || asText(d?.learning_experiences)}</td>
                     <td>{item.learning_resources || asText(d?.learning_resources)}</td>
