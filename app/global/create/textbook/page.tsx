@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react'
@@ -31,6 +30,15 @@ export default function VibeTextbookPage() {
     sb.auth.getUser().then(async ({ data: { user }, error }) => {
       if (error || !user) { router.replace('/'); return }
       setUserId(user.id)
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      if (!profile || !['teacher', 'admin'].includes(profile.role)) {
+        router.replace('/')
+        return
+      }
       const { data } = await sb
         .from('vibe_publications')
         .select('*')
