@@ -33,20 +33,27 @@ function asText(v: string | string[] | undefined): string {
 }
 
 export function SchemeOfWorkPrint({
-  schoolId, className, subjectLabel, termLabelText, items, onClose,
+  schoolId, teacherId, className, subjectLabel, termLabelText, items, onClose,
 }: {
-  schoolId: string; className: string; subjectLabel: string; termLabelText: string
+  schoolId: string; teacherId?: string; className: string; subjectLabel: string; termLabelText: string
   items: PrintSchemeItem[]; onClose: () => void
 }) {
   const [schoolName, setSchoolName] = useState<string>("")
+  const [teacherName, setTeacherName] = useState<string>("")
   const [defaults, setDefaults] = useState<Record<string, ContentDefaults>>({})
   const [loading, setLoading] = useState(true)
+  const generatedAt = new Date()
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       const { data: school } = await supabase.from("schools").select("name").eq("id", schoolId).single()
       if (!cancelled && school) setSchoolName(school.name)
+
+      if (teacherId) {
+        const { data: teacher } = await supabase.from("profiles").select("full_name").eq("id", teacherId).maybeSingle()
+        if (!cancelled && teacher?.full_name) setTeacherName(teacher.full_name)
+      }
 
       const contentIds = Array.from(new Set(items.map(i => i.curriculum_content_id).filter((id): id is string => !!id)))
       if (contentIds.length > 0) {
@@ -76,9 +83,16 @@ export function SchemeOfWorkPrint({
           .noprint { display: none !important; }
           body { background: #fff !important; }
         }
+        @page {
+          margin: 14mm 10mm;
+          @bottom-center { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #64748b; }
+        }
         .tsc-table { width: 100%; border-collapse: collapse; font-size: 10px; }
         .tsc-table th, .tsc-table td { border: 1px solid #333; padding: 4px 6px; vertical-align: top; text-align: left; }
         .tsc-table th { background: #f1f5f9; font-weight: 700; }
+        .tsc-meta { display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-bottom: 8px; }
+        .tsc-sign { display: flex; justify-content: space-between; margin-top: 20px; font-size: 11px; }
+        .tsc-sign-line { border-top: 1px solid #333; padding-top: 4px; width: 46%; }
       `}</style>
 
       <div className="noprint" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -90,9 +104,14 @@ export function SchemeOfWorkPrint({
         <div style={{ padding: 20, fontSize: 13, color: "#64748b" }}>Loading content defaults…</div>
       ) : (
         <>
-          <div style={{ textAlign: "center", marginBottom: 12 }}>
+          <div style={{ textAlign: "center", marginBottom: 6 }}>
             <div style={{ fontWeight: 800, fontSize: 14 }}>{schoolName || "School"}</div>
             <div style={{ fontSize: 12 }}>Scheme of Work — {subjectLabel} — {className} — {termLabelText}</div>
+          </div>
+
+          <div className="tsc-meta">
+            <span>Teacher: {teacherName || "—"}</span>
+            <span>Generated: {generatedAt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
           </div>
 
           <table className="tsc-table">
@@ -124,6 +143,11 @@ export function SchemeOfWorkPrint({
               })}
             </tbody>
           </table>
+
+          <div className="tsc-sign">
+            <div className="tsc-sign-line">Teacher's Signature &amp; Date</div>
+            <div className="tsc-sign-line">Head Teacher's Signature &amp; Date</div>
+          </div>
         </>
       )}
     </div>

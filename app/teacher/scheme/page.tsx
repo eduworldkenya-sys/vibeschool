@@ -52,6 +52,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string; b
   cancelled: { bg: C.redLight,   color: C.red,     label: "Cancelled", border: '#fda4af' },
 }
 const STATUSES = ['planned', 'teaching', 'done', 'cancelled'] as const
+const PROGRESSION_STATUSES = ['planned', 'teaching', 'done'] as const
 
 // ── HELPERS ────────────────────────────────────────────────────
 function totalWeeks(term: TermRecord): number {
@@ -1081,6 +1082,7 @@ function SchemePageInner() {
       {showPrint && selectedClassObj && selectedSubjectObj && selectedTermObj && schoolId && (
         <SchemeOfWorkPrint
           schoolId={schoolId}
+          teacherId={uid ?? undefined}
           className={selectedClassObj.label}
           subjectLabel={selectedSubjectObj.label}
           termLabelText={termLabel(selectedTermObj)}
@@ -1237,38 +1239,64 @@ function SchemePageInner() {
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {STATUSES.map(s => {
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {PROGRESSION_STATUSES.map((s, idx) => {
                             const ss = STATUS_STYLE[s]
+                            const currentIdx = PROGRESSION_STATUSES.indexOf(item.status as typeof PROGRESSION_STATUSES[number])
                             const isActive = item.status === s
+                            const isPast = item.status !== 'cancelled' && currentIdx > idx
+                            const isReached = isActive || isPast
                             return (
-                              <button
-                                key={s}
-                                type="button"
-                                onClick={() => updateStatus(item.id, s)}
-                                disabled={isSaving}
-                                style={{
-                                  padding: '5px 11px',
-                                  borderRadius: 8,
-                                  border: `1.5px solid ${isActive ? ss.border : C.border}`,
-                                  cursor: isSaving ? 'not-allowed' : 'pointer',
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  fontFamily: 'inherit',
-                                  background: isActive ? ss.bg : C.surface2,
-                                  color: isActive ? ss.color : C.text3,
-                                  opacity: isSaving ? 0.6 : 1,
-                                  transition: 'all 0.15s ease',
-                                }}
-                              >
-                                {ss.label}
-                              </button>
+                              <div key={s} style={{ display: 'flex', alignItems: 'center', flex: idx < PROGRESSION_STATUSES.length - 1 ? 1 : undefined }}>
+                                <button
+                                  type="button"
+                                  onClick={() => updateStatus(item.id, s)}
+                                  disabled={isSaving}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    padding: '5px 11px',
+                                    borderRadius: 20,
+                                    border: `1.5px solid ${isReached ? ss.border : C.border}`,
+                                    cursor: isSaving ? 'not-allowed' : 'pointer',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    fontFamily: 'inherit',
+                                    background: isActive ? ss.bg : isPast ? C.surface : C.surface2,
+                                    color: isReached ? ss.color : C.text3,
+                                    opacity: isSaving ? 0.6 : 1,
+                                    transition: 'all 0.15s ease',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {isPast && <span aria-hidden>✓</span>}
+                                  {ss.label}
+                                </button>
+                                {idx < PROGRESSION_STATUSES.length - 1 && (
+                                  <div style={{ flex: 1, height: 2, minWidth: 10, margin: '0 4px', background: isPast ? ss.color : C.border, transition: 'background 0.15s ease' }} />
+                                )}
+                              </div>
                             )
                           })}
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(item.id, 'cancelled')}
+                            disabled={isSaving}
+                            style={{
+                              marginLeft: 8, padding: '5px 10px', borderRadius: 20,
+                              border: `1.5px solid ${item.status === 'cancelled' ? STATUS_STYLE.cancelled.border : C.border}`,
+                              cursor: isSaving ? 'not-allowed' : 'pointer',
+                              fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                              background: item.status === 'cancelled' ? STATUS_STYLE.cancelled.bg : 'transparent',
+                              color: item.status === 'cancelled' ? STATUS_STYLE.cancelled.color : C.text3,
+                              opacity: isSaving ? 0.6 : 1,
+                            }}
+                          >
+                            {item.status === 'cancelled' ? '✕ Cancelled' : 'Cancel'}
+                          </button>
                         </div>
 
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
-                          <label style={{ fontSize: 11, fontWeight: 700, color: C.text3 }}>Lesson #</label>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: C.text3 }}>Week {selectedWeek} · Lesson</label>
                           <input
                             type="number"
                             min={1}

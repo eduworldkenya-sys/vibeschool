@@ -381,7 +381,11 @@ function TeacherView({ items, contentMap }: {
               ? <TeacherItemContent content={content} />
               : (
                 <div style={{ textAlign: "center", padding: "20px 16px", color: C.text3, fontSize: 13 }}>
-                  No teaching notes for this topic yet.
+                  <div style={{ marginBottom: 8 }}>No teaching notes for this topic yet.</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.8, color: C.text3 }}>
+                    Once you teach this lesson, come back and record:<br />
+                    today&apos;s observations · misconceptions learners had · evidence collected · homework set
+                  </div>
                 </div>
               )}
           </div>
@@ -412,7 +416,10 @@ function ParentView({ items, contentMap }: {
               ? <ParentItemContent brief={content.parent_brief} />
               : (
                 <div style={{ textAlign: "center", padding: "20px 16px", color: C.text3, fontSize: 13 }}>
-                  No parent brief for this topic yet.
+                  <div style={{ marginBottom: 8 }}>No parent brief for this topic yet.</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.8, color: C.text3 }}>
+                    A summary, home activity, and questions to ask your child will appear here once the teacher adds one.
+                  </div>
                 </div>
               )}
           </div>
