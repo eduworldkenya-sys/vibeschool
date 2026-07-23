@@ -652,3 +652,6 @@
 ## [2026-07-23 06:41] f21dae0
 **What:** to
 **Status:** ✅ pushed
+## [2026-07-23 06:52] 56dbf19
+**What:** P1: status progression track, lesson numbering context, empty-state prompts
+**Status:** ✅ pushed
