@@ -187,6 +187,7 @@ function DeleteModal({
 export default function VibeLearnPage() {
   const router  = useRouter();
   const mounted = useRef(true);
+  const createFormRef = useRef<HTMLDivElement>(null);
 
   const [tab,          setTab]          = useState<Tab>("content");
   const [userId,       setUserId]       = useState<string | null>(null);
@@ -739,34 +740,52 @@ export default function VibeLearnPage() {
                   { id: "epage" as const, icon: "📄", title: "Learning Page", desc: "Notes, revision material, activities or a lesson resource." },
                   { id: "ebook" as const, icon: "📚", title: "Ebook", desc: "A longer downloadable or linked learning resource." },
                   { id: "textbook" as const, icon: "📘", title: "VibeTextbook", desc: "A structured curriculum-aligned book with chapters and publishing controls.", badge: "Full authoring studio" },
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    onClick={() => {
-                      if (opt.id === "textbook") { router.push("/global/create/textbook"); return; }
-                      setCType(opt.id);
-                    }}
-                    style={{
-                      display: "flex", alignItems: "flex-start", gap: 12, textAlign: "left",
-                      padding: "14px 16px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit",
-                      border: cType === opt.id && opt.id !== "textbook" ? `1.5px solid ${C.accent}` : `1.5px solid ${C.border}`,
-                      background: cType === opt.id && opt.id !== "textbook" ? "#f0fdfa" : "#fff",
-                    }}
-                  >
-                    <div style={{ fontSize: 22, flexShrink: 0 }}>{opt.icon}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{opt.title}</div>
-                        {opt.badge && (
-                          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#ede9fe", color: "#6d28d9", textTransform: "uppercase", letterSpacing: 0.5 }}>{opt.badge}</span>
-                        )}
+                ].map(opt => {
+                  const isSelected = cType === opt.id && opt.id !== "textbook";
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        if (opt.id === "textbook") { router.push("/global/create/textbook"); return; }
+                        setCType(opt.id);
+                        requestAnimationFrame(() => {
+                          createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        });
+                      }}
+                      style={{
+                        display: "flex", alignItems: "flex-start", gap: 12, textAlign: "left",
+                        padding: "14px 16px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit",
+                        border: isSelected ? `1.5px solid ${C.accent}` : `1.5px solid ${C.border}`,
+                        background: isSelected ? "#f0fdfa" : "#fff",
+                      }}
+                    >
+                      <div style={{ fontSize: 22, flexShrink: 0 }}>{opt.icon}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{opt.title}</div>
+                          {isSelected ? (
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#d1fae5", color: "#065f46", textTransform: "uppercase", letterSpacing: 0.5 }}>Selected</span>
+                          ) : opt.badge ? (
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#ede9fe", color: "#6d28d9", textTransform: "uppercase", letterSpacing: 0.5 }}>{opt.badge}</span>
+                          ) : null}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
                       </div>
-                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
-                    </div>
-                    <div style={{ fontSize: 16, color: C.textMuted, flexShrink: 0, alignSelf: "center" }}>→</div>
-                  </button>
-                ))}
+                      <div style={{ fontSize: 16, color: isSelected ? C.accent : C.textMuted, fontWeight: 800, flexShrink: 0, alignSelf: "center" }}>
+                        {opt.id === "textbook" ? "→" : (isSelected ? "✓" : "→")}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+            </div>
+
+            <div ref={createFormRef} style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 16px", paddingTop: 4 }}>
+              <div style={{ height: 1, flex: "0 0 16px", background: C.border }} />
+              <p style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, margin: 0, whiteSpace: "nowrap" }}>
+                {cType === "epage" ? "Learning Page Details" : "Ebook Details"}
+              </p>
+              <div style={{ height: 1, flex: 1, background: C.border }} />
             </div>
 
             {[
