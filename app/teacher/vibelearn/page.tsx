@@ -11,9 +11,10 @@ interface Content {
   id:           string;
   title:        string;
   description:  string;
+  body:         string | null;
   type:         "epage" | "ebook" | "textbook";
   source:       string;
-  url:          string;
+  url:          string | null;
   tags:         string[];
   status:       "live" | "draft";
   view_count:   number;
@@ -206,6 +207,7 @@ export default function VibeLearnPage() {
   const [cDesc,        setCDesc]        = useState("");
   const [cSubject,     setCSubject]     = useState(SUBJECTS[0]);
   const [cUrl,         setCUrl]         = useState("");
+  const [cBody,        setCBody]        = useState("");
   const [cUrlError,    setCUrlError]    = useState("");
   const [cTags,        setCTags]        = useState<string[]>([]);
   const [cTagInput,    setCTagInput]    = useState("");
@@ -218,6 +220,7 @@ export default function VibeLearnPage() {
   const [eTitle,       setETitle]       = useState("");
   const [eDesc,        setEDesc]        = useState("");
   const [eUrl,         setEUrl]         = useState("");
+  const [eBody,        setEBody]        = useState("");
   const [eTags,        setETags]        = useState<string[]>([]);
   const [saving,       setSaving]       = useState(false);
   const [saveError,    setSaveError]    = useState("");
@@ -248,7 +251,7 @@ export default function VibeLearnPage() {
   const loadContent = useCallback(async (uid: string) => {
     const { data, error } = await supabase
       .from("vibelearn_content")
-      .select("id,title,description,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
+      .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
       .eq("submitted_by", uid)
       .order("created_at", { ascending: false });
     if (!error && data && mounted.current) setContent(data as Content[]);
@@ -374,9 +377,11 @@ export default function VibeLearnPage() {
     setSaveError("");
     const target = content.find(c => c.id === id);
     const isTextbook = target?.type === "textbook";
-    if (!eTitle.trim())                          { setSaveError("Title is required."); return; }
-    if (!isTextbook && !eUrl.trim())              { setSaveError("URL is required."); return; }
-    if (!isTextbook && !isValidUrl(eUrl.trim()))  { setSaveError("Enter a valid https:// URL."); return; }
+    const isEpageForValidation = target?.type === "epage";
+    if (!eTitle.trim())                                                    { setSaveError("Title is required."); return; }
+    if (target?.type === "ebook" && !eUrl.trim())                          { setSaveError("URL is required."); return; }
+    if (!isTextbook && eUrl.trim() && !isValidUrl(eUrl.trim()))            { setSaveError("Enter a valid https:// URL."); return; }
+    if (isEpageForValidation && !eBody.trim() && !eUrl.trim())             { setSaveError("Write the learning content or attach an external resource link."); return; }
     setSaving(true);
     try {
       if (isTextbook) {
@@ -394,15 +399,17 @@ export default function VibeLearnPage() {
         if (userId) await loadContent(userId);
         setEditingId(null);
       } else {
+        const isEpage = target?.type === "epage";
+        const bodyValue = isEpage ? (eBody.trim() || null) : (target?.body ?? null);
         const { error } = await supabase
           .from("vibelearn_content")
-          .update({ title: eTitle.trim(), description: eDesc.trim(), url: eUrl.trim(), tags: eTags })
+          .update({ title: eTitle.trim(), description: eDesc.trim(), body: bodyValue, url: eUrl.trim() || null, tags: eTags })
           .eq("id", id)
           .eq("submitted_by", userId!);
         if (error) throw error;
         if (!mounted.current) return;
         setContent(prev => prev.map(c => c.id === id
-          ? { ...c, title: eTitle.trim(), description: eDesc.trim(), url: eUrl.trim(), tags: eTags }
+          ? { ...c, title: eTitle.trim(), description: eDesc.trim(), body: bodyValue, url: eUrl.trim() || null, tags: eTags }
           : c
         ));
         setEditingId(null);
@@ -420,34 +427,49 @@ export default function VibeLearnPage() {
     setETitle(item.title);
     setEDesc(item.description ?? "");
     setEUrl(item.url ?? "");
+    setEBody(item.body ?? "");
     setETags(item.tags ?? []);
   }
 
-  // ── Publish ─────────────────────────────────────────────────────────────────
-  async function handlePublish() {
+  // ── Save (draft or publish) ────────────────────────────────────────────────
+  async function saveContent(targetStatus: "draft" | "live") {
     setPublishError("");
-    if (!userId)              { setPublishError("Not authenticated."); return; }
-    if (!cTitle.trim())       { setPublishError("Title is required."); return; }
-    if (!cDesc.trim())        { setPublishError("Description is required."); return; }
-    if (!cUrl.trim())         { setPublishError("Content URL is required."); return; }
-    if (!isValidUrl(cUrl.trim())) { setPublishError("Enter a valid https:// URL."); return; }
+    if (!userId)        { setPublishError("Not authenticated."); return; }
+    if (!cTitle.trim()) { setPublishError("Title is required."); return; }
+    if (!cDesc.trim())  { setPublishError("Description is required."); return; }
+
+    if (cType === "epage") {
+      if (!cBody.trim() && !cUrl.trim()) {
+        setPublishError("Write the learning content or attach an external resource link.");
+        return;
+      }
+      if (cUrl.trim() && !isValidUrl(cUrl.trim())) {
+        setPublishError("Enter a valid https:// URL.");
+        return;
+      }
+    } else {
+      if (!cUrl.trim())             { setPublishError("Content URL is required."); return; }
+      if (!isValidUrl(cUrl.trim())) { setPublishError("Enter a valid https:// URL."); return; }
+    }
+
     setPublishing(true);
     try {
       const { error } = await supabase.from("vibelearn_content").insert({
         title:        cTitle.trim(),
         description:  cDesc.trim(),
+        body:         cType === "epage" ? (cBody.trim() || null) : null,
         type:         cType,
         source:       cSubject,
-        url:          cUrl.trim(),
+        url:          cUrl.trim() || null,
         tags:         cTags,
-        status:       "live",
+        status:       targetStatus,
         submitted_by: userId,
         view_count:   0,
         earnings_ksh: 0,
       });
       if (error) throw error;
       if (!mounted.current) return;
-      setCTitle(""); setCDesc(""); setCUrl(""); setCTags([]); setCTagInput(""); setCUrlError("");
+      setCTitle(""); setCDesc(""); setCUrl(""); setCBody(""); setCTags([]); setCTagInput(""); setCUrlError("");
       setPublishOk(true);
       setTimeout(() => { if (mounted.current) setPublishOk(false); }, 3000);
       await Promise.all([loadContent(userId), loadStats(userId)]);
@@ -654,11 +676,18 @@ export default function VibeLearnPage() {
                             <textarea value={eDesc} onChange={e => setEDesc(e.target.value)} rows={2}
                               style={{ ...S.input, resize: "none", lineHeight: 1.6 }} />
                           </div>
+                          {item.type === "epage" && (
+                            <div style={{ marginBottom: 10 }}>
+                              <label style={S.label}>CONTENT</label>
+                              <textarea value={eBody} onChange={e => setEBody(e.target.value)} rows={8}
+                                style={{ ...S.input, resize: "vertical", minHeight: 160, lineHeight: 1.7 }} />
+                            </div>
+                          )}
                           <div style={{ marginBottom: 10 }}>
-                            <label style={S.label}>URL</label>
+                            <label style={S.label}>URL{item.type === "ebook" ? "" : " (optional)"}</label>
                             {item.type === "textbook" ? (
                               <>
-                                <input value={item.url} disabled readOnly
+                                <input value={item.url ?? ""} disabled readOnly
                                   style={{ ...S.input, background: "#f3f4f6", color: C.textMuted, cursor: "not-allowed" }} />
                                 <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
                                   Generated automatically from the textbook — not editable here.
@@ -766,8 +795,20 @@ export default function VibeLearnPage() {
               </div>
             </div>
 
+            {cType === "epage" && (
+              <div style={{ marginBottom: 14 }}>
+                <label htmlFor="vl-body" style={S.label}>Content</label>
+                <textarea id="vl-body" value={cBody} onChange={e => setCBody(e.target.value)}
+                  rows={10} placeholder={"Write your learning page here...\n\nUse short paragraphs and clear examples."}
+                  style={{ ...S.input, resize: "vertical", minHeight: 200, lineHeight: 1.7 }} />
+                <p style={{ fontSize: 11, color: C.textMuted, margin: "4px 0 0", lineHeight: 1.5 }}>
+                  This will be read directly inside VibeLearn. You can add an external link below instead of or alongside it.
+                </p>
+              </div>
+            )}
+
             <div style={{ marginBottom: 14 }}>
-              <label htmlFor="vl-url" style={S.label}>External Resource Link *</label>
+              <label htmlFor="vl-url" style={S.label}>External Resource Link{cType === "ebook" ? " *" : " (optional)"}</label>
               <input id="vl-url" type="url" value={cUrl}
                 onChange={e => { setCUrl(e.target.value); setCUrlError(""); }}
                 onBlur={() => { if (cUrl && !isValidUrl(cUrl)) setCUrlError("Enter a valid https:// URL"); }}
@@ -810,12 +851,15 @@ export default function VibeLearnPage() {
               </div>
             )}
 
-            <button onClick={handlePublish} disabled={publishing} style={S.btnPrimary(publishing)}>
-              {publishing ? "Publishing…" : "Drop a Vibe ✦"}
-            </button>
-            <p style={{ fontSize: 11, color: C.textMuted, textAlign: "center", margin: "8px 0 0" }}>
-              This will go live in VibeLearn immediately.
-            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => saveContent("draft")} disabled={publishing}
+                style={{ flex: 1, padding: 14, borderRadius: 12, border: `1.5px solid ${C.border}`, background: "transparent", color: C.textPrimary, fontWeight: 700, fontSize: 14, cursor: publishing ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: publishing ? 0.6 : 1 }}>
+                {publishing ? "Saving…" : "Save Draft"}
+              </button>
+              <button onClick={() => saveContent("live")} disabled={publishing} style={{ ...S.btnPrimary(publishing), flex: 1 }}>
+                {publishing ? "Publishing…" : "Publish to VibeLearn ✦"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -959,10 +1003,12 @@ function DiscoverTab({ userId }: { userId: string | null }) {
             </div>
             <div style={{ flexShrink: 0, textAlign: "right" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{item.view_count} views</div>
-              <a href={item.url} target="_blank" rel="noopener noreferrer"
-                style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", color: "#111827", fontWeight: 700, textDecoration: "none" }}>
-                Open →
-              </a>
+              {item.url && (
+                <a href={item.url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", color: "#111827", fontWeight: 700, textDecoration: "none" }}>
+                  Open →
+                </a>
+              )}
             </div>
           </div>
         </div>
