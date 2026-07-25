@@ -11,7 +11,7 @@ interface Content {
   id:           string;
   title:        string;
   description:  string;
-  type:         "epage" | "ebook";
+  type:         "epage" | "ebook" | "textbook";
   source:       string;
   url:          string;
   tags:         string[];
@@ -20,6 +20,7 @@ interface Content {
   earnings_ksh: number;
   created_at:   string;
   submitted_by: string;
+  vibe_publication_id?: string | null;
 }
 
 interface Stats {
@@ -142,21 +143,29 @@ const S = {
 };
 
 // ── Delete confirmation modal ─────────────────────────────────────────────────
-function DeleteModal({ title, onConfirm, onCancel, busy }: {
+function DeleteModal({
+  title, onConfirm, onCancel, busy,
+  heading = "Delete content?",
+  message,
+  confirmLabel = "Delete",
+  confirmingLabel = "Deleting…",
+}: {
   title: string; onConfirm: () => void; onCancel: () => void; busy: boolean;
+  heading?: string; message?: string; confirmLabel?: string; confirmingLabel?: string;
 }) {
+  const body = message ?? `“${title}” will be permanently removed. This cannot be undone.`;
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onCancel}>
       <div style={{ background: "#fff", borderRadius: 20, padding: "28px 24px", maxWidth: 340, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 28, marginBottom: 12, textAlign: "center" }}>🗑️</div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, marginBottom: 8, textAlign: "center" }}>Delete content?</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary, marginBottom: 8, textAlign: "center" }}>{heading}</div>
         <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 24, textAlign: "center", lineHeight: 1.6 }}>
-          &ldquo;{title}&rdquo; will be permanently removed. This cannot be undone.
+          {body}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onCancel} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "transparent", color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
           <button onClick={onConfirm} disabled={busy} style={{ flex: 1, padding: "11px", borderRadius: 12, border: "none", background: C.error, color: "#fff", fontWeight: 800, fontSize: 13, cursor: busy ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: busy ? 0.7 : 1 }}>
-            {busy ? "Deleting…" : "Delete"}
+            {busy ? confirmingLabel : confirmLabel}
           </button>
         </div>
       </div>
@@ -180,6 +189,7 @@ export default function VibeLearnPage() {
   const [deleteTarget, setDeleteTarget] = useState<Content | null>(null);
   const [togglingId,   setTogglingId]   = useState<string | null>(null);
   const [pageError,    setPageError]    = useState("");
+  const [actionError,  setActionError]  = useState("");
 
   // Create form
   const [cType,        setCType]        = useState<"epage" | "ebook">("epage");
@@ -229,7 +239,7 @@ export default function VibeLearnPage() {
   const loadContent = useCallback(async (uid: string) => {
     const { data, error } = await supabase
       .from("vibelearn_content")
-      .select("id,title,description,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by")
+      .select("id,title,description,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
       .eq("submitted_by", uid)
       .order("created_at", { ascending: false });
     if (!error && data && mounted.current) setContent(data as Content[]);
@@ -271,20 +281,38 @@ export default function VibeLearnPage() {
   async function toggleStatus(item: Content) {
     if (togglingId) return;
     const next = item.status === "live" ? "draft" : "live";
+    setActionError("");
     setTogglingId(item.id);
     // optimistic
     setContent(prev => prev.map(c => c.id === item.id ? { ...c, status: next } : c));
     try {
-      const { error } = await supabase
-        .from("vibelearn_content")
-        .update({ status: next })
-        .eq("id", item.id)
-        .eq("submitted_by", userId!);
-      if (error) {
-        // rollback
-        setContent(prev => prev.map(c => c.id === item.id ? { ...c, status: item.status } : c));
+      if (item.type === "textbook") {
+        if (!item.vibe_publication_id) {
+          setContent(prev => prev.map(c => c.id === item.id ? { ...c, status: item.status } : c));
+          setActionError("This textbook is missing its publication reference. Run reconciliation before changing it.");
+          return;
+        }
+        const result = next === "live"
+          ? await supabase.rpc("publish_textbook", { p_publication_id: item.vibe_publication_id })
+          : await supabase.rpc("unpublish_textbook", { p_publication_id: item.vibe_publication_id });
+        if (result.error) {
+          setContent(prev => prev.map(c => c.id === item.id ? { ...c, status: item.status } : c));
+          setActionError(friendlyError(result.error));
+        } else if (userId) {
+          await loadContent(userId);
+          loadStats(userId);
+        }
       } else {
-        if (userId) loadStats(userId);
+        const { error } = await supabase
+          .from("vibelearn_content")
+          .update({ status: next })
+          .eq("id", item.id)
+          .eq("submitted_by", userId!);
+        if (error) {
+          setContent(prev => prev.map(c => c.id === item.id ? { ...c, status: item.status } : c));
+        } else {
+          if (userId) loadStats(userId);
+        }
       }
     } finally {
       if (mounted.current) setTogglingId(null);
@@ -295,18 +323,37 @@ export default function VibeLearnPage() {
   async function confirmDelete() {
     if (!deleteTarget || deletingId) return;
     const id = deleteTarget.id;
+    setActionError("");
     setDeletingId(id);
     try {
-      const { error } = await supabase
-        .from("vibelearn_content")
-        .delete()
-        .eq("id", id)
-        .eq("submitted_by", userId!);
-      if (!error && mounted.current) {
-        setContent(prev => prev.filter(c => c.id !== id));
-        setExpandedId(null);
-        setDeleteTarget(null);
-        if (userId) loadStats(userId);
+      if (deleteTarget.type === "textbook") {
+        if (!deleteTarget.vibe_publication_id) {
+          setActionError("This textbook is missing its publication reference. Run reconciliation before changing it.");
+          setDeleteTarget(null);
+          return;
+        }
+        const { error } = await supabase.rpc("remove_textbook_from_vibelearn", {
+          p_publication_id: deleteTarget.vibe_publication_id,
+        });
+        if (error) {
+          setActionError(friendlyError(error));
+        } else if (mounted.current) {
+          setExpandedId(null);
+          setDeleteTarget(null);
+          if (userId) { await loadContent(userId); loadStats(userId); }
+        }
+      } else {
+        const { error } = await supabase
+          .from("vibelearn_content")
+          .delete()
+          .eq("id", id)
+          .eq("submitted_by", userId!);
+        if (!error && mounted.current) {
+          setContent(prev => prev.filter(c => c.id !== id));
+          setExpandedId(null);
+          setDeleteTarget(null);
+          if (userId) loadStats(userId);
+        }
       }
     } finally {
       if (mounted.current) setDeletingId(null);
@@ -316,23 +363,41 @@ export default function VibeLearnPage() {
   // ── Save edit ───────────────────────────────────────────────────────────────
   async function saveEdit(id: string) {
     setSaveError("");
-    if (!eTitle.trim())              { setSaveError("Title is required."); return; }
-    if (!eUrl.trim())                { setSaveError("URL is required."); return; }
-    if (!isValidUrl(eUrl.trim()))    { setSaveError("Enter a valid https:// URL."); return; }
+    const target = content.find(c => c.id === id);
+    const isTextbook = target?.type === "textbook";
+    if (!eTitle.trim())                          { setSaveError("Title is required."); return; }
+    if (!isTextbook && !eUrl.trim())              { setSaveError("URL is required."); return; }
+    if (!isTextbook && !isValidUrl(eUrl.trim()))  { setSaveError("Enter a valid https:// URL."); return; }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("vibelearn_content")
-        .update({ title: eTitle.trim(), description: eDesc.trim(), url: eUrl.trim(), tags: eTags })
-        .eq("id", id)
-        .eq("submitted_by", userId!);
-      if (error) throw error;
-      if (!mounted.current) return;
-      setContent(prev => prev.map(c => c.id === id
-        ? { ...c, title: eTitle.trim(), description: eDesc.trim(), url: eUrl.trim(), tags: eTags }
-        : c
-      ));
-      setEditingId(null);
+      if (isTextbook) {
+        if (!target?.vibe_publication_id) throw new Error("Missing publication reference. Run reconciliation before editing this textbook.");
+        const { error: pubError } = await supabase
+          .from("vibe_publications")
+          .update({ title: eTitle.trim(), description: eDesc.trim(), tags: eTags })
+          .eq("id", target.vibe_publication_id);
+        if (pubError) throw pubError;
+        const { error: syncError } = await supabase.rpc("reconcile_textbook_index", {
+          p_publication_id: target.vibe_publication_id,
+        });
+        if (syncError) throw syncError;
+        if (!mounted.current) return;
+        if (userId) await loadContent(userId);
+        setEditingId(null);
+      } else {
+        const { error } = await supabase
+          .from("vibelearn_content")
+          .update({ title: eTitle.trim(), description: eDesc.trim(), url: eUrl.trim(), tags: eTags })
+          .eq("id", id)
+          .eq("submitted_by", userId!);
+        if (error) throw error;
+        if (!mounted.current) return;
+        setContent(prev => prev.map(c => c.id === id
+          ? { ...c, title: eTitle.trim(), description: eDesc.trim(), url: eUrl.trim(), tags: eTags }
+          : c
+        ));
+        setEditingId(null);
+      }
     } catch (e: unknown) {
       if (mounted.current) setSaveError(friendlyError(e));
     } finally {
@@ -434,6 +499,12 @@ export default function VibeLearnPage() {
           onConfirm={confirmDelete}
           onCancel={() => setDeleteTarget(null)}
           busy={!!deletingId}
+          {...(deleteTarget.type === "textbook" ? {
+            heading: "Remove from VibeLearn?",
+            message: `The VibeLearn listing for “${deleteTarget.title}” will be removed. The underlying textbook and chapters will not be deleted. Reader access will continue to follow the textbook’s publication status.`,
+            confirmLabel: "Remove",
+            confirmingLabel: "Removing…",
+          } : {})}
         />
       )}
 
@@ -484,6 +555,11 @@ export default function VibeLearnPage() {
         {/* ══ CONTENT TAB ══ */}
         {tab === "content" && (
           <div>
+            {actionError && (
+              <div style={{ fontSize: 12, color: C.error, marginBottom: 12, padding: "10px 14px", background: "#fef2f2", borderRadius: 10 }}>
+                ⚠️ {actionError}
+              </div>
+            )}
             {content.length === 0 ? (
               <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
@@ -552,7 +628,7 @@ export default function VibeLearnPage() {
                               {togglingId === item.id ? "…" : item.status === "live" ? "Unpublish" : "Publish"}
                             </button>
                             <button onClick={e => { e.stopPropagation(); setDeleteTarget(item); }} style={{ padding: "8px 16px", borderRadius: 10, border: `1.5px solid ${C.error}`, background: "transparent", color: C.error, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                              Delete
+                              {item.type === "textbook" ? "Remove from VibeLearn" : "Delete"}
                             </button>
                           </div>
                         </div>
@@ -560,22 +636,29 @@ export default function VibeLearnPage() {
 
                       {isEditing && (
                         <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
-                          {[
-                            { label: "TITLE",       value: eTitle, setter: setETitle, type: "input"    },
-                            { label: "DESCRIPTION", value: eDesc,  setter: setEDesc,  type: "textarea" },
-                            { label: "URL",         value: eUrl,   setter: setEUrl,   type: "input"    },
-                          ].map(f => (
-                            <div key={f.label} style={{ marginBottom: 10 }}>
-                              <label style={S.label}>{f.label}</label>
-                              {f.type === "textarea" ? (
-                                <textarea value={f.value} onChange={e => f.setter(e.target.value)} rows={2}
-                                  style={{ ...S.input, resize: "none", lineHeight: 1.6 }} />
-                              ) : (
-                                <input value={f.value} onChange={e => f.setter(e.target.value)}
-                                  style={S.input} />
-                              )}
-                            </div>
-                          ))}
+                          <div style={{ marginBottom: 10 }}>
+                            <label style={S.label}>TITLE</label>
+                            <input value={eTitle} onChange={e => setETitle(e.target.value)} style={S.input} />
+                          </div>
+                          <div style={{ marginBottom: 10 }}>
+                            <label style={S.label}>DESCRIPTION</label>
+                            <textarea value={eDesc} onChange={e => setEDesc(e.target.value)} rows={2}
+                              style={{ ...S.input, resize: "none", lineHeight: 1.6 }} />
+                          </div>
+                          <div style={{ marginBottom: 10 }}>
+                            <label style={S.label}>URL</label>
+                            {item.type === "textbook" ? (
+                              <>
+                                <input value={item.url} disabled readOnly
+                                  style={{ ...S.input, background: "#f3f4f6", color: C.textMuted, cursor: "not-allowed" }} />
+                                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
+                                  Generated automatically from the textbook — not editable here.
+                                </div>
+                              </>
+                            ) : (
+                              <input value={eUrl} onChange={e => setEUrl(e.target.value)} style={S.input} />
+                            )}
+                          </div>
                           <div style={{ marginBottom: 12 }}>
                             <label style={S.label}>TAGS</label>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
