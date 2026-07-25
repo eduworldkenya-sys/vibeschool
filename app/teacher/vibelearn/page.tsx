@@ -61,6 +61,15 @@ function isValidUrl(u: string): boolean {
   catch { return false; }
 }
 
+// Shared across the Content tab list and DiscoverTab — previously each
+// had its own `item.type === "ebook" ? "📚" : "📄"` check, which silently
+// put every textbook row under the generic epage icon.
+function contentIcon(type: "epage" | "ebook" | "textbook"): string {
+  if (type === "textbook") return "📘";
+  if (type === "ebook") return "📚";
+  return "📄";
+}
+
 function friendlyError(e: unknown): string {
   const raw   = e instanceof Error ? e.message : String(e);
   const lower = raw.toLowerCase();
@@ -192,7 +201,7 @@ export default function VibeLearnPage() {
   const [actionError,  setActionError]  = useState("");
 
   // Create form
-  const [cType,        setCType]        = useState<"epage" | "ebook">("epage");
+  const [cType,        setCType]        = useState<"epage" | "ebook" | "textbook">("epage");
   const [cTitle,       setCTitle]       = useState("");
   const [cDesc,        setCDesc]        = useState("");
   const [cSubject,     setCSubject]     = useState(SUBJECTS[0]);
@@ -564,7 +573,7 @@ export default function VibeLearnPage() {
               <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No Vibes Dropped Yet</div>
-                <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>Publish your first EPAGE or EBOOK and start earning from ad revenue every time a student reads it.</div>
+                <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>Create a learning page, ebook or VibeTextbook and publish it to VibeLearn.</div>
                 <button onClick={() => setTab("create")} style={S.btnPrimary(false)}>
                   Drop Your First Vibe →
                 </button>
@@ -591,8 +600,8 @@ export default function VibeLearnPage() {
                     <div key={item.id} style={{ ...S.card, animationDelay: `${Math.min(idx * 0.05, 0.3)}s`, animation: "slideIn 0.22s ease both" }}>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer" }}
                         onClick={() => { setExpandedId(isExpanded ? null : item.id); setEditingId(null); setSaveError(""); }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: item.type === "ebook" ? "#ede9fe" : "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
-                          {item.type === "ebook" ? "📚" : "📄"}
+                        <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: item.type === "textbook" ? "#e0e7ff" : item.type === "ebook" ? "#ede9fe" : "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                          {contentIcon(item.type)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, lineHeight: 1.3 }}>{item.title}</div>
@@ -694,12 +703,41 @@ export default function VibeLearnPage() {
         {/* ══ CREATE TAB ══ */}
         {tab === "create" && (
           <div style={S.card}>
-            <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 12, padding: 4, marginBottom: 18 }}>
-              {(["epage","ebook"] as const).map(t => (
-                <button key={t} onClick={() => setCType(t)} style={{ flex: 1, padding: 10, borderRadius: 9, border: "none", fontFamily: "inherit", fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.15s", background: cType === t ? "#fff" : "transparent", color: cType === t ? C.textPrimary : C.textMuted, boxShadow: cType === t ? "0 1px 4px rgba(0,0,0,0.1)" : "none" }}>
-                  {t === "epage" ? "📄 EPAGE" : "📚 EBOOK"}
-                </button>
-              ))}
+            <div style={{ marginBottom: 18 }}>
+              <p style={{ fontSize: 12, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, margin: "0 0 10px" }}>What would you like to create?</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  { id: "epage" as const, icon: "📄", title: "Learning Page", desc: "Notes, revision material, activities or a lesson resource." },
+                  { id: "ebook" as const, icon: "📚", title: "Ebook", desc: "A longer downloadable or linked learning resource." },
+                  { id: "textbook" as const, icon: "📘", title: "VibeTextbook", desc: "A structured curriculum-aligned book with chapters and publishing controls.", badge: "Full authoring studio" },
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      if (opt.id === "textbook") { router.push("/global/create/textbook"); return; }
+                      setCType(opt.id);
+                    }}
+                    style={{
+                      display: "flex", alignItems: "flex-start", gap: 12, textAlign: "left",
+                      padding: "14px 16px", borderRadius: 14, cursor: "pointer", fontFamily: "inherit",
+                      border: cType === opt.id && opt.id !== "textbook" ? `1.5px solid ${C.accent}` : `1.5px solid ${C.border}`,
+                      background: cType === opt.id && opt.id !== "textbook" ? "#f0fdfa" : "#fff",
+                    }}
+                  >
+                    <div style={{ fontSize: 22, flexShrink: 0 }}>{opt.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{opt.title}</div>
+                        {opt.badge && (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#ede9fe", color: "#6d28d9", textTransform: "uppercase", letterSpacing: 0.5 }}>{opt.badge}</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
+                    </div>
+                    <div style={{ fontSize: 16, color: C.textMuted, flexShrink: 0, alignSelf: "center" }}>→</div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {[
@@ -729,12 +767,15 @@ export default function VibeLearnPage() {
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <label htmlFor="vl-url" style={S.label}>Content URL *</label>
+              <label htmlFor="vl-url" style={S.label}>External Resource Link *</label>
               <input id="vl-url" type="url" value={cUrl}
                 onChange={e => { setCUrl(e.target.value); setCUrlError(""); }}
                 onBlur={() => { if (cUrl && !isValidUrl(cUrl)) setCUrlError("Enter a valid https:// URL"); }}
                 placeholder="https://docs.google.com/…"
                 style={{ ...S.input, borderColor: cUrlError ? C.error : C.border }} />
+              <p style={{ fontSize: 11, color: C.textMuted, margin: "4px 0 0", lineHeight: 1.5 }}>
+                Link to the Google Doc, PDF, Drive file or webpage students will open.
+              </p>
               {cUrlError && <div style={{ fontSize: 12, color: C.error, marginTop: 4 }}>{cUrlError}</div>}
             </div>
 
@@ -772,6 +813,9 @@ export default function VibeLearnPage() {
             <button onClick={handlePublish} disabled={publishing} style={S.btnPrimary(publishing)}>
               {publishing ? "Publishing…" : "Drop a Vibe ✦"}
             </button>
+            <p style={{ fontSize: 11, color: C.textMuted, textAlign: "center", margin: "8px 0 0" }}>
+              This will go live in VibeLearn immediately.
+            </p>
           </div>
         )}
 
@@ -903,7 +947,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
       ) : items.map(item => (
         <div key={item.id} style={discoverCard}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <div style={{ fontSize: 22, flexShrink: 0 }}>{item.type === "ebook" ? "📚" : "📄"}</div>
+            <div style={{ fontSize: 22, flexShrink: 0 }}>{contentIcon(item.type)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", lineHeight: 1.3 }}>{item.title}</div>
               <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{item.source}</div>
