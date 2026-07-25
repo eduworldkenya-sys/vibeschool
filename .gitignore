@@ -79,3 +79,4 @@ supabase_linux
 .audit-backups/
 .vibetextbook-lifecycle-backups/
 PASTE_ME_*.sh
+.vibelearn-*-backups/
