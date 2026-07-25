@@ -805,3 +805,15 @@ export interface ActivityItem {
   subtitle: string;
   timestamp: string;
 }
+
+export type VibeLearnContentType =
+  | "epage"
+  | "ebook"
+  | "textbook";
+
+export interface VibeLearnContentDestinationInput {
+  type: VibeLearnContentType;
+  url: string | null;
+  vibePublicationId: string | null;
+}
+
