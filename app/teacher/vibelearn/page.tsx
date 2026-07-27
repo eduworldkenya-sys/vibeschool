@@ -71,6 +71,25 @@ function contentIcon(type: "epage" | "ebook" | "textbook"): string {
   return "📄";
 }
 
+// Destination for a content card's read/open action. Textbook rows keep
+// using their canonical url (already set correctly by the lifecycle
+// RPCs). Native epage/ebook rows with a body go to the native reader
+// (/global/read/[id] — already supports rendering body via
+// ScrollSurface, not new). Legacy url-only rows keep opening externally.
+// Returns null when there's genuinely nothing to open.
+function contentReadUrl(item: Pick<Content, "id" | "type" | "url" | "body">): { href: string; external: boolean } | null {
+  if (item.type === "textbook") {
+    return item.url ? { href: item.url, external: false } : null;
+  }
+  if (item.body && item.body.trim()) {
+    return { href: `/global/read/${item.id}`, external: false };
+  }
+  if (item.url) {
+    return { href: item.url, external: true };
+  }
+  return null;
+}
+
 function friendlyError(e: unknown): string {
   const raw   = e instanceof Error ? e.message : String(e);
   const lower = raw.toLowerCase();
@@ -943,6 +962,7 @@ export default function VibeLearnPage() {
 
 // ── Discover Tab ──────────────────────────────────────────────────────────────
 function DiscoverTab({ userId }: { userId: string | null }) {
+  const router = useRouter();
   const [items,   setItems]   = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [query,   setQuery]   = useState("");
@@ -961,7 +981,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         let q = supabase
           .from("vibelearn_content")
           // submitted_by included so server-side neq filter works
-          .select("id,title,description,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by")
+          .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by")
           .eq("status", "live")
           .order("view_count", { ascending: false })
           .limit(30);
@@ -1022,12 +1042,24 @@ function DiscoverTab({ userId }: { userId: string | null }) {
             </div>
             <div style={{ flexShrink: 0, textAlign: "right" }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{item.view_count} views</div>
-              {item.url && (
-                <a href={item.url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", color: "#111827", fontWeight: 700, textDecoration: "none" }}>
-                  Open →
-                </a>
-              )}
+              {(() => {
+                const dest = contentReadUrl(item);
+                if (!dest) return null;
+                if (dest.external) {
+                  return (
+                    <a href={dest.href} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", color: "#111827", fontWeight: 700, textDecoration: "none" }}>
+                      Open →
+                    </a>
+                  );
+                }
+                return (
+                  <button onClick={() => router.push(dest.href)}
+                    style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#111827", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    Read →
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
