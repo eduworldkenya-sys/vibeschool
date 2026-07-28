@@ -51,17 +51,20 @@ VIBELEARN
 
 Current milestone
 
-READ-003 complete.
+READ-004 complete.
 
 Latest completed
 
 READ-001 — Canonical reader routing — VERIFIED
 READ-002 — Reading progress authority (schema, RPC, canonical reader wiring) — VERIFIED
 READ-003 — Continue Reading shelf — VERIFIED
+READ-004 — CBC curriculum identity (grade/strand/sub-strand/topic/term/week/learning outcomes/honest alignment status+authority, breadcrumb) — VERIFIED
 
 Next priority
 
-READ-004 — CBC identity panel (grade/strand/sub-strand/learning outcomes surfaced in the canonical reader)
+READ-005 — My Study Workspace (bookmarks, highlights, notes, saved definitions/vocabulary/formulas, unified with Continue Reading)
+
+Roadmap renumbered 2026-07-28 after READ-004 review — see READ_FIX_REGISTER.md phase table for the full READ-005 through READ-011 sequence.
 
 Authoritative reference
 

@@ -108,15 +108,23 @@ The root cause was corrected and all required verification passed.
 
 READ TRACK — FIX PHASES
 
+Renumbered 2026-07-28 after READ-004 review (Study View/accessibility inserted
+before analytics; bookmarks scope widened into a workspace; offline and AI
+tutor added at the end, explicitly gated behind reader maturity). READ-001
+through READ-004 keep their numbers — only READ-005 onward shifted.
+
 ID| Priority| Status| Fix unit| Required result
 READ-001| P0| VERIFIED| Route vibetextbook publications to the canonical hardened reader| Discover and Creator-profile cards for format=vibetextbook open /read/textbook/[publicationId] instead of the deprecated /global/read/publication/[id]
 READ-002| P0| VERIFIED| Reading progress authority (schema, RPC, canonical reader wiring)| Per-viewer, per-chapter progress is recorded and read through a secure RPC, keyed on auth.uid()/profiles.id, and the canonical reader resumes to the viewer's last-read chapter
 READ-003| P0| VERIFIED| Continue Reading shelf| Discover surfaces the viewer's most-recently-read vibetextbooks with cover/chapter/progress and a direct resume link
-READ-004| P1| OPEN| CBC identity panel| Reader surfaces grade/subject/strand/sub-strand/learning outcomes/alignment verification already present in vibe_publications/vibe_chapters
-READ-005| P1| OPEN| Save & Bookmarks| One consolidated save/bookmark model for the canonical reader (legacy vibelearn_saved/vibelearn_content_saves duplication resolved first, not reused as-is)
-READ-006| P2| OPEN| Reading analytics| Chapter-level completion/abandonment/duration signals beyond raw view counts
-READ-007| P2| OPEN| Classroom assignment integration| Teacher-assigned chapters, due dates, class completion rates — this is the point at which students.id / classroom roster identity gets solved, deliberately deferred from READ-002/003
-READ-008| P2| OPEN| Licensing & payments| Real M-Pesa/school-licence entitlement backing the paid/school_license pricing types the reader already recognizes but cannot fulfill
+READ-004| P1| VERIFIED| CBC curriculum identity| Reader surfaces grade/subject/strand/sub-strand/topic/term/week/learning outcomes/honest alignment status+authority, server-resolved and deduplicated, plus a breadcrumb showing where the unit sits in the curriculum
+READ-005| P1| OPEN| My Study Workspace| Bookmarks, highlights, notes, saved definitions/vocabulary/formulas, and Continue Reading unified into one learner workspace (legacy vibelearn_saved/vibelearn_content_saves duplication resolved first, not reused as-is)
+READ-006| P1| OPEN| Study View & accessibility| Text size, line spacing, reading width, light/dark/paper mode, accessible headings/labels, keyboard operation, reduced motion, better mobile navigation
+READ-007| P2| OPEN| Reading analytics| Chapter-level completion/abandonment/duration signals beyond raw view counts
+READ-008| P2| OPEN| Teacher classroom integration| Teacher-assigned chapters, due dates, class completion rates — this is the point at which students.id / classroom roster identity gets solved, deliberately deferred from READ-002/003
+READ-009| P2| OPEN| Licensing & school access| Real M-Pesa/school-licence entitlement backing the paid/school_license pricing types the reader already recognizes but cannot fulfill
+READ-010| P3| OPEN| Offline reading| Deferred until the online reader (progress, workspace, licensing) is stable
+READ-011| P3| OPEN| AI tutor| Explicitly gated behind reader maturity — not started before READ-005 through READ-010 land
 
 ---
 
@@ -336,3 +344,67 @@ Shelf caps at 8 items with no "see all" — acceptable for MVP, flagged for late
 COMMIT: 3115544
 
 NEXT FIX: READ-004
+
+
+---
+
+READ-004 VERIFIED
+
+FIX ID: READ-004
+STATUS: VERIFIED
+
+OBJECTIVE:
+Surface authoritative CBC curriculum identity (grade/subject/strand/sub-strand/topic/term/week/learning outcomes/alignment status) in the canonical reader, resolved server-side, with alignment language that never overstates an unverified claim as verified.
+
+ROOT CAUSE:
+N/A (net-new feature) — the database already held far more curriculum detail (cbc_strands, curriculum, curriculum_content, per-chapter alignment_status) than the reader exposed. The reader looked like a generic publication viewer despite the underlying CBC data model.
+
+EVIDENCE:
+- Live schema check: vibe_chapters.alignment_status constrained to unclaimed/creator_claimed/pending_review/verified/rejected (confirmed via pg_constraint) — exactly matching the proposed spec.
+- Live data: 19 total chapters, only 2 with sub_strand_id, 1 with curriculum_id, 0 ever reached 'verified' (4 creator_claimed, 15 unclaimed) — confirmed the honest/no-data fallback path was not a hypothetical, it's the common case today.
+- cbc_strands has both a 'core_values' and a legacy 'values' array column; live sample showed both null on inspected rows, so the payload coalesces both rather than picking one blindly.
+
+FILES CHANGED:
+- app/read/textbook/[publicationId]/page.tsx
+
+DATABASE OBJECTS CHANGED:
+- Replaced function: public.get_vibetextbook_reader(publication_id_input) — added per-chapter 'curriculum' object (framework/grade/subject/strand/sub_strand/topic/term/week/learning_outcomes/key_inquiry_questions/suggested_experiences/core_competencies/core_values/source_ref/alignment_status/authority/verified_by/verified_at/has_curriculum_detail), resolved via LEFT JOIN to cbc_strands (sub_strand_id), curriculum (curriculum_id), and subjects (cbc_strands.subject_id).
+
+MIGRATION:
+- supabase/migrations/20260728140000_wire_cbc_curriculum_into_vibetextbook_reader.sql
+- supabase/migrations/20260728140010_fix_has_curriculum_detail_null_on_empty_array.sql
+- supabase/migrations/20260728140020_dedupe_learning_outcomes_add_curriculum_authority.sql
+(All applied live directly first, files added to repo for ledger parity — three separate migrations because that is what was actually applied, including a bug caught by smoke test and a refinement from review; not squashed.)
+
+DATA CHANGES:
+None.
+
+RLS AND SECURITY:
+No change to RLS. curriculum resolution reuses the existing SECURITY DEFINER function and existing viewer-scoped joins; no new tables, no new client-facing write path.
+
+VERIFICATION COMMANDS:
+select public.get_vibetextbook_reader(<publication with sub_strand_id+curriculum_id set>) — author-context via request.jwt.claims (publication was draft).
+select public.get_vibetextbook_reader(<publication with no curriculum linkage>) — anonymous context.
+Post-refinement: confirmed top-level chapter.learning_outcomes key absent (? operator), curriculum.authority present and correctly derived for both alignment states tested.
+
+VERIFICATION RESULTS:
+- Fully-linked chapter: real strand "Numbers", sub_strand "Whole Numbers", topic "Place Value up to 10,000", term 1, week 1, source_ref "KLB Grade 4 Pg 1", alignment_status "creator_claimed", authority "publisher", has_curriculum_detail true.
+- Unlinked chapter: alignment_status "unclaimed", authority null, has_curriculum_detail false (after bugfix — was null before it, see NEW FINDINGS).
+- Both cases free of the array_length NULL-propagation bug after the second migration.
+
+REGRESSION RESULTS:
+can_read/blocks/progress/resume logic byte-identical across all three migrations in this fix; only additive/dedup changes to the chapter object.
+
+UNRELATED CHANGES PRESERVED:
+Yes — no changes to Continue Reading (READ-003), progress RPC (READ-002), or routing (READ-001).
+
+NEW FINDINGS:
+- array_length() on Postgres returns NULL (not 0) for a non-null empty array, which silently poisoned a boolean OR chain (has_curriculum_detail: null instead of false) — caught by smoke test before client wiring, fixed same session.
+- Review pass (post-implementation) flagged duplicate learning_outcomes fields (top-level chapter + curriculum object) and requested a derived authority tier — both addressed in the third migration rather than left for a follow-up fix, since the reader had not yet been wired to the duplicated field.
+
+OPEN RISKS:
+'authority' currently only distinguishes official/publisher/none — a 'community' tier was explicitly requested but deliberately not added, since no community-contribution data model exists yet; adding it now would mean a value with nothing real behind it. Add it when that data model is actually built, not before.
+
+COMMIT: a60cf6f (initial), plus the dedupe/authority follow-up commit in this same push.
+
+NEXT FIX: READ-005

@@ -45,6 +45,8 @@ interface ReaderCurriculum {
     | "pending_review"
     | "verified"
     | "rejected";
+  authority: "official" | "publisher" | null;
+  verified_by: string | null;
   verified_at: string | null;
   has_curriculum_detail: boolean;
 }
@@ -60,7 +62,6 @@ interface ReaderChapter {
   published_at: string | null;
   created_at: string;
   updated_at: string;
-  learning_outcomes: string[] | null;
   cbc_strand: string | null;
   can_read: boolean;
   progress_percent: number | null;
@@ -105,6 +106,22 @@ const COVER_GRADIENTS = [
   "linear-gradient(135deg,#0d0d0d,#1a1a1a,#333)",
   "linear-gradient(135deg,#0a0a0a,#1a2235)",
 ];
+
+function curriculumPath(cur: ReaderCurriculum): string {
+  const parts: string[] = [];
+  if (cur.grade) parts.push(capitalizeWords(cur.grade));
+  if (cur.subject) parts.push(capitalizeWords(cur.subject));
+  if (cur.strand) parts.push(cur.strand);
+  if (cur.sub_strand) parts.push(cur.sub_strand);
+  if (cur.topic) parts.push(cur.topic);
+  const termWeek: string[] = [];
+  if (cur.term) termWeek.push("Term " + cur.term);
+  if (cur.week) termWeek.push("Week " + cur.week);
+  const path = parts.join(" › ");
+  const tail = termWeek.join(" · ");
+  if (path && tail) return path + "  ·  " + tail;
+  return path || tail;
+}
 
 function capitalizeWords(value: string): string {
   return value
@@ -916,6 +933,19 @@ export default function ReadTextbookPage() {
 
                     {activeChapter.curriculum.has_curriculum_detail && (
                       <>
+                        {curriculumPath(activeChapter.curriculum) && (
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: MUTED,
+                              marginBottom: 10,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {curriculumPath(activeChapter.curriculum)}
+                          </div>
+                        )}
+
                         {(activeChapter.curriculum.strand ||
                           activeChapter.curriculum.sub_strand) && (
                           <div
