@@ -1,4 +1,4 @@
-VIBESCHOOL TIMETABLE HANDOVER
+VIBESCHOOL HANDOVER
 
 Purpose
 
@@ -8,11 +8,15 @@ Claude must read this file before working and update it before ending a session.
 
 Do not rely on previous chat memory.
 
-Repository state, Supabase state, git history, "TIMETABLE_FIX_REGISTER.md", and this file are the continuity mechanism.
+Repository state, Supabase state, git history, domain fix registers ("TIMETABLE_FIX_REGISTER.md", "READ_FIX_REGISTER.md"), and this file are the continuity mechanism.
+
+This file summarizes state per domain track. Each track's full fix history, rationale, and verification detail lives in its own fix register — this file is the index, not the record.
 
 ---
 
 CURRENT STATE
+
+TIMETABLE
 
 Active fix
 
@@ -40,6 +44,36 @@ SUPABASE PROJECT REF: yauqsxggtuxuykcbrtzf
 VERCEL ENVIRONMENT:
 
 No database write is permitted while the Supabase environment remains "UNKNOWN".
+
+---
+
+VIBELEARN
+
+Current milestone
+
+READ-003 complete.
+
+Latest completed
+
+READ-001 — Canonical reader routing — VERIFIED
+READ-002 — Reading progress authority (schema, RPC, canonical reader wiring) — VERIFIED
+READ-003 — Continue Reading shelf — VERIFIED
+
+Next priority
+
+READ-004 — CBC identity panel (grade/strand/sub-strand/learning outcomes surfaced in the canonical reader)
+
+Authoritative reference
+
+"READ_FIX_REGISTER.md"
+
+Connected environments
+
+SUPABASE PROJECT REF: yauqsxggtuxuykcbrtzf (same project as TIMETABLE track)
+CANONICAL READER: app/read/textbook/[publicationId]/page.tsx
+CANONICAL RPCs: get_vibetextbook_reader, record_reading_progress, get_continue_reading
+
+Identity rule: viewer_id = auth.uid() = profiles.id. Do not reuse or repair the legacy vibelearn_* engagement tables (students.id-keyed, 0 live rows, 114/115 students have no login) as part of this track without a separately scoped fix.
 
 ---
 
