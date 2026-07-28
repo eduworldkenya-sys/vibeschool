@@ -40,13 +40,32 @@ export default function ReaderPage() {
 
       if (err || !data) { setError('Content not found.'); setLoading(false); return }
 
+      // RLS permits any authenticated user to SELECT any row (needed so
+      // owners can preview their own drafts through this same route) —
+      // so the draft/live distinction has to be enforced here, not in
+      // the query. Same not-found-not-forbidden pattern as the
+      // VibeTextbook reader: a non-author viewing a draft sees "not
+      // found," not an error that reveals the content exists.
+      const isOwner = data.submitted_by === user.id
+      if (data.status !== 'live' && !isOwner) {
+        setError('Content not found.')
+        setLoading(false)
+        return
+      }
+
       setContent(data as VibeContent)
 
-      // increment view count
-      await supabase.rpc('increment_view_count', {
+      // increment view count — non-blocking, but no longer silently
+      // swallowed. This is exactly how two real bugs in
+      // increment_view_count went undetected earlier today: the RPC was
+      // failing on every call and nothing surfaced it.
+      const { error: viewCountError } = await supabase.rpc('increment_view_count', {
         content_id: id,
         viewer_id:  user.id,
       })
+      if (viewCountError) {
+        console.error('increment_view_count failed:', viewCountError)
+      }
 
       setLoading(false)
     }
