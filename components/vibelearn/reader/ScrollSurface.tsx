@@ -75,7 +75,7 @@ function parseBlocks(raw: string): Block[] {
 
     if (isWarningLine(trimmed)) {
       const match = trimmed.match(/^([^!]+!)\s*(.*)$/)
-      let title = match ? match[1] : 'Note'
+      const title = match ? match[1] : 'Note'
       let text  = match ? match[2] : trimmed
       i++
       while (i < lines.length && lines[i].trim() &&
