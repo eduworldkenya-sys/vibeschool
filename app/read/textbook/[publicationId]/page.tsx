@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import type {
@@ -38,6 +38,9 @@ interface ReaderChapter {
   learning_outcomes: string[] | null;
   cbc_strand: string | null;
   can_read: boolean;
+  progress_percent: number | null;
+  completed_at: string | null;
+  last_read_at: string | null;
   blocks: ContentBlock[] | null;
 }
 
@@ -48,6 +51,11 @@ interface ReaderPayload {
   author_name: string;
   publication: VibePublication;
   chapters: ReaderChapter[];
+  resume: {
+    chapter_id: string;
+    progress_percent: number;
+    last_read_at: string;
+  } | null;
 }
 
 const COVER_GRADIENTS = [
@@ -224,7 +232,16 @@ export default function ReadTextbookPage() {
         chapters,
       });
 
-      setActiveIndex(0);
+      const resumeChapterId =
+        nextPayload.resume?.chapter_id ?? null;
+      const resumeIndex = resumeChapterId
+        ? chapters.findIndex(
+            (c) => c.id === resumeChapterId
+          )
+        : -1;
+      setActiveIndex(
+        resumeIndex >= 0 ? resumeIndex : 0
+      );
       setState("ready");
 
       if (
@@ -293,6 +310,45 @@ export default function ReadTextbookPage() {
     () => normalizeBlocks(activeChapter?.blocks),
     [activeChapter?.blocks]
   );
+
+  const previousChapterRef = useRef<
+    { id: string; publicationId: string } | null
+  >(null);
+
+  useEffect(() => {
+    if (state !== "ready") return;
+    if (!publication || !activeChapter) return;
+
+    const sb = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const previous = previousChapterRef.current;
+
+    if (previous && previous.id !== activeChapter.id) {
+      void sb.rpc("record_reading_progress", {
+        publication_id_input: previous.publicationId,
+        chapter_id_input: previous.id,
+        progress_percent_input: 100,
+      });
+    }
+
+    if (!previous || previous.id !== activeChapter.id) {
+      previousChapterRef.current = {
+        id: activeChapter.id,
+        publicationId: publication.id,
+      };
+
+      if (activeChapter.can_read) {
+        void sb.rpc("record_reading_progress", {
+          publication_id_input: publication.id,
+          chapter_id_input: activeChapter.id,
+          progress_percent_input: 10,
+        });
+      }
+    }
+  }, [state, publication?.id, activeChapter?.id, activeChapter?.can_read]);
 
   if (state === "loading") {
     return (
@@ -691,6 +747,24 @@ export default function ReadTextbookPage() {
                             )}{" "}
                             min
                           </div>
+
+                          {chapter.progress_percent !== null &&
+                            chapter.progress_percent > 0 && (
+                              <div
+                                style={{
+                                  fontSize: 10,
+                                  color: chapter.completed_at
+                                    ? ACCENT
+                                    : MUTED,
+                                  marginTop: 3,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {chapter.completed_at
+                                  ? "✓ Completed"
+                                  : chapter.progress_percent + "% read"}
+                              </div>
+                            )}
                         </div>
 
                         {!chapter.can_read && (
