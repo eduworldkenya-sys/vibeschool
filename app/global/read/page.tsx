@@ -26,6 +26,20 @@ const FILTERS: { key: FilterKey; label: string; icon: string }[] = [
 
 interface AuthorMap { [id: string]: string }
 
+interface ContinueReadingItem {
+  publication_id: string
+  title: string | null
+  cover_url: string | null
+  cbc_subject: string | null
+  cbc_grade: string | null
+  current_chapter_id: string
+  current_chapter_number: number
+  current_chapter_title: string | null
+  progress_percent: number
+  last_read_at: string
+  completed: boolean
+}
+
 export default function ReadDiscoverPage() {
   const router = useRouter()
   const [publications, setPublications] = useState<VibePublication[]>([])
@@ -33,6 +47,7 @@ export default function ReadDiscoverPage() {
   const [loading,       setLoading]      = useState(true)
   const [filter,        setFilter]       = useState<FilterKey>('all')
   const [query,         setQuery]        = useState('')
+  const [continueReading, setContinueReading] = useState<ContinueReadingItem[]>([])
 
   useEffect(() => {
     const sb = createBrowserClient(
@@ -60,6 +75,15 @@ export default function ReadDiscoverPage() {
         for (const p of profs || []) map[p.id as string] = (p as { full_name: string | null }).full_name || 'Anonymous'
         setAuthors(map)
       }
+      const { data: crData } = await sb.rpc('get_continue_reading', { limit_input: 8 })
+      const crItems =
+        crData &&
+        typeof crData === 'object' &&
+        Array.isArray((crData as { items?: unknown }).items)
+          ? (crData as { items: ContinueReadingItem[] }).items
+          : []
+      setContinueReading(crItems)
+
       setLoading(false)
     }
     load()
@@ -88,6 +112,73 @@ export default function ReadDiscoverPage() {
         <p style={{ color: MUTED, fontSize: 13, margin: '0 0 16px' }}>
           Ebooks, stories and articles published by the VibeGlobal community
         </p>
+
+        {continueReading.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: TEXT, marginBottom: 10 }}>
+              Continue Reading
+            </div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              {continueReading.map(item => (
+                <div
+                  key={item.publication_id}
+                  onClick={() => router.push('/read/textbook/' + item.publication_id)}
+                  style={{
+                    flexShrink: 0, width: 156, background: CARD, borderRadius: 14,
+                    overflow: 'hidden', border: '1px solid ' + BORDER, cursor: 'pointer',
+                  }}
+                >
+                  <div style={{
+                    height: 90, position: 'relative', overflow: 'hidden',
+                    background: item.cover_url ? 'none' : 'linear-gradient(135deg,#1a2235,#2d3748)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {item.cover_url
+                      ? <img src={item.cover_url} alt={item.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ fontSize: 26 }}>{FORMAT_META.vibetextbook?.icon || '🎓'}</span>
+                    }
+                    {item.completed && (
+                      <div style={{
+                        position: 'absolute', top: 6, right: 6,
+                        background: 'rgba(9,13,22,0.8)', borderRadius: 6,
+                        padding: '2px 6px', fontSize: 9, fontWeight: 700, color: ACCENT,
+                      }}>
+                        ✓ Done
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding: '8px 10px' }}>
+                    <div style={{
+                      fontSize: 11.5, fontWeight: 700, color: TEXT, lineHeight: 1.3,
+                      overflow: 'hidden', display: '-webkit-box',
+                      WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+                      minHeight: 28,
+                    }}>
+                      {item.title || 'Untitled'}
+                    </div>
+                    <div style={{ fontSize: 9.5, color: MUTED, marginTop: 4 }}>
+                      {item.completed
+                        ? 'Completed'
+                        : 'Ch. ' + item.current_chapter_number + (item.current_chapter_title ? ' · ' + item.current_chapter_title : '')}
+                    </div>
+                    <div style={{
+                      marginTop: 6, height: 4, borderRadius: 2,
+                      background: 'rgba(255,255,255,0.08)', overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: Math.max(4, Math.min(100, item.progress_percent)) + '%',
+                        height: '100%', background: item.completed ? ACCENT : 'rgba(204,255,0,0.6)',
+                      }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: MUTED, marginTop: 4 }}>
+                      {item.completed ? '100%' : item.progress_percent + '%'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <input
           value={query}
