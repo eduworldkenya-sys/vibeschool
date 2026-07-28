@@ -462,10 +462,10 @@ READ-005B.
 
 ---
 
-READ-005B IMPLEMENTED — LOCAL GATE PENDING
+READ-005B VERIFIED
 
 FIX ID: READ-005B
-STATUS: IN PROGRESS
+STATUS: VERIFIED
 
 OBJECTIVE:
 Create the canonical reader workspace authority and implement publication saving plus the first My Study Workspace surface.
@@ -506,13 +506,25 @@ RLS AND SECURITY:
 VERIFICATION RESULTS:
 Live investigation previously confirmed anonymous rejection, unpublished-publication rejection, save/unsave/resave behavior and rollback cleanliness.
 
-LOCAL VERIFICATION STILL REQUIRED:
-- npx tsc --noEmit
-- npm run build, if the repository build is currently green
-- bash vibe-check.sh, if present
-- git diff --check
-- inspect final diff
-- apply repository migration only through the project's approved Supabase deployment path
+LOCAL VERIFICATION COMPLETE:
+- npx tsc --noEmit: clean
+- git diff --check: clean
+- READ-005B scoped verification: clean
+- vibe-check.sh completed but reported pre-existing repository-wide failures outside the READ-005B files; none referenced the canonical reader, student workspace, profile integration, or READ-005B migration
+
+MIGRATION RECONCILIATION:
+Live production already contained interrupted-run legacy objects not matched by the original migration's drop statements:
+- trigger vwi_set_updated_at (calling shared set_updated_at())
+- policies vwi_owner_all and vwi_owner_only (FOR ALL, PUBLIC role)
+- anon held full table grants and EXECUTE on both RPCs
+
+Migration was corrected (commit 6976a57) to explicitly drop these legacy-named objects before creating canonical replacements. The production migration ledger recorded version 20260728191454. The repository migration was renamed to the same version so repository history and the applied ledger remain aligned. Local migration file renamed to 20260728191454_read005b_canonical_workspace.sql (commit 59ccd4a) to keep repo and ledger in sync.
+
+PRODUCTION VERIFICATION (live, 2026-07-28):
+- Exactly one trigger (set_vibe_workspace_item_updated_at), one RLS policy (workspace_owner_select), one unique index, one check constraint — no duplicates, no legacy objects remaining.
+- anon: zero table privileges, zero RPC EXECUTE.
+- authenticated: table SELECT only, EXECUTE on both RPCs.
+- Functional cycle against a real student profile and real publications: save → get_my_library() returns it → unsave → save again → exactly 1 row → unpublished textbook save correctly rejected (not_entitled, 0 rows created). Test artifact cleaned up afterward.
 
 REGRESSION RESULTS:
 Canonical textbook routing and progress RPCs are unchanged. Legacy vibelearn_* tables and callers are untouched.
@@ -521,7 +533,7 @@ OPEN RISKS:
 Bookmarks, highlights, notes, vocabulary, definitions and formulae have reader tabs but no writer controls yet. They remain separate READ-005 sub-units.
 
 COMMIT:
-Pending local verification and commit.
+c421c23 (implementation), 6976a57 (legacy trigger/policy cleanup), 59ccd4a (migration filename alignment).
 
 NEXT FIX:
 READ-005C — Chapter bookmarks.

@@ -60,7 +60,7 @@ READ-002 — Reading progress authority (schema, RPC, canonical reader wiring) �
 READ-003 — Continue Reading shelf — VERIFIED
 READ-004 — CBC curriculum identity — VERIFIED
 READ-005A — Workspace authority investigation — VERIFIED
-READ-005B — Canonical workspace foundation and publication saves — IMPLEMENTED; local TypeScript/build verification required before VERIFIED
+READ-005B — Canonical workspace foundation and publication saves — VERIFIED (migration 20260728191454 applied to production; live save/unsave/save, get_my_library, unpublished-rejection, and grant/RLS/trigger/policy reconciliation all confirmed)
 
 Active next unit
 
