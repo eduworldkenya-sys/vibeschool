@@ -141,7 +141,11 @@ export default function ReadDiscoverPage() {
             return (
               <div
                 key={pub.id}
-                onClick={() => router.push('/global/read/publication/' + pub.id)}
+                onClick={() => router.push(
+                  pub.format === 'vibetextbook'
+                    ? '/read/textbook/' + pub.id
+                    : '/global/read/publication/' + pub.id
+                )}
                 style={{
                   background: CARD, borderRadius: 14, overflow: 'hidden',
                   border: '1px solid ' + BORDER, cursor: 'pointer',
