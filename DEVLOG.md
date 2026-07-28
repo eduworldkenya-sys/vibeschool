@@ -655,3 +655,6 @@
 ## [2026-07-23 06:52] 56dbf19
 **What:** P1: status progression track, lesson numbering context, empty-state prompts
 **Status:** ✅ pushed
+## [2026-07-28 11:17] 99e4051
+**What:** fix: prefer-const lint error in ScrollSurface title var
+**Status:** ✅ pushed
