@@ -51,18 +51,20 @@ VIBELEARN
 
 Current milestone
 
-READ-004 complete.
+READ-005 in progress.
 
 Latest completed
 
 READ-001 — Canonical reader routing — VERIFIED
 READ-002 — Reading progress authority (schema, RPC, canonical reader wiring) — VERIFIED
 READ-003 — Continue Reading shelf — VERIFIED
-READ-004 — CBC curriculum identity (grade/strand/sub-strand/topic/term/week/learning outcomes/honest alignment status+authority, breadcrumb) — VERIFIED
+READ-004 — CBC curriculum identity — VERIFIED
+READ-005A — Workspace authority investigation — VERIFIED
+READ-005B — Canonical workspace foundation and publication saves — IMPLEMENTED; local TypeScript/build verification required before VERIFIED
 
-Next priority
+Active next unit
 
-READ-005 — My Study Workspace (bookmarks, highlights, notes, saved definitions/vocabulary/formulas, unified with Continue Reading)
+READ-005C — Chapter bookmarks. Reuse vibe_workspace_items; add only bookmark-specific constraints, RPCs and canonical-reader writer controls.
 
 Roadmap renumbered 2026-07-28 after READ-004 review — see READ_FIX_REGISTER.md phase table for the full READ-005 through READ-011 sequence.
 

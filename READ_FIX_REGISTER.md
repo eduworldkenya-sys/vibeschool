@@ -408,3 +408,120 @@ OPEN RISKS:
 COMMIT: a60cf6f (initial), plus the dedupe/authority follow-up commit in this same push.
 
 NEXT FIX: READ-005
+
+---
+
+READ-005A VERIFIED
+
+FIX ID: READ-005A
+STATUS: VERIFIED
+
+OBJECTIVE:
+Determine whether the two pre-existing VibeLearn save tables can act as the canonical VibeTextbook publication/workspace authority.
+
+ROOT CAUSE:
+vibelearn_saved and vibelearn_content_saves belong to the separate vibelearn_content domain and use incompatible identity contracts. Neither models vibe_publications or vibe_chapters.
+
+EVIDENCE:
+- Both tables contained zero rows during live inspection.
+- vibelearn_saved.student_id references students.id and its RLS resolves ownership through students.profile_id.
+- vibelearn_content_saves stores auth.uid()-space identity directly.
+- Existing callers treat these incompatible identifiers as interchangeable.
+- Neither table references vibe_publications or vibe_chapters.
+
+FILES CHANGED:
+- HANDOVER.md
+- READ_FIX_REGISTER.md
+
+DATABASE OBJECTS CHANGED:
+None during READ-005A.
+
+MIGRATION:
+None.
+
+DATA CHANGES:
+None.
+
+RLS AND SECURITY:
+No changes. Both legacy domain tables were deliberately preserved.
+
+VERIFICATION RESULTS:
+The reader workspace requires a new authority keyed by viewer_id = auth.uid() = profiles.id.
+
+REGRESSION RESULTS:
+Legacy VibeLearn curriculum-content behavior was not modified.
+
+OPEN RISKS:
+Existing legacy callers remain independently inconsistent and require a separately scoped VibeLearn micro-content fix.
+
+COMMIT:
+Pending local commit.
+
+NEXT FIX:
+READ-005B.
+
+---
+
+READ-005B IMPLEMENTED — LOCAL GATE PENDING
+
+FIX ID: READ-005B
+STATUS: IN PROGRESS
+
+OBJECTIVE:
+Create the canonical reader workspace authority and implement publication saving plus the first My Study Workspace surface.
+
+ROOT CAUSE:
+The canonical vibe_publications/vibe_chapters reader had no save, bookmark, note or workspace authority.
+
+FILES CHANGED:
+- supabase/migrations/20260728210000_read005b_canonical_workspace.sql
+- app/read/textbook/[publicationId]/page.tsx
+- app/student/profile/page.tsx
+- app/student/workspace/page.tsx
+- HANDOVER.md
+- READ_FIX_REGISTER.md
+
+DATABASE OBJECTS CHANGED:
+- public.vibe_workspace_items
+- public.set_vibe_workspace_item_updated_at()
+- public.toggle_publication_save(uuid)
+- public.get_my_library()
+
+MIGRATION:
+- filename: supabase/migrations/20260728210000_read005b_canonical_workspace.sql
+- live state: objects already existed from the interrupted implementation; migration captures and normalizes that state for repository parity.
+- target: Supabase project yauqsxggtuxuykcbrtzf.
+
+DATA CHANGES:
+No backfill. Interrupted functional tests were rolled back.
+
+RLS AND SECURITY:
+- viewer_id is server-derived from auth.uid().
+- owner-only SELECT policy.
+- direct INSERT/UPDATE/DELETE unavailable to authenticated clients.
+- toggle writes are RPC-only.
+- anon EXECUTE revoked from workspace RPCs.
+- publication saves require a currently published publication.
+
+VERIFICATION RESULTS:
+Live investigation previously confirmed anonymous rejection, unpublished-publication rejection, save/unsave/resave behavior and rollback cleanliness.
+
+LOCAL VERIFICATION STILL REQUIRED:
+- npx tsc --noEmit
+- npm run build, if the repository build is currently green
+- bash vibe-check.sh, if present
+- git diff --check
+- inspect final diff
+- apply repository migration only through the project's approved Supabase deployment path
+
+REGRESSION RESULTS:
+Canonical textbook routing and progress RPCs are unchanged. Legacy vibelearn_* tables and callers are untouched.
+
+OPEN RISKS:
+Bookmarks, highlights, notes, vocabulary, definitions and formulae have reader tabs but no writer controls yet. They remain separate READ-005 sub-units.
+
+COMMIT:
+Pending local verification and commit.
+
+NEXT FIX:
+READ-005C — Chapter bookmarks.

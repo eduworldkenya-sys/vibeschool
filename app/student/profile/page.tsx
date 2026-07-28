@@ -222,6 +222,19 @@ export default function StudentProfilePage() {
             </p>
           </div>
 
+          <button
+            onClick={() => router.push('/student/workspace')}
+            style={{
+              width: '100%', marginTop: 20, padding: '14px 0',
+              borderRadius: 14, border: `1px solid ${C.border}`,
+              background: C.surface, color: C.textPrimary,
+              fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            📚 My Study Workspace
+          </button>
+
           {/* Sign out */}
           <button
             onClick={handleSignOut}

@@ -241,6 +241,13 @@ export default function ReadTextbookPage() {
   const [activeIndex, setActiveIndex] =
     useState(0);
 
+  const [publicationSaved, setPublicationSaved] =
+    useState(false);
+  const [saveLoading, setSaveLoading] =
+    useState(false);
+  const [saveError, setSaveError] =
+    useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -360,6 +367,102 @@ export default function ReadTextbookPage() {
 
   const publication = payload?.publication ?? null;
   const chapters = payload?.chapters ?? [];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSavedState() {
+      if (!publicationId || state !== "ready") return;
+
+      const sb = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      const { data: authData } = await sb.auth.getUser();
+
+      if (!authData.user || cancelled) {
+        setPublicationSaved(false);
+        return;
+      }
+
+      const { data, error } = await sb
+        .from("vibe_workspace_items")
+        .select("id")
+        .eq("viewer_id", authData.user.id)
+        .eq("publication_id", publicationId)
+        .eq("item_type", "publication_save")
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn("Could not load saved state:", error);
+        return;
+      }
+
+      setPublicationSaved(Boolean(data));
+    }
+
+    void loadSavedState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publicationId, state]);
+
+  async function togglePublicationSave() {
+    if (!publicationId || saveLoading) return;
+
+    setSaveLoading(true);
+    setSaveError(null);
+
+    const sb = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: authData } = await sb.auth.getUser();
+
+    if (!authData.user) {
+      setSaveLoading(false);
+      router.push("/login");
+      return;
+    }
+
+    const { data, error } = await sb.rpc(
+      "toggle_publication_save",
+      {
+        p_publication_id: publicationId,
+      }
+    );
+
+    if (error) {
+      console.error("Failed to toggle publication save:", error);
+      setSaveError("The textbook could not be saved.");
+      setSaveLoading(false);
+      return;
+    }
+
+    const result = data as {
+      ok?: boolean;
+      reason?: string | null;
+      saved?: boolean;
+    } | null;
+
+    if (!result?.ok) {
+      setSaveError(
+        result?.reason === "not_entitled"
+          ? "This textbook is not currently available."
+          : "The textbook could not be saved."
+      );
+      setSaveLoading(false);
+      return;
+    }
+
+    setPublicationSaved(Boolean(result.saved));
+    setSaveLoading(false);
+  }
 
   const safeActiveIndex =
     chapters.length === 0
@@ -674,7 +777,49 @@ export default function ReadTextbookPage() {
               ? meta.chapterLabel.toLowerCase()
               : meta.chapterPlural.toLowerCase()}
           </span>
+
+          <button
+            type="button"
+            disabled={saveLoading}
+            onClick={() => void togglePublicationSave()}
+            aria-pressed={publicationSaved}
+            style={{
+              marginLeft: "auto",
+              borderRadius: 10,
+              border: publicationSaved
+                ? `1px solid rgba(204,255,0,0.45)`
+                : `1px solid ${BORDER}`,
+              background: publicationSaved
+                ? "rgba(204,255,0,0.1)"
+                : "rgba(255,255,255,0.04)",
+              color: publicationSaved ? ACCENT : TEXT,
+              padding: "7px 12px",
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: saveLoading ? "wait" : "pointer",
+              opacity: saveLoading ? 0.65 : 1,
+            }}
+          >
+            {saveLoading
+              ? "Saving…"
+              : publicationSaved
+                ? "✓ Saved"
+                : "＋ Save"}
+          </button>
         </div>
+
+        {saveError && (
+          <div
+            role="alert"
+            style={{
+              color: "#FF8A8A",
+              fontSize: 12,
+              margin: "-4px 0 12px",
+            }}
+          >
+            {saveError}
+          </div>
+        )}
 
         {publication.description && (
           <p
