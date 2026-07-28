@@ -103,6 +103,9 @@ begin
 end;
 $$;
 
+drop trigger if exists vwi_set_updated_at
+  on public.vibe_workspace_items;
+
 drop trigger if exists set_vibe_workspace_item_updated_at
   on public.vibe_workspace_items;
 
@@ -112,6 +115,12 @@ for each row
 execute function public.set_vibe_workspace_item_updated_at();
 
 alter table public.vibe_workspace_items enable row level security;
+
+drop policy if exists "vwi_owner_all"
+  on public.vibe_workspace_items;
+
+drop policy if exists "vwi_owner_only"
+  on public.vibe_workspace_items;
 
 drop policy if exists "Workspace owner can read items"
   on public.vibe_workspace_items;
