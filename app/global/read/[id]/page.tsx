@@ -32,28 +32,21 @@ export default function ReaderPage() {
       if (!user) { router.replace('/'); return }
       setUserId(user.id)
 
-      const { data, error: err } = await supabase
-        .from('vibelearn_content')
-        .select('id,title,description,body,type,source,url,tags,status,view_count,vibe_count,earnings_ksh,created_at,submitted_by')
-        .eq('id', id)
-        .maybeSingle()
+      const { data: rpcData, error: rpcErr } = await supabase.rpc(
+        'get_vibelearn_content_reader',
+        { content_id_input: id }
+      )
 
-      if (err || !data) { setError('Content not found.'); setLoading(false); return }
-
-      // RLS permits any authenticated user to SELECT any row (needed so
-      // owners can preview their own drafts through this same route) —
-      // so the draft/live distinction has to be enforced here, not in
-      // the query. Same not-found-not-forbidden pattern as the
-      // VibeTextbook reader: a non-author viewing a draft sees "not
-      // found," not an error that reveals the content exists.
-      const isOwner = data.submitted_by === user.id
-      if (data.status !== 'live' && !isOwner) {
+      if (rpcErr || !rpcData || rpcData.ok !== true) {
+        if (rpcErr) {
+          console.error('get_vibelearn_content_reader failed:', rpcErr)
+        }
         setError('Content not found.')
         setLoading(false)
         return
       }
 
-      setContent(data as VibeContent)
+      setContent(rpcData as VibeContent)
 
       // increment view count — non-blocking, but no longer silently
       // swallowed. This is exactly how two real bugs in
