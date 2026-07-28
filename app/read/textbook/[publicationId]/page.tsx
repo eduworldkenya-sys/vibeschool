@@ -24,6 +24,31 @@ type AccessState =
   | "not_found"
   | "error";
 
+interface ReaderCurriculum {
+  framework: string | null;
+  grade: string | null;
+  subject: string | null;
+  strand: string | null;
+  sub_strand: string | null;
+  topic: string | null;
+  term: number | null;
+  week: number | null;
+  learning_outcomes: string[];
+  key_inquiry_questions: string[];
+  suggested_experiences: string[];
+  core_competencies: string[];
+  core_values: string[];
+  source_ref: string | null;
+  alignment_status:
+    | "unclaimed"
+    | "creator_claimed"
+    | "pending_review"
+    | "verified"
+    | "rejected";
+  verified_at: string | null;
+  has_curriculum_detail: boolean;
+}
+
 interface ReaderChapter {
   id: string;
   publication_id: string;
@@ -41,6 +66,7 @@ interface ReaderChapter {
   progress_percent: number | null;
   completed_at: string | null;
   last_read_at: string | null;
+  curriculum: ReaderCurriculum;
   blocks: ContentBlock[] | null;
 }
 
@@ -58,6 +84,20 @@ interface ReaderPayload {
   } | null;
 }
 
+const ALIGNMENT_LABELS: Record<
+  ReaderCurriculum["alignment_status"],
+  { label: string; color: string }
+> = {
+  verified: { label: "Verified curriculum alignment", color: ACCENT },
+  pending_review: { label: "Alignment under review", color: "#F5A623" },
+  creator_claimed: {
+    label: "Curriculum alignment claimed by publisher",
+    color: MUTED,
+  },
+  unclaimed: { label: "No verified alignment", color: MUTED },
+  rejected: { label: "Alignment not verified", color: "#FF5C5C" },
+};
+
 const COVER_GRADIENTS = [
   "linear-gradient(135deg,#1a2235,#2d3748)",
   "linear-gradient(135deg,#0f2027,#203a43,#2c5364)",
@@ -65,6 +105,15 @@ const COVER_GRADIENTS = [
   "linear-gradient(135deg,#0d0d0d,#1a1a1a,#333)",
   "linear-gradient(135deg,#0a0a0a,#1a2235)",
 ];
+
+function capitalizeWords(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 function coverGradient(id: string): string {
   if (!id) return COVER_GRADIENTS[0];
@@ -350,6 +399,8 @@ export default function ReadTextbookPage() {
     }
   }, [state, publication?.id, activeChapter?.id, activeChapter?.can_read]);
 
+  const [curriculumExpanded, setCurriculumExpanded] = useState(false);
+
   if (state === "loading") {
     return (
       <div
@@ -508,6 +559,30 @@ export default function ReadTextbookPage() {
         >
           {meta.icon} {meta.label}
         </span>
+
+        {(publication.cbc_grade || publication.cbc_subject) && (
+          <span
+            style={{
+              display: "inline-flex",
+              background: "rgba(204,255,0,0.08)",
+              border: `1px solid rgba(204,255,0,0.24)`,
+              borderRadius: 24,
+              padding: "4px 11px",
+              fontSize: 11,
+              fontWeight: 800,
+              color: ACCENT,
+              marginLeft: 6,
+            }}
+          >
+            CBC
+            {publication.cbc_grade
+              ? " · " + capitalizeWords(publication.cbc_grade)
+              : ""}
+            {publication.cbc_subject
+              ? " · " + capitalizeWords(publication.cbc_subject)
+              : ""}
+          </span>
+        )}
 
         <h1
           style={{
@@ -816,6 +891,332 @@ export default function ReadTextbookPage() {
                   {activeChapter.title ||
                     `${meta.chapterLabel} ${activeChapter.number}`}
                 </h2>
+
+                {activeChapter.curriculum && (
+                  <div
+                    style={{
+                      background: SURFACE,
+                      border: `1px solid ${BORDER}`,
+                      borderRadius: 14,
+                      padding: "14px 16px",
+                      marginBottom: 20,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: MUTED,
+                        letterSpacing: "0.1em",
+                        marginBottom: 10,
+                      }}
+                    >
+                      ABOUT THIS UNIT
+                    </div>
+
+                    {activeChapter.curriculum.has_curriculum_detail && (
+                      <>
+                        {(activeChapter.curriculum.strand ||
+                          activeChapter.curriculum.sub_strand) && (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 20,
+                              marginBottom: 10,
+                            }}
+                          >
+                            {activeChapter.curriculum.strand && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: MUTED,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  Strand
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 13,
+                                    color: TEXT,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {activeChapter.curriculum.strand}
+                                </div>
+                              </div>
+                            )}
+
+                            {activeChapter.curriculum.sub_strand && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: MUTED,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  Sub-strand
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 13,
+                                    color: TEXT,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {activeChapter.curriculum.sub_strand}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {activeChapter.curriculum.learning_outcomes.length >
+                          0 && (
+                          <div style={{ marginBottom: 10 }}>
+                            <div
+                              style={{
+                                fontSize: 10,
+                                color: MUTED,
+                                fontWeight: 700,
+                                marginBottom: 4,
+                              }}
+                            >
+                              What you will learn
+                            </div>
+                            <ul
+                              style={{
+                                margin: 0,
+                                paddingLeft: 18,
+                                color: TEXT,
+                                fontSize: 13,
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              {activeChapter.curriculum.learning_outcomes.map(
+                                (outcome, i) => (
+                                  <li key={i}>{outcome}</li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        )}
+
+                        {(activeChapter.curriculum.key_inquiry_questions
+                          .length > 0 ||
+                          activeChapter.curriculum.suggested_experiences
+                            .length > 0 ||
+                          activeChapter.curriculum.core_competencies.length >
+                            0 ||
+                          activeChapter.curriculum.core_values.length >
+                            0) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCurriculumExpanded((v) => !v)
+                            }
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: ACCENT,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              padding: 0,
+                              marginBottom: curriculumExpanded
+                                ? 10
+                                : 0,
+                            }}
+                          >
+                            {curriculumExpanded
+                              ? "Hide details ▲"
+                              : "More about this unit ▼"}
+                          </button>
+                        )}
+
+                        {curriculumExpanded && (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 10,
+                            }}
+                          >
+                            {activeChapter.curriculum.key_inquiry_questions
+                              .length > 0 && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: MUTED,
+                                    fontWeight: 700,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Key inquiry questions
+                                </div>
+                                <ul
+                                  style={{
+                                    margin: 0,
+                                    paddingLeft: 18,
+                                    color: TEXT,
+                                    fontSize: 12.5,
+                                    lineHeight: 1.6,
+                                  }}
+                                >
+                                  {activeChapter.curriculum.key_inquiry_questions.map(
+                                    (q, i) => (
+                                      <li key={i}>{q}</li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+
+                            {activeChapter.curriculum.suggested_experiences
+                              .length > 0 && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: MUTED,
+                                    fontWeight: 700,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Suggested learning experiences
+                                </div>
+                                <ul
+                                  style={{
+                                    margin: 0,
+                                    paddingLeft: 18,
+                                    color: TEXT,
+                                    fontSize: 12.5,
+                                    lineHeight: 1.6,
+                                  }}
+                                >
+                                  {activeChapter.curriculum.suggested_experiences.map(
+                                    (s, i) => (
+                                      <li key={i}>{s}</li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+
+                            {activeChapter.curriculum.core_competencies
+                              .length > 0 && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: MUTED,
+                                    fontWeight: 700,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Core competencies
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 6,
+                                  }}
+                                >
+                                  {activeChapter.curriculum.core_competencies.map(
+                                    (c, i) => (
+                                      <span
+                                        key={i}
+                                        style={{
+                                          fontSize: 11,
+                                          background:
+                                            "rgba(255,255,255,0.06)",
+                                          color: TEXT,
+                                          padding: "3px 9px",
+                                          borderRadius: 12,
+                                        }}
+                                      >
+                                        {c}
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {activeChapter.curriculum.core_values.length >
+                              0 && (
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    color: MUTED,
+                                    fontWeight: 700,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Core values
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 6,
+                                  }}
+                                >
+                                  {activeChapter.curriculum.core_values.map(
+                                    (v, i) => (
+                                      <span
+                                        key={i}
+                                        style={{
+                                          fontSize: 11,
+                                          background:
+                                            "rgba(255,255,255,0.06)",
+                                          color: TEXT,
+                                          padding: "3px 9px",
+                                          borderRadius: 12,
+                                        }}
+                                      >
+                                        {v}
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            borderTop: `1px solid ${BORDER}`,
+                            margin: "12px 0 10px",
+                          }}
+                        />
+                      </>
+                    )}
+
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color:
+                          ALIGNMENT_LABELS[
+                            activeChapter.curriculum.alignment_status
+                          ].color,
+                      }}
+                    >
+                      {
+                        ALIGNMENT_LABELS[
+                          activeChapter.curriculum.alignment_status
+                        ].label
+                      }
+                    </div>
+                  </div>
+                )}
 
                 {activeChapter.can_read ? (
                   activeBlocks.length > 0 ? (
