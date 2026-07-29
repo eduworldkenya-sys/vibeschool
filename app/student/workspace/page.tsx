@@ -25,6 +25,18 @@ interface SavedPublication {
   saved_at: string;
 }
 
+interface BookmarkItem {
+  chapter_id: string;
+  publication_id: string;
+  chapter_title: string | null;
+  chapter_number: number;
+  publication_title: string | null;
+  cover_url: string | null;
+  cbc_grade: string | null;
+  cbc_subject: string | null;
+  bookmarked_at: string;
+}
+
 interface ContinueItem {
   publication_id: string;
   title: string | null;
@@ -65,6 +77,7 @@ export default function StudyWorkspacePage() {
 
   const [activeTab, setActiveTab] = useState<Tab>("continue");
   const [saved, setSaved] = useState<SavedPublication[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [continueItems, setContinueItems] = useState<ContinueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -86,20 +99,20 @@ export default function StudyWorkspacePage() {
         return;
       }
 
-      const [libraryResult, continueResult] = await Promise.all([
+      const [libraryResult, continueResult, bookmarksResult] = await Promise.all([
         supabase.rpc("get_my_library"),
-        supabase.rpc("get_continue_reading", {
-          limit_input: 20,
-        }),
+        supabase.rpc("get_continue_reading", { limit_input: 20 }),
+        supabase.rpc("get_my_bookmarks"),
       ]);
 
       if (cancelled) return;
 
-      if (libraryResult.error || continueResult.error) {
+      if (libraryResult.error || continueResult.error || bookmarksResult.error) {
         console.error(
           "Failed to load workspace:",
           libraryResult.error,
-          continueResult.error
+          continueResult.error,
+          bookmarksResult.error
         );
         setPageError("Your study workspace could not be loaded.");
         setLoading(false);
@@ -109,6 +122,11 @@ export default function StudyWorkspacePage() {
       setSaved(
         Array.isArray(libraryResult.data)
           ? (libraryResult.data as SavedPublication[])
+          : []
+      );
+      setBookmarks(
+        Array.isArray(bookmarksResult.data)
+          ? (bookmarksResult.data as BookmarkItem[])
           : []
       );
 
@@ -133,12 +151,13 @@ export default function StudyWorkspacePage() {
     };
   }, [router]);
 
-  function openPublication(publicationId: string) {
-    router.push(`/read/textbook/${publicationId}`);
+  function openPublication(publicationId: string, chapterId?: string) {
+    const base = `/read/textbook/${encodeURIComponent(publicationId)}`;
+    router.push(chapterId ? `${base}?chapter=${encodeURIComponent(chapterId)}` : base);
   }
 
   const futureTab =
-    activeTab !== "continue" && activeTab !== "saved";
+    activeTab !== "continue" && activeTab !== "saved" && activeTab !== "bookmarks";
 
   return (
     <main
@@ -283,8 +302,11 @@ export default function StudyWorkspacePage() {
                     }
                     progress={item.progress_percent}
                     onOpen={() =>
-                      openPublication(item.publication_id)
-                    }
+                       openPublication(
+                         item.publication_id,
+                         item.current_chapter_id
+                       )
+                     }
                   />
                 ))
               )}
@@ -323,6 +345,24 @@ export default function StudyWorkspacePage() {
               )}
             </section>
           )}
+
+        {!loading && !pageError && activeTab === "bookmarks" && (
+          <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {bookmarks.length === 0 ? (
+              <EmptyState title="No chapter bookmarks" text="Open a textbook and bookmark a unit to keep it here." />
+            ) : bookmarks.map((item) => (
+              <PublicationCard
+                key={item.chapter_id}
+                title={item.publication_title}
+                coverUrl={item.cover_url}
+                grade={item.cbc_grade}
+                subject={item.cbc_subject}
+                detail={`Unit ${item.chapter_number} · ${item.chapter_title || `Unit ${item.chapter_number}`}`}
+                onOpen={() => openPublication(item.publication_id, item.chapter_id)}
+              />
+            ))}
+          </section>
+        )}
 
         {!loading && !pageError && futureTab && (
           <EmptyState

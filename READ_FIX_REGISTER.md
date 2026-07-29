@@ -537,3 +537,13 @@ c421c23 (implementation), 6976a57 (legacy trigger/policy cleanup), 59ccd4a (migr
 
 NEXT FIX:
 READ-005C — Chapter bookmarks.
+
+### READ-005C — Chapter bookmarks — VERIFIED
+
+- Canonical chapter bookmarks use `vibe_workspace_items`.
+- Shared entitlement authority: `can_viewer_read_chapter`.
+- RPC-only writes and reads: `toggle_chapter_bookmark(uuid)` and `get_my_bookmarks()`.
+- `get_vibetextbook_reader` returns `is_bookmarked`.
+- Reader supports `?chapter=<chapter_uuid>` and active-chapter bookmark toggling.
+- Study Workspace Bookmarks tab opens the exact chapter.
+- Production ledger: 20260728232212, 20260728232236, 20260728232300, 20260728232356, 20260728232441.

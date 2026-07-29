@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import type {
   ContentBlock,
@@ -68,6 +68,7 @@ interface ReaderChapter {
   completed_at: string | null;
   last_read_at: string | null;
   curriculum: ReaderCurriculum;
+  is_bookmarked: boolean;
   blocks: ContentBlock[] | null;
 }
 
@@ -226,6 +227,8 @@ function ErrorScreen({
 export default function ReadTextbookPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedChapterId = searchParams.get("chapter");
 
   const publicationId =
     typeof params.publicationId === "string"
@@ -247,6 +250,8 @@ export default function ReadTextbookPage() {
     useState(false);
   const [saveError, setSaveError] =
     useState<string | null>(null);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const [bookmarkError, setBookmarkError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -305,15 +310,19 @@ export default function ReadTextbookPage() {
         chapters,
       });
 
-      const resumeChapterId =
-        nextPayload.resume?.chapter_id ?? null;
-      const resumeIndex = resumeChapterId
+      const requestedIndex = requestedChapterId
         ? chapters.findIndex(
-            (c) => c.id === resumeChapterId
+            (chapter) =>
+              chapter.id === requestedChapterId &&
+              chapter.publication_id === publicationId
           )
         : -1;
+      const resumeChapterId = nextPayload.resume?.chapter_id ?? null;
+      const resumeIndex = resumeChapterId
+        ? chapters.findIndex((chapter) => chapter.id === resumeChapterId)
+        : -1;
       setActiveIndex(
-        resumeIndex >= 0 ? resumeIndex : 0
+        requestedIndex >= 0 ? requestedIndex : resumeIndex >= 0 ? resumeIndex : 0
       );
       setState("ready");
 
@@ -363,7 +372,7 @@ export default function ReadTextbookPage() {
     return () => {
       cancelled = true;
     };
-  }, [publicationId]);
+  }, [publicationId, requestedChapterId]);
 
   const publication = payload?.publication ?? null;
   const chapters = payload?.chapters ?? [];
@@ -462,6 +471,50 @@ export default function ReadTextbookPage() {
 
     setPublicationSaved(Boolean(result.saved));
     setSaveLoading(false);
+  }
+
+  async function toggleChapterBookmark() {
+    if (!activeChapter || bookmarkLoading) return;
+    const chapterId = activeChapter.id;
+    const before = Boolean(activeChapter.is_bookmarked);
+    setBookmarkLoading(true);
+    setBookmarkError(null);
+
+    const updateLocal = (bookmarked: boolean) =>
+      setPayload((current) => current ? ({
+        ...current,
+        chapters: current.chapters.map((chapter) =>
+          chapter.id === chapterId ? { ...chapter, is_bookmarked: bookmarked } : chapter
+        ),
+      }) : current);
+
+    updateLocal(!before);
+    const sb = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data: authData } = await sb.auth.getUser();
+    if (!authData.user) {
+      updateLocal(before);
+      setBookmarkLoading(false);
+      router.push("/login");
+      return;
+    }
+    const { data, error } = await sb.rpc("toggle_chapter_bookmark", {
+      p_chapter_id: chapterId,
+    });
+    const result = data as { ok?: boolean; reason?: string | null; bookmarked?: boolean } | null;
+    if (error || !result?.ok) {
+      console.error("Failed to toggle chapter bookmark:", error ?? result);
+      updateLocal(before);
+      setBookmarkError(result?.reason === "not_entitled"
+        ? "This unit is not currently available to bookmark."
+        : "The bookmark could not be updated.");
+      setBookmarkLoading(false);
+      return;
+    }
+    updateLocal(Boolean(result.bookmarked));
+    setBookmarkLoading(false);
   }
 
   const safeActiveIndex =
@@ -1041,18 +1094,31 @@ export default function ReadTextbookPage() {
                   {activeChapter.number}
                 </div>
 
-                <h2
-                  style={{
-                    fontSize: 23,
-                    fontWeight: 850,
-                    color: TEXT,
-                    margin: "0 0 18px",
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {activeChapter.title ||
-                    `${meta.chapterLabel} ${activeChapter.number}`}
-                </h2>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 18 }}>
+                  <h2 style={{ flex: 1, fontSize: 23, fontWeight: 850, color: TEXT, margin: 0, lineHeight: 1.3 }}>
+                    {activeChapter.title || `${meta.chapterLabel} ${activeChapter.number}`}
+                  </h2>
+                  <button
+                    type="button"
+                    disabled={bookmarkLoading || !activeChapter.can_read}
+                    onClick={() => void toggleChapterBookmark()}
+                    aria-pressed={Boolean(activeChapter.is_bookmarked)}
+                    aria-label={activeChapter.is_bookmarked ? "Remove chapter bookmark" : "Bookmark chapter"}
+                    title={activeChapter.is_bookmarked ? "Remove bookmark" : "Bookmark this unit"}
+                    style={{
+                      flexShrink: 0, borderRadius: 10,
+                      border: activeChapter.is_bookmarked ? "1px solid rgba(204,255,0,0.45)" : `1px solid ${BORDER}`,
+                      background: activeChapter.is_bookmarked ? "rgba(204,255,0,0.1)" : "rgba(255,255,255,0.04)",
+                      color: activeChapter.is_bookmarked ? ACCENT : TEXT,
+                      minWidth: 42, height: 42, padding: "0 11px", fontSize: 19,
+                      cursor: bookmarkLoading || !activeChapter.can_read ? "not-allowed" : "pointer",
+                      opacity: bookmarkLoading || !activeChapter.can_read ? 0.55 : 1,
+                    }}
+                  >
+                    {bookmarkLoading ? "…" : activeChapter.is_bookmarked ? "🔖" : "☆"}
+                  </button>
+                </div>
+                {bookmarkError && <div role="alert" style={{ color: "#FF8A8A", fontSize: 12, margin: "-8px 0 14px" }}>{bookmarkError}</div>}
 
                 {activeChapter.curriculum && (
                   <div
