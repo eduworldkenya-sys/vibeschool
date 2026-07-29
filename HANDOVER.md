@@ -1084,3 +1084,6 @@ Implemented secure highlights, notes, vocabulary, definitions and formulae on th
 
 ### VIBELEARN READ — READ-006
 Study View and accessibility implemented on the canonical VibeTextbook reader: persistent text size, line spacing, reading width, dark/light/paper modes, reduced motion, skip link, keyboard operation and mobile settings sheet. Branch: read-006-study-view.
+
+### VIBELEARN READ — READ-007
+Reading analytics implemented: secure per-viewer chapter sessions, active seconds, maximum progress, completion, close reasons and stale-session abandonment evidence. Writes are RPC-only and entitlement checked. Live Supabase migrations applied; repository parity added on branch read-007-reading-analytics.

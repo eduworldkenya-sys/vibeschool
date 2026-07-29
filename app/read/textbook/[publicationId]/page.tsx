@@ -557,6 +557,16 @@ export default function ReadTextbookPage() {
     }
 
     if (!previous || previous.id !== activeChapter.id) {
+      window.dispatchEvent(
+        new CustomEvent("vibe:reader-chapter", {
+          detail: {
+            publicationId: publication.id,
+            chapterId: activeChapter.id,
+            progressPercent: Math.max(activeChapter.progress_percent ?? 0, 10),
+          },
+        })
+      );
+
       previousChapterRef.current = {
         id: activeChapter.id,
         publicationId: publication.id,

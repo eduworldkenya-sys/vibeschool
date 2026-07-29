@@ -602,3 +602,46 @@ Yes.
 
 NEXT FIX:
 READ-007
+
+---
+
+READ-007 VERIFIED
+
+FIX ID: READ-007
+STATUS: VERIFIED
+
+OBJECTIVE:
+Capture entitlement-safe chapter reading sessions, active duration, completion, chapter changes and abandonment evidence beyond raw publication view counts.
+
+ROOT CAUSE:
+The reader only recorded a coarse publication read and monotonic chapter progress. It had no session identity, active-time signal, explicit close reason or stale-session evidence.
+
+FILES CHANGED:
+- components/read/ReadingAnalyticsTracker.tsx
+- app/read/textbook/[publicationId]/layout.tsx
+- app/read/textbook/[publicationId]/page.tsx
+- supabase/migrations/20260729033000_read007_reading_sessions_table.sql
+- supabase/migrations/20260729033010_read007_record_reading_activity.sql
+- READ_FIX_REGISTER.md
+- HANDOVER.md
+
+DATABASE OBJECTS CHANGED:
+- public.vibe_reading_sessions
+- public.record_reading_activity(uuid,uuid,text,integer,integer)
+
+MIGRATION:
+Applied live to project yauqsxggtuxuykcbrtzf and added to repository for parity.
+
+RLS AND SECURITY:
+Authenticated viewers may select only their own sessions. There are no direct client writes. The SECURITY DEFINER RPC derives viewer identity from auth.uid(), verifies chapter entitlement and caps each reported active-time increment.
+
+VERIFICATION COMMANDS:
+- git diff --check
+- npx tsc --noEmit
+- bash vibe-check.sh
+
+REGRESSION RESULTS:
+Existing publication read count, reading progress, workspace tools and Study View remain unchanged.
+
+NEXT FIX:
+READ-008
