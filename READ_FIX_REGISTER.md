@@ -547,3 +547,13 @@ READ-005C — Chapter bookmarks.
 - Reader supports `?chapter=<chapter_uuid>` and active-chapter bookmark toggling.
 - Study Workspace Bookmarks tab opens the exact chapter.
 - Production ledger: 20260728232212, 20260728232236, 20260728232300, 20260728232356, 20260728232441.
+
+### READ-005D–READ-005H — Study workspace capture — IMPLEMENTED
+
+- Highlights, notes, vocabulary, definitions and formulae use `vibe_workspace_items`.
+- Writes are RPC-only through `upsert_study_workspace_item`.
+- Deletes are RPC-only through `delete_study_workspace_item`.
+- Reads use `get_my_study_workspace_items` and re-check chapter entitlement.
+- Reader has a floating Study tool with text-selection capture and chapter selection.
+- Workspace tabs support open, edit and delete.
+- Production ledger: `20260729020437`.

@@ -1078,3 +1078,6 @@ is complete and the session is explicitly instructed to continue.
 - Reader supports `?chapter=<chapter_uuid>` and active-chapter bookmark toggling.
 - Study Workspace Bookmarks tab opens the exact chapter.
 - Production ledger: 20260728232212, 20260728232236, 20260728232300, 20260728232356, 20260728232441.
+
+### VIBELEARN READ — READ-005D–005H
+Implemented secure highlights, notes, vocabulary, definitions and formulae on the canonical workspace authority. Production migration ledger: 20260729020437. Branch: read-005d-h-workspace. Pending local validation/commit/push.
