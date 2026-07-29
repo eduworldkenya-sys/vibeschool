@@ -1081,3 +1081,6 @@ is complete and the session is explicitly instructed to continue.
 
 ### VIBELEARN READ — READ-005D–005H
 Implemented secure highlights, notes, vocabulary, definitions and formulae on the canonical workspace authority. Production migration ledger: 20260729020437. Branch: read-005d-h-workspace. Pending local validation/commit/push.
+
+### VIBELEARN READ — READ-006
+Study View and accessibility implemented on the canonical VibeTextbook reader: persistent text size, line spacing, reading width, dark/light/paper modes, reduced motion, skip link, keyboard operation and mobile settings sheet. Branch: read-006-study-view.

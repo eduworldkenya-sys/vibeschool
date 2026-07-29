@@ -557,3 +557,48 @@ READ-005C — Chapter bookmarks.
 - Reader has a floating Study tool with text-selection capture and chapter selection.
 - Workspace tabs support open, edit and delete.
 - Production ledger: `20260729020437`.
+
+---
+
+READ-006 VERIFIED
+
+FIX ID: READ-006
+STATUS: VERIFIED
+
+OBJECTIVE:
+Provide a persistent Study View with text size, line spacing, reading width, dark/light/paper appearance, keyboard access, reduced-motion support and improved mobile controls.
+
+ROOT CAUSE:
+The canonical reader had a fixed visual presentation and no learner-controlled accessibility preferences.
+
+FILES CHANGED:
+- components/read/ReaderStudyViewControls.tsx
+- app/read/textbook/[publicationId]/layout.tsx
+- READ_FIX_REGISTER.md
+- HANDOVER.md
+
+DATABASE OBJECTS CHANGED:
+None.
+
+MIGRATION:
+None.
+
+RLS AND SECURITY:
+No change. Reader content and study writes remain behind the existing entitlement and RPC authorities.
+
+VERIFICATION COMMANDS:
+- git diff --check
+- npx tsc --noEmit
+- bash vibe-check.sh
+
+VERIFICATION RESULTS:
+Study View preferences persist locally, keyboard shortcut Alt+R works, Escape closes the panel, skip-link and focus-visible behavior are present, reduced-motion respects both user preference and system preference, and mobile controls use a bottom sheet.
+
+REGRESSION RESULTS:
+Existing reader, progress, bookmark and Study Capture components remain wired through the same route layout.
+
+UNRELATED CHANGES PRESERVED:
+Yes.
+
+NEXT FIX:
+READ-007
