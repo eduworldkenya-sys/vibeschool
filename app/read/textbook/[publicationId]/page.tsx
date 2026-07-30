@@ -175,6 +175,54 @@ function normalizeBlocks(
   );
 }
 
+// READ-008C: SEARCH POLISH
+function HighlightedText({
+  text,
+  query,
+}: {
+  text: string;
+  query: string;
+}) {
+  const normalizedQuery = query.trim();
+  if (!normalizedQuery) return <>{text}</>;
+
+  const lowerText = text.toLocaleLowerCase("en");
+  const lowerQuery = normalizedQuery.toLocaleLowerCase("en");
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  let matchIndex = lowerText.indexOf(lowerQuery);
+
+  while (matchIndex >= 0) {
+    if (matchIndex > cursor) {
+      parts.push(text.slice(cursor, matchIndex));
+    }
+
+    const matchEnd = matchIndex + normalizedQuery.length;
+    parts.push(
+      <mark
+        key={`${matchIndex}-${matchEnd}`}
+        style={{
+          background: "rgba(204,255,0,0.22)",
+          color: TEXT,
+          borderRadius: 3,
+          padding: "0 2px",
+        }}
+      >
+        {text.slice(matchIndex, matchEnd)}
+      </mark>
+    );
+
+    cursor = matchEnd;
+    matchIndex = lowerText.indexOf(lowerQuery, cursor);
+  }
+
+  if (cursor < text.length) {
+    parts.push(text.slice(cursor));
+  }
+
+  return <>{parts}</>;
+}
+
 function ErrorScreen({
   message,
   onHome,
@@ -397,6 +445,16 @@ export default function ReadTextbookPage() {
     [readerSearchIndex, searchQuery]
   );
 
+  const selectedSearchBlockId =
+    searchResults[selectedSearchResult]?.blockId ?? null;
+
+  useEffect(() => {
+    setSelectedSearchResult((current) => {
+      if (searchResults.length === 0) return 0;
+      return Math.min(current, searchResults.length - 1);
+    });
+  }, [searchResults.length]);
+
   function updateReaderUrl(
     chapterId: string,
     query = searchQuery,
@@ -420,6 +478,9 @@ export default function ReadTextbookPage() {
     if (!chapter) return;
 
     setActiveIndex(index);
+    setSelectedSearchResult((current) =>
+      blockId ? current : 0
+    );
     updateReaderUrl(chapter.id, query, blockId);
 
     window.setTimeout(() => {
@@ -1082,6 +1143,44 @@ export default function ReadTextbookPage() {
                       updateReaderUrl(activeChapter.id, value);
                     }
                   }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setSearchQuery("");
+                      setSelectedSearchResult(0);
+                      if (activeChapter) {
+                        updateReaderUrl(activeChapter.id, "");
+                      }
+                      searchInputRef.current?.blur();
+                      return;
+                    }
+
+                    if (searchResults.length === 0) return;
+
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setSelectedSearchResult((current) =>
+                        Math.min(current + 1, searchResults.length - 1)
+                      );
+                      return;
+                    }
+
+                    if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setSelectedSearchResult((current) =>
+                        Math.max(current - 1, 0)
+                      );
+                      return;
+                    }
+
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      openSearchResult(selectedSearchResult);
+                    }
+                  }}
+                  aria-controls={
+                    searchQuery.trim() ? "reader-search-results" : undefined
+                  }
                   placeholder="Search readable units…"
                   aria-label="Search this textbook"
                   style={{
@@ -1132,6 +1231,9 @@ export default function ReadTextbookPage() {
 
               {searchQuery.trim() && (
                 <div
+                  id="reader-search-results"
+                  role="region"
+                  aria-label="Textbook search results"
                   style={{
                     background: SURFACE,
                     border: `1px solid ${BORDER}`,
@@ -1279,7 +1381,10 @@ export default function ReadTextbookPage() {
                                   lineHeight: 1.5,
                                 }}
                               >
-                                {result.snippet}
+                                <HighlightedText
+                                  text={result.snippet}
+                                  query={searchQuery}
+                                />
                               </div>
                             </button>
                           );
@@ -1821,6 +1926,16 @@ export default function ReadTextbookPage() {
                           style={{
                             scrollMarginTop: 20,
                             borderRadius: 10,
+                            outline:
+                              selectedSearchBlockId === block.id
+                                ? "2px solid rgba(204,255,0,0.72)"
+                                : "2px solid transparent",
+                            background:
+                              selectedSearchBlockId === block.id
+                                ? "rgba(204,255,0,0.055)"
+                                : "transparent",
+                            transition:
+                              "outline-color 160ms ease, background 160ms ease",
                           }}
                         >
                           <ContentBlockEditor
