@@ -433,7 +433,11 @@ export default function ReadTextbookPage() {
   }, [publicationId, requestedChapterId]);
 
   const publication = payload?.publication ?? null;
-  const chapters = payload?.chapters ?? [];
+  // READ-008D: NAVIGATION INTEGRITY
+  const chapters = useMemo(
+    () => payload?.chapters ?? [],
+    [payload?.chapters]
+  );
 
   const readerSearchIndex = useMemo(
     () => buildReaderSearchIndex(chapters),
@@ -447,6 +451,7 @@ export default function ReadTextbookPage() {
 
   const selectedSearchBlockId =
     searchResults[selectedSearchResult]?.blockId ?? null;
+  const searchResultRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     setSelectedSearchResult((current) => {
@@ -454,6 +459,12 @@ export default function ReadTextbookPage() {
       return Math.min(current, searchResults.length - 1);
     });
   }, [searchResults.length]);
+
+  useEffect(() => {
+    searchResultRefs.current[selectedSearchResult]?.scrollIntoView({
+      block: "nearest",
+    });
+  }, [selectedSearchResult]);
 
   function updateReaderUrl(
     chapterId: string,
@@ -691,6 +702,24 @@ export default function ReadTextbookPage() {
 
   const activeChapter =
     chapters[safeActiveIndex] ?? null;
+
+  const previousReadableIndex = useMemo(() => {
+    for (let index = safeActiveIndex - 1; index >= 0; index -= 1) {
+      if (chapters[index]?.can_read) return index;
+    }
+    return -1;
+  }, [chapters, safeActiveIndex]);
+
+  const nextReadableIndex = useMemo(() => {
+    for (
+      let index = safeActiveIndex + 1;
+      index < chapters.length;
+      index += 1
+    ) {
+      if (chapters[index]?.can_read) return index;
+    }
+    return -1;
+  }, [chapters, safeActiveIndex]);
 
   const activeBlocks = useMemo(
     () => normalizeBlocks(activeChapter?.blocks),
@@ -1347,6 +1376,10 @@ export default function ReadTextbookPage() {
                             <button
                               type="button"
                               key={`${result.chapterId}-${result.blockId}-${result.matchIndex}`}
+                              ref={(element) => {
+                                searchResultRefs.current[resultIndex] = element;
+                              }}
+                              aria-current={selected ? "true" : undefined}
                               onClick={() => openSearchResult(resultIndex)}
                               style={{
                                 width: "100%",
@@ -1423,6 +1456,7 @@ export default function ReadTextbookPage() {
                       <button
                         type="button"
                         key={chapter.id}
+                        aria-current={active ? "page" : undefined}
                         onClick={() => navigateToChapter(index)}
                         style={{
                           width: "100%",
@@ -2041,11 +2075,11 @@ export default function ReadTextbookPage() {
                     marginTop: 32,
                   }}
                 >
-                  {safeActiveIndex > 0 && (
+                  {previousReadableIndex >= 0 && (
                     <button
                       type="button"
                       onClick={() =>
-                        navigateToChapter(safeActiveIndex - 1)
+                        navigateToChapter(previousReadableIndex)
                       }
                       style={{
                         flex: 1,
@@ -2064,12 +2098,11 @@ export default function ReadTextbookPage() {
                     </button>
                   )}
 
-                  {safeActiveIndex <
-                    chapters.length - 1 && (
+                  {nextReadableIndex >= 0 && (
                     <button
                       type="button"
                       onClick={() =>
-                        navigateToChapter(safeActiveIndex + 1)
+                        navigateToChapter(nextReadableIndex)
                       }
                       style={{
                         flex: 1,
