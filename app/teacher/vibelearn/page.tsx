@@ -32,7 +32,28 @@ interface Stats {
   top_content:        { title: string; view_count: number }[];
 }
 
-type Tab = "content" | "create" | "stats" | "discover";
+type Tab = "content" | "create" | "assignments" | "stats" | "discover";
+
+interface ClassroomReadingAssignment {
+  assignment_id: string;
+  class_id: string;
+  class_name: string | null;
+  class_stream: string | null;
+  publication_id: string;
+  publication_title: string | null;
+  cover_url: string | null;
+  chapter_id: string;
+  chapter_number: number;
+  chapter_title: string | null;
+  assigned_at: string;
+  due_at: string | null;
+  status: "assigned" | "cancelled";
+  learner_count: number;
+  started_count: number;
+  completed_count: number;
+  overdue_count: number;
+  average_progress: number;
+}
 
 const SUBJECTS = [
   "Mathematics","English","Kiswahili","Biology","Chemistry",
@@ -590,9 +611,15 @@ export default function VibeLearnPage() {
 
         {/* ── Tabs ── */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto", paddingBottom: 2 }}>
-          {(["content","create","stats","discover"] as Tab[]).map(t => (
+          {(["content","create","assignments","stats","discover"] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={S.pill(tab === t)}>
-              {{ content: `📄 Content${liveCount > 0 ? ` (${liveCount})` : ""}`, create: "✦ Create", stats: "📊 Stats", discover: "🔍 Discover" }[t]}
+              {{
+                content: `📄 Content${liveCount > 0 ? ` (${liveCount})` : ""}`,
+                create: "✦ Create",
+                assignments: "📚 Assignments",
+                stats: "📊 Stats",
+                discover: "🔍 Discover",
+              }[t]}
             </button>
           ))}
         </div>
@@ -952,12 +979,944 @@ export default function VibeLearnPage() {
           </div>
         )}
 
+        {/* ══ ASSIGNMENTS TAB ══ */}
+        {tab === "assignments" && <ReadingAssignmentsTab />}
+
         {/* ══ DISCOVER TAB ══ */}
         {tab === "discover" && <DiscoverTab userId={userId} />}
 
       </div>
     </>
   );
+}
+
+// ── Reading Assignments Tab ───────────────────────────────────────────────────
+function ReadingAssignmentsTab() {
+  const [items, setItems] = useState<ClassroomReadingAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [dueValue, setDueValue] = useState("");
+
+  const loadAssignments = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+
+    const { data, error } = await supabase.rpc(
+      "get_my_classroom_reading_assignments"
+    );
+
+    const payload = data as {
+      ok?: boolean;
+      items?: ClassroomReadingAssignment[];
+    } | null;
+
+    if (error || !payload?.ok) {
+      console.error("Failed to load classroom reading assignments:", error);
+      setLoadError(
+        "Classroom reading assignments could not be loaded. Try again."
+      );
+      setLoading(false);
+      return;
+    }
+
+    setItems(Array.isArray(payload.items) ? payload.items : []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void loadAssignments();
+  }, [loadAssignments]);
+
+  function beginDueEdit(item: ClassroomReadingAssignment) {
+    setActionError("");
+    setEditingId(item.assignment_id);
+    setDueValue(toDateTimeLocalValue(item.due_at));
+  }
+
+  function cancelDueEdit() {
+    setEditingId(null);
+    setDueValue("");
+  }
+
+  async function saveDueDate(item: ClassroomReadingAssignment) {
+    if (busyId) return;
+
+    let dueAt: string | null = null;
+
+    if (dueValue) {
+      const date = new Date(dueValue);
+
+      if (Number.isNaN(date.getTime())) {
+        setActionError("Enter a valid due date and time.");
+        return;
+      }
+
+      if (date.getTime() <= Date.now()) {
+        setActionError("The due date must be in the future.");
+        return;
+      }
+
+      dueAt = date.toISOString();
+    }
+
+    setBusyId(item.assignment_id);
+    setActionError("");
+
+    const { data, error } = await supabase.rpc(
+      "update_chapter_assignment_due_at",
+      {
+        p_assignment_id: item.assignment_id,
+        p_due_at: dueAt,
+      }
+    );
+
+    const result = data as {
+      ok?: boolean;
+      assignment_id?: string;
+      due_at?: string | null;
+    } | null;
+
+    if (error || !result?.ok) {
+      console.error("Failed to update assignment due date:", error);
+      setActionError(
+        assignmentActionError(
+          error,
+          "The assignment due date could not be updated."
+        )
+      );
+      setBusyId(null);
+      return;
+    }
+
+    setItems(current =>
+      current.map(currentItem =>
+        currentItem.assignment_id === item.assignment_id
+          ? {
+              ...currentItem,
+              due_at: result.due_at ?? dueAt,
+            }
+          : currentItem
+      )
+    );
+
+    setEditingId(null);
+    setDueValue("");
+    setBusyId(null);
+  }
+
+  async function cancelAssignment(item: ClassroomReadingAssignment) {
+    if (
+      busyId ||
+      !window.confirm(
+        `Cancel “${item.chapter_title || `Unit ${item.chapter_number}`}” for ${assignmentClassLabel(item)}?`
+      )
+    ) {
+      return;
+    }
+
+    setBusyId(item.assignment_id);
+    setActionError("");
+
+    const { data, error } = await supabase.rpc(
+      "cancel_chapter_assignment",
+      {
+        p_assignment_id: item.assignment_id,
+      }
+    );
+
+    const result = data as {
+      ok?: boolean;
+      reason?: string | null;
+      assignment_id?: string;
+      status?: string;
+    } | null;
+
+    if (error || !result?.ok) {
+      console.error("Failed to cancel assignment:", error, result);
+      setActionError(
+        assignmentActionError(
+          error ?? result?.reason,
+          "The reading assignment could not be cancelled."
+        )
+      );
+      setBusyId(null);
+      return;
+    }
+
+    setItems(current =>
+      current.map(currentItem =>
+        currentItem.assignment_id === item.assignment_id
+          ? { ...currentItem, status: "cancelled" }
+          : currentItem
+      )
+    );
+
+    setEditingId(current =>
+      current === item.assignment_id ? null : current
+    );
+    setBusyId(null);
+  }
+
+  const activeItems = items.filter(item => item.status === "assigned");
+  const cancelledItems = items.filter(item => item.status === "cancelled");
+
+  const totalLearners = activeItems.reduce(
+    (sum, item) => sum + Number(item.learner_count || 0),
+    0
+  );
+  const totalCompleted = activeItems.reduce(
+    (sum, item) => sum + Number(item.completed_count || 0),
+    0
+  );
+  const totalOverdue = activeItems.reduce(
+    (sum, item) => sum + Number(item.overdue_count || 0),
+    0
+  );
+
+  if (loading) {
+    return (
+      <div>
+        {[0, 1, 2].map(index => (
+          <div key={index} style={S.card}>
+            <div style={{ display: "flex", gap: 12 }}>
+              <Shimmer w={56} h={76} r={10} />
+              <div style={{ flex: 1 }}>
+                <Shimmer w="76%" h={15} />
+                <div style={{ marginTop: 9 }}>
+                  <Shimmer w="55%" h={11} />
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <Shimmer w="100%" h={6} r={999} />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div
+        style={{
+          ...S.card,
+          textAlign: "center",
+          padding: "36px 22px",
+        }}
+      >
+        <div style={{ fontSize: 32, marginBottom: 10 }}>⚠️</div>
+        <div
+          style={{
+            color: C.textPrimary,
+            fontWeight: 800,
+            fontSize: 15,
+            marginBottom: 7,
+          }}
+        >
+          Assignments unavailable
+        </div>
+        <div
+          style={{
+            color: C.textMuted,
+            fontSize: 12,
+            lineHeight: 1.6,
+            marginBottom: 16,
+          }}
+        >
+          {loadError}
+        </div>
+        <button
+          type="button"
+          onClick={() => void loadAssignments()}
+          style={{
+            border: "none",
+            borderRadius: 10,
+            padding: "10px 16px",
+            background: C.accent,
+            color: "#fff",
+            fontWeight: 800,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ ...S.card, padding: 16 }}>
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 850,
+            color: C.textPrimary,
+            marginBottom: 4,
+          }}
+        >
+          Classroom Reading
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: C.textMuted,
+            lineHeight: 1.6,
+            marginBottom: 14,
+          }}
+        >
+          Track assigned chapters, learner progress and due dates.
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4,minmax(0,1fr))",
+            gap: 7,
+          }}
+        >
+          {[
+            {
+              label: "ACTIVE",
+              value: activeItems.length,
+              color: C.accent,
+            },
+            {
+              label: "LEARNERS",
+              value: totalLearners,
+              color: "#2563eb",
+            },
+            {
+              label: "COMPLETED",
+              value: totalCompleted,
+              color: "#7c3aed",
+            },
+            {
+              label: "OVERDUE",
+              value: totalOverdue,
+              color: totalOverdue > 0 ? "#dc2626" : C.textMuted,
+            },
+          ].map(metric => (
+            <div
+              key={metric.label}
+              style={{
+                borderRadius: 11,
+                background: "#f8fafc",
+                border: `1px solid ${C.border}`,
+                padding: "10px 5px",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  color: metric.color,
+                  fontSize: 17,
+                  fontWeight: 900,
+                }}
+              >
+                {metric.value}
+              </div>
+              <div
+                style={{
+                  color: C.textMuted,
+                  fontSize: 8,
+                  fontWeight: 800,
+                  marginTop: 2,
+                }}
+              >
+                {metric.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {actionError && (
+        <div
+          role="alert"
+          style={{
+            fontSize: 12,
+            color: C.error,
+            marginBottom: 12,
+            padding: "11px 14px",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: 10,
+            lineHeight: 1.5,
+          }}
+        >
+          ⚠️ {actionError}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div
+          style={{
+            ...S.card,
+            textAlign: "center",
+            padding: "48px 24px",
+          }}
+        >
+          <div style={{ fontSize: 38, marginBottom: 12 }}>📖</div>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: C.textPrimary,
+              marginBottom: 7,
+            }}
+          >
+            No reading assignments yet
+          </div>
+          <div
+            style={{
+              color: C.textMuted,
+              fontSize: 13,
+              lineHeight: 1.65,
+            }}
+          >
+            Assign a published textbook chapter to a class from the textbook
+            reader.
+          </div>
+        </div>
+      ) : (
+        <>
+          {activeItems.map(item => (
+            <ReadingAssignmentCard
+              key={item.assignment_id}
+              item={item}
+              editing={editingId === item.assignment_id}
+              dueValue={dueValue}
+              busy={busyId === item.assignment_id}
+              onDueValueChange={setDueValue}
+              onBeginEdit={() => beginDueEdit(item)}
+              onCancelEdit={cancelDueEdit}
+              onSaveDue={() => void saveDueDate(item)}
+              onCancelAssignment={() => void cancelAssignment(item)}
+            />
+          ))}
+
+          {cancelledItems.length > 0 && (
+            <details style={{ marginTop: 14 }}>
+              <summary
+                style={{
+                  cursor: "pointer",
+                  color: C.textMuted,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  padding: "10px 2px",
+                }}
+              >
+                Cancelled assignments ({cancelledItems.length})
+              </summary>
+
+              <div style={{ marginTop: 8 }}>
+                {cancelledItems.map(item => (
+                  <ReadingAssignmentCard
+                    key={item.assignment_id}
+                    item={item}
+                    editing={false}
+                    dueValue=""
+                    busy={false}
+                    onDueValueChange={() => undefined}
+                    onBeginEdit={() => undefined}
+                    onCancelEdit={() => undefined}
+                    onSaveDue={() => undefined}
+                    onCancelAssignment={() => undefined}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ReadingAssignmentCard({
+  item,
+  editing,
+  dueValue,
+  busy,
+  onDueValueChange,
+  onBeginEdit,
+  onCancelEdit,
+  onSaveDue,
+  onCancelAssignment,
+}: {
+  item: ClassroomReadingAssignment;
+  editing: boolean;
+  dueValue: string;
+  busy: boolean;
+  onDueValueChange: (value: string) => void;
+  onBeginEdit: () => void;
+  onCancelEdit: () => void;
+  onSaveDue: () => void;
+  onCancelAssignment: () => void;
+}) {
+  const cancelled = item.status === "cancelled";
+  const learnerCount = Number(item.learner_count || 0);
+  const startedCount = Number(item.started_count || 0);
+  const completedCount = Number(item.completed_count || 0);
+  const overdueCount = Number(item.overdue_count || 0);
+  const averageProgress = Math.max(
+    0,
+    Math.min(100, Number(item.average_progress || 0))
+  );
+
+  return (
+    <article
+      style={{
+        ...S.card,
+        opacity: cancelled ? 0.68 : 1,
+      }}
+    >
+      <div style={{ display: "flex", gap: 12 }}>
+        <div
+          style={{
+            width: 58,
+            height: 78,
+            flexShrink: 0,
+            overflow: "hidden",
+            borderRadius: 10,
+            background: "#e0e7ff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 24,
+          }}
+        >
+          {item.cover_url ? (
+            <img
+              src={item.cover_url}
+              alt=""
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            "📘"
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                color: C.textPrimary,
+                fontSize: 14,
+                fontWeight: 850,
+                lineHeight: 1.35,
+              }}
+            >
+              {item.publication_title || "Untitled textbook"}
+            </div>
+
+            <span
+              style={{
+                flexShrink: 0,
+                borderRadius: 999,
+                padding: "4px 8px",
+                fontSize: 9,
+                fontWeight: 850,
+                background: cancelled
+                  ? "#f1f5f9"
+                  : overdueCount > 0
+                    ? "#fef2f2"
+                    : "#ecfdf5",
+                color: cancelled
+                  ? C.textMuted
+                  : overdueCount > 0
+                    ? "#b91c1c"
+                    : "#047857",
+                border: cancelled
+                  ? `1px solid ${C.border}`
+                  : overdueCount > 0
+                    ? "1px solid #fecaca"
+                    : "1px solid #a7f3d0",
+              }}
+            >
+              {cancelled
+                ? "Cancelled"
+                : overdueCount > 0
+                  ? `${overdueCount} overdue`
+                  : "Active"}
+            </span>
+          </div>
+
+          <div
+            style={{
+              color: C.textPrimary,
+              fontSize: 12,
+              fontWeight: 750,
+              marginTop: 7,
+              lineHeight: 1.4,
+            }}
+          >
+            Unit {item.chapter_number}
+            {item.chapter_title ? ` · ${item.chapter_title}` : ""}
+          </div>
+
+          <div
+            style={{
+              color: C.textMuted,
+              fontSize: 11,
+              marginTop: 4,
+            }}
+          >
+            {assignmentClassLabel(item)}
+          </div>
+
+          <div
+            style={{
+              color: C.textMuted,
+              fontSize: 10,
+              marginTop: 4,
+            }}
+          >
+            Assigned {formatAssignmentDate(item.assigned_at)}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,minmax(0,1fr))",
+          gap: 6,
+          marginTop: 14,
+        }}
+      >
+        {[
+          { label: "Learners", value: learnerCount },
+          { label: "Started", value: startedCount },
+          { label: "Done", value: completedCount },
+          { label: "Overdue", value: overdueCount },
+        ].map(metric => (
+          <div
+            key={metric.label}
+            style={{
+              background: "#f8fafc",
+              borderRadius: 9,
+              padding: "8px 4px",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                color: C.textPrimary,
+                fontSize: 14,
+                fontWeight: 850,
+              }}
+            >
+              {metric.value}
+            </div>
+            <div
+              style={{
+                color: C.textMuted,
+                fontSize: 8,
+                fontWeight: 750,
+                marginTop: 2,
+              }}
+            >
+              {metric.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 13 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            color: C.textMuted,
+            fontSize: 10,
+            marginBottom: 5,
+          }}
+        >
+          <span>Average class progress</span>
+          <span>{Math.round(averageProgress)}%</span>
+        </div>
+
+        <div
+          style={{
+            height: 6,
+            borderRadius: 999,
+            background: C.border,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: `${averageProgress}%`,
+              height: "100%",
+              background: C.accent,
+            }}
+          />
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 13,
+          paddingTop: 12,
+          borderTop: `1px solid ${C.border}`,
+        }}
+      >
+        {editing ? (
+          <div>
+            <label style={S.label} htmlFor={`due-${item.assignment_id}`}>
+              Due date and time
+            </label>
+
+            <input
+              id={`due-${item.assignment_id}`}
+              type="datetime-local"
+              value={dueValue}
+              min={minimumDateTimeLocalValue()}
+              onChange={event => onDueValueChange(event.target.value)}
+              style={S.input}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 9,
+              }}
+            >
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onSaveDue}
+                style={assignmentButtonStyle("primary", busy)}
+              >
+                {busy ? "Saving…" : "Save due date"}
+              </button>
+
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onDueValueChange("")}
+                style={assignmentButtonStyle("secondary", busy)}
+              >
+                Clear date
+              </button>
+
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onCancelEdit}
+                style={assignmentButtonStyle("secondary", busy)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    color: C.textMuted,
+                    fontSize: 9,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.7,
+                  }}
+                >
+                  Due
+                </div>
+                <div
+                  style={{
+                    color: C.textPrimary,
+                    fontSize: 12,
+                    fontWeight: 750,
+                    marginTop: 2,
+                  }}
+                >
+                  {item.due_at
+                    ? formatAssignmentDate(item.due_at, true)
+                    : "No due date"}
+                </div>
+              </div>
+            </div>
+
+            {!cancelled && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onBeginEdit}
+                  style={assignmentButtonStyle("secondary", busy)}
+                >
+                  Edit due date
+                </button>
+
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onCancelAssignment}
+                  style={assignmentButtonStyle("danger", busy)}
+                >
+                  {busy ? "Cancelling…" : "Cancel assignment"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function assignmentClassLabel(item: ClassroomReadingAssignment): string {
+  return [item.class_name || "Unnamed class", item.class_stream]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function assignmentButtonStyle(
+  kind: "primary" | "secondary" | "danger",
+  disabled: boolean
+): React.CSSProperties {
+  const background =
+    kind === "primary"
+      ? C.accent
+      : kind === "danger"
+        ? "#fef2f2"
+        : "#f8fafc";
+
+  const color =
+    kind === "primary"
+      ? "#fff"
+      : kind === "danger"
+        ? "#b91c1c"
+        : C.textPrimary;
+
+  const border =
+    kind === "primary"
+      ? "none"
+      : kind === "danger"
+        ? "1px solid #fecaca"
+        : `1px solid ${C.border}`;
+
+  return {
+    border,
+    borderRadius: 9,
+    padding: "8px 11px",
+    background,
+    color,
+    fontSize: 11,
+    fontWeight: 800,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+    fontFamily: "inherit",
+  };
+}
+
+function formatAssignmentDate(
+  value: string,
+  includeTime = false
+): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Invalid date";
+
+  return new Intl.DateTimeFormat("en-KE", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    ...(includeTime
+      ? {
+          hour: "2-digit",
+          minute: "2-digit",
+        }
+      : {}),
+  }).format(date);
+}
+
+function toDateTimeLocalValue(value: string | null): string {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function minimumDateTimeLocalValue(): string {
+  const date = new Date(Date.now() + 60_000);
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+
+  return new Date(date.getTime() - offsetMs)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function assignmentActionError(
+  error: unknown,
+  fallback: string
+): string {
+  const raw =
+    typeof error === "string"
+      ? error
+      : error instanceof Error
+        ? error.message
+        : error &&
+            typeof error === "object" &&
+            "message" in error &&
+            typeof error.message === "string"
+          ? error.message
+          : "";
+
+  if (raw.includes("DUE_DATE_MUST_BE_FUTURE")) {
+    return "The due date must be in the future.";
+  }
+
+  if (raw.includes("ASSIGNMENT_NOT_FOUND_OR_NOT_ACTIVE")) {
+    return "This assignment is no longer active.";
+  }
+
+  if (raw.includes("AUTH_REQUIRED")) {
+    return "Your session has expired. Sign in again.";
+  }
+
+  return raw ? friendlyError(raw) : fallback;
 }
 
 // ── Discover Tab ──────────────────────────────────────────────────────────────
