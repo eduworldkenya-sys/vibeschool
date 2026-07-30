@@ -645,3 +645,100 @@ Existing publication read count, reading progress, workspace tools and Study Vie
 
 NEXT FIX:
 READ-008
+
+
+---
+
+READ-008A VERIFIED
+
+FIX ID: READ-008A
+STATUS: VERIFIED
+
+OBJECTIVE:
+Create the canonical classroom-to-reader assignment authority without fabricating learner identities.
+
+ROOT CAUSE:
+teacher_classes.teacher_id uses profiles.id/auth.uid(), student_classes.student_id uses students.id, and reader progress uses profiles.id/auth.uid(). students.profile_id is the only valid bridge and is nullable.
+
+EVIDENCE:
+- Production has 115 non-deleted students; only 1 currently has profile_id.
+- No pre-existing chapter-assignment table existed.
+- Foreign-key identities were verified directly from information_schema.
+
+FILES CHANGED:
+- supabase/migrations/20260730095046_read008a_classroom_assignment_authority.sql
+- READ_FIX_REGISTER.md
+- HANDOVER.md
+
+DATABASE OBJECTS CHANGED:
+- public.vibe_chapter_assignments
+- public.set_vibe_chapter_assignment_updated_at()
+- teacher and linked-learner SELECT policies
+
+MIGRATION:
+Production ledger version 20260730095046, applied live to project yauqsxggtuxuykcbrtzf.
+
+DATA CHANGES:
+None.
+
+RLS AND SECURITY:
+Authenticated clients receive SELECT only. Teachers see their own assignments. Learners see active assignments only when current enrollment resolves through students.profile_id = auth.uid(). Direct client writes are unavailable.
+
+VERIFICATION RESULTS:
+Migration applied successfully and is present in the production ledger. No learner identities or assignments were fabricated.
+
+OPEN RISKS:
+114 of 115 legacy students remain unlinked to authenticated profiles.
+
+NEXT FIX:
+READ-008B — Teacher assignment writer RPCs and teacher-facing assignment controls.
+
+---
+
+READ-008B VERIFIED
+
+FIX ID: READ-008B
+STATUS: VERIFIED
+
+OBJECTIVE:
+Create the canonical RPC-only writer authority for teachers to assign published VibeTextbook chapters to their assigned classes and cancel their own assignments.
+
+ROOT CAUSE:
+READ-008A created the assignment table and read policies, but authenticated clients intentionally had no INSERT, UPDATE or DELETE path.
+
+FILES CHANGED:
+- supabase/migrations/20260730104700_read008b_assignment_writer_authority.sql
+- READ_FIX_REGISTER.md
+- HANDOVER.md
+
+DATABASE OBJECTS CHANGED:
+- public.assign_chapter_to_class(uuid, uuid, timestamptz)
+- public.cancel_chapter_assignment(uuid)
+
+MIGRATION:
+Applied live to project yauqsxggtuxuykcbrtzf and captured in repository for parity.
+
+DATA CHANGES:
+None during migration.
+
+RLS AND SECURITY:
+- Teacher identity is derived from auth.uid().
+- Class authority is verified through teacher_classes and matching classes.school_id.
+- Only published chapters from published format=vibetextbook publications are assignable.
+- Due dates must be in the future when supplied.
+- Duplicate active assignments are rejected.
+- Cancellation is limited to the original assigning teacher.
+- Anonymous execution is revoked.
+- Direct table writes remain unavailable to authenticated clients.
+
+VERIFICATION RESULTS:
+The production migration applied successfully. Function signatures, SECURITY DEFINER configuration and grants are represented by the migration and checked by repository validation.
+
+REGRESSION RESULTS:
+READ-008A table/RLS authority, reader progress, analytics and workspace features remain unchanged.
+
+OPEN RISKS:
+Teacher-facing assignment UI and learner delivery are not included in this writer-authority unit.
+
+NEXT FIX:
+READ-008C — Learner assigned-reading delivery and due-date surface.

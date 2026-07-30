@@ -17,6 +17,7 @@ const C = {
 };
 
 type Tab =
+  | "assigned"
   | "continue"
   | "saved"
   | "bookmarks"
@@ -59,6 +60,38 @@ interface ContinueItem {
   progress_percent: number;
 }
 
+type ReadingStatus = "not_started" | "reading" | "completed";
+type DueStatus =
+  | "no_due_date"
+  | "upcoming"
+  | "due_today"
+  | "overdue"
+  | "completed";
+
+interface AssignedReadingItem {
+  id: string;
+  class_id: string;
+  class_name: string | null;
+  class_stream: string | null;
+  publication_id: string;
+  publication_title: string | null;
+  cover_url: string | null;
+  cbc_subject: string | null;
+  cbc_grade: string | null;
+  chapter_id: string;
+  chapter_number: number;
+  chapter_title: string | null;
+  assigned_at: string;
+  due_at: string | null;
+  progress_percent: number;
+  started_at: string | null;
+  last_read_at: string | null;
+  completed_at: string | null;
+  reading_status: ReadingStatus;
+  due_status: DueStatus;
+  reader_url: string;
+}
+
 interface StudyItem {
   item_id: string;
   item_type: StudyType;
@@ -75,6 +108,7 @@ interface StudyItem {
 }
 
 const tabs: Array<{ id: Tab; label: string }> = [
+  { id: "assigned", label: "Assigned Reading" },
   { id: "continue", label: "Continue Reading" },
   { id: "saved", label: "Saved" },
   { id: "bookmarks", label: "Bookmarks" },
@@ -95,7 +129,8 @@ const tabToType: Partial<Record<Tab, StudyType>> = {
 
 export default function StudyWorkspacePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("continue");
+  const [activeTab, setActiveTab] = useState<Tab>("assigned");
+  const [assignedItems, setAssignedItems] = useState<AssignedReadingItem[]>([]);
   const [saved, setSaved] = useState<SavedPublication[]>([]);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [continueItems, setContinueItems] = useState<ContinueItem[]>([]);
@@ -117,15 +152,22 @@ export default function StudyWorkspacePage() {
       return;
     }
 
-    const [libraryResult, continueResult, bookmarksResult, studyResult] =
-      await Promise.all([
-        supabase.rpc("get_my_library"),
-        supabase.rpc("get_continue_reading", { limit_input: 20 }),
-        supabase.rpc("get_my_bookmarks"),
-        supabase.rpc("get_my_study_workspace_items", { p_item_type: null }),
-      ]);
+    const [
+      assignedResult,
+      libraryResult,
+      continueResult,
+      bookmarksResult,
+      studyResult,
+    ] = await Promise.all([
+      supabase.rpc("get_my_assigned_reading"),
+      supabase.rpc("get_my_library"),
+      supabase.rpc("get_continue_reading", { limit_input: 20 }),
+      supabase.rpc("get_my_bookmarks"),
+      supabase.rpc("get_my_study_workspace_items", { p_item_type: null }),
+    ]);
 
     if (
+      assignedResult.error ||
       libraryResult.error ||
       continueResult.error ||
       bookmarksResult.error ||
@@ -133,6 +175,7 @@ export default function StudyWorkspacePage() {
     ) {
       console.error(
         "Failed to load workspace:",
+        assignedResult.error,
         libraryResult.error,
         continueResult.error,
         bookmarksResult.error,
@@ -143,6 +186,15 @@ export default function StudyWorkspacePage() {
       return;
     }
 
+    const assignedPayload = assignedResult.data as {
+      ok?: boolean;
+      reason?: string | null;
+      items?: AssignedReadingItem[];
+    } | null;
+
+    setAssignedItems(
+      Array.isArray(assignedPayload?.items) ? assignedPayload.items : []
+    );
     setSaved(Array.isArray(libraryResult.data) ? libraryResult.data : []);
     setBookmarks(Array.isArray(bookmarksResult.data) ? bookmarksResult.data : []);
     setStudyItems(Array.isArray(studyResult.data) ? studyResult.data : []);
@@ -269,7 +321,7 @@ export default function StudyWorkspacePage() {
           My Study Workspace
         </h1>
         <p style={{ color: C.muted, fontSize: 13, margin: "0 0 18px" }}>
-          Continue reading and keep highlights, notes and study references together.
+          Open assigned chapters, continue reading and keep your study material together.
         </p>
 
         <div
@@ -319,6 +371,27 @@ export default function StudyWorkspacePage() {
           >
             {pageError}
           </div>
+        )}
+
+        {!loading && activeTab === "assigned" && (
+          <CardList>
+            {assignedItems.length === 0 ? (
+              <EmptyState
+                title="No assigned reading"
+                text="Reading assigned by your teachers will appear here."
+              />
+            ) : (
+              assignedItems.map((item) => (
+                <AssignedReadingCard
+                  key={item.id}
+                  item={item}
+                  onOpen={() =>
+                    openPublication(item.publication_id, item.chapter_id)
+                  }
+                />
+              ))
+            )}
+          </CardList>
         )}
 
         {!loading && activeTab === "continue" && (
@@ -538,6 +611,207 @@ function StudyCard({
       )}
     </article>
   );
+}
+
+function AssignedReadingCard({
+  item,
+  onOpen,
+}: {
+  item: AssignedReadingItem;
+  onOpen: () => void;
+}) {
+  const dueLabel = formatDueLabel(item.due_status, item.due_at);
+  const classLabel = [item.class_name, item.class_stream]
+    .filter(Boolean)
+    .join(" · ");
+  const progress = Math.max(
+    0,
+    Math.min(100, Number(item.progress_percent) || 0)
+  );
+
+  const statusStyle =
+    item.due_status === "overdue"
+      ? { background: "#fef2f2", color: "#b91c1c", border: "#fecaca" }
+      : item.due_status === "due_today"
+        ? { background: "#fff7ed", color: "#c2410c", border: "#fed7aa" }
+        : item.due_status === "completed"
+          ? { background: "#ecfdf5", color: "#047857", border: "#a7f3d0" }
+          : { background: C.accentLight, color: C.accent, border: "#c7d2fe" };
+
+  return (
+    <article
+      style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 16,
+        padding: 13,
+        display: "flex",
+        gap: 13,
+      }}
+    >
+      <div
+        style={{
+          width: 68,
+          height: 92,
+          borderRadius: 10,
+          overflow: "hidden",
+          flexShrink: 0,
+          background: C.accentLight,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 25,
+        }}
+      >
+        {item.cover_url ? (
+          <img
+            src={item.cover_url}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          "📖"
+        )}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              color: C.text,
+              fontSize: 14,
+              fontWeight: 850,
+              lineHeight: 1.35,
+            }}
+          >
+            {item.publication_title || "Untitled textbook"}
+          </div>
+
+          <span
+            style={{
+              flexShrink: 0,
+              border: `1px solid ${statusStyle.border}`,
+              background: statusStyle.background,
+              color: statusStyle.color,
+              borderRadius: 999,
+              padding: "4px 7px",
+              fontSize: 9,
+              fontWeight: 850,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {dueLabel}
+          </span>
+        </div>
+
+        <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>
+          {[item.cbc_grade, item.cbc_subject].filter(Boolean).join(" · ")}
+        </div>
+
+        <div
+          style={{
+            color: C.text,
+            fontSize: 12,
+            fontWeight: 750,
+            marginTop: 8,
+            lineHeight: 1.4,
+          }}
+        >
+          Unit {item.chapter_number}
+          {item.chapter_title ? ` · ${item.chapter_title}` : ""}
+        </div>
+
+        {classLabel && (
+          <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>
+            Assigned to {classLabel}
+          </div>
+        )}
+
+        <div style={{ marginTop: 10 }}>
+          <div
+            style={{
+              height: 5,
+              borderRadius: 999,
+              background: C.border,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${progress}%`,
+                height: "100%",
+                background: C.accent,
+              }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              color: C.muted,
+              fontSize: 10,
+              marginTop: 4,
+            }}
+          >
+            <span>{Math.round(progress)}% read</span>
+            <span>{readingStatusLabel(item.reading_status)}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onOpen}
+          style={{
+            border: "none",
+            borderRadius: 9,
+            background: C.accent,
+            color: "#ffffff",
+            padding: "8px 11px",
+            fontSize: 11,
+            fontWeight: 850,
+            cursor: "pointer",
+            marginTop: 10,
+          }}
+        >
+          {item.reading_status === "not_started"
+            ? "Start reading"
+            : item.reading_status === "completed"
+              ? "Read again"
+              : "Continue reading"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function readingStatusLabel(status: ReadingStatus) {
+  if (status === "completed") return "Completed";
+  if (status === "reading") return "In progress";
+  return "Not started";
+}
+
+function formatDueLabel(status: DueStatus, dueAt: string | null) {
+  if (status === "completed") return "Completed";
+  if (status === "overdue") return "Overdue";
+  if (status === "due_today") return "Due today";
+  if (status === "no_due_date" || !dueAt) return "No due date";
+
+  const date = new Date(dueAt);
+  if (Number.isNaN(date.getTime())) return "Upcoming";
+
+  return `Due ${new Intl.DateTimeFormat("en-KE", {
+    day: "numeric",
+    month: "short",
+  }).format(date)}`;
 }
 
 function PublicationCard({
