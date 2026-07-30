@@ -9,6 +9,11 @@ import type {
 } from "@/lib/publishTypes";
 import { FORMAT_META } from "@/lib/publishTypes";
 import { ContentBlockEditor } from "@/components/global/publish/ContentBlockEditor";
+import {
+  buildReaderSearchIndex,
+  readerChapterUrl,
+  searchReaderIndex,
+} from "@/lib/read/readerSearch";
 
 const BG = "#090D16";
 const SURFACE = "#111827";
@@ -229,6 +234,8 @@ export default function ReadTextbookPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedChapterId = searchParams.get("chapter");
+  const requestedSearchQuery = searchParams.get("q") ?? "";
+  const requestedBlockId = searchParams.get("block");
 
   const publicationId =
     typeof params.publicationId === "string"
@@ -252,6 +259,9 @@ export default function ReadTextbookPage() {
     useState<string | null>(null);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [bookmarkError, setBookmarkError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState(requestedSearchQuery);
+  const [selectedSearchResult, setSelectedSearchResult] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -376,6 +386,99 @@ export default function ReadTextbookPage() {
 
   const publication = payload?.publication ?? null;
   const chapters = payload?.chapters ?? [];
+
+  const readerSearchIndex = useMemo(
+    () => buildReaderSearchIndex(chapters),
+    [chapters]
+  );
+
+  const searchResults = useMemo(
+    () => searchReaderIndex(readerSearchIndex, searchQuery),
+    [readerSearchIndex, searchQuery]
+  );
+
+  function updateReaderUrl(
+    chapterId: string,
+    query = searchQuery,
+    blockId?: string
+  ) {
+    if (!publicationId || typeof window === "undefined") return;
+
+    window.history.replaceState(
+      window.history.state,
+      "",
+      readerChapterUrl(publicationId, chapterId, query, blockId)
+    );
+  }
+
+  function navigateToChapter(
+    index: number,
+    blockId?: string,
+    query = searchQuery
+  ) {
+    const chapter = chapters[index];
+    if (!chapter) return;
+
+    setActiveIndex(index);
+    updateReaderUrl(chapter.id, query, blockId);
+
+    window.setTimeout(() => {
+      const target = blockId
+        ? document.getElementById(`reader-block-${blockId}`)
+        : document.getElementById("reader-active-unit");
+
+      target?.scrollIntoView({
+        behavior: "smooth",
+        block: blockId ? "center" : "start",
+      });
+    }, 80);
+  }
+
+  function openSearchResult(resultIndex: number) {
+    const result = searchResults[resultIndex];
+    if (!result) return;
+
+    const chapterIndex = chapters.findIndex(
+      (chapter) => chapter.id === result.chapterId
+    );
+    if (chapterIndex < 0) return;
+
+    setSelectedSearchResult(resultIndex);
+    navigateToChapter(chapterIndex, result.blockId, searchQuery);
+  }
+
+  useEffect(() => {
+    setSearchQuery(requestedSearchQuery);
+  }, [requestedSearchQuery]);
+
+  useEffect(() => {
+    if (!requestedBlockId || state !== "ready") return;
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`reader-block-${requestedBlockId}`)
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+    }, 100);
+  }, [requestedBlockId, state]);
+
+  useEffect(() => {
+    function handleReaderShortcut(event: KeyboardEvent) {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "f"
+      ) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    }
+
+    window.addEventListener("keydown", handleReaderShortcut);
+    return () => window.removeEventListener("keydown", handleReaderShortcut);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -962,6 +1065,240 @@ export default function ReadTextbookPage() {
                   marginBottom: 10,
                 }}
               >
+                SEARCH AND NAVIGATION
+              </div>
+
+              <div style={{ position: "relative", marginBottom: 14 }}>
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSearchQuery(value);
+                    setSelectedSearchResult(0);
+
+                    if (activeChapter) {
+                      updateReaderUrl(activeChapter.id, value);
+                    }
+                  }}
+                  placeholder="Search readable units…"
+                  aria-label="Search this textbook"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    borderRadius: 12,
+                    border: `1px solid ${BORDER}`,
+                    background: SURFACE,
+                    color: TEXT,
+                    padding: "12px 42px 12px 14px",
+                    fontSize: 14,
+                    outline: "none",
+                  }}
+                />
+
+                {searchQuery && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedSearchResult(0);
+
+                      if (activeChapter) {
+                        updateReaderUrl(activeChapter.id, "");
+                      }
+
+                      searchInputRef.current?.focus();
+                    }}
+                    style={{
+                      position: "absolute",
+                      top: 7,
+                      right: 7,
+                      width: 30,
+                      height: 30,
+                      borderRadius: 9,
+                      border: "none",
+                      background: "rgba(255,255,255,0.06)",
+                      color: MUTED,
+                      cursor: "pointer",
+                      fontSize: 16,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {searchQuery.trim() && (
+                <div
+                  style={{
+                    background: SURFACE,
+                    border: `1px solid ${BORDER}`,
+                    borderRadius: 14,
+                    padding: 8,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div
+                    aria-live="polite"
+                    style={{
+                      color: MUTED,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "5px 7px 9px",
+                    }}
+                  >
+                    {searchResults.length === 0
+                      ? "No matches in readable units"
+                      : `${searchResults.length} ${
+                          searchResults.length === 1 ? "match" : "matches"
+                        }`}
+                  </div>
+
+                  {searchResults.length > 0 && (
+                    <>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          padding: "0 7px 8px",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          disabled={selectedSearchResult <= 0}
+                          onClick={() =>
+                            openSearchResult(
+                              Math.max(0, selectedSearchResult - 1)
+                            )
+                          }
+                          style={{
+                            flex: 1,
+                            borderRadius: 9,
+                            border: `1px solid ${BORDER}`,
+                            background: CARD,
+                            color: TEXT,
+                            padding: "7px 10px",
+                            cursor:
+                              selectedSearchResult <= 0
+                                ? "not-allowed"
+                                : "pointer",
+                            opacity: selectedSearchResult <= 0 ? 0.45 : 1,
+                            fontSize: 11,
+                            fontWeight: 800,
+                          }}
+                        >
+                          ← Previous
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            selectedSearchResult >= searchResults.length - 1
+                          }
+                          onClick={() =>
+                            openSearchResult(
+                              Math.min(
+                                searchResults.length - 1,
+                                selectedSearchResult + 1
+                              )
+                            )
+                          }
+                          style={{
+                            flex: 1,
+                            borderRadius: 9,
+                            border: `1px solid ${BORDER}`,
+                            background: CARD,
+                            color: TEXT,
+                            padding: "7px 10px",
+                            cursor:
+                              selectedSearchResult >= searchResults.length - 1
+                                ? "not-allowed"
+                                : "pointer",
+                            opacity:
+                              selectedSearchResult >= searchResults.length - 1
+                                ? 0.45
+                                : 1,
+                            fontSize: 11,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Next →
+                        </button>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 5,
+                          maxHeight: 300,
+                          overflowY: "auto",
+                        }}
+                      >
+                        {searchResults.map((result, resultIndex) => {
+                          const selected =
+                            resultIndex === selectedSearchResult;
+
+                          return (
+                            <button
+                              type="button"
+                              key={`${result.chapterId}-${result.blockId}-${result.matchIndex}`}
+                              onClick={() => openSearchResult(resultIndex)}
+                              style={{
+                                width: "100%",
+                                textAlign: "left",
+                                borderRadius: 10,
+                                border: selected
+                                  ? "1px solid rgba(204,255,0,0.32)"
+                                  : "1px solid transparent",
+                                background: selected
+                                  ? "rgba(204,255,0,0.07)"
+                                  : CARD,
+                                padding: "10px 11px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  color: selected ? ACCENT : MUTED,
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  marginBottom: 4,
+                                }}
+                              >
+                                {meta.chapterLabel} {result.chapterNumber} ·{" "}
+                                {result.chapterTitle}
+                              </div>
+
+                              <div
+                                style={{
+                                  color: TEXT,
+                                  fontSize: 12,
+                                  lineHeight: 1.5,
+                                }}
+                              >
+                                {result.snippet}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: MUTED,
+                  letterSpacing: "0.1em",
+                  marginBottom: 10,
+                }}
+              >
                 {meta.chapterPlural.toUpperCase()}
               </div>
 
@@ -981,9 +1318,7 @@ export default function ReadTextbookPage() {
                       <button
                         type="button"
                         key={chapter.id}
-                        onClick={() =>
-                          setActiveIndex(index)
-                        }
+                        onClick={() => navigateToChapter(index)}
                         style={{
                           width: "100%",
                           padding: "11px 14px",
@@ -1090,7 +1425,7 @@ export default function ReadTextbookPage() {
             />
 
             {activeChapter && (
-              <section>
+              <section id="reader-active-unit">
                 <div
                   style={{
                     fontSize: 10,
@@ -1478,14 +1813,19 @@ export default function ReadTextbookPage() {
                         gap: 5,
                       }}
                     >
-                      {activeBlocks.map(
-                        (block) => (
+                      {activeBlocks.map((block) => (
+                        <div
+                          key={block.id}
+                          id={`reader-block-${block.id}`}
+                          data-reader-block-id={block.id}
+                          style={{
+                            scrollMarginTop: 20,
+                            borderRadius: 10,
+                          }}
+                        >
                           <ContentBlockEditor
-                            key={block.id}
                             block={block}
-                            format={
-                              publication.format
-                            }
+                            format={publication.format}
                             readOnly
                             isFocused={false}
                             onFocus={() => undefined}
@@ -1494,8 +1834,8 @@ export default function ReadTextbookPage() {
                             onMoveUp={() => undefined}
                             onMoveDown={() => undefined}
                           />
-                        )
-                      )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div
@@ -1590,10 +1930,7 @@ export default function ReadTextbookPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        setActiveIndex(
-                          (previous) =>
-                            previous - 1
-                        )
+                        navigateToChapter(safeActiveIndex - 1)
                       }
                       style={{
                         flex: 1,
@@ -1617,10 +1954,7 @@ export default function ReadTextbookPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        setActiveIndex(
-                          (previous) =>
-                            previous + 1
-                        )
+                        navigateToChapter(safeActiveIndex + 1)
                       }
                       style={{
                         flex: 1,
