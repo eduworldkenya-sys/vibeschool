@@ -51,7 +51,7 @@ VIBELEARN
 
 Current milestone
 
-READ-005 in progress.
+READ-008 in progress.
 
 Latest completed
 
@@ -64,7 +64,7 @@ READ-005B — Canonical workspace foundation and publication saves — VERIFIED 
 
 Active next unit
 
-READ-005C — Chapter bookmarks. Reuse vibe_workspace_items; add only bookmark-specific constraints, RPCs and canonical-reader writer controls.
+READ-008B — Teacher assignment writer RPCs and teacher-facing assignment controls.
 
 Roadmap renumbered 2026-07-28 after READ-004 review — see READ_FIX_REGISTER.md phase table for the full READ-005 through READ-011 sequence.
 
