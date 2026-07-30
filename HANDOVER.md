@@ -64,7 +64,7 @@ READ-005B — Canonical workspace foundation and publication saves — VERIFIED 
 
 Active next unit
 
-READ-008B — Teacher assignment writer RPCs and teacher-facing assignment controls.
+READ-008C — Learner assigned-reading delivery and due-date surface.
 
 Roadmap renumbered 2026-07-28 after READ-004 review — see READ_FIX_REGISTER.md phase table for the full READ-005 through READ-011 sequence.
 
