@@ -51,7 +51,8 @@ VIBELEARN
 
 Current milestone
 
-READ-008 in progress.
+READ-008 in progress (IN PROGRESS, not OPEN — sub-units 008A–008F are
+VERIFIED; only 008G remains).
 
 Latest completed
 
@@ -61,12 +62,43 @@ READ-003 — Continue Reading shelf — VERIFIED
 READ-004 — CBC curriculum identity — VERIFIED
 READ-005A — Workspace authority investigation — VERIFIED
 READ-005B — Canonical workspace foundation and publication saves — VERIFIED (migration 20260728191454 applied to production; live save/unsave/save, get_my_library, unpublished-rejection, and grant/RLS/trigger/policy reconciliation all confirmed)
+READ-005C — Chapter bookmarks — VERIFIED
+READ-005D–H — Study workspace capture — VERIFIED
+READ-006 — Study View & accessibility — VERIFIED
+READ-007 — Reading analytics (reading sessions) — VERIFIED
+READ-008A — Classroom-to-reader assignment authority — VERIFIED
+READ-008B — Teacher assignment writer RPCs — VERIFIED
+READ-008C — Learner assigned-reading delivery — VERIFIED (2026-07-31, retroactively closed out — see READ_FIX_REGISTER.md)
+READ-008D–F — Teacher assignment management workspace, due-date editing, class-level completion analytics — VERIFIED (2026-07-31, retroactively closed out; shipped live under migration read008df_teacher_assignment_workspace_analytics, ledger version 20260730132408, which is MISSING from supabase/migrations/ in the repository — see OPEN RISKS)
 
 Active next unit
 
-READ-008C — Learner assigned-reading delivery and due-date surface.
+READ-008G — Assignment-level per-learner analytics and intervention
+drill-down (which specific linked learners are behind on a given
+assignment, not just aggregate class counts). STATUS: OPEN, AWAITING
+APPROVAL to begin implementation. This is the unit PR #3's squash-merge
+(4e1f516) proposed calling "READ-010" — that label conflicted with the
+already-assigned READ-009 (Licensing)/READ-010 (Offline)/READ-011
+(AI tutor) and has been corrected. See RECONCILIATION NOTE in
+READ_FIX_REGISTER.md for full reasoning.
 
-Roadmap renumbered 2026-07-28 after READ-004 review — see READ_FIX_REGISTER.md phase table for the full READ-005 through READ-011 sequence.
+Open risks carried into next session
+
+- Migration read008df_teacher_assignment_workspace_analytics (live
+  ledger version 20260730132408) is not present in
+  supabase/migrations/ in the repository — repo/production parity gap,
+  needs its own fix before further schema work on this track.
+- READ-008B and READ-008C repo migration filename timestamps do not
+  match their live ledger versions (same drift class as TBL-001).
+- 114 of 115 students remain unlinked to authenticated profiles
+  (students.profile_id); vibe_chapter_assignments has 0 production
+  rows, so READ-008C/D–F have not been exercised against real
+  assignment data.
+- This session's verification was run against an uploaded zip snapshot
+  with no .git directory — git log/diff/status were not runnable;
+  commit 4e1f516 was not independently verified.
+
+Roadmap renumbered 2026-07-28 after READ-004 review — see READ_FIX_REGISTER.md phase table for the full READ-005 through READ-011 sequence. READ-008 was further reconciled 2026-07-31 (see READ_FIX_REGISTER.md RECONCILIATION NOTE); READ-009/010/011 identities are unchanged.
 
 Authoritative reference
 

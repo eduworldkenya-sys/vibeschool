@@ -113,15 +113,31 @@ before analytics; bookmarks scope widened into a workspace; offline and AI
 tutor added at the end, explicitly gated behind reader maturity). READ-001
 through READ-004 keep their numbers — only READ-005 onward shifted.
 
+Reconciled 2026-07-31 after PR #3 squash-merge (4e1f516) proposed an
+unscoped "READ-010: assignment-level learner analytics and intervention
+drill-down" that collided with the already-assigned READ-009/010/011
+identities. Investigation (see RECONCILIATION NOTE below) found READ-008
+has undocumented shipped sub-units (READ-008C, READ-008D–F) plus one
+genuinely new, not-yet-built unit. The new unit keeps the READ-008 letter
+sequence (READ-008G) rather than taking a top-level number, because it
+continues the "Teacher classroom integration" milestone's own stated scope
+(class completion rates), not a new milestone. READ-009/010/011 are
+unchanged and unrenumbered.
+
 ID| Priority| Status| Fix unit| Required result
 READ-001| P0| VERIFIED| Route vibetextbook publications to the canonical hardened reader| Discover and Creator-profile cards for format=vibetextbook open /read/textbook/[publicationId] instead of the deprecated /global/read/publication/[id]
 READ-002| P0| VERIFIED| Reading progress authority (schema, RPC, canonical reader wiring)| Per-viewer, per-chapter progress is recorded and read through a secure RPC, keyed on auth.uid()/profiles.id, and the canonical reader resumes to the viewer's last-read chapter
 READ-003| P0| VERIFIED| Continue Reading shelf| Discover surfaces the viewer's most-recently-read vibetextbooks with cover/chapter/progress and a direct resume link
 READ-004| P1| VERIFIED| CBC curriculum identity| Reader surfaces grade/subject/strand/sub-strand/topic/term/week/learning outcomes/honest alignment status+authority, server-resolved and deduplicated, plus a breadcrumb showing where the unit sits in the curriculum
-READ-005| P1| OPEN| My Study Workspace| Bookmarks, highlights, notes, saved definitions/vocabulary/formulas, and Continue Reading unified into one learner workspace (legacy vibelearn_saved/vibelearn_content_saves duplication resolved first, not reused as-is)
-READ-006| P1| OPEN| Study View & accessibility| Text size, line spacing, reading width, light/dark/paper mode, accessible headings/labels, keyboard operation, reduced motion, better mobile navigation
-READ-007| P2| OPEN| Reading analytics| Chapter-level completion/abandonment/duration signals beyond raw view counts
-READ-008| P2| OPEN| Teacher classroom integration| Teacher-assigned chapters, due dates, class completion rates — this is the point at which students.id / classroom roster identity gets solved, deliberately deferred from READ-002/003
+READ-005| P1| VERIFIED| My Study Workspace| Bookmarks, highlights, notes, saved definitions/vocabulary/formulas, and Continue Reading unified into one learner workspace (sub-units READ-005A–005H, see reports below)
+READ-006| P1| VERIFIED| Study View & accessibility| Text size, line spacing, reading width, light/dark/paper mode, accessible headings/labels, keyboard operation, reduced motion, better mobile navigation
+READ-007| P2| VERIFIED| Reading analytics| Chapter-level completion/abandonment/duration signals beyond raw view counts
+READ-008| P2| IN PROGRESS| Teacher classroom integration (parent milestone)| Teacher-assigned chapters, due dates, class completion rates. Closes when READ-008G is VERIFIED.
+READ-008A| P2| VERIFIED| Classroom-to-reader assignment authority (schema/RLS)| See report below
+READ-008B| P2| VERIFIED| Teacher assignment writer RPCs| See report below
+READ-008C| P2| VERIFIED| Learner assigned-reading delivery| See report below
+READ-008D–F| P2| VERIFIED| Teacher assignment management workspace: assignment list/cancel UI, due-date editing, class-level (aggregate) completion analytics| See report below
+READ-008G| P2| OPEN| Assignment-level per-learner analytics and intervention drill-down| For a given assignment, teacher can see WHICH specific linked learners are not-started/overdue (not just aggregate counts), to target intervention. This is the unit PR #3 mislabeled "READ-010."
 READ-009| P2| OPEN| Licensing & school access| Real M-Pesa/school-licence entitlement backing the paid/school_license pricing types the reader already recognizes but cannot fulfill
 READ-010| P3| OPEN| Offline reading| Deferred until the online reader (progress, workspace, licensing) is stable
 READ-011| P3| OPEN| AI tutor| Explicitly gated behind reader maturity — not started before READ-005 through READ-010 land
@@ -742,3 +758,288 @@ Teacher-facing assignment UI and learner delivery are not included in this write
 
 NEXT FIX:
 READ-008C — Learner assigned-reading delivery and due-date surface.
+
+---
+
+READ-008C VERIFIED
+
+FIX ID: READ-008C
+STATUS: VERIFIED
+
+Retroactive report. This unit was implemented and merged in PR #3
+(4e1f516) but never closed out in this register — HANDOVER.md still
+listed it as the "active next unit" after the merge. Closed out
+2026-07-31 as part of the READ-008/READ-010 scope reconciliation.
+
+OBJECTIVE:
+Deliver the learner-facing "Assigned Reading" surface: a linked learner
+sees only their own active classroom assignments, with per-chapter
+progress, due status, and a direct deep link into the canonical reader.
+
+ROOT CAUSE:
+READ-008A/B established assignment authority and teacher-side writes but
+no learner-facing read path existed. Learner identity must resolve
+students.profile_id = auth.uid() and must never fabricate a linked
+learner for the 114/115 students still without a profile.
+
+EVIDENCE:
+- supabase/migrations/20260730162000_read008c_learner_assigned_reading_delivery.sql
+  defines get_my_assigned_reading(), confirmed live under production
+  ledger version 20260730130044 (filename timestamp and live ledger
+  version differ — see MIGRATION below).
+- Function resolves learner via students.profile_id = auth.uid(), joins
+  through student_classes (is_current = true, left_at is null), and
+  only returns assignments where status = 'assigned' against published
+  vibetextbook chapters — verified directly via pg_get_functiondef on
+  the live project (yauqsxggtuxuykcbrtzf).
+- app/student/workspace/page.tsx calls get_my_assigned_reading and
+  renders reading_status/due_status/reader_url per assignment.
+- reader_url is server-built as
+  /read/textbook/{publication_id}?chapter={chapter_id}, matching the
+  "Continue Reading deep link" behavior named in PR #3.
+
+FILES CHANGED:
+- supabase/migrations/20260730162000_read008c_learner_assigned_reading_delivery.sql
+- app/student/workspace/page.tsx
+
+DATABASE OBJECTS CHANGED:
+- public.get_my_assigned_reading()
+
+MIGRATION:
+Applied live to project yauqsxggtuxuykcbrtzf. NOTE: repository filename
+timestamp (20260730162000) does not match the live ledger version
+(20260730130044) for this migration — same drift pattern TBL-001 fixed
+for the TIMETABLE track. Not corrected in this documentation-only unit;
+flagged as an open risk below.
+
+DATA CHANGES:
+None. Production currently has 0 rows in vibe_chapter_assignments, so
+this path has not yet been exercised with real assignment data.
+
+RLS AND SECURITY:
+revoke all ... from public, anon; grant execute ... to authenticated,
+service_role — confirmed live. Viewer identity is derived from
+auth.uid() inside the SECURITY DEFINER function body, never accepted
+from the client. No direct table access is granted.
+
+VERIFICATION COMMANDS:
+- Supabase list_migrations (project yauqsxggtuxuykcbrtzf) — confirmed
+  version present in production ledger.
+- pg_get_functiondef on public.get_my_assigned_reading — confirmed
+  identity bridge and entitlement joins match the design rule.
+- grep for get_my_assigned_reading usage in app/ — confirmed exactly
+  one caller (app/student/workspace/page.tsx).
+
+VERIFICATION RESULTS:
+Function is live, correctly scoped, and wired to exactly one caller.
+No fabricated learner identities; the function structurally cannot
+return an assignment for a student without profile_id set.
+
+REGRESSION RESULTS:
+READ-008A/B authority and RPCs unchanged.
+
+UNRELATED CHANGES PRESERVED:
+Yes.
+
+NEW FINDINGS:
+Repository migration filename timestamp does not match the live ledger
+version for this migration (see MIGRATION above).
+
+OPEN RISKS:
+- 114 of 115 legacy students remain unlinked to authenticated profiles
+  (unchanged from READ-008A).
+- 0 rows currently exist in vibe_chapter_assignments in production, so
+  this delivery path has no real data to validate against yet.
+- Migration filename/ledger-version drift (see MIGRATION above).
+
+COMMIT: 4e1f516 (squash-merge, PR #3) — see RECONCILIATION NOTE below
+for a verification limitation; this repository snapshot has no .git
+history to independently confirm the hash.
+
+NEXT FIX:
+READ-008D–F — Teacher assignment management workspace (list, due-date
+editing, class-level completion analytics).
+
+---
+
+READ-008D–F VERIFIED
+
+FIX ID: READ-008D–F
+STATUS: VERIFIED
+
+Retroactive report, closed out 2026-07-31. This is the largest gap found
+during reconciliation: a full migration and full teacher-facing UI exist
+live and in the repository, but this unit was never named, scoped, or
+reported in this register, and HANDOVER.md never mentioned it. This is
+also where PR #3's proposed "READ-010: assignment-level learner
+analytics and intervention drill-down" title actually originates — the
+PR conflated this already-shipped aggregate-analytics unit with the
+genuinely new per-learner drill-down work (see READ-008G).
+
+OBJECTIVE:
+Give teachers a management workspace over their own chapter assignments:
+list all assignments across their classes, edit a due date, cancel an
+assignment, and see class-level (aggregate, not per-learner) completion
+signal per assignment.
+
+ROOT CAUSE:
+READ-008A/B/C delivered assignment authority, writer RPCs, and learner
+delivery, but teachers had no read-back surface for assignments they had
+already created, and no way to edit a due date without cancelling and
+recreating the assignment.
+
+EVIDENCE:
+- Live migration ledger (Supabase list_migrations, project
+  yauqsxggtuxuykcbrtzf) contains version 20260730132408,
+  read008df_teacher_assignment_workspace_analytics — this file does NOT
+  exist anywhere in the repository snapshot audited here.
+- pg_get_functiondef confirms two functions created by that migration:
+  public.get_my_classroom_reading_assignments() (teacher_id = auth.uid()
+  scoped, returns per-assignment aggregates: learner_count,
+  started_count, completed_count, overdue_count, average_progress) and
+  public.update_chapter_assignment_due_at(uuid, timestamptz)
+  (teacher_id = auth.uid() scoped, rejects past due dates, rejects
+  assignments not in 'assigned' status).
+- app/teacher/vibelearn/page.tsx contains ReadingAssignmentsTab,
+  ReadingAssignmentCard, beginDueEdit/saveDueDate/cancelDueEdit, and
+  cancelAssignment, calling get_my_classroom_reading_assignments,
+  update_chapter_assignment_due_at, and cancel_chapter_assignment
+  (grep-confirmed, single call site each).
+- pg_policies on vibe_chapter_assignments confirms only two SELECT
+  policies exist (teacher-own, linked-learner-own) — no direct
+  INSERT/UPDATE/DELETE grants to authenticated clients, consistent with
+  RPC-only writes.
+
+FILES CHANGED (live; not present as a migration file in this repo snapshot):
+- app/teacher/vibelearn/page.tsx (ReadingAssignmentsTab and related
+  components)
+
+DATABASE OBJECTS CHANGED (live only — no matching repo migration file found):
+- public.get_my_classroom_reading_assignments()
+- public.update_chapter_assignment_due_at(uuid, timestamptz)
+
+MIGRATION:
+Live production ledger version 20260730132408
+(read008df_teacher_assignment_workspace_analytics). NOT present in
+supabase/migrations/ in this repository snapshot. This is a
+repository/production parity gap, not merely a filename-drift issue
+(unlike READ-008B/C) — the file is simply missing from the repo.
+
+DATA CHANGES:
+None. Production currently has 0 rows in vibe_chapter_assignments.
+
+RLS AND SECURITY:
+Both RPCs are SECURITY DEFINER, derive teacher identity from auth.uid()
+inside the function body, and scope every mutation/read to
+teacher_id = auth.uid(). update_chapter_assignment_due_at additionally
+rejects past-dated due dates and rejects edits to non-'assigned'
+assignments. No direct table grants exist for authenticated clients.
+
+VERIFICATION COMMANDS:
+- Supabase list_migrations (project yauqsxggtuxuykcbrtzf)
+- execute_sql against pg_proc/pg_get_functiondef for both functions
+- execute_sql against pg_policies for vibe_chapter_assignments
+- grep for RPC call sites in app/teacher/vibelearn/page.tsx and
+  app/read/textbook/[publicationId]/page.tsx
+
+VERIFICATION RESULTS:
+Both RPCs exist live with correct teacher-scoping and correct guard
+conditions. UI is wired to both with no orphaned or duplicate call
+sites. get_my_classroom_reading_assignments returns aggregate counts
+only (learner_count/started_count/completed_count/overdue_count/
+average_progress) — it does NOT return which individual learners are
+behind. That gap is READ-008G, not this unit.
+
+REGRESSION RESULTS:
+READ-008A/B/C authority, RLS, and RPCs unchanged.
+
+UNRELATED CHANGES PRESERVED:
+Yes.
+
+NEW FINDINGS:
+- This entire unit was live and shipped with no register entry and no
+  HANDOVER.md update — the process gap that caused PR #3's numbering
+  conflict in the first place.
+- The migration file is absent from the repository, not merely
+  misnamed. This should be fixed as its own follow-up (retrieve the
+  applied SQL from the live project and add it to
+  supabase/migrations/ under its correct ledger version) before any
+  further schema work on this track, per CLAUDE.md's rule against
+  assuming repo state matches production. Not done in this
+  documentation-only unit.
+
+OPEN RISKS:
+- Missing migration file in repository (see NEW FINDINGS).
+- 0 rows in vibe_chapter_assignments in production — this workspace has
+  not been exercised against real assignment data.
+- 114 of 115 legacy students remain unlinked to authenticated profiles.
+
+COMMIT: 4e1f516 (squash-merge, PR #3) — see RECONCILIATION NOTE below;
+this repository snapshot has no .git history to independently confirm
+the hash.
+
+NEXT FIX:
+READ-008G — Assignment-level per-learner analytics and intervention
+drill-down. AWAITING APPROVAL to begin (per session instruction: do not
+begin implementation after this documentation unit without explicit
+go-ahead).
+
+---
+
+RECONCILIATION NOTE — 2026-07-31
+
+CONTEXT:
+PR #3 (squash-merge 4e1f516) named its next proposed milestone
+"READ-010: assignment-level learner analytics and intervention
+drill-down." This register already defines READ-009 = Licensing,
+READ-010 = Offline reading, READ-011 = AI tutor (see phase table,
+established 2026-07-28). The "READ-010" label in the PR does not appear
+anywhere in this repository — not in this register, not in
+HANDOVER.md, not in any migration or source comment. It originated
+outside the register process (in the PR description itself), not from
+a documented scoping decision.
+
+WHAT WAS ACTUALLY FOUND:
+1. READ-008C (learner delivery) shipped and is live but was never
+   closed out here — HANDOVER.md still listed it as "active next unit."
+2. A live migration, read008df_teacher_assignment_workspace_analytics
+   (ledger version 20260730132408), shipped teacher-side assignment
+   management, due-date editing, and class-level (aggregate) completion
+   analytics. This migration file does not exist in the repository at
+   all. This is exactly the "class completion rates" scope the READ-008
+   phase-table description already promised — it is a continuation of
+   READ-008, not a new milestone.
+3. The one thing that is genuinely new and NOT built is per-learner
+   drill-down: identifying which specific linked learners are
+   not-started or overdue on a given assignment, for teacher
+   intervention. get_my_classroom_reading_assignments only returns
+   aggregate counts, never a per-student roster.
+
+DECISION:
+- READ-008C and READ-008D–F are recorded VERIFIED above, evidenced
+  against live Supabase state.
+- The genuinely new work is assigned READ-008G, continuing the
+  READ-008 letter sequence rather than taking a top-level number,
+  because it is additional depth on an already-open milestone
+  (READ-008 itself remains IN PROGRESS specifically because of this
+  gap), not a new phase.
+- READ-009 (Licensing), READ-010 (Offline reading), and READ-011
+  (AI tutor) are UNCHANGED. Nothing here renumbers or reassigns them.
+
+GIT VERIFICATION LIMITATION:
+This unit was executed against an uploaded repository snapshot (zip)
+that contains no .git directory. git log, git diff --check, and git
+status could not be run against real history; commit 4e1f516 could not
+be independently verified from within this session. All findings above
+are instead evidenced directly against live file contents in the
+snapshot and live Supabase schema/RPC/RLS/migration state (project
+yauqsxggtuxuykcbrtzf), which is the stronger of the two sources of
+truth per this register's own rules. This limitation is carried forward
+as an open risk, not silently assumed away.
+
+NO DEDICATED REGISTER-CONSISTENCY SCRIPT FOUND:
+vibe-check.sh exists but only checks TypeScript, banned imports/tables,
+layout conventions, and 'use client' presence — it has no register/
+HANDOVER cross-check. Reconciliation above was done by manual
+cross-reference of the register, HANDOVER.md, repository files, and
+live Supabase state, not an automated script.
