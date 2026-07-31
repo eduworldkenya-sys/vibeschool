@@ -55,6 +55,28 @@ interface ClassroomReadingAssignment {
   average_progress: number;
 }
 
+interface AssignmentLearnerItem {
+  assignment_id: string;
+  student_id: string;
+  learner_profile_id: string | null;
+  learner_name: string | null;
+  admission_number: string | null;
+  linkage_status: "linked" | "account_unlinked";
+  progress_percent: number | null;
+  reading_status:
+    | "account_unlinked"
+    | "not_started"
+    | "in_progress"
+    | "completed"
+    | "overdue_not_started"
+    | "overdue_in_progress";
+  is_overdue: boolean;
+  last_read_at: string | null;
+  completed_at: string | null;
+  due_at: string | null;
+  intervention_reason: string | null;
+}
+
 const SUBJECTS = [
   "Mathematics","English","Kiswahili","Biology","Chemistry",
   "Physics","History","Geography","CRE","IRE","Business Studies",
@@ -999,6 +1021,8 @@ function ReadingAssignmentsTab() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dueValue, setDueValue] = useState("");
+  const [drilldownItem, setDrilldownItem] =
+    useState<ClassroomReadingAssignment | null>(null);
 
   const loadAssignments = useCallback(async () => {
     setLoading(true);
@@ -1398,6 +1422,7 @@ function ReadingAssignmentsTab() {
               onCancelEdit={cancelDueEdit}
               onSaveDue={() => void saveDueDate(item)}
               onCancelAssignment={() => void cancelAssignment(item)}
+              onViewLearners={() => setDrilldownItem(item)}
             />
           ))}
 
@@ -1428,12 +1453,20 @@ function ReadingAssignmentsTab() {
                     onCancelEdit={() => undefined}
                     onSaveDue={() => undefined}
                     onCancelAssignment={() => undefined}
+                    onViewLearners={() => setDrilldownItem(item)}
                   />
                 ))}
               </div>
             </details>
           )}
         </>
+      )}
+
+      {drilldownItem && (
+        <AssignmentLearnersSheet
+          item={drilldownItem}
+          onClose={() => setDrilldownItem(null)}
+        />
       )}
     </div>
   );
@@ -1449,6 +1482,7 @@ function ReadingAssignmentCard({
   onCancelEdit,
   onSaveDue,
   onCancelAssignment,
+  onViewLearners,
 }: {
   item: ClassroomReadingAssignment;
   editing: boolean;
@@ -1459,6 +1493,7 @@ function ReadingAssignmentCard({
   onCancelEdit: () => void;
   onSaveDue: () => void;
   onCancelAssignment: () => void;
+  onViewLearners: () => void;
 }) {
   const cancelled = item.status === "cancelled";
   const learnerCount = Number(item.learner_count || 0);
@@ -1767,6 +1802,16 @@ function ReadingAssignmentCard({
               </div>
             </div>
 
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={onViewLearners}
+                style={assignmentButtonStyle("secondary", false)}
+              >
+                View learners
+              </button>
+            </div>
+
             {!cancelled && (
               <div
                 style={{
@@ -1799,6 +1844,335 @@ function ReadingAssignmentCard({
         )}
       </div>
     </article>
+  );
+}
+
+function AssignmentLearnersSheet({
+  item,
+  onClose,
+}: {
+  item: ClassroomReadingAssignment;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [rows, setRows] = useState<AssignmentLearnerItem[]>([]);
+  const [linkedCount, setLinkedCount] = useState(0);
+  const [unlinkedCount, setUnlinkedCount] = useState(0);
+  const [filter, setFilter] = useState<
+    "all" | "attention" | "not_started" | "in_progress" | "completed" | "unlinked"
+  >("all");
+
+  useEffect(() => {
+    let cancelledEffect = false;
+
+    async function load() {
+      setLoading(true);
+      setLoadError("");
+
+      const { data, error } = await supabase.rpc(
+        "get_classroom_reading_assignment_learners",
+        { assignment_id_input: item.assignment_id }
+      );
+
+      if (cancelledEffect) return;
+
+      const payload = data as {
+        ok?: boolean;
+        items?: AssignmentLearnerItem[];
+        linked_learner_count?: number;
+        unlinked_learner_count?: number;
+      } | null;
+
+      if (error || !payload?.ok) {
+        console.error("Failed to load assignment learners:", error, payload);
+        setLoadError("Learner details could not be loaded. Try again.");
+        setLoading(false);
+        return;
+      }
+
+      setRows(Array.isArray(payload.items) ? payload.items : []);
+      setLinkedCount(Number(payload.linked_learner_count || 0));
+      setUnlinkedCount(Number(payload.unlinked_learner_count || 0));
+      setLoading(false);
+    }
+
+    void load();
+
+    return () => {
+      cancelledEffect = true;
+    };
+  }, [item.assignment_id]);
+
+  const filtered = rows.filter(row => {
+    switch (filter) {
+      case "attention":
+        return row.is_overdue;
+      case "not_started":
+        return row.reading_status === "not_started";
+      case "in_progress":
+        return row.reading_status === "in_progress";
+      case "completed":
+        return row.reading_status === "completed";
+      case "unlinked":
+        return row.linkage_status === "account_unlinked";
+      default:
+        return true;
+    }
+  });
+
+  const filterOptions: { key: typeof filter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "attention", label: "Needs attention" },
+    { key: "not_started", label: "Not started" },
+    { key: "in_progress", label: "In progress" },
+    { key: "completed", label: "Completed" },
+    { key: "unlinked", label: "Account not linked" },
+  ];
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.45)",
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        zIndex: 60,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={event => event.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 520,
+          maxHeight: "86vh",
+          overflowY: "auto",
+          background: C.bg,
+          borderRadius: "18px 18px 0 0",
+          padding: "18px 16px 24px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 10,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 850, color: C.textPrimary }}>
+              {item.chapter_title
+                ? `Unit ${item.chapter_number} · ${item.chapter_title}`
+                : `Unit ${item.chapter_number}`}
+            </div>
+            <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>
+              {assignmentClassLabel(item)}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              border: "none",
+              background: "#f1f5f9",
+              borderRadius: 999,
+              width: 30,
+              height: 30,
+              fontSize: 14,
+              fontWeight: 800,
+              color: C.textMuted,
+              cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {!loading && !loadError && (
+          <div style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>
+            {linkedCount} linked · {unlinkedCount} account not linked
+          </div>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            flexWrap: "wrap",
+            marginTop: 14,
+            marginBottom: 4,
+          }}
+        >
+          {filterOptions.map(option => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setFilter(option.key)}
+              style={S.pill(filter === option.key)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          {loading && (
+            <div>
+              {[0, 1, 2].map(index => (
+                <div key={index} style={{ padding: "12px 2px" }}>
+                  <Shimmer w="60%" h={13} />
+                  <div style={{ marginTop: 7 }}>
+                    <Shimmer w="35%" h={10} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!loading && loadError && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "28px 16px",
+                color: C.textMuted,
+                fontSize: 12,
+              }}
+            >
+              ⚠️ {loadError}
+            </div>
+          )}
+
+          {!loading && !loadError && filtered.length === 0 && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "28px 16px",
+                color: C.textMuted,
+                fontSize: 12,
+              }}
+            >
+              No learners match this filter.
+            </div>
+          )}
+
+          {!loading &&
+            !loadError &&
+            filtered.map(row => (
+              <AssignmentLearnerRow key={row.student_id} row={row} />
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AssignmentLearnerRow({ row }: { row: AssignmentLearnerItem }) {
+  const unlinked = row.linkage_status === "account_unlinked";
+
+  const statusLabel: Record<AssignmentLearnerItem["reading_status"], string> = {
+    account_unlinked: "Account not linked",
+    not_started: "Not started",
+    in_progress: "In progress",
+    completed: "Completed",
+    overdue_not_started: "Overdue · not started",
+    overdue_in_progress: "Overdue · in progress",
+  };
+
+  const statusColor: Record<
+    AssignmentLearnerItem["reading_status"],
+    { bg: string; fg: string; border: string }
+  > = {
+    account_unlinked: { bg: "#f8fafc", fg: C.textMuted, border: C.border },
+    not_started: { bg: "#f8fafc", fg: C.textMuted, border: C.border },
+    in_progress: { bg: "#eff6ff", fg: "#1d4ed8", border: "#bfdbfe" },
+    completed: { bg: "#ecfdf5", fg: "#047857", border: "#a7f3d0" },
+    overdue_not_started: { bg: "#fef2f2", fg: "#b91c1c", border: "#fecaca" },
+    overdue_in_progress: { bg: "#fef2f2", fg: "#b91c1c", border: "#fecaca" },
+  };
+
+  const colors = statusColor[row.reading_status];
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 10,
+        padding: "12px 4px",
+        borderBottom: `1px solid ${C.border}`,
+        opacity: unlinked ? 0.75 : 1,
+      }}
+    >
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: C.textPrimary,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {row.learner_name || "Unnamed learner"}
+        </div>
+
+        {row.admission_number && (
+          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>
+            Adm. {row.admission_number}
+          </div>
+        )}
+
+        {!unlinked && (
+          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>
+            {Math.round(row.progress_percent || 0)}% ·{" "}
+            {row.completed_at
+              ? `Completed ${formatAssignmentDate(row.completed_at, true)}`
+              : row.last_read_at
+                ? `Last read ${formatAssignmentDate(row.last_read_at, true)}`
+                : "No reading activity yet"}
+          </div>
+        )}
+
+        {row.intervention_reason && (
+          <div
+            style={{
+              fontSize: 10,
+              color: "#b91c1c",
+              marginTop: 4,
+              fontWeight: 700,
+            }}
+          >
+            {row.intervention_reason}
+          </div>
+        )}
+      </div>
+
+      <span
+        style={{
+          flexShrink: 0,
+          borderRadius: 999,
+          padding: "4px 8px",
+          fontSize: 9,
+          fontWeight: 850,
+          whiteSpace: "nowrap",
+          background: colors.bg,
+          color: colors.fg,
+          border: `1px solid ${colors.border}`,
+        }}
+      >
+        {statusLabel[row.reading_status]}
+      </span>
+    </div>
   );
 }
 
