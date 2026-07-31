@@ -658,3 +658,6 @@
 ## [2026-07-28 11:17] 99e4051
 **What:** fix: prefer-const lint error in ScrollSurface title var
 **Status:** ✅ pushed
+## [2026-07-31 14:01] 601f98c
+**What:** docs(read): reconcile READ-008C/D-F/G, resolve PR#3 READ-010 label conflict
+**Status:** ✅ pushed
