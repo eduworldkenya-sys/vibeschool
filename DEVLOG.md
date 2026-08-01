@@ -673,3 +673,6 @@
 ## [2026-08-01 15:02] 2bf7d21
 **What:** chore: regenerate database.types.ts with scheme_lesson_resource_links
 **Status:** ✅ pushed
+## [2026-08-01 17:36] e07aa1a
+**What:** Content OS resource-linking migrations + RLS hardening (local sync, no DB changes)
+**Status:** ✅ pushed
