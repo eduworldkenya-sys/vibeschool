@@ -1,0 +1,123 @@
+========================================
+ READ ARCHITECTURE INVENTORY
+========================================
+
+Repository:
+/data/data/com.termux/files/home/vibeschool
+
+Current branch:
+main
+
+Latest commit:
+ed13aeb docs(read): close READ-008G as verified
+
+========================================
+READ RELATED FILES
+========================================
+app/admin/academics/gradebook/page.tsx
+app/global/read/[id]/page.tsx
+app/global/read/story/[id]/page.tsx
+app/global/read/publication/[id]/page.tsx
+app/global/read/page.tsx
+app/global/create/textbook/page.tsx
+app/student/vibelearn/page.tsx
+app/student/workspace/page.tsx
+app/teacher/scheme/page.tsx.bak-strandprogress
+app/teacher/vibelearn/page.tsx
+app/teacher/vibelearn/indexer/page.tsx
+app/teacher/progress/page.tsx
+app/teacher/progress/page.tsx.bak2
+app/read/textbook/[publicationId]/page.tsx
+app/read/textbook/[publicationId]/layout.tsx
+components/student/VibeLearnShellWrapper.tsx
+components/student/VibeLearnStudentShell.tsx
+components/student/VibeProgress.tsx
+components/vibelearn/reader/ModeSwitcher.tsx
+components/vibelearn/reader/ScrollSurface.tsx
+components/vibelearn/reader/AudioDock.tsx
+components/vibelearn/VibeLearnShellWrapper.tsx
+components/vibelearn/VibeActionDock.tsx
+components/global/read/useStoryReader.ts
+components/global/read/StoryReaderCover.tsx
+components/global/read/StoryReaderPage.tsx
+components/global/read/StoryReaderEnd.tsx
+components/global/read/StoryReader.tsx
+components/global/read/useReadAloud.ts
+components/global/publish/PublicationEditor.tsx
+components/global/publish/PublicationSetupDrawer.tsx
+components/global/publish/ChapterSidebar.tsx
+components/read/StudyCapturePanel.tsx
+components/read/ReaderStudyViewControls.tsx
+components/read/ReadingAnalyticsTracker.tsx
+lib/vibelearn-points.ts
+lib/vibelearn/getContentDestination.ts
+lib/read/readerSearch.ts
+
+========================================
+PUBLICATION REFERENCES
+========================================
+app/global/dashboard/page.tsx:95:      .from('vibelearn_content')
+app/global/dashboard/page.tsx:209:      const { error } = await supabase.from('vibelearn_content').insert({
+app/global/read/[id]/page.tsx:36:        'get_vibelearn_content_reader',
+app/global/read/[id]/page.tsx:42:          console.error('get_vibelearn_content_reader failed:', rpcErr)
+app/global/read/publication/[id]/page.tsx:63:        .from('vibe_publications')
+app/global/read/publication/[id]/page.tsx:78:        .from('vibe_chapters')
+app/global/read/page.tsx:59:        .from('vibe_publications')
+app/global/create/press/page.tsx:35:        .from('vibe_publications')
+app/global/create/textbook/page.tsx:43:        .from('vibe_publications')
+app/global/page.tsx:72:      sb.from('vibelearn_content').select('id,title,description,subject_id,type,url,thumbnail_url,tags,source,view_count,created_at').eq('status', 'live').order('view_count', { ascending: false }).limit(4),
+app/global/creator/[id]/page.tsx:43:        .from('vibe_publications')
+app/global/profile/page.tsx:34:        supabase.from('vibelearn_content').select('*', { count: 'exact', head: true }).eq('submitted_by', userId!),
+app/global/profile/page.tsx:36:        supabase.from('vibelearn_content').select('view_count').eq('submitted_by', userId!),
+app/teacher/scheme/page.tsx:581:            .from('vibe_chapters')
+app/teacher/scheme/page.tsx:582:            .select('id,title,cbc_strand,learning_outcomes,sub_strand_id,vibe_publications(id,title,cbc_aligned,status)')
+app/teacher/scheme/page.tsx:592:          // vibe_publications may come back as a single object or a
+app/teacher/scheme/page.tsx:598:            const pub = normalizePub(c.vibe_publications)
+app/teacher/scheme/page.tsx:605:              const pub = normalizePub(c.vibe_publications)
+app/teacher/vibelearn/page.tsx:316:      .from("vibelearn_content")
+app/teacher/vibelearn/page.tsx:336:        .from("vibelearn_content")
+app/teacher/vibelearn/page.tsx:382:          .from("vibelearn_content")
+app/teacher/vibelearn/page.tsx:422:          .from("vibelearn_content")
+app/teacher/vibelearn/page.tsx:453:          .from("vibe_publications")
+app/teacher/vibelearn/page.tsx:468:          .from("vibelearn_content")
+app/teacher/vibelearn/page.tsx:520:      const { error } = await supabase.from("vibelearn_content").insert({
+app/teacher/vibelearn/page.tsx:2315:          .from("vibelearn_content")
+app/teacher/vibelearn/indexer/page.tsx:93:          .from("vibelearn_content")
+app/read/textbook/[publicationId]/page.tsx:951:        .from("vibe_workspace_items")
+components/student/VibeActionDock.tsx:43:        supabase.from('vibelearn_content')
+components/student/VibeLearnShellWrapper.tsx:154:        .from('vibelearn_content')
+components/student/VibeLearnShellWrapper.tsx:173:        { event: 'INSERT', schema: 'public', table: 'vibelearn_content' },
+components/student/VibeLearnShellWrapper.tsx:249:        .from('vibelearn_content')
+components/student/VibeLearnShellWrapper.tsx:366:          .select('content_id, vibelearn_content(*)')
+components/student/VibeLearnShellWrapper.tsx:371:          .map((row: { content_id: string; vibelearn_content: unknown }) => {
+components/student/VibeLearnShellWrapper.tsx:372:            const vc = row.vibelearn_content
+components/student/VibeProgress.tsx:28:  vibelearn_content: { type: string } | { type: string }[] | null
+components/student/VibeProgress.tsx:86:          .select('content_id, vibelearn_content(type)')
+components/student/VibeProgress.tsx:111:          const vc = row.vibelearn_content
+components/student/VibeSubmitContent.tsx:84:        .from('vibelearn_content')
+components/student/VibeTwin/index.tsx:108:          .from('vibelearn_content')
+components/student/VibeTwin/index.tsx:115:          console.warn('[VibeTwin] vibelearn_content query failed:', error.message)
+components/vibelearn/VibeLearnShellWrapper.tsx:54:        supabase.from('vibelearn_content').select('vibe_count').eq('id', contentId).single(),
+components/vibelearn/VibeLearnShellWrapper.tsx:126:          .from('vibelearn_content')
+components/global/vibes/VibesFeed.tsx:34:      .from('vibelearn_content')
+
+========================================
+ROUTES
+========================================
+app/admin/academics/gradebook/page.tsx
+app/global/read/[id]/page.tsx
+app/global/read/page.tsx
+app/global/create/textbook/page.tsx
+app/student/vibelearn/page.tsx
+app/teacher/vibelearn/page.tsx
+app/teacher/vibelearn/indexer/page.tsx
+app/read/textbook/[publicationId]/page.tsx
+app/read/textbook/[publicationId]/layout.tsx
+
+========================================
+API ROUTES
+========================================
+
+========================================
+DONE
+========================================

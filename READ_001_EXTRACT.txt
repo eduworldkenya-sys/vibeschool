@@ -1,0 +1,245 @@
+==================================================
+app/read/textbook/[publicationId]/page.tsx
+==================================================
+
+----- LINE COUNT -----
+2641 app/read/textbook/[publicationId]/page.tsx
+
+----- IMPORTS -----
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
+import type {
+import { FORMAT_META } from "@/lib/publishTypes";
+import { ContentBlockEditor } from "@/components/global/publish/ContentBlockEditor";
+import {
+
+----- SUPABASE REFERENCES -----
+5:import { createBrowserClient } from "@supabase/ssr";
+307:    const { data, error: rpcError } = await sb.rpc(
+322:    if (rpcError || !result?.ok) {
+325:        rpcError ?? result
+330:            (rpcError?.message.includes("AUTH")
+699:    const supabase = createBrowserClient(
+707:      const { data, error } = await supabase.rpc(
+768:        const storageKey =
+773:          sessionStorage.getItem(storageKey);
+777:            await supabase.rpc(
+790:              storageKey,
+951:        .from("vibe_workspace_items")
+994:    const { data, error } = await sb.rpc(
+1050:        .from("teacher_classes")
+1087:        Array.from(classMap.values()).sort((a, b) =>
+1130:    const { data, error } = await sb.rpc("toggle_chapter_bookmark", {
+1197:      void sb.rpc("record_reading_progress", {
+1221:        void sb.rpc("record_reading_progress", {
+
+----- REACT HOOKS -----
+3:import React, { useEffect, useMemo, useRef, useState } from "react";
+273:  const [classId, setClassId] = useState(classes[0]?.id ?? "");
+274:  const [dueValue, setDueValue] = useState("");
+275:  const [assigning, setAssigning] = useState(false);
+276:  const [error, setError] = useState("");
+277:  const [successClass, setSuccessClass] = useState("");
+668:    useState<AccessState>("loading");
+671:    useState<ReaderPayload | null>(null);
+674:    useState(0);
+677:    useState(false);
+679:    useState(false);
+681:    useState<string | null>(null);
+682:  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+683:  const [bookmarkError, setBookmarkError] = useState<string | null>(null);
+684:  const [teacherClasses, setTeacherClasses] = useState<ReaderTeacherClass[]>([]);
+685:  const [teacherClassesLoading, setTeacherClassesLoading] = useState(false);
+686:  const [assignmentOpen, setAssignmentOpen] = useState(false);
+687:  const [searchQuery, setSearchQuery] = useState(requestedSearchQuery);
+688:  const [selectedSearchResult, setSelectedSearchResult] = useState(0);
+689:  const searchInputRef = useRef<HTMLInputElement | null>(null);
+691:  useEffect(() => {
+814:  const chapters = useMemo(
+819:  const readerSearchIndex = useMemo(
+824:  const searchResults = useMemo(
+831:  const searchResultRefs = useRef<Array<HTMLButtonElement | null>>([]);
+833:  useEffect(() => {
+840:  useEffect(() => {
+899:  useEffect(() => {
+903:  useEffect(() => {
+916:  useEffect(() => {
+932:  useEffect(() => {
+1028:  useEffect(() => {
+1158:  const previousReadableIndex = useMemo(() => {
+1165:  const nextReadableIndex = useMemo(() => {
+1176:  const activeBlocks = useMemo(
+1181:  const previousChapterRef = useRef<
+1185:  useEffect(() => {
+1230:  const [curriculumExpanded, setCurriculumExpanded] = useState(false);
+
+----- COMPONENT EXPORT -----
+654:export default function ReadTextbookPage() {
+
+==================================================
+components/read/StudyCapturePanel.tsx
+==================================================
+
+----- LINE COUNT -----
+357 components/read/StudyCapturePanel.tsx
+
+----- IMPORTS -----
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
+
+----- SUPABASE REFERENCES -----
+5:import { createBrowserClient } from "@supabase/ssr";
+43:  const supabase = useMemo(
+55:      const { data } = await supabase.rpc("get_vibetextbook_reader", {
+71:  }, [publicationId, requestedChapter, supabase]);
+75:      typeof window !== "undefined" ? window.getSelection()?.toString().trim() : "";
+86:    const { data: authData } = await supabase.auth.getUser();
+99:    const { data, error } = await supabase.rpc("upsert_study_workspace_item", {
+
+----- REACT HOOKS -----
+3:import { useEffect, useMemo, useState } from "react";
+33:  const [open, setOpen] = useState(false);
+34:  const [chapters, setChapters] = useState<ChapterOption[]>([]);
+35:  const [chapterId, setChapterId] = useState("");
+36:  const [itemType, setItemType] = useState<ItemType>("highlight");
+37:  const [text, setText] = useState("");
+38:  const [meaning, setMeaning] = useState("");
+39:  const [color, setColor] = useState("yellow");
+40:  const [saving, setSaving] = useState(false);
+41:  const [message, setMessage] = useState<string | null>(null);
+43:  const supabase = useMemo(
+52:  useEffect(() => {
+
+----- COMPONENT EXPORT -----
+29:export function StudyCapturePanel({ publicationId }: { publicationId: string }) {
+
+==================================================
+components/read/ReadingAnalyticsTracker.tsx
+==================================================
+
+----- LINE COUNT -----
+117 components/read/ReadingAnalyticsTracker.tsx
+
+----- IMPORTS -----
+import { useEffect, useRef } from "react";
+import { createBrowserClient } from "@supabase/ssr";
+
+----- SUPABASE REFERENCES -----
+4:import { createBrowserClient } from "@supabase/ssr";
+22:    const supabase = createBrowserClient(
+35:      const { error } = await supabase.rpc("record_reading_activity", {
+
+----- REACT HOOKS -----
+3:import { useEffect, useRef } from "react";
+15:  const chapterRef = useRef<string | null>(null);
+16:  const sessionRef = useRef<string | null>(null);
+17:  const lastTickRef = useRef<number>(Date.now());
+18:  const progressRef = useRef(0);
+19:  const visibleRef = useRef(true);
+21:  useEffect(() => {
+
+----- COMPONENT EXPORT -----
+14:export function ReadingAnalyticsTracker() {
+
+==================================================
+components/global/publish/PublicationEditor.tsx
+==================================================
+
+----- LINE COUNT -----
+406 components/global/publish/PublicationEditor.tsx
+
+----- IMPORTS -----
+import React, { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { usePublicationDraft } from '@/hooks/usePublicationDraft'
+import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
+import { BlockToolbar } from '@/components/global/publish/BlockToolbar'
+import { ChapterSidebar } from '@/components/global/publish/ChapterSidebar'
+import { PublicationSetupDrawer } from '@/components/global/publish/PublicationSetupDrawer'
+import { FORMAT_META, PublicationFormat, PublicationGenre } from '@/lib/publishTypes'
+
+----- SUPABASE REFERENCES -----
+105:    const ok = await publishPublication()
+113:    updatePublication({ title: quickTitle.trim(), genre: quickGenre })
+291:            updatePublication({ title: e.target.value })
+313:          onChange={e => updatePublication({ subtitle: e.target.value })}
+402:        onPublish={async () => { const ok = await publishPublication(); return ok }}
+
+----- REACT HOOKS -----
+3:import React, { useEffect, useState, useRef } from 'react'
+50:  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null)
+51:  const [sidebarOpen,    setSidebarOpen]    = useState(false)
+52:  const [setupOpen,      setSetupOpen]      = useState(false)
+53:  const [publishing,     setPublishing]     = useState(false)
+54:  const [titleError,     setTitleError]     = useState(false)
+57:  const [quickSetup,     setQuickSetup]     = useState(false)
+58:  const [quickTitle,     setQuickTitle]     = useState('')
+59:  const [quickGenre,     setQuickGenre]     = useState<PublicationGenre>('other')
+60:  const [quickTitleErr,  setQuickTitleErr]  = useState(false)
+62:  const firstBlockFocused = useRef(false)
+63:  const titleInputRef     = useRef<HTMLInputElement>(null)
+66:  useEffect(() => {
+73:  useEffect(() => {
+83:  useEffect(() => {
+
+----- COMPONENT EXPORT -----
+37:export function PublicationEditor({ authorId, format, publicationId }: Props) {
+
+==================================================
+components/vibelearn/VibeLearnShellWrapper.tsx
+==================================================
+
+----- LINE COUNT -----
+288 components/vibelearn/VibeLearnShellWrapper.tsx
+
+----- IMPORTS -----
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { VibeContent } from '@/lib/types'
+import ScrollSurface from '@/components/vibelearn/reader/ScrollSurface'
+import VibeActionDock from '@/components/vibelearn/VibeActionDock'
+import AudioDock from '@/components/vibelearn/reader/AudioDock'
+import ModeSwitcher from '@/components/vibelearn/reader/ModeSwitcher'
+
+----- SUPABASE REFERENCES -----
+6:import { supabase } from '@/lib/supabase'
+44:function VibeButton({ contentId, userId }: { contentId: string; userId: string }) {
+54:        supabase.from('vibelearn_content').select('vibe_count').eq('id', contentId).single(),
+55:        supabase.from('vibelearn_vibes').select('id').eq('content_id', contentId).eq('user_id', userId).maybeSingle(),
+73:        await supabase.from('vibelearn_vibes').insert({ content_id: contentId, user_id: userId })
+75:        await supabase.from('vibelearn_vibes').delete().eq('content_id', contentId).eq('user_id', userId)
+120:        const { data: { user } } = await supabase.auth.getUser()
+125:        const { data, error: fetchErr } = await supabase
+126:          .from('vibelearn_content')
+141:        await supabase.rpc('increment_view_count', { content_id: contentId })
+
+----- REACT HOOKS -----
+4:import { useEffect, useRef, useState, useCallback } from 'react'
+45:  const [vibed, setVibed] = useState(false)
+46:  const [count, setCount] = useState(0)
+47:  const [busy,  setBusy]  = useState(false)
+48:  const mounted = useRef(true)
+50:  useEffect(() => {
+102:  const mounted = useRef(true)
+103:  const scrollRef = useRef<HTMLDivElement>(null)
+105:  const [userId,  setUserId]  = useState<string | null>(null)
+106:  const [content, setContent] = useState<VibeContent | null>(null)
+107:  const [mode,    setMode]    = useState<ReaderMode>('scroll')
+108:  const [loading, setLoading] = useState(true)
+109:  const [error,   setError]   = useState('')
+110:  const [progress, setProgress] = useState(0)
+112:  useEffect(() => {
+117:  useEffect(() => {
+151:  const onScroll = useCallback(() => {
+
+----- COMPONENT EXPORT -----
+100:export default function VibeLearnShellWrapper({ contentId }: Props) {
+
+
+=======================================
+FILES COPIED TO:
+READ_001_CORE
+=======================================
