@@ -3,9 +3,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
+import { updateTimetableSlot, expireTimetableSlot, deleteTimetableSlot, SlotRpcError } from '@/lib/teaching/slots'
+import type { EditableSlot } from '@/lib/teaching/types'
 
 interface Props {
   teacherId: string
+  editSlot?: EditableSlot
   onClose:   () => void
   onSaved:   () => void
 }
@@ -100,18 +103,47 @@ function nairobiTodayISO(): string {
   }).format(new Date())
 }
 
-export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
+// The Fix 20 edit/delete/expire RPCs raise a different, stable error-code
+// contract than create_timetable_slot — never reuse toFriendlyError for them.
+function toFriendlyEditError(err: { message?: string }): string {
+  switch ((err.message ?? '').trim()) {
+    case 'TEACHER_CONFLICT':
+      return 'You already have a lesson at this time.'
+    case 'CLASS_CONFLICT':
+      return 'This class already has a lesson at this time.'
+    case 'ROOM_CONFLICT':
+      return 'This room is already occupied.'
+    case 'occurrence_history_exists':
+      return 'This slot has taught lessons — day and time are locked. You can still change the room, or end the slot below.'
+    case 'occurrence_outside_window':
+      return 'That date range would cut off lessons already taught. Adjust the range and try again.'
+    case 'occurrences_exist':
+      return 'This slot has lesson history and cannot be deleted. Use "End Slot" instead.'
+    case 'slot_not_owned':
+      return 'This slot belongs to a different teacher.'
+    case 'not_authenticated':
+      return 'Your session expired. Please sign in again.'
+    default:
+      return 'Could not save the change. Try again.'
+  }
+}
+
+export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: Props) {
+  const isEdit = !!editSlot
+
   const [saving,            setSaving]            = useState(false)
+  const [deleting,          setDeleting]          = useState(false)
   const [error,             setError]             = useState<string | null>(null)
   const [assignments,       setAssignments]       = useState<AssignmentOption[]>([])
-  const [assignmentsLoading, setAssignmentsLoading] = useState(true)
+  const [assignmentsLoading, setAssignmentsLoading] = useState(!isEdit)
 
   const [teacherClassId, setTeacherClassId] = useState('')
-  const [dayOfWeek,      setDayOfWeek]      = useState('1')
-  const [startTime,      setStartTime]      = useState('08:00')
-  const [endTime,        setEndTime]        = useState('09:00')
-  const [room,           setRoom]           = useState('')
-  const [effectiveFrom,  setEffectiveFrom]  = useState(nairobiTodayISO())
+  const [dayOfWeek,      setDayOfWeek]      = useState(editSlot ? String(editSlot.dayOfWeek) : '1')
+  const [startTime,      setStartTime]      = useState(editSlot?.startTime ?? '08:00')
+  const [endTime,        setEndTime]        = useState(editSlot?.endTime ?? '09:00')
+  const [room,           setRoom]           = useState(editSlot?.room ?? '')
+  const [effectiveFrom,  setEffectiveFrom]  = useState(editSlot?.effectiveFrom ?? nairobiTodayISO())
+  const [effectiveUntil, setEffectiveUntil] = useState(editSlot?.effectiveUntil ?? '')
 
   // Synchronous guard against duplicate submission. `saving` (React state)
   // only disables the button on the *next* render — a fast double-tap can
@@ -129,6 +161,7 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
   }
 
   useEffect(() => {
+    if (isEdit) { setAssignmentsLoading(false); return }
     async function loadAssignments() {
       const { data, error: err } = await supabase
         .from('teacher_classes')
@@ -166,7 +199,7 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
       setAssignmentsLoading(false)
     }
     loadAssignments()
-  }, [teacherId])
+  }, [teacherId, isEdit])
 
   const selectedAssignment = assignments.find(a => a.teacherClassId === teacherClassId) ?? null
 
@@ -177,12 +210,38 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
 
     setError(null)
 
-    if (!selectedAssignment) { setError('Select a class and subject.'); return }
-    const { classId, subjectId } = selectedAssignment
-    if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
     if (!startTime) { setError('Enter start time.'); return }
     if (!endTime)   { setError('Enter end time.');   return }
     if (startTime >= endTime) { setError('End time must be after start time.'); return }
+
+    if (isEdit && editSlot) {
+      submittingRef.current = true
+      setSaving(true)
+      try {
+        await updateTimetableSlot(editSlot.id, {
+          dayOfWeek: parseInt(dayOfWeek) || undefined,
+          startTime,
+          endTime,
+          room: room.trim() || undefined,
+          clearRoom: room.trim() === '',
+          effectiveFrom: effectiveFrom || undefined,
+          effectiveUntil: effectiveUntil || undefined,
+          clearEffectiveUntil: effectiveUntil === '',
+        })
+        setSaving(false)
+        submittingRef.current = false
+        onSaved()
+      } catch (e) {
+        setSaving(false)
+        submittingRef.current = false
+        setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
+      }
+      return
+    }
+
+    if (!selectedAssignment) { setError('Select a class and subject.'); return }
+    const { classId, subjectId } = selectedAssignment
+    if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
 
     submittingRef.current = true
     setSaving(true)
@@ -217,6 +276,35 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
     onSaved()
   }
 
+  async function handleDelete() {
+    if (!editSlot) return
+    if (!confirm("Delete this slot? This can't be undone.")) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await deleteTimetableSlot(editSlot.id)
+      onSaved()
+    } catch (e) {
+      setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  async function handleEndSlot() {
+    if (!editSlot) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await expireTimetableSlot(editSlot.id)
+      onSaved()
+    } catch (e) {
+      setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200,
@@ -237,7 +325,9 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
       >
         <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>Add Timetable Slot</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>
+            {isEdit ? 'Edit Timetable Slot' : 'Add Timetable Slot'}
+          </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.textMuted }}>✕</button>
         </div>
 
@@ -247,25 +337,34 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
           </div>
         )}
 
-        <div>
-          <label style={labelStyle}>Class &amp; Subject *</label>
-          {assignmentsLoading ? (
-            <div style={{ fontSize: 13, color: C.textMuted }}>Loading your assignments…</div>
-          ) : assignments.length === 0 ? (
-            <div style={{ fontSize: 13, color: C.error }}>
-              No class/subject assignments found. Ask an admin to assign you in ClassHub first.
+        {isEdit ? (
+          <div>
+            <label style={labelStyle}>Class &amp; Subject</label>
+            <div style={{ fontSize: 13, color: C.textPrimary, fontWeight: 600 }}>
+              {editSlot!.className} — {editSlot!.subjectName}
             </div>
-          ) : (
-            <select value={teacherClassId} onChange={e => setTeacherClassId(e.target.value)} style={inputStyle}>
-              <option value="">Select class &amp; subject</option>
-              {assignments.map(a => (
-                <option key={a.teacherClassId} value={a.teacherClassId}>
-                  {a.className} — {a.subjectName}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div>
+            <label style={labelStyle}>Class &amp; Subject *</label>
+            {assignmentsLoading ? (
+              <div style={{ fontSize: 13, color: C.textMuted }}>Loading your assignments…</div>
+            ) : assignments.length === 0 ? (
+              <div style={{ fontSize: 13, color: C.error }}>
+                No class/subject assignments found. Ask an admin to assign you in ClassHub first.
+              </div>
+            ) : (
+              <select value={teacherClassId} onChange={e => setTeacherClassId(e.target.value)} style={inputStyle}>
+                <option value="">Select class &amp; subject</option>
+                {assignments.map(a => (
+                  <option key={a.teacherClassId} value={a.teacherClassId}>
+                    {a.className} — {a.subjectName}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
 
         <div>
           <label style={labelStyle}>Day *</label>
@@ -295,9 +394,30 @@ export default function AddSlotModal({ teacherId, onClose, onSaved }: Props) {
           <input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputStyle} />
         </div>
 
-        <Btn onClick={save} disabled={saving || assignmentsLoading || assignments.length === 0}>
-          {saving ? 'Saving…' : 'Add Slot'}
+        {isEdit && (
+          <div>
+            <label style={labelStyle}>Effective Until (optional)</label>
+            <input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} style={inputStyle} />
+          </div>
+        )}
+
+        <Btn
+          onClick={save}
+          disabled={saving || deleting || (!isEdit && (assignmentsLoading || assignments.length === 0))}
+        >
+          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Slot'}
         </Btn>
+
+        {isEdit && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Btn variant="ghost" small onClick={handleEndSlot} disabled={saving || deleting}>
+              {deleting ? 'Working…' : 'End Slot'}
+            </Btn>
+            <Btn variant="danger" small onClick={handleDelete} disabled={saving || deleting}>
+              Delete
+            </Btn>
+          </div>
+        )}
       </div>
     </div>
   )

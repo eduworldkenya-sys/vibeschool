@@ -12,7 +12,7 @@ import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
-import type { TeachingOccurrence, Lifecycle } from '@/lib/teaching/types'
+import type { TeachingOccurrence, Lifecycle, EditableSlot } from '@/lib/teaching/types'
 
 // Fix 18C: human-facing text for each stable RPC error code. Kept next to
 // the CTA that renders it since these are UI strings, not data-layer concerns.
@@ -243,6 +243,7 @@ function SlotDrawer({
   onNavigate,
   onRecover,
   onCancelRecovery,
+  onEdit,
 }: {
   slot:           Slot | null
   curMin:         number
@@ -251,6 +252,7 @@ function SlotDrawer({
   onNavigate:     (url: string) => void
   onRecover:        (ctx: RecoverySheetContext) => void
   onCancelRecovery: (ctx: RecoverySheetContext) => void
+  onEdit:           (slot: Slot) => void
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -448,6 +450,7 @@ function SlotDrawer({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onClick={e => e.stopPropagation()}  // FIX [UI-02]: prevent bubble closing drawer
+        data-slot-drawer
         style={{
           position:     'fixed',
           bottom: 0, left: 0, right: 0,
@@ -555,6 +558,18 @@ function SlotDrawer({
               ⏱ Missed lesson
             </div>
           )}
+          <button
+            onClick={() => { onEdit(slot); onClose(); }}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 10,
+              border: `1.5px solid ${C.border}`, background: 'none',
+              fontSize: 13, fontWeight: 700, color: C.textPrimary,
+              cursor: 'pointer', marginBottom: 8,
+            }}
+          >
+            Edit Slot
+          </button>
+
           {/* TBL-009B: recover a missed lesson through the TBL-009A writer. */}
           {!occError && occurrence?.lifecycle === 'missed' && occRowId && (
             <Btn
@@ -688,6 +703,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
   const [selected,        setSelected]         = useState<Slot | null>(null)
   const [showAddSlot,     setShowAddSlot]      = useState(false)
+  const [editSlot,        setEditSlot]         = useState<Slot | null>(null)
   // TBL-009B: non-null while the recovery sheet is open; carries the
   // occurrence/class/subject identity so it survives sheet navigation.
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
@@ -1249,6 +1265,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onNavigate={handleNavigate}  // FIX [FATAL-03]: single router instance passed down
         onRecover={ctx => setRecoveryCtx(ctx)}
         onCancelRecovery={ctx => setRecoveryCtx(ctx)}
+        onEdit={s => setEditSlot(s)}
       />
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
@@ -1263,12 +1280,23 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         />
       )}
 
-      {/* Add slot modal — only when school confirmed */}
-      {showAddSlot && teacherId != null && (
+      {/* Add / edit slot modal — only when school confirmed */}
+      {(showAddSlot || editSlot) && teacherId != null && (
         <AddSlotModal
           teacherId={teacherId}
-          onClose={() => setShowAddSlot(false)}
-          onSaved={() => { setShowAddSlot(false); load() }}
+          editSlot={editSlot ? {
+            id:             editSlot.id,
+            className:      editSlot.className,
+            subjectName:    editSlot.subject,
+            dayOfWeek:      editSlot.dayOfWeek,
+            startTime:      editSlot.startTime,
+            endTime:        editSlot.endTime,
+            room:           editSlot.room,
+            effectiveFrom:  editSlot.effectiveFrom,
+            effectiveUntil: editSlot.effectiveUntil,
+          } as EditableSlot : undefined}
+          onClose={() => { setShowAddSlot(false); setEditSlot(null) }}
+          onSaved={() => { setShowAddSlot(false); setEditSlot(null); load() }}
         />
       )}
 

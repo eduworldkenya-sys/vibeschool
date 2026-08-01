@@ -58,6 +58,21 @@ export interface UpdateSlotParams {
   clearEffectiveUntil?: boolean
 }
 
+/** Minimal slot shape needed to prefill the edit form. Built from the
+ *  page-level `Slot` view model — not imported from the page itself,
+ *  per the no-types-in-pages rule. */
+export interface EditableSlot {
+  id:             string
+  className:      string
+  subjectName:    string
+  dayOfWeek:      number
+  startTime:      string
+  endTime:        string
+  room:           string
+  effectiveFrom:  string
+  effectiveUntil: string | null
+}
+
 export interface RecoverySuggestion {
   suggest_date: string
   day_of_week: number
