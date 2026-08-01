@@ -132,12 +132,12 @@ READ-004| P1| VERIFIED| CBC curriculum identity| Reader surfaces grade/subject/s
 READ-005| P1| VERIFIED| My Study Workspace| Bookmarks, highlights, notes, saved definitions/vocabulary/formulas, and Continue Reading unified into one learner workspace (sub-units READ-005A–005H, see reports below)
 READ-006| P1| VERIFIED| Study View & accessibility| Text size, line spacing, reading width, light/dark/paper mode, accessible headings/labels, keyboard operation, reduced motion, better mobile navigation
 READ-007| P2| VERIFIED| Reading analytics| Chapter-level completion/abandonment/duration signals beyond raw view counts
-READ-008| P2| IN PROGRESS| Teacher classroom integration (parent milestone)| Teacher-assigned chapters, due dates, class completion rates. Closes when READ-008G is VERIFIED.
+READ-008| P2| VERIFIED| Teacher classroom integration (parent milestone)| Teacher-assigned chapters, due dates, class completion rates and per-learner intervention drill-down are complete through READ-008A–G.
 READ-008A| P2| VERIFIED| Classroom-to-reader assignment authority (schema/RLS)| See report below
 READ-008B| P2| VERIFIED| Teacher assignment writer RPCs| See report below
 READ-008C| P2| VERIFIED| Learner assigned-reading delivery| See report below
 READ-008D–F| P2| VERIFIED| Teacher assignment management workspace: assignment list/cancel UI, due-date editing, class-level (aggregate) completion analytics| See report below
-READ-008G| P2| OPEN| Assignment-level per-learner analytics and intervention drill-down| For a given assignment, teacher can see WHICH specific linked learners are not-started/overdue (not just aggregate counts), to target intervention. This is the unit PR #3 mislabeled "READ-010."
+READ-008G| P2| VERIFIED| Assignment-level per-learner analytics and intervention drill-down| Teacher can inspect truthful learner-level assignment status, including account linkage, progress, completion and overdue intervention states.
 READ-009| P2| OPEN| Licensing & school access| Real M-Pesa/school-licence entitlement backing the paid/school_license pricing types the reader already recognizes but cannot fulfill
 READ-010| P3| OPEN| Offline reading| Deferred until the online reader (progress, workspace, licensing) is stable
 READ-011| P3| OPEN| AI tutor| Explicitly gated behind reader maturity — not started before READ-005 through READ-010 land
@@ -1043,3 +1043,115 @@ layout conventions, and 'use client' presence — it has no register/
 HANDOVER cross-check. Reconciliation above was done by manual
 cross-reference of the register, HANDOVER.md, repository files, and
 live Supabase state, not an automated script.
+
+---
+
+READ-008G VERIFIED
+
+FIX ID: READ-008G
+STATUS: VERIFIED
+
+OBJECTIVE:
+Provide teacher-only, assignment-level per-learner analytics and intervention
+drill-down without treating roster learners whose reader account is not linked
+as genuine non-starters.
+
+ROOT CAUSE:
+Existing classroom-reading analytics returned aggregate counts only. Classroom
+roster identity uses students.id while reader progress uses profiles.id /
+auth.uid(). Because students.profile_id is nullable, an unlinked student could
+not truthfully be classified as not started.
+
+IDENTITY MODEL:
+- Teacher identity: auth.uid() = profiles.id.
+- Reader identity: auth.uid() = profiles.id.
+- Roster learner identity: students.id.
+- The only reader/roster bridge is students.profile_id.
+- A missing profile bridge is represented as account_unlinked, never as
+  not_started.
+
+STATE DEFINITIONS:
+- account_unlinked
+- not_started
+- in_progress
+- completed
+- overdue_not_started
+- overdue_in_progress
+
+FILES CHANGED:
+- app/teacher/vibelearn/page.tsx
+- supabase/migrations/
+  20260731113118_read008g_assignment_learner_intervention_drilldown.sql
+- READ_FIX_REGISTER.md
+- HANDOVER.md
+
+DATABASE OBJECTS CHANGED:
+- public.get_classroom_reading_assignment_learners(uuid)
+
+MIGRATION:
+- Live ledger version:
+  20260731113118_read008g_assignment_learner_intervention_drilldown
+- Repository parity file:
+  supabase/migrations/
+  20260731113118_read008g_assignment_learner_intervention_drilldown.sql
+- The live RPC definition and repository migration were confirmed equivalent.
+
+DATA CHANGES:
+None. No learner, assignment or progress fixtures remain in production.
+
+RLS AND SECURITY:
+- Function is SECURITY DEFINER.
+- search_path is restricted to public, auth.
+- Teacher identity is derived from auth.uid().
+- Assignment ownership is verified before learner data is returned.
+- Anonymous execution is revoked.
+- EXECUTE is granted to authenticated and service_role.
+- No direct client table-write authority was added.
+
+DATA CORRECTNESS:
+- Deleted students are excluded.
+- Current enrollment is restricted by class, school, is_current and left_at.
+- Roster rows are deduplicated by student_id.
+- Progress is joined using the linked profile for the exact assigned
+  publication and chapter.
+- account_unlinked learners have null progress and are never reported as
+  not_started.
+- Completion uses completed_at from the existing reading-progress authority.
+- Null due dates are supported.
+- Cancelled assignment status remains visible in the response and does not
+  create false overdue states.
+
+VERIFICATION RESULTS:
+- Supabase migration ledger contains version 20260731113118.
+- public.get_classroom_reading_assignment_learners(uuid) exists live.
+- Function is SECURITY DEFINER with search_path public, auth.
+- anon has no EXECUTE privilege.
+- authenticated and service_role have EXECUTE privilege.
+- Repository migration is present on main.
+- Teacher VibeLearn UI calls the RPC and exposes the required status filters.
+- Aggregate assignment cards remain intact and the learner drill-down is
+  additive.
+- Production currently contains 0 chapter assignments and 0 reading-progress
+  rows, so full end-to-end real-data behavioural verification is not yet
+  possible.
+
+REGRESSION RESULTS:
+Existing assignment creation, learner delivery, aggregate analytics, due-date
+editing and cancellation remain unchanged.
+
+OPEN RISKS:
+- 114 of 115 non-deleted students remain unlinked to profiles.
+- Production currently has 0 classroom reading assignments and 0 reading
+  progress rows.
+- Live migration 20260730132408
+  read008df_teacher_assignment_workspace_analytics is still absent from the
+  repository and remains a separate parity gap.
+- READ-008B and READ-008C repository filename timestamps still differ from
+  their live ledger versions.
+
+COMMIT:
+Recorded by the documentation close-out commit created after this report.
+
+NEXT FIX:
+READ-009 — Licensing & school access — OPEN. Do not begin without explicit
+approval and a fresh permanent-loop investigation.

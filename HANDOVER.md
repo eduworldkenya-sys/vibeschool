@@ -51,66 +51,81 @@ VIBELEARN
 
 Current milestone
 
-READ-008 in progress (IN PROGRESS, not OPEN — sub-units 008A–008F are
-VERIFIED; only 008G remains).
+READ-008 — Teacher classroom integration — VERIFIED. All sub-units
+READ-008A through READ-008G are complete.
 
 Latest completed
 
 READ-001 — Canonical reader routing — VERIFIED
-READ-002 — Reading progress authority (schema, RPC, canonical reader wiring) — VERIFIED
+READ-002 — Reading progress authority — VERIFIED
 READ-003 — Continue Reading shelf — VERIFIED
 READ-004 — CBC curriculum identity — VERIFIED
-READ-005A — Workspace authority investigation — VERIFIED
-READ-005B — Canonical workspace foundation and publication saves — VERIFIED (migration 20260728191454 applied to production; live save/unsave/save, get_my_library, unpublished-rejection, and grant/RLS/trigger/policy reconciliation all confirmed)
-READ-005C — Chapter bookmarks — VERIFIED
-READ-005D–H — Study workspace capture — VERIFIED
+READ-005 — My Study Workspace — VERIFIED
 READ-006 — Study View & accessibility — VERIFIED
-READ-007 — Reading analytics (reading sessions) — VERIFIED
-READ-008A — Classroom-to-reader assignment authority — VERIFIED
-READ-008B — Teacher assignment writer RPCs — VERIFIED
-READ-008C — Learner assigned-reading delivery — VERIFIED (2026-07-31, retroactively closed out — see READ_FIX_REGISTER.md)
-READ-008D–F — Teacher assignment management workspace, due-date editing, class-level completion analytics — VERIFIED (2026-07-31, retroactively closed out; shipped live under migration read008df_teacher_assignment_workspace_analytics, ledger version 20260730132408, which is MISSING from supabase/migrations/ in the repository — see OPEN RISKS)
+READ-007 — Reading analytics — VERIFIED
+READ-008A — Classroom assignment authority — VERIFIED
+READ-008B — Teacher assignment writer authority — VERIFIED
+READ-008C — Learner assigned-reading delivery — VERIFIED
+READ-008D–F — Teacher assignment management, due-date editing and aggregate
+analytics — VERIFIED
+READ-008G — Assignment-level per-learner analytics and intervention
+drill-down — VERIFIED
+
+READ-008G authority
+
+- Migration:
+  20260731113118_read008g_assignment_learner_intervention_drilldown
+- RPC:
+  public.get_classroom_reading_assignment_learners(uuid)
+- SECURITY DEFINER with search_path public, auth.
+- Teacher identity is derived from auth.uid().
+- Assignment ownership is verified server-side.
+- anon EXECUTE is revoked.
+- authenticated and service_role may execute.
+- Roster identity remains students.id.
+- Reader identity remains profiles.id/auth.uid().
+- students.profile_id is the only permitted bridge.
+- account_unlinked is distinct from not_started.
+- States:
+  account_unlinked, not_started, in_progress, completed,
+  overdue_not_started and overdue_in_progress.
+- Teacher VibeLearn preserves aggregate cards and adds learner drill-down and
+  status filters.
 
 Active next unit
 
-READ-008G — Assignment-level per-learner analytics and intervention
-drill-down (which specific linked learners are behind on a given
-assignment, not just aggregate class counts). STATUS: OPEN, AWAITING
-APPROVAL to begin implementation. This is the unit PR #3's squash-merge
-(4e1f516) proposed calling "READ-010" — that label conflicted with the
-already-assigned READ-009 (Licensing)/READ-010 (Offline)/READ-011
-(AI tutor) and has been corrected. See RECONCILIATION NOTE in
-READ_FIX_REGISTER.md for full reasoning.
+READ-009 — Licensing & school access — OPEN. Do not begin without explicit
+approval and a fresh permanent-loop investigation.
 
-Open risks carried into next session
+Open risks
 
-- Migration read008df_teacher_assignment_workspace_analytics (live
-  ledger version 20260730132408) is not present in
-  supabase/migrations/ in the repository — repo/production parity gap,
-  needs its own fix before further schema work on this track.
-- READ-008B and READ-008C repo migration filename timestamps do not
-  match their live ledger versions (same drift class as TBL-001).
-- 114 of 115 students remain unlinked to authenticated profiles
-  (students.profile_id); vibe_chapter_assignments has 0 production
-  rows, so READ-008C/D–F have not been exercised against real
-  assignment data.
-- This session's verification was run against an uploaded zip snapshot
-  with no .git directory — git log/diff/status were not runnable;
-  commit 4e1f516 was not independently verified.
-
-Roadmap renumbered 2026-07-28 after READ-004 review — see READ_FIX_REGISTER.md phase table for the full READ-005 through READ-011 sequence. READ-008 was further reconciled 2026-07-31 (see READ_FIX_REGISTER.md RECONCILIATION NOTE); READ-009/010/011 identities are unchanged.
+- 114 of 115 non-deleted students remain unlinked to authenticated profiles.
+- Production currently has 0 classroom reading assignments and 0 reading
+  progress rows, so the complete workflow has not been exercised using real
+  assignment activity.
+- Live migration 20260730132408
+  read008df_teacher_assignment_workspace_analytics remains absent from the
+  repository.
+- READ-008B and READ-008C repository filename timestamps differ from their
+  live ledger versions.
 
 Authoritative reference
 
-"READ_FIX_REGISTER.md"
+READ_FIX_REGISTER.md
 
-Connected environments
+Connected environment
 
-SUPABASE PROJECT REF: yauqsxggtuxuykcbrtzf (same project as TIMETABLE track)
+SUPABASE PROJECT REF: yauqsxggtuxuykcbrtzf
 CANONICAL READER: app/read/textbook/[publicationId]/page.tsx
-CANONICAL RPCs: get_vibetextbook_reader, record_reading_progress, get_continue_reading
+CANONICAL RPCS:
+- get_vibetextbook_reader
+- record_reading_progress
+- get_continue_reading
+- get_classroom_reading_assignment_learners
 
-Identity rule: viewer_id = auth.uid() = profiles.id. Do not reuse or repair the legacy vibelearn_* engagement tables (students.id-keyed, 0 live rows, 114/115 students have no login) as part of this track without a separately scoped fix.
+Identity rule:
+viewer_id = auth.uid() = profiles.id. Never equate reader progress identity
+with students.id. Classroom-reader resolution must use students.profile_id.
 
 ---
 
