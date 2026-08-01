@@ -664,3 +664,6 @@
 ## [2026-07-31 16:07] a00bed0
 **What:** update teacher vibelearn page
 **Status:** ✅ pushed
+## [2026-08-01 14:56] 7866215
+**What:** perf: wrap auth.uid() in scheme_lesson_resource_links RLS policies
+**Status:** ✅ pushed
