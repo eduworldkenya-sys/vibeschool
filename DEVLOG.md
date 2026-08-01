@@ -676,3 +676,6 @@
 ## [2026-08-01 17:36] e07aa1a
 **What:** Content OS resource-linking migrations + RLS hardening (local sync, no DB changes)
 **Status:** ✅ pushed
+## [2026-08-01 17:55] 81649f8
+**What:** Make Differentiation Summary real: content-based diff detection + clickable row filters on Today & Upcoming
+**Status:** ✅ pushed
