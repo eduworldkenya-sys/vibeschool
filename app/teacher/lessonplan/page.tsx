@@ -39,6 +39,15 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   missing:           { label: 'No Plan',           bg: '#fee2e2', color: '#991b1b' },
 }
 
+// The AI generator writes a <differentiation>...</differentiation> block into
+// plan.body (support/core/extension activities). A plan can exist but still
+// have no real differentiation content — this checks for that directly
+// instead of inferring it from status.
+function hasDifferentiation(body: string): boolean {
+  const m = body.match(/<differentiation>([\s\S]*?)<\/differentiation>/)
+  return !!(m && m[1].trim().length > 0)
+}
+
 function LessonPlanInner() {
   const [weekStart,   setWeekStart]   = useState(nairobiWeekStart())
   const router                        = useRouter()
@@ -51,6 +60,7 @@ function LessonPlanInner() {
   const [toast,       setToast]       = useState('')
   const [schoolId,    setSchoolId]    = useState<string | null>(null)
   const [loadError,   setLoadError]   = useState<string | null>(null)
+  const [diffFilter,  setDiffFilter]  = useState<'all' | 'published' | 'draft' | 'missing'>('all')
 
   function showToast(msg: string) {
     setToast(msg)
@@ -218,6 +228,16 @@ function LessonPlanInner() {
   const missingCount = items.filter(i => !i.plan).length
   const isThisWeek   = weekStart === nairobiWeekStart()
 
+  // Drives the "Today & Upcoming" list below when a Differentiation Summary
+  // row is tapped. 'all' means no filter is active.
+  const visibleItems = items.filter(({ plan }) => {
+    if (diffFilter === 'all')       return true
+    if (diffFilter === 'missing')   return !plan
+    if (diffFilter === 'draft')     return !!plan && plan.status === 'draft'
+    if (diffFilter === 'published') return !!plan && (plan.status === 'published' || plan.status === 'shared_to_parents')
+    return true
+  })
+
   return (
     <>
       <style>{`
@@ -266,16 +286,28 @@ function LessonPlanInner() {
       </div>
 
       <Card>
-        <SectionLabel>Today &amp; Upcoming</SectionLabel>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <SectionLabel>Today &amp; Upcoming</SectionLabel>
+          {diffFilter !== 'all' && (
+            <button
+              onClick={() => setDiffFilter('all')}
+              style={{ fontSize: 11, fontWeight: 700, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit' }}
+            >
+              ✕ Clear filter
+            </button>
+          )}
+        </div>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
         ) : loadError ? (
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
         ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No classes scheduled</div>
+        ) : visibleItems.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No slots match this filter</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {items.map(({ slot, plan }) => {
+            {visibleItems.map(({ slot, plan }) => {
               const badge = STATUS_BADGE[plan?.status ?? 'missing']
               return (
                 <div key={slot.id} style={{ padding: '14px 0', borderBottom: '1px solid ' + C.border }}>
@@ -312,19 +344,32 @@ function LessonPlanInner() {
         {loadError ? (
           <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
         ) : (() => {
-          const published  = items.filter(i => i.plan?.status === 'published' || i.plan?.status === 'shared_to_parents').length
-          const draft      = items.filter(i => i.plan?.status === 'draft').length
-          const noPlan     = items.filter(i => !i.plan).length
+          const publishedItems = items.filter(i => i.plan?.status === 'published' || i.plan?.status === 'shared_to_parents')
+          const draftItems     = items.filter(i => i.plan?.status === 'draft')
+          const noPlan         = items.filter(i => !i.plan).length
+          const publishedDiff  = publishedItems.filter(i => i.plan && hasDifferentiation(i.plan.body)).length
+          const draftDiff      = draftItems.filter(i => i.plan && hasDifferentiation(i.plan.body)).length
           return [
-            { level: 'Published', color: '#7c3aed', bg: '#ede9fe', desc: 'Published or shared plans', count: published },
-            { level: 'Draft',     color: C.accent,  bg: C.accentLight, desc: 'Plans saved as draft', count: draft },
-            { level: 'Missing',   color: '#d97706', bg: '#fef3c7', desc: 'Slots with no plan yet',  count: noPlan },
+            { key: 'published' as const, level: 'Published', color: '#7c3aed', bg: '#ede9fe', desc: 'Published or shared plans', count: publishedItems.length, diff: publishedDiff },
+            { key: 'draft'     as const, level: 'Draft',     color: C.accent,  bg: C.accentLight, desc: 'Plans saved as draft', count: draftItems.length, diff: draftDiff },
+            { key: 'missing'   as const, level: 'Missing',   color: '#d97706', bg: '#fef3c7', desc: 'Slots with no plan yet',  count: noPlan, diff: null },
           ].map(d => (
-            <div key={d.level} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: d.bg, marginBottom: 8 }}>
+            <div
+              key={d.level}
+              onClick={() => setDiffFilter(f => f === d.key ? 'all' : d.key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10,
+                background: d.bg, marginBottom: 8, cursor: 'pointer',
+                border: '2px solid ' + (diffFilter === d.key ? d.color : 'transparent'),
+              }}
+            >
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: d.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{d.count}</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: d.color }}>{d.level}</div>
                 <div style={{ fontSize: 12, color: C.textMuted }}>{d.desc}</div>
+                {d.diff !== null && d.count > 0 && (
+                  <div style={{ fontSize: 11, color: d.color, fontWeight: 700, marginTop: 2 }}>⚡ {d.diff} of {d.count} have differentiated activities</div>
+                )}
               </div>
             </div>
           ))
