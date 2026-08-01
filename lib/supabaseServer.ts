@@ -8,15 +8,13 @@ import type { Database } from './database.types'
 // This is intentionally separate from lib/supabase.ts, which is the
 // browser client used by client components with the anon key.
 
-// NOTE: explicitly typed as SupabaseClient<any> due to an unresolved
-// generic-inference issue between our Database type and the installed
-// @supabase/postgrest-js (2.105.4) GenericSchema constraints — confirmed
-// via isolated test files that Database itself is structurally correct,
-// but createClient<Database>() still resolves Functions/Tables to never.
-// This keeps runtime behavior unaffected (RPC calls work fine; only
-// compile-time typing is loosened here). Revisit on supabase-js upgrade.
+// CE-FE-001: lib/database.types.ts is now generated from the live schema
+// (previously a 2-table hand-written stub). Attempting real typing here.
+// If `npm run typecheck` still resolves Functions/Tables to never on this
+// supabase-js/postgrest-js version, revert this hunk from the backup in
+// .ce_fe_001_backups/ — it is a compile-time-only fallback, not a runtime bug.
 import type { SupabaseClient } from '@supabase/supabase-js'
-let serverClient: SupabaseClient<any> | null = null
+let serverClient: SupabaseClient<Database> | null = null
 
 export function getSupabaseServerClient() {
   if (!serverClient) {
@@ -29,7 +27,7 @@ export function getSupabaseServerClient() {
       )
     }
 
-    serverClient = createClient(url, serviceKey, {
+    serverClient = createClient<Database>(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
   }
