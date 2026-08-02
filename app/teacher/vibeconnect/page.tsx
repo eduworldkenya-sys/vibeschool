@@ -4,7 +4,24 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import type { VCThread, VCMessage, VCCircular } from '@/lib/types'
+type MessageUI = {
+  id: string
+  thread_id: string
+  sender_id: string
+  body: string
+  created_at: string
+}
+
+type CircularUI = {
+  id: string
+  title: string
+  body: string
+  audience_type: string
+  requires_ack: boolean
+  sent_at: string
+  acked: boolean
+  recipientId: string
+}
 
 const C = {
   hero:      '#0a1628',
@@ -76,14 +93,19 @@ async function ensureVCId(userId: string, fullName: string) {
   return vcId
 }
 
-async function findOrCreateThread(schoolId: string | null, currentUserId: string, otherUserId: string, contextTag = 'general'): Promise<string> {
+async function findOrCreateThread(schoolId: string, currentUserId: string, otherUserId: string, contextTag = 'general'): Promise<string> {
   const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
-  const myThreadIds = (myThreads ?? []).map((t: { thread_id: string }) => t.thread_id)
+  const myThreadIds = (myThreads ?? [])
+    .map(t => t.thread_id)
+    .filter((threadId): threadId is string => threadId !== null)
   if (myThreadIds.length > 0) {
     const { data: shared } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', otherUserId).in('thread_id', myThreadIds)
-    if (shared && shared.length > 0) return shared[0].thread_id
+    const sharedThreadId = shared?.[0]?.thread_id
+    if (sharedThreadId) return sharedThreadId
   }
   const { data: thread } = await supabase.from('vc_threads').insert({ school_id: schoolId, type: 'direct', created_by: currentUserId, context_tag: contextTag }).select().single()
+  if (!thread) throw new Error('Failed to create communication thread')
+
   await supabase.from('vc_participants').insert([
     { thread_id: thread.id, profile_id: currentUserId, school_id: schoolId },
     { thread_id: thread.id, profile_id: otherUserId,   school_id: schoolId },
@@ -92,7 +114,6 @@ async function findOrCreateThread(schoolId: string | null, currentUserId: string
 }
 
 interface ThreadUI { threadId: string; otherName: string; otherInitials: string; lastMessage: string; lastTime: string; unreadCount: number; otherRole: string; otherId: string; contextTag: string }
-interface CircularUI extends VCCircular { acked: boolean; recipientId: string }
 interface ProfileRow { id: string; full_name: string; role: string }
 
 const COMPOSE_TYPES = [
@@ -111,7 +132,7 @@ export default function TeacherVibeConnectPage() {
 
   const [threads,      setThreads]      = useState<ThreadUI[]>([])
   const [activeThread, setActiveThread] = useState<ThreadUI | null>(null)
-  const [messages,     setMessages]     = useState<VCMessage[]>([])
+  const [messages,     setMessages]     = useState<MessageUI[]>([])
   const [msgBody,      setMsgBody]      = useState('')
   const [sending,      setSending]      = useState(false)
   const [msgLoading,   setMsgLoading]   = useState(false)
@@ -156,19 +177,35 @@ export default function TeacherVibeConnectPage() {
       supabase.from('vc_circular_recipients').select('id, circular_id, ack_at').eq('profile_id', uid),
     ])
 
-    const threadIds = (parts ?? []).map((p: { thread_id: string }) => p.thread_id)
+    const threadIds = (parts ?? [])
+      .map(p => p.thread_id)
+      .filter((threadId): threadId is string => threadId !== null)
 
     if (threadIds.length > 0) {
       const [{ data: threadRows }, { data: allParts }] = await Promise.all([
         supabase.from('vc_threads').select('*').in('id', threadIds).order('last_message_at', { ascending: false }),
         supabase.from('vc_participants').select('thread_id, profile_id').in('thread_id', threadIds),
       ])
-      const otherIds = (allParts ?? []).filter((p: { profile_id: string }) => p.profile_id !== uid).map((p: { profile_id: string }) => p.profile_id)
+      const otherIds = (allParts ?? [])
+        .map(p => p.profile_id)
+        .filter((profileId): profileId is string =>
+          profileId !== null && profileId !== uid
+        )
       const { data: profiles } = otherIds.length > 0 ? await supabase.from('profiles').select('id, full_name, role').in('id', otherIds) : { data: [] }
       const profileMap: Record<string, ProfileRow> = {}
-      ;(profiles ?? []).forEach((pr: ProfileRow) => { profileMap[pr.id] = pr })
+      ;(profiles ?? []).forEach(pr => {
+        profileMap[pr.id] = {
+          id: pr.id,
+          full_name: pr.full_name,
+          role: pr.role ?? 'staff',
+        }
+      })
       const readMap: Record<string, string | null> = {}
-      ;(parts ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => { readMap[p.thread_id] = p.last_read_at })
+      ;(parts ?? []).forEach(p => {
+        if (p.thread_id !== null) {
+          readMap[p.thread_id] = p.last_read_at
+        }
+      })
 
       // Accurate unread counts
       const unreadCounts: Record<string, number> = {}
@@ -178,21 +215,51 @@ export default function TeacherVibeConnectPage() {
         unreadCounts[threadId] = count ?? 0
       }))
 
-      const ui: ThreadUI[] = (threadRows ?? []).map((t: VCThread & { context_tag?: string }) => {
-        const otherPart = (allParts ?? []).find((p: { thread_id: string; profile_id: string }) => p.thread_id === t.id && p.profile_id !== uid)
-        const other = otherPart ? profileMap[otherPart.profile_id] : null
-        return { threadId: t.id, otherName: other?.full_name ?? 'Unknown', otherInitials: initials(other?.full_name ?? '?'), lastMessage: t.last_message_preview ?? '', lastTime: t.last_message_at ? timeAgo(t.last_message_at) : '', unreadCount: unreadCounts[t.id] ?? 0, otherRole: other?.role ?? '', otherId: otherPart?.profile_id ?? '', contextTag: t.context_tag ?? 'general' }
+      const ui: ThreadUI[] = (threadRows ?? []).map(t => {
+        const otherPart = (allParts ?? []).find(
+          p =>
+            p.thread_id === t.id &&
+            p.profile_id !== null &&
+            p.profile_id !== uid
+        )
+        const otherProfileId = otherPart?.profile_id ?? null
+        const other = otherProfileId ? profileMap[otherProfileId] : null
+
+        return {
+          threadId: t.id,
+          otherName: other?.full_name ?? 'Unknown',
+          otherInitials: initials(other?.full_name ?? '?'),
+          lastMessage: t.last_message_preview ?? '',
+          lastTime: t.last_message_at ? timeAgo(t.last_message_at) : '',
+          unreadCount: unreadCounts[t.id] ?? 0,
+          otherRole: other?.role ?? '',
+          otherId: otherProfileId ?? '',
+          contextTag: t.context_tag ?? 'general',
+        }
       })
       setThreads(ui)
     }
 
-    const circIds = (circRecips ?? []).map((r: { circular_id: string }) => r.circular_id)
+    const circIds = (circRecips ?? [])
+      .map(r => r.circular_id)
+      .filter((circularId): circularId is string => circularId !== null)
     if (circIds.length > 0) {
       const { data: circs } = await supabase.from('vc_circulars').select('*').in('id', circIds).order('sent_at', { ascending: false })
-      setCirculars((circs ?? []).map((c: VCCircular) => {
-        const recip = (circRecips ?? []).find((r: { circular_id: string; id: string; ack_at: string | null }) => r.circular_id === c.id)
-        return { ...c, acked: !!recip?.ack_at, recipientId: recip?.id ?? '' }
-      }))
+      const normalized: CircularUI[] = (circs ?? []).map(c => {
+        const recip = (circRecips ?? []).find(r => r.circular_id === c.id)
+
+        return {
+          id: c.id,
+          title: c.title,
+          body: c.body,
+          audience_type: c.audience_type,
+          requires_ack: c.requires_ack ?? false,
+          sent_at: c.sent_at ?? c.created_at ?? new Date(0).toISOString(),
+          acked: recip?.ack_at !== null && recip?.ack_at !== undefined,
+          recipientId: recip?.id ?? '',
+        }
+      })
+      setCirculars(normalized)
     }
   }
 
@@ -206,7 +273,22 @@ export default function TeacherVibeConnectPage() {
 
   async function loadMessages(threadId: string) {
     const { data } = await supabase.from('vc_messages').select('*').eq('thread_id', threadId).is('deleted_at', null).order('created_at', { ascending: true })
-    setMessages(data ?? [])
+    const normalized: MessageUI[] = (data ?? [])
+      .filter(
+        row =>
+          row.thread_id !== null &&
+          row.sender_id !== null &&
+          row.created_at !== null
+      )
+      .map(row => ({
+        id: row.id,
+        thread_id: row.thread_id as string,
+        sender_id: row.sender_id as string,
+        body: row.body,
+        created_at: row.created_at as string,
+      }))
+
+    setMessages(normalized)
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
@@ -222,13 +304,22 @@ export default function TeacherVibeConnectPage() {
   async function searchPeople(q: string) {
     setSearchQuery(q)
     if (q.length < 2) { setSearchResults([]); return }
+    if (!schoolId || !userId) { setSearchResults([]); return }
     setSearching(true)
     const roles = pendingTag === 'colleague' ? ['teacher', 'admin'] : ['parent', 'teacher', 'admin']
     const { data } = await supabase.from('profiles').select('id, full_name, role').eq('school_id', schoolId).neq('id', userId).in('role', roles).ilike('full_name', `%${q}%`).limit(10)
-    setSearchResults(data ?? []); setSearching(false)
+    setSearchResults(
+      (data ?? []).map(row => ({
+        id: row.id,
+        full_name: row.full_name,
+        role: row.role ?? 'staff',
+      }))
+    )
+    setSearching(false)
   }
 
   async function startThread(other: ProfileRow) {
+    if (!schoolId || !userId) return
     setComposeOpen(false); setSearchQuery(''); setSearchResults([])
     const threadId = await findOrCreateThread(schoolId, userId, other.id, pendingTag)
     await openThread({ threadId, otherName: other.full_name, otherInitials: initials(other.full_name), lastMessage: '', lastTime: '', unreadCount: 0, otherRole: other.role, otherId: other.id, contextTag: pendingTag })
