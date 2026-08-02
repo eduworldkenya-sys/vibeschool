@@ -237,17 +237,15 @@ export default function FinancePage() {
         ;(studs ?? []).forEach((s: { id: string; name: string }) => { studentMap[s.id] = s.name })
       }
 
-      const invoiceRows: InvoiceRow[] = rawInv.map((i: {
-        id: string; student_id: string; term: string; year: number;
-        status: string; total_amount: number; paid_amount: number;
-        due_date: string | null; created_at: string
-      }) => ({ ...i, student_name: studentMap[i.student_id] ?? "Unknown" }))
+      const invoiceRows: InvoiceRow[] = rawInv.map(i => ({
+        ...i,
+        student_name: studentMap[i.student_id] ?? "Unknown",
+      }))
 
-      const paymentRows: PaymentRow[] = rawPay.map((p: {
-        id: string; student_id: string; amount: number; method: string;
-        reference: string | null; receipt_number: string | null;
-        received_at: string; notes: string | null
-      }) => ({ ...p, student_name: studentMap[p.student_id] ?? "Unknown" }))
+      const paymentRows: PaymentRow[] = rawPay.map(p => ({
+        ...p,
+        student_name: studentMap[p.student_id] ?? "Unknown",
+      }))
 
       const accountRows: BankAccount[] = accRes.data ?? []
       const expenseRows: ExpenseRow[]  = expRes.data ?? []

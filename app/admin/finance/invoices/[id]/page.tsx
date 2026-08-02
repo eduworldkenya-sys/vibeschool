@@ -115,9 +115,9 @@ interface Payment {
   amount: number
   method: string
   reference: string | null
-  receipt_number: string
-  received_at: string
-  notes: string
+  receipt_number: string | null
+  received_at: string | null
+  notes: string | null
   bank_account_id: string | null
 }
 

@@ -137,8 +137,18 @@ export default function GenerateInvoicesPage() {
         const studentFees = feeStructures.filter(f => f.class_id === student.class_id)
         const total = studentFees.reduce((s, f) => s + Number(f.amount), 0)
         const alreadyInvoiced = existingSet.has(student.id)
-        return { student, className: classMap[student.class_id] ?? "Unknown",
-          feeLines: studentFees, total, alreadyInvoiced, included: !alreadyInvoiced }
+        const className = student.class_id
+          ? classMap[student.class_id] ?? "Unknown"
+          : "Unassigned"
+
+        return {
+          student,
+          className,
+          feeLines: studentFees,
+          total,
+          alreadyInvoiced,
+          included: !alreadyInvoiced,
+        }
       })
       setPreviewRows(rows)
       setStep(2)

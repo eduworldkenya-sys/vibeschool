@@ -70,11 +70,11 @@ interface Payment {
   student_id: string
   amount: number
   method: string
-  reference: string
-  receipt_number: string
-  received_at: string
-  notes: string
-  bank_account_id: string
+  reference: string | null
+  receipt_number: string | null
+  received_at: string | null
+  notes: string | null
+  bank_account_id: string | null
 }
 
 interface Invoice {
@@ -82,7 +82,7 @@ interface Invoice {
   student_id: string
   term: string
   year: number
-  due_date: string
+  due_date: string | null
   status: string
   total_amount: number
   paid_amount: number
@@ -91,7 +91,7 @@ interface Invoice {
 interface Student {
   id: string
   name: string
-  admission_number: string
+  admission_number: string | null
 }
 
 interface School {
