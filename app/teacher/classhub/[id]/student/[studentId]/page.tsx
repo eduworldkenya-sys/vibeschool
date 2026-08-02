@@ -309,10 +309,11 @@ function AttendanceTab({ records, studentId }: { records: AttendanceRecord[]; st
 
   useEffect(() => {
     if (range === 'all') { setRangeRecords(null); return }
+    const activeRange: AttendanceRange = range
     let cancelled = false
     async function load() {
       setRangeLoading(true)
-      const { startDate, endDate } = await getRangeDates(range)
+      const { startDate, endDate } = await getRangeDates(activeRange)
       const data = await getAttendanceRecords({ studentId, startDate, endDate })
       if (!cancelled) { setRangeRecords(data); setRangeLoading(false) }
     }
