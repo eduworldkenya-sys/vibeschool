@@ -45,7 +45,13 @@ export default function FunHubPage() {
         .select('total_xp, level, weekly_xp')
         .eq('student_id', student.id)
         .single()
-      if (xp) setXpData(xp)
+      if (xp) {
+        setXpData({
+          total_xp: xp.total_xp ?? 0,
+          level: xp.level ?? 1,
+          weekly_xp: xp.weekly_xp ?? 0,
+        })
+      }
 
       // Best streak across all subjects
       const { data: streaks } = await supabase
@@ -54,7 +60,9 @@ export default function FunHubPage() {
         .eq('student_id', student.id)
         .order('current_count', { ascending: false })
         .limit(1)
-      if (streaks && streaks.length > 0) setStreak(streaks[0].current_count)
+      if (streaks && streaks.length > 0) {
+        setStreak(streaks[0].current_count ?? 0)
+      }
 
       // School leaderboard — get school_id from profiles
       const { data: profile } = await supabase
@@ -67,7 +75,13 @@ export default function FunHubPage() {
           .order('school_rank', { ascending: true })
           .limit(10)
         if (lb) {
-          setLeaderboard(lb)
+          setLeaderboard(
+            lb.map(row => ({
+              display_name: row.display_name ?? 'Learner',
+              total_xp: row.total_xp ?? 0,
+              school_rank: row.school_rank ?? 0,
+            }))
+          )
         }
       }
     }

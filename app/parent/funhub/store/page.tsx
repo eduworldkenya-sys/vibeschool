@@ -30,6 +30,13 @@ interface XPWallet {
   level: number
 }
 
+interface ClaimResult {
+  redemption_code: string
+  voucher_title: string
+  sponsor: string
+  xp_spent: number
+}
+
 type Screen = 'store' | 'claims' | 'confirming' | 'success'
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -54,7 +61,7 @@ export default function VoucherStorePage() {
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
-  const [claimResult, setClaimResult] = useState<{ redemption_code: string; voucher_title: string; sponsor: string; xp_spent: number } | null>(null)
+  const [claimResult, setClaimResult] = useState<ClaimResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
@@ -79,8 +86,27 @@ export default function VoucherStorePage() {
         supabase.from('funhub_claims').select('*, funhub_vouchers(title, sponsor_name)').eq('student_id', student.id).order('claimed_at', { ascending: false }),
       ])
 
-      if (xpRes.data) setWallet(xpRes.data)
-      if (vouchersRes.data) setVouchers(vouchersRes.data)
+      if (xpRes.data) {
+        setWallet({
+          total_xp: xpRes.data.total_xp ?? 0,
+          level: xpRes.data.level ?? 1,
+        })
+      }
+
+      if (vouchersRes.data) {
+        setVouchers(
+          vouchersRes.data.map(row => ({
+            id: row.id,
+            sponsor_name: row.sponsor_name,
+            title: row.title,
+            description: row.description ?? '',
+            category: row.category,
+            xp_cost: row.xp_cost,
+            total_pool: row.total_pool,
+            claimed_count: row.claimed_count,
+          }))
+        )
+      }
       if (claimsRes.data) setClaims(claimsRes.data as Claim[])
     } catch (e) {
       console.error(e)
@@ -101,7 +127,27 @@ export default function VoucherStorePage() {
         setClaiming(false)
         return
       }
-      setClaimResult(data)
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Voucher claim returned an invalid response.')
+      }
+
+      const result = data as Record<string, unknown>
+
+      if (
+        typeof result.redemption_code !== 'string' ||
+        typeof result.voucher_title !== 'string' ||
+        typeof result.sponsor !== 'string' ||
+        typeof result.xp_spent !== 'number'
+      ) {
+        throw new Error('Voucher claim returned incomplete details.')
+      }
+
+      setClaimResult({
+        redemption_code: result.redemption_code,
+        voucher_title: result.voucher_title,
+        sponsor: result.sponsor,
+        xp_spent: result.xp_spent,
+      })
       // Refresh wallet and claims
       await loadAll()
       setScreen('success')
