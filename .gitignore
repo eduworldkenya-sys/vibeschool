@@ -62,7 +62,10 @@ env.local
 *.bak
 *.bak2
 .babelrc
-.github/workflows/
+# GitHub Actions workflows are production CI and must be tracked
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
 *.tar.gz
 *.deb
 
