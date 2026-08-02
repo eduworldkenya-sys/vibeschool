@@ -233,7 +233,7 @@ export default function AdminCommunicationPage() {
     }
   }
 
-  async function loadAll(uid: string, sid: string | null) {
+  async function loadAll(uid: string, sid: string) {
     const [{ data: parts }, { data: circs }] = await Promise.all([
       supabase.from('vc_participants').select('thread_id, last_read_at').eq('profile_id', uid),
       supabase.from('vc_circulars').select('*').eq('school_id', sid).order('sent_at', { ascending: false }),
