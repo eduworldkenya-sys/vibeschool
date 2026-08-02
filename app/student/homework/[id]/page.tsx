@@ -155,7 +155,6 @@ export default function HomeworkDetailPage() {
       .insert({
         homework_id:  hw.id,
         student_id:   identity.studentId,
-        school_id:    identity.schoolId ?? null,
         status:       "submitted",
         submitted_at: new Date().toISOString(),
         photo_url:    photoUrl,

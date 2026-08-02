@@ -253,10 +253,7 @@ export default function VibeLearnPage() {
 
       return {
         id: row.id,
-        earned_at:
-          row.earned_at ??
-          row.created_at ??
-          new Date(0).toISOString(),
+        earned_at: row.earned_at ?? new Date(0).toISOString(),
         badges: {
           name: badge?.name ?? 'Badge',
           icon: badge?.icon ?? '🏅',

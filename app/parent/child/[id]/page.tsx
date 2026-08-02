@@ -246,7 +246,9 @@ export default function ChildDetailPage() {
         if (!grouped[key]) grouped[key] = { mastered: 0, assessed: 0, total: 0, strands: {} }
         grouped[key].total++
         if (row.status === 'mastered') grouped[key].mastered++
-        if (['mastered','assessed'].includes(row.status)) grouped[key].assessed++
+        if (row.status && ['mastered', 'assessed'].includes(row.status)) {
+          grouped[key].assessed++
+        }
         if (row.strand) grouped[key].strands[row.strand] = (grouped[key].strands[row.strand] ?? 0) + 1
       }
 

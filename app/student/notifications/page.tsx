@@ -81,7 +81,15 @@ export default function NotificationsPage() {
         setLoading(false);
         return;
       }
-      const result = data ?? [];
+      const result: Notif[] = (data ?? []).map(notification => ({
+        id: notification.id,
+        title: notification.title,
+        body: notification.body,
+        type: notification.type,
+        is_read: notification.is_read ?? false,
+        created_at: notification.created_at ?? new Date(0).toISOString(),
+      }));
+
       writeCache("notifications", identity!.studentId, result);
       setNotifs(result);
       setLoading(false);

@@ -91,7 +91,13 @@ export default function ParentHomeworkPage() {
       ]);
 
       const subMap = new Map<string, { status: string; mark: number | null }>();
-      for (const s of (subRes.data ?? [])) subMap.set(s.homework_id, { status: s.status, mark: s.mark });
+      for (const submission of subRes.data ?? []) {
+        if (!submission.homework_id) continue;
+        subMap.set(submission.homework_id, {
+          status: submission.status,
+          mark: submission.mark,
+        });
+      }
 
       const items: HWItem[] = ((hwRes.data ?? []) as { id:string; title:string; subject:string; due_date:string; type:string }[]).map(h => {
         const sub = subMap.get(h.id);

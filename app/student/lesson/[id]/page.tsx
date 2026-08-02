@@ -62,7 +62,7 @@ export default function LessonPage() {
 
       setLesson({
         id:           raw.id,
-        title:        raw.title,
+        title:        raw.title ?? "Lesson",
         content_type: contentRes.data?.content_type ?? "progress_record",
         student_copy: contentRes.data?.student_copy ?? "",
         objectives:   raw.objectives   ?? "",

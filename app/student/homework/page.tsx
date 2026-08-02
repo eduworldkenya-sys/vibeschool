@@ -106,22 +106,26 @@ export default function HomeworkListPage() {
     const cached = readCache<HWListItem[]>("homework", identity.studentId);
     if (cached) { setItems(sortByPriority(cached)); setLoading(false); }
 
-    async function load() {
+    async function load(
+      validClassId: string,
+      validStudentId: string,
+      validSchoolId: string | null
+    ) {
       let hwQuery = supabase
         .from("homework")
         .select("*")
-        .eq("class_id", identity!.classId)
+        .eq("class_id", validClassId)
         .order("due_date", { ascending: true });
 
-      if (identity!.schoolId) {
-        hwQuery = hwQuery.eq("school_id", identity!.schoolId);
+      if (validSchoolId) {
+        hwQuery = hwQuery.eq("school_id", validSchoolId);
       }
 
       // G3: fetch student group memberships alongside homework
       const [hwRes, subRes, grpRes] = await Promise.all([
         hwQuery,
-        supabase.from("homework_submissions").select("*").eq("student_id", identity!.studentId),
-        supabase.from("class_group_members").select("group_id").eq("student_id", identity!.studentId),
+        supabase.from("homework_submissions").select("*").eq("student_id", validStudentId),
+        supabase.from("class_group_members").select("group_id").eq("student_id", validStudentId),
       ]);
 
       const myGroupIds = new Set(
@@ -144,11 +148,11 @@ export default function HomeworkListPage() {
       });
 
       const sorted = sortByPriority(result);
-      writeCache("homework", identity!.studentId, sorted);
+      writeCache("homework", validStudentId, sorted);
       setItems(sorted);
       setLoading(false);
     }
-    load();
+    void load(identity.classId, identity.studentId, identity.schoolId);
   }, [identity, idLoading]);
 
   const pending   = items.filter(h => h.status === "pending" && !isOverdue(h.due_date));
