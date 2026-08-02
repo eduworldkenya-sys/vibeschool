@@ -144,8 +144,8 @@ export default function VisitorsPage() {
       return
     }
 
-    const validSchoolId = schoolId
-    const validUserId = userId
+    const validSchoolId: string = schoolId
+    const validUserId: string = userId
 
     if (!form.full_name.trim()) { showToast("Enter visitor name", "error"); return }
     if (!form.visiting_whom.trim()) { showToast("Enter who they are visiting", "error"); return }

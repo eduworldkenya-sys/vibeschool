@@ -113,7 +113,17 @@ function QuizPanel({ topicId }: { topicId: string }) {
       } else if (data) {
         const parsedQuestions: QuizQuestionRow[] = data.map(row => {
           const options: QuizOption[] = Array.isArray(row.options)
-            ? row.options.filter(isQuizOption)
+            ? row.options.reduce<QuizOption[]>((parsed, option) => {
+                if (!isQuizOption(option)) return parsed
+
+                parsed.push({
+                  id: option.id,
+                  label: option.label,
+                  text: option.text,
+                })
+
+                return parsed
+              }, [])
             : []
 
           return {
