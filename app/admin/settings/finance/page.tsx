@@ -114,8 +114,22 @@ export default function FinanceSettingsPage() {
       .from('profiles').select('school_id').eq('id', user.id).single()
     const adminRes3  = await supabase.from('admin_profiles').select('school_id').eq('profile_id', user.id).maybeSingle()
     const memberRes3 = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle()
-    const sid = memberRes3.data?.school_id ?? adminRes3.data?.school_id ?? profile?.school_id
+    const sid =
+      memberRes3.data?.school_id ??
+      adminRes3.data?.school_id ??
+      profile?.school_id ??
+      null
+
     setSchoolId(sid)
+
+    if (!sid) {
+      setBursar(null)
+      setStaff([])
+      setRequiresDual(true)
+      setLoading(false)
+      return
+    }
+
     const [
       { data: bursarRow },
       { data: staffRows },
@@ -131,8 +145,35 @@ export default function FinanceSettingsPage() {
       supabase
         .from('schools').select('requires_dual_approval').eq('id', sid).single(),
     ])
-    setBursar(bursarRow ?? null)
-    setStaff(staffRows ?? [])
+    setBursar(
+      bursarRow && bursarRow.profile_id
+        ? {
+            id: bursarRow.id,
+            profile_id: bursarRow.profile_id,
+            appointed_at:
+              bursarRow.appointed_at ??
+              bursarRow.created_at ??
+              new Date(0).toISOString(),
+            profile: Array.isArray(bursarRow.profile)
+              ? bursarRow.profile[0] ?? null
+              : bursarRow.profile,
+            appointed_by_profile: Array.isArray(
+              bursarRow.appointed_by_profile
+            )
+              ? bursarRow.appointed_by_profile[0] ?? null
+              : bursarRow.appointed_by_profile,
+          }
+        : null
+    )
+
+    setStaff(
+      (staffRows ?? []).map(row => ({
+        id: row.id,
+        full_name: row.full_name,
+        role: row.role ?? 'staff',
+      }))
+    )
+
     setRequiresDual(schoolRow?.requires_dual_approval ?? true)
     setLoading(false)
   }, [])
@@ -140,7 +181,7 @@ export default function FinanceSettingsPage() {
   useEffect(() => { load() }, [load])
 
   async function appointBursar() {
-    if (!selectedProfileId) return
+    if (!schoolId || !currentUserId || !selectedProfileId) return
     setAppointing(true)
     await supabase.from('finance_roles').insert({
       school_id: schoolId, profile_id: selectedProfileId,
@@ -158,7 +199,7 @@ export default function FinanceSettingsPage() {
   }
 
   async function revokeBursar() {
-    if (!bursar) return
+    if (!schoolId || !currentUserId || !bursar) return
     setRevoking(true)
     await supabase
       .from('finance_roles')
@@ -175,6 +216,7 @@ export default function FinanceSettingsPage() {
   }
 
   async function toggleDualApproval() {
+    if (!schoolId || !currentUserId) return
     setTogglingDual(true)
     await supabase
       .from('schools')
