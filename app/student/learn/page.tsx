@@ -82,17 +82,17 @@ export default function MyWorkPage() {
     const cached = readCache<HWItem[]>("homework", studentId);
     if (cached) { setItems(cached); setLoading(false); }
 
-    async function load() {
+    async function load(validClassId: string, validStudentId: string) {
       const [hwRes, subRes] = await Promise.all([
         supabase
           .from("homework")
           .select("id, title, subject, due_date, type")
-          .eq("class_id", classId)
+          .eq("class_id", validClassId)
           .order("due_date", { ascending: true }),
         supabase
           .from("homework_submissions")
           .select("homework_id, status, mark, feedback")
-          .eq("student_id", studentId),
+          .eq("student_id", validStudentId),
       ]);
 
       const subMap = new Map<string, { status: string; mark: number | null; feedback: string | null }>();
@@ -122,11 +122,11 @@ export default function MyWorkPage() {
           };
         });
 
-      writeCache("homework", studentId, result);
+      writeCache("homework", validStudentId, result);
       setItems(result);
       setLoading(false);
     }
-    load();
+    void load(classId, studentId);
   }, [identity, idLoading]);
 
   const isLoading = idLoading || (loading && items.length === 0);
