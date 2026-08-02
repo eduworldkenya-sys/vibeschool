@@ -4,7 +4,24 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import type { VCThread, VCMessage, VCCircular } from '@/lib/types'
+type MessageUI = {
+  id: string
+  thread_id: string
+  sender_id: string
+  body: string
+  created_at: string
+}
+
+type CircularUI = {
+  id: string
+  title: string
+  body: string
+  audience_type: string
+  requires_ack: boolean
+  sent_at: string
+  acked: boolean
+  recipientId: string
+}
 
 const C = {
   hero:      '#0a1628',
@@ -71,12 +88,17 @@ async function ensureVCId(userId: string, fullName: string) {
 
 async function findOrCreateThread(schoolId: string, currentUserId: string, otherUserId: string): Promise<string> {
   const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
-  const myThreadIds = (myThreads ?? []).map((t: { thread_id: string }) => t.thread_id)
+  const myThreadIds = (myThreads ?? [])
+    .map(t => t.thread_id)
+    .filter((threadId): threadId is string => threadId !== null)
   if (myThreadIds.length > 0) {
     const { data: shared } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', otherUserId).in('thread_id', myThreadIds)
-    if (shared && shared.length > 0) return shared[0].thread_id
+    const sharedThreadId = shared?.[0]?.thread_id
+    if (sharedThreadId) return sharedThreadId
   }
   const { data: thread } = await supabase.from('vc_threads').insert({ school_id: schoolId, type: 'direct', created_by: currentUserId }).select().single()
+  if (!thread) throw new Error('Failed to create communication thread')
+
   await supabase.from('vc_participants').insert([
     { thread_id: thread.id, profile_id: currentUserId, school_id: schoolId },
     { thread_id: thread.id, profile_id: otherUserId,   school_id: schoolId },
@@ -93,11 +115,6 @@ interface ThreadUI {
   unreadCount:   number
   otherRole:     string
   otherId:       string
-}
-
-interface CircularUI extends VCCircular {
-  acked:       boolean
-  recipientId: string
 }
 
 interface ProfileRow {
@@ -118,7 +135,7 @@ export default function ParentConnectPage() {
   // Threads
   const [threads,       setThreads]       = useState<ThreadUI[]>([])
   const [activeThread,  setActiveThread]  = useState<ThreadUI | null>(null)
-  const [messages,      setMessages]      = useState<VCMessage[]>([])
+  const [messages,      setMessages]      = useState<MessageUI[]>([])
   const [msgBody,       setMsgBody]       = useState('')
   const [sending,       setSending]       = useState(false)
   const [msgLoading,    setMsgLoading]    = useState(false)
@@ -165,13 +182,15 @@ export default function ParentConnectPage() {
     }
   }
 
-  async function loadAll(uid: string, sid: string | null) {
+  async function loadAll(uid: string, sid: string) {
     const [{ data: parts }, { data: circRecips }] = await Promise.all([
       supabase.from('vc_participants').select('thread_id, last_read_at').eq('profile_id', uid),
       supabase.from('vc_circular_recipients').select('id, circular_id, ack_at').eq('profile_id', uid),
     ])
 
-    const threadIds = (parts ?? []).map((p: { thread_id: string }) => p.thread_id)
+    const threadIds = (parts ?? [])
+      .map(p => p.thread_id)
+      .filter((threadId): threadId is string => threadId !== null)
 
     if (threadIds.length > 0) {
       const [{ data: threadRows }, { data: allParts }] = await Promise.all([
@@ -180,41 +199,60 @@ export default function ParentConnectPage() {
       ])
 
       const otherIds = (allParts ?? [])
-        .filter((p: { profile_id: string }) => p.profile_id !== uid)
-        .map((p: { profile_id: string }) => p.profile_id)
+        .map(p => p.profile_id)
+        .filter((profileId): profileId is string =>
+          profileId !== null && profileId !== uid
+        )
 
       const { data: profiles } = otherIds.length > 0
         ? await supabase.from('profiles').select('id, full_name, role').in('id', otherIds)
         : { data: [] }
 
       const profileMap: Record<string, ProfileRow> = {}
-      ;(profiles ?? []).forEach((pr: ProfileRow) => { profileMap[pr.id] = pr })
+      ;(profiles ?? []).forEach(pr => {
+        profileMap[pr.id] = {
+          id: pr.id,
+          full_name: pr.full_name,
+          role: pr.role ?? 'staff',
+        }
+      })
 
       const readMap: Record<string, string | null> = {}
-      ;(parts ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => { readMap[p.thread_id] = p.last_read_at })
+      ;(parts ?? []).forEach(p => {
+        if (p.thread_id !== null) {
+          readMap[p.thread_id] = p.last_read_at
+        }
+      })
 
-      const ui: ThreadUI[] = (threadRows ?? []).map((t: VCThread) => {
+      const ui: ThreadUI[] = (threadRows ?? []).map(t => {
         const otherPart = (allParts ?? []).find(
-          (p: { thread_id: string; profile_id: string }) => p.thread_id === t.id && p.profile_id !== uid
+          p =>
+            p.thread_id === t.id &&
+            p.profile_id !== null &&
+            p.profile_id !== uid
         )
-        const other = otherPart ? profileMap[otherPart.profile_id] : null
+        const otherProfileId = otherPart?.profile_id ?? null
+        const other = otherProfileId ? profileMap[otherProfileId] : null
         const lastRead = readMap[t.id]
-        const unread = (!lastRead && t.last_message_at) ? 1 : 0
+        const unread = !lastRead && t.last_message_at ? 1 : 0
+
         return {
-          threadId:      t.id,
-          otherName:     other?.full_name ?? 'Unknown',
+          threadId: t.id,
+          otherName: other?.full_name ?? 'Unknown',
           otherInitials: initials(other?.full_name ?? '?'),
-          lastMessage:   t.last_message_preview ?? '',
-          lastTime:      t.last_message_at ? timeAgo(t.last_message_at) : '',
-          unreadCount:   unread,
-          otherRole:     other?.role ?? '',
-          otherId:       otherPart?.profile_id ?? '',
+          lastMessage: t.last_message_preview ?? '',
+          lastTime: t.last_message_at ? timeAgo(t.last_message_at) : '',
+          unreadCount: unread,
+          otherRole: other?.role ?? '',
+          otherId: otherProfileId ?? '',
         }
       })
       setThreads(ui)
     }
 
-    const circIds = (circRecips ?? []).map((r: { circular_id: string }) => r.circular_id)
+    const circIds = (circRecips ?? [])
+      .map(r => r.circular_id)
+      .filter((circularId): circularId is string => circularId !== null)
     if (circIds.length > 0) {
       const { data: circs } = await supabase
         .from('vc_circulars')
@@ -222,9 +260,19 @@ export default function ParentConnectPage() {
         .in('id', circIds)
         .order('sent_at', { ascending: false })
 
-      const circUI: CircularUI[] = (circs ?? []).map((c: VCCircular) => {
-        const recip = (circRecips ?? []).find((r: { circular_id: string; id: string; ack_at: string | null }) => r.circular_id === c.id)
-        return { ...c, acked: !!recip?.ack_at, recipientId: recip?.id ?? '' }
+      const circUI: CircularUI[] = (circs ?? []).map(c => {
+        const recip = (circRecips ?? []).find(r => r.circular_id === c.id)
+
+        return {
+          id: c.id,
+          title: c.title,
+          body: c.body,
+          audience_type: c.audience_type,
+          requires_ack: c.requires_ack ?? false,
+          sent_at: c.sent_at ?? c.created_at ?? new Date(0).toISOString(),
+          acked: recip?.ack_at !== null && recip?.ack_at !== undefined,
+          recipientId: recip?.id ?? '',
+        }
       })
       setCirculars(circUI)
     }
@@ -250,7 +298,22 @@ export default function ParentConnectPage() {
       .eq('thread_id', threadId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
-    setMessages(data ?? [])
+    const normalized: MessageUI[] = (data ?? [])
+      .filter(
+        row =>
+          row.thread_id !== null &&
+          row.sender_id !== null &&
+          row.created_at !== null
+      )
+      .map(row => ({
+        id: row.id,
+        thread_id: row.thread_id as string,
+        sender_id: row.sender_id as string,
+        body: row.body,
+        created_at: row.created_at as string,
+      }))
+
+    setMessages(normalized)
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
@@ -277,6 +340,7 @@ export default function ParentConnectPage() {
     setSearchQuery(q)
     setSelected(null)
     if (q.length < 2) { setSearchResults([]); return }
+    if (!schoolId || !userId) { setSearchResults([]); return }
     setSearching(true)
     const { data } = await supabase
       .from('profiles')
@@ -286,12 +350,18 @@ export default function ParentConnectPage() {
       .in('role', ['teacher', 'admin'])
       .ilike('full_name', `%${q}%`)
       .limit(10)
-    setSearchResults(data ?? [])
+    setSearchResults(
+      (data ?? []).map(row => ({
+        id: row.id,
+        full_name: row.full_name,
+        role: row.role ?? 'staff',
+      }))
+    )
     setSearching(false)
   }
 
   async function sendDraft() {
-    if (!selected || !draftBody.trim()) return
+    if (!schoolId || !userId || !selected || !draftBody.trim()) return
     setDraftSending(true)
     const threadId = await findOrCreateThread(schoolId, userId, selected.id)
     await supabase.from('vc_messages').insert({
