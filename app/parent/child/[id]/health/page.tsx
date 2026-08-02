@@ -211,13 +211,13 @@ function RecordSheet({
     const { error } = await supabase.from("health_records").insert({
       student_id:  studentId,
       parent_id:   parentId,
-      record_type: form.record_type,
+      type:        form.record_type,
       title:       form.title.trim(),
       description: form.description.trim() || null,
-      provider:    form.provider.trim()    || null,
-      severity:    form.severity           || null,
+      doctor_name: form.provider.trim()    || null,
+      facility:    null,
       outcome:     form.outcome.trim()     || null,
-      recorded_at: form.recorded_at        || new Date().toISOString(),
+      recorded_at: form.recorded_at        || new Date().toISOString().slice(0, 10),
     });
     setSaving(false);
     if (error) { setErr("Something went wrong — try again."); return; }
@@ -335,12 +335,12 @@ function VaccinationSheet({
     const { error } = await supabase.from("health_vaccinations").insert({
       student_id:      studentId,
       parent_id:       parentId,
-      vaccine_name:    form.vaccine_name.trim(),
+      name:            form.vaccine_name.trim(),
       dose:            form.dose.trim()          || null,
-      administered_at: form.administered_at      || null,
-      next_due_date:   form.next_due_date        || null,
-      provider:        form.provider.trim()      || null,
-      notes:           form.notes.trim()         || null,
+      recorded_at:     form.administered_at      || null,
+      next_due:        form.next_due_date        || null,
+      administered_by: form.provider.trim()      || null,
+      facility:        null,
     });
     setSaving(false);
     if (error) { setErr("Something went wrong — try again."); return; }
@@ -465,7 +465,23 @@ export default function HealthPage() {
       .eq("student_id", id)
       .is("deleted_at", null)
       .order("recorded_at", { ascending: false });
-    if (!error && data) setRecords(data as HealthRecord[]);
+    if (!error && data) {
+      setRecords(data.map(row => ({
+        id: row.id,
+        student_id: row.student_id,
+        parent_id: row.parent_id,
+        record_type: row.type,
+        title: row.title,
+        description: row.description,
+        provider: row.doctor_name,
+        location: row.facility,
+        severity: null,
+        outcome: row.outcome,
+        recorded_at: row.recorded_at,
+        created_at: row.created_at ?? new Date(0).toISOString(),
+        deleted_at: row.deleted_at,
+      })));
+    }
   }, [id]);
 
   // ── Fetch vaccinations ──────────────────────────────────────────────────────
@@ -476,7 +492,22 @@ export default function HealthPage() {
       .eq("student_id", id)
       .is("deleted_at", null)
       .order("administered_at", { ascending: false });
-    if (!error && data) setVacs(data as HealthVaccination[]);
+    if (!error && data) {
+      setVacs(data.map(row => ({
+        id: row.id,
+        student_id: row.student_id,
+        parent_id: row.parent_id,
+        vaccine_name: row.name,
+        dose: row.dose,
+        administered_at: row.recorded_at,
+        next_due_date: row.next_due,
+        provider: row.administered_by,
+        location: row.facility,
+        notes: null,
+        created_at: row.created_at ?? new Date(0).toISOString(),
+        deleted_at: row.deleted_at,
+      })));
+    }
   }, [id]);
 
   useEffect(() => {

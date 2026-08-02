@@ -141,8 +141,12 @@ export default function TriviaPage() {
         subject,
         difficulty,
         strand: row.strand ?? null,
-        question: row.question_text ?? row.question ?? '',
-        options: Array.isArray(row.options) ? row.options : JSON.parse(row.options),
+        question: row.question_text,
+        options: Array.isArray(row.options)
+          ? row.options.filter((option): option is string => typeof option === "string")
+          : typeof row.options === "string"
+            ? JSON.parse(row.options)
+            : [],
         answer_index: Number(row.correct) ?? 0,
       }))
       setCache(subject, difficulty, parsed)

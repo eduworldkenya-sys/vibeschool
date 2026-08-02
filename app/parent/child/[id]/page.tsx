@@ -226,7 +226,13 @@ export default function ChildDetailPage() {
       .eq('student_id', id)
 
     if (outcomeRows && outcomeRows.length > 0) {
-      const subjectIds = Array.from(new Set(outcomeRows.map((r: {subject_id: string}) => r.subject_id).filter(Boolean))) as string[]
+      const subjectIds = Array.from(
+        new Set(
+          outcomeRows
+            .map(row => row.subject_id)
+            .filter((subjectId): subjectId is string => subjectId !== null)
+        )
+      )
       const { data: subjectRows } = await supabase
         .from('subjects')
         .select('id, name')
@@ -234,7 +240,7 @@ export default function ChildDetailPage() {
       const subjectMap: Record<string, string> = Object.fromEntries((subjectRows ?? []).map((s: {id: string; name: string}) => [s.id, s.name]))
 
       const grouped: Record<string, {mastered: number; assessed: number; total: number; strands: Record<string, number>}> = {}
-      for (const row of outcomeRows as {subject_id: string; strand: string; status: string}[]) {
+      for (const row of outcomeRows) {
         if (!row.subject_id) continue
         const key = row.subject_id
         if (!grouped[key]) grouped[key] = { mastered: 0, assessed: 0, total: 0, strands: {} }

@@ -68,12 +68,22 @@ export default function ParentHomeworkDetailPage() {
       if (!hwRaw) { setLoading(false); return; }
 
       const [teachRes, subRes, stuRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", hwRaw.teacher_id).maybeSingle(),
+        hwRaw.teacher_id
+          ? supabase.from("profiles").select("full_name").eq("id", hwRaw.teacher_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
         supabase.from("homework_submissions").select("status,mark,feedback,photo_url").eq("homework_id", id).in("student_id", studentIds).maybeSingle(),
         supabase.from("students").select("name").in("id", studentIds).limit(1).maybeSingle(),
       ]);
 
-      setHw({ ...hwRaw, teacher_name: teachRes.data?.full_name ?? "Teacher" });
+      setHw({
+        id: hwRaw.id,
+        title: hwRaw.title,
+        subject: hwRaw.subject ?? "Subject",
+        instructions: hwRaw.instructions,
+        due_date: hwRaw.due_date ?? new Date().toISOString(),
+        type: hwRaw.type,
+        teacher_name: teachRes.data?.full_name ?? "Teacher",
+      });
       setSub(subRes.data ?? null);
       setChildName(stuRes.data?.name ?? "");
       setLoading(false);
