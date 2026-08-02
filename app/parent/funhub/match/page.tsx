@@ -48,10 +48,11 @@ function MemoryMatchGameCore() {
       setDbLoading(true);
       
       const { data, error } = await supabase
-        .from('questions')
-        .select('*')
+        .from('funhub_questions')
+        .select('id, question_text, correct')
         .eq('subject', targetSubject)
-        .eq('grade', targetGrade);
+        .eq('grade', targetGrade)
+        .eq('approved', true);
 
       if (error || !data || data.length === 0) {
         console.warn('No questions found for this configuration.');
@@ -62,7 +63,11 @@ function MemoryMatchGameCore() {
       const generatedPairs: { id: string; pairId: string; content: any; type: string }[] = [];
       let uniqueIdCounter = 0;
 
-      const itemsWithAnswers = data.filter(q => q.question_text && q.correct_answer);
+      const itemsWithAnswers = data.filter(
+        question =>
+          question.question_text.trim().length > 0 &&
+          question.correct.trim().length > 0
+      );
       const shuffledSource = shuffleArray(itemsWithAnswers);
 
       for (const item of shuffledSource) {
@@ -70,8 +75,18 @@ function MemoryMatchGameCore() {
         
         const currentPairId = `pair_${uniqueIdCounter++}`;
         generatedPairs.push(
-          { id: `${currentPairId}_q`, pairId: currentPairId, content: item.question_text, type: 'QUESTION' },
-          { id: `${currentPairId}_a`, pairId: currentPairId, content: item.correct_answer, type: 'ANSWER' }
+          {
+            id: `${currentPairId}_q`,
+            pairId: currentPairId,
+            content: item.question_text,
+            type: 'QUESTION',
+          },
+          {
+            id: `${currentPairId}_a`,
+            pairId: currentPairId,
+            content: item.correct,
+            type: 'ANSWER',
+          }
         );
       }
 
