@@ -61,6 +61,14 @@ function pct(marks: number, total: number): number {
   return total > 0 ? Math.round((marks / total) * 100) : 0
 }
 
+function letterGrade(percentage: number): string {
+  if (percentage >= 80) return "A"
+  if (percentage >= 70) return "B"
+  if (percentage >= 60) return "C"
+  if (percentage >= 50) return "D"
+  return "E"
+}
+
 export default function MarksPage() {
   const { identity, loading: idLoading } = useStudent();
   const [tab,        setTab]        = useState<Tab>("exams");
@@ -77,17 +85,36 @@ export default function MarksPage() {
 
     async function load() {
       const [examRes, cbcRes, gradeRes] = await Promise.all([
-        supabase.from("exam_results").select("id, marks, total_marks, grade, term, academic_year, exam_id, subject_id").eq("student_id", identity!.studentId),
-        supabase.from("cbc_assessments").select("id, subject_id, sub_strand, assessment_type, performance, term, academic_year").eq("student_id", identity!.studentId),
-        supabase.from("traditional_grades").select("id, marks, total_marks, grade, term, academic_year, subject_id").eq("student_id", identity!.studentId),
+        supabase
+          .from("exam_results")
+          .select(
+            "id, marks, is_absent, exam_id, subject_id, exams(name, term, academic_year)"
+          )
+          .eq("student_id", identity!.studentId),
+
+        supabase
+          .from("cbc_assessments")
+          .select(
+            "id, subject_id, sub_strand, assessment_type, performance, term, academic_year"
+          )
+          .eq("student_id", identity!.studentId),
+
+        supabase
+          .from("traditional_grades")
+          .select(
+            "id, marks, out_of, term, academic_year, subject_id"
+          )
+          .eq("student_id", identity!.studentId),
       ]);
 
       // Collect all subject ids
-      const subIds = Array.from(new Set([
-        ...(examRes.data ?? []).map((r: { subject_id: string }) => r.subject_id),
-        ...(cbcRes.data  ?? []).map((r: { subject_id: string }) => r.subject_id),
-        ...(gradeRes.data ?? []).map((r: { subject_id: string }) => r.subject_id),
-      ].filter(Boolean))) as string[];
+      const subIds = Array.from(
+        new Set([
+          ...(examRes.data ?? []).map(row => row.subject_id),
+          ...(cbcRes.data ?? []).map(row => row.subject_id),
+          ...(gradeRes.data ?? []).map(row => row.subject_id),
+        ])
+      );
 
       let subMap: Record<string, string> = {};
       if (subIds.length > 0) {
@@ -95,24 +122,54 @@ export default function MarksPage() {
         subMap = Object.fromEntries((subs ?? []).map(s => [s.id, s.name]));
       }
 
-      const examData: ExamResult[] = (examRes.data ?? []).map((r: { id: string; marks: number; total_marks: number; grade: string; term: number; academic_year: number; subject_id: string; exam_id: string }) => ({
-        id: r.id, marks: r.marks, total_marks: r.total_marks, grade: r.grade,
-        term: r.term, academic_year: r.academic_year,
-        subject:   subMap[r.subject_id] ?? "Subject",
-        exam_name: r.exam_id ?? "",
+      const examData: ExamResult[] = (examRes.data ?? [])
+        .filter(row => !row.is_absent)
+        .map(row => {
+          const exam = Array.isArray(row.exams)
+            ? row.exams[0] ?? null
+            : row.exams
+
+          const marks = Number(row.marks)
+          const totalMarks = 100
+          const percentage = pct(marks, totalMarks)
+
+          return {
+            id: row.id,
+            marks,
+            total_marks: totalMarks,
+            grade: letterGrade(percentage),
+            term: exam?.term ?? 0,
+            academic_year: exam?.academic_year ?? 0,
+            subject: subMap[row.subject_id] ?? "Subject",
+            exam_name: exam?.name ?? "",
+          }
+        });
+
+      const cbcData: CBCAssessment[] = (cbcRes.data ?? []).map(row => ({
+        id: row.id,
+        sub_strand: row.sub_strand ?? "General competency",
+        assessment_type: row.assessment_type,
+        performance: row.performance,
+        term: row.term,
+        academic_year: row.academic_year,
+        subjectName: subMap[row.subject_id] ?? "Subject",
       }));
 
-      const cbcData: CBCAssessment[] = (cbcRes.data ?? []).map((r: { id: string; subject_id: string; sub_strand: string; assessment_type: string; performance: string; term: number; academic_year: number }) => ({
-        id: r.id, sub_strand: r.sub_strand, assessment_type: r.assessment_type,
-        performance: r.performance, term: r.term, academic_year: r.academic_year,
-        subjectName: subMap[r.subject_id] ?? "Subject",
-      }));
+      const gradeData: TraditionalGrade[] = (gradeRes.data ?? []).map(row => {
+        const marks = Number(row.marks)
+        const totalMarks = Number(row.out_of)
+        const percentage = pct(marks, totalMarks)
 
-      const gradeData: TraditionalGrade[] = (gradeRes.data ?? []).map((r: { id: string; marks: number; total_marks: number; grade: string; term: number; academic_year: number; subject_id: string }) => ({
-        id: r.id, marks: r.marks, total_marks: r.total_marks, grade: r.grade,
-        term: r.term, academic_year: r.academic_year,
-        subject: subMap[r.subject_id] ?? "Subject",
-      }));
+        return {
+          id: row.id,
+          marks,
+          total_marks: totalMarks,
+          grade: letterGrade(percentage),
+          term: row.term,
+          academic_year: row.academic_year,
+          subject: subMap[row.subject_id] ?? "Subject",
+        }
+      });
 
       const fresh = { exams: examData, cbc: cbcData, grades: gradeData };
       writeCache("marks", identity!.studentId, fresh);
