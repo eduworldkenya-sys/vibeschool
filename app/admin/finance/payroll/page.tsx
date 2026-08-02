@@ -85,11 +85,11 @@ interface PayrollRun {
   month: number
   year: number
   status: string
-  total: number
+  total: number | null
   approved_by: string | null
   paid_at: string | null
   created_by: string | null
-  created_at: string
+  created_at: string | null
 }
 
 interface PayrollLine {
@@ -97,17 +97,17 @@ interface PayrollLine {
   run_id: string
   staff_id: string
   gross: number
-  deductions: number
+  deductions: number | null
   net: number
-  paid_via: string
-  reference: string
+  paid_via: string | null
+  reference: string | null
   staff_name?: string
 }
 
 interface StaffProfile {
   id: string
   full_name: string
-  role: string
+  role: string | null
 }
 
 export default function PayrollPage() {
@@ -171,7 +171,7 @@ export default function PayrollPage() {
       return
     }
 
-    const staffIds = Array.from(new Set(lines.map((l: PayrollLine) => l.staff_id).filter(Boolean)))
+    const staffIds = Array.from(new Set(lines.map(l => l.staff_id).filter(Boolean)))
     const nameMap: Record<string, string> = {}
     if (staffIds.length > 0) {
       const { data: profiles } = await supabase
@@ -183,7 +183,7 @@ export default function PayrollPage() {
       }
     }
 
-    const enriched: PayrollLine[] = lines.map((l: PayrollLine) => ({
+    const enriched: PayrollLine[] = lines.map(l => ({
       ...l,
       staff_name: nameMap[l.staff_id] ?? "Unknown",
     }))

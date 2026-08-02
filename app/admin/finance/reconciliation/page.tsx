@@ -88,15 +88,15 @@ interface ParsedSMS {
 
 interface MpesaStatement {
   id: string
-  raw_message: string
-  amount: number
-  reference: string
-  sender_phone: string
-  sender_name: string
-  transaction_date: string
+  raw_message: string | null
+  amount: number | null
+  reference: string | null
+  sender_phone: string | null
+  sender_name: string | null
+  transaction_date: string | null
   matched_payment_id: string | null
   status: string
-  created_at: string
+  created_at: string | null
 }
 
 interface UnpaidInvoice {

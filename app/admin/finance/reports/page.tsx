@@ -52,7 +52,7 @@ interface Account {
   code: string
   name: string
   type: string
-  is_active: boolean
+  is_active: boolean | null
 }
 
 interface TransactionLine {
@@ -146,7 +146,7 @@ export default function ReportsPage() {
       const { data: txLines } = await supabase
         .from("finance_transaction_lines")
         .select("id, transaction_id, account_id, debit, credit")
-        .in("account_id", (accounts ?? []).map((a: Account) => a.id))
+        .in("account_id", (accounts ?? []).map(a => a.id))
 
       const lineMap: Record<string, { debit: number; credit: number }> = {}
       for (const line of (txLines ?? []) as TransactionLine[]) {
@@ -221,7 +221,11 @@ export default function ReportsPage() {
 
       // Group expense lines by account_id for display
       const expByAccount: Record<string, { name: string; amount: number }> = {}
-      const accountIds = Array.from(new Set(expList.map((e: { account_id: string }) => e.account_id).filter(Boolean)))
+      const accountIds = Array.from(new Set(
+        expList
+          .map(e => e.account_id)
+          .filter((id): id is string => !!id)
+      ))
 
       const accountNames: Record<string, string> = {}
       if (accountIds.length > 0) {
@@ -234,9 +238,14 @@ export default function ReportsPage() {
         }
       }
 
-      for (const e of expList as Array<{ amount: number; account_id: string; description: string }>) {
+      for (const e of expList) {
         const key = e.account_id ?? "other"
-        if (!expByAccount[key]) expByAccount[key] = { name: accountNames[key] ?? e.description ?? "Other", amount: 0 }
+        if (!expByAccount[key]) {
+          expByAccount[key] = {
+            name: accountNames[key] ?? e.description ?? "Other",
+            amount: 0,
+          }
+        }
         expByAccount[key].amount += Number(e.amount ?? 0)
       }
 
