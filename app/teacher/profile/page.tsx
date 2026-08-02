@@ -3,7 +3,12 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import type { Json } from '@/lib/database.types'
 import { C } from '@/components/teacher/ui'
+
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json
+}
 
 const SECTIONS = [
   'Personal Information',
@@ -352,10 +357,10 @@ function PersonalInfoSection() {
             .or(`school_id.eq.${schoolId},school_id.is.null`)
             .order('name'),
           supabase.from('classes').select('id,name,stream')
-            .eq('school_id', schoolId)
+            .eq('school_id', schoolId!)
             .order('name'),
           supabase.from('teacher_classes').select('class_id,subject_id')
-            .eq('teacher_id', userId),
+            .eq('teacher_id', userId!),
         ])
         setSubjects(subjectsRes.data ?? [])
         setClasses(classesRes.data ?? [])
@@ -783,9 +788,11 @@ function QualificationsSection() {
       const { data } = await supabase
         .from('teacher_profiles')
         .select('qualifications')
-        .eq('profile_id', userId)
+        .eq('profile_id', userId!)
         .single()
-      if (data?.qualifications) setQuals(data.qualifications as Qualification[])
+      if (Array.isArray(data?.qualifications)) {
+        setQuals(data.qualifications as unknown as Qualification[])
+      }
     }
     loadQuals()
   }, [userId])
@@ -823,7 +830,7 @@ function QualificationsSection() {
     const { error } = await supabase.from('teacher_profiles').upsert({
       profile_id:     userId,
       school_id:      schoolId,
-      qualifications: quals,
+      qualifications: toJson(quals),
     }, { onConflict: 'profile_id' })
 
     if (error) {
@@ -968,9 +975,11 @@ function ProfessionalDevSection() {
       const { data } = await supabase
         .from('teacher_profiles')
         .select('professional_dev')
-        .eq('profile_id', userId)
+        .eq('profile_id', userId!)
         .single()
-      if (data?.professional_dev) setEntries(data.professional_dev as PDEntry[])
+      if (Array.isArray(data?.professional_dev)) {
+        setEntries(data.professional_dev as unknown as PDEntry[])
+      }
     }
     load()
   }, [userId])
@@ -1008,7 +1017,7 @@ function ProfessionalDevSection() {
     const { error } = await supabase.from('teacher_profiles').upsert({
       profile_id:       userId,
       school_id:        schoolId,
-      professional_dev: entries,
+      professional_dev: toJson(entries),
     }, { onConflict: 'profile_id' })
 
     if (error) {
@@ -1173,7 +1182,7 @@ function TeachingStyleSection() {
       const { data } = await supabase
         .from('teacher_profiles')
         .select('teaching_style,twin_notes')
-        .eq('profile_id', userId)
+        .eq('profile_id', userId!)
         .single()
       if (!data) return
       try {
@@ -1361,7 +1370,7 @@ function AttendanceLeaveSection() {
       const { data } = await supabase
         .from('teacher_profiles')
         .select('leave_balance')
-        .eq('profile_id', userId)
+        .eq('profile_id', userId!)
         .single()
       setLeaveBalance(data?.leave_balance ?? null)
       setLoadingLeave(false)
@@ -1418,7 +1427,7 @@ function PerformanceAppraisalSection() {
       const { data } = await supabase
         .from('teacher_profiles')
         .select('appraisal_score,appraisal_notes')
-        .eq('profile_id', userId)
+        .eq('profile_id', userId!)
         .single()
       setAppraisal({
         score: data?.appraisal_score ?? null,
@@ -1540,9 +1549,11 @@ function DocumentsSection() {
       const { data } = await supabase
         .from('teacher_profiles')
         .select('documents')
-        .eq('profile_id', userId)
+        .eq('profile_id', userId!)
         .single()
-      if (data?.documents) setDocs(data.documents as TeacherDocument[])
+      if (Array.isArray(data?.documents)) {
+        setDocs(data.documents as unknown as TeacherDocument[])
+      }
     }
     load()
   }, [userId])
@@ -1582,7 +1593,7 @@ function DocumentsSection() {
     setSaving(true)
     const { error } = await supabase.from('teacher_profiles').upsert({
       profile_id: userId,
-      documents:  updatedDocs,
+      documents:  toJson(updatedDocs),
     }, { onConflict: 'profile_id' })
 
     setSaving(false)
@@ -1599,7 +1610,7 @@ function DocumentsSection() {
     setDocs(updatedDocs)
     await supabase.from('teacher_profiles').upsert({
       profile_id: userId,
-      documents:  updatedDocs,
+      documents:  toJson(updatedDocs),
     }, { onConflict: 'profile_id' })
   }
 
@@ -1670,7 +1681,7 @@ function FinanceReferenceSection() {
       const { data } = await supabase
         .from('teacher_profiles')
         .select('finance_ref')
-        .eq('profile_id', userId)
+        .eq('profile_id', userId!)
         .single()
       setFinanceRef(data?.finance_ref ?? '')
       setLoadingData(false)
