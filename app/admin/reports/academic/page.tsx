@@ -5,7 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 
 
-interface TermOption { id: string; name: string }
+interface TermOption {
+  id: string
+  name: string
+  term: number
+  academic_year: number
+}
 interface ClassOption { id: string; name: string }
 interface GradeSummary {
   student_name: string
@@ -32,7 +37,7 @@ export default function AcademicReportPage() {
   useEffect(() => {
     async function loadFilters() {
       const [{ data: termData }, { data: classData }] = await Promise.all([
-        supabase.from('academic_terms').select('id, name').order('start_date', { ascending: false }),
+        supabase.from('academic_terms').select('id, name, term, academic_year').order('start_date', { ascending: false }),
         supabase.from('classes').select('id, name').order('name'),
       ])
       if (termData) setTerms(termData)
@@ -48,32 +53,56 @@ export default function AcademicReportPage() {
   }, [selectedTerm, selectedClass])
 
   async function fetchGrades() {
+    const term = terms.find(t => t.id === selectedTerm)
+    if (!term) return
+
     setLoading(true)
     try {
       let query = supabase
         .from('traditional_grades')
         .select(`
-          score,
-          grade,
+          marks,
+          out_of,
           subjects(name),
           students(name, admission_number),
           classes(name)
         `)
-        .eq('term_id', selectedTerm)
+        .eq('term', term.term)
+        .eq('academic_year', term.academic_year)
 
       if (selectedClass) query = query.eq('class_id', selectedClass)
 
       const { data, error } = await query.limit(200)
       if (error) throw error
 
-      const mapped: GradeSummary[] = (data || []).map((r: any) => ({
-        student_name: r.students?.name ?? '—',
-        admission_number: r.students?.admission_number ?? '—',
-        class_name: r.classes?.name ?? '—',
-        subject: r.subjects?.name ?? '—',
-        score: r.score,
-        grade: r.grade,
-      }))
+      const mapped: GradeSummary[] = (data || []).map((r: any) => {
+        const marks = Number(r.marks)
+        const outOf = Number(r.out_of)
+        const score = outOf > 0 ? Math.round((marks / outOf) * 100) : null
+        const grade = score === null
+          ? null
+          : score >= 80 ? 'A'
+          : score >= 75 ? 'A-'
+          : score >= 70 ? 'B+'
+          : score >= 65 ? 'B'
+          : score >= 60 ? 'B-'
+          : score >= 55 ? 'C+'
+          : score >= 50 ? 'C'
+          : score >= 45 ? 'C-'
+          : score >= 40 ? 'D+'
+          : score >= 35 ? 'D'
+          : score >= 30 ? 'D-'
+          : 'E'
+
+        return {
+          student_name: r.students?.name ?? '—',
+          admission_number: r.students?.admission_number ?? '—',
+          class_name: r.classes?.name ?? '—',
+          subject: r.subjects?.name ?? '—',
+          score,
+          grade,
+        }
+      })
 
       setGrades(mapped)
       computeKPIs(mapped)
