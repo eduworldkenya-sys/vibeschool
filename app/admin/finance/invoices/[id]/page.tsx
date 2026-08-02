@@ -105,7 +105,7 @@ interface InvoiceLine {
   invoice_id: string
   description: string
   amount: number
-  account_id: string
+  account_id: string | null
 }
 
 interface Payment {
@@ -114,24 +114,24 @@ interface Payment {
   student_id: string
   amount: number
   method: string
-  reference: string
+  reference: string | null
   receipt_number: string
   received_at: string
   notes: string
-  bank_account_id: string
+  bank_account_id: string | null
 }
 
 interface BankAccount {
   id: string
   name: string
   type: string
-  is_active: boolean
+  is_active: boolean | null
 }
 
 interface Student {
   id: string
   name: string
-  admission_number: string
+  admission_number: string | null
 }
 
 interface Period {

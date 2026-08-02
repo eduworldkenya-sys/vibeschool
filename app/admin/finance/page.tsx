@@ -23,8 +23,8 @@ interface BankAccount {
   id:              string
   name:            string
   type:            string
-  current_balance: number
-  is_active:       boolean
+  current_balance: number | null
+  is_active:       boolean | null
 }
 
 interface InvoiceRow {
@@ -37,7 +37,7 @@ interface InvoiceRow {
   total_amount: number
   paid_amount:  number
   due_date:     string | null
-  created_at:   string
+  created_at:   string | null
 }
 
 interface PaymentRow {
@@ -48,7 +48,7 @@ interface PaymentRow {
   method:         string
   reference:      string | null
   receipt_number: string | null
-  received_at:    string
+  received_at:    string | null
   notes:          string | null
 }
 

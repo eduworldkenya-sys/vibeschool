@@ -36,9 +36,9 @@ function Skeleton({ h = 48 }: { h?: number }) {
   )
 }
 
-interface ClassRow { id: string; name: string; stream: string; subject: string }
-interface StudentRow { id: string; name: string; admission_number: string | null; class_id: string }
-interface FeeStructure { id: string; class_id: string; label: string; amount: number }
+interface ClassRow { id: string; name: string; stream: string | null; subject: string }
+interface StudentRow { id: string; name: string; admission_number: string | null; class_id: string | null }
+interface FeeStructure { id: string; class_id: string | null; label: string; amount: number }
 interface ExistingInvoice { student_id: string }
 interface PreviewRow {
   student: StudentRow; className: string; feeLines: FeeStructure[]
