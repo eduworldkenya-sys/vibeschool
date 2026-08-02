@@ -1,4 +1,10 @@
 import { supabase } from './supabase'
+import type { Database } from './database.types'
+
+type MeetingInsert = Database['public']['Tables']['meetings']['Insert']
+type MeetingUpdate = Database['public']['Tables']['meetings']['Update']
+type AgendaItemInsert = Database['public']['Tables']['meeting_agenda_items']['Insert']
+type MeetingActionInsert = Database['public']['Tables']['meeting_actions']['Insert']
 
 export async function getMeetings(schoolId: string) {
   const { data, error } = await supabase
@@ -34,7 +40,7 @@ export async function getMeeting(id: string) {
   return data
 }
 
-export async function createMeeting(payload: Record<string, unknown>) {
+export async function createMeeting(payload: MeetingInsert) {
   const { data, error } = await supabase
     .from('meetings')
     .insert(payload)
@@ -44,7 +50,7 @@ export async function createMeeting(payload: Record<string, unknown>) {
   return data
 }
 
-export async function updateMeeting(id: string, payload: Record<string, unknown>) {
+export async function updateMeeting(id: string, payload: MeetingUpdate) {
   const { data, error } = await supabase
     .from('meetings')
     .update({ ...payload, updated_at: new Date().toISOString() })
@@ -61,7 +67,7 @@ export async function deleteMeeting(id: string) {
 }
 
 // ── Agenda ──────────────────────────────────────────────────────────────────
-export async function upsertAgendaItem(item: Record<string, unknown>) {
+export async function upsertAgendaItem(item: AgendaItemInsert) {
   const { data, error } = await supabase
     .from('meeting_agenda_items')
     .upsert(item)
@@ -106,7 +112,7 @@ export async function markAttendance(meetingId: string, profileId: string, atten
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
-export async function upsertAction(payload: Record<string, unknown>) {
+export async function upsertAction(payload: MeetingActionInsert) {
   const { data, error } = await supabase
     .from('meeting_actions')
     .upsert(payload)

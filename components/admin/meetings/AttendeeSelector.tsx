@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
-interface Profile { id: string; full_name: string; role: string }
+interface Profile {
+  id: string
+  full_name: string
+  role: string | null
+}
 interface Props {
   schoolId: string
   selected: string[]
@@ -67,7 +71,9 @@ export default function AttendeeSelector({ schoolId, selected, onChange }: Props
               </div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{s.full_name}</div>
-                <div style={{ fontSize: 11, color: C.muted, textTransform: 'capitalize' }}>{s.role}</div>
+                <div style={{ fontSize: 11, color: C.muted, textTransform: 'capitalize' }}>
+                  {s.role ?? 'staff'}
+                </div>
               </div>
             </div>
           )

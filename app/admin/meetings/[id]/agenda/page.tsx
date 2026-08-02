@@ -132,7 +132,8 @@ export default function AgendaBuilderPage() {
           .eq('meeting_id', id)
         if (attErr) throw attErr
         const profiles: Profile[] = (att ?? [])
-          .flatMap((a: { profile_id: string; profiles: { id: string; full_name: string }[] }) => a.profiles as Profile[])
+          .map(a => a.profiles)
+          .filter((profile): profile is Profile => profile !== null)
         setAttendees(profiles)
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Failed to load')
