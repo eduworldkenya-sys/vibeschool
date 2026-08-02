@@ -778,10 +778,13 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     const uid = teacherIdRef.current;
     if (!uid) return;
     supabase.rpc("get_credit_balance", { p_teacher_id: uid })
-      .then(({ data: creditData }) => {
-        if (creditData?.success) setCreditBalance(creditData.balance)
-      })
-      .catch(() => {})
+      .then(
+        ({ data: creditData }) => {
+          const result = creditData as { success?: boolean; balance?: number } | null;
+          if (result?.success) setCreditBalance(result.balance ?? null);
+        },
+        () => {}
+      );
   }, []);
 
   const showToast = useCallback((msg: string) => {
@@ -841,10 +844,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           .select("name")
           .eq("id", schoolId)
           .single()
-          .then(({ data: schoolData }) => {
-            setSchool(schoolData?.name ?? "");
-          })
-          .catch(() => {});
+          .then(
+            ({ data: schoolData }) => {
+              setSchool(schoolData?.name ?? "");
+            },
+            () => {}
+          );
       }
 
       try {

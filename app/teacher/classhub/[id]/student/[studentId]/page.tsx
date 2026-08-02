@@ -17,7 +17,7 @@ interface Student {
 interface ClaimCode { code: string; claimed: boolean; expires_at: string | null; role: string }
 interface Assessment {
   id: string; subject_id: string; strand_id: string | null; sub_strand: string | null
-  assessment_type: string; performance: string; term: string; academic_year: string
+  assessment_type: string; performance: string; term: number; academic_year: number
   notes: string | null; created_at: string
 }
 interface Homework { id: string; title: string; subject: string; due_date: string; type: string }
@@ -848,7 +848,7 @@ function StudentProfileInner() {
         : Promise.resolve({ data: [] }),
       supabase.from('class_group_members').select('group_id').eq('student_id', studentId),
       hwRes.data && hwRes.data.length > 0
-        ? supabase.from('homework_submissions').select('*').eq('student_id', studentId).in('homework_id', hwRes.data.map((h: Homework) => h.id))
+        ? supabase.from('homework_submissions').select('*').eq('student_id', studentId).in('homework_id', hwRes.data.map((h: { id: string }) => h.id))
         : Promise.resolve({ data: [] }),
       cb.length > 0
         ? supabase
@@ -897,19 +897,49 @@ function StudentProfileInner() {
         })
     )
 
-    setStudent(stuRes.data)
+    const stu = stuRes.data
+    setStudent({
+      id: stu.id, name: stu.name,
+      admission_number: stu.admission_number, profile_id: stu.profile_id,
+      date_of_birth: stu.date_of_birth, parent_linked_at: stu.parent_linked_at,
+      gender: stu.gender, autonomy_level: stu.autonomy_level,
+      created_at: stu.created_at ?? '',
+    })
         const codes = (codeRes.data ?? []) as ClaimCode[]
         setStudentCode(codes.find(c => c.role === 'student') ?? null)
         setParentCode(codes.find(c => c.role === 'parent') ?? null)
     setAttendance(attRes.data ?? [])
-    setAssessments(asmRes.data ?? [])
+    setAssessments((asmRes.data ?? []).map((a: any): Assessment => ({
+      id: a.id, subject_id: a.subject_id, strand_id: a.strand_id, sub_strand: a.sub_strand,
+      assessment_type: a.assessment_type, performance: a.performance,
+      term: a.term, academic_year: a.academic_year,
+      notes: a.notes, created_at: a.created_at,
+    })))
     setSubjects(subjRes.data ?? [])
-    setHomework(hwRes.data ?? [])
-    setSubmissions(subsData.data ?? [])
-    setResources(resRes.data ?? [])
-    setStreaks(strRes.data ?? [])
-    setGoals(goalRes.data ?? [])
-    setSkills(skillRes.data ?? [])
+    setHomework((hwRes.data ?? []).map((h: any): Homework => ({
+      id: h.id, title: h.title, subject: h.subject,
+      due_date: h.due_date ?? '', type: h.type,
+    })))
+    setSubmissions((subsData.data ?? []).map((s: any): Submission => ({
+      homework_id: s.homework_id, status: s.status,
+      mark: s.mark, feedback: s.feedback, submitted_at: s.submitted_at,
+    })))
+    setResources((resRes.data ?? []).map((r: any): Resource => ({
+      id: r.id, title: r.title, type: r.type, subject: r.subject,
+      external_url: r.external_url, content: r.content, created_at: r.created_at ?? '',
+    })))
+    setStreaks((strRes.data ?? []).map((s: any): Streak => ({
+      type: s.type, current_count: s.current_count, longest_count: s.longest_count,
+      last_recorded: s.last_recorded ?? '',
+    })))
+    setGoals((goalRes.data ?? []).map((g: any): Goal => ({
+      id: g.id, title: g.title, category: g.category, status: g.status,
+      target_date: g.target_date, description: g.description,
+    })))
+    setSkills((skillRes.data ?? []).map((s: any): Skill => ({
+      id: s.id, name: s.name, category: s.category, level: s.level,
+      notes: s.notes, endorsed_by: s.endorsed_by,
+    })))
 
     if (cb.length > 0) {
       const merged: Badge[] = (bdgsData.data ?? []).map(badge => ({

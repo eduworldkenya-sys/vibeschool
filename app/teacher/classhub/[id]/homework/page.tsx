@@ -32,7 +32,7 @@ function HomeworkInner() {
   const submitInFlightRef = useRef(false);
   const pendingHomeworkIdRef = useRef<string | null>(null);
   const [error,     setError]     = useState("");
-  const [classInfo, setClassInfo] = useState<{ name: string; stream: string; subject: string } | null>(null);
+  const [classInfo, setClassInfo] = useState<{ name: string; stream: string | null; subject: string } | null>(null);
   const [subjects,  setSubjects]  = useState<{ id: string; name: string }[]>([]);
   const [schoolId,  setSchoolId]  = useState<string | null>(null);
 

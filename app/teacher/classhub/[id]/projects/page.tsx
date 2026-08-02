@@ -30,7 +30,7 @@ function ProjectsInner() {
   const [showForm,  setShowForm]  = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState("");
-  const [classInfo, setClassInfo] = useState<{ name: string; stream: string; school_id: string | null } | null>(null);
+  const [classInfo, setClassInfo] = useState<{ name: string; stream: string | null; school_id: string | null } | null>(null);
   const [deleting,  setDeleting]  = useState<string | null>(null);
 
   const [form, setForm] = useState({

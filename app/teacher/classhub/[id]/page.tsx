@@ -16,7 +16,7 @@ interface Student {
 
 interface ClassInfo {
   name:    string
-  stream:  string
+  stream:  string | null
   subject: string
 }
 
@@ -177,9 +177,9 @@ function ClassPageInner() {
     const { data: studentId, error: err } = await supabase
       .rpc('teacher_add_student', {
         p_name:             form.name.trim(),
-        p_admission_number: form.admission_number.trim() || null,
+        p_admission_number: form.admission_number.trim() || undefined,
         p_class_id:         classId,
-        p_school_id:        clsData?.school_id ?? null,
+        p_school_id:        clsData?.school_id ?? undefined,
       })
 
     if (err || !studentId) { setSaving(false); setError(err?.message ?? 'Failed to add student — no ID returned'); return }

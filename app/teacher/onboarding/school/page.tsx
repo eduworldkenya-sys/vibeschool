@@ -52,7 +52,7 @@ export default function SchoolOnboardingPage() {
       .eq('county', county)
       .then(({ data }) => {
         const unique = Array.from(new Set(
-          (data ?? []).map((r: {sub_county:string}) => r.sub_county).filter(Boolean)
+          (data ?? []).map((r: { sub_county: string | null }) => r.sub_county).filter(Boolean)
         )).sort() as string[]
         setSubCounties(unique)
         setLoadingSubs(false)
