@@ -103,7 +103,7 @@ async function findOrCreateThread(
   const myThreadIds = (myThreads ?? []).map((t: { thread_id: string | null }) => t.thread_id).filter((id): id is string => id !== null)
   if (myThreadIds.length > 0) {
     const { data: shared } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', otherUserId).in('thread_id', myThreadIds)
-    if (shared && shared.length > 0) return shared[0].thread_id
+    if (shared && shared.length > 0 && shared[0].thread_id) return shared[0].thread_id
   }
   const { data: thread } = await supabase.from('vc_threads').insert({
     school_id: schoolId,
