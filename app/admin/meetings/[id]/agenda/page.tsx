@@ -210,7 +210,17 @@ export default function AgendaBuilderPage() {
   async function saveEdit(item: AgendaItem) {
     setSaving(item.id)
     try {
-      await upsertAgendaItem({ id: item.id, meeting_id: id, ...editFields })
+      await upsertAgendaItem({
+        id: item.id,
+        meeting_id: id,
+        title: editFields.title ?? item.title,
+        description: editFields.description ?? null,
+        duration_mins: editFields.duration_mins ?? null,
+        presenter_id: editFields.presenter_id ?? null,
+        notes: editFields.notes ?? null,
+        order_index: item.order_index,
+        status: item.status,
+      })
       await loadItems()
       setExpandedId(null)
     } catch (e: unknown) {

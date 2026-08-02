@@ -17,15 +17,25 @@ const STATUS_COLORS: Record<string, string> = {
 
 interface Props {
   meeting: {
-    id: string; title: string; meeting_type: string; status: string
-    venue: string | null; meeting_link: string | null
-    scheduled_at: string; duration_mins: number; confidentiality: string
+    id: string
+    title: string
+    meeting_type: string | null
+    status: string | null
+    venue: string | null
+    meeting_link: string | null
+    scheduled_at: string
+    duration_mins: number | null
+    confidentiality: string | null
   }
 }
 
 export default function MeetingCard({ meeting: m }: Props) {
   const router = useRouter()
   const C = { text: '#0f172a', muted: '#64748b', border: '#e2e8f0', emerald: '#10b981', card: '#ffffff' }
+
+  const meetingType = m.meeting_type ?? 'staff'
+  const status = m.status ?? 'scheduled'
+  const confidentiality = m.confidentiality ?? 'public'
 
   const isToday = (() => {
     const d = new Date(m.scheduled_at), n = new Date()
@@ -52,19 +62,21 @@ export default function MeetingCard({ meeting: m }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
-              background: TYPE_COLORS[m.meeting_type] + '18', color: TYPE_COLORS[m.meeting_type],
+              background: (TYPE_COLORS[meetingType] ?? C.muted) + '18',
+              color: TYPE_COLORS[meetingType] ?? C.muted,
               textTransform: 'uppercase', letterSpacing: 0.5,
-            }}>{TYPE_LABELS[m.meeting_type]}</span>
+            }}>{TYPE_LABELS[meetingType] ?? meetingType}</span>
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
-              background: STATUS_COLORS[m.status] + '18', color: STATUS_COLORS[m.status],
+              background: (STATUS_COLORS[status] ?? C.muted) + '18',
+              color: STATUS_COLORS[status] ?? C.muted,
               textTransform: 'uppercase', letterSpacing: 0.5,
-            }}>{m.status === 'live' ? '🔴 LIVE' : m.status}</span>
-            {m.confidentiality !== 'public' && (
+            }}>{status === 'live' ? '🔴 LIVE' : status}</span>
+            {confidentiality !== 'public' && (
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
                 background: '#f59e0b18', color: '#f59e0b',
-              }}>🔒 {m.confidentiality === 'board_only' ? 'Board Only' : 'Staff Only'}</span>
+              }}>🔒 {confidentiality === 'board_only' ? 'Board Only' : 'Staff Only'}</span>
             )}
             {isToday && (
               <span style={{
@@ -79,7 +91,7 @@ export default function MeetingCard({ meeting: m }: Props) {
               📅 {formatDate(m.scheduled_at)} · {formatTime(m.scheduled_at)}
             </span>
             <span style={{ fontSize: 12, color: C.muted }}>
-              ⏱ {m.duration_mins} mins
+              ⏱ {m.duration_mins ?? 0} mins
               {m.venue ? ` · 📍 ${m.venue}` : ''}
               {m.meeting_link ? ' · 🔗 Virtual' : ''}
             </span>
