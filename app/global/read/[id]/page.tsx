@@ -17,6 +17,10 @@ const TEXT    = '#ffffff'
 
 export type ReadMode = 'scroll' | 'listen'
 
+function isReaderPayload(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 export default function ReaderPage() {
   const { id }   = useParams<{ id: string }>()
   const router   = useRouter()
@@ -37,7 +41,7 @@ export default function ReaderPage() {
         { content_id_input: id }
       )
 
-      if (rpcErr || !rpcData || rpcData.ok !== true) {
+      if (rpcErr || !isReaderPayload(rpcData) || rpcData.ok !== true) {
         if (rpcErr) {
           console.error('get_vibelearn_content_reader failed:', rpcErr)
         }
@@ -46,7 +50,7 @@ export default function ReaderPage() {
         return
       }
 
-      setContent(rpcData as VibeContent)
+      setContent(rpcData as unknown as VibeContent)
 
       // increment view count — non-blocking, but no longer silently
       // swallowed. This is exactly how two real bugs in

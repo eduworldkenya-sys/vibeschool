@@ -139,6 +139,10 @@ export default function VisitorsPage() {
     }
   }
   async function handleAddVisitor() {
+    if (!schoolId || !userId) {
+      showToast("School session is unavailable. Refresh and try again.", "error")
+      return
+    }
     if (!form.full_name.trim()) { showToast("Enter visitor name", "error"); return }
     if (!form.visiting_whom.trim()) { showToast("Enter who they are visiting", "error"); return }
     setSaving(true)

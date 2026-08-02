@@ -97,7 +97,36 @@ function QuizPanel({ topicId }: { topicId: string }) {
       if (error) {
         console.error('QuizPanel fetch error:', error)
       } else if (data) {
-        setQuestions(data as QuizQuestionRow[])
+        const parsedQuestions: QuizQuestionRow[] = data.map(row => {
+          const options: QuizOption[] = Array.isArray(row.options)
+            ? row.options
+                .filter((option): option is Record<string, unknown> =>
+                  typeof option === 'object' &&
+                  option !== null &&
+                  !Array.isArray(option)
+                )
+                .filter(option =>
+                  typeof option.id === 'string' &&
+                  typeof option.label === 'string' &&
+                  typeof option.text === 'string'
+                )
+                .map(option => ({
+                  id: option.id as string,
+                  label: option.label as string,
+                  text: option.text as string,
+                }))
+            : []
+
+          return {
+            id: row.id,
+            question_text: row.question_text,
+            options,
+            correct_option_id: row.correct_option_id,
+            explanation: row.explanation,
+          }
+        })
+
+        setQuestions(parsedQuestions)
       }
       setLoading(false)
     }
