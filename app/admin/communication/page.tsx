@@ -239,7 +239,9 @@ export default function AdminCommunicationPage() {
       supabase.from('vc_circulars').select('*').eq('school_id', sid).order('sent_at', { ascending: false }),
     ])
 
-    const threadIds = (parts ?? []).map((p: { thread_id: string }) => p.thread_id)
+    const threadIds = (parts ?? [])
+      .map(p => p.thread_id)
+      .filter((threadId): threadId is string => threadId !== null)
 
     if (threadIds.length > 0) {
       const [{ data: threadRows }, { data: allParts }] = await Promise.all([
@@ -259,8 +261,10 @@ export default function AdminCommunicationPage() {
       ;(profiles ?? []).forEach((pr: ProfileRow) => { profileMap[pr.id] = pr })
 
       const readMap: Record<string, string | null> = {}
-      ;(parts ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => {
-        readMap[p.thread_id] = p.last_read_at
+      ;(parts ?? []).forEach(p => {
+        if (p.thread_id !== null) {
+          readMap[p.thread_id] = p.last_read_at
+        }
       })
 
       // Accurate unread counts
