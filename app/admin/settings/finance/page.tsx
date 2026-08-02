@@ -152,7 +152,6 @@ export default function FinanceSettingsPage() {
             profile_id: bursarRow.profile_id,
             appointed_at:
               bursarRow.appointed_at ??
-              bursarRow.created_at ??
               new Date(0).toISOString(),
             profile: Array.isArray(bursarRow.profile)
               ? bursarRow.profile[0] ?? null
@@ -189,8 +188,18 @@ export default function FinanceSettingsPage() {
       appointed_at: new Date().toISOString(),
     })
     await supabase.from('audit_logs').insert({
-      school_id: schoolId, actor_id: currentUserId,
-      event_type: 'bursar_appointed', payload: { profile_id: selectedProfileId },
+      actor_id: currentUserId,
+      actor_role: 'admin',
+      actor_snapshot: {
+        school_id: schoolId,
+      },
+      table_name: 'finance_roles',
+      table_record_id: selectedProfileId,
+      operation: 'bursar_appointed',
+      new_data: {
+        profile_id: selectedProfileId,
+        school_id: schoolId,
+      },
     })
     setSelectedProfileId('')
     setAppointing(false)
@@ -206,8 +215,18 @@ export default function FinanceSettingsPage() {
       .update({ revoked_at: new Date().toISOString() })
       .eq('id', bursar.id)
     await supabase.from('audit_logs').insert({
-      school_id: schoolId, actor_id: currentUserId,
-      event_type: 'bursar_revoked', payload: { profile_id: bursar.profile_id },
+      actor_id: currentUserId,
+      actor_role: 'admin',
+      actor_snapshot: {
+        school_id: schoolId,
+      },
+      table_name: 'finance_roles',
+      table_record_id: bursar.id,
+      operation: 'bursar_revoked',
+      new_data: {
+        profile_id: bursar.profile_id,
+        school_id: schoolId,
+      },
     })
     setRevokeConfirm(false)
     setRevoking(false)
@@ -223,8 +242,17 @@ export default function FinanceSettingsPage() {
       .update({ requires_dual_approval: !requiresDual })
       .eq('id', schoolId)
     await supabase.from('audit_logs').insert({
-      school_id: schoolId, actor_id: currentUserId,
-      event_type: 'dual_approval_toggled', payload: { new_value: !requiresDual },
+      actor_id: currentUserId,
+      actor_role: 'admin',
+      actor_snapshot: {
+        school_id: schoolId,
+      },
+      table_name: 'schools',
+      table_record_id: schoolId,
+      operation: 'dual_approval_toggled',
+      new_data: {
+        requires_dual_approval: !requiresDual,
+      },
     })
     setDualToggleConfirm(false)
     setTogglingDual(false)
