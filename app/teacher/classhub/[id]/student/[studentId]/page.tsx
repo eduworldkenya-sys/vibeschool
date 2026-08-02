@@ -4,6 +4,9 @@ import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
 import { C } from '@/components/teacher/ui'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
+import { getAttendanceRecords, summarizeAttendance } from '@/lib/attendance/summary'
+import { getRangeDates } from '@/lib/attendance/ranges'
+import type { AttendanceRecord, AttendanceRange } from '@/lib/types'
 
 /* ── Types ── */
 interface Student {
@@ -12,7 +15,6 @@ interface Student {
   gender: string | null; autonomy_level: number | null; created_at: string
 }
 interface ClaimCode { code: string; claimed: boolean; expires_at: string | null; role: string }
-interface AttendanceRecord { id: string; date: string; status: string; is_late: boolean; notes: string | null }
 interface Assessment {
   id: string; subject_id: string; strand_id: string | null; sub_strand: string | null
   assessment_type: string; performance: string; term: string; academic_year: string
@@ -292,12 +294,34 @@ function OverviewTab({ student, classId, studentCode, parentCode, onReload, myGr
 }
 
 /* ── Attendance Tab ── */
-function AttendanceTab({ records }: { records: AttendanceRecord[] }) {
-  const total   = records.length
-  const present = records.filter(r => r.status === 'present').length
-  const absent  = records.filter(r => r.status === 'absent').length
-  const late    = records.filter(r => r.is_late).length
-  const rate    = total > 0 ? Math.round((present / total) * 100) : 0
+const ATTENDANCE_RANGES: { id: AttendanceRange | 'all'; label: string }[] = [
+  { id: 'all',   label: 'All'   },
+  { id: 'week',  label: 'Week'  },
+  { id: 'month', label: 'Month' },
+  { id: 'term',  label: 'Term'  },
+  { id: 'year',  label: 'Year'  },
+]
+
+function AttendanceTab({ records, studentId }: { records: AttendanceRecord[]; studentId: string }) {
+  const [range,        setRange]        = useState<AttendanceRange | 'all'>('all')
+  const [rangeRecords, setRangeRecords] = useState<AttendanceRecord[] | null>(null)
+  const [rangeLoading, setRangeLoading] = useState(false)
+
+  useEffect(() => {
+    if (range === 'all') { setRangeRecords(null); return }
+    let cancelled = false
+    async function load() {
+      setRangeLoading(true)
+      const { startDate, endDate } = await getRangeDates(range)
+      const data = await getAttendanceRecords({ studentId, startDate, endDate })
+      if (!cancelled) { setRangeRecords(data); setRangeLoading(false) }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [range, studentId])
+
+  const activeRecords = range === 'all' ? records : (rangeRecords ?? [])
+  const summary        = summarizeAttendance(activeRecords)
 
   const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
     present: { bg: '#d1fae5', color: '#065f46', label: 'Present' },
@@ -307,12 +331,29 @@ function AttendanceTab({ records }: { records: AttendanceRecord[] }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {ATTENDANCE_RANGES.map(r => (
+          <button
+            key={r.id}
+            onClick={() => setRange(r.id)}
+            style={{
+              flex: 1, padding: '7px 4px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontWeight: 800, fontSize: 11,
+              background: range === r.id ? C.accentLight : '#f3f4f6',
+              color: range === r.id ? '#065f46' : C.textMuted,
+            }}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
       <div style={{ display: 'flex', gap: 8 }}>
         {[
-          { label: 'Rate',    value: rate + '%' },
-          { label: 'Present', value: present    },
-          { label: 'Absent',  value: absent     },
-          { label: 'Late',    value: late        },
+          { label: 'Rate',    value: summary.rate + '%' },
+          { label: 'Present', value: summary.present    },
+          { label: 'Absent',  value: summary.absent     },
+          { label: 'Late',    value: summary.late        },
         ].map(s => (
           <div key={s.label} style={{ flex: 1, background: '#fff', borderRadius: 14, padding: '12px 6px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 18, fontWeight: 900, color: C.textPrimary }}>{s.value}</div>
@@ -322,11 +363,13 @@ function AttendanceTab({ records }: { records: AttendanceRecord[] }) {
       </div>
       <Card>
         <SectionHead title="Attendance Log" />
-        {records.length === 0 ? (
+        {rangeLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>Loading…</div>
+        ) : activeRecords.length === 0 ? (
           <EmptyState icon="🗓️" text="No attendance records yet" />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {records.slice(0, 30).map(r => {
+            {activeRecords.slice(0, 30).map(r => {
               const s = STATUS_STYLE[r.status] ?? STATUS_STYLE.present
               return (
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
@@ -923,7 +966,7 @@ function StudentProfileInner() {
       <div style={{ padding: '16px', animation: 'slideDown 0.2s ease' }}>
         {activeTab === 'overview'    && <OverviewTab    student={student} classId={classId} studentCode={studentCode} parentCode={parentCode} onReload={loadAll} myGroups={myGroups} />}
         {activeTab === 'results'     && <ResultsTab     examResults={examResults} exams={exams} subjects={subjects} />}
-        {activeTab === 'attendance'  && <AttendanceTab  records={attendance} />}
+        {activeTab === 'attendance'  && <AttendanceTab  records={attendance} studentId={studentId} />}
         {activeTab === 'assessments' && <AssessmentsTab assessments={assessments} subjects={subjects} />}
         {activeTab === 'homework'    && <HomeworkTab    homework={homework} submissions={submissions} />}
         {activeTab === 'resources'   && <ResourcesTab   resources={resources} />}

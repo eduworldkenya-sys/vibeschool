@@ -39,6 +39,7 @@ function Skeleton({ h = 16, w = '100%' }: { h?: number; w?: string }) {
 const CLASS_ACTIONS = [
   { id: 'students',   label: 'Students',     icon: '👥', bg: C.dark,    route: '' },
   { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
+  { id: 'history',    label: 'History',      icon: '📈', bg: '#047857', route: '' },
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
   { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#075985', route: '/teacher/timetable' },
@@ -50,6 +51,7 @@ const CLASS_ACTIONS = [
 
 const SUBJECT_ACTIONS = [
   { id: 'attendance', label: 'Attendance',   icon: '✅', bg: '#065f46', route: '/teacher/attendance' },
+  { id: 'history',    label: 'History',      icon: '📈', bg: '#047857', route: '' },
   { id: 'lessonplan', label: 'Lesson Plans', icon: '📖', bg: '#6d28d9', route: '/teacher/lessonplan' },
   { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
   { id: 'scheme',     label: 'Scheme',       icon: '📋', bg: '#0f4c75', route: '/teacher/scheme' },
@@ -219,6 +221,7 @@ function ClassPageInner() {
     if (a.id === 'homework') route = `/teacher/classhub/${classId}/homework`
     if (a.id === 'projects') route = `/teacher/classhub/${classId}/projects`
     if (a.id === 'exercises') route = `/teacher/classhub/${classId}/exercises`
+    if (a.id === 'history') route = `/teacher/classhub/${classId}/attendance-history`
     const r = buildRoute(route)
     if (r) router.push(r)
   }
