@@ -21,7 +21,6 @@ interface StudentRow {
   name:             string
   admission_number: string | null
   class_id:         string | null
-  school_id:        string | null
 }
 
 function HarmonizeInner() {
@@ -54,7 +53,7 @@ function HarmonizeInner() {
     }
 
     const [stuRes, linkRes] = await Promise.all([
-      supabase.from('students').select('id, name, admission_number, class_id, school_id').eq('id', sid).single(),
+      supabase.from('students').select('id, name, admission_number, class_id').eq('id', sid).single(),
       supabase.from('parent_student_links').select('student_id').eq('parent_id', user.id).eq('student_id', sid),
     ])
 

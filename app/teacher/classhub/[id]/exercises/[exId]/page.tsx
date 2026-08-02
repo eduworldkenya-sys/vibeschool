@@ -60,9 +60,7 @@ function GradingInner() {
 
     const [exRes, stuRes, subRes] = await Promise.all([
       supabase.from("exercises").select("title,instructions,duration_minutes,status").eq("id", exId).single(),
-      sid
-        ? supabase.from("students").select("id,name,admission_number").eq("class_id",classId).eq("school_id",sid).order("name")
-        : supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
+      supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
       supabase.from("exercise_submissions").select("id,student_id,status,mark,feedback,notes,submitted_at,photo_url").eq("exercise_id",exId),
     ]);
 
