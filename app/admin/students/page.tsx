@@ -4,6 +4,19 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import type { Database } from "@/lib/database.types"
+
+type GeneratedAdminAddStudentArgs =
+  Database["public"]["Functions"]["admin_add_student"]["Args"]
+
+type AdminAddStudentArgs = {
+  p_name: string
+  p_admission_number: string | null
+  p_gender: string | null
+  p_date_of_birth: string | null
+  p_class_id: string | null
+  p_school_id: string
+}
 
 const deepspace = "#0a1628"
 const accent    = "#10b981"
@@ -239,15 +252,21 @@ export default function StudentsPage() {
     if (!schoolId || !form.name.trim()) return
     setSaving(true)
     try {
-      const { data: studentId, error } = await supabase
-        .rpc("admin_add_student", {
-          p_name:             form.name.trim(),
-          p_admission_number: form.admission_number || null,
-          p_gender:           form.gender || null,
-          p_date_of_birth:    form.date_of_birth || null,
-          p_class_id:         form.class_id || null,
-          p_school_id:        schoolId,
-        })
+      const args: AdminAddStudentArgs = {
+        p_name: form.name.trim(),
+        p_admission_number: form.admission_number || null,
+        p_gender: form.gender || null,
+        p_date_of_birth: form.date_of_birth || null,
+        p_class_id: form.class_id || null,
+        p_school_id: schoolId,
+      }
+
+      // PostgreSQL accepts NULL for these optional arguments. The generated
+      // function Args type does not preserve SQL parameter nullability.
+      const { data: studentId, error } = await supabase.rpc(
+        "admin_add_student",
+        args as unknown as GeneratedAdminAddStudentArgs
+      )
 
       if (error || !studentId) throw error
 

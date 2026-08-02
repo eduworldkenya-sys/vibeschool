@@ -165,7 +165,46 @@ export default function ProjectsPage() {
         .order('full_name'),
     ])
 
-    if (projRes.data)   setProjects(projRes.data)
+    if (projRes.data) {
+      const projects: Project[] = projRes.data
+        .filter(row => row.project_id !== null && row.school_id !== null)
+        .map(row => ({
+          project_id: row.project_id as string,
+          school_id: row.school_id as string,
+          title: row.title ?? 'Untitled project',
+          project_type:
+            row.project_type === 'infrastructure' ||
+            row.project_type === 'academic' ||
+            row.project_type === 'community'
+              ? row.project_type
+              : null,
+          status:
+            row.status === 'draft' ||
+            row.status === 'pending_approval' ||
+            row.status === 'active' ||
+            row.status === 'at_risk' ||
+            row.status === 'completed' ||
+            row.status === 'cancelled'
+              ? row.status
+              : 'draft',
+          start_date: row.start_date,
+          end_date: row.end_date,
+          planned: row.planned ?? 0,
+          owner_id: row.owner_id,
+          owner_name: row.owner_name,
+          budget_line_id: row.budget_line_id,
+          at_risk_ack: row.at_risk_ack ?? false,
+          spent: row.spent ?? 0,
+          pending_confirmation: row.pending_confirmation ?? 0,
+          remaining: row.remaining ?? 0,
+          milestones_total: row.milestones_total ?? 0,
+          milestones_done: row.milestones_done ?? 0,
+          created_at: row.created_at ?? new Date(0).toISOString(),
+          updated_at: row.updated_at ?? new Date(0).toISOString(),
+        }))
+
+      setProjects(projects)
+    }
     if (budgetRes.data) setBudgetLines(budgetRes.data)
     if (staffRes.data)  setStaff(staffRes.data)
   }

@@ -319,7 +319,7 @@ export default function ProjectDetailPage() {
     ])
 
     setProject(
-      proj
+      proj?.project_id
         ? {
             project_id: proj.project_id,
             title: proj.title ?? 'Untitled project',
@@ -402,7 +402,7 @@ export default function ProjectDetailPage() {
           id: row.id,
           profile_id: row.profile_id as string,
           role: row.role ?? 'member',
-          added_at: row.added_at ?? row.created_at ?? new Date(0).toISOString(),
+          added_at: row.added_at ?? new Date(0).toISOString(),
           profile: Array.isArray(row.profile)
             ? row.profile[0]
               ? {
@@ -547,7 +547,7 @@ export default function ProjectDetailPage() {
   }
 
   async function addMember() {
-    if (!memberProfileId) return
+    if (!memberProfileId || !schoolId || !currentUserId) return
     setMemberSaving(true)
     await supabase.from('project_members').insert({
       project_id: id,
@@ -573,6 +573,8 @@ export default function ProjectDetailPage() {
   }
 
   async function removeMember(memberId: string) {
+    if (!schoolId || !currentUserId) return
+
     await supabase
       .from('project_members')
       .update({ removed_at: new Date().toISOString() })
