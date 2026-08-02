@@ -88,8 +88,15 @@ export default function ApprovalsPage() {
       .eq('id', user.id)
       .single()
 
-    const sid = profile?.school_id
+    const sid = profile?.school_id ?? null
     setSchoolId(sid)
+
+    if (!sid) {
+      setQueue([])
+      setHasBursar(false)
+      setLoading(false)
+      return
+    }
 
     const [
       { data: items },
