@@ -807,16 +807,51 @@ function StudentProfileInner() {
         ? supabase.from('homework_submissions').select('*').eq('student_id', studentId).in('homework_id', hwRes.data.map((h: Homework) => h.id))
         : Promise.resolve({ data: [] }),
       cb.length > 0
-        ? supabase.from('badges').select('*').in('id', cb.map((b: { badge_id: string }) => b.badge_id))
+        ? supabase
+            .from('badges')
+            .select('*')
+            .in(
+              'id',
+              cb
+                .map(row => row.badge_id)
+                .filter((badgeId): badgeId is string => badgeId !== null)
+            )
         : Promise.resolve({ data: [] }),
     ])
 
     setExamResults(erRows)
     setExams((examData.data ?? []) as ExamItem[])
 
-    const myGroupIds = new Set((mbrData.data ?? []).map((m: { group_id: string }) => m.group_id))
-    const COLOR_BG: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2', '#1d4ed8': '#dbeafe', '#6d28d9': '#ede9fe', '#0f766e': '#ccfbf1', '#9d174d': '#fce7f3' }
-    setMyGroups(grpData.filter((g: { id: string }) => myGroupIds.has(g.id)).map((g: { type: string; name: string; color: string }) => ({ type: g.type, name: g.name, color: g.color, bg: COLOR_BG[g.color] ?? '#f3f4f6' })))
+    const myGroupIds = new Set(
+      (mbrData.data ?? [])
+        .map(row => row.group_id)
+        .filter((groupId): groupId is string => groupId !== null)
+    )
+
+    const COLOR_BG: Record<string, string> = {
+      '#065f46': '#d1fae5',
+      '#92400e': '#fef3c7',
+      '#991b1b': '#fee2e2',
+      '#1d4ed8': '#dbeafe',
+      '#6d28d9': '#ede9fe',
+      '#0f766e': '#ccfbf1',
+      '#9d174d': '#fce7f3',
+    }
+
+    setMyGroups(
+      grpData
+        .filter(group => myGroupIds.has(group.id))
+        .map(group => {
+          const color = group.color ?? '#64748b'
+
+          return {
+            type: group.type ?? 'group',
+            name: group.name ?? 'Unnamed group',
+            color,
+            bg: COLOR_BG[color] ?? '#f3f4f6',
+          }
+        })
+    )
 
     setStudent(stuRes.data)
         const codes = (codeRes.data ?? []) as ClaimCode[]
@@ -833,11 +868,20 @@ function StudentProfileInner() {
     setSkills(skillRes.data ?? [])
 
     if (cb.length > 0) {
-      const merged: Badge[] = (bdgsData.data ?? []).map((b: { id: string; name: string; icon: string; category: string; level: string; description: string }) => ({
-        ...b,
-        earned_at: cb.find((c: { badge_id: string; earned_at: string }) => c.badge_id === b.id)?.earned_at ?? '',
+      const merged: Badge[] = (bdgsData.data ?? []).map(badge => ({
+        id: badge.id,
+        name: badge.name ?? 'Unnamed badge',
+        icon: badge.icon ?? '🏅',
+        category: badge.category ?? 'general',
+        level: badge.level?.toString() ?? '',
+        description: badge.description ?? '',
+        earned_at:
+          cb.find(row => row.badge_id === badge.id)?.earned_at ?? '',
       }))
+
       setBadges(merged)
+    } else {
+      setBadges([])
     }
 
     setLoading(false)
