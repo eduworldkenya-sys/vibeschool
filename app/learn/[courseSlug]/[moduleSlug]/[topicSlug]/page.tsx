@@ -35,6 +35,20 @@ interface QuizOption {
   text: string
 }
 
+function isQuizOption(value: unknown): value is QuizOption {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const option = value as Record<string, unknown>
+
+  return (
+    typeof option.id === 'string' &&
+    typeof option.label === 'string' &&
+    typeof option.text === 'string'
+  )
+}
+
 interface QuizQuestionRow {
   id: string
   question_text: string
@@ -99,22 +113,7 @@ function QuizPanel({ topicId }: { topicId: string }) {
       } else if (data) {
         const parsedQuestions: QuizQuestionRow[] = data.map(row => {
           const options: QuizOption[] = Array.isArray(row.options)
-            ? row.options
-                .filter((option): option is Record<string, unknown> =>
-                  typeof option === 'object' &&
-                  option !== null &&
-                  !Array.isArray(option)
-                )
-                .filter(option =>
-                  typeof option.id === 'string' &&
-                  typeof option.label === 'string' &&
-                  typeof option.text === 'string'
-                )
-                .map(option => ({
-                  id: option.id as string,
-                  label: option.label as string,
-                  text: option.text as string,
-                }))
+            ? row.options.filter(isQuizOption)
             : []
 
           return {
