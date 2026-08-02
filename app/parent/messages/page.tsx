@@ -334,8 +334,8 @@ export default function ParentMessagesPage() {
         .eq('profile_id', userId)
 
       const classIds = (students ?? [])
-        .map((s: { class_id: string }) => s.class_id)
-        .filter(Boolean)
+        .map(student => student.class_id)
+        .filter((classId): classId is string => classId !== null)
 
       if (classIds.length === 0) { setSuggestionsLoading(false); return }
 
@@ -359,7 +359,13 @@ export default function ParentMessagesPage() {
         .in('id', teacherIds)
         .neq('id', userId)
 
-      setSuggestedContacts(profiles ?? [])
+      setSuggestedContacts(
+        (profiles ?? []).map(profile => ({
+          id: profile.id,
+          full_name: profile.full_name,
+          role: profile.role ?? "teacher",
+        }))
+      )
     } catch {
       setSuggestedContacts([])
     } finally {
@@ -372,7 +378,16 @@ export default function ParentMessagesPage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 120px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <button onClick={() => { setActiveThread(null); if (pollRef.current) clearInterval(pollRef.current); loadAll(userId, schoolId) }} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}>←</button>
+          <button
+            onClick={() => {
+              setActiveThread(null)
+              if (pollRef.current) clearInterval(pollRef.current)
+              if (schoolId) void loadAll(userId, schoolId)
+            }}
+            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}
+          >
+            ←
+          </button>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>{activeThread.otherInitials}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: '700', fontSize: '15px', color: C.text }}>{activeThread.otherName}</div>

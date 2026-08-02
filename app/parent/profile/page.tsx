@@ -147,11 +147,11 @@ export default function ParentProfilePage() {
   const [profile, setProfile] = useState<{
     id: string
     full_name: string
-    country_code: string
+    country_code: string | null
   } | null>(null)
 
   const [parentProfile, setParentProfile] = useState<{
-    occupation:   string
+    occupation:   string | null
     relationship: string
   } | null>(null)
 

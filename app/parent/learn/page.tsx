@@ -398,13 +398,28 @@ export default function ParentLearnPage() {
 
         type SubRow = { id: string; homework_id: string; status: string; mark: number | null; feedback: string | null; submitted_at: string | null; photo_url: string | null };
         const subMap = new Map<string, SubRow>(
-          (subRes.data ?? []).map(s => [s.homework_id, s])
+          (subRes.data ?? [])
+            .filter((row): row is typeof row & { homework_id: string } =>
+              row.homework_id !== null
+            )
+            .map(row => [
+              row.homework_id,
+              {
+                id: row.id,
+                homework_id: row.homework_id,
+                status: row.status,
+                mark: row.mark,
+                feedback: row.feedback,
+                submitted_at: row.submitted_at,
+                photo_url: row.photo_url,
+              },
+            ])
         );
         
         const teacherIds = Array.from(new Set(
           (hwRes.data ?? [])
-            .map((hw: { teacher_id: string }) => hw.teacher_id)
-            .filter(Boolean)
+            .map(hw => hw.teacher_id)
+            .filter((teacherId): teacherId is string => teacherId !== null)
         ));
 
         const teacherMap = new Map<string, string>();
@@ -419,25 +434,22 @@ export default function ParentLearnPage() {
           );
         }
 
-        const finalHomework: HomeworkItem[] = (hwRes.data ?? []).map(
-          (hw: {
-            id: string;
-            subject: string;
-            title: string;
-            instructions: string | null;
-            type: "smart" | "book";
-            due_date: string;
-            teacher_id: string;
-          }) => {
+        const finalHomework: HomeworkItem[] = (hwRes.data ?? [])
+          .filter((hw): hw is typeof hw & { due_date: string } =>
+            hw.due_date !== null
+          )
+          .map(hw => {
             const matchingSub = subMap.get(hw.id);
             return {
               id: hw.id,
-              subject: hw.subject,
+              subject: hw.subject ?? "Subject",
               title: hw.title,
               instructions: hw.instructions,
-              type: hw.type as "smart" | "book",
+              type: hw.type === "smart" ? "smart" : "book",
               due_date: hw.due_date,
-              teacherName: teacherMap.get(hw.teacher_id) ?? "Teacher",
+              teacherName: hw.teacher_id
+                ? teacherMap.get(hw.teacher_id) ?? "Teacher"
+                : "Teacher",
               submission: matchingSub ? {
                 id: matchingSub.id,
                 status: matchingSub.status as "pending" | "submitted" | "marked" | "draft",
@@ -484,17 +496,21 @@ export default function ParentLearnPage() {
           ...(plansRes.data ?? [])
             .map(p => ({
               id:           p.id,
-              title:        p.title,
-              subject:      subjectMap.get(p.subject_id) ?? "Lesson",
+              title:        p.title ?? "Lesson",
+              subject:      p.subject_id
+                ? subjectMap.get(p.subject_id) ?? "Lesson"
+                : "Lesson",
               day_of_week:  p.day_of_week,
-              student_copy: contentMap.get(p.id)!,
+              student_copy: contentMap.get(p.id) ?? "",
             })),
         ];
 
         const finalAssessments: AssessmentItem[] = (assessRes.data ?? []).map(a => ({
           id:              a.id,
-          subject:         subjectMap.get(a.subject_id) ?? "Subject",
-          sub_strand:      a.sub_strand,
+          subject:         a.subject_id
+            ? subjectMap.get(a.subject_id) ?? "Subject"
+            : "Subject",
+          sub_strand:      a.sub_strand ?? "",
           assessment_type: a.assessment_type,
           performance:     a.performance as AssessmentItem["performance"],
           term:            a.term,
