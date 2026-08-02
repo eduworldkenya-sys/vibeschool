@@ -46,17 +46,38 @@ function ExercisesInner() {
       supabase.from("subjects").select("id, name").order("name"),
     ]);
 
-    const { data: stuRows } = await supabase.from("students").select("id").eq("class_id", classId);
-    const studentCount = (stuRows ?? []).length;
+    const { data: studentClassRows } = await supabase
+      .from("student_classes")
+      .select("student_id")
+      .eq("class_id", classId)
+      .eq("is_current", true);
 
-    const exList: Exercise[] = ((exRes.data ?? []) as (Omit<Exercise, "sub_count" | "student_count"> & { exercise_submissions: { id: string }[] })[]).map(e => ({
-      ...e,
-      sub_count:     (e.exercise_submissions ?? []).length,
+    const studentCount = (studentClassRows ?? []).length;
+
+    const exList: Exercise[] = (exRes.data ?? []).map(row => ({
+      id: row.id,
+      title: row.title ?? "Untitled exercise",
+      instructions: row.instructions,
+      duration_minutes: null,
+      status: "active",
+      created_at: row.created_at,
+      subject_id: null,
+      sub_count: (row.exercise_submissions ?? []).length,
       student_count: studentCount,
     }));
 
     setList(exList);
-    setClassInfo(clsRes.data);
+
+    setClassInfo(
+      clsRes.data
+        ? {
+            name: clsRes.data.name,
+            stream: clsRes.data.stream ?? "",
+            school_id: clsRes.data.school_id,
+          }
+        : null
+    );
+
     setSubjects(subjRes.data ?? []);
     setLoading(false);
   }
@@ -65,20 +86,35 @@ function ExercisesInner() {
 
   async function handleSubmit() {
     setError("");
-    if (!form.title.trim()) { setError("Title is required"); return; }
+    if (!form.title.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    if (!classInfo?.school_id) {
+      setError("This class has no school identity.");
+      return;
+    }
+
     setSaving(true);
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error: err } = await supabase.from("exercises").insert({
-      class_id:         classId,
-      teacher_id:       user.id,
-      school_id:        classInfo?.school_id ?? null,
-      subject_id:       form.subject_id || null,
-      title:            form.title.trim(),
-      instructions:     form.instructions.trim(),
-      duration_minutes: form.duration_minutes ? Number(form.duration_minutes) : null,
-      status:           "active",
-    });
+
+    if (!user) {
+      setSaving(false);
+      setError("Your session has expired.");
+      return;
+    }
+
+    const { error: err } = await supabase
+      .from("exercises")
+      .insert({
+        class_id: classId,
+        teacher_id: user.id,
+        school_id: classInfo.school_id,
+        title: form.title.trim(),
+        instructions: form.instructions.trim() || null,
+      });
     setSaving(false);
     if (err) { setError(err.message); return; }
 
