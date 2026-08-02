@@ -80,7 +80,7 @@ export default function MyWorkPage() {
       const [hwRes, subRes] = await Promise.all([
         supabase
           .from("homework")
-          .select("id, title, subject_id, due_date, type")
+          .select("id, title, subject, due_date, type")
           .eq("class_id", identity!.classId)
           .order("due_date", { ascending: true }),
         supabase
@@ -89,35 +89,32 @@ export default function MyWorkPage() {
           .eq("student_id", identity!.studentId),
       ]);
 
-      const allSubjectIds = Array.from(new Set(
-        (hwRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
-      )) as string[];
-
-      let subjectMap: Record<string, string> = {};
-      if (allSubjectIds.length > 0) {
-        const { data: subs } = await supabase.from("subjects").select("id, name").in("id", allSubjectIds);
-        subjectMap = Object.fromEntries((subs ?? []).map(s => [s.id, s.name]));
-      }
-
       const subMap = new Map<string, { status: string; mark: number | null; feedback: string | null }>();
       for (const s of subRes.data ?? []) {
-        subMap.set(s.homework_id, { status: s.status, mark: s.mark ?? null, feedback: s.feedback ?? null });
+        if (!s.homework_id) continue;
+        subMap.set(s.homework_id, {
+          status: s.status,
+          mark: s.mark ?? null,
+          feedback: s.feedback ?? null,
+        });
       }
 
-      const result: HWItem[] = (hwRes.data ?? []).map((h: { id: string; title: string; subject_id: string; due_date: string; type: string }) => {
-        const sub = subMap.get(h.id);
-        return {
-          id:        h.id,
-          title:     h.title,
-          due_date:  h.due_date,
-          type:      h.type,
-          subject:   subjectMap[h.subject_id] ?? "Subject",
-          submitted: !!sub,
-          status:    (sub?.status ?? "pending") as HWItem["status"],
-          mark:      sub?.mark     ?? null,
-          feedback:  sub?.feedback ?? null,
-        };
-      });
+      const result: HWItem[] = (hwRes.data ?? [])
+        .filter((h): h is typeof h & { due_date: string } => !!h.due_date)
+        .map(h => {
+          const sub = subMap.get(h.id);
+          return {
+            id:        h.id,
+            title:     h.title,
+            due_date:  h.due_date,
+            type:      h.type,
+            subject:   h.subject ?? "Subject",
+            submitted: !!sub,
+            status:    (sub?.status ?? "pending") as HWItem["status"],
+            mark:      sub?.mark ?? null,
+            feedback:  sub?.feedback ?? null,
+          };
+        });
 
       writeCache("homework", identity!.studentId, result);
       setItems(result);
