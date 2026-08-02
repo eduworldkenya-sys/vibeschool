@@ -148,6 +148,7 @@ export default function VisitorsPage() {
     const validUserId: string = userId
 
     if (!form.full_name.trim()) { showToast("Enter visitor name", "error"); return }
+    if (!form.purpose.trim()) { showToast("Enter visit purpose", "error"); return }
     if (!form.visiting_whom.trim()) { showToast("Enter who they are visiting", "error"); return }
     setSaving(true)
     try {
@@ -156,7 +157,7 @@ export default function VisitorsPage() {
         full_name:     form.full_name.trim(),
         phone:         form.phone.trim() || null,
         id_number:     form.id_number.trim() || null,
-        purpose:       form.purpose.trim() || null,
+        purpose:       form.purpose.trim(),
         visiting_whom: form.visiting_whom.trim(),
         time_in:       new Date().toISOString(),
         recorded_by:   validUserId,
