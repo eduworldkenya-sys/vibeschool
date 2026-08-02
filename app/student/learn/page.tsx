@@ -71,10 +71,13 @@ export default function MyWorkPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (idLoading || !identity || !identity.classId) { setLoading(false); return; }
+    const classId = identity?.classId ?? null;
+    const studentId = identity?.studentId ?? null;
 
-    const classId = identity.classId;
-    const studentId = identity.studentId;
+    if (idLoading || !classId || !studentId) {
+      if (!idLoading) setLoading(false);
+      return;
+    }
 
     const cached = readCache<HWItem[]>("homework", studentId);
     if (cached) { setItems(cached); setLoading(false); }
