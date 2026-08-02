@@ -111,6 +111,7 @@ async function findOrCreateThread(
     created_by: currentUserId,
     context_tag: contextTag,
   }).select().single()
+  if (!thread) throw new Error('Failed to create thread')
   await supabase.from('vc_participants').insert([
     { thread_id: thread.id, profile_id: currentUserId, school_id: schoolId },
     { thread_id: thread.id, profile_id: otherUserId,   school_id: schoolId },
