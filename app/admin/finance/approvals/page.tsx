@@ -55,6 +55,66 @@ type QueueItem = {
   days_pending: number
 }
 
+type ApprovalQueueRow = {
+  transaction_id: string | null
+  school_id: string | null
+  project_id: string | null
+  project_title: string | null
+  project_type: string | null
+  description: string | null
+  amount: number | null
+  vendor: string | null
+  receipt_ref: string | null
+  task_ref: string | null
+  status: string | null
+  return_reason: string | null
+  logged_at: string | null
+  logged_by: string | null
+  logged_by_name: string | null
+  confirmed_by: string | null
+  confirmed_by_name: string | null
+  confirmed_at: string | null
+  days_pending: number | null
+}
+
+function normalizeQueueItem(row: ApprovalQueueRow): QueueItem | null {
+  if (
+    !row.transaction_id ||
+    !row.school_id ||
+    !row.project_id ||
+    !row.logged_by
+  ) {
+    return null
+  }
+
+  const status: QueueItem['status'] =
+    row.status === 'confirmed' || row.status === 'returned'
+      ? row.status
+      : 'pending'
+
+  return {
+    transaction_id: row.transaction_id,
+    school_id: row.school_id,
+    project_id: row.project_id,
+    project_title: row.project_title ?? 'Untitled project',
+    project_type: row.project_type ?? 'project',
+    description: row.description ?? '',
+    amount: row.amount ?? 0,
+    vendor: row.vendor,
+    receipt_ref: row.receipt_ref,
+    task_ref: row.task_ref,
+    status,
+    return_reason: row.return_reason,
+    logged_at: row.logged_at ?? new Date(0).toISOString(),
+    logged_by: row.logged_by,
+    logged_by_name: row.logged_by_name,
+    confirmed_by: row.confirmed_by,
+    confirmed_by_name: row.confirmed_by_name,
+    confirmed_at: row.confirmed_at,
+    days_pending: row.days_pending ?? 0,
+  }
+}
+
 function fmt(n: number) {
   return 'KES ' + Number(n ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })
 }
@@ -106,7 +166,11 @@ export default function ApprovalsPage() {
       supabase.from('finance_roles').select('profile_id').eq('school_id', sid).eq('is_bursar', true).is('revoked_at', null).maybeSingle(),
     ])
 
-    setQueue(items ?? [])
+    const normalizedQueue = ((items ?? []) as ApprovalQueueRow[])
+      .map(normalizeQueueItem)
+      .filter((item): item is QueueItem => item !== null)
+
+    setQueue(normalizedQueue)
     setHasBursar(!!bursarRow)
     setLoading(false)
   }, [])
