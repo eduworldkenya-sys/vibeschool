@@ -116,3 +116,67 @@ export async function getPublishedChapterById(
 
   return data
 }
+
+function requireLifecycleResponse(
+  data: readonly object[] | null,
+  operation: string,
+): void {
+  if (!data || data.length !== 1) {
+    throw toContentEngineError(
+      operation,
+      new Error(
+        'Textbook lifecycle RPC returned an invalid response.',
+      ),
+    )
+  }
+}
+
+export async function publishTextbook(
+  client: ContentEngineClient,
+  publicationId: string,
+): Promise<void> {
+  const operation = 'publishTextbook'
+  const id = assertRequiredId(
+    publicationId,
+    'publicationId',
+    operation,
+  )
+
+  const { data, error } = await client.rpc(
+    'publish_textbook',
+    {
+      p_publication_id: id,
+    },
+  )
+
+  if (error) {
+    throw toContentEngineError(operation, error)
+  }
+
+  requireLifecycleResponse(data, operation)
+}
+
+export async function unpublishTextbook(
+  client: ContentEngineClient,
+  publicationId: string,
+): Promise<void> {
+  const operation = 'unpublishTextbook'
+  const id = assertRequiredId(
+    publicationId,
+    'publicationId',
+    operation,
+  )
+
+  const { data, error } = await client.rpc(
+    'unpublish_textbook',
+    {
+      p_publication_id: id,
+    },
+  )
+
+  if (error) {
+    throw toContentEngineError(operation, error)
+  }
+
+  requireLifecycleResponse(data, operation)
+}

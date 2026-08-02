@@ -1420,3 +1420,122 @@ Verification completed:
 - CE-FE-002D complete
 Next exact milestone:
 - CE-FE-003 — Author and publication workflow verification and repair
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003A1
+Status: COMPLETE
+Problem fixed:
+- Added an explicit serialization and hydration boundary between publication authoring models and generated Supabase contracts.
+- Removed unsafe publication and chapter row casts from the authoring hook.
+- Migrated the authoring hook to the shared typed Supabase client.
+Files changed:
+- lib/publicationDraftCodec.ts
+- hooks/usePublicationDraft.ts
+- HANDOVER.md
+Database contracts used:
+- vibe_publications
+- vibe_chapters
+Verification completed:
+- Publication pricing JSON is validated during hydration
+- Publication and chapter enum values are validated
+- Content blocks and metadata are validated during hydration
+- Pricing and chapter blocks are explicitly serialized to Json
+- Untitled drafts remain autosave-compatible
+- Supabase inserts and upserts use generated Insert contracts
+- No `any` or `as unknown as` introduced
+- Focused TypeScript compilation passed
+- git diff --check passed
+Manual checks still required:
+- Load publications using each supported pricing model
+- Create and autosave an untitled draft
+- Add, edit, reorder and delete content blocks
+- Reload and verify exact content preservation
+Known limitations:
+- Invalid historical JSON now produces a clear load error
+- Textbook publication lifecycle remains unchanged in this slice
+Next exact milestone:
+- CE-FE-003A2 — Authoritative textbook publication lifecycle
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003A2
+Status: COMPLETE
+Problem fixed:
+- Prevented publication from continuing after an unsuccessful draft save.
+- Routed VibeTextbook publication through the authoritative publish RPC.
+- Added compensating unpublish when post-publication chapter persistence fails.
+Files changed:
+- lib/content-engine/publications.ts
+- lib/content-engine/index.ts
+- hooks/usePublicationDraft.ts
+- HANDOVER.md
+Database contracts used:
+- vibe_publications
+- vibe_chapters
+- publish_textbook(...)
+- unpublish_textbook(...)
+Verification completed:
+- forceSave reports database-confirmed success or failure
+- Failed draft saves stop publication
+- VibeTextbook publication uses publish_textbook(...)
+- VibeTextbook rollback uses unpublish_textbook(...)
+- Non-textbook formats retain their existing lifecycle behavior
+- Focused TypeScript compilation passed
+- No explicit any introduced
+- git diff --check passed
+Manual checks still required:
+- Publish a real VibeTextbook and verify VibeLearn reconciliation
+- Confirm anonymous reader access after publication
+- Unpublish and confirm anonymous direct-reader denial
+- Republish and confirm access restoration
+- Simulate a chapter persistence failure and verify compensating unpublish
+Known limitations:
+- Publication lifecycle and chapter persistence remain separate transactions
+- Full cross-account lifecycle regression remains pending
+Next exact milestone:
+- CE-FE-003B — Structured blocks and curriculum-outcome authoring verification
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003B1
+Status: COMPLETE
+Problem fixed:
+- Added typed verified curriculum-outcome discovery services.
+- Added chapter-level outcome-link management using stable outcome IDs.
+- Added content-block outcome-link management using stable outcome IDs.
+- Added resolution from legacy editor block IDs to authoritative content_blocks IDs.
+Files changed:
+- lib/content-engine/outcomes.ts
+- lib/content-engine/index.ts
+- HANDOVER.md
+Database contracts used:
+- curriculum_learning_outcomes
+- chapter_learning_outcome_links
+- content_blocks
+- content_block_outcome_links
+Verification completed:
+- Only verified curriculum outcomes are returned by discovery
+- Chapter links use the unique chapter_id and outcome_id authority
+- Block links use the unique content_block_id and outcome_id authority
+- Existing selected links are upserted before stale links are removed
+- Link writes preserve publication, chapter, block and outcome IDs
+- RLS remains authoritative for author management
+- Backend validation triggers remain authoritative
+- No direct write to derived content_blocks exists
+- Focused TypeScript compilation passed
+- No explicit any introduced
+- git diff --check passed
+Manual checks still required:
+- Exercise chapter outcome linking as the publication author
+- Verify a non-author cannot modify links
+- Exercise block outcome linking after block reconciliation
+- Verify invalid cross-publication links are rejected
+Known limitations:
+- Author editor UI does not consume these services yet
+- Multi-row replacement is not one database transaction
+Next exact milestone:
+- CE-FE-003B2 — Author editor curriculum-outcome selection
