@@ -58,7 +58,12 @@ export default function ParentExercisesPage() {
 
       const items: ExItem[] = (exRes.data ?? []).map(e => {
         const sub = subMap.get(e.id);
-        return { ...e, status: sub?.status === "marked" ? "done" : "pending", feedback: sub?.feedback ?? null };
+        return {
+          ...e,
+          title: e.title ?? "Untitled exercise",
+          status: sub?.status === "marked" ? "done" : "pending",
+          feedback: sub?.feedback ?? null,
+        };
       });
       setList(items);
       setLoading(false);
