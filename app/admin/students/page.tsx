@@ -89,7 +89,13 @@ export default function StudentsPage() {
       .eq("school_id", sid)
       .order("name")
 
-    setClasses(data ?? [])
+    setClasses(
+      (data ?? []).map(row => ({
+        id: row.id,
+        name: row.name,
+        stream: row.stream ?? "",
+      }))
+    )
   }
 
   async function loadStudents(sid: string) {
@@ -105,7 +111,23 @@ export default function StudentsPage() {
       return
     }
 
-    const studentIds = scRows.map((r: any) => r.student_id)
+    const studentIds = scRows
+      .map(row => row.student_id)
+      .filter(
+        (studentId): studentId is string =>
+          studentId !== null
+      )
+
+    if (studentIds.length === 0) {
+      setStudents([])
+      setStats({
+        total: 0,
+        withParent: 0,
+        withoutParent: 0,
+        owing: 0,
+      })
+      return
+    }
 
     const [studentsRes, linksRes, invoicesRes] = await Promise.all([
       supabase
@@ -125,34 +147,72 @@ export default function StudentsPage() {
     ])
 
     const linkedSet = new Set(
-      (linksRes.data ?? []).map((l: any) => l.student_id)
+      (linksRes.data ?? [])
+        .map(row => row.student_id)
+        .filter(
+          (studentId): studentId is string =>
+            studentId !== null
+        )
     )
 
-    const invoiceMap = new Map<string, string>()
-    for (const inv of invoicesRes.data ?? []) {
-      const existing = invoiceMap.get(inv.student_id)
-      if (!existing || inv.status === "owing" || inv.status === "partial") {
-        invoiceMap.set(inv.student_id, inv.status)
+    const invoiceMap = new Map<
+      string,
+      Student["fee_status"]
+    >()
+
+    for (const invoice of invoicesRes.data ?? []) {
+      if (!invoice.student_id) continue
+
+      const status: Student["fee_status"] =
+        invoice.status === "paid" ||
+        invoice.status === "partial" ||
+        invoice.status === "owing"
+          ? invoice.status
+          : "none"
+
+      const existing = invoiceMap.get(invoice.student_id)
+
+      if (
+        !existing ||
+        status === "owing" ||
+        status === "partial"
+      ) {
+        invoiceMap.set(invoice.student_id, status)
       }
     }
 
-    const classMap = new Map<string, any>()
-    for (const sc of scRows) {
-      classMap.set((sc as any).student_id, (sc as any).classes)
+    const classMap = new Map<
+      string,
+      { name: string; stream: string }
+    >()
+
+    for (const row of scRows) {
+      if (!row.student_id) continue
+
+      const joinedClass = Array.isArray(row.classes)
+        ? row.classes[0] ?? null
+        : row.classes
+
+      if (!joinedClass) continue
+
+      classMap.set(row.student_id, {
+        name: joinedClass.name,
+        stream: joinedClass.stream ?? "",
+      })
     }
 
-    const rows: Student[] = (studentsRes.data ?? []).map((s: any) => {
-      const cls      = classMap.get(s.id)
-      const feeStatus = invoiceMap.get(s.id) ?? "none"
+    const rows: Student[] = (studentsRes.data ?? []).map(student => {
+      const cls = classMap.get(student.id)
+
       return {
-        id:               s.id,
-        name:             s.name,
-        admission_number: s.admission_number,
-        gender:           s.gender,
-        class_name:       cls?.name ?? "—",
-        class_stream:     cls?.stream ?? "",
-        parent_linked:    linkedSet.has(s.id),
-        fee_status:       feeStatus as Student["fee_status"],
+        id: student.id,
+        name: student.name,
+        admission_number: student.admission_number,
+        gender: student.gender,
+        class_name: cls?.name ?? "—",
+        class_stream: cls?.stream ?? "",
+        parent_linked: linkedSet.has(student.id),
+        fee_status: invoiceMap.get(student.id) ?? "none",
       }
     })
 
@@ -176,7 +236,7 @@ export default function StudentsPage() {
   }
 
   async function addStudent() {
-    if (!form.name.trim()) return
+    if (!schoolId || !form.name.trim()) return
     setSaving(true)
     try {
       const { data: studentId, error } = await supabase
@@ -186,7 +246,7 @@ export default function StudentsPage() {
           p_gender:           form.gender || null,
           p_date_of_birth:    form.date_of_birth || null,
           p_class_id:         form.class_id || null,
-          p_school_id:        schoolId || null,
+          p_school_id:        schoolId,
         })
 
       if (error || !studentId) throw error
