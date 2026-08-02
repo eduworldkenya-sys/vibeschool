@@ -10,7 +10,6 @@ interface ExItem {
   id:               string;
   title:            string;
   instructions:     string | null;
-  duration_minutes: number | null;
   status:           "pending" | "done";
   feedback:         string | null;
 }
@@ -25,14 +24,14 @@ export default function StudentExercisesPage() {
 
     async function load() {
       const [exRes, subRes] = await Promise.all([
-        supabase.from("exercises").select("id,title,instructions,duration_minutes").eq("class_id", identity!.classId!).eq("status", "active").order("created_at", { ascending: false }),
+        supabase.from("exercises").select("id,title,instructions").eq("class_id", identity!.classId!).order("created_at", { ascending: false }),
         supabase.from("exercise_submissions").select("exercise_id,status,feedback").eq("student_id", identity!.studentId),
       ]);
 
       const subMap = new Map<string, { status: string; feedback: string | null }>();
       for (const s of (subRes.data ?? [])) subMap.set(s.exercise_id, { status: s.status, feedback: s.feedback ?? null });
 
-      const items: ExItem[] = ((exRes.data ?? []) as { id: string; title: string; instructions: string | null; duration_minutes: number | null }[]).map(e => {
+      const items: ExItem[] = (exRes.data ?? []).map(e => {
         const sub = subMap.get(e.id);
         return { ...e, status: sub?.status === "marked" ? "done" : "pending", feedback: sub?.feedback ?? null };
       });
@@ -68,7 +67,6 @@ export default function StudentExercisesPage() {
                   <div key={e.id} style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderLeft: "4px solid #f59e0b", borderRadius: 14, padding: "14px 16px" }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: "var(--vs-text)", marginBottom: 4 }}>{e.title}</div>
                     {e.instructions && <p style={{ fontSize: 12, color: "var(--vs-muted)", lineHeight: 1.5, margin: "0 0 6px" }}>{e.instructions}</p>}
-                    {e.duration_minutes && <div style={{ fontSize: 11, color: "var(--vs-muted)" }}>⏱ {e.duration_minutes} min</div>}
                   </div>
                 ))}
               </div>
