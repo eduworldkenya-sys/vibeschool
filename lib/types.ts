@@ -817,3 +817,23 @@ export interface VibeLearnContentDestinationInput {
   vibePublicationId: string | null;
 }
 
+
+export type AttendanceRange = "week" | "month" | "term" | "year";
+
+export interface AttendanceRecord {
+  id: string;
+  student_id: string;
+  class_id: string;
+  date: string;
+  status: string;
+  is_late: boolean;
+  notes: string | null;
+}
+
+export interface AttendanceRangeSummary {
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  rate: number;
+}
