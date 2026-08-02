@@ -73,7 +73,10 @@ export default function MyWorkPage() {
   useEffect(() => {
     if (idLoading || !identity || !identity.classId) { setLoading(false); return; }
 
-    const cached = readCache<HWItem[]>("homework", identity.studentId);
+    const classId = identity.classId;
+    const studentId = identity.studentId;
+
+    const cached = readCache<HWItem[]>("homework", studentId);
     if (cached) { setItems(cached); setLoading(false); }
 
     async function load() {
@@ -81,12 +84,12 @@ export default function MyWorkPage() {
         supabase
           .from("homework")
           .select("id, title, subject, due_date, type")
-          .eq("class_id", identity!.classId)
+          .eq("class_id", classId)
           .order("due_date", { ascending: true }),
         supabase
           .from("homework_submissions")
           .select("homework_id, status, mark, feedback")
-          .eq("student_id", identity!.studentId),
+          .eq("student_id", studentId),
       ]);
 
       const subMap = new Map<string, { status: string; mark: number | null; feedback: string | null }>();
@@ -116,7 +119,7 @@ export default function MyWorkPage() {
           };
         });
 
-      writeCache("homework", identity!.studentId, result);
+      writeCache("homework", studentId, result);
       setItems(result);
       setLoading(false);
     }
