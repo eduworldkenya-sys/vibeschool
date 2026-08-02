@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import type { Database } from "@/lib/database.types"
 
 const dark    = "#0a1628"
 const accent  = "#10b981"
@@ -96,20 +97,8 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
   </div>
 )
 
-interface Invoice {
-  id: string
-  school_id: string
-  student_id: string
-  class_id: string
-  term: string
-  year: number
-  due_date: string
-  status: string
-  total_amount: number
-  paid_amount: number
-  notes: string
-  created_at: string
-}
+type Invoice =
+  Database["public"]["Tables"]["finance_invoices"]["Row"]
 
 interface InvoiceLine {
   id: string
