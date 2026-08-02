@@ -394,7 +394,7 @@ export default function PayrollPage() {
                           {MONTHS[run.month - 1]} {run.year}
                         </p>
                         <p style={{ margin:0, fontSize:12, color:muted }}>
-                          Created {new Date(run.created_at).toLocaleDateString("en-KE")}
+                          Created {run.created_at ? new Date(run.created_at).toLocaleDateString("en-KE") : "date unavailable"}
                           {run.paid_at ? ` · Paid ${new Date(run.paid_at).toLocaleDateString("en-KE")}` : ""}
                         </p>
                       </div>
@@ -471,7 +471,7 @@ export default function PayrollPage() {
                                 <tr key={line.id} style={{ borderTop:`1px solid ${border}` }}>
                                   <td style={{ padding:"11px 12px 11px 0", color:white, fontWeight:600 }}>{line.staff_name ?? "—"}</td>
                                   <td style={{ padding:"11px 12px 11px 0", textAlign:"right", color:white }}>{fmt(line.gross)}</td>
-                                  <td style={{ padding:"11px 12px 11px 0", textAlign:"right", color: line.deductions > 0 ? red : muted }}>{fmt(line.deductions)}</td>
+                                  <td style={{ padding:"11px 12px 11px 0", textAlign:"right", color: (line.deductions ?? 0) > 0 ? red : muted }}>{fmt(line.deductions ?? 0)}</td>
                                   <td style={{ padding:"11px 12px 11px 0", textAlign:"right", color:accent, fontWeight:700 }}>{fmt(line.net)}</td>
                                   <td style={{ padding:"11px 12px 11px 0", color:muted, textTransform:"uppercase", fontSize:11 }}>{line.paid_via}</td>
                                   <td style={{ padding:"11px 0", color:muted, fontFamily:"monospace", fontSize:12 }}>{line.reference || "—"}</td>
