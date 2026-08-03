@@ -20,15 +20,15 @@ TIMETABLE
 
 Active fix
 
-FIX ID: TBL-008
-TITLE: Make postflight executable
+FIX ID: TBL-009
+TITLE: Align fallback repair path
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-007
-TITLE: Gate migration repair behind preflight
+FIX ID: TBL-008
+TITLE: Make postflight executable
 STATUS: VERIFIED
 
 Current branch
@@ -1761,3 +1761,61 @@ Next fix
 
 TBL-008 — Make postflight executable: automatically compare the live migration
 ledger before and after a repair and prove that only the approved row changed.
+
+---
+
+TBL-008 VERIFIED HANDOVER
+
+Objective
+
+Make migration-repair postflight executable so the captured local and remote
+migration ledger states are compared automatically after an approved repair.
+
+Implementation
+
+- Added scripts/tbl008-migration-postflight.py.
+- Added scripts/test-tbl008-migration-postflight.py.
+- Wired postflight execution into the protected production migration-repair
+  workflow.
+- Added a JSON postflight report to the immutable repair evidence artifact.
+- Updated the production workflow validator to require the executable
+  postflight and approved repair inputs.
+
+Postflight invariants
+
+- Exactly the approved migration version may change.
+- No unexpected migration version may change.
+- Local migration state must remain unchanged.
+- Remote migration state must reach the approved applied or reverted state.
+- Missing, empty, malformed or duplicate ledger snapshots fail closed.
+- Before and after snapshot SHA-256 hashes are recorded.
+
+Verification evidence
+
+- Python syntax validation passed.
+- Apply-transition fixture passed.
+- Revert-transition fixture passed.
+- Unchanged approved version was rejected.
+- Unexpected second migration change was rejected.
+- Incorrect final remote state was rejected.
+- Changed local migration state was rejected.
+- Malformed empty snapshot was rejected.
+- Protected workflow static validation passed.
+- Clean-tree executable fixture produced a passing JSON report containing:
+  approved version, expected status, unchanged local state, correct remote
+  transition, one changed version and zero unexpected changes.
+- Working tree was clean after fixture cleanup.
+
+Database and production impact
+
+None. No Supabase command, migration repair, schema write, data write or
+migration-ledger write was executed during TBL-008.
+
+Acceptance result
+
+VERIFIED. Local and remote migration state is now automatically compared by
+an executable fail-closed postflight.
+
+Next fix
+
+TBL-009 — Align fallback repair path.
