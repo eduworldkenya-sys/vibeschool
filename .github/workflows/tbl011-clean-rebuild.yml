@@ -137,6 +137,51 @@ jobs:
             2>&1 \
             | tee .tbl011-artifacts/final-schema-verification.log
 
+      - name: Capture rebuilt timetable schema
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PGPASSWORD=postgres \
+            psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -f scripts/sql/tbl012_core_schema_snapshot.sql \
+            > .tbl011-artifacts/rebuilt-core-schema.json
+
+          python3 - <<'PYVERIFY'
+          import json
+          from pathlib import Path
+
+          path = Path(
+              ".tbl011-artifacts/rebuilt-core-schema.json"
+          )
+
+          data = json.loads(path.read_text(encoding="utf-8"))
+
+          expected = {
+              "timetable_slots",
+              "teacher_classes",
+              "teaching_occurrences",
+              "school_periods",
+          }
+
+          if data.get("schema_version") != 1:
+              raise SystemExit(
+                  "rebuilt schema snapshot has wrong schema_version"
+              )
+
+          if set(data.get("tables", {})) != expected:
+              raise SystemExit(
+                  "rebuilt schema snapshot has wrong table set"
+              )
+
+          print("Rebuilt timetable schema snapshot validated")
+          PYVERIFY
+
+          sha256sum \
+            .tbl011-artifacts/rebuilt-core-schema.json \
+            > .tbl011-artifacts/rebuilt-core-schema.sha256
+
       - name: Capture final local migration ledger
         shell: bash
         run: |

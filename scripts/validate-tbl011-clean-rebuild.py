@@ -61,6 +61,15 @@ required_workflow = {
     "verification SQL execution": (
         "-f scripts/sql/tbl011_clean_rebuild_verify.sql"
     ),
+    "TBL-012 rebuilt snapshot execution": (
+        "-f scripts/sql/tbl012_core_schema_snapshot.sql"
+    ),
+    "rebuilt schema artifact": (
+        "rebuilt-core-schema.json"
+    ),
+    "rebuilt schema hash": (
+        "rebuilt-core-schema.sha256"
+    ),
     "local database URL": "127.0.0.1:54322",
     "evidence upload": "actions/upload-artifact@v4",
     "always cleanup": "if: always()",
