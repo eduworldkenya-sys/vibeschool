@@ -130,9 +130,29 @@ function GradingInner() {
         mark:         markVal,
         feedback:     feedback.trim()||null,
       }).select().single();
-      if (!insErr && newSub) {
+      if (
+        !insErr &&
+        newSub &&
+        newSub.student_id &&
+        (
+          newSub.status === "pending" ||
+          newSub.status === "submitted" ||
+          newSub.status === "marked"
+        )
+      ) {
+        const normalizedSubmission: Submission = {
+          id: newSub.id,
+          student_id: newSub.student_id,
+          status: newSub.status,
+          mark: newSub.mark,
+          feedback: newSub.feedback,
+          submitted_at: newSub.submitted_at,
+          photo_url: newSub.photo_url,
+          answers: [],
+        };
+
         const updated = new Map(subMap);
-        updated.set(active.id,{...newSub,answers:[]});
+        updated.set(active.id, normalizedSubmission);
         setSubMap(updated);
         setSaveOk(true);
       }
