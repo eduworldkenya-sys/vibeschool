@@ -48,10 +48,27 @@ function hasDifferentiation(body: string): boolean {
   return !!(m && m[1].trim().length > 0)
 }
 
+function weekStartForDate(date: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return nairobiWeekStart()
+
+  const [year, month, day] = date.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  if (Number.isNaN(parsed.getTime())) return nairobiWeekStart()
+
+  const mondayOffset = (parsed.getUTCDay() + 6) % 7
+  return nairobiDateAdd(date, -mondayOffset)
+}
+
 function LessonPlanInner() {
-  const [weekStart,   setWeekStart]   = useState(nairobiWeekStart())
+  const searchParams                  = useSearchParams()
   const router                        = useRouter()
-  const urlClassId                    = useSearchParams().get('classId')
+  const urlClassId                    = searchParams.get('classId')
+  const urlSubjectId                  = searchParams.get('subjectId')
+  const urlTimetableSlotId            = searchParams.get('timetableSlotId')
+  const urlOccurrenceDate             = searchParams.get('date')
+  const [weekStart,   setWeekStart]   = useState(() =>
+    urlOccurrenceDate ? weekStartForDate(urlOccurrenceDate) : nairobiWeekStart()
+  )
   const [items,       setItems]       = useState<SlotWithPlan[]>([])
   const [history,     setHistory]     = useState<HistoryRow[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -188,10 +205,30 @@ function LessonPlanInner() {
       })
 
       setItems(mapped)
+
+      // TOS-001: a timetable CTA must open the selected occurrence directly,
+      // not merely land on the weekly lesson-plan index. The exact pair is
+      // the same identity used by LessonPlanModal and lesson_plans:
+      // (timetable_slot_id, taught_date).
+      if (urlTimetableSlotId && urlOccurrenceDate) {
+        const target = mapped.find(({ slot }) =>
+          slot.id === urlTimetableSlotId &&
+          slot.occurrenceDate === urlOccurrenceDate &&
+          (!urlClassId || slot.class_id === urlClassId) &&
+          (!urlSubjectId || slot.subject_id === urlSubjectId)
+        )
+
+        if (target) {
+          setActiveSlot(target.slot)
+        } else {
+          setLoadError('The selected timetable lesson is no longer available for this date.')
+        }
+      }
+
       setLoading(false)
     }
     load()
-  }, [weekStart])
+  }, [weekStart, urlClassId, urlSubjectId, urlTimetableSlotId, urlOccurrenceDate])
 
   useEffect(() => {
     async function loadHistory() {
