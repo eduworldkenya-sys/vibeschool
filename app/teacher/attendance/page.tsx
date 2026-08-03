@@ -72,6 +72,7 @@ function AttendanceInner() {
   const urlMode            = searchParams.get('mode')
   const urlClassId         = searchParams.get('classId')
   const urlDate            = searchParams.get('date')
+  const urlSubjectId       = searchParams.get('subjectId')
   const urlTimetableSlotId = searchParams.get('timetableSlotId')
   const requestedMode: Mode =
     urlMode === 'lesson' && Boolean(urlTimetableSlotId) && Boolean(urlDate) ? 'lesson' : 'class'
@@ -342,7 +343,21 @@ function AttendanceInner() {
       }
       setSaveState('saved')
       refreshPulse('attendance')
-      setTimeout(() => setSaveState('idle'), 2500)
+
+      // TOS-004: lesson-mode attendance is a task inside the active teaching
+      // workspace. After a successful authoritative save, reopen the exact
+      // lesson occurrence rather than leaving the teacher stranded here.
+      if (isLesson && activeSlot && urlDate && urlSubjectId) {
+        const lessonUrl =
+          `/teacher/lessonplan?` +
+          `timetableSlotId=${encodeURIComponent(activeSlot.id)}` +
+          `&date=${encodeURIComponent(urlDate)}` +
+          `&subjectId=${encodeURIComponent(urlSubjectId)}` +
+          `&classId=${encodeURIComponent(activeSlot.classId)}`
+        router.push(lessonUrl)
+      } else {
+        setTimeout(() => setSaveState('idle'), 2500)
+      }
     } else {
       console.error('attendance save error:', error)
       setSaveState('error')

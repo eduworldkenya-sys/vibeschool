@@ -778,6 +778,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         `&classId=${encodeURIComponent(slot.class_id)}` +
         `&timetableSlotId=${encodeURIComponent(slot.id)}` +
         `&date=${encodeURIComponent(taughtDate)}` +
+        `&subjectId=${encodeURIComponent(slot.subject_id)}` +
         `&subject=${encodeURIComponent(slot.subject)}`
       router.push(attendanceUrl)
     } catch (err) {
