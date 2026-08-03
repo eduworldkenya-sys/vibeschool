@@ -4,6 +4,12 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams }                        from 'next/navigation'
 import { supabase }                               from '@/lib/supabase'
+import type { Database }                            from '@/lib/database.types'
+
+type ExamInsert =
+  Database["public"]["Tables"]["exams"]["Insert"]
+type ExamResultInsert =
+  Database["public"]["Tables"]["exam_results"]["Insert"]
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -390,15 +396,21 @@ function ResultsInner() {
     }
 
     // ── Create mode ──
-    const payload: Record<string, unknown> = {
+    if (!schoolId) {
+      setExamError('School context is unavailable')
+      setCreatingExam(false)
+      return
+    }
+
+    const payload: ExamInsert = {
       name:          newExamName.trim(),
       exam_type:     newExamType,
       term:          newExamTerm,
       academic_year: newExamYear,
       pass_mark:     newExamPass,
       created_by:    teacherId,
+      school_id:     schoolId,
     }
-    if (schoolId) payload.school_id = schoolId
 
     const { data, error: cErr } = await supabase
       .from('exams').insert(payload)
@@ -449,16 +461,21 @@ function ResultsInner() {
     const classId   = tier === 1 ? classes[activeClassIdx]?.id   : null
     const subjectId = tier === 1 ? subjects[activeSubjectIdx]?.id : null
 
-    const payload: Record<string, unknown> = {
+    if (!schoolId || !classId || !subjectId) {
+      setSavingId(null)
+      return
+    }
+
+    const payload: ExamResultInsert = {
       exam_id:    activeExam.id,
       student_id: student.id,
       teacher_id: teacherId,
+      school_id:  schoolId,
+      class_id:   classId,
+      subject_id: subjectId,
       marks,
       is_absent:  isAbsent,
     }
-    if (schoolId)  payload.school_id  = schoolId
-    if (classId)   payload.class_id   = classId
-    if (subjectId) payload.subject_id = subjectId
 
     const existing = results.find(r => r.student_id === student.id)
 

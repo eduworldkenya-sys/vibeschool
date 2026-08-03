@@ -45,8 +45,8 @@ export async function updateStreak(studentId: string): Promise<void> {
   }
 
   const last    = data.last_active_date
-  const current = data.current_streak
-  const longest = data.longest_streak
+  const current = data.current_streak ?? 0
+  const longest = data.longest_streak ?? 0
 
   if (last === today) return
 
