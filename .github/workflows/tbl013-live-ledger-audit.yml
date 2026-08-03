@@ -1,0 +1,173 @@
+name: TBL-013 Production Migration Ledger Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tbl013-production-ledger-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Read-only production ledger reconciliation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-migration-repair
+
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize evidence directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tbl013-artifacts
+
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "actor=${{ github.actor }}"
+            echo "sha=${{ github.sha }}"
+            echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo "mode=READ_ONLY"
+          } > .tbl013-artifacts/context.txt
+
+      - name: Run local auditor tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/test-tbl013-live-ledger-audit.py
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link exact production project
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          supabase link \
+            --project-ref "$EXPECTED_PROJECT_REF"
+
+      - name: Capture production migration ledger
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+
+          supabase migration list --linked \
+            2>&1 \
+            | tee .tbl013-artifacts/live-migration-ledger.txt
+
+      - name: Audit repository against production ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 scripts/tbl013-live-ledger-audit.py \
+            --migrations-dir supabase/migrations \
+            --ledger .tbl013-artifacts/live-migration-ledger.txt \
+            --report .tbl013-artifacts/tbl013-ledger-audit.json \
+            --plan .tbl013-artifacts/tbl013-reconciliation-plan.md \
+            --project-ref "$EXPECTED_PROJECT_REF"
+
+          python3 - <<'PYEOF'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path(
+                  ".tbl013-artifacts/tbl013-ledger-audit.json"
+              ).read_text(encoding="utf-8")
+          )
+
+          print(
+              "TBL-013 reconciliation status:",
+              report["reconciliation_status"],
+          )
+          print(
+              "Repository-only:",
+              report["counts"]["local_only_versions"],
+          )
+          print(
+              "Production-only:",
+              report["counts"]["remote_only_versions"],
+          )
+          print(
+              "Duplicate local:",
+              report["counts"]["duplicate_local_versions"],
+          )
+          print(
+              "Duplicate production:",
+              report["counts"]["duplicate_remote_versions"],
+          )
+          PYEOF
+
+          sha256sum \
+            .tbl013-artifacts/live-migration-ledger.txt \
+            .tbl013-artifacts/tbl013-ledger-audit.json \
+            .tbl013-artifacts/tbl013-reconciliation-plan.md \
+            > .tbl013-artifacts/evidence.sha256
+
+      - name: Enforce explicit classification before repair
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PYEOF'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path(
+                  ".tbl013-artifacts/tbl013-ledger-audit.json"
+              ).read_text(encoding="utf-8")
+          )
+
+          pending = [
+              candidate
+              for candidate in report["repair_candidates"]
+              if candidate["approval_status"]
+              != "APPROVED"
+          ]
+
+          if pending:
+              print(
+                  "TBL-013 AUDIT COMPLETE — "
+                  "REPAIR BLOCKED PENDING CLASSIFICATION"
+              )
+
+              for candidate in pending:
+                  print(
+                      candidate["version"],
+                      candidate["proposed_status"],
+                      candidate["approval_status"],
+                  )
+
+              # Audit is successful. Production repair remains blocked.
+              raise SystemExit(0)
+
+          print(
+              "All repair candidates have explicit approval."
+          )
+          PYEOF
+
+      - name: Upload immutable audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tbl013-ledger-audit-${{ github.run_id }}
+          path: .tbl013-artifacts/
+          if-no-files-found: error
+          retention-days: 30
