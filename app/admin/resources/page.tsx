@@ -552,7 +552,7 @@ export default function AdminResourcesPage() {
     if (newQty < 0) { toast('Not enough stock.', 'error'); setTxnLoading(false); return }
 
     const { error: e1 } = await supabase.from('store_transactions').insert({
-      school_id: schoolId, item_id: txnTarget.id, txn_type: txnType,
+      school_id: schoolId, item_id: txnTarget.id, type: txnType,
       quantity: qty, reference: txnRef || null,
       issued_to: txnIssuedTo || null, notes: txnNotes || null, created_by: userId,
     })

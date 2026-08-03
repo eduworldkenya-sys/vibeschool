@@ -98,7 +98,7 @@ export default function StudentHomePage() {
     }
 
     async function load() {
-      if (!identity) return;
+      if (!identity?.classId) return;
 
       // Attendance
       const { data: att } = await supabase

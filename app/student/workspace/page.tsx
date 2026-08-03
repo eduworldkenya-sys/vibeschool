@@ -29,6 +29,48 @@ type Tab =
 
 type StudyType = "highlight" | "note" | "vocabulary" | "definition" | "formula";
 
+const STUDY_TYPES: readonly StudyType[] = [
+  "highlight",
+  "note",
+  "vocabulary",
+  "definition",
+  "formula",
+];
+
+function isStudyType(value: string): value is StudyType {
+  return STUDY_TYPES.includes(value as StudyType);
+}
+
+function normalizeStudyPayload(
+  value: unknown
+): StudyItem["payload"] {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value)
+  ) {
+    return {};
+  }
+
+  const payload = value as Record<string, unknown>;
+
+  return {
+    text: typeof payload.text === "string" ? payload.text : undefined,
+    meaning:
+      typeof payload.meaning === "string"
+        ? payload.meaning
+        : undefined,
+    color:
+      typeof payload.color === "string"
+        ? payload.color
+        : undefined,
+    context:
+      typeof payload.context === "string"
+        ? payload.context
+        : undefined,
+  };
+}
+
 interface SavedPublication {
   publication_id: string;
   cover_url: string | null;
@@ -163,7 +205,9 @@ export default function StudyWorkspacePage() {
       supabase.rpc("get_my_library"),
       supabase.rpc("get_continue_reading", { limit_input: 20 }),
       supabase.rpc("get_my_bookmarks"),
-      supabase.rpc("get_my_study_workspace_items", { p_item_type: null }),
+      supabase.rpc("get_my_study_workspace_items", {
+        p_item_type: undefined,
+      }),
     ]);
 
     if (
@@ -197,7 +241,30 @@ export default function StudyWorkspacePage() {
     );
     setSaved(Array.isArray(libraryResult.data) ? libraryResult.data : []);
     setBookmarks(Array.isArray(bookmarksResult.data) ? bookmarksResult.data : []);
-    setStudyItems(Array.isArray(studyResult.data) ? studyResult.data : []);
+    const normalizedStudyItems: StudyItem[] = Array.isArray(
+      studyResult.data
+    )
+      ? studyResult.data.flatMap(row => {
+          if (!isStudyType(row.item_type)) return [];
+
+          return [{
+            item_id: row.item_id,
+            item_type: row.item_type,
+            chapter_id: row.chapter_id,
+            publication_id: row.publication_id,
+            chapter_title: row.chapter_title,
+            chapter_number: row.chapter_number,
+            publication_title: row.publication_title,
+            cover_url: row.cover_url,
+            cbc_grade: row.cbc_grade,
+            cbc_subject: row.cbc_subject,
+            payload: normalizeStudyPayload(row.payload),
+            updated_at: row.updated_at,
+          }];
+        })
+      : [];
+
+    setStudyItems(normalizedStudyItems);
 
     const continuePayload = continueResult.data as {
       items?: ContinueItem[];

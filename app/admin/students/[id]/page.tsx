@@ -49,7 +49,7 @@ interface PaymentRow {
   amount:      number
   method:      string
   reference:   string | null
-  received_at: string
+  received_at: string | null
   receipt_number: string | null
 }
 
@@ -190,7 +190,7 @@ export default function StudentDetailPage() {
       const invIds = invs.map((i: any) => i.id)
       const { data: pays } = await supabase
         .from("finance_payments")
-        .select("id, amount, method, reference, received_at, receipt_number")
+        .select("invoice_id, id, amount, method, reference, received_at, receipt_number")
         .in("invoice_id", invIds)
         .is("deleted_at", null)
         .order("received_at", { ascending: false })

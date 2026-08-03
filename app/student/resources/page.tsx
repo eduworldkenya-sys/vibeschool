@@ -129,7 +129,22 @@ export default function StudentResourcesPage() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      const result = data ?? [];
+      const result: Resource[] = (data ?? [])
+        .filter(
+          (row): row is typeof row & { id: string } =>
+            row.id !== null
+        )
+        .map(row => ({
+          id: row.id,
+          title: row.title ?? "Untitled resource",
+          description: row.description ?? "",
+          type: row.type ?? "notes",
+          subject: row.subject ?? "General",
+          external_url: row.external_url,
+          content: row.content,
+          created_at: row.created_at ?? new Date(0).toISOString(),
+        }));
+
       writeCache("lessons", identity!.studentId, result);
       setResources(result);
       setLoading(false);
