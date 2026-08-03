@@ -415,7 +415,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
 
         if (existing != null && existing.body) {
           // G3: check null before trusting parse
-          const parsed = parsePlan(existing.body)
+          const parsed = parseLessonPlanBody(existing.body)
           setSections(parsed ?? { ...EMPTY, development: existing.body })
           if (existing.topic)  setTopic(existing.topic)
           if (existing.status) setStatus(existing.status as Status)
