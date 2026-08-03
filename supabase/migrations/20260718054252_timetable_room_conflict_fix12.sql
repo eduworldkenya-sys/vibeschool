@@ -7,6 +7,9 @@
 create extension if not exists btree_gist;
 
 alter table public.timetable_slots
+  drop constraint if exists excl_room_overlap;
+
+alter table public.timetable_slots
   add constraint excl_room_overlap
   exclude using gist (
     school_id with =,

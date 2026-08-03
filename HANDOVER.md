@@ -20,15 +20,15 @@ TIMETABLE
 
 Active fix
 
-FIX ID: TBL-006
-TITLE: Build forward-collision register
+FIX ID: TBL-007
+TITLE: Gate migration repair behind preflight
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-005
-TITLE: Add data preconditions for constraints
+FIX ID: TBL-006
+TITLE: Build forward-collision register
 STATUS: VERIFIED
 
 Current branch
@@ -39,7 +39,7 @@ WORKING TREE: clean at time of TBL-005 closure (TIMETABLE_FIX_REGISTER.md and HA
 
 Connected environments
 
-SUPABASE ENVIRONMENT CLASSIFICATION: UNKNOWN
+SUPABASE ENVIRONMENT CLASSIFICATION: PRODUCTION
 SUPABASE PROJECT REF: yauqsxggtuxuykcbrtzf
 VERCEL ENVIRONMENT:
 
@@ -1674,3 +1674,25 @@ run all of it, not just the new items:
   outcome, type a search term, confirm the check survives the reload
 - Everything from the round-1 verification list (new-chapter save race,
   RLS denial for non-authors, real link persistence)
+
+---
+
+TBL-006 VERIFIED HANDOVER
+
+Result
+
+Every current migration referencing the confirmed baseline-owned timetable
+objects is registered. The duplicate repository-only Fix 28 file was removed.
+The Fix 12 clean-rebuild constraint collision was repaired.
+
+Database writes
+
+None.
+
+Production project
+
+yauqsxggtuxuykcbrtzf
+
+Next fix
+
+TBL-007 — Gate migration repair behind preflight.

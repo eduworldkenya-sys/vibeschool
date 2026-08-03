@@ -65,3 +65,16 @@ Per TBL-006 scope, the validator confirms:
 - every migration filename in `supabase/migrations/` dated after `20260520000000` that textually references `timetable_slots` or `teacher_classes` has a corresponding entry in this register (fails otherwise);
 - every `migration_filename` in the register still exists on disk (fails otherwise);
 - the one known `duplicate_or_contradictory_ownership_flags` entry is present (fails if silently removed without resolution).
+
+
+## TBL-006 closure — 2026-08-03
+
+Status: **VERIFIED**
+
+- Every current migration referencing `timetable_slots` or
+  `teacher_classes` is registered.
+- Repository-only duplicate Fix 28 version `20260720123500` was removed.
+- Final live-version source remains at `20260720200607`.
+- Fix 12 now drops `excl_room_overlap` before recreating it.
+- No production database write occurred.
+- Next fix: TBL-007.
