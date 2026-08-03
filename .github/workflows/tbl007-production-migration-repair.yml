@@ -220,21 +220,11 @@ jobs:
             --execute
 
       - name: Capture fresh live ledger after repair
+        id: capture_after
         if: always()
         shell: bash
         run: |
           mkdir -p .tbl007-artifacts
-
-          if supabase migration list --linked \
-            > .tbl007-artifacts/live-ledger-after.txt 2>&1
-          then
-            cat .tbl007-artifacts/live-ledger-after.txt
-            sha256sum .tbl007-artifacts/live-ledger-after.txt \
-              > .tbl007-artifacts/live-ledger-after.sha256
-          else
-            echo "Unable to capture post-repair ledger" \
-              | tee .tbl007-artifacts/live-ledger-after-error.txt
-          fi
 
           {
             echo "run_id=${{ github.run_id }}"
@@ -245,6 +235,35 @@ jobs:
             echo "approval_id=${{ inputs.approval_id }}"
             echo "project_ref=$EXPECTED_PROJECT_REF"
           } > .tbl007-artifacts/repair-context.txt
+
+          if supabase migration list --linked \
+            > .tbl007-artifacts/live-ledger-after.txt 2>&1
+          then
+            cat .tbl007-artifacts/live-ledger-after.txt
+            sha256sum .tbl007-artifacts/live-ledger-after.txt \
+              > .tbl007-artifacts/live-ledger-after.sha256
+            echo "captured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unable to capture post-repair ledger" \
+              | tee .tbl007-artifacts/live-ledger-after-error.txt
+            echo "captured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify migration repair postflight
+        if: ${{ steps.capture_after.outputs.captured == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s .tbl007-artifacts/live-ledger-before.txt
+          test -s .tbl007-artifacts/live-ledger-after.txt
+
+          python3 scripts/tbl008-migration-postflight.py \
+            --before .tbl007-artifacts/live-ledger-before.txt \
+            --after .tbl007-artifacts/live-ledger-after.txt \
+            --version '${{ inputs.migration_version }}' \
+            --status '${{ inputs.repair_status }}' \
+            --report .tbl007-artifacts/postflight-report.json
 
       - name: Upload immutable repair evidence
         if: always()

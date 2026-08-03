@@ -41,6 +41,16 @@ required = {
     "fresh ledger before": "live-ledger-before.txt",
     "fresh ledger after": "live-ledger-after.txt",
     "always-run postflight capture": "if: always()",
+    "executable TBL-008 postflight": (
+        "python3 scripts/tbl008-migration-postflight.py"
+    ),
+    "postflight JSON report": "postflight-report.json",
+    "approved version passed to postflight": (
+        "--version '${{ inputs.migration_version }}'"
+    ),
+    "approved status passed to postflight": (
+        "--status '${{ inputs.repair_status }}'"
+    ),
     "evidence upload": "actions/upload-artifact@v4",
     "artifact retention": "retention-days: 90",
 }
