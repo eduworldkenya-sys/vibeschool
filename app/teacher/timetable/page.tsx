@@ -12,7 +12,8 @@ import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
-import type { TeachingOccurrence, Lifecycle, EditableSlot } from '@/lib/teaching/types'
+import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
+import type { TeachingOccurrence, EditableSlot } from '@/lib/teaching/types'
 
 // Fix 18C: human-facing text for each stable RPC error code. Kept next to
 // the CTA that renders it since these are UI strings, not data-layer concerns.
@@ -381,42 +382,48 @@ function SlotDrawer({
     `&classId=${encodeURIComponent(slot.classId)}`;
   const homeworkUrl = `/teacher/classhub/${slot.classId}/homework`;
 
-  // Fix 18B: truthful lifecycle CTA. Only lifecycles with a real destination
-  // get a clickable action; exceptional states show status text until their
-  // workflows (Fix 18C+) exist. No label claims a mutation it doesn't perform.
-  const lifecycleAction: Partial<Record<Lifecycle, { label: string; url: string }>> = {
-    planned:     { label: 'Prepare Lesson',  url: lessonUrl },
-    ready:       { label: 'Open Lesson',     url: lessonUrl },
-    // Fix 18C: 'missed' now gets a real CTA. It routes through the same RPC
-    // as ready/in_progress — the RPC decides whether that succeeds
-    // (missed + exact plan -> in_progress) or redirects to the plan flow
-    // (missed + no plan -> lesson_plan_required), so no client-side branch
-    // is needed here beyond needsStartMutation including 'missed'.
-    missed:      { label: 'Start Lesson',    url: lessonUrl },
-    in_progress: { label: 'Continue Lesson', url: lessonUrl },
-    completed:   { label: 'Review Lesson',   url: lessonUrl },
-  }
-  const lifecycleStatus: Partial<Record<Lifecycle, string>> = {
-    cancelled:   'This lesson was cancelled.',
-    rescheduled: 'This lesson was rescheduled.',
-  }
-  const primaryAction = occurrence ? lifecycleAction[occurrence.lifecycle] ?? null : null
-  const statusText    = occurrence ? lifecycleStatus[occurrence.lifecycle] ?? null : null
+  // TOS-006: the drawer consumes the shared Teaching Workspace contract.
+  // It no longer owns a private lifecycle-to-action engine.
+  const workspace = occurrence
+    ? deriveTeachingWorkspace(occurrence, occRowId)
+    : null
 
-  // Fix 18C: 'ready', 'in_progress', and 'missed' all reach the RPC.
-  // 'ready' and a plan-backed 'in_progress' are the straightforward cases
-  // (see deriveLifecycle precedence in occurrence.ts). 'missed' is included
-  // because the RPC itself is the source of truth on whether a missed slot
-  // can still be started — a missed occurrence with an exact lesson plan
-  // transitions to in_progress; one without a plan gets lesson_plan_required
-  // and is redirected below, same as any other missing-plan case.
-  // 'planned' is excluded on purpose: it never has a plan yet, so calling
-  // the RPC would just guarantee a lesson_plan_required round trip — skip
-  // it and go straight to the plan flow.
+  const primaryAction = workspace
+    ? {
+        prepare_lesson: {
+          label: 'Prepare Lesson',
+          url: lessonUrl,
+        },
+        start_lesson: {
+          label: 'Start Lesson',
+          url: lessonUrl,
+        },
+        continue_lesson: {
+          label: 'Continue Lesson',
+          url: lessonUrl,
+        },
+        review_lesson: {
+          label: 'Review Lesson',
+          url: lessonUrl,
+        },
+        recover_lesson: null,
+        none: null,
+      }[workspace.primaryAction]
+    : null
+
+  const statusText =
+    workspace?.lifecycle === 'cancelled'
+      ? 'This lesson was cancelled.'
+      : workspace?.lifecycle === 'rescheduled'
+        ? 'This lesson was rescheduled.'
+        : null
+
+  // Starting remains an RPC mutation. Preparing/reviewing only navigates.
+  // An in-progress occurrence is idempotently confirmed by the same RPC
+  // before opening the exact workspace.
   const needsStartMutation =
-    occurrence?.lifecycle === 'ready' ||
-    occurrence?.lifecycle === 'in_progress' ||
-    occurrence?.lifecycle === 'missed'
+    workspace?.canStart === true ||
+    workspace?.primaryAction === 'continue_lesson'
 
   async function handlePrimaryAction() {
     if (!primaryAction || !occurrence || !slot) return
@@ -567,7 +574,7 @@ function SlotDrawer({
               {statusText}
             </div>
           )}
-          {!occError && !startError && occurrence?.lifecycle === 'missed' && (
+          {!occError && !startError && workspace?.lifecycle === 'missed' && (
             <div style={{
               display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 6,
               padding: '5px 10px', borderRadius: 999,
@@ -590,7 +597,7 @@ function SlotDrawer({
           </button>
 
           {/* TBL-009B: recover a missed lesson through the TBL-009A writer. */}
-          {!occError && occurrence?.lifecycle === 'missed' && occRowId && (
+          {!occError && workspace?.canRecover && occRowId && (
             <Btn
               style={{ width: '100%', justifyContent: 'center' }}
               onClick={() => onRecover({
@@ -608,7 +615,7 @@ function SlotDrawer({
               the original returns to missed. Later lifecycles are real
               teaching history and the writer refuses them. */}
           {!occError && occRowId && recoveredFromId
-            && (occurrence?.lifecycle === 'planned' || occurrence?.lifecycle === 'ready') && (
+            && (workspace?.lifecycle === 'planned' || workspace?.lifecycle === 'ready') && (
             <Btn
               variant="ghost"
               style={{ width: '100%', justifyContent: 'center' }}
@@ -634,10 +641,13 @@ function SlotDrawer({
           )}
           <Btn
             variant="ghost"
+            disabled={!workspace?.canCaptureAttendance}
             style={{ width: '100%', justifyContent: 'center' }}
             onClick={() => onNavigate(attendanceUrl)}
           >
-            Mark Attendance
+            {workspace?.attendanceComplete
+              ? 'Review Attendance'
+              : 'Mark Attendance'}
           </Btn>
           <Btn
             variant="ghost"
