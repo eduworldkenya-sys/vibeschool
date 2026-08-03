@@ -1,0 +1,175 @@
+name: TBL-011 Isolated Clean Rebuild
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - "scripts/sql/tbl011_clean_rebuild_verify.sql"
+      - "scripts/validate-tbl011-clean-rebuild.py"
+      - ".github/workflows/tbl011-clean-rebuild.yml"
+
+concurrency:
+  group: tbl011-clean-rebuild-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  clean-rebuild:
+    name: Blank database migration rebuild
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tbl011-artifacts
+
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "actor=${{ github.actor }}"
+            echo "repository=${{ github.repository }}"
+            echo "sha=${{ github.sha }}"
+            echo "ref=${{ github.ref }}"
+            echo "production_project_linked=false"
+          } > .tbl011-artifacts/context.txt
+
+          find supabase/migrations \
+            -maxdepth 1 \
+            -type f \
+            -name '*.sql' \
+            -printf '%f\n' \
+            | sort \
+            > .tbl011-artifacts/migration-files.txt
+
+          wc -l .tbl011-artifacts/migration-files.txt \
+            | tee .tbl011-artifacts/migration-count.txt
+
+      - name: Validate rebuild controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/validate-tbl011-clean-rebuild.py
+
+      - name: Verify Docker
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker info \
+            > .tbl011-artifacts/docker-info.txt
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Disable seed for schema-only proof
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -f supabase/seed.sql ]; then
+            mv supabase/seed.sql \
+              .tbl011-artifacts/seed.sql.disabled
+          fi
+
+      - name: Start isolated local Supabase
+        shell: bash
+        run: |
+          set -o pipefail
+
+          supabase start \
+            -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor \
+            2>&1 \
+            | tee .tbl011-artifacts/supabase-start.log
+
+      - name: Rebuild blank local database
+        shell: bash
+        run: |
+          set -o pipefail
+
+          supabase db reset --local --no-seed \
+            2>&1 \
+            | tee .tbl011-artifacts/db-reset.log
+
+      - name: Verify migration ledger count
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EXPECTED="$(
+            wc -l \
+              < .tbl011-artifacts/migration-files.txt
+          )"
+
+          ACTUAL="$(
+            PGPASSWORD=postgres \
+              psql \
+              "postgresql://postgres@127.0.0.1:54322/postgres" \
+              -Atqc \
+              "select count(*) from supabase_migrations.schema_migrations"
+          )"
+
+          {
+            echo "expected=$EXPECTED"
+            echo "actual=$ACTUAL"
+          } | tee .tbl011-artifacts/ledger-count.txt
+
+          test "$ACTUAL" = "$EXPECTED"
+
+      - name: Verify final timetable schema and RLS
+        shell: bash
+        run: |
+          set -o pipefail
+
+          PGPASSWORD=postgres \
+            psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -f scripts/sql/tbl011_clean_rebuild_verify.sql \
+            2>&1 \
+            | tee .tbl011-artifacts/final-schema-verification.log
+
+      - name: Capture final local migration ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PGPASSWORD=postgres \
+            psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -P pager=off \
+            -c "
+              select version, name
+              from supabase_migrations.schema_migrations
+              order by version
+            " \
+            > .tbl011-artifacts/final-migration-ledger.txt
+
+          sha256sum \
+            .tbl011-artifacts/final-migration-ledger.txt \
+            .tbl011-artifacts/final-schema-verification.log \
+            > .tbl011-artifacts/evidence.sha256
+
+      - name: Upload rebuild evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tbl011-clean-rebuild-${{ github.run_id }}
+          path: .tbl011-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Destroy isolated local database
+        if: always()
+        shell: bash
+        run: |
+          supabase stop --no-backup \
+            > /dev/null 2>&1 || true
