@@ -98,14 +98,32 @@ const [teacherRes, memberRes, profileRes] = await Promise.all([
     if (resRes.error)  { setPageError('Failed to load resources.'); setLoading(false); return }
     if (subjRes.error) { setPageError('Failed to load subjects.');  setLoading(false); return }
 
-    setResources(resRes.data ?? [])
+    const normalizedResources: Resource[] = (resRes.data ?? []).map(row => ({
+      id: row.id,
+      title: row.title,
+      description: row.description ?? "",
+      type: row.type,
+      subject: row.subject ?? "General",
+      external_url: row.external_url,
+      content: row.content,
+      is_school_wide: row.is_school_wide ?? false,
+      class_id: row.class_id,
+      created_at: row.created_at ?? new Date(0).toISOString(),
+    }))
+
+    setResources(normalizedResources)
     setSubjects(subjRes.data ?? [])
 
     const classIds = Array.from(new Set((tcRes.data ?? []).map((r: { class_id: string }) => r.class_id)))
     if (classIds.length > 0) {
       const { data: classData, error: clsErr } = await supabase.from('classes').select('id, name, stream').in('id', classIds)
       if (clsErr) { setPageError('Failed to load classes.'); setLoading(false); return }
-      setClasses(classData ?? [])
+      const normalizedClasses: ClassOption[] = (classData ?? []).map(row => ({
+        id: row.id,
+        name: row.name,
+        stream: row.stream ?? "",
+      }))
+      setClasses(normalizedClasses)
     }
     setLoading(false)
   }, [])
