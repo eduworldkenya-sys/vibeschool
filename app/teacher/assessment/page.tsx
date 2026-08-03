@@ -61,7 +61,7 @@ function perfMeta(value: string) {
 // Aggregate: most frequent performance level wins; tie goes to higher level
 function aggregatePerf(entries: Assessment[]): string | null {
   if (entries.length === 0) return null
-  const order = ['exceeds_expectation', 'meets_expectation', 'approaches_expectation', 'below_expectation']
+  const order: readonly PerformanceLevel[] = ['exceeds_expectation', 'meets_expectation', 'approaches_expectation', 'below_expectation']
   const counts: Record<string, number> = {}
   for (const a of entries) counts[a.performance] = (counts[a.performance] ?? 0) + 1
   let best = entries[0].performance
