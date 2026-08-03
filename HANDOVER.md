@@ -1599,3 +1599,78 @@ Next exact milestone:
   becomes COMPLETE and the next milestone is block-level outcome UI
   inside ContentBlockEditor.tsx using the already-written
   replaceBlockOutcomeLinks/resolveContentBlockId functions.
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003B2 (patch round 2)
+Status: IN PROGRESS — addresses product-review gaps, still zero on-device verification
+Context:
+- ab75c0a shipped and was confirmed clean by real on-device `tsc` and
+  `vibe-push.sh` (commit 34e1bfd on origin/main). A product review of that
+  diff found real gaps, listed below with what was actually done about each.
+Problems fixed:
+1. Outcome discovery was not scoped to the publication's curriculum context
+   — a Grade 4 Maths author could see Form 4 History outcomes. Root cause:
+   vibe_chapters.curriculum_id and sub_strand_id (real FK columns already
+   used by the CE-004 trigger) were never hydrated into the frontend
+   VibeChapter draft type or its Insert/Row codec — only cbc_strand (free
+   text) was. Fixed by adding curriculum_id/sub_strand_id to VibeChapter,
+   chapterRowToDraft, chapterDraftToInsert, and emptyChapter, then passing
+   them from PublicationEditor into OutcomeSelector, which passes them into
+   listVerifiedCurriculumOutcomes. Deliberately did NOT attempt a
+   grade/subject label-matching fallback (e.g. CBCGrade 'grade4' ->
+   curriculum.grade "Grade 4" text) — checked live data
+   (project yauqsxggtuxuykcbrtzf) and the existing label maps do not
+   reliably match live curriculum text (e.g. CBC_SUBJECTS labels "Science &
+   Tech" vs live curriculum.subject "Science and Technology"); a fuzzy
+   match would silently produce wrong scoping, which is worse than no
+   scoping. When a chapter has neither id set yet, the drawer now says so
+   explicitly instead of quietly showing everything.
+2. listVerifiedCurriculumOutcomes ANDed curriculum_id and sub_strand_id
+   when both were supplied, which would hide outcomes tagged at only one
+   granularity. Changed to OR them (curriculum_id.eq OR sub_strand_id.eq)
+   via a validated .or() filter.
+3. Real bug: searching inside the drawer re-derived selectedIds from the
+   database on every debounced query, silently dropping any outcome the
+   author had just checked but not yet saved. Split into two functions —
+   initSelection() (runs once per open/chapter change, sets the selection
+   baseline) and loadOutcomes() (runs on every search, only replaces the
+   candidate list, never touches selectedIds).
+4. Accessibility: outcome rows were bare onClick <div>s with no keyboard
+   path. Added role="checkbox"/aria-checked/tabIndex/onKeyDown (Enter and
+   Space), role="dialog"/aria-modal/aria-label on the drawer, Escape-to-
+   close, aria-label on the close button and search input, role="alert" on
+   the error banner.
+Explicitly NOT done in this round (still open, matches the product
+review's suggested order):
+- Alignment strength picker (introduces/supports/assesses/masters) — still
+  hardcoded to 'supports' in replaceChapterOutcomeLinks calls from the UI
+- Block-level outcome UI in ContentBlockEditor.tsx — backend functions
+  (replaceBlockOutcomeLinks, resolveContentBlockId) exist and are exported,
+  no UI consumes them yet
+- Pagination / strand navigation for the outcome list — still capped at
+  100 results, re-fetches the full list on every search
+Files changed:
+- lib/publishTypes.ts (VibeChapter, emptyChapter)
+- lib/publicationDraftCodec.ts (chapterRowToDraft, chapterDraftToInsert)
+- lib/content-engine/outcomes.ts (OR filter + UUID validation on it)
+- components/global/publish/OutcomeSelector.tsx (scoping props, split
+  load functions, a11y)
+- components/global/publish/PublicationEditor.tsx (pass curriculumId/
+  subStrandId through)
+Verification completed:
+- Bracket/brace balance check only, same as round 1 — no tsc run in this
+  authoring sandbox, no node_modules, no network here
+Verification NOT completed — this is a strict superset of round 1's list,
+run all of it, not just the new items:
+- `npx tsc --noEmit -p .` on this new diff specifically
+- Confirm a chapter WITH curriculum_id/sub_strand_id set actually narrows
+  the list (requires a chapter that's been bridged via READ-010 tooling —
+  if none exist yet, that path is still unverified even after this patch)
+- Confirm a chapter with neither id shows the orange "not linked" banner
+  and the full verified list, not an empty list
+- Confirm the search-selection-loss bug is actually gone: check an
+  outcome, type a search term, confirm the check survives the reload
+- Everything from the round-1 verification list (new-chapter save race,
+  RLS denial for non-authors, real link persistence)

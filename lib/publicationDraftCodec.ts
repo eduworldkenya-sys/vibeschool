@@ -455,6 +455,8 @@ export function chapterRowToDraft(row: ChapterRow): VibeChapter {
     updated_at: row.updated_at,
     learning_outcomes: row.learning_outcomes,
     cbc_strand: row.cbc_strand,
+    curriculum_id: row.curriculum_id,
+    sub_strand_id: row.sub_strand_id,
   }
 }
 
@@ -475,5 +477,7 @@ export function chapterDraftToInsert(
     updated_at: new Date().toISOString(),
     learning_outcomes: chapter.learning_outcomes,
     cbc_strand: chapter.cbc_strand,
+    curriculum_id: chapter.curriculum_id,
+    sub_strand_id: chapter.sub_strand_id,
   }
 }

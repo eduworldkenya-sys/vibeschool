@@ -422,6 +422,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
           publicationId={publication.id}
           chapterId={activeChapter.id}
           chapterLabel={`${meta.chapterLabel} ${activeChapter.number}: ${activeChapter.title || 'Untitled'}`}
+          curriculumId={activeChapter.curriculum_id}
+          subStrandId={activeChapter.sub_strand_id}
           ensureChapterSaved={forceSave}
         />
       )}

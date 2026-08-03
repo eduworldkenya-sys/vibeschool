@@ -106,6 +106,8 @@ export interface VibeChapter {
   updated_at:       string
   learning_outcomes: string[]
   cbc_strand:       string | null
+  curriculum_id:    string | null
+  sub_strand_id:    string | null
 }
 
 export interface ProfileData {
@@ -211,6 +213,8 @@ export function emptyChapter(
     updated_at:       new Date().toISOString(),
     learning_outcomes: [],
     cbc_strand:       null,
+    curriculum_id:    null,
+    sub_strand_id:    null,
   }
 }
 

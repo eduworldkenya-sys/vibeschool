@@ -74,12 +74,36 @@ async function requireAuthenticatedUserId(
  * Discovery is intentionally restricted to verified outcomes — RLS also
  * enforces this (curriculum_learning_outcomes_public_read), so this filter
  * is defence in depth, not the sole guard.
+ *
+ * curriculumId and subStrandId are ORed, not ANDed, when both are given.
+ * Outcomes are tagged at whichever granularity the outcome authority chose
+ * (see ce_004's authority_check: curriculum_id or sub_strand_id or neither,
+ * not "both required") — a chapter with both ids set should still surface
+ * an outcome tagged only at the coarser curriculum level or only at the
+ * finer sub-strand level. ANDing them would silently hide valid matches.
  */
 export async function listVerifiedCurriculumOutcomes(
   client: ContentEngineClient,
   filters: CurriculumOutcomeFilters = {},
 ): Promise<CurriculumLearningOutcome[]> {
   const operation = 'listVerifiedCurriculumOutcomes'
+
+  const curriculumId = filters.curriculumId?.trim()
+  const subStrandId = filters.subStrandId?.trim()
+
+  if (curriculumId && !UUID_PATTERN.test(curriculumId)) {
+    throw toContentEngineError(
+      operation,
+      new Error('curriculumId is not a valid id.'),
+    )
+  }
+
+  if (subStrandId && !UUID_PATTERN.test(subStrandId)) {
+    throw toContentEngineError(
+      operation,
+      new Error('subStrandId is not a valid id.'),
+    )
+  }
 
   let query = client
     .from('curriculum_learning_outcomes')
@@ -88,12 +112,14 @@ export async function listVerifiedCurriculumOutcomes(
     .order('outcome_text', { ascending: true })
     .limit(normalizeLimit(filters.limit))
 
-  if (filters.curriculumId?.trim()) {
-    query = query.eq('curriculum_id', filters.curriculumId.trim())
-  }
-
-  if (filters.subStrandId?.trim()) {
-    query = query.eq('sub_strand_id', filters.subStrandId.trim())
+  if (curriculumId && subStrandId) {
+    query = query.or(
+      `curriculum_id.eq.${curriculumId},sub_strand_id.eq.${subStrandId}`,
+    )
+  } else if (curriculumId) {
+    query = query.eq('curriculum_id', curriculumId)
+  } else if (subStrandId) {
+    query = query.eq('sub_strand_id', subStrandId)
   }
 
   if (filters.search?.trim()) {

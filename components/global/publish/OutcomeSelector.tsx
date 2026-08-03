@@ -24,6 +24,16 @@ interface Props {
   chapterId:      string
   chapterLabel:   string
   /**
+   * The chapter's bridged curriculum identity (vibe_chapters.curriculum_id /
+   * sub_strand_id — real FK columns, not a guessed grade/subject label
+   * match). When present, outcome discovery is scoped to it. When absent
+   * (chapter not yet bridged to a curriculum strand), discovery falls back
+   * to global search and the drawer says so rather than silently showing
+   * unrelated grades/subjects as if they were scoped.
+   */
+  curriculumId:   string | null
+  subStrandId:    string | null
+  /**
    * Chapter/block saves are debounced client-side (see usePublicationDraft).
    * A brand-new chapter's id only becomes valid in the DB once that save
    * lands, and outcome links have a hard FK to vibe_chapters. Callers must
@@ -34,7 +44,8 @@ interface Props {
 }
 
 export function OutcomeSelector({
-  isOpen, onClose, publicationId, chapterId, chapterLabel, ensureChapterSaved,
+  isOpen, onClose, publicationId, chapterId, chapterLabel,
+  curriculumId, subStrandId, ensureChapterSaved,
 }: Props) {
   const [ready,      setReady]      = useState(false)
   const [saving,     setSaving]     = useState(false)
@@ -43,8 +54,39 @@ export function OutcomeSelector({
   const [outcomes,   setOutcomes]   = useState<CurriculumLearningOutcome[]>([])
   const [selectedIds,setSelectedIds]= useState<Set<string>>(new Set())
 
-  const load = useCallback(async (searchTerm: string) => {
+  const isScoped = Boolean(curriculumId || subStrandId)
+
+  // Loads the candidate outcome list only — never touches selectedIds.
+  // Re-running this on every search keystroke must not discard selections
+  // the author has made locally but not yet saved.
+  const loadOutcomes = useCallback(async (searchTerm: string) => {
     setError(null)
+    const client = getSupabaseClient()
+    try {
+      const rows = await listVerifiedCurriculumOutcomes(client, {
+        curriculumId: curriculumId ?? undefined,
+        subStrandId: subStrandId ?? undefined,
+        search: searchTerm || undefined,
+        limit: 100,
+      })
+      setOutcomes(rows)
+    } catch (err) {
+      setError(
+        err instanceof ContentEngineError
+          ? err.message
+          : 'Could not load curriculum outcomes.',
+      )
+    }
+  }, [curriculumId, subStrandId])
+
+  // Loads which outcomes are currently linked — runs once per drawer open
+  // (and on chapter change), establishing the baseline selection. This is
+  // intentionally NOT re-run on search: re-deriving selectedIds from the DB
+  // on every keystroke would drop any not-yet-saved local selection the
+  // moment the author searched for another outcome.
+  const initSelection = useCallback(async () => {
+    setError(null)
+    setReady(false)
     const client = getSupabaseClient()
 
     try {
@@ -54,16 +96,9 @@ export function OutcomeSelector({
         return
       }
 
-      const [outcomeRows, linkRows] = await Promise.all([
-        listVerifiedCurriculumOutcomes(client, {
-          search: searchTerm || undefined,
-          limit: 100,
-        }),
-        listChapterOutcomeLinks(client, chapterId),
-      ])
-
-      setOutcomes(outcomeRows)
+      const linkRows = await listChapterOutcomeLinks(client, chapterId)
       setSelectedIds(new Set(linkRows.map(link => link.outcome_id)))
+      await loadOutcomes(search)
       setReady(true)
     } catch (err) {
       setError(
@@ -72,24 +107,34 @@ export function OutcomeSelector({
           : 'Could not load curriculum outcomes.',
       )
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId, ensureChapterSaved])
 
   useEffect(() => {
     if (!isOpen) {
       setReady(false)
+      setSearch('')
       return
     }
-    void load(search)
-    // Only re-run on open/chapter change here — search re-fetch is debounced below.
+    void initSelection()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, chapterId])
 
   useEffect(() => {
     if (!isOpen || !ready) return
-    const t = setTimeout(() => { void load(search) }, 350)
+    const t = setTimeout(() => { void loadOutcomes(search) }, 350)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
 
   const toggle = (outcomeId: string) => {
     setSelectedIds(prev => {
@@ -127,13 +172,17 @@ export function OutcomeSelector({
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300 }} />
-      <div style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0,
-        width: 320, maxWidth: '90vw', background: SURF, zIndex: 310,
-        display: 'flex', flexDirection: 'column',
-        borderLeft: '1px solid ' + BORDER,
-        animation: 'slideInRight 0.25s cubic-bezier(0.16,1,0.3,1)',
-      }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Curriculum outcomes for ${chapterLabel}`}
+        style={{
+          position: 'fixed', top: 0, right: 0, bottom: 0,
+          width: 320, maxWidth: '90vw', background: SURF, zIndex: 310,
+          display: 'flex', flexDirection: 'column',
+          borderLeft: '1px solid ' + BORDER,
+          animation: 'slideInRight 0.25s cubic-bezier(0.16,1,0.3,1)',
+        }}>
         <style dangerouslySetInnerHTML={{ __html: '@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}' }} />
 
         <div style={{
@@ -144,18 +193,29 @@ export function OutcomeSelector({
             <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>🎯 Curriculum Outcomes</div>
             <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{chapterLabel}</div>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label="Close" style={{
             background: 'rgba(255,255,255,0.06)', border: 'none',
             borderRadius: '50%', width: 28, height: 28,
             color: TEXT, fontSize: 14, cursor: 'pointer',
           }}>✕</button>
         </div>
 
+        {!isScoped && (
+          <div style={{
+            margin: '12px 16px 0', padding: '8px 10px',
+            background: 'rgba(255,176,32,0.08)', border: '1px solid rgba(255,176,32,0.2)',
+            borderRadius: 8, fontSize: 11, color: '#FFB020', lineHeight: 1.4,
+          }}>
+            This chapter isn&apos;t linked to a curriculum strand yet, so this is showing verified outcomes from every grade and subject. Bridge the chapter to narrow it down.
+          </div>
+        )}
+
         <div style={{ padding: '12px 16px' }}>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search verified outcomes…"
+            aria-label="Search verified outcomes"
             style={{
               width: '100%', background: CARD,
               border: '1px solid ' + BORDER, borderRadius: 10,
@@ -166,12 +226,13 @@ export function OutcomeSelector({
         </div>
 
         {error && (
-          <div style={{
+          <div role="alert" style={{
             margin: '0 16px 12px', padding: '8px 10px',
             background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
             borderRadius: 8, fontSize: 12, color: '#ef4444',
           }}>{error}</div>
         )}
+
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 12px' }}>
           {!ready ? (
@@ -186,7 +247,16 @@ export function OutcomeSelector({
               return (
                 <div
                   key={outcome.id}
+                  role="checkbox"
+                  aria-checked={on}
+                  tabIndex={0}
                   onClick={() => toggle(outcome.id)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      toggle(outcome.id)
+                    }
+                  }}
                   style={{
                     background: on ? 'rgba(204,255,0,0.08)' : CARD,
                     border: '1px solid ' + (on ? 'rgba(204,255,0,0.25)' : BORDER),
@@ -194,7 +264,7 @@ export function OutcomeSelector({
                     cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'flex-start',
                   }}
                 >
-                  <div style={{
+                  <div aria-hidden="true" style={{
                     width: 18, height: 18, borderRadius: 5, flexShrink: 0, marginTop: 1,
                     border: '1.5px solid ' + (on ? ACCENT : MUTED),
                     background: on ? ACCENT : 'transparent',
