@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL } from '@/lib/supabase'
 import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { C } from '@/components/teacher/ui'
@@ -182,6 +183,7 @@ function Skeleton({ h = 48 }: { h?: number }) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }: Props) {
+  const router = useRouter()
   const [phase,    setPhase]    = useState<Phase>('loading')
   const [sections, setSections] = useState<PlanSections>(EMPTY)
   const [draft,    setDraft]    = useState<PlanSections>(EMPTY)
@@ -767,6 +769,17 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       setOccLifecycle(row.lifecycle)
       showToast('Lesson started ✓')
       refreshPulse('lesson')
+
+      // TOS-003: attendance belongs to this exact teaching occurrence. The
+      // attendance page already validates and saves by timetable slot + date,
+      // so carry those identities immediately after the lifecycle transition.
+      const attendanceUrl =
+        `/teacher/attendance?mode=lesson` +
+        `&classId=${encodeURIComponent(slot.class_id)}` +
+        `&timetableSlotId=${encodeURIComponent(slot.id)}` +
+        `&date=${encodeURIComponent(taughtDate)}` +
+        `&subject=${encodeURIComponent(slot.subject)}`
+      router.push(attendanceUrl)
     } catch (err) {
       const code = err instanceof StartOccurrenceError ? err.code : 'unknown'
       console.error('[LessonPlanModal] startLesson', err)
