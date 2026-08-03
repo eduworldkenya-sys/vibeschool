@@ -641,6 +641,11 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       const { data: { user } } = await supabase.auth.getUser()
       if (user == null) return
 
+      if (!ctx.schoolId) {
+        setError('School context is unavailable.')
+        return
+      }
+
       const summary = [
         'Topic: ' + topic, '',
         'Learning Objectives:', sections.objectives, '',
@@ -671,7 +676,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         const { data: hw } = await supabase.from('homework').upsert({
           class_id:           slot.class_id,
           teacher_id:         user.id,
-          school_id:          ctx.schoolId || null,
+          school_id:          ctx.schoolId,
           lesson_plan_id:     currentId,
           title:              topic + ' — Homework',
           subject:            slot.subject,
@@ -700,13 +705,11 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       if (sections.consolidation.trim() !== '') {
         await supabase.from('exercises').upsert({
           class_id:       slot.class_id,
-          subject_id:     slot.subject_id,
           teacher_id:     user.id,
-          school_id:      ctx.schoolId || null,
+          school_id:      ctx.schoolId,
           lesson_plan_id: currentId,
           title:          topic + ' — In-Class Exercise',
           instructions:   sections.consolidation.trim(),
-          status:         'active',
         }, { onConflict: 'lesson_plan_id' })
       }
 
