@@ -8058,6 +8058,50 @@ export type Database = {
           },
         ]
       }
+      lesson_plan_history: {
+        Row: {
+          id: string
+          lesson_plan_id: string
+          school_id: string | null
+          teacher_id: string
+          change_type: string
+          status: string
+          snapshot: Json
+          changed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lesson_plan_id: string
+          school_id?: string | null
+          teacher_id: string
+          change_type: string
+          status: string
+          snapshot: Json
+          changed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          lesson_plan_id?: string
+          school_id?: string | null
+          teacher_id?: string
+          change_type?: string
+          status?: string
+          snapshot?: Json
+          changed_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_plan_history_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_plans: {
         Row: {
           activities: Json | null

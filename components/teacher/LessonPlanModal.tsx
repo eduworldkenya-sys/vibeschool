@@ -14,6 +14,7 @@ import type { StartOccurrenceErrorCode, CompleteOccurrenceErrorCode, MarkCovered
 import type { Lifecycle } from '@/lib/teaching/types'
 import ReflectionSheet from '@/components/teacher/ReflectionSheet'
 import CoverageSheet from '@/components/teacher/CoverageSheet'
+import LessonPlanHistorySheet from '@/components/teacher/LessonPlanHistorySheet'
 
 // TOS-002: human-facing text for starting the exact occurrence from
 // the lesson workspace. The RPC remains the lifecycle authority.
@@ -227,6 +228,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   const [completing,     setCompleting]     = useState(false)
   const [completeError,  setCompleteError]  = useState<string | null>(null)
   const [showReflection, setShowReflection] = useState(false)
+  const [showHistory,    setShowHistory]    = useState(false)
   // Fix 18E-D: set from the RPC-returned completed occurrence's own id —
   // never a slot id or plan id — so the coverage prompt always targets the
   // exact occurrence that was just completed, not a stale/derived key.
@@ -1184,6 +1186,11 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                     border: '1.5px solid ' + C.border, background: '#fff',
                     fontSize: 13, fontWeight: 700, color: C.textPrimary, cursor: 'pointer', fontFamily: 'inherit',
                   }}>Edit</button>
+                  <button onClick={() => setShowHistory(true)} disabled={isbusy} style={{
+                    flex: 1, padding: '12px', borderRadius: 10,
+                    border: '1.5px solid ' + C.border, background: '#fff',
+                    fontSize: 13, fontWeight: 700, color: C.textPrimary, cursor: 'pointer', fontFamily: 'inherit',
+                  }}>History</button>
                   <button onClick={() => setPhase('form')} disabled={isbusy} style={{
                     flex: 1, padding: '12px', borderRadius: 10,
                     border: '1.5px solid ' + C.border, background: '#fff',
@@ -1262,6 +1269,13 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
           error={coverageError}
           onMarkCovered={handleMarkCovered}
           onDismiss={handleDismissCoverage}
+        />
+      )}
+
+      {showHistory && planId && (
+        <LessonPlanHistorySheet
+          lessonPlanId={planId}
+          onClose={() => setShowHistory(false)}
         />
       )}
     </>
