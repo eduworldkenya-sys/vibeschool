@@ -20,15 +20,15 @@ TIMETABLE
 
 Active fix
 
-FIX ID: TBL-010
-TITLE: Recover required core RLS policies
+FIX ID: TBL-011
+TITLE: Run isolated clean rebuild
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-009
-TITLE: Align fallback repair path
+FIX ID: TBL-010
+TITLE: Recover required core RLS policies
 STATUS: VERIFIED
 
 Current branch
@@ -1895,3 +1895,90 @@ the primary route and cannot bypass the canonical gate, executor or postflight.
 Next fix
 
 TBL-010 — Recover required core RLS policies.
+
+---
+
+TBL-010 VERIFIED HANDOVER
+
+Objective
+
+Recover the intended final row-level security contract for the four core
+timetable tables so a clean database rebuild preserves required access rules.
+
+Live production findings
+
+- RLS is enabled on timetable_slots, teacher_classes,
+  teaching_occurrences and school_periods.
+- Production contains teacher, administrator and learner timetable policies.
+- Several live policies had no repository migration that recreated them.
+- Repository history did not explicitly enable RLS for timetable_slots or
+  teacher_classes.
+- Historical teacher_classes self-write policies allowed teachers to create,
+  update or delete their own assignment authority and were not retained as
+  the intended final contract.
+
+Implementation
+
+- Added:
+  supabase/migrations/20260803160000_tbl010_core_rls_recovery.sql
+- Added:
+  scripts/validate-tbl010-core-rls.py
+- Added:
+  scripts/test-tbl010-core-rls.py
+- The convergence migration explicitly enables RLS on all four core tables.
+- It drops historical policy names before recreating the intended final set.
+
+Final policy contract
+
+timetable_slots:
+- Assigned teacher may manage slots only when the exact
+  teacher/school/class/subject assignment exists.
+- School administrator may manage slots only for a valid teacher assignment.
+- Current learner may read slots only for their current class and school.
+
+teacher_classes:
+- Assigned teacher and school administrator may read assignment rows.
+- Only school administrators may insert, update or delete assignments.
+- Historical teacher self-insert, self-update and self-delete policies are
+  removed and not recreated.
+
+teaching_occurrences:
+- Scheduled teacher may read their occurrences.
+- School administrator may read school occurrences.
+- Direct authenticated insert and update policies are absent.
+- Direct delete remains explicitly denied.
+- Writes remain controlled through authorized RPC/service paths.
+
+school_periods:
+- Assigned teachers may read periods for their school.
+- School administrators may manage school periods.
+
+Verification evidence
+
+- Python syntax checks passed.
+- Static RLS validator passed.
+- Contract test suite passed.
+- All four tables explicitly enable RLS.
+- Twelve required policies are created exactly once.
+- Zero obsolete teacher self-write policies are recreated.
+- Direct occurrence write policies are not recreated.
+- Teacher slot writes require exact assignment identity.
+- Learner slot reads require current class and school membership.
+- TBL-010 migration is the final repository migration by filename order.
+- Clean-tree policy proof passed.
+- Working tree remained clean after verification.
+
+Database and production impact
+
+None. The recovery migration was committed to the repository but was not
+applied to production during TBL-010.
+
+Acceptance result
+
+VERIFIED. Repository migrations now contain the intended final core timetable
+RLS contract required for a clean rebuild.
+
+Next fix
+
+TBL-011 — Run isolated clean rebuild and prove the complete repository
+migration chain reaches the intended final schema and RLS state.
