@@ -182,6 +182,27 @@ jobs:
             .tbl011-artifacts/rebuilt-core-schema.json \
             > .tbl011-artifacts/rebuilt-core-schema.sha256
 
+      - name: Compare rebuilt structure with production target
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PGPASSWORD=postgres \
+            psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -f scripts/sql/tbl012_core_schema_hashes.sql \
+            > .tbl011-artifacts/rebuilt-core-schema-hashes.json
+
+          python3 scripts/tbl012-compare-schema-hashes.py \
+            --rebuilt .tbl011-artifacts/rebuilt-core-schema-hashes.json \
+            --target supabase/reconciliation/tbl012_production_core_schema_hashes.json \
+            --report .tbl011-artifacts/tbl012-schema-comparison-report.json
+
+          sha256sum \
+            .tbl011-artifacts/rebuilt-core-schema-hashes.json \
+            .tbl011-artifacts/tbl012-schema-comparison-report.json \
+            > .tbl011-artifacts/tbl012-comparison.sha256
+
       - name: Capture final local migration ledger
         shell: bash
         run: |

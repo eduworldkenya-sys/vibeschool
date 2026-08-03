@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "source": {
+    "environment": "PRODUCTION",
+    "project_ref": "yauqsxggtuxuykcbrtzf",
+    "captured_at": "2026-08-03",
+    "scope": [
+      "school_periods",
+      "teacher_classes",
+      "timetable_slots",
+      "teaching_occurrences"
+    ],
+    "policies_excluded": true,
+    "policy_reason": "TBL-010 intentionally hardens rebuilt policies; production convergence is deferred to the approved production phase."
+  },
+  "tables": {
+    "school_periods": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "5ef6b895ad249cdeafc3bd28df411169",
+      "constraints_hash": "87202306a9635e4438c1aa27e4e140a7",
+      "indexes_hash": "a772d7a63816aac7ddebd46f3857bd91",
+      "triggers_hash": "d751713988987e9331980363e24189ce"
+    },
+    "teacher_classes": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "fd0a0a7bf8cad0222a05314293ef63f5",
+      "constraints_hash": "a55f5bd44ca0d83496cf1e07d046ed63",
+      "indexes_hash": "9ed6ca6aba8038eade1fcd68416ee51b",
+      "triggers_hash": "bf5ed9e57c97ef5a8b7acd31675b09e5"
+    },
+    "timetable_slots": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "c619a38459e16f0e78bc8ee99f344a21",
+      "constraints_hash": "db3be5c4034d053f9afb37b3379bdbc9",
+      "indexes_hash": "33351f914a245f8c31eec4165cbdb520",
+      "triggers_hash": "ef9f377008d69ccf1cb6f012c381bb2a"
+    },
+    "teaching_occurrences": {
+      "table_hash": "80b6182c4e2c655abf4e9445a230442f",
+      "columns_hash": "92b1f82577f37230be82d377f0c6522a",
+      "constraints_hash": "81e1f877d89eb6639559fae3c0084bbd",
+      "indexes_hash": "a34ee9aa568c8eda740da19391459458",
+      "triggers_hash": "9d2f6a3e4d8ae4dd8a641b5372cd5340"
+    }
+  }
+}
