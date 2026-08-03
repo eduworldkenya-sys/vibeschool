@@ -481,7 +481,12 @@ export function LessonPanel({
             .in("id", directContentIds)
 
           const byContentId: Record<string, ContentRow> = {}
-          for (const row of (directRows ?? []) as ContentRow[]) byContentId[row.id] = row
+          for (
+            const row of
+              (directRows ?? []) as unknown as ContentRow[]
+          ) {
+            byContentId[row.id] = row
+          }
           for (const item of schemeItems) {
             if (item.curriculum_content_id && byContentId[item.curriculum_content_id]) {
               map[item.id] = byContentId[item.curriculum_content_id]

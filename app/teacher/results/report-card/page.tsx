@@ -57,8 +57,35 @@ function PickerInner() {
   }, []);
 
   async function loadExams(cls: ClassOption) {
-    setSelectedCls(cls); setLoading(true); setStep("exam");
-    const { data } = await supabase.from("exams").select("id, name, term, academic_year, exam_type").eq("class_id", cls.id).order("academic_year", { ascending: false }).order("term", { ascending: false });
+    setSelectedCls(cls);
+    setLoading(true);
+    setStep("exam");
+
+    const { data: examRows } = await supabase
+      .from("exam_results")
+      .select("exam_id")
+      .eq("class_id", cls.id);
+
+    const examIds = Array.from(
+      new Set(
+        (examRows ?? [])
+          .map(row => row.exam_id)
+          .filter(
+            (id): id is string =>
+              typeof id === "string" && id.length > 0
+          )
+      )
+    );
+
+    const { data } = examIds.length
+      ? await supabase
+          .from("exams")
+          .select("id, name, term, academic_year, exam_type")
+          .in("id", examIds)
+          .order("academic_year", { ascending: false })
+          .order("term", { ascending: false })
+      : { data: [] };
+
     setExams((data ?? []) as Exam[]);
     setLoading(false);
   }
