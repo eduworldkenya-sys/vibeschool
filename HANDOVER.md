@@ -20,15 +20,15 @@ TIMETABLE
 
 Active fix
 
-FIX ID: TBL-009
-TITLE: Align fallback repair path
+FIX ID: TBL-010
+TITLE: Recover required core RLS policies
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-008
-TITLE: Make postflight executable
+FIX ID: TBL-009
+TITLE: Align fallback repair path
 STATUS: VERIFIED
 
 Current branch
@@ -1819,3 +1819,79 @@ an executable fail-closed postflight.
 Next fix
 
 TBL-009 — Align fallback repair path.
+
+---
+
+TBL-009 VERIFIED HANDOVER
+
+Objective
+
+Align the fallback migration-repair route with the protected primary route so
+both entry methods produce exactly the same immutable repair action and cannot
+diverge in project, version, status, commit, confirmation or approval context.
+
+Investigation result
+
+- Only one production repair executor existed.
+- No direct SQL ledger mutation, alternate executor, db push repair path or
+  Termux production-repair path existed.
+- The safe fallback design was therefore an alternate request transport, not a
+  second repair engine.
+
+Implementation
+
+- Added scripts/tbl009-repair-request.py as the canonical repair-request
+  normalizer.
+- Added scripts/tbl009-create-fallback-request.py for clean-tree fallback
+  request generation from Termux.
+- Added scripts/test-tbl009-repair-request.py.
+- Routed the primary GitHub workflow inputs through the same canonical request
+  normalizer.
+- Preserved the normalized request and its SHA-256 hash in workflow evidence.
+- Kept all production execution behind the existing TBL-007 gate, single-use
+  authorization, authorized executor and TBL-008 postflight.
+
+Canonical request invariants
+
+- Production project is fixed to yauqsxggtuxuykcbrtzf.
+- Environment is fixed to PRODUCTION.
+- Branch is fixed to main.
+- Repository commit must be a full 40-character SHA.
+- Migration version must contain 8–14 digits.
+- Status must be applied or reverted.
+- Confirmation must exactly match the requested action.
+- Approval identifier must be present and valid.
+- Request source must be workflow_dispatch or fallback_request.
+- Source is excluded from the canonical action hash so equivalent routes
+  produce the same SHA-256 value.
+
+Verification evidence
+
+- Python syntax checks passed.
+- Primary and fallback equivalence tests passed.
+- Wrong project was denied.
+- Wrong branch was denied.
+- Short commit SHA was denied.
+- Wrong confirmation was denied.
+- Invalid repair status was denied.
+- Unknown request source was denied.
+- Clean-tree fallback generator executed successfully.
+- Equivalent primary and fallback requests normalized successfully.
+- Both routes produced the identical canonical request SHA-256:
+  140110ab4271a25c3373dcb82239c3399ddcf2156810f92e741eb35f3d2cf69a
+- Protected production workflow static validation passed.
+- Working tree was clean after fixture cleanup.
+
+Database and production impact
+
+None. No Supabase connection, migration repair, schema write, data write or
+migration-ledger change occurred during TBL-009.
+
+Acceptance result
+
+VERIFIED. The fallback route now produces the same immutable repair action as
+the primary route and cannot bypass the canonical gate, executor or postflight.
+
+Next fix
+
+TBL-010 — Recover required core RLS policies.

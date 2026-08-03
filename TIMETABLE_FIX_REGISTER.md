@@ -317,7 +317,7 @@ TBL-005| P0| VERIFIED| Add data preconditions for constraints| Invalid productio
 TBL-006| P0| VERIFIED| Build forward-collision register| Every later migration touching baseline-owned objects is identified and resolved
 TBL-007| P0| VERIFIED| Gate migration repair behind preflight| Repair cannot run without validated unchanged inputs
 TBL-008| P0| VERIFIED| Make postflight executable| Local and remote migration state is automatically compared
-TBL-009| P0| OPEN| Align fallback repair path| Primary and fallback repair methods produce identical ledger state
+TBL-009| P0| VERIFIED| Align fallback repair path| Primary and fallback repair methods produce identical ledger state
 TBL-010| P0| OPEN| Recover required core RLS policies| Clean rebuild preserves intended access rules
 TBL-011| P0| OPEN| Run isolated clean rebuild| Full migration chain succeeds from blank state
 TBL-012| P0| OPEN| Compare rebuilt schema with target schema| No unexplained timetable schema difference remains
