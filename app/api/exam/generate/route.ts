@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabaseServer'
 
-const supabase = getSupabaseServerClient()
-
 // ── Rate limiter ──────────────────────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_WINDOW_MS = 60_000
@@ -168,6 +166,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const supabase = getSupabaseServerClient()
     const body = await req.json()
     const { subject, form, topic, difficulty, count } = body
 
