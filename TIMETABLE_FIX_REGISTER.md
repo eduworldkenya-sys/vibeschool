@@ -315,7 +315,7 @@ TBL-004| P0| VERIFIED| Strengthen baseline guards| N/A -- no replayable SYNTHETI
 TBL-004 closed as N/A: the sole SYNTHETIC_BASELINE entry, 20260520000000_timetable_foundation_baseline, is live-only and has no repository SQL file. No replayable baseline exists to guard.
 TBL-005| P0| VERIFIED| Add data preconditions for constraints| Invalid production data is detected before constraints are applied
 TBL-006| P0| VERIFIED| Build forward-collision register| Every later migration touching baseline-owned objects is identified and resolved
-TBL-007| P0| OPEN| Gate migration repair behind preflight| Repair cannot run without validated unchanged inputs
+TBL-007| P0| VERIFIED| Gate migration repair behind preflight| Repair cannot run without validated unchanged inputs
 TBL-008| P0| OPEN| Make postflight executable| Local and remote migration state is automatically compared
 TBL-009| P0| OPEN| Align fallback repair path| Primary and fallback repair methods produce identical ledger state
 TBL-010| P0| OPEN| Recover required core RLS policies| Clean rebuild preserves intended access rules

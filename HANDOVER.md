@@ -20,15 +20,15 @@ TIMETABLE
 
 Active fix
 
-FIX ID: TBL-007
-TITLE: Gate migration repair behind preflight
+FIX ID: TBL-008
+TITLE: Make postflight executable
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-006
-TITLE: Build forward-collision register
+FIX ID: TBL-007
+TITLE: Gate migration repair behind preflight
 STATUS: VERIFIED
 
 Current branch
@@ -1696,3 +1696,68 @@ yauqsxggtuxuykcbrtzf
 Next fix
 
 TBL-007 — Gate migration repair behind preflight.
+
+---
+
+TBL-007 VERIFIED HANDOVER
+
+Objective
+
+Prevent any production migration-history repair from running unless its
+repository, migration inputs, target project, intended action and approval
+context have been validated and remain unchanged.
+
+Implementation
+
+- Added a fail-closed migration-repair preflight gate.
+- Added immutable repair-manifest generation.
+- Added expiring, single-use authorization records.
+- Added an authorized executor wrapper.
+- Added refusal tests for dirty repository state, missing approval, wrong
+  project, wrong environment, changed commit, changed migration inputs,
+  invalid repair status, invalid token and expired authorization.
+- Added a manual-only GitHub Actions workflow pinned to:
+  production project yauqsxggtuxuykcbrtzf,
+  exact origin/main commit,
+  exact migration version and repair status,
+  exact operator confirmation phrase.
+- Added production workflow static validation.
+- Added a GitHub environment named production-migration-repair.
+- Restricted the environment deployment branch to main.
+- Configured Supabase access and project identity in the environment.
+
+Verification evidence
+
+- All Python syntax checks passed.
+- TBL-007 refusal tests passed.
+- Authorized-executor refusal tests passed.
+- Production workflow static validator passed.
+- TypeScript and production build gate passed on commit 4e5b151.
+- Manual GitHub workflow dispatch was accepted.
+- Exact checkout and immutable-input validation passed.
+- Supabase CLI installation passed.
+- The test workflow stopped at project linking.
+- Capture, validator, manifest, authorization and repair steps were skipped.
+- Execute authorized repair did not run.
+- No production migration-history row, schema object or application data was
+  changed.
+
+Acceptance result
+
+VERIFIED. A repair cannot reach execution without first passing the gate with
+validated unchanged inputs.
+
+Open risks
+
+- The current migration-classification snapshot remains stale and fails with
+  89 reconciliation errors. This correctly blocks authorization.
+- The first protected workflow test failed while linking the Supabase project.
+  The production execution path still requires later operational hardening.
+- GitHub administrator bypass remains available unless disabled manually.
+- These risks do not weaken the TBL-007 gate; they make repair execution more
+  restrictive.
+
+Next fix
+
+TBL-008 — Make postflight executable: automatically compare the live migration
+ledger before and after a repair and prove that only the approved row changed.
