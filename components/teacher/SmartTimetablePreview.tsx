@@ -268,7 +268,14 @@ export default function SmartTimetablePreview() {
         classMap[c.id] = c.name + (c.stream ? ` ${c.stream}` : '')
       })
 
-      const markedIds = new Set((attRes.data ?? []).map((r: { timetable_slot_id: string }) => r.timetable_slot_id))
+      const markedIds = new Set(
+        (attRes.data ?? [])
+          .map(row => row.timetable_slot_id)
+          .filter(
+            (id): id is string =>
+              typeof id === 'string' && id.length > 0
+          )
+      )
 
       const mapped: Slot[] = slots.map((s) => ({
         id:               s.id,
