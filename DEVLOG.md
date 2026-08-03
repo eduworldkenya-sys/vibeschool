@@ -679,3 +679,6 @@
 ## [2026-08-01 17:55] 81649f8
 **What:** Make Differentiation Summary real: content-based diff detection + clickable row filters on Today & Upcoming
 **Status:** ✅ pushed
+## [2026-08-03 12:12] 1ea89b1
+**What:** CE-FE-003B2: rebuild missing outcomes.ts service, wire chapter outcome selector UI
+**Status:** ✅ pushed
