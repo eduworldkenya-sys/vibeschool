@@ -8,11 +8,36 @@ import { nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
-import { completeTeachingOccurrence, fetchOccurrenceLifecycle, CompleteOccurrenceError, markSchemeItemCovered, MarkSchemeCoveredError } from '@/lib/teaching/occurrence'
-import type { CompleteOccurrenceErrorCode, MarkCoveredErrorCode } from '@/lib/teaching/occurrence'
+import { completeTeachingOccurrence, fetchOccurrenceLifecycle, startTeachingOccurrence, StartOccurrenceError, CompleteOccurrenceError, markSchemeItemCovered, MarkSchemeCoveredError } from '@/lib/teaching/occurrence'
+import type { StartOccurrenceErrorCode, CompleteOccurrenceErrorCode, MarkCoveredErrorCode } from '@/lib/teaching/occurrence'
 import type { Lifecycle } from '@/lib/teaching/types'
 import ReflectionSheet from '@/components/teacher/ReflectionSheet'
 import CoverageSheet from '@/components/teacher/CoverageSheet'
+
+// TOS-002: human-facing text for starting the exact occurrence from
+// the lesson workspace. The RPC remains the lifecycle authority.
+function startLessonErrorMessage(code: StartOccurrenceErrorCode): string {
+  switch (code) {
+    case 'not_authenticated':
+      return 'Your session expired. Please sign in again.'
+    case 'slot_not_found':
+      return 'This lesson slot no longer exists.'
+    case 'slot_not_owned':
+      return 'This lesson belongs to a different teacher.'
+    case 'invalid_occurrence_date':
+      return 'This date no longer matches the lesson schedule.'
+    case 'lesson_plan_required':
+      return 'Save the lesson plan before starting the lesson.'
+    case 'occurrence_completed':
+      return 'This lesson was already completed.'
+    case 'occurrence_cancelled':
+      return 'This lesson was cancelled.'
+    case 'occurrence_rescheduled':
+      return 'This lesson was rescheduled.'
+    default:
+      return 'Could not start the lesson. Please try again.'
+  }
+}
 
 // Fix 18D: human-facing text for each stable complete_teaching_occurrence
 // error code. Same convention as startErrorMessage in app/teacher/timetable/page.tsx.
@@ -195,6 +220,8 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   // publish/share pipeline (lesson_plans.status), a different axis from
   // teaching_occurrences.lifecycle entirely.
   const [occLifecycle,   setOccLifecycle]   = useState<Lifecycle | null>(null)
+  const [startingLesson, setStartingLesson] = useState(false)
+  const [startLessonError, setStartLessonError] = useState<string | null>(null)
   const [completing,     setCompleting]     = useState(false)
   const [completeError,  setCompleteError]  = useState<string | null>(null)
   const [showReflection, setShowReflection] = useState(false)
@@ -723,6 +750,32 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
     }
   }
 
+  // TOS-002: start the exact timetable occurrence without forcing the
+  // teacher back through the timetable drawer. This uses the same guarded
+  // RPC and exact (slot, date) identity as the timetable flow.
+  async function handleStartLesson() {
+    if (!taughtDate || !planIdRef.current || startingLesson) return
+
+    setStartingLesson(true)
+    setStartLessonError(null)
+
+    try {
+      const row = await startTeachingOccurrence({
+        timetableSlotId: slot.id,
+        occurrenceDate: taughtDate,
+      })
+      setOccLifecycle(row.lifecycle)
+      showToast('Lesson started ✓')
+      refreshPulse('lesson')
+    } catch (err) {
+      const code = err instanceof StartOccurrenceError ? err.code : 'unknown'
+      console.error('[LessonPlanModal] startLesson', err)
+      setStartLessonError(startLessonErrorMessage(code))
+    } finally {
+      setStartingLesson(false)
+    }
+  }
+
   // Fix 18D: the lesson workspace's own completion CTA — separate from the
   // timetable drawer's start CTA (Fix 18C). Only renders when occLifecycle
   // === 'in_progress' (see render below), but the RPC itself is still the
@@ -1038,6 +1091,26 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 16, borderTop: '1px solid ' + C.border, marginTop: 8 }}>
+                {startLessonError && (
+                  <div style={{
+                    padding: '10px 12px', borderRadius: 10,
+                    background: '#fef2f2', border: '1px solid #fca5a5',
+                    fontSize: 12, fontWeight: 600, color: '#b91c1c',
+                  }}>
+                    ⚠ {startLessonError}
+                  </div>
+                )}
+                {planId && occLifecycle !== 'in_progress' && occLifecycle !== 'completed'
+                  && occLifecycle !== 'cancelled' && occLifecycle !== 'rescheduled' && (
+                  <button onClick={handleStartLesson} disabled={startingLesson} style={{
+                    width: '100%', padding: '13px', borderRadius: 12, border: 'none',
+                    background: C.accent, color: '#fff', fontSize: 13, fontWeight: 800,
+                    cursor: startingLesson ? 'not-allowed' : 'pointer',
+                    opacity: startingLesson ? 0.7 : 1, fontFamily: 'inherit',
+                  }}>
+                    {startingLesson ? 'Starting lesson…' : '▶ Start Lesson'}
+                  </button>
+                )}
                 {completeError && (
                   <div style={{
                     padding: '10px 12px', borderRadius: 10,
