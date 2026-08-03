@@ -125,8 +125,8 @@ export default function VibeProgress() {
       next.nextLevel = levelData.nextLevel
 
       if (streakRes.data) {
-        next.streak        = streakRes.data.current_streak
-        next.longestStreak = streakRes.data.longest_streak
+        next.streak        = streakRes.data.current_streak ?? 0
+        next.longestStreak = streakRes.data.longest_streak ?? 0
       }
 
       setStats(next)

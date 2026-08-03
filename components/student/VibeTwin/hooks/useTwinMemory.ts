@@ -37,7 +37,7 @@ export function useTwinMemory() {
   ) {
     const { error } = await supabase
       .from('twin_memory')
-      .insert({ profile_id: uid, type, content, subject })
+      .insert({ user_id: uid, type, content, subject })
 
     if (error && process.env.NODE_ENV === 'development') {
       console.warn('[TwinMemory] insert failed:', error.message)
@@ -48,7 +48,7 @@ export function useTwinMemory() {
     const { data, error: fetchError } = await supabase
       .from('twin_profile')
       .select('top_subjects')
-      .eq('profile_id', uid)
+      .eq('user_id', uid)
       .maybeSingle()
 
     if (fetchError && process.env.NODE_ENV === 'development') {
@@ -64,7 +64,7 @@ export function useTwinMemory() {
     const { error: upsertError } = await supabase
       .from('twin_profile')
       .upsert({
-        profile_id:   uid,
+        user_id:      uid,
         top_subjects: updated,
         last_topic:   subject,
         updated_at:   new Date().toISOString(),
