@@ -755,7 +755,8 @@ export async function fetchPulseData(
       subject_id: slot.subject_id,
     }));
 
-  const recentAttendanceRows = (recentAttendanceRes.data ?? []) as MarkedAttendanceRow[];
+  const recentAttendanceRows =
+    (recentAttendanceRes.data ?? []) as unknown as MarkedAttendanceRow[];
   const recentPlanRows = (recentPlansRes.data ?? []) as LessonPlanRow[];
 
   const recentActivity: ActivityLog[] = [
