@@ -276,7 +276,7 @@ export default function LessonNotesPage() {
   async function syncHomeworkFromNote(
     planId: string, teacherId: string, schoolId: string | null, linkedPlan: PlanOption | null
   ) {
-    if (!homework.trim()) return
+    if (!homework.trim() || !schoolId) return
     const due = new Date()
     due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
     const { data: hw } = await supabase.from("homework").upsert({

@@ -16,6 +16,63 @@ interface NotifPrefs {
   news:          boolean;
 }
 
+function isRecord(
+  value: unknown
+): value is Record<string, unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  );
+}
+
+function readBoolean(
+  value: Record<string, unknown>,
+  key: keyof NotifPrefs,
+  fallback: boolean
+): boolean {
+  return typeof value[key] === "boolean"
+    ? value[key]
+    : fallback;
+}
+
+function parseNotifPrefs(value: unknown): NotifPrefs {
+  if (!isRecord(value)) return DEFAULT_PREFS;
+
+  return {
+    attendance: readBoolean(
+      value,
+      "attendance",
+      DEFAULT_PREFS.attendance
+    ),
+    flags: readBoolean(
+      value,
+      "flags",
+      DEFAULT_PREFS.flags
+    ),
+    messages: readBoolean(
+      value,
+      "messages",
+      DEFAULT_PREFS.messages
+    ),
+    lessonPlans: readBoolean(
+      value,
+      "lessonPlans",
+      DEFAULT_PREFS.lessonPlans
+    ),
+    schoolNotices: readBoolean(
+      value,
+      "schoolNotices",
+      DEFAULT_PREFS.schoolNotices
+    ),
+    news: readBoolean(
+      value,
+      "news",
+      DEFAULT_PREFS.news
+    ),
+  };
+}
+
 const NOTIF_LABELS: Record<keyof NotifPrefs, string> = {
   attendance:    "Attendance reminders",
   flags:         "Early warning flags",
@@ -133,7 +190,7 @@ export default function SettingsPage() {
       });
 
       if (data.notification_prefs) {
-        setNotifs({ ...DEFAULT_PREFS, ...data.notification_prefs });
+        setNotifs(parseNotifPrefs(data.notification_prefs));
       }
 
       setLoading(false);
@@ -158,9 +215,18 @@ export default function SettingsPage() {
 
     if (!user) { setSaving(false); setSaveState("error"); return; }
 
+    const notificationPrefs = {
+      attendance: notifs.attendance,
+      flags: notifs.flags,
+      messages: notifs.messages,
+      lessonPlans: notifs.lessonPlans,
+      schoolNotices: notifs.schoolNotices,
+      news: notifs.news,
+    };
+
     const { error } = await supabase
       .from("profiles")
-      .update({ notification_prefs: notifs })
+      .update({ notification_prefs: notificationPrefs })
       .eq("id", user.id);
 
     setSaving(false);

@@ -323,15 +323,26 @@ export default function VibeLearnPage() {
   const loadStats = useCallback(async (uid: string) => {
     if (mounted.current) setLoadingStats(true);
     try {
-      let data: Record<string, number> | null = null
+      let data: {
+        total_views: number | null;
+        total_earnings_ksh: number | null;
+        live_count: number | null;
+        teacher_rank: number | null;
+      } | null = null;
+
       try {
-        const { data: _d } = await supabase
+        const { data: statsRow } = await supabase
           .from("vibelearn_teacher_stats")
-          .select("*")
+          .select(
+            "total_views,total_earnings_ksh,live_count,teacher_rank"
+          )
           .eq("teacher_id", uid)
           .maybeSingle();
-        data = _d
-      } catch { /* table may not exist yet — non-fatal */ }
+
+        data = statsRow;
+      } catch {
+        // Stats view may not exist yet — non-fatal.
+      }
       const { data: top } = await supabase
         .from("vibelearn_content")
         .select("title,view_count")
@@ -1068,10 +1079,12 @@ function ReadingAssignmentsTab() {
   async function saveDueDate(item: ClassroomReadingAssignment) {
     if (busyId) return;
 
-    let dueAt: string | null = null;
+    if (!dueValue) {
+      setActionError("Enter a due date and time.");
+      return;
+    }
 
-    if (dueValue) {
-      const date = new Date(dueValue);
+    const date = new Date(dueValue);
 
       if (Number.isNaN(date.getTime())) {
         setActionError("Enter a valid due date and time.");
@@ -1083,8 +1096,7 @@ function ReadingAssignmentsTab() {
         return;
       }
 
-      dueAt = date.toISOString();
-    }
+    const dueAt = date.toISOString();
 
     setBusyId(item.assignment_id);
     setActionError("");

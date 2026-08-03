@@ -101,7 +101,22 @@ export default function IndexerPage() {
       ]);
 
       if (!mounted.current) return;
-      setItems(contentRes.data ?? []);
+
+      const normalizedItems: ContentRow[] =
+        (contentRes.data ?? []).map(row => ({
+          id: row.id,
+          title: row.title,
+          view_count: row.view_count ?? 0,
+          earnings_ksh: row.earnings_ksh,
+          tags: row.tags ?? [],
+          description: row.description ?? "",
+          url: row.url ?? "",
+          status: row.status,
+          created_at:
+            row.created_at ?? new Date(0).toISOString(),
+        }));
+
+      setItems(normalizedItems);
       setRank(statsRes.data?.teacher_rank ?? null);
       setLoading(false);
     }
