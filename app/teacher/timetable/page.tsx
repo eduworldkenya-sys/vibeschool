@@ -340,8 +340,19 @@ function SlotDrawer({
 
   if (!slot) return null
 
-  const isNow  = timeToMin(slot.startTime) <= curMin && timeToMin(slot.endTime) > curMin
-  const isNext = !isNow && timeToMin(slot.startTime) > curMin
+  // TOS-005: clock-only comparisons are valid only for today's
+  // occurrence. A past Monday slot viewed after midnight must not be labelled
+  // "Starting in..." merely because its clock time is later than the current
+  // Tuesday clock time. Lifecycle remains authoritative for past/future dates.
+  const isTodayOccurrence = occurrenceDate === nairobiDateStr()
+  const isNow =
+    isTodayOccurrence &&
+    timeToMin(slot.startTime) <= curMin &&
+    timeToMin(slot.endTime) > curMin
+  const isNext =
+    isTodayOccurrence &&
+    !isNow &&
+    timeToMin(slot.startTime) > curMin
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY
