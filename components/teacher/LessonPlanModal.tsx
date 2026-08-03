@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, SUPABASE_URL } from '@/lib/supabase'
+
+import {
+  EMPTY_LESSON_PLAN_SECTIONS,
+  parseLessonPlanBody,
+  serializeLessonPlanBody,
+} from '@/lib/teaching/lessonPlanCodec'
+import type {
+  LessonPlanSections,
+} from '@/lib/teaching/lessonPlanCodec'
 import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { C } from '@/components/teacher/ui'
 import { nairobiDateStr } from '@/lib/time'
@@ -89,17 +98,6 @@ function coveredErrorMessage(code: MarkCoveredErrorCode): string {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface PlanSections {
-  objectives:      string
-  resources:       string
-  introduction:    string
-  development:     string
-  consolidation:   string
-  assessmentHook:  string
-  homework:        string
-  differentiation: string
-}
-
 interface Student {
   id:         string
   name:       string
@@ -128,12 +126,9 @@ type Busy   = 'idle' | 'publishing' | 'sharing' | 'saving' | 'generating'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const EMPTY: PlanSections = {
-  objectives: '', resources: '', introduction: '', development: '',
-  consolidation: '', assessmentHook: '', homework: '', differentiation: '',
-}
+const EMPTY: LessonPlanSections = EMPTY_LESSON_PLAN_SECTIONS
 
-const SECTION_LABELS: { key: keyof PlanSections; label: string; icon: string }[] = [
+const SECTION_LABELS: { key: keyof LessonPlanSections; label: string; icon: string }[] = [
   { key: 'objectives',      label: 'Learning Objectives',      icon: '🎯' },
   { key: 'resources',       label: 'Resources Needed',         icon: '🗂️' },
   { key: 'introduction',    label: 'Introduction (5-7 min)',   icon: '🔥' },
@@ -151,17 +146,6 @@ const STATUS_BADGE = {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-// G3: returns null on bad parse — caller must check
-function parsePlan(raw: string): PlanSections | null {
-  const result = { ...EMPTY }
-  let filled   = 0
-  for (const { key } of SECTION_LABELS) {
-    const m = raw.match(new RegExp('<' + key + '>([\\s\\S]*?)</' + key + '>'))
-    if (m) { result[key] = m[1].trim(); filled++ }
-  }
-  return filled >= 3 ? result : null
-}
 
 function calcDuration(start?: string, end?: string): string {
   if (!start || !end) return '40 minutes'
@@ -186,8 +170,8 @@ function Skeleton({ h = 48 }: { h?: number }) {
 export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }: Props) {
   const router = useRouter()
   const [phase,    setPhase]    = useState<Phase>('loading')
-  const [sections, setSections] = useState<PlanSections>(EMPTY)
-  const [draft,    setDraft]    = useState<PlanSections>(EMPTY)
+  const [sections, setSections] = useState<LessonPlanSections>(EMPTY)
+  const [draft,    setDraft]    = useState<LessonPlanSections>(EMPTY)
   const [status,   setStatus]   = useState<Status>('draft')
   const [busy,     setBusy]     = useState<Busy>('idle')
   const [toast,    setToast]    = useState('')
@@ -528,7 +512,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         return
       }
       // G3: null check on parse
-      const parsed = parsePlan(json.plan)
+      const parsed = parseLessonPlanBody(json.plan)
       if (parsed == null) {
         setError('The AI returned an unreadable plan. Try again.')
         setPhase('form')
@@ -561,7 +545,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         taught_date:        taughtDate,
         topic:              topic.trim(),
         title:              slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
-        body:               json.plan,
+        body:               serializeLessonPlanBody(parsed),
         status:             'draft',
         generated_by:       'twin',
         curriculum_id:      usedSuggestion ? suggestion?.id ?? null : null,
@@ -605,9 +589,8 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   async function saveEdit() {
     setBusy('saving')
     try {
-      const newBody = SECTION_LABELS
-        .map(s => '<' + s.key + '>\n' + draft[s.key] + '\n</' + s.key + '>')
-        .join('\n\n')
+      const newBody =
+        serializeLessonPlanBody(draft)
       const currentId = planIdRef.current
       if (currentId != null) {
         await supabase.from('lesson_plans')

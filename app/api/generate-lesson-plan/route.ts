@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+import {
+  parseGeneratedLessonPlan,
+} from '@/lib/teaching/lessonPlanCodec'
+
 function getAdminSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -112,8 +116,23 @@ export async function POST(req: NextRequest) {
     const text  = anthropicData.content
       ?.map((b: { type: string; text?: string }) => b.text ?? '')
       .join('') ?? ''
-    const clean = text.replace(/```json|```/g, '').trim()
-    const plan  = JSON.parse(clean)
+    const clean = text
+      .replace(/```json|```/g, '')
+      .trim()
+
+    const parsed: unknown = JSON.parse(clean)
+    const plan = parseGeneratedLessonPlan(parsed)
+
+    if (!plan) {
+      return NextResponse.json(
+        {
+          error: 'invalid_lesson_plan_contract',
+          message:
+            'The generator returned an invalid lesson-plan format.',
+        },
+        { status: 502 },
+      )
+    }
 
     // 7. Deduct credit atomically
     const newBalance     = wallet.balance - CREDIT_COST

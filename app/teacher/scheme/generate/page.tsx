@@ -7,6 +7,14 @@ import { supabase } from '@/lib/supabase'
 import { nairobiWeekStart, nairobiDateAdd } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 
+import {
+  parseGeneratedLessonPlan,
+  serializeLessonPlanBody,
+} from '@/lib/teaching/lessonPlanCodec'
+import type {
+  LessonPlanSections,
+} from '@/lib/teaching/lessonPlanCodec'
+
 const C = {
   bg:          '#f8fafc',
   surface:     '#ffffff',
@@ -30,14 +38,7 @@ const C = {
   heroTo:      '#4338ca',
 }
 
-interface GeneratedPlan {
-  objectives:   string
-  introduction: string
-  development:  string
-  conclusion:   string
-  resources:    string
-  assessment:   string
-}
+type GeneratedPlan = LessonPlanSections
 
 interface TimetableSlot {
   id:              string
@@ -194,12 +195,14 @@ Generate a detailed, practical lesson plan for:
 
 Return ONLY a valid JSON object with exactly these keys:
 {
-  "objectives": "3-4 specific learning objectives starting with action verbs (Know, Understand, Apply, etc)",
-  "introduction": "5-7 minute lesson introduction activity — specific, practical, engaging for Kenyan learners",
-  "development": "20-25 minute main teaching activity — step by step, includes group work, materials needed, CBC core competencies addressed",
-  "conclusion": "5 minute wrap-up activity and formative assessment check",
-  "resources": "List of materials and resources needed (locally available in Kenya)",
-  "assessment": "How the teacher will assess learner understanding — observation checklist, oral questions, written task"
+  "objectives": "3-4 specific learning objectives starting with measurable action verbs",
+  "resources": "Locally available materials and learning resources",
+  "introduction": "5-7 minute practical and engaging introduction",
+  "development": "20-25 minute step-by-step teaching and learner activities, including CBC competencies",
+  "consolidation": "8-10 minute recap, learner practice and lesson closure",
+  "assessmentHook": "Specific formative assessment using observation, oral questions or a written task",
+  "homework": "Specific achievable homework with exact questions or instructions",
+  "differentiation": "Separate support for struggling learners, on-track learners and advanced learners"
 }
 
 Be specific, practical and rooted in the Kenyan CBC context. Use simple English appropriate for the grade level.`
@@ -224,7 +227,16 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
       }
       if (data.error) throw new Error(data.error)
 
-      setGenerated(data.plan)
+      const parsedPlan =
+        parseGeneratedLessonPlan(data.plan)
+
+      if (!parsedPlan) {
+        throw new Error(
+          'The AI returned an invalid lesson-plan format.'
+        )
+      }
+
+      setGenerated(parsedPlan)
       if (data.credits) setCredits(data.credits)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Generation failed')
@@ -253,14 +265,8 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
     setSaving(true)
     setError(null)
 
-    const body = JSON.stringify({
-      objectives:   generated.objectives,
-      introduction: generated.introduction,
-      development:  generated.development,
-      conclusion:   generated.conclusion,
-      resources:    generated.resources,
-      assessment:   generated.assessment,
-    })
+    const body =
+      serializeLessonPlanBody(generated)
 
     const taughtDate = nairobiDateAdd(selectedWeekStart, selectedSlot.day_of_week - 1)
 
@@ -292,13 +298,42 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
     setSaving(false)
   }
 
-  const SECTION_LABELS: Record<keyof GeneratedPlan, { label: string; icon: string }> = {
-    objectives:   { label: 'Learning Objectives',  icon: '🎯' },
-    introduction: { label: 'Introduction',          icon: '🚀' },
-    development:  { label: 'Development',           icon: '📚' },
-    conclusion:   { label: 'Conclusion',            icon: '✅' },
-    resources:    { label: 'Resources',             icon: '🛠️' },
-    assessment:   { label: 'Assessment',            icon: '📊' },
+  const SECTION_LABELS: Record<
+    keyof GeneratedPlan,
+    { label: string; icon: string }
+  > = {
+    objectives: {
+      label: 'Learning Objectives',
+      icon: '🎯',
+    },
+    resources: {
+      label: 'Resources',
+      icon: '🛠️',
+    },
+    introduction: {
+      label: 'Introduction',
+      icon: '🚀',
+    },
+    development: {
+      label: 'Development',
+      icon: '📚',
+    },
+    consolidation: {
+      label: 'Consolidation',
+      icon: '✅',
+    },
+    assessmentHook: {
+      label: 'Assessment Hook',
+      icon: '📊',
+    },
+    homework: {
+      label: 'Homework',
+      icon: '🏠',
+    },
+    differentiation: {
+      label: 'Differentiation',
+      icon: '⚡',
+    },
   }
 
   if (!classId || !subjectId || !topic) {
