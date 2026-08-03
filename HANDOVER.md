@@ -1134,3 +1134,408 @@ Study View and accessibility implemented on the canonical VibeTextbook reader: p
 
 ### VIBELEARN READ — READ-007
 Reading analytics implemented: secure per-viewer chapter sessions, active seconds, maximum progress, completion, close reasons and stale-session abandonment evidence. Writes are RPC-only and entitlement checked. Live Supabase migrations applied; repository parity added on branch read-007-reading-analytics.
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-001
+Status: COMPLETE
+Problem fixed:
+- Confirmed the canonical application database contract against a fresh live Supabase type generation.
+- Proved `lib/database.types.ts` is byte-for-byte identical to the live-generated public schema contract.
+Files changed:
+- HANDOVER.md
+Repository files verified but unchanged:
+- `lib/database.types.ts` remains the canonical generated application contract
+- `supabase/types.ts` remains the existing tracked empty placeholder
+Database contracts used:
+- Live public schema from Supabase project `yauqsxggtuxuykcbrtzf`
+- Canonical application contract `lib/database.types.ts`
+Verification completed:
+- Canonical and fresh generated contracts had identical SHA-256 hash `1dea772ebb15d739a4991e3dd96d75751f9324b1dcee8c4787b3e40377a67855`
+- Required Content Engine tables and views are present
+- Critical Content Engine RPCs and parameter contracts are present
+- Generated contract passed isolated TypeScript compilation
+- Live `ce_full_integrity_audit()` returned zero issues
+- Application clients already import `Database` from `lib/database.types.ts`
+Manual checks still required:
+- Repository-wide pre-existing TypeScript contract errors must be managed in a separate remediation register
+- Full production build remains blocked by unrelated legacy frontend/schema drift
+Known limitations:
+- CE-FE-001 did not repair unrelated admin, parent, finance, Twin, communication, VibeLearn or timetable type errors
+- The repository does not currently have a clean global TypeScript baseline
+Next exact milestone:
+- CE-FE-002 — Content Engine service boundary
+Adjacent remediation programme:
+- TS-PARITY-001 — classify and repair repository-wide legacy schema contract drift in dependency-safe groups
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-002A
+Status: COMPLETE
+Problem fixed:
+- Established the first typed Content Engine frontend service boundary.
+- Centralized publication, chapter, learning-resource and adoption access.
+- Wrapped authoritative adoption and class-library RPCs.
+Files changed:
+- lib/content-engine/client.ts
+- lib/content-engine/errors.ts
+- lib/content-engine/types.ts
+- lib/content-engine/publications.ts
+- lib/content-engine/resources.ts
+- lib/content-engine/adoption.ts
+- lib/content-engine/index.ts
+- HANDOVER.md
+Database contracts used:
+- vibe_publications
+- vibe_chapters
+- learning_resources
+- teacher_resource_adoptions
+- class_resource_library
+- ce_adopt_learning_resource(...)
+- ce_add_resource_to_class_library(...)
+Verification completed:
+- Services derive types from lib/database.types.ts
+- No `any` introduced
+- Business writes use authoritative RPCs
+- Required identifiers are validated before Supabase calls
+- RPC-returned authoritative UUIDs are preserved
+- Focused service-layer TypeScript compilation passed
+- git diff --check passed
+Manual checks still required:
+- UI consumers have not yet been migrated to these services
+- Cross-account RLS behaviour must be tested when discovery and adoption UI is wired
+Known limitations:
+- This slice does not yet include Scheme, assignment, submission, marking, mastery, analytics or parent services
+- Repository-wide legacy TypeScript errors remain tracked separately
+Next exact milestone:
+- CE-FE-002B — Scheme, assignment and submission service contracts
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-002B
+Status: COMPLETE
+Problem fixed:
+- Added typed Scheme resource-link services.
+- Added authoritative classroom-assignment RPC services.
+- Added authoritative learner-evidence submission RPC services.
+Files changed:
+- lib/content-engine/types.ts
+- lib/content-engine/scheme.ts
+- lib/content-engine/assignments.ts
+- lib/content-engine/submissions.ts
+- lib/content-engine/index.ts
+- HANDOVER.md
+Database contracts used:
+- scheme_lesson_resource_links
+- vibe_chapter_assignments
+- content_assignment_learners
+- content_submission_evidence
+- ce_assign_resource_to_class(...)
+- ce_submit_assignment_evidence(...)
+Verification completed:
+- Scheme links preserve stable lesson, publication, chapter and resource IDs
+- Scheme upsert uses the backend uniqueness contract
+- Page ranges and positive sequence are validated
+- Assignment creation uses the authoritative RPC
+- Submission creation uses the authoritative RPC
+- Authoritative assignment and evidence UUIDs are returned
+- Focused service-layer TypeScript compilation passed
+- No explicit `any` introduced
+- git diff --check passed
+Manual checks still required:
+- Scheme-link RLS must be exercised with a real assigned teacher
+- Assignment creation must confirm learner snapshots in content_assignment_learners
+- Learner submission must be exercised with an assigned and unassigned learner
+Known limitations:
+- No UI consumes these services yet
+- Marking, mastery, assessment, analytics and parent services remain unimplemented
+Next exact milestone:
+- CE-FE-002C — Marking, mastery, assessment, analytics and parent service contracts
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-002C1
+Status: COMPLETE
+Problem fixed:
+- Added typed marking services for evidence, rubrics and criterion scores.
+- Added read-only mastery and competency-evidence services.
+Files changed:
+- lib/content-engine/types.ts
+- lib/content-engine/marking.ts
+- lib/content-engine/mastery.ts
+- lib/content-engine/index.ts
+- HANDOVER.md
+Database contracts used:
+- assessment_rubrics
+- assessment_rubric_criteria
+- submission_marks
+- submission_criterion_marks
+- competency_evidence_ledger
+- student_outcome_mastery
+Verification completed:
+- Draft marks use the unique evidence authority
+- Criterion marks use the unique mark-and-criterion authority
+- Score and maximum-score input validation is present
+- Released marks are confirmed by the database before success is returned
+- Backend release triggers remain authoritative for competency ingestion
+- Mastery services are read-only
+- No frontend writes to competency_evidence_ledger or student_outcome_mastery
+- Focused service-layer TypeScript compilation passed
+- No explicit `any` introduced
+- git diff --check passed
+Manual checks still required:
+- Exercise a complete rubric marking flow with real evidence
+- Confirm invalid criterion scores are rejected by the database
+- Confirm released marks create competency evidence
+- Confirm mastery updates from released evidence
+Known limitations:
+- No marking UI consumes these services yet
+- Assessment generation, analytics and parent-summary services remain pending
+Next exact milestone:
+- CE-FE-002C2 — Source-grounded assessment service contracts
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-002C2
+Status: COMPLETE
+Problem fixed:
+- Added typed source-grounded assessment blueprint services.
+- Added approved assessment-source registry services.
+- Added generated assessment and generated-item services with preserved lineage.
+Files changed:
+- lib/content-engine/types.ts
+- lib/content-engine/assessments.ts
+- lib/content-engine/index.ts
+- HANDOVER.md
+Database contracts used:
+- content_assessment_blueprints
+- content_assessment_sources
+- generated_assessments
+- generated_assessment_items
+Verification completed:
+- Blueprint ownership is derived from the authenticated teacher
+- Assessment sources preserve resource, Scheme-link and outcome IDs
+- Source saving is idempotent for resource-and-outcome identity
+- Generated items require stable source-resource IDs
+- Optional source-block and outcome lineage are preserved
+- Item writes use the assessment-and-sequence uniqueness authority
+- Approval and publication remain subject to backend source and mark-total triggers
+- Focused service-layer TypeScript compilation passed
+- No explicit `any` introduced
+- git diff --check passed
+Manual checks still required:
+- Create a real blueprint with approved resources and outcomes
+- Confirm an unapproved resource is rejected for a generated item
+- Confirm a block from another chapter is rejected
+- Confirm approval fails when item marks do not match blueprint totals
+- Confirm valid approval sets approved_by and approved_at
+Known limitations:
+- No AI generation implementation is included
+- No assessment UI consumes these services yet
+- Analytics and parent-summary services remain pending
+Next exact milestone:
+- CE-FE-002C3 — Analytics and parent-summary service contracts
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-002C3
+Status: COMPLETE
+Problem fixed:
+- Added typed read-only teacher analytics services.
+- Added parent-summary build, review, approval and publication services.
+Files changed:
+- lib/content-engine/types.ts
+- lib/content-engine/analytics.ts
+- lib/content-engine/parents.ts
+- lib/content-engine/index.ts
+- HANDOVER.md
+Database contracts used:
+- content_engine_daily_metrics
+- teacher_content_engine_summary
+- parent_learning_summaries
+- ce_build_parent_learning_summary(...)
+- ce_publish_parent_learning_summary(...)
+Verification completed:
+- Analytics reads SQL-derived authority rather than recomputing metrics
+- Browser services do not expose the unrestricted metrics-refresh RPC
+- Parent summary generation uses the authoritative build RPC
+- Draft editing is limited to draft rows
+- Approval records approved_by and approved_at
+- Publication uses the authoritative publish RPC
+- Parent-facing helper explicitly requests published summaries
+- Focused service-layer TypeScript compilation passed
+- No explicit `any` introduced
+- git diff --check passed
+Manual checks still required:
+- Test teacher build and review with a real assigned learner
+- Test class-teacher or administrator approval and publication
+- Verify linked parent can read the published summary
+- Verify unlinked parent cannot read it
+- Verify drafts and approved-but-unpublished summaries remain hidden from parents
+Known limitations:
+- No UI consumes analytics or parent-summary services yet
+- Metrics refresh remains an operations-only concern pending an authorization hardening decision
+Next exact milestone:
+- CE-FE-002D — Complete service-boundary verification and milestone closure
+Security finding recorded:
+- ce_refresh_content_engine_daily_metrics is SECURITY DEFINER and performs date-wide delete/rebuild without an explicit caller authorization check; it is intentionally not wrapped for browser use
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-002D
+Status: COMPLETE
+Problem fixed:
+- Verified the complete typed Content Engine service boundary.
+Verification completed:
+- All required service modules exist
+- Public exports passed a focused TypeScript smoke test
+- No explicit `any` exists
+- No forbidden authority writes exist
+- Metrics refresh RPC is not exposed
+- git diff --check passed
+Next exact milestone:
+- CE-FE-003 — Author and publication workflow verification and repair
+
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-002
+Status: COMPLETE
+Problem fixed:
+- Established the typed Content Engine frontend service boundary.
+Verification completed:
+- CE-FE-002A complete
+- CE-FE-002B complete
+- CE-FE-002C1 complete
+- CE-FE-002C2 complete
+- CE-FE-002C3 complete
+- CE-FE-002D complete
+Next exact milestone:
+- CE-FE-003 — Author and publication workflow verification and repair
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003A1
+Status: COMPLETE
+Problem fixed:
+- Added an explicit serialization and hydration boundary between publication authoring models and generated Supabase contracts.
+- Removed unsafe publication and chapter row casts from the authoring hook.
+- Migrated the authoring hook to the shared typed Supabase client.
+Files changed:
+- lib/publicationDraftCodec.ts
+- hooks/usePublicationDraft.ts
+- HANDOVER.md
+Database contracts used:
+- vibe_publications
+- vibe_chapters
+Verification completed:
+- Publication pricing JSON is validated during hydration
+- Publication and chapter enum values are validated
+- Content blocks and metadata are validated during hydration
+- Pricing and chapter blocks are explicitly serialized to Json
+- Untitled drafts remain autosave-compatible
+- Supabase inserts and upserts use generated Insert contracts
+- No `any` or `as unknown as` introduced
+- Focused TypeScript compilation passed
+- git diff --check passed
+Manual checks still required:
+- Load publications using each supported pricing model
+- Create and autosave an untitled draft
+- Add, edit, reorder and delete content blocks
+- Reload and verify exact content preservation
+Known limitations:
+- Invalid historical JSON now produces a clear load error
+- Textbook publication lifecycle remains unchanged in this slice
+Next exact milestone:
+- CE-FE-003A2 — Authoritative textbook publication lifecycle
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003A2
+Status: COMPLETE
+Problem fixed:
+- Prevented publication from continuing after an unsuccessful draft save.
+- Routed VibeTextbook publication through the authoritative publish RPC.
+- Added compensating unpublish when post-publication chapter persistence fails.
+Files changed:
+- lib/content-engine/publications.ts
+- lib/content-engine/index.ts
+- hooks/usePublicationDraft.ts
+- HANDOVER.md
+Database contracts used:
+- vibe_publications
+- vibe_chapters
+- publish_textbook(...)
+- unpublish_textbook(...)
+Verification completed:
+- forceSave reports database-confirmed success or failure
+- Failed draft saves stop publication
+- VibeTextbook publication uses publish_textbook(...)
+- VibeTextbook rollback uses unpublish_textbook(...)
+- Non-textbook formats retain their existing lifecycle behavior
+- Focused TypeScript compilation passed
+- No explicit any introduced
+- git diff --check passed
+Manual checks still required:
+- Publish a real VibeTextbook and verify VibeLearn reconciliation
+- Confirm anonymous reader access after publication
+- Unpublish and confirm anonymous direct-reader denial
+- Republish and confirm access restoration
+- Simulate a chapter persistence failure and verify compensating unpublish
+Known limitations:
+- Publication lifecycle and chapter persistence remain separate transactions
+- Full cross-account lifecycle regression remains pending
+Next exact milestone:
+- CE-FE-003B — Structured blocks and curriculum-outcome authoring verification
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003B1
+Status: COMPLETE
+Problem fixed:
+- Added typed verified curriculum-outcome discovery services.
+- Added chapter-level outcome-link management using stable outcome IDs.
+- Added content-block outcome-link management using stable outcome IDs.
+- Added resolution from legacy editor block IDs to authoritative content_blocks IDs.
+Files changed:
+- lib/content-engine/outcomes.ts
+- lib/content-engine/index.ts
+- HANDOVER.md
+Database contracts used:
+- curriculum_learning_outcomes
+- chapter_learning_outcome_links
+- content_blocks
+- content_block_outcome_links
+Verification completed:
+- Only verified curriculum outcomes are returned by discovery
+- Chapter links use the unique chapter_id and outcome_id authority
+- Block links use the unique content_block_id and outcome_id authority
+- Existing selected links are upserted before stale links are removed
+- Link writes preserve publication, chapter, block and outcome IDs
+- RLS remains authoritative for author management
+- Backend validation triggers remain authoritative
+- No direct write to derived content_blocks exists
+- Focused TypeScript compilation passed
+- No explicit any introduced
+- git diff --check passed
+Manual checks still required:
+- Exercise chapter outcome linking as the publication author
+- Verify a non-author cannot modify links
+- Exercise block outcome linking after block reconciliation
+- Verify invalid cross-publication links are rejected
+Known limitations:
+- Author editor UI does not consume these services yet
+- Multi-row replacement is not one database transaction
+Next exact milestone:
+- CE-FE-003B2 — Author editor curriculum-outcome selection

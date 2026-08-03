@@ -138,7 +138,15 @@ export default function GradebookPage() {
 
     const [studentRes, subjectRes] = await Promise.all([
       supabase.from("students").select("id,name,admission_number").eq("class_id", cid).is("deleted_at", null).order("name"),
-      supabase.from("academic_subjects").select("id,name").eq("school_id", sid).eq("class_id", cid).is("deleted_at", null).order("name"),
+      // GB-001: "academic_subjects" does not exist in the live schema — it never has.
+      // The real table is "subjects" (school-scoped only; no class_id or deleted_at
+      // column). This was silently broken at runtime pre-CE-FE-001 because the
+      // untyped `any` client let it compile and fail per-request instead of at
+      // build time. This now returns real school-wide subjects instead of nothing —
+      // a behavior CHANGE (fix), not a like-for-like swap. If class-level subject
+      // scoping is actually required here, that needs a real join (e.g. via
+      // teacher_classes) as a separate, deliberate fix — not assumed in this patch.
+      supabase.from("subjects").select("id,name").eq("school_id", sid).order("name"),
     ])
 
     setStudents((studentRes.data ?? []) as StudentRow[])

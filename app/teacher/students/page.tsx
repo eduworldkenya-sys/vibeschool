@@ -9,7 +9,7 @@ interface Student {
   id: string
   name: string
   admission_number: string | null
-  class_id: string
+  class_id: string | null
   profile_id: string | null
 }
 

@@ -230,7 +230,9 @@ export default function ParentStudentsPage() {
 
     if (!students || students.length === 0) { setLoading(false); return; }
 
-    const classIds = students.map((s: { class_id: string }) => s.class_id).filter(Boolean);
+    const classIds = students
+      .map(student => student.class_id)
+      .filter((classId): classId is string => classId !== null);
 
     const { data: classes } = await supabase
       .from("classes")
@@ -238,8 +240,12 @@ export default function ParentStudentsPage() {
       .in("id", classIds);
 
     const schoolIds = Array.from(
-      new Set((classes ?? []).map((c: { school_id: string }) => c.school_id).filter(Boolean))
-    ) as string[];
+      new Set(
+        (classes ?? [])
+          .map(cls => cls.school_id)
+          .filter((schoolId): schoolId is string => schoolId !== null)
+      )
+    );
 
     const { data: schools } = await supabase
       .from("schools")
@@ -269,17 +275,21 @@ export default function ParentStudentsPage() {
 
     const pendingSet = new Set((pendingReqs ?? []).map((r: { student_id: string }) => r.student_id));
 
-    const assembled: LinkedChild[] = students.map((s: { id: string; name: string; class_id: string }) => {
-      const cls    = (classes ?? []).find((c: { id: string }) => c.id === s.class_id);
-      const school = (schools ?? []).find((sc: { id: string }) => sc.id === cls?.school_id);
+    const assembled: LinkedChild[] = students.map(student => {
+      const cls = student.class_id
+        ? (classes ?? []).find(c => c.id === student.class_id)
+        : undefined;
+      const school = cls?.school_id
+        ? (schools ?? []).find(sc => sc.id === cls.school_id)
+        : undefined;
       const className = cls ? cls.name + (cls.stream ? " " + cls.stream : "") : "—";
       return {
-        student_id:       s.id,
-        name:             s.name,
+        student_id:       student.id,
+        name:             student.name,
         class_name:       className,
-        attendance_pct:   attMap[s.id] ?? 0,
+        attendance_pct:   attMap[student.id] ?? 0,
         school_name:      school?.name ?? "—",
-        pending_approval: pendingSet.has(s.id),
+        pending_approval: pendingSet.has(student.id),
       };
     });
 

@@ -103,7 +103,14 @@ export default function JoinRequestsPage() {
       return
     }
 
-    const schoolId = cls.school_id ?? null
+    const schoolId = cls.school_id
+
+    if (!schoolId) {
+      console.error('Class has no school_id set:', classId)
+      setActingErr('This class is not linked to a school. Contact your admin.')
+      setActing(null)
+      return
+    }
 
     // 2. Update students.class_id — the missing piece
     const { error: stuErr } = await supabase

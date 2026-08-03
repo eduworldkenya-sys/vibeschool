@@ -93,29 +93,42 @@ export default function SmartInsightSlides() {
       })
 
       const attMap: Record<string, { count: number; lastDate: string }> = {}
-      ;(attRes.data ?? []).forEach((a: { student_id: string; status: string; date: string }) => {
+      ;(attRes.data ?? []).forEach(a => {
+        if (!a.student_id) return
+
         if (a.status === 'present') {
-          if (!attMap[a.student_id]) attMap[a.student_id] = { count: 0, lastDate: a.date }
+          if (!attMap[a.student_id]) {
+            attMap[a.student_id] = {
+              count: 0,
+              lastDate: a.date,
+            }
+          }
           attMap[a.student_id].count++
         }
       })
 
       const hwMap: Record<string, string> = {}
-      ;(hwRes.data ?? []).forEach((h: { student_id: string; status: string }) => {
-        if (!hwMap[h.student_id]) hwMap[h.student_id] = h.status
+      ;(hwRes.data ?? []).forEach(h => {
+        if (!h.student_id) return
+        if (!hwMap[h.student_id]) {
+          hwMap[h.student_id] = h.status
+        }
       })
 
       const threeDaysAgo = new Date()
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
 
-      const mapped: Student[] = studentRows.map((s: { id: string; name: string; class_id: string }) => {
+      const mapped: Student[] = studentRows.map(s => {
         const att          = attMap[s.id]
         const lastDate     = att?.lastDate ? new Date(att.lastDate) : null
         const recentAbsent = !lastDate || lastDate < threeDaysAgo
+
         return {
           id:             s.id,
           name:           s.name,
-          className:      classMap[s.class_id] ?? '',
+          className:      s.class_id
+            ? classMap[s.class_id] ?? ''
+            : '',
           attendanceDays: att?.count ?? 0,
           hwStatus:       hwMap[s.id] ?? 'none',
           recentlyAbsent: recentAbsent,

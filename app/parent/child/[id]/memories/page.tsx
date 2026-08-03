@@ -327,7 +327,24 @@ export default function MemoriesPage() {
       .is("deleted_at", null)
       .order("recorded_at", { ascending: false });
 
-    if (!error && data) setMedia(data as ChildMedia[]);
+    if (!error && data) {
+      setMedia(data.map(row => ({
+        id: row.id,
+        student_id: row.student_id,
+        parent_id: row.parent_id,
+        title: row.title,
+        description: row.description,
+        type: row.type,
+        url: row.url,
+        thumbnail_url: null,
+        related_to: row.related_to,
+        owner: row.owner,
+        visibility: row.visibility,
+        recorded_at: row.recorded_at,
+        created_at: row.created_at ?? new Date(0).toISOString(),
+        deleted_at: row.deleted_at,
+      })));
+    }
     setLoading(false);
   }, [id]);
 

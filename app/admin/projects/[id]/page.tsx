@@ -271,8 +271,19 @@ export default function ProjectDetailPage() {
       .eq('id', user.id)
       .single()
 
-    const sid = profile?.school_id
+    const sid = profile?.school_id ?? null
     setSchoolId(sid)
+
+    if (!sid) {
+      setProject(null)
+      setMilestones([])
+      setTransactions([])
+      setLog([])
+      setMembers([])
+      setSchoolProfiles([])
+      setLoading(false)
+      return
+    }
 
     const [
       { data: proj },
@@ -307,18 +318,121 @@ export default function ProjectDetailPage() {
         .order('full_name'),
     ])
 
-    setProject(proj ?? null)
-    setMilestones(ms ?? [])
-    setTransactions(tx ?? [])
-    setLog(lg ?? [])
-    setMembers(mem ?? [])
-    setSchoolProfiles(sp ?? [])
+    setProject(
+      proj?.project_id
+        ? {
+            project_id: proj.project_id,
+            title: proj.title ?? 'Untitled project',
+            project_type: proj.project_type ?? 'general',
+            status: proj.status ?? 'pending_approval',
+            start_date: proj.start_date ?? '',
+            end_date: proj.end_date ?? '',
+            planned: proj.planned ?? 0,
+            spent: proj.spent ?? 0,
+            pending_confirmation: proj.pending_confirmation ?? 0,
+            remaining: proj.remaining ?? 0,
+            milestones_total: proj.milestones_total ?? 0,
+            milestones_done: proj.milestones_done ?? 0,
+            owner_id: proj.owner_id ?? '',
+            owner_name: proj.owner_name ?? 'Unassigned',
+            budget_line_id: proj.budget_line_id ?? '',
+            at_risk_ack: proj.at_risk_ack ?? false,
+          }
+        : null
+    )
+
+    setMilestones(
+      (ms ?? []).map(row => ({
+        id: row.id,
+        title: row.title ?? 'Untitled milestone',
+        due_date: row.due_date ?? '',
+        completed: row.completed ?? false,
+        completed_at: row.completed_at,
+        notes: row.notes,
+      }))
+    )
+
+    setTransactions(
+      (tx ?? []).map(row => ({
+        id: row.id,
+        description: row.description ?? '',
+        amount: row.amount ?? 0,
+        vendor: row.vendor,
+        receipt_ref: row.receipt_ref,
+        task_ref: row.task_ref,
+        status:
+          row.status === 'confirmed' || row.status === 'returned'
+            ? row.status
+            : 'pending',
+        return_reason: row.return_reason,
+        logged_by: row.logged_by ?? '',
+        logged_at: row.logged_at ?? row.created_at ?? new Date(0).toISOString(),
+        confirmed_by: row.confirmed_by,
+        confirmed_at: row.confirmed_at,
+        milestone_id: row.milestone_id,
+        logged_by_profile: Array.isArray(row.logged_by_profile)
+          ? row.logged_by_profile[0] ?? null
+          : row.logged_by_profile,
+        confirmed_by_profile: Array.isArray(row.confirmed_by_profile)
+          ? row.confirmed_by_profile[0] ?? null
+          : row.confirmed_by_profile,
+      }))
+    )
+
+    setLog(
+      (lg ?? []).map(row => ({
+        id: row.id,
+        event_type: row.event_type ?? 'unknown',
+        payload:
+          row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)
+            ? row.payload as Record<string, unknown>
+            : {},
+        note: row.note,
+        created_at: row.created_at ?? new Date(0).toISOString(),
+        actor: Array.isArray(row.actor)
+          ? row.actor[0] ?? null
+          : row.actor,
+      }))
+    )
+
+    setMembers(
+      (mem ?? [])
+        .filter(row => row.profile_id !== null)
+        .map(row => ({
+          id: row.id,
+          profile_id: row.profile_id as string,
+          role: row.role ?? 'member',
+          added_at: row.added_at ?? new Date(0).toISOString(),
+          profile: Array.isArray(row.profile)
+            ? row.profile[0]
+              ? {
+                  full_name: row.profile[0].full_name,
+                  role: row.profile[0].role ?? 'staff',
+                }
+              : null
+            : row.profile
+              ? {
+                  full_name: row.profile.full_name,
+                  role: row.profile.role ?? 'staff',
+                }
+              : null,
+        }))
+    )
+
+    setSchoolProfiles(
+      (sp ?? []).map(row => ({
+        id: row.id,
+        full_name: row.full_name,
+        role: row.role ?? 'staff',
+      }))
+    )
     setLoading(false)
   }, [id])
 
   useEffect(() => { load() }, [load])
 
   async function toggleMilestone(ms: Milestone) {
+    if (!schoolId || !currentUserId) return
     const now = new Date().toISOString()
     await supabase
       .from('admin_project_milestones')
@@ -336,7 +450,7 @@ export default function ProjectDetailPage() {
   }
 
   async function addMilestone() {
-    if (!msTitle.trim() || !msDue) return
+    if (!schoolId || !currentUserId || !msTitle.trim() || !msDue) return
     setMsSaving(true)
     await supabase.from('admin_project_milestones').insert({
       project_id: id,
@@ -361,7 +475,7 @@ export default function ProjectDetailPage() {
   }
 
   async function logExpense() {
-    if (!expDesc.trim() || !expAmount) return
+    if (!schoolId || !currentUserId || !expDesc.trim() || !expAmount) return
     setExpSaving(true)
     await supabase.from('project_transactions').insert({
       project_id: id,
@@ -395,6 +509,7 @@ export default function ProjectDetailPage() {
   }
 
   async function confirmTransaction(txId: string) {
+    if (!schoolId || !currentUserId) return
     await supabase
       .from('project_transactions')
       .update({ status: 'confirmed', confirmed_by: currentUserId, confirmed_at: new Date().toISOString() })
@@ -412,7 +527,7 @@ export default function ProjectDetailPage() {
   }
 
   async function returnTransaction() {
-    if (!returnModal || !returnReason.trim()) return
+    if (!schoolId || !currentUserId || !returnModal || !returnReason.trim()) return
     await supabase
       .from('project_transactions')
       .update({ status: 'returned', return_reason: returnReason.trim() })
@@ -432,7 +547,7 @@ export default function ProjectDetailPage() {
   }
 
   async function addMember() {
-    if (!memberProfileId) return
+    if (!memberProfileId || !schoolId || !currentUserId) return
     setMemberSaving(true)
     await supabase.from('project_members').insert({
       project_id: id,
@@ -458,6 +573,8 @@ export default function ProjectDetailPage() {
   }
 
   async function removeMember(memberId: string) {
+    if (!schoolId || !currentUserId) return
+
     await supabase
       .from('project_members')
       .update({ removed_at: new Date().toISOString() })

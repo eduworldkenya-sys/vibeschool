@@ -3,6 +3,13 @@ import type { CSSProperties } from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/lib/database.types'
+
+type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"]
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 
 const ROLES = ['Teacher', 'Parent', 'Student', 'Admin', 'Global'] as const
 type Role = typeof ROLES[number]
@@ -470,14 +477,31 @@ export default function RootPage() {
         const code = claimCode.trim().toUpperCase()
         const { data: validateResult, error: validateErr } = await supabase
           .rpc('redeem_student_claim', { p_code: code })
-        if (validateErr || !validateResult) { setError('Could not validate claim code. Please try again.'); return }
-        const vStatus = validateResult.status
+        if (validateErr || !isJsonObject(validateResult)) {
+          setError('Could not validate claim code. Please try again.')
+          return
+        }
+
+        const vStatus =
+          typeof validateResult.status === 'string'
+            ? validateResult.status
+            : 'invalid'
+
         if (vStatus === 'not_found')         { setError('Claim code not found. Check with your teacher.'); return }
         if (vStatus === 'already_claimed')   { setError('This claim code has already been used.'); return }
         if (vStatus === 'expired')           { setError('Claim code expired. Ask your teacher for a new one.'); return }
         if (vStatus === 'student_not_found') { setError('Student record not found. Contact your teacher.'); return }
-        const admissionNumber: string = validateResult.admission_number
-        const schoolCode: string      = validateResult.school_code
+
+        if (
+          typeof validateResult.admission_number !== 'string' ||
+          typeof validateResult.school_code !== 'string'
+        ) {
+          setError('Claim code returned incomplete student details.')
+          return
+        }
+
+        const admissionNumber = validateResult.admission_number
+        const schoolCode = validateResult.school_code
         const internalEmail = `${schoolCode}_${admissionNumber.toLowerCase().replace(/\s/g, '')}@vs.internal`
 
         // Service-role route — this synthetic email can never receive a
@@ -498,7 +522,11 @@ export default function RootPage() {
         const userId = createJson.user_id
         const { data: linkResult, error: linkErr } = await supabase
           .rpc('redeem_student_claim', { p_code: code, p_user_id: userId })
-        if (linkErr || !linkResult || linkResult.status !== 'success') {
+        if (
+          linkErr ||
+          !isJsonObject(linkResult) ||
+          linkResult.status !== 'success'
+        ) {
           setError('Account created but linking failed. Please try signing in with your admission number and PIN.')
           return
         }
@@ -528,7 +556,7 @@ export default function RootPage() {
         setError('An account with this email already exists. Please sign in instead.'); return
       }
       const userId = authData.user.id
-      const profilePayload: Record<string, unknown> = {
+      const profilePayload: ProfileUpdate = {
         full_name: fullName.trim(),
         ...(country  && { country_code: country }),
         ...(dob      && { date_of_birth: dob }),

@@ -23,9 +23,15 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 interface Meeting {
-  id: string; title: string; meeting_type: string; status: string
-  venue: string | null; meeting_link: string | null
-  scheduled_at: string; duration_mins: number; confidentiality: string
+  id: string
+  title: string
+  meeting_type: string | null
+  status: string | null
+  venue: string | null
+  meeting_link: string | null
+  scheduled_at: string
+  duration_mins: number | null
+  confidentiality: string | null
 }
 
 function Skeleton() {
@@ -58,7 +64,16 @@ export default function MeetingsPage() {
       const memberRes = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle()
       if (!p) { router.push('/admin/login'); return }
 
-      const resolvedSchoolId = memberRes.data?.school_id ?? adminRes.data?.school_id ?? p?.school_id
+      const resolvedSchoolId =
+        memberRes.data?.school_id ??
+        adminRes.data?.school_id ??
+        p.school_id
+
+      if (!resolvedSchoolId) {
+        router.push('/admin/login')
+        return
+      }
+
       await loadMeetings(resolvedSchoolId)
     } catch {
       router.push('/admin/login')

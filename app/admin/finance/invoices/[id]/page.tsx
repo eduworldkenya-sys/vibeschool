@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import type { Database } from "@/lib/database.types"
 
 const dark    = "#0a1628"
 const accent  = "#10b981"
@@ -96,27 +97,15 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
   </div>
 )
 
-interface Invoice {
-  id: string
-  school_id: string
-  student_id: string
-  class_id: string
-  term: string
-  year: number
-  due_date: string
-  status: string
-  total_amount: number
-  paid_amount: number
-  notes: string
-  created_at: string
-}
+type Invoice =
+  Database["public"]["Tables"]["finance_invoices"]["Row"]
 
 interface InvoiceLine {
   id: string
   invoice_id: string
   description: string
   amount: number
-  account_id: string
+  account_id: string | null
 }
 
 interface Payment {
@@ -125,24 +114,24 @@ interface Payment {
   student_id: string
   amount: number
   method: string
-  reference: string
-  receipt_number: string
-  received_at: string
-  notes: string
-  bank_account_id: string
+  reference: string | null
+  receipt_number: string | null
+  received_at: string | null
+  notes: string | null
+  bank_account_id: string | null
 }
 
 interface BankAccount {
   id: string
   name: string
   type: string
-  is_active: boolean
+  is_active: boolean | null
 }
 
 interface Student {
   id: string
   name: string
-  admission_number: string
+  admission_number: string | null
 }
 
 interface Period {

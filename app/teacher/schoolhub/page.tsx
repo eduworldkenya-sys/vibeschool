@@ -159,9 +159,12 @@ export default function SchoolHubPage() {
       if (profileErr) { setError(profileErr.message); setLoading(false); return }
 
       const nameMap = new Map<string, { fullName: string; role: string }>(
-        (profileData ?? []).map((p: { id: string; full_name: string; role: string }) => [
+        (profileData ?? []).map(p => [
           p.id,
-          { fullName: (p.full_name ?? '').trim() || 'Unknown', role: p.role ?? 'staff' },
+          {
+            fullName: (p.full_name ?? '').trim() || 'Unknown',
+            role: p.role ?? 'staff',
+          },
         ])
       )
 

@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/lib/database.types'
 
 import { useEffect, useState } from 'react'
 
@@ -15,13 +16,8 @@ interface FeeRow {
   status: string
 }
 
-interface AgingRow {
-  student_name?: string
-  invoice_number?: string
-  amount?: number
-  days_overdue?: number
-  status?: string
-}
+type AgingRow =
+  Database["public"]["Views"]["v_invoice_aging"]["Row"]
 
 type TabType = 'fees' | 'aging' | 'budget' | 'expenses'
 

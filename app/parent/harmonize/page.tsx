@@ -21,7 +21,6 @@ interface StudentRow {
   name:             string
   admission_number: string | null
   class_id:         string | null
-  school_id:        string | null
 }
 
 function HarmonizeInner() {
@@ -46,6 +45,13 @@ function HarmonizeInner() {
   }, [sid])
 
   async function load() {
+    if (!sid) {
+      setError("Invalid link. No student ID found.")
+      setLoading(false)
+      return
+    }
+
+    const validStudentId = sid
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -54,8 +60,8 @@ function HarmonizeInner() {
     }
 
     const [stuRes, linkRes] = await Promise.all([
-      supabase.from('students').select('id, name, admission_number, class_id, school_id').eq('id', sid).single(),
-      supabase.from('parent_student_links').select('student_id').eq('parent_id', user.id).eq('student_id', sid),
+      supabase.from('students').select('id, name, admission_number, class_id').eq('id', validStudentId).single(),
+      supabase.from('parent_student_links').select('student_id').eq('parent_id', user.id).eq('student_id', validStudentId),
     ])
 
     if (!stuRes.data) { setError("Student not found. The link may be invalid or expired."); setLoading(false); return }
@@ -67,7 +73,7 @@ function HarmonizeInner() {
     const { data: existingLinks } = await supabase
       .from('parent_student_links')
       .select('parent_id')
-      .eq('student_id', sid)
+      .eq('student_id', validStudentId)
     const existingCount = (existingLinks ?? []).length
     setExistingParentCount(existingCount)
     if (existingCount >= 2) {
@@ -81,7 +87,7 @@ function HarmonizeInner() {
       const { data: tokenRow } = await supabase
         .from('student_claim_codes')
         .select('id, claimed, expires_at, role')
-        .eq('student_id', sid)
+        .eq('student_id', validStudentId)
         .eq('code', token)
         .eq('role', 'parent')
         .single()

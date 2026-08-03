@@ -65,7 +65,7 @@ export default function AdminSignupPage() {
         p_full_name:  fullName.trim(),
         p_school_name: newSchoolName.trim(),
         p_subdomain:  subdomain,
-        p_county:     county.trim() || null,
+        p_county:     county.trim() || undefined,
       })
 
       if (rpcErr) {

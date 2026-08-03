@@ -71,11 +71,21 @@ export default function StaffReportPage() {
   async function fetchDirectory() {
     const { data, error } = await supabase
       .from('staff')
-      .select('id, full_name, role, department, email, phone, status')
+      .select('id, full_name, designation, category, department, email, phone, status')
+      .is('deleted_at', null)
       .order('full_name')
       .limit(300)
     if (error) { console.error(error); return }
-    const rows = (data || []) as StaffRow[]
+
+    const rows: StaffRow[] = (data || []).map(row => ({
+      id: row.id,
+      full_name: row.full_name,
+      role: row.designation ?? row.category,
+      department: row.department ?? 'Unassigned',
+      email: row.email ?? '—',
+      phone: row.phone ?? '—',
+      status: row.status,
+    }))
     setStaffRows(rows)
     const active = rows.filter(r => String(r.status).toLowerCase() === 'active').length
     const depts = new Set(rows.map(r => r.department).filter(Boolean)).size

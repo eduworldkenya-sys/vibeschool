@@ -47,50 +47,107 @@ function saveCache(brain: HQBrainState) {
 }
 
 async function fetchHQSnapshot(): Promise<HQSnapshot> {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const sevenDaysAgo = new Date(
+    Date.now() - 7 * 86400000
+  ).toISOString()
 
-  const [schoolsRes, teachersRes, coursesRes, flaggedRes, pendingRes, signupsRes] = await Promise.allSettled([
-    supabase.from("schools").select("id, status"),
-    supabase.from("teacher_profiles").select("profile_id", { count: "exact", head: true }),
-    supabase.from("courses").select("id, title, domain, status, updated_at"),
-    supabase.from("content_flags").select("id, app, author, reason").eq("resolved", false).limit(10),
-    supabase.from("content_submissions").select("id, app, title, type").eq("status", "pending").limit(20),
-    supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
-  ]);
+  const [
+    schoolsRes,
+    teachersRes,
+    coursesRes,
+    signupsRes,
+  ] = await Promise.all([
+    supabase
+      .from("schools")
+      .select("id, status"),
 
-  const schools       = schoolsRes.status === "fulfilled" ? (schoolsRes.value.data ?? []) : [];
-  const totalSchools  = schools.length;
-  const activeSchools = schools.filter((s: any) => s.status === "active").length;
-  const totalTeachers = teachersRes.status === "fulfilled" ? (teachersRes.value.count ?? 0) : 0;
-  const recentSignups = signupsRes.status === "fulfilled"  ? (signupsRes.value.count  ?? 0) : 0;
+    supabase
+      .from("teacher_profiles")
+      .select("profile_id", {
+        count: "exact",
+        head: true,
+      }),
 
-  const allCourses  = coursesRes.status === "fulfilled" ? (coursesRes.value.data ?? []) : [];
-  const now         = Date.now();
-  const draftCourses = allCourses
-    .filter((c: any) => c.status === "draft")
-    .map((c: any) => ({ id: c.id, title: c.title ?? "Untitled", domain: c.domain ?? "general", days: Math.floor((now - new Date(c.updated_at).getTime()) / 86400000) }))
-    .slice(0, 5);
-  const liveCourses = allCourses.filter((c: any) => c.status === "published").length;
+    supabase
+      .from("courses")
+      .select(
+        "id, title, domain, status, created_at"
+      ),
 
-  const flaggedContent = flaggedRes.status === "fulfilled"
-    ? (flaggedRes.value.data ?? []).map((f: any) => ({ id: f.id, app: f.app ?? "Unknown", author: f.author ?? "Anonymous", reason: f.reason ?? "Flagged" }))
-    : [];
+    supabase
+      .from("profiles")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .gte("created_at", sevenDaysAgo),
+  ])
 
-  const pendingContent = pendingRes.status === "fulfilled"
-    ? (pendingRes.value.data ?? []).map((p: any) => ({ id: p.id, app: p.app ?? "Unknown", title: p.title ?? "Untitled", type: p.type ?? "content" }))
-    : [];
+  const schools = schoolsRes.data ?? []
+  const courses = coursesRes.data ?? []
+  const now = Date.now()
 
-  let lowCreditSchools: { id: string; name: string; credits: number }[] = [];
-  try {
-    const { data } = await supabase.from("school_credits").select("school_id, balance, schools(name)").lt("balance", 5).limit(5);
-    if (data) lowCreditSchools = (data as any[]).map(r => ({ id: r.school_id, name: (r.schools as any)?.name ?? "Unknown", credits: r.balance ?? 0 }));
-  } catch {}
+  const totalSchools = schools.length
+
+  const activeSchools = schools.filter(
+    school => school.status === "active"
+  ).length
+
+  const totalTeachers = teachersRes.count ?? 0
+  const recentSignups = signupsRes.count ?? 0
+
+  const draftCourses = courses
+    .filter(course => course.status === "draft")
+    .map(course => {
+      const createdAt = course.created_at
+        ? new Date(course.created_at).getTime()
+        : now
+
+      return {
+        id: course.id,
+        title: course.title,
+        domain: course.domain,
+        days: Math.max(
+          0,
+          Math.floor((now - createdAt) / 86400000)
+        ),
+      }
+    })
+    .slice(0, 5)
+
+  const liveCourses = courses.filter(
+    course => course.status === "published"
+  ).length
+
+  /*
+   * These datasets are intentionally empty until their
+   * authoritative tables are added to the live schema:
+   *
+   * - content_flags
+   * - content_submissions
+   * - school_credits
+   */
+  const flaggedContent: HQSnapshot["flaggedContent"] = []
+  const pendingContent: HQSnapshot["pendingContent"] = []
+  const lowCreditSchools: HQSnapshot["lowCreditSchools"] = []
 
   const platformHealth: HQSnapshot["platformHealth"] =
-    flaggedContent.length >= 5 ? "critical" :
-    flaggedContent.length >= 2 || draftCourses.length >= 5 ? "warning" : "healthy";
+    draftCourses.length >= 5
+      ? "warning"
+      : "healthy"
 
-  return { totalSchools, activeSchools, totalTeachers, draftCourses, liveCourses, flaggedContent, pendingContent, lowCreditSchools, recentSignups, platformHealth };
+  return {
+    totalSchools,
+    activeSchools,
+    totalTeachers,
+    draftCourses,
+    liveCourses,
+    flaggedContent,
+    pendingContent,
+    lowCreditSchools,
+    recentSignups,
+    platformHealth,
+  }
 }
 
 function buildHQIntents(snap: HQSnapshot | null): Record<string, string> {

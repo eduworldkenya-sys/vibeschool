@@ -43,30 +43,62 @@ export default function ParentTwinDrawer({ open, onClose }: Props) {
 
       const { data: students } = await supabase
         .from("students")
-        .select("id, name, admission_number, class_id, school_id")
+        .select("id, name, admission_number, class_id")
         .in("id", studentIds);
 
       if (!students || students.length === 0) return;
 
-      const classIds  = students.map((s: { class_id: string }) => s.class_id);
-      const schoolIds = Array.from(new Set(students.map((s: { school_id: string }) => s.school_id).filter(Boolean)));
+      const classIds = Array.from(new Set(
+        students.map((s: { class_id: string | null }) => s.class_id).filter((id): id is string => !!id)
+      ));
 
-      const [classesRes, schoolsRes] = await Promise.all([
-        supabase.from("classes").select("id, name, stream").in("id", classIds),
-        supabase.from("schools").select("id, name").in("id", schoolIds as string[]),
-      ]);
+      const classesRes = classIds.length > 0
+        ? await supabase
+            .from("classes")
+            .select("id, name, stream, school_id")
+            .in("id", classIds)
+        : { data: [] as {
+            id: string
+            name: string
+            stream: string | null
+            school_id: string | null
+          }[] }
+
+      const classesData = classesRes.data ?? []
+
+      const schoolIds = Array.from(new Set(
+        classesData
+          .map(c => c.school_id)
+          .filter((id): id is string => !!id)
+      ))
+
+      const schoolsRes = schoolIds.length > 0
+        ? await supabase
+            .from("schools")
+            .select("id, name")
+            .in("id", schoolIds)
+        : { data: [] as { id: string; name: string }[] }
+
+      const schoolsData = schoolsRes.data ?? []
 
       const today = new Date().toISOString().split("T")[0];
 
-      const childLines = await Promise.all(students.map(async (s: { id: string; name: string; class_id: string; school_id: string; admission_number: string | null }) => {
-        const cls    = (classesRes.data ?? []).find((c: { id: string }) => c.id === s.class_id) as { id: string; name: string; stream: string | null } | undefined;
-        const school = (schoolsRes.data ?? []).find((sc: { id: string }) => sc.id === s.school_id) as { id: string; name: string } | undefined;
+      const childLines = await Promise.all(students.map(async (s: { id: string; name: string; class_id: string | null; admission_number: string | null }) => {
+        const cls = classesData.find(c => c.id === s.class_id);
+
+        if (!s.class_id || !cls || !cls.school_id) {
+          return `Child: ${s.name}
+  (Enrollment incomplete — no class/school on record. Attendance unavailable.)`;
+        }
+
+        const schoolId = cls.school_id;
+        const school = schoolsData.find(sc => sc.id === schoolId);
 
         const attRes = await supabase
           .from("attendance")
           .select("status")
           .eq("student_id", s.id)
-          .eq("school_id", s.school_id);
+          .eq("school_id", schoolId);
 
         const att      = attRes.data ?? [];
         const total    = att.length;
@@ -77,12 +109,11 @@ export default function ParentTwinDrawer({ open, onClose }: Props) {
           .from("attendance")
           .select("status")
           .eq("student_id", s.id)
-          .eq("school_id", s.school_id)
-          .gte("timestamp", today + "T00:00:00")
-          .lt("timestamp", today + "T23:59:59");
+          .eq("school_id", schoolId)
+          .eq("date", today);
 
         const todayStatus = todayAtt.data?.[0]?.status ?? "not marked";
-        const className   = cls ? cls.name + (cls.stream ? " " + cls.stream : "") : "Unknown";
+        const className   = cls.name + (cls.stream ? " " + cls.stream : "");
 
         return `Child: ${s.name}
   School: ${school?.name ?? "Unknown"}

@@ -255,7 +255,7 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
       p_day_of_week:     parseInt(dayOfWeek) || 1,
       p_start_time:      startTime,
       p_end_time:        endTime,
-      p_room:            room.trim() || null,
+      p_room:            room.trim() || undefined,
       p_effective_from:  effectiveFrom || undefined,
     })
 

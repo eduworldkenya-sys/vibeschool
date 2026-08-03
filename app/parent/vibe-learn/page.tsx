@@ -96,7 +96,7 @@ export default function VibeLearnPage() {
 
       if (!links || links.length === 0) { setLoading(false); return }
 
-      const ids = links.map((l: { student_id: string }) => l.student_id)
+      const ids = links.map(link => link.student_id)
 
       const { data: studs } = await supabase
         .from('students')
@@ -105,15 +105,20 @@ export default function VibeLearnPage() {
 
       if (!studs) { setLoading(false); return }
 
-      const mapped: Child[] = studs.map((s: { id: string; name: string; class_id: string }) => {
-        const link = links.find((l: { student_id: string; school_id: string }) => l.student_id === s.id)
-        return {
-          student_id: s.id,
-          name:       s.name,
-          class_id:   s.class_id,
-          school_id:  link?.school_id ?? '',
-        }
-      })
+      const mapped: Child[] = studs
+        .filter(student => student.class_id !== null)
+        .map(student => {
+          const link = links.find(
+            candidate => candidate.student_id === student.id
+          )
+
+          return {
+            student_id: student.id,
+            name: student.name,
+            class_id: student.class_id as string,
+            school_id: link?.school_id ?? '',
+          }
+        })
 
       setChildren(mapped)
       setActiveChild(mapped[0])
@@ -162,8 +167,11 @@ export default function VibeLearnPage() {
     ])
 
     const plans = lessonPlansRes.data ?? []
-    const planIds = plans.map((p: { id: string }) => p.id)
-    const subjectIds = Array.from(new Set(plans.map((p: { subject_id: string }) => p.subject_id)))
+    const planIds = plans.map(plan => plan.id)
+
+    const subjectIds = Array.from(
+      new Set(plans.map(plan => plan.subject_id))
+    )
 
     const [contentRes, subjectsRes] = await Promise.all([
       planIds.length > 0
@@ -187,20 +195,38 @@ export default function VibeLearnPage() {
       subjectMap[s.id] = s.name
     }
 
-    const planMap: Record<string, { title: string; subject_id: string }> = {}
-    for (const p of plans) {
-      planMap[p.id] = { title: p.title, subject_id: p.subject_id }
+    const planMap: Record<
+      string,
+      { title: string; subject_id: string }
+    > = {}
+
+    for (const plan of plans) {
+      planMap[plan.id] = {
+        title: plan.title ?? 'Lesson',
+        subject_id: plan.subject_id,
+      }
     }
 
-    const lessonRows: LessonRow[] = (contentRes.data ?? []).map((c: {
-      id: string; lesson_plan_id: string; student_copy: string; created_at: string
-    }) => ({
-      id:           c.id,
-      title:        planMap[c.lesson_plan_id]?.title ?? 'Lesson',
-      subject_name: subjectMap[planMap[c.lesson_plan_id]?.subject_id ?? ''] ?? 'Subject',
-      student_copy: c.student_copy ?? '',
-      created_at:   c.created_at,
-    }))
+    const lessonRows: LessonRow[] = (contentRes.data ?? [])
+      .filter(
+        content =>
+          content.lesson_plan_id !== null &&
+          content.created_at !== null
+      )
+      .map(content => {
+        const lessonPlanId = content.lesson_plan_id as string
+
+        return {
+          id: content.id,
+          title: planMap[lessonPlanId]?.title ?? 'Lesson',
+          subject_name:
+            subjectMap[
+              planMap[lessonPlanId]?.subject_id ?? ''
+            ] ?? 'Subject',
+          student_copy: content.student_copy ?? '',
+          created_at: content.created_at as string,
+        }
+      })
 
     // Twin greeting from last session
     const lastSession = (sessionsRes.data ?? [])[0]
@@ -213,18 +239,36 @@ export default function VibeLearnPage() {
     }
 
     setLessons(lessonRows)
-    setStreaks(streaksRes.data ?? [])
-    const rawBadges: BadgeRow[] = (badgesRes.data ?? []).map((b: Record<string, unknown>) => {
-      const raw = b.badges
-      const obj = Array.isArray(raw) ? (raw[0] ?? { name: '', icon: '' }) : (raw ?? { name: '', icon: '' })
+    setStreaks(
+      (streaksRes.data ?? []).map(row => ({
+        type: row.type,
+        current_count: row.current_count ?? 0,
+        longest_count: row.longest_count ?? 0,
+      }))
+    )
+    const rawBadges: BadgeRow[] = (badgesRes.data ?? []).map(row => {
+      const badge = Array.isArray(row.badges)
+        ? row.badges[0] ?? null
+        : row.badges
+
       return {
-        id:        b.id        as string,
-        earned_at: b.earned_at as string,
-        badges:    obj         as { name: string; icon: string },
+        id: row.id,
+        earned_at: row.earned_at ?? new Date(0).toISOString(),
+        badges: {
+          name: badge?.name ?? 'Badge',
+          icon: badge?.icon ?? '🏅',
+        },
       }
     })
     setBadges(rawBadges)
-    setSessions(sessionsRes.data ?? [])
+    setSessions(
+      (sessionsRes.data ?? []).map(row => ({
+        id: row.id,
+        task_type: row.task_type,
+        duration_seconds: Number(row.duration_seconds),
+        created_at: row.created_at,
+      }))
+    )
     setChildLoading(false)
   }
 

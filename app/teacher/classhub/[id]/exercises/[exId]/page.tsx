@@ -8,7 +8,7 @@ import { C } from "@/components/teacher/ui";
 
 interface Student { id: string; name: string; admission_number: string; }
 interface Submission { id: string; student_id: string; status: "pending"|"submitted"|"marked"; mark: number|null; feedback: string|null; notes: string|null; submitted_at: string|null; photo_url: string|null; }
-interface ExInfo { title: string; instructions: string|null; duration_minutes: number|null; status: string; }
+interface ExInfo { title: string; instructions: string|null; }
 
 type View = "list"|"grade";
 
@@ -59,10 +59,8 @@ function GradingInner() {
     const sid = schoolIdRef.current;
 
     const [exRes, stuRes, subRes] = await Promise.all([
-      supabase.from("exercises").select("title,instructions,duration_minutes,status").eq("id", exId).single(),
-      sid
-        ? supabase.from("students").select("id,name,admission_number").eq("class_id",classId).eq("school_id",sid).order("name")
-        : supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
+      supabase.from("exercises").select("title,instructions").eq("id", exId).single(),
+      supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
       supabase.from("exercise_submissions").select("id,student_id,status,mark,feedback,notes,submitted_at,photo_url").eq("exercise_id",exId),
     ]);
 
@@ -195,7 +193,7 @@ function GradingInner() {
           <button onClick={()=>router.back()} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:10,width:36,height:36,color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
           <div>
             <div style={{fontSize:18,fontWeight:900,color:"#fff"}}>{ex?.title}</div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.65)"}}>{ex?.duration_minutes ? `${ex.duration_minutes} min` : "In-class exercise"}</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,0.65)"}}>In-class exercise</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>

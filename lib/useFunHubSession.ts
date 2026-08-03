@@ -23,6 +23,31 @@ export interface FunHubSessionResult {
   longest_streak: number
 }
 
+function isFunHubSessionResult(
+  value: unknown
+): value is FunHubSessionResult {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Array.isArray(value)
+  ) {
+    return false
+  }
+
+  const row = value as Record<string, unknown>
+
+  return (
+    typeof row.session_id === 'string' &&
+    typeof row.xp_earned === 'number' &&
+    typeof row.total_xp === 'number' &&
+    typeof row.level === 'number' &&
+    typeof row.weekly_xp === 'number' &&
+    typeof row.monthly_xp === 'number' &&
+    typeof row.current_streak === 'number' &&
+    typeof row.longest_streak === 'number'
+  )
+}
+
 export async function saveFunHubSession(
   params: FunHubSessionParams
 ): Promise<FunHubSessionResult | null> {
@@ -38,8 +63,17 @@ export async function saveFunHubSession(
       p_duration_secs: params.duration_secs ?? 0,
       p_streak_max:    params.streak_max ?? 0,
     })
-    if (error) { console.error('[FunHub] save_session error:', error); return null }
-    return data as FunHubSessionResult
+    if (error) {
+      console.error('[FunHub] save_session error:', error)
+      return null
+    }
+
+    if (!isFunHubSessionResult(data)) {
+      console.error('[FunHub] Invalid save_session response:', data)
+      return null
+    }
+
+    return data
   } catch (e) {
     console.error('[FunHub] save_session exception:', e)
     return null

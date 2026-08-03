@@ -385,9 +385,32 @@ export default function AdminResourcesPage() {
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
     if (err) { toast('Failed to load documents.', 'error'); setDocsLoading(false); return }
-    setDocs((data || []).map((d: any) => ({
-      ...d, uploader_name: d.uploader?.full_name ?? 'Unknown',
-    })))
+    setDocs((data ?? []).map(row => {
+      const uploader = Array.isArray(row.uploader)
+        ? row.uploader[0] ?? null
+        : row.uploader
+
+      const visibility: ResourceDocument['visibility'] =
+        row.visibility === 'admin_only' ||
+        row.visibility === 'staff' ||
+        row.visibility === 'everyone'
+          ? row.visibility
+          : 'staff'
+
+      return {
+        id: row.id,
+        school_id: row.school_id ?? '',
+        title: row.title,
+        category: row.category ?? 'other',
+        file_url: row.file_url,
+        file_type: row.file_type,
+        file_size_kb: row.file_size_kb,
+        visibility,
+        uploaded_by: row.uploaded_by ?? '',
+        created_at: row.created_at ?? new Date(0).toISOString(),
+        uploader_name: uploader?.full_name ?? 'Unknown',
+      }
+    }))
     setDocsLoading(false)
   }
 
@@ -451,7 +474,18 @@ export default function AdminResourcesPage() {
     const { data } = await supabase
       .from('store_items').select('*').eq('school_id', schoolId!)
       .is('deleted_at', null).order('name')
-    setStoreItems(data || []); setStoreLoading(false)
+    setStoreItems((data ?? []).map(row => ({
+      id: row.id,
+      school_id: row.school_id ?? '',
+      name: row.name,
+      category: row.category ?? 'other',
+      unit: row.unit ?? 'piece',
+      quantity: row.quantity ?? 0,
+      low_stock_threshold: row.low_stock_threshold ?? 0,
+      added_by: row.added_by ?? '',
+      created_at: row.created_at ?? new Date(0).toISOString(),
+    })))
+    setStoreLoading(false)
   }
   async function fetchStoreTxnCount() {
     const { count } = await supabase
@@ -465,9 +499,33 @@ export default function AdminResourcesPage() {
       .select('*, requester:requested_by(full_name)')
       .eq('school_id', schoolId!).eq('status', 'pending')
       .is('deleted_at', null).order('created_at', { ascending: false })
-    setStoreRequests((data || []).map((r: any) => ({
-      ...r, requester_name: r.requester?.full_name ?? 'Unknown',
-    })))
+    setStoreRequests((data ?? []).map(row => {
+      const requester = Array.isArray(row.requester)
+        ? row.requester[0] ?? null
+        : row.requester
+
+      const status: ResourceRequest['status'] =
+        row.status === 'approved' ||
+        row.status === 'rejected' ||
+        row.status === 'fulfilled'
+          ? row.status
+          : 'pending'
+
+      return {
+        id: row.id,
+        school_id: row.school_id ?? '',
+        requested_by: row.requested_by ?? '',
+        item_id: row.item_id,
+        item_name: row.item_name,
+        quantity: row.quantity ?? 0,
+        reason: row.reason,
+        status,
+        reviewed_by: row.reviewed_by,
+        reviewed_at: row.reviewed_at,
+        created_at: row.created_at ?? new Date(0).toISOString(),
+        requester_name: requester?.full_name ?? 'Unknown',
+      }
+    }))
   }
 
   async function handleAddItem() {
@@ -494,7 +552,7 @@ export default function AdminResourcesPage() {
     if (newQty < 0) { toast('Not enough stock.', 'error'); setTxnLoading(false); return }
 
     const { error: e1 } = await supabase.from('store_transactions').insert({
-      school_id: schoolId, item_id: txnTarget.id, txn_type: txnType,
+      school_id: schoolId, item_id: txnTarget.id, type: txnType,
       quantity: qty, reference: txnRef || null,
       issued_to: txnIssuedTo || null, notes: txnNotes || null, created_by: userId,
     })
@@ -534,7 +592,29 @@ export default function AdminResourcesPage() {
     const { data } = await supabase
       .from('resource_assets').select('*').eq('school_id', schoolId!)
       .is('deleted_at', null).order('name')
-    setAssets(data || []); setAssetsLoading(false)
+    setAssets((data ?? []).map(row => {
+      const itemCondition: ResourceAsset['item_condition'] =
+        row.condition === 'fair' ||
+        row.condition === 'needs_repair' ||
+        row.condition === 'condemned'
+          ? row.condition
+          : 'good'
+
+      return {
+        id: row.id,
+        school_id: row.school_id ?? '',
+        name: row.name,
+        category: row.category ?? 'other',
+        quantity: row.quantity ?? 0,
+        item_condition: itemCondition,
+        location: row.location,
+        serial_no: row.serial_no,
+        last_checked: row.last_checked,
+        added_by: row.added_by ?? '',
+        created_at: row.created_at ?? new Date(0).toISOString(),
+      }
+    }))
+    setAssetsLoading(false)
   }
 
   function resetAssetForm() {
@@ -553,7 +633,7 @@ export default function AdminResourcesPage() {
     setAssetLoading(true)
     const payload = {
       school_id: schoolId, name: aName.trim(), category: aCat,
-      quantity: parseInt(aQty) || 1, item_condition: aCond,
+      quantity: parseInt(aQty) || 1, condition: aCond,
       location: aLocation || null, serial_no: aSerial || null,
       last_checked: aLastChecked || null, added_by: userId,
     }
@@ -572,7 +652,7 @@ export default function AdminResourcesPage() {
 
   async function handleCondemnAsset(a: ResourceAsset) {
     await supabase.from('resource_assets')
-      .update({ item_condition: 'condemned' }).eq('id', a.id)
+      .update({ condition: 'condemned' }).eq('id', a.id)
     setCondemnTarget(null); toast('Asset marked condemned.'); fetchAssets()
   }
 
@@ -608,7 +688,20 @@ export default function AdminResourcesPage() {
     const { data } = await supabase
       .from('library_books').select('*').eq('school_id', schoolId!)
       .is('deleted_at', null).order('title')
-    setBooks(data || []); setLibLoading(false)
+    setBooks((data ?? []).map(row => ({
+      id: row.id,
+      school_id: row.school_id ?? '',
+      title: row.title,
+      author: row.author ?? 'Unknown author',
+      isbn: row.isbn,
+      subject: row.subject,
+      class_level: row.class_level,
+      total_copies: row.total_copies ?? 0,
+      available_copies: row.available_copies ?? 0,
+      added_by: row.added_by ?? '',
+      created_at: row.created_at ?? new Date(0).toISOString(),
+    })))
+    setLibLoading(false)
   }
 
   async function fetchBorrowings() {
@@ -619,13 +712,40 @@ export default function AdminResourcesPage() {
       .is('returned_at', null)
       .is('deleted_at', null)
       .order('due_date')
-    setBorrowings((data || []).map((b: any) => ({
-      ...b,
-      book_title:   b.book?.title ?? 'Unknown',
-      issuer_name:  b.issuer?.full_name ?? 'Unknown',
-      // borrower name stored in notes field per issue flow
-      borrower_name: b.notes ?? '—',
-    })))
+    setBorrowings((data ?? []).map(row => {
+      const book = Array.isArray(row.book)
+        ? row.book[0] ?? null
+        : row.book
+
+      const issuer = Array.isArray(row.issuer)
+        ? row.issuer[0] ?? null
+        : row.issuer
+
+      const borrowerType: LibraryBorrowing['borrower_type'] =
+        row.borrower_type === 'staff' ? 'staff' : 'student'
+
+      return {
+        id: row.id,
+        school_id: row.school_id ?? '',
+        book_id: row.book_id ?? '',
+        borrower_type: borrowerType,
+        student_id: row.student_id,
+        staff_id: row.staff_id,
+        issued_by: row.issued_by ?? '',
+        issued_at: row.issued_at ?? new Date(0).toISOString(),
+        due_date: row.due_date,
+        returned_at: row.returned_at,
+        condition_out: row.condition_out ?? 'good',
+        condition_in: row.condition_in,
+        fine_amount: Number(row.fine_amount ?? 0),
+        fine_paid: row.fine_paid ?? false,
+        notes: row.notes,
+        created_at: row.created_at ?? new Date(0).toISOString(),
+        book_title: book?.title ?? 'Unknown',
+        issuer_name: issuer?.full_name ?? 'Unknown',
+        borrower_name: row.notes ?? '—',
+      }
+    }))
   }
 
   async function handleAddBook() {
@@ -731,7 +851,7 @@ export default function AdminResourcesPage() {
   async function fetchStaff() {
     setStaffLoading(true)
     const { data: profiles } = await supabase
-      .from('profiles').select('id, full_name, email, role')
+      .from('profiles').select('id, full_name, role')
       .eq('school_id', schoolId!).neq('role', 'admin').order('full_name')
 
     // FIX: ensure resource_roles table has unique constraint on (school_id, profile_id)
@@ -740,13 +860,33 @@ export default function AdminResourcesPage() {
       .from('resource_roles').select('id, profile_id, role')
       .eq('school_id', schoolId!).is('deleted_at', null)
 
-    const roleMap: Record<string, { role: string; id: string }> = {}
-    for (const r of roles || []) roleMap[r.profile_id] = { role: r.role, id: r.id }
+    const roleMap: Record<string, {
+      role: StaffProfile['resource_role']
+      id: string
+    }> = {}
 
-    setStaffList((profiles || []).map((p: any) => ({
-      ...p,
-      resource_role:    (roleMap[p.id]?.role ?? 'general') as StaffProfile['resource_role'],
-      resource_role_id: roleMap[p.id]?.id ?? null,
+    for (const row of roles ?? []) {
+      if (!row.profile_id) continue
+
+      const role: StaffProfile['resource_role'] =
+        row.role === 'librarian' ||
+        row.role === 'store_keeper'
+          ? row.role
+          : 'general'
+
+      roleMap[row.profile_id] = {
+        role,
+        id: row.id,
+      }
+    }
+
+    setStaffList((profiles ?? []).map(row => ({
+      id: row.id,
+      full_name: row.full_name,
+      email: '',
+      role: row.role ?? 'staff',
+      resource_role: roleMap[row.id]?.role ?? 'general',
+      resource_role_id: roleMap[row.id]?.id ?? null,
     })))
     setStaffLoading(false)
   }

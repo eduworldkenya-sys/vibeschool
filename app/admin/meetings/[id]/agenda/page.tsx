@@ -132,7 +132,8 @@ export default function AgendaBuilderPage() {
           .eq('meeting_id', id)
         if (attErr) throw attErr
         const profiles: Profile[] = (att ?? [])
-          .flatMap((a: { profile_id: string; profiles: { id: string; full_name: string }[] }) => a.profiles as Profile[])
+          .map(a => a.profiles)
+          .filter((profile): profile is Profile => profile !== null)
         setAttendees(profiles)
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Failed to load')
@@ -209,7 +210,17 @@ export default function AgendaBuilderPage() {
   async function saveEdit(item: AgendaItem) {
     setSaving(item.id)
     try {
-      await upsertAgendaItem({ id: item.id, meeting_id: id, ...editFields })
+      await upsertAgendaItem({
+        id: item.id,
+        meeting_id: id,
+        title: editFields.title ?? item.title,
+        description: editFields.description ?? null,
+        duration_mins: editFields.duration_mins ?? null,
+        presenter_id: editFields.presenter_id ?? null,
+        notes: editFields.notes ?? null,
+        order_index: item.order_index,
+        status: item.status,
+      })
       await loadItems()
       setExpandedId(null)
     } catch (e: unknown) {

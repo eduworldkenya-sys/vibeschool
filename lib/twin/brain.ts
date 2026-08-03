@@ -483,10 +483,34 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
   if (cached && !cached.isStale) {
     try {
       const { data: memRows } = await supabase
-        .from("twin_memory").select("type, content, created_at")
-        .eq("profile_id", userId).order("created_at", { ascending: false }).limit(10);
-      if (memRows && memRows.length > (cached.recentMemory?.length ?? 0)) {
-        const updated = { ...cached, recentMemory: memRows.reverse() };
+        .from("twin_memory")
+        .select("type, content, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10)
+
+      const normalizedMemory = (memRows ?? [])
+        .filter(
+          row =>
+            row.type !== null &&
+            row.content !== null &&
+            row.created_at !== null
+        )
+        .map(row => ({
+          type: row.type as string,
+          content: row.content as string,
+          created_at: row.created_at as string,
+        }))
+        .reverse()
+
+      if (
+        normalizedMemory.length >
+        (cached.recentMemory?.length ?? 0)
+      ) {
+        const updated = {
+          ...cached,
+          recentMemory: normalizedMemory,
+        }
         saveCache(updated);
         return updated;
       }
@@ -508,9 +532,25 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
   let recentMemory: { type: string; content: string; created_at: string }[] = [];
   try {
     const { data: memRows } = await supabase
-      .from("twin_memory").select("type, content, created_at")
-      .eq("profile_id", userId).order("created_at", { ascending: false }).limit(10);
-    recentMemory = (memRows ?? []).reverse();
+      .from("twin_memory")
+      .select("type, content, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(10)
+
+    recentMemory = (memRows ?? [])
+      .filter(
+        row =>
+          row.type !== null &&
+          row.content !== null &&
+          row.created_at !== null
+      )
+      .map(row => ({
+        type: row.type as string,
+        content: row.content as string,
+        created_at: row.created_at as string,
+      }))
+      .reverse()
   } catch { recentMemory = cached?.recentMemory ?? []; }
 
   let recentLessons: { title: string; topic: string; class_name: string; created_at: string; status: string }[] = [];
@@ -521,20 +561,45 @@ export async function loadTwinBrain(userId: string): Promise<TwinBrainState> {
       .eq("teacher_id", userId)
       .order("created_at", { ascending: false })
       .limit(8);
-    recentLessons = (lessonRows ?? []).map((h: any) => ({
-      title: h.title ?? "Untitled",
-      topic: h.topic ?? "",
-      class_name: h.classes ? h.classes.name + (h.classes.stream ? " " + h.classes.stream : "") : "",
-      created_at: h.created_at,
-      status: h.status ?? "draft",
-    }));
+    recentLessons = (lessonRows ?? []).map(row => {
+      const classRow = Array.isArray(row.classes)
+        ? row.classes[0] ?? null
+        : row.classes
+
+      return {
+        title: row.title ?? "Untitled",
+        topic: row.topic ?? "",
+        class_name: classRow
+          ? classRow.name +
+            (classRow.stream ? ` ${classRow.stream}` : "")
+          : "",
+        created_at: row.created_at,
+        status: row.status,
+      }
+    })
   } catch { recentLessons = cached?.recentLessons ?? []; }
 
   let snap: PulseSnapshot | null = null;
   try {
     if (schoolId) {
-      const credRes = await supabase.rpc("get_credit_balance", { p_teacher_id: userId });
-      const credits = credRes.data?.success ? (credRes.data.balance ?? null) : null;
+      const credRes = await supabase.rpc(
+        "get_credit_balance",
+        { p_teacher_id: userId }
+      )
+
+      const creditData =
+        credRes.data &&
+        typeof credRes.data === "object" &&
+        !Array.isArray(credRes.data)
+          ? credRes.data
+          : null
+
+      const credits =
+        creditData &&
+        creditData.success === true &&
+        typeof creditData.balance === "number"
+          ? creditData.balance
+          : null
       snap = await fetchPulseData(userId, schoolId, credits);
     }
   } catch { snap = cached?.snap ?? null; }

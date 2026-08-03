@@ -71,59 +71,62 @@ export default function MyWorkPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (idLoading || !identity || !identity.classId) { setLoading(false); return; }
+    const classId = identity?.classId ?? null;
+    const studentId = identity?.studentId ?? null;
 
-    const cached = readCache<HWItem[]>("homework", identity.studentId);
+    if (idLoading || !classId || !studentId) {
+      if (!idLoading) setLoading(false);
+      return;
+    }
+
+    const cached = readCache<HWItem[]>("homework", studentId);
     if (cached) { setItems(cached); setLoading(false); }
 
-    async function load() {
+    async function load(validClassId: string, validStudentId: string) {
       const [hwRes, subRes] = await Promise.all([
         supabase
           .from("homework")
-          .select("id, title, subject_id, due_date, type")
-          .eq("class_id", identity!.classId)
+          .select("id, title, subject, due_date, type")
+          .eq("class_id", validClassId)
           .order("due_date", { ascending: true }),
         supabase
           .from("homework_submissions")
           .select("homework_id, status, mark, feedback")
-          .eq("student_id", identity!.studentId),
+          .eq("student_id", validStudentId),
       ]);
-
-      const allSubjectIds = Array.from(new Set(
-        (hwRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
-      )) as string[];
-
-      let subjectMap: Record<string, string> = {};
-      if (allSubjectIds.length > 0) {
-        const { data: subs } = await supabase.from("subjects").select("id, name").in("id", allSubjectIds);
-        subjectMap = Object.fromEntries((subs ?? []).map(s => [s.id, s.name]));
-      }
 
       const subMap = new Map<string, { status: string; mark: number | null; feedback: string | null }>();
       for (const s of subRes.data ?? []) {
-        subMap.set(s.homework_id, { status: s.status, mark: s.mark ?? null, feedback: s.feedback ?? null });
+        if (!s.homework_id) continue;
+        subMap.set(s.homework_id, {
+          status: s.status,
+          mark: s.mark ?? null,
+          feedback: s.feedback ?? null,
+        });
       }
 
-      const result: HWItem[] = (hwRes.data ?? []).map((h: { id: string; title: string; subject_id: string; due_date: string; type: string }) => {
-        const sub = subMap.get(h.id);
-        return {
-          id:        h.id,
-          title:     h.title,
-          due_date:  h.due_date,
-          type:      h.type,
-          subject:   subjectMap[h.subject_id] ?? "Subject",
-          submitted: !!sub,
-          status:    (sub?.status ?? "pending") as HWItem["status"],
-          mark:      sub?.mark     ?? null,
-          feedback:  sub?.feedback ?? null,
-        };
-      });
+      const result: HWItem[] = (hwRes.data ?? [])
+        .filter((h): h is typeof h & { due_date: string } => !!h.due_date)
+        .map(h => {
+          const sub = subMap.get(h.id);
+          return {
+            id:        h.id,
+            title:     h.title,
+            due_date:  h.due_date,
+            type:      h.type,
+            subject:   h.subject ?? "Subject",
+            submitted: !!sub,
+            status:    (sub?.status ?? "pending") as HWItem["status"],
+            mark:      sub?.mark ?? null,
+            feedback:  sub?.feedback ?? null,
+          };
+        });
 
-      writeCache("homework", identity!.studentId, result);
+      writeCache("homework", validStudentId, result);
       setItems(result);
       setLoading(false);
     }
-    load();
+    void load(classId, studentId);
   }, [identity, idLoading]);
 
   const isLoading = idLoading || (loading && items.length === 0);

@@ -217,7 +217,7 @@ export default function TeacherAcademicsPage(){
       const outcomeData=(outcomeRes.status==="fulfilled"?outcomeRes.value.data??[]:(console.error("outcomeRes",outcomeRes),[])) as OutRow[];
       const attData=(attRes.status==="fulfilled"?attRes.value.data??[]:(console.error("attRes",attRes),[])) as AttRow[];
       const tpadRow=(tpadRes.status==="fulfilled"?tpadRes.value.data:(console.error("tpadRes",tpadRes),null)) as Record<string,number|string|null>|null;
-      const evidRows=(evidRes.status==="fulfilled"?evidRes.value.data??[]:(console.error("evidRes",evidRes),[])) as{id:string;standard:string}[];
+      const evidRows=(evidRes.status==="fulfilled"?evidRes.value.data??[]:(console.error("evidRes",evidRes),[])) as { id: string; standard: number }[];
       const classStudentIds:Record<string,Set<string>>={};
       for(const r of studentCls){if(!classStudentIds[r.class_id])classStudentIds[r.class_id]=new Set();classStudentIds[r.class_id].add(r.student_id);}
       const totalStudents=Object.values(classStudentIds).reduce((s,st)=>s+st.size,0);

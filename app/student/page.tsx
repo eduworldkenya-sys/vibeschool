@@ -98,7 +98,7 @@ export default function StudentHomePage() {
     }
 
     async function load() {
-      if (!identity) return;
+      if (!identity?.classId) return;
 
       // Attendance
       const { data: att } = await supabase
@@ -113,13 +113,19 @@ export default function StudentHomePage() {
       // Pending homework — day_of_week is integer Mon=1…Sun=7
       const { data: hw } = await supabase
         .from("homework")
-        .select("id, homework_submissions(id)")
+        .select("id, homework_submissions(id, student_id)")
         .eq("class_id", identity.classId)
-        .gte("due_date", new Date().toISOString().split("T")[0]);
+        .gte("due_date", nairobiDateStr());
 
-      const pendingHW = (hw ?? []).filter(h => {
-        const subs = (h.homework_submissions as { id: string }[]) ?? [];
-        return subs.length === 0;
+      const pendingHW = (hw ?? []).filter(homework => {
+        const submittedByStudent = (
+          homework.homework_submissions ?? []
+        ).some(
+          submission =>
+            submission.student_id === identity.studentId
+        );
+
+        return !submittedByStudent;
       }).length;
 
       // Today timetable — integer day Mon=1 Tue=2 Wed=3 Thu=4 Fri=5 Sat=6 Sun=7
@@ -144,8 +150,16 @@ export default function StudentHomePage() {
         : [];
 
       const subjectIds = Array.from(
-        new Set(slots.map((s) => s.subject_id).filter(Boolean))
-      ) as string[];
+        new Set(
+          slots
+            .map(slot => slot.subject_id)
+            .filter(
+              (subjectId): subjectId is string =>
+                typeof subjectId === "string" &&
+                subjectId.length > 0
+            )
+        )
+      );
 
       let subjectMap: Record<string, string> = {};
       if (subjectIds.length > 0) {
@@ -156,29 +170,36 @@ export default function StudentHomePage() {
         subjectMap = Object.fromEntries((subjects ?? []).map(s => [s.id, s.name]));
       }
 
-      const todaySlots = slots.map((s) => ({
-        subject: subjectMap[s.subject_id] ?? "Lesson",
-        start:   s.start_time?.slice(0, 5) ?? "",
-        end:     s.end_time?.slice(0, 5)   ?? "",
-        room:    s.room ?? "",
+      const todaySlots = slots.map(slot => ({
+        subject:
+          slot.subject_id
+            ? subjectMap[slot.subject_id] ?? "Lesson"
+            : "Lesson",
+        start: slot.start_time.slice(0, 5),
+        end: slot.end_time.slice(0, 5),
+        room: slot.room ?? "",
       }));
 
-      // My Progress — average % across all exam_results on file
+      // My Progress — exam_results.marks is the recorded percentage mark.
       const { data: examRows } = await supabase
         .from("exam_results")
-        .select("marks, total_marks, term, academic_year")
+        .select("marks, is_absent")
         .eq("student_id", identity.studentId);
 
-      let avgMarksPct: number | null = null;
-      if (examRows && examRows.length > 0) {
-        const valid = examRows.filter(
-          r => typeof r.marks === "number" && typeof r.total_marks === "number" && r.total_marks > 0
-        );
-        if (valid.length > 0) {
-          const pctSum = valid.reduce((sum, r) => sum + (r.marks / r.total_marks) * 100, 0);
-          avgMarksPct = Math.round(pctSum / valid.length);
-        }
-      }
+      const validMarks = (examRows ?? [])
+        .filter(row => !row.is_absent)
+        .map(row => Number(row.marks))
+        .filter(mark => Number.isFinite(mark));
+
+      const avgMarksPct =
+        validMarks.length > 0
+          ? Math.round(
+              validMarks.reduce(
+                (sum, mark) => sum + mark,
+                0
+              ) / validMarks.length
+            )
+          : null;
 
       const fresh: DashData = { attendancePct, totalPresent, totalDays, pendingHW, todaySlots, avgMarksPct };
       writeCache("dashboard", identity.studentId, fresh);

@@ -10,7 +10,6 @@ interface ExItem {
   id: string;
   title: string;
   instructions: string | null;
-  duration_minutes: number | null;
   status: "pending" | "done";
   feedback: string | null;
 }
@@ -51,15 +50,20 @@ export default function ParentExercisesPage() {
     async function load() {
       setLoading(true);
       const [exRes, subRes] = await Promise.all([
-        supabase.from("exercises").select("id,title,instructions,duration_minutes").eq("class_id", child!.classId!).eq("status", "active").order("created_at", { ascending: false }),
+        supabase.from("exercises").select("id,title,instructions").eq("class_id", child!.classId!).order("created_at", { ascending: false }),
         supabase.from("exercise_submissions").select("exercise_id,status,feedback").eq("student_id", activeChildId),
       ]);
       const subMap = new Map<string, { status: string; feedback: string | null }>();
       for (const s of (subRes.data ?? [])) subMap.set(s.exercise_id, { status: s.status, feedback: s.feedback ?? null });
 
-      const items: ExItem[] = ((exRes.data ?? []) as { id: string; title: string; instructions: string | null; duration_minutes: number | null }[]).map(e => {
+      const items: ExItem[] = (exRes.data ?? []).map(e => {
         const sub = subMap.get(e.id);
-        return { ...e, status: sub?.status === "marked" ? "done" : "pending", feedback: sub?.feedback ?? null };
+        return {
+          ...e,
+          title: e.title ?? "Untitled exercise",
+          status: sub?.status === "marked" ? "done" : "pending",
+          feedback: sub?.feedback ?? null,
+        };
       });
       setList(items);
       setLoading(false);
@@ -103,7 +107,6 @@ export default function ParentExercisesPage() {
                 </span>
               </div>
               {e.instructions && <p style={{ fontSize: 12, color: "#6b7280", margin: "6px 0 0", lineHeight: 1.5 }}>{e.instructions}</p>}
-              {e.duration_minutes && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>⏱ {e.duration_minutes} min</div>}
               {e.feedback && <p style={{ fontSize: 12, color: "#065f46", margin: "8px 0 0", lineHeight: 1.5, background: "#f0fdf4", borderRadius: 8, padding: "8px 10px" }}>{e.feedback}</p>}
             </div>
           ))}

@@ -77,9 +77,7 @@ function GradingInner() {
       sid
         ? supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id",hwId).eq("school_id",sid).single()
         : supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id",hwId).single(),
-      sid
-        ? supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id",classId).eq("school_id",sid).order("name")
-        : supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id",classId).order("name"),
+      supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id",classId).order("name"),
       supabase.from("homework_questions").select("id,question,order_num").eq("homework_id",hwId).order("order_num"),
       supabase.from("homework_submissions").select("id,student_id,status,mark,feedback,submitted_at,photo_url").eq("homework_id",hwId),
     ]);
@@ -132,9 +130,29 @@ function GradingInner() {
         mark:         markVal,
         feedback:     feedback.trim()||null,
       }).select().single();
-      if (!insErr && newSub) {
+      if (
+        !insErr &&
+        newSub &&
+        newSub.student_id &&
+        (
+          newSub.status === "pending" ||
+          newSub.status === "submitted" ||
+          newSub.status === "marked"
+        )
+      ) {
+        const normalizedSubmission: Submission = {
+          id: newSub.id,
+          student_id: newSub.student_id,
+          status: newSub.status,
+          mark: newSub.mark,
+          feedback: newSub.feedback,
+          submitted_at: newSub.submitted_at,
+          photo_url: newSub.photo_url,
+          answers: [],
+        };
+
         const updated = new Map(subMap);
-        updated.set(active.id,{...newSub,answers:[]});
+        updated.set(active.id, normalizedSubmission);
         setSubMap(updated);
         setSaveOk(true);
       }

@@ -28,6 +28,80 @@ interface Wallet {
   recent_transactions: Transaction[];
 }
 
+function parseWallet(value: unknown): Wallet | null {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    return null;
+  }
+
+  const row = value as Record<string, unknown>;
+
+  if (
+    row.success !== true ||
+    typeof row.balance !== "number" ||
+    typeof row.total_earned !== "number" ||
+    typeof row.total_spent !== "number"
+  ) {
+    return null;
+  }
+
+  const recentTransactions: Transaction[] = Array.isArray(
+    row.recent_transactions
+  )
+    ? row.recent_transactions
+        .filter(
+          item =>
+            item !== null &&
+            typeof item === "object" &&
+            !Array.isArray(item)
+        )
+        .map(item => {
+          const transaction = item as Record<string, unknown>;
+
+          return {
+            type:
+              typeof transaction.type === "string"
+                ? transaction.type
+                : "",
+            feature:
+              typeof transaction.feature === "string"
+                ? transaction.feature
+                : "",
+            amount:
+              typeof transaction.amount === "number"
+                ? transaction.amount
+                : 0,
+            balance_after:
+              typeof transaction.balance_after === "number"
+                ? transaction.balance_after
+                : 0,
+            mpesa_ref:
+              typeof transaction.mpesa_ref === "string"
+                ? transaction.mpesa_ref
+                : null,
+            notes:
+              typeof transaction.notes === "string"
+                ? transaction.notes
+                : null,
+            created_at:
+              typeof transaction.created_at === "string"
+                ? transaction.created_at
+                : new Date(0).toISOString(),
+          };
+        })
+    : [];
+
+  return {
+    balance: row.balance,
+    total_earned: row.total_earned,
+    total_spent: row.total_spent,
+    recent_transactions: recentTransactions,
+  };
+}
+
 const DAILY_COST: Record<string, string> = {
   "Vibe Starter":  "",
   "Vibe Weekly":   "≈ KES 11/day",
@@ -92,8 +166,11 @@ function MpesaModal({
       // Snapshot balance before so poll detects a real increase
       const { data: { user: preUser } } = await supabase.auth.getUser();
       if (!preUser) { setError("Session expired."); setLoading(false); return; }
-      const { data: pre } = await supabase.rpc("get_credit_balance", { p_teacher_id: preUser.id });
-      const balanceBefore = pre?.balance ?? 0;
+      const { data: pre } = await supabase.rpc(
+        "get_credit_balance",
+        { p_teacher_id: preUser.id }
+      );
+      const balanceBefore = parseWallet(pre)?.balance ?? 0;
       // Poll for 60 seconds waiting for callback to credit wallet
       let attempts = 0;
       const cancelled = { value: false };
@@ -102,8 +179,17 @@ function MpesaModal({
         attempts++;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { clearInterval(poll); return; }
-        const { data: wallet } = await supabase.rpc("get_credit_balance", { p_teacher_id: user.id });
-        if ((wallet?.balance ?? 0) > balanceBefore || attempts >= 12) {
+        const { data: walletResult } = await supabase.rpc(
+          "get_credit_balance",
+          { p_teacher_id: user.id }
+        );
+        const currentBalance =
+          parseWallet(walletResult)?.balance ?? balanceBefore;
+
+        if (
+          currentBalance > balanceBefore ||
+          attempts >= 12
+        ) {
           clearInterval(poll);
           if (!cancelled.value) { setLoading(false); onSuccess(pkg.credits); }
         }
@@ -200,8 +286,27 @@ export default function CreditsPage() {
       supabase.rpc("get_credit_balance", { p_teacher_id: user.id }),
       supabase.from("vibe_credit_packages").select("*").eq("is_active", true).order("price_kes"),
     ]);
-    if (walletRes.data?.success) setWallet(walletRes.data);
-    if (pkgRes.data) setPackages(pkgRes.data);
+    const decodedWallet = parseWallet(walletRes.data);
+    if (decodedWallet) {
+      setWallet(decodedWallet);
+    }
+
+    setPackages(
+      (pkgRes.data ?? [])
+        .filter(
+          row =>
+            row.name !== null &&
+            row.price_kes !== null &&
+            row.credits !== null
+        )
+        .map(row => ({
+          id: row.id,
+          name: row.name as string,
+          price_kes: row.price_kes as number,
+          credits: row.credits as number,
+          is_active: row.is_active ?? false,
+        }))
+    );
     setLoading(false);
   }, [router]);
 

@@ -4,7 +4,33 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import type { VCThread, VCMessage, VCCircular, VCCircularRecipient } from '@/lib/types'
+type MessageUI = {
+  id: string
+  thread_id: string
+  sender_id: string
+  body: string
+  created_at: string
+}
+
+type CircularRecipientUI = {
+  id: string
+  circular_id: string
+  profile_id: string
+  ack_at: string | null
+}
+
+type CircularUI = {
+  id: string
+  title: string
+  body: string
+  audience_type: 'all_staff' | 'all_parents' | 'everyone'
+  requires_ack: boolean
+  sent_at: string
+  ack_deadline: string | null
+  ackCount: number
+  totalCount: number
+  recipients: CircularRecipientUI[]
+}
 
 const C = {
   hero:      '#0a1628',
@@ -100,10 +126,10 @@ async function findOrCreateThread(
   contextTag = 'general'
 ): Promise<string> {
   const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
-  const myThreadIds = (myThreads ?? []).map((t: { thread_id: string }) => t.thread_id)
+  const myThreadIds = (myThreads ?? []).map((t: { thread_id: string | null }) => t.thread_id).filter((id): id is string => id !== null)
   if (myThreadIds.length > 0) {
     const { data: shared } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', otherUserId).in('thread_id', myThreadIds)
-    if (shared && shared.length > 0) return shared[0].thread_id
+    if (shared && shared.length > 0 && shared[0].thread_id) return shared[0].thread_id
   }
   const { data: thread } = await supabase.from('vc_threads').insert({
     school_id: schoolId,
@@ -111,6 +137,7 @@ async function findOrCreateThread(
     created_by: currentUserId,
     context_tag: contextTag,
   }).select().single()
+  if (!thread) throw new Error('Failed to create thread')
   await supabase.from('vc_participants').insert([
     { thread_id: thread.id, profile_id: currentUserId, school_id: schoolId },
     { thread_id: thread.id, profile_id: otherUserId,   school_id: schoolId },
@@ -128,12 +155,6 @@ interface ThreadUI {
   otherRole:     string
   otherId:       string
   contextTag:    string
-}
-
-interface CircularUI extends VCCircular {
-  ackCount:   number
-  totalCount: number
-  recipients: VCCircularRecipient[]
 }
 
 interface ProfileRow {
@@ -155,7 +176,7 @@ export default function AdminCommunicationPage() {
   // Threads
   const [threads,      setThreads]      = useState<ThreadUI[]>([])
   const [activeThread, setActiveThread] = useState<ThreadUI | null>(null)
-  const [messages,     setMessages]     = useState<VCMessage[]>([])
+  const [messages,     setMessages]     = useState<MessageUI[]>([])
   const [msgBody,      setMsgBody]      = useState('')
   const [sending,      setSending]      = useState(false)
   const [msgLoading,   setMsgLoading]   = useState(false)
@@ -232,13 +253,15 @@ export default function AdminCommunicationPage() {
     }
   }
 
-  async function loadAll(uid: string, sid: string | null) {
+  async function loadAll(uid: string, sid: string) {
     const [{ data: parts }, { data: circs }] = await Promise.all([
       supabase.from('vc_participants').select('thread_id, last_read_at').eq('profile_id', uid),
       supabase.from('vc_circulars').select('*').eq('school_id', sid).order('sent_at', { ascending: false }),
     ])
 
-    const threadIds = (parts ?? []).map((p: { thread_id: string }) => p.thread_id)
+    const threadIds = (parts ?? [])
+      .map(p => p.thread_id)
+      .filter((threadId): threadId is string => threadId !== null)
 
     if (threadIds.length > 0) {
       const [{ data: threadRows }, { data: allParts }] = await Promise.all([
@@ -247,19 +270,29 @@ export default function AdminCommunicationPage() {
       ])
 
       const otherIds = (allParts ?? [])
-        .filter((p: { profile_id: string }) => p.profile_id !== uid)
-        .map((p: { profile_id: string }) => p.profile_id)
+        .map(p => p.profile_id)
+        .filter((profileId): profileId is string =>
+          profileId !== null && profileId !== uid
+        )
 
       const { data: profiles } = otherIds.length > 0
         ? await supabase.from('profiles').select('id, full_name, role').in('id', otherIds)
         : { data: [] }
 
       const profileMap: Record<string, ProfileRow> = {}
-      ;(profiles ?? []).forEach((pr: ProfileRow) => { profileMap[pr.id] = pr })
+      ;(profiles ?? []).forEach(pr => {
+        profileMap[pr.id] = {
+          id: pr.id,
+          full_name: pr.full_name,
+          role: pr.role ?? 'staff',
+        }
+      })
 
       const readMap: Record<string, string | null> = {}
-      ;(parts ?? []).forEach((p: { thread_id: string; last_read_at: string | null }) => {
-        readMap[p.thread_id] = p.last_read_at
+      ;(parts ?? []).forEach(p => {
+        if (p.thread_id !== null) {
+          readMap[p.thread_id] = p.last_read_at
+        }
       })
 
       // Accurate unread counts
@@ -275,11 +308,15 @@ export default function AdminCommunicationPage() {
         unreadCounts[threadId] = count ?? 0
       }))
 
-      const ui: ThreadUI[] = (threadRows ?? []).map((t: VCThread & { context_tag?: string }) => {
+      const ui: ThreadUI[] = (threadRows ?? []).map(t => {
         const otherPart = (allParts ?? []).find(
-          (p: { thread_id: string; profile_id: string }) => p.thread_id === t.id && p.profile_id !== uid
+          p =>
+            p.thread_id === t.id &&
+            p.profile_id !== null &&
+            p.profile_id !== uid
         )
-        const other = otherPart ? profileMap[otherPart.profile_id] : null
+        const otherProfileId = otherPart?.profile_id ?? null
+        const other = otherProfileId ? profileMap[otherProfileId] : null
         return {
           threadId:      t.id,
           otherName:     other?.full_name ?? 'Unknown',
@@ -288,7 +325,7 @@ export default function AdminCommunicationPage() {
           lastTime:      t.last_message_at ? timeAgo(t.last_message_at) : '',
           unreadCount:   unreadCounts[t.id] ?? 0,
           otherRole:     other?.role ?? '',
-          otherId:       otherPart?.profile_id ?? '',
+          otherId:       otherProfileId ?? '',
           contextTag:    t.context_tag ?? 'general',
         }
       })
@@ -296,13 +333,51 @@ export default function AdminCommunicationPage() {
     }
 
     if ((circs ?? []).length > 0) {
-      const circIds = (circs ?? []).map((c: VCCircular) => c.id)
-      const { data: recips } = await supabase.from('vc_circular_recipients').select('*').in('circular_id', circIds)
-      const circUI: CircularUI[] = (circs ?? []).map((c: VCCircular) => {
-        const r = (recips ?? []).filter((rr: VCCircularRecipient) => rr.circular_id === c.id)
-        return { ...c, ackCount: r.filter((rr: VCCircularRecipient) => rr.ack_at).length, totalCount: r.length, recipients: r }
+      const circIds = (circs ?? []).map(c => c.id)
+      const { data: recips } = await supabase
+        .from('vc_circular_recipients')
+        .select('*')
+        .in('circular_id', circIds)
+
+      const circUI: CircularUI[] = (circs ?? []).map(c => {
+        const audience: CircularUI['audience_type'] =
+          c.audience_type === 'all_staff' ||
+          c.audience_type === 'all_parents' ||
+          c.audience_type === 'everyone'
+            ? c.audience_type
+            : 'everyone'
+
+        const recipients: CircularRecipientUI[] = (recips ?? [])
+          .filter(
+            r =>
+              r.circular_id === c.id &&
+              r.circular_id !== null &&
+              r.profile_id !== null
+          )
+          .map(r => ({
+            id: r.id,
+            circular_id: r.circular_id as string,
+            profile_id: r.profile_id as string,
+            ack_at: r.ack_at,
+          }))
+
+        return {
+          id: c.id,
+          title: c.title,
+          body: c.body,
+          audience_type: audience,
+          requires_ack: c.requires_ack ?? false,
+          sent_at: c.sent_at ?? c.created_at ?? new Date(0).toISOString(),
+          ack_deadline: c.ack_deadline,
+          ackCount: recipients.filter(r => r.ack_at !== null).length,
+          totalCount: recipients.length,
+          recipients,
+        }
       })
+
       setCirculars(circUI)
+    } else {
+      setCirculars([])
     }
   }
 
@@ -326,7 +401,22 @@ export default function AdminCommunicationPage() {
       .eq('thread_id', threadId)
       .is('deleted_at', null)
       .order('created_at', { ascending: true })
-    setMessages(data ?? [])
+    const normalized: MessageUI[] = (data ?? [])
+      .filter(
+        row =>
+          row.thread_id !== null &&
+          row.sender_id !== null &&
+          row.created_at !== null
+      )
+      .map(row => ({
+        id: row.id,
+        thread_id: row.thread_id as string,
+        sender_id: row.sender_id as string,
+        body: row.body,
+        created_at: row.created_at as string,
+      }))
+
+    setMessages(normalized)
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
@@ -362,7 +452,13 @@ export default function AdminCommunicationPage() {
       .neq('id', userId)
       .ilike('full_name', `%${q}%`)
       .limit(10)
-    setSearchResults(data ?? [])
+    setSearchResults(
+      (data ?? []).map(row => ({
+        id: row.id,
+        full_name: row.full_name,
+        role: row.role ?? 'staff',
+      }))
+    )
     setSearching(false)
   }
 
@@ -393,6 +489,11 @@ export default function AdminCommunicationPage() {
     if (q.length < 2) { setMemoSearchResults([]); return }
     if (memoSearchTimer.current) clearTimeout(memoSearchTimer.current)
     memoSearchTimer.current = setTimeout(async () => {
+      if (!schoolId || !userId) {
+        setMemoSearchResults([])
+        return
+      }
+
       setMemoSearching(true)
       const { data } = await supabase
         .from('profiles')
@@ -401,7 +502,13 @@ export default function AdminCommunicationPage() {
         .neq('id', userId)
         .ilike('full_name', `%${q}%`)
         .limit(8)
-      setMemoSearchResults(data ?? [])
+      setMemoSearchResults(
+        (data ?? []).map(row => ({
+          id: row.id,
+          full_name: row.full_name,
+          role: row.role ?? 'staff',
+        }))
+      )
       setMemoSearching(false)
     }, 280)
   }
@@ -413,13 +520,19 @@ export default function AdminCommunicationPage() {
   }
 
   async function sendMemo() {
-    if (!memoRecipient || !memoSubject.trim() || !memoBody.trim()) return
+    if (
+      !schoolId ||
+      !userId ||
+      !memoRecipient ||
+      !memoSubject.trim() ||
+      !memoBody.trim()
+    ) return
     setMemoSending(true)
     try {
       const { data: circ, error } = await supabase
         .from('vc_circulars')
         .insert({
-          school_id:            schoolId ?? null,
+          school_id:            schoolId,
           title:                memoSubject.trim(),
           body:                 memoBody.trim(),
           audience_type:        'all_staff',
@@ -454,10 +567,10 @@ export default function AdminCommunicationPage() {
   }
 
   async function sendCircular() {
-    if (!circTitle.trim() || !circBody.trim()) return
+    if (!schoolId || !userId || !circTitle.trim() || !circBody.trim()) return
     setCircSending(true)
     const { data: circ, error: circErr } = await supabase.from('vc_circulars').insert({
-      school_id:     schoolId ?? null,
+      school_id:     schoolId,
       title:         circTitle.trim(),
       body:          circBody.trim(),
       audience_type: circAudience,

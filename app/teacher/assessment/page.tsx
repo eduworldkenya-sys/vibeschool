@@ -15,13 +15,19 @@ interface SubjectOption { id: string; name: string }
 interface StrandOption  { id: string; name: string }
 interface Student       { id: string; name: string }
 
+type PerformanceLevel =
+  | 'exceeds_expectation'
+  | 'meets_expectation'
+  | 'approaches_expectation'
+  | 'below_expectation'
+
 interface Assessment {
   id:              string
   student_id:      string
   strand_id:       string
   sub_strand:      string | null
   assessment_type: string
-  performance:     string
+  performance:     PerformanceLevel
   term:            number
   academic_year:   number
   notes:           string | null
@@ -30,7 +36,13 @@ interface Assessment {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PERFORMANCE_OPTIONS = [
+const PERFORMANCE_OPTIONS: ReadonlyArray<{
+  value: PerformanceLevel
+  label: string
+  short: string
+  color: string
+  bg: string
+}> = [
   { value: 'exceeds_expectation',    label: 'Exceeds Expectation',    short: 'EE', color: '#065f46', bg: '#d1fae5' },
   { value: 'meets_expectation',      label: 'Meets Expectation',      short: 'ME', color: '#1e40af', bg: '#dbeafe' },
   { value: 'approaches_expectation', label: 'Approaches Expectation', short: 'AE', color: '#92400e', bg: '#fef3c7' },
@@ -49,7 +61,7 @@ function perfMeta(value: string) {
 // Aggregate: most frequent performance level wins; tie goes to higher level
 function aggregatePerf(entries: Assessment[]): string | null {
   if (entries.length === 0) return null
-  const order = ['exceeds_expectation', 'meets_expectation', 'approaches_expectation', 'below_expectation']
+  const order: readonly PerformanceLevel[] = ['exceeds_expectation', 'meets_expectation', 'approaches_expectation', 'below_expectation']
   const counts: Record<string, number> = {}
   for (const a of entries) counts[a.performance] = (counts[a.performance] ?? 0) + 1
   let best = entries[0].performance
@@ -115,7 +127,7 @@ function AssessmentInner() {
   const [selStrand,     setSelStrand]     = useState('')
   const [selSubStrand,  setSelSubStrand]  = useState('')
   const [selType,       setSelType]       = useState('Formative')
-  const [selPerf,       setSelPerf]       = useState('')
+  const [selPerf,       setSelPerf]       = useState<PerformanceLevel | ''>('')
   const [selNotes,      setSelNotes]      = useState('')
   const [saving,        setSaving]        = useState(false)
   const [saveError,     setSaveError]     = useState<string | null>(null)
@@ -126,7 +138,7 @@ function AssessmentInner() {
   const [bulkStrand,    setBulkStrand]    = useState('')
   const [bulkSubStrand, setBulkSubStrand] = useState('')
   const [bulkType,      setBulkType]      = useState('Formative')
-  const [bulkPerf,      setBulkPerf]      = useState('')
+  const [bulkPerf,      setBulkPerf]      = useState<PerformanceLevel | ''>('')
   const [bulkNotes,     setBulkNotes]     = useState('')
   const [bulkSelected,  setBulkSelected]  = useState<Set<string>>(new Set())
   const [bulkSaving,    setBulkSaving]    = useState(false)

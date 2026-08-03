@@ -33,27 +33,33 @@ export default function AdminTwinDrawer({ open, onClose }: Props) {
 
       if (!schoolId) return;
 
-      const [schoolRes, staffRes, studentsRes, classesRes] = await Promise.all([
+      const [schoolRes, staffRes, classesRes] = await Promise.all([
         supabase.from("schools").select("name").eq("id", schoolId).single(),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("role", "teacher"),
-        supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
         supabase.from("classes").select("id, name, stream").eq("school_id", schoolId),
       ]);
 
       const schoolName  = schoolRes.data?.name ?? "Unknown School";
       const staffCount  = staffRes.count ?? 0;
-      const studentCount = studentsRes.count ?? 0;
       const classList   = (classesRes.data ?? [])
         .map((c: { name: string; stream: string | null }) => `${c.name}${c.stream ? ` ${c.stream}` : ""}`)
         .join(", ") || "None";
+
+      // Enrolled-student count: students currently assigned to one of this
+      // school's classes (class_id not null). Not a raw count of every
+      // student record ever created for this school.
+      const classIds = (classesRes.data ?? []).map((c: { id: string }) => c.id);
+      const studentsRes = classIds.length > 0
+        ? await supabase.from("students").select("id", { count: "exact", head: true }).in("class_id", classIds)
+        : { count: 0 as number | null };
+      const studentCount = studentsRes.count ?? 0;
 
       const today = new Date().toISOString().split("T")[0];
       const attRes = await supabase
         .from("attendance")
         .select("status")
         .eq("school_id", schoolId)
-        .gte("timestamp", today + "T00:00:00")
-        .lt("timestamp", today + "T23:59:59");
+        .eq("date", today);
 
       const attRecords = attRes.data ?? [];
       const present    = attRecords.filter((r: { status: string }) => r.status === "present").length;

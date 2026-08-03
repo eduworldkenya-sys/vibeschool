@@ -35,6 +35,20 @@ interface QuizOption {
   text: string
 }
 
+function isQuizOption(value: unknown): value is QuizOption {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const option = value as Record<string, unknown>
+
+  return (
+    typeof option.id === 'string' &&
+    typeof option.label === 'string' &&
+    typeof option.text === 'string'
+  )
+}
+
 interface QuizQuestionRow {
   id: string
   question_text: string
@@ -97,7 +111,31 @@ function QuizPanel({ topicId }: { topicId: string }) {
       if (error) {
         console.error('QuizPanel fetch error:', error)
       } else if (data) {
-        setQuestions(data as QuizQuestionRow[])
+        const parsedQuestions: QuizQuestionRow[] = data.map(row => {
+          const options: QuizOption[] = Array.isArray(row.options)
+            ? row.options.reduce<QuizOption[]>((parsed, option) => {
+                if (!isQuizOption(option)) return parsed
+
+                parsed.push({
+                  id: option.id,
+                  label: option.label,
+                  text: option.text,
+                })
+
+                return parsed
+              }, [])
+            : []
+
+          return {
+            id: row.id,
+            question_text: row.question_text,
+            options,
+            correct_option_id: row.correct_option_id,
+            explanation: row.explanation,
+          }
+        })
+
+        setQuestions(parsedQuestions)
       }
       setLoading(false)
     }

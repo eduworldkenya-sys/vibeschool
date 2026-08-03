@@ -104,7 +104,7 @@ export async function loadActiveTeacherTimetable(
     );
   }
 
-  return (data ?? []) as CanonicalTimetableSlot[];
+  return (data ?? []) as unknown as CanonicalTimetableSlot[];
 }
 
 /**
@@ -181,7 +181,7 @@ export async function loadTeacherTimetableForRange(
     );
   }
 
-  return (data ?? []) as CanonicalTimetableSlot[];
+  return (data ?? []) as unknown as CanonicalTimetableSlot[];
 }
 
 export interface LoadClassTimetableOptions {
@@ -256,7 +256,7 @@ export async function loadActiveClassTimetable(
     );
   }
 
-  return (data ?? []) as CanonicalTimetableSlot[];
+  return (data ?? []) as unknown as CanonicalTimetableSlot[];
 }
 
 export function timetableSlotsForDay(

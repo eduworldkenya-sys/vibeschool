@@ -114,8 +114,22 @@ export default function FinanceSettingsPage() {
       .from('profiles').select('school_id').eq('id', user.id).single()
     const adminRes3  = await supabase.from('admin_profiles').select('school_id').eq('profile_id', user.id).maybeSingle()
     const memberRes3 = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle()
-    const sid = memberRes3.data?.school_id ?? adminRes3.data?.school_id ?? profile?.school_id
+    const sid =
+      memberRes3.data?.school_id ??
+      adminRes3.data?.school_id ??
+      profile?.school_id ??
+      null
+
     setSchoolId(sid)
+
+    if (!sid) {
+      setBursar(null)
+      setStaff([])
+      setRequiresDual(true)
+      setLoading(false)
+      return
+    }
+
     const [
       { data: bursarRow },
       { data: staffRows },
@@ -131,8 +145,34 @@ export default function FinanceSettingsPage() {
       supabase
         .from('schools').select('requires_dual_approval').eq('id', sid).single(),
     ])
-    setBursar(bursarRow ?? null)
-    setStaff(staffRows ?? [])
+    setBursar(
+      bursarRow && bursarRow.profile_id
+        ? {
+            id: bursarRow.id,
+            profile_id: bursarRow.profile_id,
+            appointed_at:
+              bursarRow.appointed_at ??
+              new Date(0).toISOString(),
+            profile: Array.isArray(bursarRow.profile)
+              ? bursarRow.profile[0] ?? null
+              : bursarRow.profile,
+            appointed_by_profile: Array.isArray(
+              bursarRow.appointed_by_profile
+            )
+              ? bursarRow.appointed_by_profile[0] ?? null
+              : bursarRow.appointed_by_profile,
+          }
+        : null
+    )
+
+    setStaff(
+      (staffRows ?? []).map(row => ({
+        id: row.id,
+        full_name: row.full_name,
+        role: row.role ?? 'staff',
+      }))
+    )
+
     setRequiresDual(schoolRow?.requires_dual_approval ?? true)
     setLoading(false)
   }, [])
@@ -140,7 +180,7 @@ export default function FinanceSettingsPage() {
   useEffect(() => { load() }, [load])
 
   async function appointBursar() {
-    if (!selectedProfileId) return
+    if (!schoolId || !currentUserId || !selectedProfileId) return
     setAppointing(true)
     await supabase.from('finance_roles').insert({
       school_id: schoolId, profile_id: selectedProfileId,
@@ -148,8 +188,18 @@ export default function FinanceSettingsPage() {
       appointed_at: new Date().toISOString(),
     })
     await supabase.from('audit_logs').insert({
-      school_id: schoolId, actor_id: currentUserId,
-      event_type: 'bursar_appointed', payload: { profile_id: selectedProfileId },
+      actor_id: currentUserId,
+      actor_role: 'admin',
+      actor_snapshot: {
+        school_id: schoolId,
+      },
+      table_name: 'finance_roles',
+      table_record_id: selectedProfileId,
+      operation: 'bursar_appointed',
+      new_data: {
+        profile_id: selectedProfileId,
+        school_id: schoolId,
+      },
     })
     setSelectedProfileId('')
     setAppointing(false)
@@ -158,15 +208,25 @@ export default function FinanceSettingsPage() {
   }
 
   async function revokeBursar() {
-    if (!bursar) return
+    if (!schoolId || !currentUserId || !bursar) return
     setRevoking(true)
     await supabase
       .from('finance_roles')
       .update({ revoked_at: new Date().toISOString() })
       .eq('id', bursar.id)
     await supabase.from('audit_logs').insert({
-      school_id: schoolId, actor_id: currentUserId,
-      event_type: 'bursar_revoked', payload: { profile_id: bursar.profile_id },
+      actor_id: currentUserId,
+      actor_role: 'admin',
+      actor_snapshot: {
+        school_id: schoolId,
+      },
+      table_name: 'finance_roles',
+      table_record_id: bursar.id,
+      operation: 'bursar_revoked',
+      new_data: {
+        profile_id: bursar.profile_id,
+        school_id: schoolId,
+      },
     })
     setRevokeConfirm(false)
     setRevoking(false)
@@ -175,14 +235,24 @@ export default function FinanceSettingsPage() {
   }
 
   async function toggleDualApproval() {
+    if (!schoolId || !currentUserId) return
     setTogglingDual(true)
     await supabase
       .from('schools')
       .update({ requires_dual_approval: !requiresDual })
       .eq('id', schoolId)
     await supabase.from('audit_logs').insert({
-      school_id: schoolId, actor_id: currentUserId,
-      event_type: 'dual_approval_toggled', payload: { new_value: !requiresDual },
+      actor_id: currentUserId,
+      actor_role: 'admin',
+      actor_snapshot: {
+        school_id: schoolId,
+      },
+      table_name: 'schools',
+      table_record_id: schoolId,
+      operation: 'dual_approval_toggled',
+      new_data: {
+        requires_dual_approval: !requiresDual,
+      },
     })
     setDualToggleConfirm(false)
     setTogglingDual(false)

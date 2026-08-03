@@ -73,6 +73,7 @@ export default function TeacherHomeworkPage() {
 
       const stuCountMap = new Map<string, number>();
       for (const st of (stuRes.data ?? [])) {
+        if (!st.class_id) continue;
         stuCountMap.set(st.class_id, (stuCountMap.get(st.class_id) ?? 0) + 1);
       }
 

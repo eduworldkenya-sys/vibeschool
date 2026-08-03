@@ -36,9 +36,9 @@ function Skeleton({ h = 48 }: { h?: number }) {
   )
 }
 
-interface ClassRow { id: string; name: string; stream: string; subject: string }
-interface StudentRow { id: string; name: string; admission_number: string | null; class_id: string }
-interface FeeStructure { id: string; class_id: string; label: string; amount: number }
+interface ClassRow { id: string; name: string; stream: string | null; subject: string }
+interface StudentRow { id: string; name: string; admission_number: string | null; class_id: string | null }
+interface FeeStructure { id: string; class_id: string | null; label: string; amount: number }
 interface ExistingInvoice { student_id: string }
 interface PreviewRow {
   student: StudentRow; className: string; feeLines: FeeStructure[]
@@ -137,8 +137,18 @@ export default function GenerateInvoicesPage() {
         const studentFees = feeStructures.filter(f => f.class_id === student.class_id)
         const total = studentFees.reduce((s, f) => s + Number(f.amount), 0)
         const alreadyInvoiced = existingSet.has(student.id)
-        return { student, className: classMap[student.class_id] ?? "Unknown",
-          feeLines: studentFees, total, alreadyInvoiced, included: !alreadyInvoiced }
+        const className = student.class_id
+          ? classMap[student.class_id] ?? "Unknown"
+          : "Unassigned"
+
+        return {
+          student,
+          className,
+          feeLines: studentFees,
+          total,
+          alreadyInvoiced,
+          included: !alreadyInvoiced,
+        }
       })
       setPreviewRows(rows)
       setStep(2)

@@ -10,7 +10,7 @@ interface Evidence {
   standard:    number
   source:      string
   description: string
-  created_at:  string
+  created_at:  string | null
 }
 
 interface Appraisal {
@@ -83,7 +83,11 @@ function AutoPullButton({ appraisalId, userId, onAdded }: {
 
     if (!plans || plans.length === 0) { setPulling(false); return }
 
-    const desc = `Prepared ${plans.length} lesson plan${plans.length > 1 ? 's' : ''} this term. Topics include: ${plans.map((p: {topic: string; title: string}) => p.topic || p.title).filter(Boolean).slice(0, 3).join(', ')}.`
+    const desc = `Prepared ${plans.length} lesson plan${plans.length > 1 ? 's' : ''} this term. Topics include: ${plans
+      .map(p => p.topic ?? p.title ?? "")
+      .filter(Boolean)
+      .slice(0, 3)
+      .join(", ")}.`
 
     const { data: inserted } = await supabase
       .from('tpad_evidence')
@@ -359,7 +363,16 @@ export default function EvidencePage() {
                           {e.description}
                         </p>
                         <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
-                          {new Date(e.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {e.created_at
+                            ? new Date(e.created_at).toLocaleDateString(
+                                'en-KE',
+                                {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                }
+                              )
+                            : 'Date unavailable'}
                         </p>
                       </div>
                       <button

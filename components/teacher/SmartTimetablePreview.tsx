@@ -227,8 +227,26 @@ export default function SmartTimetablePreview() {
 
       if (!slots || !isMounted.current) return
       const slotIds    = slots.map((s: { id: string }) => s.id)
-      const subjectIds = Array.from(new Set(slots.map((s: { subject_id: string }) => s.subject_id).filter(Boolean)))
-      const classIds   = Array.from(new Set(slots.map((s: { class_id: string }) => s.class_id).filter(Boolean)))
+      const subjectIds: string[] = Array.from(
+        new Set(
+          slots
+            .map(slot => slot.subject_id)
+            .filter(
+              (id): id is string =>
+                typeof id === 'string' && id.length > 0
+            )
+        )
+      )
+      const classIds: string[] = Array.from(
+        new Set(
+          slots
+            .map(slot => slot.class_id)
+            .filter(
+              (id): id is string =>
+                typeof id === 'string' && id.length > 0
+            )
+        )
+      )
 
       const [subjectsRes, classesRes, attRes] = await Promise.all([
         subjectIds.length > 0
@@ -250,7 +268,14 @@ export default function SmartTimetablePreview() {
         classMap[c.id] = c.name + (c.stream ? ` ${c.stream}` : '')
       })
 
-      const markedIds = new Set((attRes.data ?? []).map((r: { timetable_slot_id: string }) => r.timetable_slot_id))
+      const markedIds = new Set(
+        (attRes.data ?? [])
+          .map(row => row.timetable_slot_id)
+          .filter(
+            (id): id is string =>
+              typeof id === 'string' && id.length > 0
+          )
+      )
 
       const mapped: Slot[] = slots.map((s) => ({
         id:               s.id,

@@ -4,6 +4,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
+
+type CreateChildArgs =
+  Database["public"]["Functions"]["create_child_for_parent"]["Args"];
+
+type NullableCreateChildArgs = {
+  p_name: string;
+  p_dob: string;
+  p_class_id: string | null;
+};
 
 const dark   = "#1e1b4b";
 const accent = "#10b981";
@@ -21,7 +31,7 @@ const COUNTIES = [
 interface ClassOption {
   id:     string;
   name:   string;
-  stream: string;
+  stream: string | null;
 }
 
 type Step    = "details" | "school" | "class" | "done";
@@ -75,7 +85,13 @@ export default function CreateChildPage() {
     setLoadingSubs(true);
     supabase.from("schools_directory").select("sub_county").eq("county", county)
       .then(({ data }) => {
-        const unique = Array.from(new Set((data ?? []).map((r: {sub_county:string}) => r.sub_county).filter(Boolean))).sort() as string[];
+        const unique = Array.from(
+          new Set(
+            (data ?? [])
+              .map(r => r.sub_county)
+              .filter((value): value is string => value !== null && value.length > 0)
+          )
+        ).sort();
         setSubCounties(unique);
         setLoadingSubs(false);
       });
@@ -135,9 +151,16 @@ export default function CreateChildPage() {
     setLoading(true); setError("");
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/"); return; }
-    const { data: studentId, error: stuErr } = await supabase.rpc("create_child_for_parent", {
-      p_name: childName.trim(), p_dob: childDob, p_class_id: null,
-    });
+    const args: NullableCreateChildArgs = {
+      p_name: childName.trim(),
+      p_dob: childDob,
+      p_class_id: null,
+    };
+
+    const { data: studentId, error: stuErr } = await supabase.rpc(
+      "create_child_for_parent",
+      args as unknown as CreateChildArgs
+    );
     if (stuErr || !studentId) { setLoading(false); setError("Failed to create child. Please try again."); return; }
     setLoading(false);
     setDoneMsg(`${childName.trim()} has been added to your account. You can link them to a school later.`);

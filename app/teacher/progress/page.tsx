@@ -4,7 +4,13 @@ export const dynamic = "force-dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
 import { nairobiDateStr } from "@/lib/time";
+
+type ProgressInsert =
+  Database["public"]["Tables"]["progress_records"]["Insert"];
+type ProgressUpdate =
+  Database["public"]["Tables"]["progress_records"]["Update"];
 import { C } from "@/components/teacher/ui";
 
 interface PlanOption {
@@ -181,8 +187,8 @@ export default function LessonNotesPage() {
     setNotes(noteList.map((n: any) => ({
       id:                  n.id,
       lesson_plan_id:      n.lesson_plan_id,
-      taught_date:         n.taught_date,
-      what_was_taught:     n.what_was_taught,
+      taught_date:         n.taught_date ?? nairobiDateStr(),
+      what_was_taught:     n.what_was_taught ?? "",
       participation_score: n.participation_score,
       challenges:          n.challenges,
       homework_set:        n.homework_set,
@@ -270,7 +276,7 @@ export default function LessonNotesPage() {
   async function syncHomeworkFromNote(
     planId: string, teacherId: string, schoolId: string | null, linkedPlan: PlanOption | null
   ) {
-    if (!homework.trim()) return
+    if (!homework.trim() || !schoolId) return
     const due = new Date()
     due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
     const { data: hw } = await supabase.from("homework").upsert({
@@ -306,7 +312,7 @@ export default function LessonNotesPage() {
     setError(null);
 
     const linkedPlan = plans.find(p => p.id === selectedPlan) ?? null;
-    const payload: Record<string, unknown> = {
+    const basePayload = {
       teacher_id:          tid,
       lesson_plan_id:      selectedPlan || null,
       class_id:            linkedPlan?.class_id   ?? null,
@@ -317,15 +323,15 @@ export default function LessonNotesPage() {
       challenges:          challenges.trim() || null,
       homework_set:        homework.trim()   || null,
       updated_at:          new Date().toISOString(),
-    };
-    if (sid) payload.school_id = sid;
+      ...(sid ? { school_id: sid } : {}),
+    } satisfies ProgressUpdate;
 
     try {
       const isEdit = editingNoteId.current !== null;
       if (isEdit) {
         const { error: upErr } = await supabase
           .from("progress_records")
-          .update(payload)
+          .update(basePayload)
           .eq("id", editingNoteId.current!)
           .eq("teacher_id", tid);
         if (upErr) throw upErr;
@@ -337,8 +343,16 @@ export default function LessonNotesPage() {
         await loadNotes(tid, sid);
         setView("list");
       } else {
-        payload.created_at = new Date().toISOString();
-        const { error: insErr } = await supabase.from("progress_records").insert(payload);
+        const insertPayload: ProgressInsert = {
+          ...basePayload,
+          teacher_id: tid,
+          what_was_taught: whatTaught.trim(),
+          created_at: new Date().toISOString(),
+        };
+
+        const { error: insErr } = await supabase
+          .from("progress_records")
+          .insert(insertPayload);
         if (insErr) throw insErr;
         if (selectedPlan) {
           try { await syncHomeworkFromNote(selectedPlan, tid, sid, linkedPlan); }

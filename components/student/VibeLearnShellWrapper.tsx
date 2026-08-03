@@ -26,6 +26,75 @@ interface VibeContent {
   created_at: string
 }
 
+function normalizeVibeContent(value: unknown): VibeContent | null {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Array.isArray(value)
+  ) {
+    return null
+  }
+
+  const row = value as Record<string, unknown>
+
+  if (
+    typeof row.id !== 'string' ||
+    typeof row.title !== 'string' ||
+    (row.type !== 'ebook' && row.type !== 'epage')
+  ) {
+    return null
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    description:
+      typeof row.description === 'string'
+        ? row.description
+        : null,
+    subject_id:
+      typeof row.subject_id === 'string'
+        ? row.subject_id
+        : null,
+    type: row.type,
+    url:
+      typeof row.url === 'string'
+        ? row.url
+        : '',
+    thumbnail_url:
+      typeof row.thumbnail_url === 'string'
+        ? row.thumbnail_url
+        : null,
+    tags: Array.isArray(row.tags)
+      ? row.tags.filter(
+          (tag): tag is string =>
+            typeof tag === 'string'
+        )
+      : [],
+    source:
+      typeof row.source === 'string'
+        ? row.source
+        : null,
+    view_count:
+      typeof row.view_count === 'number'
+        ? row.view_count
+        : 0,
+    created_at:
+      typeof row.created_at === 'string'
+        ? row.created_at
+        : '',
+  }
+}
+
+function normalizeVibeContentRows(
+  values: readonly unknown[]
+): VibeContent[] {
+  return values.flatMap(value => {
+    const normalized = normalizeVibeContent(value)
+    return normalized ? [normalized] : []
+  })
+}
+
 const BG      = '#090D16'
 const SURFACE = '#111827'
 const CARD    = '#1a2235'
@@ -157,7 +226,7 @@ function FeedTab({
         .order('created_at', { ascending: false })
         .limit(50)
       if (err) throw err
-      setItems(data ?? [])
+      setItems(normalizeVibeContentRows(data ?? []))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load feed')
     } finally {
@@ -253,7 +322,7 @@ function IndexerTab({
       if (f !== 'all') req = req.eq('type', f)
       const { data, error: err } = await req
       if (err) throw err
-      setResults(data ?? [])
+      setResults(normalizeVibeContentRows(data ?? []))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed')
     } finally {
@@ -367,13 +436,17 @@ function LibraryTab({
           .eq('student_id', user.id)
           .order('saved_at', { ascending: false })
         if (err) throw err
-        const contents = (data ?? [])
-          .map((row: { content_id: string; vibelearn_content: unknown }) => {
-            const vc = row.vibelearn_content
-            if (Array.isArray(vc)) return vc[0] as VibeContent
-            return vc as VibeContent
-          })
-          .filter((item): item is VibeContent => Boolean(item))
+        const contents = (data ?? []).flatMap(row => {
+          const related = row.vibelearn_content
+
+          if (Array.isArray(related)) {
+            return normalizeVibeContentRows(related)
+          }
+
+          const normalized = normalizeVibeContent(related)
+          return normalized ? [normalized] : []
+        })
+
         setItems(contents)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load library')
@@ -486,12 +559,16 @@ export default function VibeLearnShellWrapper({
         ])
         if (savedRes.data) {
           const s = new Set<string>()
-          savedRes.data.forEach((r: { content_id: string }) => s.add(r.content_id))
+          savedRes.data.forEach(row => {
+            if (row.content_id) s.add(row.content_id)
+          })
           setSavedIds(s)
         }
         if (completedRes.data) {
           const c = new Set<string>()
-          completedRes.data.forEach((r: { content_id: string }) => c.add(r.content_id))
+          completedRes.data.forEach(row => {
+            if (row.content_id) c.add(row.content_id)
+          })
           setCompletedIds(c)
         }
       } catch {

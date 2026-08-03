@@ -4,6 +4,10 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
+
+type ReportRemarkInsert =
+  Database["public"]["Tables"]["report_card_remarks"]["Insert"];
 
 const C = {
   bg:"#f4f4f5",surface:"#ffffff",border:"#e4e4e7",text:"#18181b",textSoft:"#52525b",textMuted:"#a1a1aa",
@@ -163,8 +167,24 @@ function ReportCardInner(){
     const sid=profile?.school_id??null;setSchoolId(sid);
     if(sid){const{data:school}=await supabase.from("schools").select("name").eq("id",sid).maybeSingle();setSchoolName(school?.name??"");}
     const{data:dbSt}=await supabase.from("students").select("id,name,admission_number").eq("id",studentId).maybeSingle();
-    if(dbSt)setStudent({id:dbSt.id,name:dbSt.name,admission:dbSt.admission_number});
-    else{const{data:ms}=await supabase.from("manual_students").select("id,name,class_name").eq("id",studentId).maybeSingle();if(ms)setStudent({id:ms.id,name:ms.name,class_name:ms.class_name});}
+    if(dbSt)setStudent({
+      id:dbSt.id,
+      name:dbSt.name,
+      admission:dbSt.admission_number??undefined
+    });
+    else{
+      const{data:ms}=await supabase
+        .from("manual_students")
+        .select("id,name,class_name")
+        .eq("id",studentId)
+        .maybeSingle();
+
+      if(ms)setStudent({
+        id:ms.id,
+        name:ms.name,
+        class_name:ms.class_name??undefined
+      });
+    }
     if(!examId){setLoading(false);return;}
     const{data:examData}=await supabase.from("exams").select("*").eq("id",examId).maybeSingle();
     if(examData)setExam(examData as Exam);
@@ -189,7 +209,31 @@ function ReportCardInner(){
       const strandIds=Array.from(new Set(cbc.map(r=>r.strand_id)));
       if(strandIds.length){const{data:strandsData}=await supabase.from("cbc_strands").select("id,name").in("id",strandIds);setStrands((strandsData??[]) as Strand[]);}
       if(cid){
-        const{data:allExams}=await supabase.from("exams").select("id,name,term,academic_year,exam_type").eq("class_id",cid).order("academic_year",{ascending:true}).order("term",{ascending:true});
+        const { data: classExamRows } = await supabase
+          .from("exam_results")
+          .select("exam_id")
+          .eq("class_id", cid);
+
+        const classExamIds = Array.from(
+          new Set(
+            (classExamRows ?? [])
+              .map(row => row.exam_id)
+              .filter(
+                (id): id is string =>
+                  typeof id === "string" && id.length > 0
+              )
+          )
+        );
+
+        const { data: allExams } = classExamIds.length
+          ? await supabase
+              .from("exams")
+              .select("id,name,term,academic_year,exam_type")
+              .in("id", classExamIds)
+              .order("academic_year",{ascending:true})
+              .order("term",{ascending:true})
+          : { data: [] };
+
         if(allExams&&allExams.length>1){
           const histItems:TermHistory[]=[];
           for(const ex of allExams as Exam[]){
@@ -212,10 +256,29 @@ function ReportCardInner(){
   }
 
   async function saveRemarks(){
-    if(!examId||!teacherId||!studentId)return;
+    if(
+      !examId||
+      !teacherId||
+      !studentId||
+      !schoolId||
+      !classId
+    )return;
+
     setSavingRem(true);
-    const payload={exam_id:examId,student_id:studentId,class_teacher_id:teacherId,remarks:draftRemarks.trim()||null,conduct:draftConduct.trim()||null,school_id:schoolId,class_id:classId};
-    await supabase.from("report_card_remarks").upsert(payload,{onConflict:"exam_id,student_id"});
+
+    const payload: ReportRemarkInsert = {
+      exam_id:examId,
+      student_id:studentId,
+      class_teacher_id:teacherId,
+      remarks:draftRemarks.trim()||null,
+      conduct:draftConduct.trim()||null,
+      school_id:schoolId,
+      class_id:classId
+    };
+
+    await supabase
+      .from("report_card_remarks")
+      .upsert(payload,{onConflict:"exam_id,student_id"});
     setRemarks({remarks:payload.remarks??null,conduct:payload.conduct??null});
     setEditRemarks(false);setSavingRem(false);
   }

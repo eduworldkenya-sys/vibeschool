@@ -139,26 +139,35 @@ export default function VisitorsPage() {
     }
   }
   async function handleAddVisitor() {
+    if (!schoolId || !userId) {
+      showToast("School session is unavailable. Refresh and try again.", "error")
+      return
+    }
+
+    const validSchoolId: string = schoolId
+    const validUserId: string = userId
+
     if (!form.full_name.trim()) { showToast("Enter visitor name", "error"); return }
+    if (!form.purpose.trim()) { showToast("Enter visit purpose", "error"); return }
     if (!form.visiting_whom.trim()) { showToast("Enter who they are visiting", "error"); return }
     setSaving(true)
     try {
       const { error } = await supabase.from("admin_visitors").insert({
-        school_id:     schoolId,
+        school_id:     validSchoolId,
         full_name:     form.full_name.trim(),
         phone:         form.phone.trim() || null,
         id_number:     form.id_number.trim() || null,
-        purpose:       form.purpose.trim() || null,
+        purpose:       form.purpose.trim(),
         visiting_whom: form.visiting_whom.trim(),
         time_in:       new Date().toISOString(),
-        recorded_by:   userId,
+        recorded_by:   validUserId,
         flagged:       false,
       })
       if (error) throw error
       showToast("Visitor logged")
       setShowModal(false)
       setForm({ full_name: "", phone: "", id_number: "", purpose: "", visiting_whom: "" })
-      await load(schoolId)
+      await load(validSchoolId)
     } catch (e: unknown) {
       showToast(e instanceof Error ? e.message : "Failed to log visitor", "error")
     } finally { setSaving(false) }

@@ -62,7 +62,7 @@ export default function StudentsOnboardingPage() {
     for (const s of valid) {
       const { error: insertErr } = await supabase.rpc('teacher_add_student', {
         p_name:             s.name.trim(),
-        p_admission_number: s.admission_number.trim() || null,
+        p_admission_number: s.admission_number.trim() || undefined,
         p_class_id:         tcData.class_id,
         p_school_id:        tcData.school_id,
       })

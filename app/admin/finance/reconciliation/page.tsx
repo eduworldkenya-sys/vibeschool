@@ -88,15 +88,15 @@ interface ParsedSMS {
 
 interface MpesaStatement {
   id: string
-  raw_message: string
-  amount: number
-  reference: string
-  sender_phone: string
-  sender_name: string
-  transaction_date: string
+  raw_message: string | null
+  amount: number | null
+  reference: string | null
+  sender_phone: string | null
+  sender_name: string | null
+  transaction_date: string | null
   matched_payment_id: string | null
   status: string
-  created_at: string
+  created_at: string | null
 }
 
 interface UnpaidInvoice {
@@ -309,6 +309,12 @@ export default function ReconciliationPage() {
           .insert({ school_id: schoolId, last_number: nextNum, prefix: "REC", updated_at: new Date().toISOString() })
       }
 
+      if (matchModal.amount == null) {
+        throw new Error("This M-Pesa statement has no amount and cannot be matched.")
+      }
+
+      const matchedAmount = matchModal.amount
+
       // Insert payment
       const { data: newPayment, error: payErr } = await supabase
         .from("finance_payments")
@@ -316,7 +322,7 @@ export default function ReconciliationPage() {
           school_id: schoolId,
           invoice_id: selectedInvoiceId,
           student_id: invoice.student_id,
-          amount: matchModal.amount,
+          amount: matchedAmount,
           method: "mpesa",
           reference: matchModal.reference,
           receipt_number: receiptNumber,
@@ -330,7 +336,7 @@ export default function ReconciliationPage() {
       if (payErr) throw payErr
 
       // Update invoice paid_amount
-      const newPaid = (invoice.paid_amount ?? 0) + matchModal.amount
+      const newPaid = (invoice.paid_amount ?? 0) + matchedAmount
       const newStatus = newPaid >= invoice.total_amount ? "paid" : "partial"
       await supabase.from("finance_invoices")
         .update({ paid_amount: newPaid, status: newStatus, updated_at: new Date().toISOString() })
@@ -494,7 +500,7 @@ export default function ReconciliationPage() {
                         <span style={{ fontFamily: "monospace", fontSize: 12, color: accent, fontWeight: 700 }}>{s.reference}</span>
                         <StatusChip status={s.status} />
                       </div>
-                      <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 700 }}>{fmt(s.amount)}</p>
+                      <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 700 }}>{fmt(s.amount ?? 0)}</p>
                       <p style={{ margin: 0, fontSize: 12, color: muted }}>
                         {s.sender_name} {s.sender_phone} · {s.transaction_date ? new Date(s.transaction_date).toLocaleDateString("en-KE") : ""}
                       </p>
@@ -535,7 +541,7 @@ export default function ReconciliationPage() {
                         <span style={{ fontFamily: "monospace", fontSize: 12, color: accent, fontWeight: 700 }}>{s.reference}</span>
                         <StatusChip status={s.status} />
                       </div>
-                      <p style={{ margin: 0, fontSize: 12, color: muted }}>{s.sender_name} · {fmt(s.amount)}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: muted }}>{s.sender_name} · {fmt(s.amount ?? 0)}</p>
                     </div>
                     <span style={{ fontSize: 12, color: muted }}>
                       {s.transaction_date ? new Date(s.transaction_date).toLocaleDateString("en-KE") : ""}
@@ -554,7 +560,7 @@ export default function ReconciliationPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 12, padding: 14 }}>
               <p style={{ margin: "0 0 4px", fontSize: 12, color: muted, fontWeight: 600, textTransform: "uppercase" }}>Statement</p>
-              <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 700 }}>{fmt(matchModal.amount)}</p>
+              <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 700 }}>{fmt(matchModal.amount ?? 0)}</p>
               <p style={{ margin: 0, fontSize: 12, color: muted }}>{matchModal.reference} · {matchModal.sender_name} {matchModal.sender_phone}</p>
             </div>
             <div>

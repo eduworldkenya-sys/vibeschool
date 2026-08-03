@@ -1,5 +1,4 @@
-"use client";
-'use client'
+"use client"
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -66,18 +65,23 @@ export default function VibeActionDock({ contentId, userId, progress, onNext }: 
     if (progress >= 80 && !visible) setVisible(true)
   }, [progress, visible])
 
-  // Load saved + rating state
+  // Load saved state. Ratings are currently session-local because
+  // no vibelearn_ratings table exists in the live schema.
   useEffect(() => {
     if (!visible) return
+
     async function load() {
-      const [saveRes, rateRes] = await Promise.all([
-        supabase.from('vibelearn_saved').select('id').eq('content_id', contentId).eq('user_id', userId).maybeSingle(),
-        supabase.from('vibelearn_ratings').select('stars').eq('content_id', contentId).eq('user_id', userId).maybeSingle(),
-      ])
+      const saveRes = await supabase
+        .from('vibelearn_saved')
+        .select('id')
+        .eq('content_id', contentId)
+        .eq('student_id', userId)
+        .maybeSingle()
+
       if (!mounted.current) return
-      setSaved(!!saveRes.data)
-      setRating(rateRes.data?.stars ?? null)
+      setSaved(Boolean(saveRes.data))
     }
+
     load()
   }, [visible, contentId, userId])
 
@@ -88,9 +92,15 @@ export default function VibeActionDock({ contentId, userId, progress, onNext }: 
     setSaved(next)
     try {
       if (next) {
-        await supabase.from('vibelearn_saved').insert({ content_id: contentId, user_id: userId })
+        await supabase
+          .from('vibelearn_saved')
+          .insert({ content_id: contentId, student_id: userId })
       } else {
-        await supabase.from('vibelearn_saved').delete().eq('content_id', contentId).eq('user_id', userId)
+        await supabase
+          .from('vibelearn_saved')
+          .delete()
+          .eq('content_id', contentId)
+          .eq('student_id', userId)
       }
     } catch {
       if (mounted.current) setSaved(!next)
@@ -112,18 +122,12 @@ export default function VibeActionDock({ contentId, userId, progress, onNext }: 
 
   async function handleRate(stars: number) {
     if (ratingBusy) return
+
     setRatingBusy(true)
     setRating(stars)
-    try {
-      await supabase.from('vibelearn_ratings').upsert(
-        { content_id: contentId, user_id: userId, stars },
-        { onConflict: 'content_id,user_id' }
-      )
-    } catch {
-      // silent — optimistic kept
-    } finally {
-      if (mounted.current) setRatingBusy(false)
-    }
+
+    // Session-local until a persisted ratings table and RLS contract exist.
+    if (mounted.current) setRatingBusy(false)
   }
 
   function handleAction(id: string) {

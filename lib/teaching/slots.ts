@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/lib/database.types'
 import type {
   CancelRecoveryResult,
   RecoveryScheduleResult,
@@ -63,10 +64,20 @@ function normalizeError(error: { message?: string | null } | null | undefined): 
   return new SlotRpcError(code ?? 'unknown', raw || 'Timetable operation failed.', error)
 }
 
-async function callRpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args)
+type RpcName = keyof Database["public"]["Functions"]
+
+async function callRpc<T>(
+  fn: RpcName,
+  args: Record<string, unknown>
+): Promise<T> {
+  const { data, error } = await supabase.rpc(
+    fn,
+    args as never
+  )
+
   if (error) throw normalizeError(error)
-  return data as T
+
+  return data as unknown as T
 }
 
 // ── Fix 20: editing ────────────────────────────────────────────────────────

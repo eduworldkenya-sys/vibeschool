@@ -5,7 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 
 
-interface TermOption { id: string; name: string }
+interface TermOption {
+  id: string
+  name: string
+  start_date: string
+  end_date: string
+}
 interface ClassOption { id: string; name: string }
 interface AttendanceRow {
   student_name: string
@@ -33,7 +38,7 @@ export default function AttendanceReportPage() {
   useEffect(() => {
     async function loadFilters() {
       const [{ data: termData }, { data: classData }] = await Promise.all([
-        supabase.from('academic_terms').select('id, name').order('start_date', { ascending: false }),
+        supabase.from('academic_terms').select('id, name, start_date, end_date').order('start_date', { ascending: false }),
         supabase.from('classes').select('id, name').order('name'),
       ])
       if (termData) setTerms(termData)
@@ -48,6 +53,9 @@ export default function AttendanceReportPage() {
   }, [selectedTerm, selectedClass])
 
   async function fetchAttendance() {
+    const term = terms.find(t => t.id === selectedTerm)
+    if (!term) return
+
     setLoading(true)
     try {
       let query = supabase
@@ -57,7 +65,8 @@ export default function AttendanceReportPage() {
           students(name, admission_number),
           classes(name)
         `)
-        .eq('term_id', selectedTerm)
+        .gte('date', term.start_date)
+        .lte('date', term.end_date)
 
       if (selectedClass) query = query.eq('class_id', selectedClass)
 

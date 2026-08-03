@@ -23,8 +23,8 @@ interface BankAccount {
   id:              string
   name:            string
   type:            string
-  current_balance: number
-  is_active:       boolean
+  current_balance: number | null
+  is_active:       boolean | null
 }
 
 interface InvoiceRow {
@@ -37,7 +37,7 @@ interface InvoiceRow {
   total_amount: number
   paid_amount:  number
   due_date:     string | null
-  created_at:   string
+  created_at:   string | null
 }
 
 interface PaymentRow {
@@ -48,7 +48,7 @@ interface PaymentRow {
   method:         string
   reference:      string | null
   receipt_number: string | null
-  received_at:    string
+  received_at:    string | null
   notes:          string | null
 }
 
@@ -237,17 +237,15 @@ export default function FinancePage() {
         ;(studs ?? []).forEach((s: { id: string; name: string }) => { studentMap[s.id] = s.name })
       }
 
-      const invoiceRows: InvoiceRow[] = rawInv.map((i: {
-        id: string; student_id: string; term: string; year: number;
-        status: string; total_amount: number; paid_amount: number;
-        due_date: string | null; created_at: string
-      }) => ({ ...i, student_name: studentMap[i.student_id] ?? "Unknown" }))
+      const invoiceRows: InvoiceRow[] = rawInv.map(i => ({
+        ...i,
+        student_name: studentMap[i.student_id] ?? "Unknown",
+      }))
 
-      const paymentRows: PaymentRow[] = rawPay.map((p: {
-        id: string; student_id: string; amount: number; method: string;
-        reference: string | null; receipt_number: string | null;
-        received_at: string; notes: string | null
-      }) => ({ ...p, student_name: studentMap[p.student_id] ?? "Unknown" }))
+      const paymentRows: PaymentRow[] = rawPay.map(p => ({
+        ...p,
+        student_name: studentMap[p.student_id] ?? "Unknown",
+      }))
 
       const accountRows: BankAccount[] = accRes.data ?? []
       const expenseRows: ExpenseRow[]  = expRes.data ?? []
@@ -573,7 +571,12 @@ export default function FinancePage() {
                 <div key={p.id} style={{ marginBottom: "10px" }}>
                   <div style={{ fontSize: "12px", fontWeight: "600", marginBottom: "1px" }}>{p.student_name}</div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "11px", color: muted }}>{new Date(p.received_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</span>
+                    <span style={{ fontSize: "11px", color: muted }}>{p.received_at
+  ? new Date(p.received_at).toLocaleDateString("en-KE", {
+      day: "numeric",
+      month: "short",
+    })
+  : "—"}</span>
                     <span style={{ fontSize: "12px", fontWeight: "700", color: accent }}>{fmtK(Number(p.amount))}</span>
                   </div>
                 </div>
@@ -686,7 +689,13 @@ export default function FinancePage() {
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: "16px", fontWeight: "800", color: accent }}>{fmt(Number(pay.amount))}</div>
-                    <div style={{ fontSize: "11px", color: muted, marginTop: "2px" }}>{new Date(pay.received_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</div>
+                    <div style={{ fontSize: "11px", color: muted, marginTop: "2px" }}>{pay.received_at
+  ? new Date(pay.received_at).toLocaleDateString("en-KE", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
+  : "—"}</div>
                   </div>
                   <MethodIcon method={pay.method} />
                 </div>

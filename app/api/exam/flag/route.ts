@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabaseServer'
 
-const supabase = getSupabaseServerClient()
-
 // Dismiss a bank question once it accumulates this many error flags
 const FLAG_DISMISS_THRESHOLD = 3
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = getSupabaseServerClient()
     const { questionId, bankId, type, reason } = await req.json()
 
     if (!questionId || !type) {

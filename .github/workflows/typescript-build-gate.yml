@@ -1,0 +1,53 @@
+name: TypeScript and Production Build Gate
+
+on:
+  push:
+    branches:
+      - main
+      - ce-type-001
+      - ce-fe-001
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: typescript-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Full Linux validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: TypeScript — report all errors
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Next.js production build
+        run: npm run build
