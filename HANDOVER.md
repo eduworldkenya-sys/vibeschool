@@ -20,15 +20,15 @@ TIMETABLE
 
 Active fix
 
-FIX ID: TBL-011
-TITLE: Run isolated clean rebuild
+FIX ID: TBL-012
+TITLE: Compare rebuilt schema with target schema
 STATUS: OPEN
 PRIORITY: P0
 
 Previous verified fix
 
-FIX ID: TBL-010
-TITLE: Recover required core RLS policies
+FIX ID: TBL-011
+TITLE: Run isolated clean rebuild
 STATUS: VERIFIED
 
 Current branch
@@ -1982,3 +1982,69 @@ Next fix
 
 TBL-011 — Run isolated clean rebuild and prove the complete repository
 migration chain reaches the intended final schema and RLS state.
+
+---
+
+TBL-011 VERIFIED HANDOVER
+
+Objective
+
+Prove that the complete repository migration chain can rebuild an isolated
+blank database and reach the required final timetable schema and RLS state.
+
+Implementation
+
+- Added .github/workflows/tbl011-clean-rebuild.yml.
+- Added scripts/sql/tbl011_clean_rebuild_verify.sql.
+- Added scripts/validate-tbl011-clean-rebuild.py.
+- Added scripts/test-tbl011-clean-rebuild.py.
+- The workflow runs on a disposable GitHub-hosted Ubuntu runner.
+- It starts a local Docker Supabase stack.
+- It runs supabase db reset --local --no-seed.
+- It applies the complete repository migration chain from blank state.
+- It verifies the final migration-ledger count.
+- It verifies core timetable tables, RLS enablement and required policies.
+- It uploads immutable rebuild evidence.
+- It destroys the isolated local database after execution.
+
+Safety controls
+
+- No Supabase production project is linked.
+- No production environment or production secrets are used.
+- No --linked migration command is permitted.
+- No db push or migration repair command is permitted.
+- Repository permissions are read-only.
+- The local database is destroyed without backup after the run.
+- Static refusal tests prove unsafe workflow mutations are rejected.
+
+Verification evidence
+
+- Python syntax checks passed.
+- Authoritative workflow static validation passed.
+- Production-link mutation was rejected.
+- Linked reset mutation was rejected.
+- Reset without --local was rejected.
+- Repository write permission was rejected.
+- Missing cleanup was rejected.
+- Missing final SQL verifier was rejected.
+- Production access-token use was rejected.
+- Missing SQL success marker was rejected.
+- SQL without ON_ERROR_STOP was rejected.
+- GitHub Actions manual clean-rebuild run completed successfully.
+- The blank local database accepted the complete migration chain.
+- Final timetable schema and RLS verification completed successfully.
+
+Database and production impact
+
+None. Only a disposable local Supabase database on the GitHub Actions runner
+was created and destroyed. Production project yauqsxggtuxuykcbrtzf was not
+linked, queried, reset or modified.
+
+Acceptance result
+
+VERIFIED. The full repository migration chain succeeds from blank state and
+reaches the intended final timetable security contract.
+
+Next fix
+
+TBL-012 — Compare rebuilt schema with target schema.
