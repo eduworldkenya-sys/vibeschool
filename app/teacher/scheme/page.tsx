@@ -5,7 +5,11 @@ import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from 'rea
 import { useSearchParams, useRouter } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/lib/database.types'
 import { getContentForSubject, resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
+
+type SchemeUpdate =
+  Database["public"]["Tables"]["scheme_of_work"]["Update"]
 import { SchemeOfWorkPrint } from '@/components/scheme/SchemeOfWorkPrint'
 
 // ── DESIGN TOKENS (exact app colors) ──────────────────────────
@@ -852,9 +856,21 @@ function SchemePageInner() {
 
   async function updateTscField(itemId: string, field: TscOverrideField, value: string) {
     if (!schoolId || !uid) return
+
+    const normalizedValue = value || null
+
+    const updatePayload: SchemeUpdate =
+      field === 'key_inquiry_question'
+        ? { key_inquiry_question: normalizedValue }
+        : field === 'learning_resources'
+          ? { learning_resources: normalizedValue }
+          : field === 'assessment_methods'
+            ? { assessment_methods: normalizedValue }
+            : { learning_experiences: normalizedValue }
+
     const { error } = await supabase
       .from('scheme_of_work')
-      .update({ [field]: value || null })
+      .update(updatePayload)
       .eq('id', itemId)
       .eq('school_id', schoolId)
       .eq('teacher_id', uid)

@@ -6,7 +6,11 @@ import { Card, C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/lib/database.types'
 import { useRouter } from 'next/navigation'
+
+type TeacherClassInsert =
+  Database["public"]["Tables"]["teacher_classes"]["Insert"]
 
 const CBC_SUBJECTS = [
   'Mathematics', 'English', 'Kiswahili', 'Science and Technology',
@@ -186,7 +190,12 @@ export default function SubjectHubPage() {
       .eq('teacher_id', currentId)
       .eq('subject_id', subjectId)
 
-    const classIds = (tcData ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
+    const classIds: string[] = (tcData ?? [])
+      .map(row => row.class_id)
+      .filter(
+        (id): id is string =>
+          typeof id === 'string' && id.length > 0
+      )
 
     if (classIds.length === 0) { setClasses([]); setAttRateByClass({}); setClassLoading(false); return }
 
@@ -200,8 +209,11 @@ export default function SubjectHubPage() {
     ])
 
     const counts: Record<string, number> = {}
-    for (const s of studentRes.data ?? []) {
-      counts[s.class_id] = (counts[s.class_id] ?? 0) + 1
+    for (const student of studentRes.data ?? []) {
+      if (!student.class_id) continue
+
+      counts[student.class_id] =
+        (counts[student.class_id] ?? 0) + 1
     }
 
     const PERF_SCORE: Record<string, number> = {
@@ -219,16 +231,22 @@ export default function SubjectHubPage() {
       classPerfTotals[row.class_id] = { sum: prev.sum + score, count: prev.count + 1 }
     }
 
-    const mapped: ClassForSubject[] = (classRes.data ?? []).map((c: { id: string; name: string; stream: string }) => {
-      const perf = classPerfTotals[c.id]
-      return {
-        id:           c.id,
-        name:         c.name,
-        stream:       c.stream,
-        studentCount: counts[c.id] ?? 0,
-        perfPct:      perf ? Math.round((perf.sum / (perf.count * 4)) * 100) : null,
-      }
-    })
+    const mapped: ClassForSubject[] =
+      (classRes.data ?? []).map(classRow => {
+        const perf = classPerfTotals[classRow.id]
+
+        return {
+          id:           classRow.id,
+          name:         classRow.name,
+          stream:       classRow.stream ?? '',
+          studentCount: counts[classRow.id] ?? 0,
+          perfPct:      perf
+            ? Math.round(
+                (perf.sum / (perf.count * 4)) * 100
+              )
+            : null,
+        }
+      })
 
     setClasses(mapped)
 
@@ -371,14 +389,30 @@ export default function SubjectHubPage() {
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('id, strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       schoolId ? supabase.from('scheme_of_work').select('curriculum_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
-      supabase.from('attendance').select('id, date').eq('teacher_id', currentId).eq('subject_id', subjectId).gte('date', weekAgo),
+      supabase
+        .from('attendance')
+        .select('id, date, timetable_slot_id')
+        .eq('teacher_id', currentId)
+        .gte('date', weekAgo),
       canonicalSlotsPromise,
       Promise.resolve({ data: [] }),
     ])
 
     const lCount = lpRes.data?.length ?? 0
     const aCount = assRes.data?.length ?? 0
-    const atCount = attRes.data?.length ?? 0
+
+    const subjectSlotIds = new Set(
+      canonicalSlots
+        .filter(slot => slot.subject_id === subjectId)
+        .map(slot => slot.id)
+    )
+
+    const atCount = (attRes.data ?? []).filter(row =>
+      row.timetable_slot_id
+        ? subjectSlotIds.has(row.timetable_slot_id)
+        : false
+    ).length
+
     const rCount = resRes.data?.length ?? 0
 
     setLessonCount(lCount)
@@ -565,14 +599,25 @@ export default function SubjectHubPage() {
       subjectId = newSub.id
     }
 
-    const tcRow: Record<string, unknown> = {
+    if (!classSchoolId || !newSubjectClassId) {
+      setAddSubjectError(
+        'Select a class with a valid school before linking the subject'
+      )
+      setAddingSubject(false)
+      return
+    }
+
+    const tcRow: TeacherClassInsert = {
       teacher_id:       currentId,
       subject_id:       subjectId,
       school_id:        classSchoolId,
+      class_id:         newSubjectClassId,
       is_class_teacher: false,
     }
-    if (newSubjectClassId) tcRow.class_id = newSubjectClassId
-    const { error: tcErr } = await supabase.from('teacher_classes').insert(tcRow)
+
+    const { error: tcErr } = await supabase
+      .from('teacher_classes')
+      .insert(tcRow)
     if (tcErr) { console.error('teacher_classes insert error:', tcErr); setAddSubjectError('Failed to link subject: ' + (tcErr.message ?? tcErr.code ?? 'unknown')); setAddingSubject(false); return }
 
     const newEntry = { id: subjectId, name: newSubjectName.trim() }
