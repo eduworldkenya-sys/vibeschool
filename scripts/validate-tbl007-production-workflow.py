@@ -26,6 +26,15 @@ required = {
         "EXPECTED_CONFIRMATION="
         '"REPAIR $VERSION $STATUS ON $EXPECTED_PROJECT_REF"'
     ),
+    "canonical TBL-009 request": (
+        "python3 scripts/tbl009-repair-request.py"
+    ),
+    "normalized request evidence": (
+        "normalized-repair-request.json"
+    ),
+    "workflow request source": (
+        '"source": "workflow_dispatch"'
+    ),
     "classification validator": (
         "python3 scripts/validate-migration-classification.py"
     ),

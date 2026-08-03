@@ -56,6 +56,38 @@ jobs:
           ref: ${{ inputs.expected_head }}
           fetch-depth: 0
 
+      - name: Normalize canonical repair request
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tbl007-artifacts
+
+          python3 - <<'PYREQUEST'
+          import json
+          from pathlib import Path
+
+          request = {
+              "migration_version": "${{ inputs.migration_version }}",
+              "repair_status": "${{ inputs.repair_status }}",
+              "expected_head": "${{ inputs.expected_head }}",
+              "approval_id": "${{ inputs.approval_id }}",
+              "confirmation": "${{ inputs.confirmation }}",
+              "project_ref": "yauqsxggtuxuykcbrtzf",
+              "environment": "PRODUCTION",
+              "branch": "main",
+              "source": "workflow_dispatch",
+          }
+
+          Path(
+              ".tbl007-artifacts/workflow-repair-request.json"
+          ).write_text(
+              json.dumps(request, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PYREQUEST
+
+          python3 scripts/tbl009-repair-request.py             --input .tbl007-artifacts/workflow-repair-request.json             --output .tbl007-artifacts/normalized-repair-request.json
+
       - name: Verify immutable workflow inputs
         shell: bash
         run: |
@@ -234,6 +266,18 @@ jobs:
             echo "status=${{ inputs.repair_status }}"
             echo "approval_id=${{ inputs.approval_id }}"
             echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo -n "request_sha256="
+            python3 - <<'PYHASH'
+            import json
+            from pathlib import Path
+
+            data = json.loads(
+                Path(
+                    ".tbl007-artifacts/normalized-repair-request.json"
+                ).read_text(encoding="utf-8")
+            )
+            print(data["request_sha256"])
+            PYHASH
           } > .tbl007-artifacts/repair-context.txt
 
           if supabase migration list --linked \
