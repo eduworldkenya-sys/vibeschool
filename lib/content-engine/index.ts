@@ -26,16 +26,24 @@ export type {
   ContentAssessmentBlueprint,
   ContentAssessmentSource,
   BuildParentLearningSummaryInput,
+  ChapterLearningOutcomeLink,
   ContentAssessmentType,
+  ContentBlockOutcomeLink,
   ContentEngineDailyMetric,
   ContentMetricFilters,
   CreateAssessmentBlueprintInput,
   CreateGeneratedAssessmentInput,
   ContentSubmissionEvidence,
+  CurriculumLearningOutcome,
+  CurriculumOutcomeFilters,
   LearningResource,
+  OutcomeAlignmentStrength,
+  OutcomeBlockRelationship,
   Publication,
   PublicationFilters,
   PublicationStatus,
+  ReplaceBlockOutcomeLinksInput,
+  ReplaceChapterOutcomeLinksInput,
   ResourceFilters,
   SaveSchemeResourceLinkInput,
   SchemeLessonResourceLink,
@@ -80,6 +88,15 @@ export {
   listActiveLearningResources,
   listChapterResources,
 } from './resources'
+
+export {
+  listChapterOutcomeLinks,
+  listContentBlockOutcomeLinks,
+  listVerifiedCurriculumOutcomes,
+  replaceBlockOutcomeLinks,
+  replaceChapterOutcomeLinks,
+  resolveContentBlockId,
+} from './outcomes'
 
 export {
   addResourceToClassLibrary,

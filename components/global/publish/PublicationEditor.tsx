@@ -6,6 +6,7 @@ import { usePublicationDraft } from '@/hooks/usePublicationDraft'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
 import { BlockToolbar } from '@/components/global/publish/BlockToolbar'
 import { ChapterSidebar } from '@/components/global/publish/ChapterSidebar'
+import { OutcomeSelector } from '@/components/global/publish/OutcomeSelector'
 import { PublicationSetupDrawer } from '@/components/global/publish/PublicationSetupDrawer'
 import { FORMAT_META, PublicationFormat, PublicationGenre } from '@/lib/publishTypes'
 
@@ -50,6 +51,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null)
   const [sidebarOpen,    setSidebarOpen]    = useState(false)
   const [setupOpen,      setSetupOpen]      = useState(false)
+  const [outcomesOpen,   setOutcomesOpen]   = useState(false)
   const [publishing,     setPublishing]     = useState(false)
   const [titleError,     setTitleError]     = useState(false)
 
@@ -342,6 +344,17 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>
               {activeChapter.word_count.toLocaleString()} words · {activeChapter.reading_time_min} min read
             </div>
+            <button
+              onClick={() => setOutcomesOpen(true)}
+              style={{
+                background: SURF, border: '1px solid ' + BORDER,
+                borderRadius: 8, padding: '6px 12px', marginBottom: 16,
+                color: TEXT, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              🎯 Curriculum Outcomes
+            </button>
             <div style={{ borderTop: '1px solid ' + BORDER, marginBottom: 16 }} />
           </>
         )}
@@ -401,6 +414,17 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         onUpdate={updatePublication}
         onPublish={async () => { const ok = await publishPublication(); return ok }}
       />
+
+      {activeChapter && (
+        <OutcomeSelector
+          isOpen={outcomesOpen}
+          onClose={() => setOutcomesOpen(false)}
+          publicationId={publication.id}
+          chapterId={activeChapter.id}
+          chapterLabel={`${meta.chapterLabel} ${activeChapter.number}: ${activeChapter.title || 'Untitled'}`}
+          ensureChapterSaved={forceSave}
+        />
+      )}
     </div>
   )
 }

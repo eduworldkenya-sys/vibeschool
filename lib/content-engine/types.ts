@@ -75,6 +75,15 @@ export type TeacherContentEngineSummary =
 export type ParentLearningSummary =
   PublicTables['parent_learning_summaries']['Row']
 
+export type CurriculumLearningOutcome =
+  PublicTables['curriculum_learning_outcomes']['Row']
+
+export type ChapterLearningOutcomeLink =
+  PublicTables['chapter_learning_outcome_links']['Row']
+
+export type ContentBlockOutcomeLink =
+  PublicTables['content_block_outcome_links']['Row']
+
 export type PublicationStatus = 'draft' | 'published' | 'unpublished'
 
 export type ParentLearningSummaryStatus =
@@ -158,6 +167,42 @@ export type SubmissionEvidenceType =
   | 'document'
   | 'link'
   | 'reading_progress'
+
+export type OutcomeAlignmentStrength =
+  | 'introduces'
+  | 'supports'
+  | 'assesses'
+  | 'masters'
+
+export type OutcomeBlockRelationship =
+  | 'explains'
+  | 'practises'
+  | 'assesses'
+  | 'remediates'
+  | 'enriches'
+  | 'supports'
+
+export interface CurriculumOutcomeFilters {
+  curriculumId?: string
+  subStrandId?: string
+  search?: string
+  limit?: number
+}
+
+export interface ReplaceChapterOutcomeLinksInput {
+  publicationId: string
+  chapterId: string
+  outcomeIds: string[]
+  alignmentStrength?: OutcomeAlignmentStrength
+}
+
+export interface ReplaceBlockOutcomeLinksInput {
+  publicationId: string
+  chapterId: string
+  contentBlockId: string
+  outcomeIds: string[]
+  relationship?: OutcomeBlockRelationship
+}
 
 export interface PublicationFilters {
   grade?: string

@@ -1539,3 +1539,63 @@ Known limitations:
 - Multi-row replacement is not one database transaction
 Next exact milestone:
 - CE-FE-003B2 — Author editor curriculum-outcome selection
+---
+
+## Content Engine frontend programme
+
+Milestone ID: CE-FE-003B2
+Status: IN PROGRESS — code written, zero on-device verification yet
+Problem found (not fixed, discovered):
+- lib/content-engine/outcomes.ts, marked COMPLETE in the CE-FE-003B1 entry
+  above, did not exist anywhere in the repo. Grepped for every table name
+  it should have referenced (chapter_learning_outcome_links,
+  content_block_outcome_links, curriculum_learning_outcomes) — the only
+  match in the whole tree was the generated database.types.ts. The prior
+  session's HANDOVER entry was written before the file was actually saved,
+  most likely lost to the same Termux clipboard/paste truncation problem
+  already flagged for READ-008G close-out.
+- Live DB was checked directly (Supabase project yauqsxggtuxuykcbrtzf, not
+  just local migration files): all three CE-004 tables and their five
+  supporting functions (ce_sync_chapter_learning_outcomes,
+  ce_validate_chapter_outcome_link, ce_validate_block_outcome_link, etc.)
+  exist and match 20260801183000_ce_004_learning_outcomes_curriculum_links.sql
+  exactly. The backend was never the problem.
+Files changed:
+- lib/content-engine/outcomes.ts (recreated from scratch against live schema)
+- lib/content-engine/types.ts
+- lib/content-engine/index.ts
+- components/global/publish/OutcomeSelector.tsx (new)
+- components/global/publish/PublicationEditor.tsx
+Database contracts used:
+- curriculum_learning_outcomes
+- chapter_learning_outcome_links
+- content_blocks (legacy_block_id resolution)
+- content_block_outcome_links
+Verification completed:
+- Bracket/brace balance check only (no tsc, no node_modules, no network in
+  the authoring sandbox this was written in)
+Verification NOT completed — do this before trusting the milestone:
+- `npx tsc --noEmit -p .` — has not been run against these files at all
+- Open a real chapter, click "Curriculum Outcomes", confirm the list loads
+  and search works
+- Select outcomes, Save, reload the chapter, confirm links persisted
+- Create a brand-new unsaved chapter, immediately click "Curriculum
+  Outcomes" — this is the exact race condition the ensureChapterSaved gate
+  is meant to cover; prove it actually blocks until forceSave() resolves
+- Confirm a non-author cannot write links (RLS: chapter_outcome_links_author_manage)
+- Block-level linking (replaceBlockOutcomeLinks, resolveContentBlockId) has
+  no UI wired up yet — only chapter-level linking has a button
+Known limitations:
+- OutcomeSelector re-fetches all verified outcomes on every search
+  keystroke (debounced 350ms) rather than client-side filtering; fine at
+  current outcome-bank size, revisit if it grows past a few hundred rows
+- No pagination on the outcome list (capped at 100 results)
+- Author-claimed outcomes (source_type='creator_claimed', auto-synced from
+  vibe_chapters.learning_outcomes by trigger) are a separate lineage from
+  what this selector manages; this selector only touches verified,
+  human-curated outcomes
+Next exact milestone:
+- Run the verification list above on-device. If it holds, CE-FE-003B2
+  becomes COMPLETE and the next milestone is block-level outcome UI
+  inside ContentBlockEditor.tsx using the already-written
+  replaceBlockOutcomeLinks/resolveContentBlockId functions.
