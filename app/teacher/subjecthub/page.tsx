@@ -13,6 +13,12 @@ import { Card, C } from '@/components/teacher/ui'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { resolveSchoolId } from '@/lib/school'
+import {
+  loadSubjectClassLibrary,
+} from '@/lib/content-engine/subjectClassLibrary'
+import type {
+  SubjectClassLibraryItem,
+} from '@/lib/content-engine/subjectClassLibrary'
 import type { Database } from '@/lib/database.types'
 import { useRouter } from 'next/navigation'
 
@@ -114,6 +120,12 @@ export default function SubjectHubPage() {
   const [aiSuggestion,     setAiSuggestion]     = useState<string | null>(null)
   const [dailyFact,        setDailyFact]        = useState<string | null>(null)
   const [resourceCount,    setResourceCount]    = useState<number>(0)
+  const [subjectLibraryItems, setSubjectLibraryItems] =
+    useState<SubjectClassLibraryItem[]>([])
+  const [subjectLibraryLoading, setSubjectLibraryLoading] =
+    useState(false)
+  const [subjectLibraryError, setSubjectLibraryError] =
+    useState<string | null>(null)
   const [suggLoading,      setSuggLoading]      = useState(false)
   const [weakStrand,       setWeakStrand]       = useState<{ name: string; pct: number } | null>(null)
   const [curriculumPct,    setCurriculumPct]    = useState<number | null>(null)
@@ -567,6 +579,31 @@ export default function SubjectHubPage() {
       ),
     )
 
+    setSubjectLibraryLoading(true)
+    setSubjectLibraryError(null)
+
+    try {
+      setSubjectLibraryItems(
+        await loadSubjectClassLibrary({
+          teacherId: currentId,
+          schoolId,
+          subjectId,
+          classIds: assignedClassIds,
+        }),
+      )
+    } catch (libraryError) {
+      console.error(
+        '[SubjectHub] class library load failed',
+        libraryError,
+      )
+      setSubjectLibraryItems([])
+      setSubjectLibraryError(
+        'Learning resources could not be loaded.',
+      )
+    } finally {
+      setSubjectLibraryLoading(false)
+    }
+
     // Fix 19: subjecthub has no selected-date context — active means today
     // in Africa/Nairobi (lib/time.ts is the single source of truth for this).
     const slotActiveDate = nairobiDateStr()
@@ -669,7 +706,9 @@ export default function SubjectHubPage() {
         .eq('teacher_id', currentId)
         .gte('date', weekAgo),
       canonicalSlotsPromise,
-      Promise.resolve({ data: [] }),
+      Promise.resolve({
+        data: subjectLibraryItems,
+      }),
     ])
 
     const lCount = lpRes.data?.length ?? 0
@@ -687,7 +726,7 @@ export default function SubjectHubPage() {
         : false
     ).length
 
-    const rCount = resRes.data?.length ?? 0
+    const rCount = subjectLibraryItems.length
 
     setLessonCount(lCount)
     setAssessCount(aCount)
@@ -1516,6 +1555,250 @@ export default function SubjectHubPage() {
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* ── SUBJECT CONTENT LIBRARY ── */}
+      {!loading && activeSubject && (
+        <div style={{
+          margin: '14px 16px 0',
+          background: '#fff',
+          borderRadius: 20,
+          overflow: 'hidden',
+          boxShadow:
+            '0 1px 4px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{
+            padding: '14px 16px',
+            borderBottom:
+              '1px solid #f3f4f6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent:
+              'space-between',
+            gap: 12,
+          }}>
+            <div>
+              <p style={{
+                fontSize: 10,
+                fontWeight: 800,
+                color: C.textMuted,
+                letterSpacing: 1.4,
+                textTransform:
+                  'uppercase',
+                margin: 0,
+              }}>
+                Subject Content
+              </p>
+
+              <p style={{
+                fontSize: 12,
+                color: C.textMuted,
+                margin: '3px 0 0',
+              }}>
+                VibeLearn resources adopted
+                for your {
+                  activeSubject.name
+                } classes
+              </p>
+            </div>
+
+            <div style={{
+              minWidth: 34,
+              height: 34,
+              borderRadius: 12,
+              background: '#ecfdf5',
+              color: '#047857',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent:
+                'center',
+              fontSize: 14,
+              fontWeight: 900,
+            }}>
+              {subjectLibraryItems.length}
+            </div>
+          </div>
+
+          {subjectLibraryLoading && (
+            <div style={{
+              padding: '14px 16px',
+            }}>
+              <Skeleton h={58} />
+            </div>
+          )}
+
+          {!subjectLibraryLoading &&
+            subjectLibraryError && (
+            <div style={{
+              padding: '14px 16px',
+              color: C.error,
+              fontSize: 12,
+            }}>
+              {subjectLibraryError}
+            </div>
+          )}
+
+          {!subjectLibraryLoading &&
+            !subjectLibraryError &&
+            subjectLibraryItems.length === 0 && (
+            <div style={{
+              padding: '22px 16px',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                fontSize: 28,
+              }}>
+                📚
+              </div>
+
+              <p style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: C.textPrimary,
+                margin: '8px 0 4px',
+              }}>
+                No content adopted yet
+              </p>
+
+              <p style={{
+                fontSize: 12,
+                color: C.textMuted,
+                lineHeight: 1.5,
+                margin: '0 0 12px',
+              }}>
+                Discover curriculum-aligned
+                content and add it to an exact
+                class.
+              </p>
+
+              <button
+                onClick={() =>
+                  router.push(
+                    '/teacher/vibelearn' +
+                    '?tab=discover' +
+                    '&subjectId=' +
+                    activeSubject.id,
+                  )
+                }
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: '#047857',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Discover on VibeLearn
+              </button>
+            </div>
+          )}
+
+          {!subjectLibraryLoading &&
+            subjectLibraryItems.length > 0 && (
+            <div>
+              {subjectLibraryItems
+                .slice(0, 4)
+                .map((item, index) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding:
+                        '12px 16px',
+                      display: 'flex',
+                      alignItems:
+                        'center',
+                      gap: 12,
+                      borderTop:
+                        index === 0
+                          ? 'none'
+                          : '1px solid #f3f4f6',
+                    }}
+                  >
+                    <div style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 11,
+                      background:
+                        '#ecfdf5',
+                      display: 'flex',
+                      alignItems:
+                        'center',
+                      justifyContent:
+                        'center',
+                      fontSize: 18,
+                    }}>
+                      📘
+                    </div>
+
+                    <div style={{
+                      flex: 1,
+                      minWidth: 0,
+                    }}>
+                      <div style={{
+                        fontSize: 13,
+                        fontWeight: 800,
+                        color:
+                          C.textPrimary,
+                        overflow: 'hidden',
+                        textOverflow:
+                          'ellipsis',
+                        whiteSpace:
+                          'nowrap',
+                      }}>
+                        {item.title}
+                      </div>
+
+                      <div style={{
+                        marginTop: 2,
+                        fontSize: 10,
+                        color: C.textMuted,
+                      }}>
+                        {
+                          item.sourceType
+                        } · {
+                          item.usageRole
+                            .replaceAll(
+                              '_',
+                              ' ',
+                            )
+                        }
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+              <button
+                onClick={() =>
+                  router.push(
+                    '/teacher/vibelearn' +
+                    '?tab=discover' +
+                    '&subjectId=' +
+                    activeSubject.id,
+                  )
+                }
+                style={{
+                  width: '100%',
+                  padding: '11px 16px',
+                  border: 'none',
+                  borderTop:
+                    '1px solid #f3f4f6',
+                  background: '#f8fafc',
+                  color: '#047857',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Find more content
+              </button>
+            </div>
+          )}
         </div>
       )}
 
