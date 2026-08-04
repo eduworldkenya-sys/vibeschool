@@ -58,6 +58,20 @@ interface EbookSuggestion {
 }
 interface AssignmentPair { class_id: string; subject_id: string }
 
+interface SchemeLinkedResource {
+  id: string
+  resourceId: string
+  publicationId: string
+  chapterId: string
+  publicationTitle: string
+  chapterTitle: string
+  resourceRole: string
+  sequence: number
+  pageStart: number | null
+  pageEnd: number | null
+  exerciseRefs: unknown[]
+}
+
 // ── STATUS CONFIG ──────────────────────────────────────────────
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string; border: string }> = {
   planned:   { bg: C.surface2,   color: C.text2,   label: "Planned",   border: C.border  },
@@ -323,6 +337,10 @@ function SchemePageInner() {
   const [curriculumRows,   setCurriculumRows]   = useState<CurriculumRow[]>([])
   const [ebookSuggestions, setEbookSuggestions] = useState<EbookSuggestion[]>([])
   const [
+    linkedResourcesBySchemeId,
+    setLinkedResourcesBySchemeId,
+  ] = useState<Record<string, SchemeLinkedResource[]>>({})
+  const [
     selectedSchemeResource,
     setSelectedSchemeResource,
   ] = useState<EbookSuggestion | null>(null)
@@ -523,6 +541,7 @@ function SchemePageInner() {
     setCurriculumRows([])
     setEbookSuggestions([])
     setSelectedSchemeResource(null)
+    setLinkedResourcesBySchemeId({})
 
     const { data, error } = await supabase
       .from('scheme_of_work')
@@ -543,6 +562,143 @@ function SchemePageInner() {
 
     const items = (data ?? []) as SchemeItem[]
     setSchemeItems(items)
+
+    const linkedResourceEntries =
+      await Promise.all(
+        items.map(async item => {
+          const {
+            data: resourceResult,
+            error: resourceError,
+          } = await supabase.rpc(
+            'list_scheme_lesson_resources',
+            {
+              p_scheme_lesson_id: item.id,
+            }
+          )
+
+          if (resourceError) {
+            return {
+              schemeId: item.id,
+              resources: [] as SchemeLinkedResource[],
+              error: resourceError.message,
+            }
+          }
+
+          const payload =
+            resourceResult as {
+              ok?: boolean
+              reason?: string | null
+              resources?: Array<{
+                id?: string
+                resource_id?: string
+                publication_id?: string
+                chapter_id?: string
+                publication_title?: string
+                chapter_title?: string
+                resource_role?: string
+                sequence?: number
+                page_start?: number | null
+                page_end?: number | null
+                exercise_refs?: unknown[]
+              }>
+            } | null
+
+          if (!payload?.ok) {
+            return {
+              schemeId: item.id,
+              resources: [] as SchemeLinkedResource[],
+              error:
+                payload?.reason ??
+                'scheme_resource_load_failed',
+            }
+          }
+
+          const resources =
+            (payload.resources ?? []).flatMap(
+              resource => {
+                if (
+                  !resource.id ||
+                  !resource.resource_id ||
+                  !resource.publication_id ||
+                  !resource.chapter_id
+                ) {
+                  return []
+                }
+
+                return [{
+                  id: resource.id,
+                  resourceId:
+                    resource.resource_id,
+                  publicationId:
+                    resource.publication_id,
+                  chapterId:
+                    resource.chapter_id,
+                  publicationTitle:
+                    resource.publication_title ??
+                    '',
+                  chapterTitle:
+                    resource.chapter_title ??
+                    'Untitled chapter',
+                  resourceRole:
+                    resource.resource_role ??
+                    'supplementary',
+                  sequence:
+                    resource.sequence ?? 1,
+                  pageStart:
+                    resource.page_start ?? null,
+                  pageEnd:
+                    resource.page_end ?? null,
+                  exerciseRefs:
+                    Array.isArray(
+                      resource.exercise_refs
+                    )
+                      ? resource.exercise_refs
+                      : [],
+                }]
+              }
+            )
+
+          return {
+            schemeId: item.id,
+            resources,
+            error: null,
+          }
+        })
+      )
+
+    if (requestId !== schemeRequestIdRef.current) {
+      return
+    }
+
+    const linkedResourceMap:
+      Record<string, SchemeLinkedResource[]> = {}
+
+    const linkErrors: string[] = []
+
+    for (const entry of linkedResourceEntries) {
+      linkedResourceMap[entry.schemeId] =
+        entry.resources
+
+      if (entry.error) {
+        linkErrors.push(
+          `${entry.schemeId}: ${entry.error}`
+        )
+      }
+    }
+
+    setLinkedResourcesBySchemeId(
+      linkedResourceMap
+    )
+
+    if (linkErrors.length > 0) {
+      console.error(
+        'scheme resource link loading failed:',
+        linkErrors,
+      )
+      setFetchError(
+        'Some attached teaching resources could not be loaded.'
+      )
+    }
 
     // Delta: which national curriculum items are not yet in this teacher's scheme
     if (selectedClassObj && selectedSubjectObj && selectedTermObj) {
@@ -1465,6 +1621,10 @@ function SchemePageInner() {
                 {selectedWeekItems.map(item => {
                   const st = STATUS_STYLE[item.status] ?? STATUS_STYLE.planned
                   const isSaving = savingSet.has(item.id)
+                  const linkedResources =
+                    linkedResourcesBySchemeId[
+                      item.id
+                    ] ?? []
 
                   return (
                     <div key={item.id} style={{ borderRadius: 14, border: `1px solid ${C.border}`, background: C.surface, overflow: 'hidden', boxShadow: C.shadow, position: 'relative' }}>
@@ -1476,6 +1636,82 @@ function SchemePageInner() {
                             {item.strand && (
                               <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>
                                 {item.strand}{item.sub_strand ? ` · ${item.sub_strand}` : ''}
+                              </div>
+                            )}
+
+                            {linkedResources.length > 0 && (
+                              <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 5,
+                                marginTop: 8,
+                              }}>
+                                {linkedResources.map(
+                                  resource => {
+                                    const pageLabel =
+                                      resource.pageStart !== null &&
+                                      resource.pageEnd !== null
+                                        ? ` · pp. ${resource.pageStart}–${resource.pageEnd}`
+                                        : resource.pageStart !== null
+                                          ? ` · p. ${resource.pageStart}`
+                                          : ''
+
+                                    return (
+                                      <div
+                                        key={resource.id}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'flex-start',
+                                          gap: 7,
+                                          padding: '6px 8px',
+                                          borderRadius: 8,
+                                          background: C.indigoLight,
+                                          border: '1px solid #c7d2fe',
+                                          maxWidth: 360,
+                                        }}
+                                      >
+                                        <span
+                                          aria-hidden
+                                          style={{
+                                            fontSize: 13,
+                                            lineHeight: 1.2,
+                                          }}
+                                        >
+                                          📘
+                                        </span>
+
+                                        <div style={{
+                                          minWidth: 0,
+                                        }}>
+                                          <div style={{
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            color: C.indigo,
+                                            lineHeight: 1.35,
+                                          }}>
+                                            {resource.chapterTitle}
+                                            {pageLabel}
+                                          </div>
+
+                                          <div style={{
+                                            fontSize: 10,
+                                            color: C.text2,
+                                            marginTop: 1,
+                                            lineHeight: 1.35,
+                                          }}>
+                                            {[
+                                              resource.publicationTitle,
+                                              resource.resourceRole
+                                                .replaceAll('_', ' '),
+                                            ]
+                                              .filter(Boolean)
+                                              .join(' · ')}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )
+                                  }
+                                )}
                               </div>
                             )}
                           </div>
