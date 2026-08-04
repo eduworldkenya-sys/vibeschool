@@ -118,6 +118,8 @@ export default function SubjectHubPage() {
   const [weakStrand,       setWeakStrand]       = useState<{ name: string; pct: number } | null>(null)
   const [curriculumPct,    setCurriculumPct]    = useState<number | null>(null)
   const [removeConfirmId,  setRemoveConfirmId]  = useState<string | null>(null)
+  const [removingSubjectId, setRemovingSubjectId] =
+    useState<string | null>(null)
   // Task 2A — attendance rate per class for this subject this term
   const [attRateByClass,   setAttRateByClass]   = useState<Record<string, number>>({})
   const [outcomesByStrand, setOutcomesByStrand] = useState<{strand: string; count: number}[]>([])
@@ -394,21 +396,57 @@ export default function SubjectHubPage() {
   }
 
   async function removeSubject(subjectId: string) {
-    if (!currentId || !schoolId) return
-    const { error: delErr } = await supabase
-      .from('teacher_classes')
-      .delete()
-      .eq('teacher_id', currentId)
-      .eq('school_id', schoolId)
-      .eq('subject_id', subjectId)
-    if (delErr) { setError('Failed to remove subject. Please try again.'); return }
-    const nextSubjects = subjects.filter(s => s.id !== subjectId)
-    setSubjects(nextSubjects)
-    const nextIdx = Math.max(0, Math.min(activeIdx, nextSubjects.length - 1))
-    setActiveIdx(nextIdx)
-    setClasses([])
-    setTeammates([])
-    if (nextSubjects.length > 0) loadGrowthData(nextSubjects[nextIdx].id)
+    if (!currentId || !schoolId || removingSubjectId) return
+
+    setRemovingSubjectId(subjectId)
+    setError(null)
+
+    try {
+      const { error: delErr } = await supabase
+        .from('teacher_classes')
+        .delete()
+        .eq('teacher_id', currentId)
+        .eq('school_id', schoolId)
+        .eq('subject_id', subjectId)
+
+      if (delErr) {
+        throw delErr
+      }
+
+      const nextSubjects =
+        subjects.filter(subject => subject.id !== subjectId)
+
+      setSubjects(nextSubjects)
+
+      const nextIdx = Math.max(
+        0,
+        Math.min(
+          activeIdx,
+          nextSubjects.length - 1,
+        ),
+      )
+
+      setActiveIdx(nextIdx)
+      setClasses([])
+      setTeammates([])
+      setRemoveConfirmId(null)
+
+      if (nextSubjects.length > 0) {
+        void loadGrowthData(
+          nextSubjects[nextIdx].id,
+        )
+      }
+    } catch (unlinkError) {
+      console.error(
+        '[SubjectHub] subject unlink failed',
+        unlinkError,
+      )
+      setError(
+        'The subject could not be unlinked. No assignments were removed.',
+      )
+    } finally {
+      setRemovingSubjectId(null)
+    }
   }
 
   async function loadGrowthData(subjectId: string) {
@@ -852,12 +890,82 @@ export default function SubjectHubPage() {
           {subjects.map((s, i) => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
               {removeConfirmId === s.id ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fee2e2', borderRadius: 20, padding: '4px 10px' }}>
-                  <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>Unlink {s.name} from all classes?</span>
-                  <button onClick={() => { removeSubject(s.id); setRemoveConfirmId(null) }}
-                    style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: '#dc2626', border: 'none', borderRadius: 12, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>Yes</button>
-                  <button onClick={() => setRemoveConfirmId(null)}
-                    style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', background: '#fff', border: 'none', borderRadius: 12, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit' }}>No</button>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#fee2e2',
+                  borderRadius: 20,
+                  padding: '4px 10px',
+                }}>
+                  <span style={{
+                    fontSize: 12,
+                    color: '#991b1b',
+                    fontWeight: 700,
+                  }}>
+                    Remove {s.name} from {
+                      i === activeIdx
+                        ? classes.length
+                        : 'all assigned'
+                    } {
+                      i === activeIdx &&
+                      classes.length === 1
+                        ? 'class'
+                        : 'classes'
+                    }?
+                  </span>
+
+                  <button
+                    disabled={removingSubjectId === s.id}
+                    onClick={() => {
+                      void removeSubject(s.id)
+                    }}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: '#fff',
+                      background: '#dc2626',
+                      border: 'none',
+                      borderRadius: 12,
+                      padding: '3px 9px',
+                      cursor:
+                        removingSubjectId === s.id
+                          ? 'wait'
+                          : 'pointer',
+                      fontFamily: 'inherit',
+                      opacity:
+                        removingSubjectId === s.id
+                          ? 0.65
+                          : 1,
+                    }}
+                  >
+                    {removingSubjectId === s.id
+                      ? 'Removing…'
+                      : 'Unlink all'}
+                  </button>
+
+                  <button
+                    disabled={removingSubjectId === s.id}
+                    onClick={() =>
+                      setRemoveConfirmId(null)
+                    }
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#6b7280',
+                      background: '#fff',
+                      border: 'none',
+                      borderRadius: 12,
+                      padding: '3px 8px',
+                      cursor:
+                        removingSubjectId === s.id
+                          ? 'not-allowed'
+                          : 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    Cancel
+                  </button>
                 </div>
               ) : (
                 <button
@@ -874,7 +982,7 @@ export default function SubjectHubPage() {
                   {s.name}
                   <span
                     onClick={e => { e.stopPropagation(); setRemoveConfirmId(s.id) }}
-                    title="Remove subject"
+                    title="Unlink this subject from all assigned classes"
                     style={{
                       fontSize: 14, lineHeight: 1, color: i === activeIdx ? 'rgba(255,255,255,0.6)' : '#9ca3af',
                       cursor: 'pointer', padding: '0 2px',
