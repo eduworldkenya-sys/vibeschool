@@ -274,7 +274,16 @@ export default function SubjectHubPage() {
         .in('id', classIds),
       supabase.from('students').select('class_id').in('class_id', classIds),
       supabase.from('cbc_assessments').select('class_id, performance').eq('subject_id', subjectId).in('class_id', classIds),
-      supabase.from('attendance').select('class_id, student_id, status').in('class_id', classIds).eq('teacher_id', currentId).gte('date', termStart),
+      supabase
+        .from('attendance')
+        .select(
+          'class_id,student_id,status,timetable_slot_id,timetable_slots!inner(subject_id)'
+        )
+        .eq('teacher_id', currentId)
+        .eq('school_id', schoolId)
+        .in('class_id', classIds)
+        .gte('date', termStart)
+        .eq('timetable_slots.subject_id', subjectId),
     ])
 
     const counts: Record<string, number> = {}
@@ -321,8 +330,13 @@ export default function SubjectHubPage() {
 
     // Task 2A — compute per-class attendance rate
     const classTotals: Record<string, { present: number; total: number }> = {}
-    for (const row of (attRes.data ?? []) as { class_id: string; student_id: string; status: string }[]) {
-      if (!row.class_id) continue
+    for (const row of (attRes.data ?? []) as {
+      class_id: string
+      student_id: string
+      status: string
+      timetable_slot_id: string
+    }[]) {
+      if (!row.class_id || !row.timetable_slot_id) continue
       const prev = classTotals[row.class_id] ?? { present: 0, total: 0 }
       classTotals[row.class_id] = {
         present: prev.present + (['present', 'late'].includes(row.status) ? 1 : 0),
