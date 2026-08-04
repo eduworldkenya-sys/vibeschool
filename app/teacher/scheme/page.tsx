@@ -45,7 +45,17 @@ interface SubjectOption  { id: string; label: string }
 interface TermRecord     { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string; status: string; school_id: string }
 interface CurriculumRow  { id: string; grade: string; subject: string; strand: string; sub_strand: string | null; topic: string; week: number; term: number }
 interface SchemeItem     { id: string; curriculum_id: string | null; curriculum_content_id: string | null; week: number; strand: string | null; sub_strand: string | null; topic: string; status: string; source: string; lesson_number: number | null; reflection: string | null; objectives: string | null; key_inquiry_question: string | null; learning_resources: string | null; assessment_methods: string | null; learning_experiences: string | null }
-interface EbookSuggestion { chapterId: string; chapterTitle: string; publicationTitle: string; strandName: string; learningOutcomes: string[] }
+interface EbookSuggestion {
+  classLibraryId: string
+  resourceId: string
+  chapterId: string | null
+  publicationId: string | null
+  chapterTitle: string
+  publicationTitle: string
+  strandName: string
+  learningOutcomes: string[]
+  resourceRole: string
+}
 interface AssignmentPair { class_id: string; subject_id: string }
 
 // ── STATUS CONFIG ──────────────────────────────────────────────
@@ -566,58 +576,181 @@ function SchemePageInner() {
       }
       setLoadingCurric(false)
 
-      // Published, CBC-aligned ebook chapters linked to a real KICD
-      // sub-strand for this grade/subject. Not week-matched yet —
-      // cbc_strands.term/week aren't populated. Teacher picks the week.
-      // TBL-010H: globalSubjectId was already resolved above and is now
-      // used for both curriculum and strand taxonomy queries.
-      if (globalSubjectId) {
-        const { data: strandRows } = await supabase
-          .from('cbc_strands')
-          .select('id')
-          .eq('subject_id', globalSubjectId)
-          .ilike('grade', selectedClassObj.grade)
+      // REL-002F1A: Scheme resources come only from the exact class
+      // library. Global publication/chapter discovery belongs in
+      // VibeLearn; Scheme consumes resources the teacher has adopted.
+      const {
+        data: libraryRows,
+        error: libraryError,
+      } = await supabase
+        .from('class_resource_library')
+        .select(
+          'id,resource_id,usage_role'
+        )
+        .eq('teacher_id', uid)
+        .eq('school_id', schoolId)
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .eq('status', 'active')
 
-        const strandIds = (strandRows ?? []).map(r => r.id)
+      if (requestId !== schemeRequestIdRef.current) {
+        return
+      }
 
-        if (strandIds.length > 0) {
-          const { data: chapterRows, error: chapterErr } = await supabase
-            .from('vibe_chapters')
-            .select('id,title,cbc_strand,learning_outcomes,sub_strand_id,vibe_publications(id,title,cbc_aligned,status)')
-            .in('sub_strand_id', strandIds)
-            .eq('status', 'published')
+      if (libraryError) {
+        console.error(
+          'scheme class library query failed:',
+          libraryError,
+        )
+        setFetchError(
+          `Class resources could not be loaded: ${libraryError.message}`
+        )
+        setEbookSuggestions([])
+      } else {
+        const resourceIds = Array.from(
+          new Set(
+            (libraryRows ?? []).map(
+              row => row.resource_id
+            )
+          )
+        )
 
-
-          if (chapterErr) {
-            console.error('ebook suggestion query failed:', chapterErr)
-            setFetchError(`Ebook suggestion query failed: ${chapterErr.message}`)
-          }
-
-          // vibe_publications may come back as a single object or a
-          // one-item array depending on how Supabase resolves the FK —
-          // normalize both shapes.
-          const normalizePub = (pub: any) => Array.isArray(pub) ? pub[0] : pub
-
-          const validChapters = (chapterRows ?? []).filter((c: any) => {
-            const pub = normalizePub(c.vibe_publications)
-            return pub?.cbc_aligned === true && pub?.status === 'published'
-          })
-
-
-          if (requestId === schemeRequestIdRef.current) {
-            setEbookSuggestions(validChapters.map((c: any) => {
-              const pub = normalizePub(c.vibe_publications)
-              return {
-                chapterId: c.id,
-                chapterTitle: c.title,
-                publicationTitle: pub?.title ?? '',
-                strandName: c.cbc_strand,
-                learningOutcomes: c.learning_outcomes ?? [],
-              }
-            }))
-          }
-        } else {
+        if (resourceIds.length === 0) {
           setEbookSuggestions([])
+        } else {
+          const {
+            data: resourceRows,
+            error: resourceError,
+          } = await supabase
+            .from('learning_resources')
+            .select(
+              'id,title,publication_id,chapter_id,strand,learning_outcomes,status'
+            )
+            .in('id', resourceIds)
+            .eq('status', 'active')
+
+          if (
+            requestId !==
+            schemeRequestIdRef.current
+          ) {
+            return
+          }
+
+          if (resourceError) {
+            console.error(
+              'scheme learning resource query failed:',
+              resourceError,
+            )
+            setFetchError(
+              `Learning resources could not be loaded: ${resourceError.message}`
+            )
+            setEbookSuggestions([])
+          } else {
+            const resourcesById = new Map(
+              (resourceRows ?? []).map(
+                resource => [
+                  resource.id,
+                  resource,
+                ]
+              )
+            )
+
+            const publicationIds = Array.from(
+              new Set(
+                (resourceRows ?? [])
+                  .map(
+                    resource =>
+                      resource.publication_id
+                  )
+                  .filter(
+                    (
+                      id
+                    ): id is string =>
+                      typeof id === 'string' &&
+                      id.length > 0
+                  )
+              )
+            )
+
+            const publicationTitles =
+              new Map<string, string>()
+
+            if (publicationIds.length > 0) {
+              const {
+                data: publicationRows,
+                error: publicationError,
+              } = await supabase
+                .from('vibe_publications')
+                .select('id,title')
+                .in('id', publicationIds)
+
+              if (publicationError) {
+                console.error(
+                  'scheme publication title query failed:',
+                  publicationError,
+                )
+              } else {
+                for (
+                  const publication
+                  of publicationRows ?? []
+                ) {
+                  publicationTitles.set(
+                    publication.id,
+                    publication.title,
+                  )
+                }
+              }
+            }
+
+            if (
+              requestId ===
+              schemeRequestIdRef.current
+            ) {
+              const suggestions =
+                (libraryRows ?? []).flatMap(
+                  libraryRow => {
+                    const resource =
+                      resourcesById.get(
+                        libraryRow.resource_id
+                      )
+
+                    if (!resource) {
+                      return []
+                    }
+
+                    return [{
+                      classLibraryId:
+                        libraryRow.id,
+                      resourceId:
+                        resource.id,
+                      chapterId:
+                        resource.chapter_id,
+                      publicationId:
+                        resource.publication_id,
+                      chapterTitle:
+                        resource.title,
+                      publicationTitle:
+                        resource.publication_id
+                          ? publicationTitles.get(
+                              resource.publication_id
+                            ) ?? ''
+                          : '',
+                      strandName:
+                        resource.strand ?? '',
+                      learningOutcomes:
+                        resource.learning_outcomes ??
+                        [],
+                      resourceRole:
+                        libraryRow.usage_role,
+                    }]
+                  }
+                )
+
+              setEbookSuggestions(
+                suggestions
+              )
+            }
+          }
         }
       }
     }
@@ -1127,12 +1260,16 @@ function SchemePageInner() {
                 {ebookSuggestions.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.text3, letterSpacing: 1, textTransform: 'uppercase' }}>
-                      From published ebooks
+                      From this class library
                     </div>
                     {ebookSuggestions.map(s => (
                       <div key={s.chapterId} style={{ padding: 10, borderRadius: 10, border: `1.5px solid #c7d2fe`, background: C.indigoLight }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{s.chapterTitle}</div>
-                        <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{s.publicationTitle} · {s.strandName}</div>
+                        <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{[
+                          s.publicationTitle,
+                          s.strandName,
+                          s.resourceRole.replaceAll('_', ' '),
+                        ].filter(Boolean).join(' · ')}</div>
                         <button
                           type="button"
                           onClick={() => { setNewTopicName(s.chapterTitle); setNewStrandName(s.strandName) }}
