@@ -15976,6 +15976,13 @@ export type Database = {
       }
     }
     Functions: {
+      link_evidence_to_occurrence_resources: {
+        Args: {
+          p_evidence_id: string
+          p_occurrence_id: string
+        }
+        Returns: Json
+      }
       get_next_scheme_item: {
         Args: {
           p_academic_term_id: string
