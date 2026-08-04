@@ -38,12 +38,12 @@
       "id": "LP-002A2B",
       "title": "Make parent lesson delivery idempotent",
       "track": "lesson-plan",
-      "status": "ready",
+      "status": "complete",
       "depends_on": [
         "LP-002A2A"
       ],
-      "definition": "scripts/agent/fixes/LP-002A2B.sh",
-      "completion_commit": null,
+      "definition": null,
+      "completion_commit": "a4b0987",
       "handoff": {
         "finding": "parent_messages lacks canonical lesson-plan delivery identity and idempotent mutation authority",
         "objective": "Make parent lesson delivery traceable to one lesson plan and safe to repeat without producing duplicate messages.",
@@ -95,7 +95,7 @@
       "id": "LP-002A2C",
       "title": "Separate publish, parent delivery and derived asset actions",
       "track": "lesson-plan",
-      "status": "blocked",
+      "status": "planned",
       "depends_on": [
         "LP-002A2B"
       ],

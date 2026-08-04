@@ -7,7 +7,7 @@ MODAL = ROOT / "components/teacher/LessonPlanModal.tsx"
 SERVICE = ROOT / "lib/teaching/lessonParentDelivery.ts"
 MIGRATION = (
     ROOT
-    / "supabase/migrations/20260804070000_lp002a2b_parent_delivery.sql"
+    / "supabase/migrations/20260804064246_lp002a2b_parent_delivery.sql"
 )
 DB_TYPES = ROOT / "lib/database.types.ts"
 

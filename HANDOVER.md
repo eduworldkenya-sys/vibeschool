@@ -2058,3 +2058,50 @@ The authoritative long-term product and architecture vision is stored at:
 All future Teacher OS, VibeTwin, VibeLearn, publishing, learner, parent and
 school work must remain aligned with that document. Do not create parallel
 architectures or isolated feature generators.
+
+---
+
+## LP-002A2B — Parent lesson delivery authority — VERIFIED
+
+Repository commit
+
+- `a4b0987 fix(lesson-plan): make parent delivery idempotent`
+
+Production migration
+
+- Live ledger version: `20260804064246`
+- Name: `lp002a2b_parent_delivery`
+- Repository migration:
+  `supabase/migrations/20260804064246_lp002a2b_parent_delivery.sql`
+
+Verified production authority
+
+- `parent_messages.lesson_plan_id` exists and references
+  `lesson_plans(id)` with `ON DELETE SET NULL`.
+- `parent_messages.delivery_purpose` exists.
+- One canonical parent delivery is enforced per:
+  `lesson_plan_id + student_id + delivery_purpose`.
+- `channel='in_app'` is accepted.
+- `generated_by='lesson_plan'` is accepted.
+- `deliver_lesson_plan_to_parents(uuid,text,text,text)` exists as
+  `SECURITY DEFINER` with pinned `search_path`.
+- `authenticated` may execute the RPC.
+- `anon` and `public` may not execute it.
+- Active learners are resolved server-side from the authoritative lesson class.
+- Existing historical parent messages were preserved unchanged.
+- `LessonPlanModal` no longer inserts directly into `parent_messages`.
+- Parent delivery, homework, and exercise operations complete before the lesson
+  status transitions to `shared_to_parents`.
+
+Verification
+
+- Focused LP-002A2B contracts passed.
+- TypeScript passed with increased Node heap.
+- `git diff --check` passed.
+- Production postflight passed.
+
+Next lesson-plan fix
+
+- `LP-002A2C — Separate publish, parent delivery and derived asset actions`
+- Status: READY
+- Do not combine it with further messaging or VibeConnect redesign.

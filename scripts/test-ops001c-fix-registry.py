@@ -31,10 +31,24 @@ require("LP-002A2B" in ids, "active lesson-plan fix is registered")
 require("OPS-001C" in ids, "current operations milestone is registered")
 
 lp = next(item for item in fixes if item["id"] == "LP-002A2B")
-require(lp["status"] == "ready", "LP-002A2B is actionable")
+require(lp["status"] == "complete", "LP-002A2B is complete")
 require(
-    lp["definition"] == "scripts/agent/fixes/LP-002A2B.sh",
-    "LP-002A2B points to its executable audit definition",
+    lp.get("completion_commit") == "a4b0987",
+    "LP-002A2B records its verified completion commit",
+)
+require(
+    lp.get("definition") is None,
+    "completed LP-002A2B no longer exposes an executable definition",
+)
+
+lp_next = next(item for item in fixes if item["id"] == "LP-002A2C")
+require(
+    lp_next["status"] == "planned",
+    "LP-002A2C is the next planned lesson-plan fix",
+)
+require(
+    lp_next.get("definition") is None,
+    "LP-002A2C is not selectable before an executable definition exists",
 )
 
 completed = {
@@ -43,8 +57,8 @@ completed = {
     if item["status"] == "complete"
 }
 require(
-    all(dep in completed for dep in lp["depends_on"]),
-    "LP-002A2B dependencies are complete",
+    all(dep in completed for dep in lp_next["depends_on"]),
+    "LP-002A2C dependencies are complete",
 )
 
 validate = subprocess.run(
@@ -62,10 +76,13 @@ next_result = subprocess.run(
     text=True,
     capture_output=True,
 )
-require(next_result.returncode == 0, "next-fix selector executes")
 require(
-    "NEXT_FIX=LP-002A2B" in next_result.stdout,
-    "next-fix selector chooses LP-002A2B",
+    next_result.returncode == 2,
+    "next-fix selector reports no executable fix",
+)
+require(
+    "NEXT_FIX=NONE" in next_result.stdout,
+    "selector does not invent an executable LP-002A2C definition",
 )
 
 runner_text = RUNNER.read_text(encoding="utf-8")
