@@ -15963,6 +15963,27 @@ export type Database = {
       }
     }
     Functions: {
+      get_next_scheme_item: {
+        Args: {
+          p_academic_term_id: string
+          p_class_id: string
+          p_subject_id: string
+        }
+        Returns: {
+          curriculum_id: string | null
+          key_inquiry_question: string | null
+          last_completed_sequence: number | null
+          learning_resources: string | null
+          lesson_number: number | null
+          objectives: string | null
+          scheme_id: string
+          sequence_number: number
+          strand: string | null
+          sub_strand: string | null
+          topic: string
+          week: number
+        }[]
+      }
       admin_add_student: {
         Args: {
           p_admission_number: string

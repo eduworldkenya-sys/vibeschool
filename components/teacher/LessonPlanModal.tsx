@@ -317,14 +317,15 @@ export default function LessonPlanModal({
         if (term) {
           const week = currentWeekOf(term)
 
-          // FND-002C1 source priority:
+          // LP-OS-002 source priority:
           // 1. Explicit Scheme item selected by the teacher.
-          // 2. Existing automatic Scheme lookup for timetable entry.
-          let schemeRow: {
-            id: string
-            curriculum_id: string | null
+          // 2. Next Scheme item after actual completed teaching progress.
+          // 3. Current-week national curriculum fallback.
+          let schemeSource: {
+            schemeId: string
+            curriculumId: string | null
             strand: string | null
-            sub_strand: string | null
+            subStrand: string | null
             topic: string
             week: number
           } | null = null
@@ -356,38 +357,61 @@ export default function LessonPlanModal({
               )
             }
 
-            schemeRow = requestedScheme
+            schemeSource = {
+              schemeId: requestedScheme.id,
+              curriculumId:
+                requestedScheme.curriculum_id ?? null,
+              strand: requestedScheme.strand,
+              subStrand: requestedScheme.sub_strand,
+              topic: requestedScheme.topic,
+              week: requestedScheme.week,
+            }
           } else {
-            const { data: schemeRows } = await supabase
-              .from('scheme_of_work')
-              .select(
-                'id, curriculum_id, strand, sub_strand, topic, week',
-              )
-              .eq('teacher_id', userId)
-              .eq('class_id', slot.class_id)
-              .eq('subject_id', slot.subject_id)
-              .eq('academic_term_id', term.id)
-              .eq('school_id', schoolId)
-              .eq('week', week)
-              .limit(1)
+            const {
+              data: nextSchemeRows,
+              error: nextSchemeError,
+            } = await supabase.rpc(
+              'get_next_scheme_item',
+              {
+                p_class_id: slot.class_id,
+                p_subject_id: slot.subject_id,
+                p_academic_term_id: term.id,
+              },
+            )
 
-            schemeRow = schemeRows?.[0] ?? null
+            if (nextSchemeError) {
+              throw nextSchemeError
+            }
+
+            const nextScheme = nextSchemeRows?.[0]
+
+            if (nextScheme) {
+              schemeSource = {
+                schemeId: nextScheme.scheme_id,
+                curriculumId:
+                  nextScheme.curriculum_id ?? null,
+                strand: nextScheme.strand,
+                subStrand: nextScheme.sub_strand,
+                topic: nextScheme.topic,
+                week: nextScheme.week,
+              }
+            }
           }
 
-          if (schemeRow) {
+          if (schemeSource) {
             setSuggestion({
-              id:        schemeRow.curriculum_id ?? null,
-              strand:    schemeRow.strand ?? '',
-              subStrand: schemeRow.sub_strand ?? '',
-              topic:     schemeRow.topic,
+              id:        schemeSource.curriculumId,
+              strand:    schemeSource.strand ?? '',
+              subStrand: schemeSource.subStrand ?? '',
+              topic:     schemeSource.topic,
               term:      term.term,
-              week:      schemeRow.week,
+              week:      schemeSource.week,
               strandId:  null,
-              schemeId:  schemeRow.id,
+              schemeId:  schemeSource.schemeId,
             })
           } else {
-            // 2) Fallback: national curriculum guess — teacher has not
-            //    committed a scheme for this term yet.
+            // Fallback: use the current national curriculum week only when
+            // this assignment has no remaining sequenced Scheme item.
             const { data: currRows } = await supabase
               .from('curriculum')
               .select('id, strand, sub_strand, topic')
@@ -429,8 +453,12 @@ export default function LessonPlanModal({
             }
           }
         }
-      } catch {
-        // non-fatal — falls back to plain freeform topic entry
+      } catch (sourceError) {
+        console.error(
+          '[LessonPlanModal] lesson source resolution failed',
+          sourceError,
+        )
+        // Non-fatal: the teacher may still use a custom topic.
       }
     }
   }
