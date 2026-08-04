@@ -4,6 +4,14 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import {
+  addResourceToClass,
+  loadSubjectAdoptionClasses,
+  resolvePublicRegistryResources,
+} from "@/lib/content-engine/vibelearnClassAdoption";
+import type {
+  AdoptionClassOption,
+} from "@/lib/content-engine/vibelearnClassAdoption";
 import { C } from "@/components/teacher/ui";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -22,6 +30,8 @@ interface Content {
   created_at:   string;
   submitted_by: string;
   vibe_publication_id?: string | null;
+  subject_id?: string | null;
+  resource_id?: string | null;
 }
 
 interface Stats {
@@ -290,7 +300,25 @@ export default function VibeLearnPage() {
 
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+
+    const requestedTab =
+      new URLSearchParams(
+        window.location.search
+      ).get("tab");
+
+    if (
+      requestedTab === "content" ||
+      requestedTab === "create" ||
+      requestedTab === "assignments" ||
+      requestedTab === "stats" ||
+      requestedTab === "discover"
+    ) {
+      setTab(requestedTab);
+    }
+
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -2311,12 +2339,89 @@ function DiscoverTab({ userId }: { userId: string | null }) {
   const [items,   setItems]   = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [query,   setQuery]   = useState("");
-  const [filter,  setFilter]  = useState<"all" | "epage" | "ebook">("all");
+  const [filter,  setFilter]  =
+    useState<"all" | "epage" | "ebook" | "textbook">("all");
+  const [subjectId, setSubjectId] =
+    useState<string | null>(null);
+  const [subjectName, setSubjectName] =
+    useState<string | null>(null);
+  const [adoptionClasses, setAdoptionClasses] =
+    useState<AdoptionClassOption[]>([]);
+  const [classPickerContentId, setClassPickerContentId] =
+    useState<string | null>(null);
+  const [adoptingContentId, setAdoptingContentId] =
+    useState<string | null>(null);
+  const [adoptionError, setAdoptionError] =
+    useState("");
+  const [adoptionSuccess, setAdoptionSuccess] =
+    useState("");
   const mounted = useRef(true);
 
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
+  }, []);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
+    const requestedSubjectId =
+      params.get("subjectId");
+
+    const requestedTab = params.get("tab");
+
+    if (requestedTab === "discover") {
+      // Parent page already rendered DiscoverTab.
+    }
+
+    if (!requestedSubjectId) {
+      setSubjectId(null);
+      setSubjectName(null);
+      setAdoptionClasses([]);
+      return;
+    }
+
+    setSubjectId(requestedSubjectId);
+
+    async function loadContext() {
+      try {
+        const [subjectRes, classes] =
+          await Promise.all([
+            supabase
+              .from("subjects")
+              .select("name")
+              .eq("id", requestedSubjectId)
+              .maybeSingle(),
+            loadSubjectAdoptionClasses(
+              requestedSubjectId
+            ),
+          ]);
+
+        if (!mounted.current) return;
+
+        setSubjectName(
+          subjectRes.data?.name ?? null
+        );
+        setAdoptionClasses(classes);
+      } catch (error) {
+        console.error(
+          "[VibeLearn] adoption context load failed",
+          error
+        );
+
+        if (mounted.current) {
+          setAdoptionClasses([]);
+          setAdoptionError(
+            "Class options could not be loaded."
+          );
+        }
+      }
+    }
+
+    void loadContext();
   }, []);
 
   useEffect(() => {
@@ -2326,7 +2431,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         let q = supabase
           .from("vibelearn_content")
           // submitted_by included so server-side neq filter works
-          .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by")
+          .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,subject_id,vibe_publication_id")
           .eq("status", "live")
           .order("view_count", { ascending: false })
           .limit(30);
@@ -2334,8 +2439,42 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         // exclude own content server-side — not client-side
         if (userId) q = q.neq("submitted_by", userId);
         if (query.trim()) q = q.ilike("title", "%" + query.trim() + "%");
-        const { data } = await q;
-        if (mounted.current) setItems((data ?? []) as Content[]);
+        const { data, error } = await q;
+
+        if (error) {
+          throw error;
+        }
+
+        const rawItems =
+          (data ?? []) as Content[];
+
+        const registryMappings =
+          await resolvePublicRegistryResources(
+            rawItems.map(item => ({
+              id: item.id,
+              vibePublicationId:
+                item.vibe_publication_id ?? null,
+            }))
+          );
+
+        const resourcesByContentId = new Map(
+          registryMappings.map(mapping => [
+            mapping.contentId,
+            mapping.resourceId,
+          ])
+        );
+
+        if (mounted.current) {
+          setItems(
+            rawItems.map(item => ({
+              ...item,
+              resource_id:
+                resourcesByContentId.get(
+                  item.id
+                ) ?? null,
+            }))
+          );
+        }
       } finally {
         if (mounted.current) setLoading(false);
       }
@@ -2353,6 +2492,52 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
   return (
     <div>
+      {subjectId && (
+        <div style={{
+          marginBottom: 12,
+          padding: "10px 12px",
+          borderRadius: 12,
+          background: "#ecfdf5",
+          border: "1px solid #a7f3d0",
+          fontSize: 12,
+          color: "#047857",
+          lineHeight: 1.5,
+        }}>
+          Choosing content for{" "}
+          <strong>
+            {subjectName ?? "this subject"}
+          </strong>.
+          Select an exact class before adding it.
+        </div>
+      )}
+
+      {adoptionError && (
+        <div style={{
+          marginBottom: 10,
+          padding: "10px 12px",
+          borderRadius: 10,
+          background: "#fef2f2",
+          color: C.error,
+          fontSize: 12,
+        }}>
+          {adoptionError}
+        </div>
+      )}
+
+      {adoptionSuccess && (
+        <div style={{
+          marginBottom: 10,
+          padding: "10px 12px",
+          borderRadius: 10,
+          background: "#ecfdf5",
+          color: "#047857",
+          fontSize: 12,
+          fontWeight: 700,
+        }}>
+          {adoptionSuccess}
+        </div>
+      )}
+
       <div style={{ position: "relative", marginBottom: 10 }}>
         <input value={query} onChange={e => setQuery(e.target.value)}
           placeholder="Search content by topic, subject, tag…"
@@ -2360,9 +2545,17 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>🔍</div>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        {(["all","epage","ebook"] as const).map(f => (
+        {(["all","epage","ebook","textbook"] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 14px", borderRadius: 20, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: "inherit", background: filter === f ? C.accent : "#f3f4f6", color: filter === f ? "#fff" : "#6b7280", textTransform: "uppercase" }}>
-            {f === "all" ? "All" : f === "epage" ? "📄 Epage" : "📚 Ebook"}
+            {
+              f === "all"
+                ? "All"
+                : f === "epage"
+                  ? "📄 Epage"
+                  : f === "ebook"
+                    ? "📚 Ebook"
+                    : "📘 Textbook"
+            }
           </button>
         ))}
       </div>
@@ -2407,6 +2600,175 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               })()}
             </div>
           </div>
+
+          {subjectId && (
+            <div style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: "1px solid #e5e7eb",
+            }}>
+              {!item.resource_id ? (
+                <div style={{
+                  fontSize: 11,
+                  color: "#92400e",
+                  background: "#fffbeb",
+                  borderRadius: 9,
+                  padding: "8px 10px",
+                }}>
+                  This item is readable, but its
+                  public Content Engine resource
+                  is not available for class use.
+                </div>
+              ) : adoptionClasses.length === 0 ? (
+                <div style={{
+                  fontSize: 11,
+                  color: "#6b7280",
+                }}>
+                  No assigned classes are available
+                  for this subject.
+                </div>
+              ) : classPickerContentId === item.id ? (
+                <div>
+                  <div style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: "#111827",
+                    marginBottom: 8,
+                  }}>
+                    Add to which class?
+                  </div>
+
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 7,
+                  }}>
+                    {adoptionClasses.map(cls => (
+                      <button
+                        key={cls.id}
+                        disabled={
+                          adoptingContentId === item.id
+                        }
+                        onClick={async () => {
+                          if (
+                            !item.resource_id ||
+                            !subjectId ||
+                            adoptingContentId
+                          ) {
+                            return;
+                          }
+
+                          setAdoptingContentId(item.id);
+                          setAdoptionError("");
+                          setAdoptionSuccess("");
+
+                          try {
+                            await addResourceToClass({
+                              resourceId:
+                                item.resource_id,
+                              classId: cls.id,
+                              subjectId,
+                            });
+
+                            if (!mounted.current) return;
+
+                            const classLabel =
+                              cls.name +
+                              (
+                                cls.stream
+                                  ? " · " + cls.stream
+                                  : ""
+                              );
+
+                            setAdoptionSuccess(
+                              `“${item.title}” added to ${classLabel}.`
+                            );
+                            setClassPickerContentId(null);
+                          } catch (error) {
+                            console.error(
+                              "[VibeLearn] class adoption failed",
+                              error
+                            );
+
+                            if (mounted.current) {
+                              setAdoptionError(
+                                "The resource could not be added to the class."
+                              );
+                            }
+                          } finally {
+                            if (mounted.current) {
+                              setAdoptingContentId(null);
+                            }
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          border:
+                            "1px solid #d1d5db",
+                          background: "#fff",
+                          textAlign: "left",
+                          color: "#111827",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor:
+                            adoptingContentId === item.id
+                              ? "wait"
+                              : "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {cls.name}
+                        {cls.stream
+                          ? " · " + cls.stream
+                          : ""}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      setClassPickerContentId(null)
+                    }
+                    style={{
+                      marginTop: 8,
+                      border: "none",
+                      background: "transparent",
+                      color: "#6b7280",
+                      fontSize: 11,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setAdoptionError("");
+                    setAdoptionSuccess("");
+                    setClassPickerContentId(item.id);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "none",
+                    background: "#047857",
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  Add to a class
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>
