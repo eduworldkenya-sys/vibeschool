@@ -7801,6 +7801,7 @@ export type Database = {
           student_id: string | null
           submission_id: string | null
           teacher_id: string
+          teaching_occurrence_id: string | null
           title: string | null
         }
         Insert: {
@@ -7816,6 +7817,7 @@ export type Database = {
           student_id?: string | null
           submission_id?: string | null
           teacher_id: string
+          teaching_occurrence_id?: string | null
           title?: string | null
         }
         Update: {
@@ -7831,9 +7833,17 @@ export type Database = {
           student_id?: string | null
           submission_id?: string | null
           teacher_id?: string
+          teaching_occurrence_id?: string | null
           title?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lesson_evidence_teaching_occurrence_id_fkey"
+            columns: ["teaching_occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_occurrences"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lesson_evidence_class_id_fkey"
             columns: ["class_id"]
