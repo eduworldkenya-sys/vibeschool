@@ -39,6 +39,11 @@ interface Content {
   curriculum_match?: "exact" | "subject" | "none";
 }
 
+interface SubjectOption {
+  id: string;
+  name: string;
+}
+
 interface Stats {
   total_views:        number;
   total_earnings_ksh: number;
@@ -283,7 +288,10 @@ export default function VibeLearnPage() {
   const [cType,        setCType]        = useState<"epage" | "ebook" | "textbook">("epage");
   const [cTitle,       setCTitle]       = useState("");
   const [cDesc,        setCDesc]        = useState("");
-  const [cSubject,     setCSubject]     = useState(SUBJECTS[0]);
+  const [subjectOptions, setSubjectOptions] =
+    useState<SubjectOption[]>([]);
+  const [cSubjectId, setCSubjectId] =
+    useState("");
   const [cUrl,         setCUrl]         = useState("");
   const [cBody,        setCBody]        = useState("");
   const [cUrlError,    setCUrlError]    = useState("");
@@ -333,7 +341,61 @@ export default function VibeLearnPage() {
         if (!user) { router.replace('/?role=teacher'); return; }
         if (!mounted.current) return;
         setUserId(user.id);
-        await Promise.all([loadContent(user.id), loadStats(user.id)]);
+
+        const { data: assignmentRows, error: assignmentError } =
+          await supabase
+            .from("teacher_classes")
+            .select("subject_id")
+            .eq("teacher_id", user.id);
+
+        if (assignmentError) {
+          throw assignmentError;
+        }
+
+        const assignedSubjectIds = Array.from(
+          new Set(
+            (assignmentRows ?? [])
+              .map(row => row.subject_id)
+              .filter(
+                (id): id is string =>
+                  typeof id === "string" &&
+                  id.length > 0
+              )
+          )
+        );
+
+        let loadedSubjects: SubjectOption[] = [];
+
+        if (assignedSubjectIds.length > 0) {
+          const { data: subjectRows, error: subjectError } =
+            await supabase
+              .from("subjects")
+              .select("id,name")
+              .in("id", assignedSubjectIds)
+              .order("name");
+
+          if (subjectError) {
+            throw subjectError;
+          }
+
+          loadedSubjects =
+            (subjectRows ?? []) as SubjectOption[];
+        }
+
+        if (mounted.current) {
+          setSubjectOptions(loadedSubjects);
+          setCSubjectId(
+            current =>
+              current ||
+              loadedSubjects[0]?.id ||
+              ""
+          );
+        }
+
+        await Promise.all([
+          loadContent(user.id),
+          loadStats(user.id),
+        ]);
       } catch {
         if (mounted.current) setPageError("Failed to load. Check your connection.");
       } finally {
@@ -541,9 +603,32 @@ export default function VibeLearnPage() {
   // ── Save (draft or publish) ────────────────────────────────────────────────
   async function saveContent(targetStatus: "draft" | "live") {
     setPublishError("");
-    if (!userId)        { setPublishError("Not authenticated."); return; }
-    if (!cTitle.trim()) { setPublishError("Title is required."); return; }
-    if (!cDesc.trim())  { setPublishError("Description is required."); return; }
+    if (!userId) {
+      setPublishError("Not authenticated.");
+      return;
+    }
+
+    if (!cTitle.trim()) {
+      setPublishError("Title is required.");
+      return;
+    }
+
+    if (!cDesc.trim()) {
+      setPublishError("Description is required.");
+      return;
+    }
+
+    const selectedSubject =
+      subjectOptions.find(
+        subject => subject.id === cSubjectId
+      ) ?? null;
+
+    if (!selectedSubject) {
+      setPublishError(
+        "Select one of your assigned subjects."
+      );
+      return;
+    }
 
     if (cType === "epage") {
       if (!cBody.trim() && !cUrl.trim()) {
@@ -561,22 +646,87 @@ export default function VibeLearnPage() {
 
     setPublishing(true);
     try {
-      const { error } = await supabase.from("vibelearn_content").insert({
-        title:        cTitle.trim(),
-        description:  cDesc.trim(),
-        body:         cType === "epage" ? (cBody.trim() || null) : null,
-        type:         cType,
-        source:       cSubject,
-        url:          cUrl.trim() || null,
-        tags:         cTags,
-        status:       targetStatus,
-        submitted_by: userId,
-        view_count:   0,
-        earnings_ksh: 0,
-      });
-      if (error) throw error;
+      const {
+        data: insertedContent,
+        error,
+      } = await supabase
+        .from("vibelearn_content")
+        .insert({
+          title: cTitle.trim(),
+          description: cDesc.trim(),
+          body:
+            cType === "epage"
+              ? (cBody.trim() || null)
+              : null,
+          type: cType,
+          source: selectedSubject.name,
+          subject_id: selectedSubject.id,
+          url: cUrl.trim() || null,
+          tags: cTags,
+          status: targetStatus,
+          submitted_by: userId,
+          view_count: 0,
+          earnings_ksh: 0,
+        })
+        .select("id")
+        .single();
+
+      if (error || !insertedContent) {
+        throw error ??
+          new Error(
+            "Created content could not be identified."
+          );
+      }
+
+      const {
+        data: resourceId,
+        error: registrationError,
+      } = await supabase.rpc(
+        "ce_register_learning_resource",
+        {
+          p_source_type: "vibelearn_content",
+          p_content_id: insertedContent.id,
+          p_title: cTitle.trim(),
+          p_description: cDesc.trim(),
+          p_visibility:
+            targetStatus === "live"
+              ? "public"
+              : "private",
+        }
+      );
+
+      if (registrationError) {
+        await supabase
+          .from("vibelearn_content")
+          .delete()
+          .eq("id", insertedContent.id)
+          .eq("submitted_by", userId);
+
+        throw registrationError;
+      }
+
+      if (typeof resourceId !== "string") {
+        await supabase
+          .from("vibelearn_content")
+          .delete()
+          .eq("id", insertedContent.id)
+          .eq("submitted_by", userId);
+
+        throw new Error(
+          "Learning resource registration failed."
+        );
+      }
       if (!mounted.current) return;
-      setCTitle(""); setCDesc(""); setCUrl(""); setCBody(""); setCTags([]); setCTagInput(""); setCUrlError("");
+      setCTitle("");
+      setCDesc("");
+      setCUrl("");
+      setCBody("");
+      setCTags([]);
+      setCTagInput("");
+      setCUrlError("");
+      setCSubjectId(
+        subjectOptions[0]?.id ?? ""
+      );
       setPublishOk(true);
       setTimeout(() => { if (mounted.current) setPublishOk(false); }, 3000);
       await Promise.all([loadContent(userId), loadStats(userId)]);
@@ -915,15 +1065,75 @@ export default function VibeLearnPage() {
               </div>
             ))}
 
-            <div style={{ marginBottom: 14, position: "relative" }}>
-              <label htmlFor="vl-subject" style={S.label}>Subject</label>
-              <div style={{ position: "relative" }}>
-                <select id="vl-subject" value={cSubject} onChange={e => setCSubject(e.target.value)}
-                  style={{ ...S.input, paddingRight: 36, appearance: "none", cursor: "pointer" }}>
-                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", fontSize: 12, color: C.textMuted }}>▾</div>
-              </div>
+            <div style={{
+              marginBottom: 14,
+              position: "relative",
+            }}>
+              <label
+                htmlFor="vl-subject"
+                style={S.label}
+              >
+                Subject *
+              </label>
+
+              {subjectOptions.length > 0 ? (
+                <div style={{ position: "relative" }}>
+                  <select
+                    id="vl-subject"
+                    value={cSubjectId}
+                    onChange={event => {
+                      setCSubjectId(
+                        event.target.value
+                      );
+                      setPublishError("");
+                    }}
+                    style={{
+                      ...S.input,
+                      paddingRight: 36,
+                      appearance: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {subjectOptions.map(subject => (
+                      <option
+                        key={subject.id}
+                        value={subject.id}
+                      >
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform:
+                      "translateY(-50%)",
+                    pointerEvents: "none",
+                    fontSize: 12,
+                    color: C.textMuted,
+                  }}>
+                    ▾
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: "11px 12px",
+                  borderRadius: 10,
+                  background: "#fffbeb",
+                  border:
+                    "1px solid #fde68a",
+                  color: "#92400e",
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                }}>
+                  No assigned subjects found.
+                  Link a subject and class in
+                  Subject Hub before creating
+                  learning content.
+                </div>
+              )}
             </div>
 
             {cType === "epage" && (
@@ -983,11 +1193,17 @@ export default function VibeLearnPage() {
             )}
 
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => saveContent("draft")} disabled={publishing}
+              <button onClick={() => saveContent("draft")} disabled={
+                  publishing ||
+                  subjectOptions.length === 0
+                }
                 style={{ flex: 1, padding: 14, borderRadius: 12, border: `1.5px solid ${C.border}`, background: "transparent", color: C.textPrimary, fontWeight: 700, fontSize: 14, cursor: publishing ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: publishing ? 0.6 : 1 }}>
                 {publishing ? "Saving…" : "Save Draft"}
               </button>
-              <button onClick={() => saveContent("live")} disabled={publishing} style={{ ...S.btnPrimary(publishing), flex: 1 }}>
+              <button onClick={() => saveContent("live")} disabled={
+                  publishing ||
+                  subjectOptions.length === 0
+                } style={{ ...S.btnPrimary(publishing), flex: 1 }}>
                 {publishing ? "Publishing…" : "Publish to VibeLearn ✦"}
               </button>
             </div>
