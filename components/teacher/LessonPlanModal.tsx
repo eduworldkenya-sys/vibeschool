@@ -141,6 +141,23 @@ type Phase  = 'loading' | 'form' | 'generating' | 'view' | 'edit'
 type Status = 'draft' | 'published' | 'shared_to_parents'
 type Busy   = 'idle' | 'publishing' | 'sharing' | 'saving' | 'generating'
 
+interface LessonTeachingResource {
+  linkId: string
+  resourceId: string
+  sourceType: string
+  title: string
+  description: string | null
+  publicationId: string | null
+  chapterId: string | null
+  contentId: string | null
+  usageRole: string
+  sequence: number
+  pageStart: number | null
+  pageEnd: number | null
+  sectionRefs: unknown[]
+  exerciseRefs: unknown[]
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const EMPTY: LessonPlanSections = EMPTY_LESSON_PLAN_SECTIONS
@@ -249,6 +266,21 @@ export default function LessonPlanModal({
   const [markingCovered, setMarkingCovered] = useState(false)
   const [coverageError, setCoverageError] = useState<string | null>(null)
 
+  const [
+    lessonResources,
+    setLessonResources,
+  ] = useState<LessonTeachingResource[]>([])
+
+  const [
+    lessonResourcesLoading,
+    setLessonResourcesLoading,
+  ] = useState(false)
+
+  const [
+    lessonResourcesError,
+    setLessonResourcesError,
+  ] = useState<string | null>(null)
+
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
@@ -257,6 +289,176 @@ export default function LessonPlanModal({
   // TOS-006B: every consumer refresh goes through resolveOccurrence(), which
   // joins the persisted lifecycle with plan, attendance, evidence, homework
   // and reflection state for this exact slot/date.
+  async function loadLessonResources(
+    lessonPlanId: string,
+  ): Promise<void> {
+    setLessonResourcesLoading(true)
+    setLessonResourcesError(null)
+
+    try {
+      const {
+        data: resourceResult,
+        error: resourceError,
+      } = await supabase.rpc(
+        'list_teaching_resources',
+        {
+          p_target_type: 'lesson_plan',
+          p_target_id: lessonPlanId,
+        },
+      )
+
+      if (resourceError) {
+        throw resourceError
+      }
+
+      const payload =
+        resourceResult as {
+          ok?: boolean
+          error?: string | null
+          resources?: Array<{
+            link_id?: string
+            resource_id?: string
+            source_type?: string
+            title?: string
+            description?: string | null
+            publication_id?: string | null
+            chapter_id?: string | null
+            content_id?: string | null
+            usage_role?: string
+            sequence?: number
+            page_start?: number | null
+            page_end?: number | null
+            section_refs?: unknown[]
+            exercise_refs?: unknown[]
+          }>
+        } | null
+
+      if (!payload?.ok) {
+        throw new Error(
+          payload?.error ??
+          'lesson_resource_load_failed',
+        )
+      }
+
+      const resources =
+        (payload.resources ?? [])
+          .flatMap(resource => {
+            if (
+              !resource.link_id ||
+              !resource.resource_id
+            ) {
+              return []
+            }
+
+            return [{
+              linkId: resource.link_id,
+              resourceId:
+                resource.resource_id,
+              sourceType:
+                resource.source_type ??
+                'resource',
+              title:
+                resource.title ??
+                'Untitled resource',
+              description:
+                resource.description ?? null,
+              publicationId:
+                resource.publication_id ??
+                null,
+              chapterId:
+                resource.chapter_id ??
+                null,
+              contentId:
+                resource.content_id ??
+                null,
+              usageRole:
+                resource.usage_role ??
+                'source',
+              sequence:
+                resource.sequence ?? 1,
+              pageStart:
+                resource.page_start ??
+                null,
+              pageEnd:
+                resource.page_end ??
+                null,
+              sectionRefs:
+                Array.isArray(
+                  resource.section_refs,
+                )
+                  ? resource.section_refs
+                  : [],
+              exerciseRefs:
+                Array.isArray(
+                  resource.exercise_refs,
+                )
+                  ? resource.exercise_refs
+                  : [],
+            }]
+          })
+          .sort(
+            (left, right) =>
+              left.sequence -
+              right.sequence,
+          )
+
+      setLessonResources(resources)
+    } catch (resourceLoadError) {
+      console.error(
+        '[LessonPlanModal] load resources',
+        resourceLoadError,
+      )
+      setLessonResources([])
+      setLessonResourcesError(
+        'Attached teaching resources could not be loaded.',
+      )
+    } finally {
+      setLessonResourcesLoading(false)
+    }
+  }
+
+  function openLessonResource(
+    resource: LessonTeachingResource,
+  ): void {
+    if (resource.publicationId) {
+      const params = new URLSearchParams()
+
+      if (resource.chapterId) {
+        params.set(
+          'chapterId',
+          resource.chapterId,
+        )
+      }
+
+      if (resource.pageStart !== null) {
+        params.set(
+          'page',
+          String(resource.pageStart),
+        )
+      }
+
+      const query = params.toString()
+
+      router.push(
+        `/read/textbook/${resource.publicationId}${
+          query ? `?${query}` : ''
+        }`,
+      )
+      return
+    }
+
+    if (resource.contentId) {
+      router.push(
+        `/teacher/vibelearn?tab=discover&contentId=${resource.contentId}`,
+      )
+      return
+    }
+
+    setLessonResourcesError(
+      'This resource does not have an available reader.',
+    )
+  }
+
   async function refreshTeachingWorkspace(): Promise<void> {
     if (!taughtDate) {
       setTeachingOccurrence(null)
@@ -289,6 +491,8 @@ export default function LessonPlanModal({
       try {
         planSchemeIdRef.current = null
         setSuggestionLinked(false)
+        setLessonResources([])
+        setLessonResourcesError(null)
 
         const loaded = await loadLessonWorkspace({
           timetableSlotId: slot.id,
@@ -339,6 +543,13 @@ export default function LessonPlanModal({
           setPlanId(existing.id)
           planSchemeIdRef.current =
             existing.scheme_id ?? null
+
+          await loadLessonResources(
+            existing.id,
+          )
+
+          if (cancelled) return
+
           setPhase('view')
         } else {
           setPhase('form')
@@ -636,6 +847,10 @@ export default function LessonPlanModal({
             savedPlan.id,
         })
       }
+
+      await loadLessonResources(
+        savedPlan.id,
+      )
 
       // The database-returned row remains the source of truth for downstream
       // completion and scheme-coverage actions.
@@ -1141,6 +1356,282 @@ export default function LessonPlanModal({
                   <span>{suggestion.strand}{suggestion.subStrand ? ' → ' + suggestion.subStrand : ''}</span>
                 </div>
               )}
+              <div style={{
+                marginBottom: 20,
+                borderRadius: 12,
+                border: '1px solid #c7d2fe',
+                background: '#eef2ff',
+                padding: '14px 16px',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent:
+                    'space-between',
+                  gap: 10,
+                  marginBottom:
+                    lessonResources.length > 0 ||
+                    lessonResourcesLoading ||
+                    lessonResourcesError
+                      ? 10
+                      : 0,
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: '#4338ca',
+                      letterSpacing: 1,
+                      textTransform:
+                        'uppercase',
+                    }}>
+                      📚 Teaching Resources
+                    </div>
+
+                    <div style={{
+                      fontSize: 11,
+                      color: C.textMuted,
+                      marginTop: 3,
+                    }}>
+                      Attached to this exact
+                      lesson plan
+                    </div>
+                  </div>
+
+                  {planId && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        loadLessonResources(
+                          planId,
+                        )
+                      }
+                      disabled={
+                        lessonResourcesLoading
+                      }
+                      style={{
+                        padding: '5px 9px',
+                        borderRadius: 8,
+                        border:
+                          '1px solid #c7d2fe',
+                        background: '#fff',
+                        color: '#4338ca',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        cursor:
+                          lessonResourcesLoading
+                            ? 'not-allowed'
+                            : 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {lessonResourcesLoading
+                        ? 'Loading…'
+                        : 'Refresh'}
+                    </button>
+                  )}
+                </div>
+
+                {lessonResourcesLoading && (
+                  <div style={{
+                    fontSize: 12,
+                    color: '#4338ca',
+                    padding: '8px 0',
+                  }}>
+                    Loading attached resources…
+                  </div>
+                )}
+
+                {lessonResourcesError && (
+                  <div style={{
+                    padding: '9px 10px',
+                    borderRadius: 9,
+                    background: '#fef2f2',
+                    border:
+                      '1px solid #fca5a5',
+                    color: '#b91c1c',
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}>
+                    ⚠ {lessonResourcesError}
+                  </div>
+                )}
+
+                {!lessonResourcesLoading &&
+                  !lessonResourcesError &&
+                  lessonResources.length === 0 && (
+                  <div style={{
+                    fontSize: 12,
+                    color: C.textMuted,
+                    lineHeight: 1.5,
+                  }}>
+                    No teaching resources are
+                    attached to this lesson.
+                  </div>
+                )}
+
+                {!lessonResourcesLoading &&
+                  lessonResources.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}>
+                    {lessonResources.map(
+                      resource => {
+                        const pageLabel =
+                          resource.pageStart !==
+                            null &&
+                          resource.pageEnd !==
+                            null
+                            ? `Pages ${resource.pageStart}–${resource.pageEnd}`
+                            : resource.pageStart !==
+                                null
+                              ? `Page ${resource.pageStart}`
+                              : null
+
+                        return (
+                          <div
+                            key={resource.linkId}
+                            style={{
+                              padding:
+                                '10px 11px',
+                              borderRadius: 10,
+                              background: '#fff',
+                              border:
+                                '1px solid #c7d2fe',
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              alignItems:
+                                'flex-start',
+                              justifyContent:
+                                'space-between',
+                              gap: 10,
+                            }}>
+                              <div style={{
+                                minWidth: 0,
+                                flex: 1,
+                              }}>
+                                <div style={{
+                                  fontSize: 13,
+                                  fontWeight: 800,
+                                  color:
+                                    C.textPrimary,
+                                  lineHeight: 1.35,
+                                }}>
+                                  {resource.title}
+                                </div>
+
+                                <div style={{
+                                  display: 'flex',
+                                  gap: 5,
+                                  flexWrap: 'wrap',
+                                  marginTop: 5,
+                                }}>
+                                  <span style={{
+                                    fontSize: 9,
+                                    fontWeight: 700,
+                                    borderRadius: 20,
+                                    padding: '2px 7px',
+                                    background:
+                                      '#ede9fe',
+                                    color:
+                                      '#6d28d9',
+                                  }}>
+                                    {resource
+                                      .sourceType
+                                      .replaceAll(
+                                        '_',
+                                        ' ',
+                                      )}
+                                  </span>
+
+                                  <span style={{
+                                    fontSize: 9,
+                                    fontWeight: 700,
+                                    borderRadius: 20,
+                                    padding: '2px 7px',
+                                    background:
+                                      '#f3f4f6',
+                                    color:
+                                      '#4b5563',
+                                  }}>
+                                    {resource
+                                      .usageRole
+                                      .replaceAll(
+                                        '_',
+                                        ' ',
+                                      )}
+                                  </span>
+
+                                  {pageLabel && (
+                                    <span style={{
+                                      fontSize: 9,
+                                      fontWeight: 700,
+                                      borderRadius: 20,
+                                      padding:
+                                        '2px 7px',
+                                      background:
+                                        '#dbeafe',
+                                      color:
+                                        '#1d4ed8',
+                                    }}>
+                                      {pageLabel}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {resource.description && (
+                                  <div style={{
+                                    fontSize: 11,
+                                    color:
+                                      C.textMuted,
+                                    lineHeight: 1.45,
+                                    marginTop: 6,
+                                  }}>
+                                    {
+                                      resource.description
+                                    }
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openLessonResource(
+                                    resource,
+                                  )
+                                }
+                                style={{
+                                  flexShrink: 0,
+                                  padding:
+                                    '7px 10px',
+                                  borderRadius: 8,
+                                  border: 'none',
+                                  background:
+                                    '#4338ca',
+                                  color: '#fff',
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  fontFamily:
+                                    'inherit',
+                                }}
+                              >
+                                Open
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      }
+                    )}
+                  </div>
+                )}
+              </div>
+
               {SECTION_LABELS.map(s => sections[s.key] ? (
                 <div key={s.key} style={{
                   marginBottom: 20, background: '#fafafa',
@@ -1171,6 +1662,29 @@ export default function LessonPlanModal({
                     ⚠ {startLessonError}
                   </div>
                 )}
+                {workspace?.lifecycle ===
+                  'in_progress' &&
+                  lessonResources.length > 0 && (
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: '#eef2ff',
+                    border:
+                      '1px solid #c7d2fe',
+                    fontSize: 12,
+                    color: '#4338ca',
+                    fontWeight: 700,
+                  }}>
+                    📚 {lessonResources.length}{' '}
+                    teaching resource{
+                      lessonResources.length === 1
+                        ? ''
+                        : 's'
+                    } ready for this lesson.
+                    Open them above while teaching.
+                  </div>
+                )}
+
                 {planId && workspace?.canStart && (
                   <button onClick={handleStartLesson} disabled={startingLesson} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
