@@ -4,6 +4,9 @@ import {
   loadActiveTeacherTimetable,
   timetableSlotsForDay,
 } from '@/lib/timetable/engine'
+import {
+  loadExactLessonAttendance,
+} from '@/lib/teaching/lessonAttendance'
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense } from 'react'
@@ -137,6 +140,77 @@ function AttendanceInner() {
         setSlots([])
         setClassesLoading(false)
         setSlotsLoading(false)
+        return
+      }
+
+      // TOS-010: lesson-mode handoff already contains the exact occurrence
+      // identity. Resolve that slot directly rather than requiring it to still
+      // appear in a newly reconstructed active timetable.
+      if (
+        requestedMode === 'lesson' &&
+        urlTimetableSlotId &&
+        urlDate
+      ) {
+        try {
+          const exactLesson =
+            await loadExactLessonAttendance({
+              teacherId: user.id,
+              schoolId: resolvedSchoolId,
+              timetableSlotId:
+                urlTimetableSlotId,
+              occurrenceDate: urlDate,
+              expectedClassId: urlClassId,
+              expectedSubjectId:
+                urlSubjectId,
+            })
+
+          if (!exactLesson) {
+            setActiveSlot(null)
+            setSlots([])
+            setSlotError(
+              'This lesson occurrence could not be verified for your teacher account.',
+            )
+          } else {
+            const exactSlot: TSlot = {
+              id: exactLesson.id,
+              classId:
+                exactLesson.classId,
+              subject:
+                exactLesson.subject,
+              class:
+                exactLesson.className,
+              room:
+                exactLesson.room,
+              start:
+                exactLesson.start,
+              end:
+                exactLesson.end,
+              marked:
+                exactLesson.marked,
+            }
+
+            setSlots([exactSlot])
+            setActiveSlot(exactSlot)
+            setActiveClassId(
+              exactLesson.classId,
+            )
+            setSlotError(null)
+          }
+        } catch (exactLessonError) {
+          console.error(
+            '[Attendance] exact lesson resolution failed',
+            exactLessonError,
+          )
+          setActiveSlot(null)
+          setSlots([])
+          setSlotError(
+            'Could not load this lesson occurrence.',
+          )
+        } finally {
+          setClassesLoading(false)
+          setSlotsLoading(false)
+        }
+
         return
       }
 
@@ -308,7 +382,7 @@ function AttendanceInner() {
         setSlotError('Select a timetable lesson before saving attendance.')
         return
       }
-      if (!urlDate) {
+      if (!selectedDate) {
         setSlotError('The lesson date is missing.')
         return
       }
@@ -326,7 +400,7 @@ function AttendanceInner() {
       class_id:   isLesson ? activeSlot!.classId : activeClassId!,
       teacher_id: uid,
       school_id:  classSchoolId,
-      date:      isLesson ? urlDate! : selectedDate,
+      date:      selectedDate,
       status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
       is_late:    statuses[s.id] === 'late',
       marked_at:  new Date().toISOString(),
@@ -347,11 +421,11 @@ function AttendanceInner() {
       // TOS-004: lesson-mode attendance is a task inside the active teaching
       // workspace. After a successful authoritative save, reopen the exact
       // lesson occurrence rather than leaving the teacher stranded here.
-      if (isLesson && activeSlot && urlDate && urlSubjectId) {
+      if (isLesson && activeSlot && selectedDate && urlSubjectId) {
         const lessonUrl =
           `/teacher/lessonplan?` +
           `timetableSlotId=${encodeURIComponent(activeSlot.id)}` +
-          `&date=${encodeURIComponent(urlDate)}` +
+          `&date=${encodeURIComponent(selectedDate)}` +
           `&subjectId=${encodeURIComponent(urlSubjectId)}` +
           `&classId=${encodeURIComponent(activeSlot.classId)}`
         router.push(lessonUrl)
