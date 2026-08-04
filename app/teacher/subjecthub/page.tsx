@@ -509,20 +509,63 @@ export default function SubjectHubPage() {
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
-    const [subNameRes2, tcRes2] = await Promise.all([
-      supabase.from('subjects').select('name').eq('id', subjectId).single(),
+    const [subNameRes2, assignmentRes] = await Promise.all([
+      supabase
+        .from('subjects')
+        .select('name')
+        .eq('id', subjectId)
+        .single(),
       supabase
         .from('teacher_classes')
         .select('class_id')
         .eq('teacher_id', currentId)
         .eq('school_id', schoolId)
-        .eq('subject_id', subjectId)
-        .limit(1),
+        .eq('subject_id', subjectId),
     ])
-    const subjectName2 = subNameRes2.data?.name ?? ''
-    const firstClassId = tcRes2.data?.[0]?.class_id ?? null
-    const gradeRes = firstClassId ? await supabase.from('classes').select('name').eq('id', firstClassId).single() : { data: null }
-    const gradeForCurriculum = gradeRes.data?.name ?? ''
+
+    const subjectName2 =
+      subNameRes2.data?.name ?? ''
+
+    const assignedClassIds = Array.from(
+      new Set(
+        (assignmentRes.data ?? [])
+          .map(row => row.class_id)
+          .filter(
+            (id): id is string =>
+              typeof id === 'string' &&
+              id.length > 0,
+          ),
+      ),
+    )
+
+    const assignedClassRes =
+      assignedClassIds.length > 0
+        ? await supabase
+            .from('classes')
+            .select('id, name')
+            .eq('school_id', schoolId)
+            .in('id', assignedClassIds)
+        : {
+            data: [] as {
+              id: string
+              name: string
+            }[],
+            error: null,
+          }
+
+    const assignedClassesForSubject =
+      (assignedClassRes.data ?? []) as {
+        id: string
+        name: string
+      }[]
+
+    const assignedGradeNames = Array.from(
+      new Set(
+        assignedClassesForSubject
+          .map(classRow => classRow.name)
+          .filter(Boolean),
+      ),
+    )
 
     // Fix 19: subjecthub has no selected-date context — active means today
     // in Africa/Nairobi (lib/time.ts is the single source of truth for this).
@@ -543,7 +586,7 @@ export default function SubjectHubPage() {
         })
       : Promise.resolve([])
 
-    const [lpRes, assRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes, attRes, canonicalSlots, resRes] = await Promise.all([
+    const [lpRes, assRes, strandPerfRes, strandNameRes, allCurriculumRes, progressRes, attRes, canonicalSlots, resRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       activeTermNumber && activeAcademicYear
         ? supabase
@@ -583,12 +626,38 @@ export default function SubjectHubPage() {
             }[],
             error: null,
           }),
-      gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('id, strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
-      gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
+      assignedGradeNames.length > 0 && subjectName2
+        ? supabase
+            .from('curriculum')
+            .select('id, grade, strand')
+            .in('grade', assignedGradeNames)
+            .eq('subject', subjectName2)
+        : Promise.resolve({
+            data: [] as {
+              id: string
+              grade: string
+              strand: string
+            }[],
+            error: null,
+          }),
+      assignedGradeNames.length > 0 && subjectName2
+        ? supabase
+            .from('curriculum')
+            .select('id, grade, strand')
+            .in('grade', assignedGradeNames)
+            .eq('subject', subjectName2)
+        : Promise.resolve({
+            data: [] as {
+              id: string
+              grade: string
+              strand: string
+            }[],
+            error: null,
+          }),
       schoolId && activeTermNumber
         ? supabase
             .from('scheme_of_work')
-            .select('curriculum_id, status')
+            .select('class_id, curriculum_id, status')
             .eq('teacher_id', currentId)
             .eq('subject_id', subjectId)
             .eq('school_id', schoolId)
@@ -651,15 +720,60 @@ export default function SubjectHubPage() {
     })
     setWeakStrand(weakest)
 
-    const distinctStrands = new Set(((allStrandsRes.data ?? []) as { strand: string }[]).map(r => r.strand))
-    const totalStrands = distinctStrands.size
-    if (totalStrands > 0) {
-      const doneCurriculumIds = new Set(
-        ((progressRes.data ?? []) as { curriculum_id: string; status: string }[])
-          .filter(p => p.status === 'done')
-          .map(p => p.curriculum_id)
+    const curriculumRows =
+      (allCurriculumRes.data ?? []) as {
+        id: string
+        grade: string
+        strand: string
+      }[]
+
+    const curriculumIdsByGrade =
+      new Map<string, Set<string>>()
+
+    for (const row of curriculumRows) {
+      const ids =
+        curriculumIdsByGrade.get(row.grade) ??
+        new Set<string>()
+
+      ids.add(row.id)
+      curriculumIdsByGrade.set(row.grade, ids)
+    }
+
+    let expectedClassCurriculumCount = 0
+
+    for (const classRow of assignedClassesForSubject) {
+      expectedClassCurriculumCount +=
+        curriculumIdsByGrade.get(classRow.name)?.size ?? 0
+    }
+
+    const completedClassCurriculumKeys =
+      new Set(
+        (
+          (progressRes.data ?? []) as {
+            class_id: string | null
+            curriculum_id: string | null
+            status: string | null
+          }[]
+        )
+          .filter(row =>
+            row.status === 'done' &&
+            Boolean(row.class_id) &&
+            Boolean(row.curriculum_id),
+          )
+          .map(row =>
+            `${row.class_id}:${row.curriculum_id}`,
+          ),
       )
-      setCurriculumPct(Math.round((doneCurriculumIds.size / totalStrands) * 100))
+
+    if (expectedClassCurriculumCount > 0) {
+      setCurriculumPct(
+        Math.round(
+          (
+            completedClassCurriculumKeys.size /
+            expectedClassCurriculumCount
+          ) * 100,
+        ),
+      )
     } else {
       setCurriculumPct(null)
     }
