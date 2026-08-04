@@ -11,6 +11,7 @@ import {
 } from '@/lib/teaching/lessonPlanCodec'
 import { ensureLessonHomeworkDraft } from '@/lib/teaching/lessonHomeworkDraft'
 import { ensureLessonExerciseDraft } from '@/lib/teaching/lessonExerciseDraft'
+import { deliverLessonPlanToParents } from '@/lib/teaching/lessonParentDelivery'
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
@@ -693,23 +694,19 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         sections.homework ? 'Homework:\n' + sections.homework : '',
       ].filter(Boolean).join('\n')
 
-      if (ctx.students.length > 0) {
-        await supabase.from('parent_messages').insert(
-          ctx.students.map(s => ({
-            school_id:    ctx.schoolId,
-            teacher_id:   user.id,
-            student_id:   s.id,
-            channel:      'app',
-            subject:      slot.subject + ' — Lesson: ' + topic,
-            body:         summary,
-            generated_by: 'lesson_plan',
-            sent_at:      new Date().toISOString(),
-            created_at:   new Date().toISOString(),
-          }))
+      const deliveryResult = await deliverLessonPlanToParents({
+        lessonPlanId: currentId,
+        deliveryPurpose: 'lesson_summary',
+        subject: slot.subject + ' — Lesson: ' + topic,
+        body: summary,
+      })
+
+      if (deliveryResult.recipientCount === 0) {
+        console.info(
+          '[LessonPlanModal] lesson parent delivery had no active recipients',
+          currentId,
         )
       }
-
-      await supabase.from('lesson_plans').update({ status: 'shared_to_parents' }).eq('id', currentId)
 
       if (sections.homework.trim() !== '') {
         const due = new Date()
@@ -758,8 +755,15 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         }
       }
 
+      const { error: statusError } = await supabase
+        .from('lesson_plans')
+        .update({ status: 'shared_to_parents' })
+        .eq('id', currentId)
+
+      if (statusError) throw statusError
+
       setStatus('shared_to_parents')
-      showToast('Shared to parents + homework synced ✓')
+      showToast('Shared to parents + lesson work synced ✓')
     } catch (err) {
       console.error('[LessonPlanModal] shareToParents', err)
       setError('Share failed. Try again.')

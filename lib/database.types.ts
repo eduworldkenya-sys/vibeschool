@@ -9298,6 +9298,8 @@ export type Database = {
           created_at: string
           generated_by: string
           id: string
+          lesson_plan_id: string | null
+          delivery_purpose: string | null
           school_id: string
           sent_at: string
           student_id: string
@@ -9310,6 +9312,8 @@ export type Database = {
           created_at?: string
           generated_by?: string
           id?: string
+          lesson_plan_id?: string | null
+          delivery_purpose?: string | null
           school_id: string
           sent_at?: string
           student_id: string
@@ -9322,6 +9326,8 @@ export type Database = {
           created_at?: string
           generated_by?: string
           id?: string
+          lesson_plan_id?: string | null
+          delivery_purpose?: string | null
           school_id?: string
           sent_at?: string
           student_id?: string
@@ -9329,6 +9335,13 @@ export type Database = {
           teacher_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "parent_messages_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "parent_messages_school_id_fkey"
             columns: ["school_id"]
@@ -16485,6 +16498,15 @@ export type Database = {
       }
       list_teaching_resources: {
         Args: { p_target_id: string; p_target_type: string }
+        Returns: Json
+      }
+      deliver_lesson_plan_to_parents: {
+        Args: {
+          p_body: string
+          p_delivery_purpose: string
+          p_lesson_plan_id: string
+          p_subject: string
+        }
         Returns: Json
       }
       mark_scheme_item_covered: {
