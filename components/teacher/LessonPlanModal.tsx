@@ -18,9 +18,10 @@ import { nairobiDateStr } from '@/lib/time'
 import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
-import { completeTeachingOccurrence, fetchOccurrenceLifecycle, startTeachingOccurrence, StartOccurrenceError, CompleteOccurrenceError, markSchemeItemCovered, MarkSchemeCoveredError } from '@/lib/teaching/occurrence'
+import { completeTeachingOccurrence, resolveOccurrence, startTeachingOccurrence, StartOccurrenceError, CompleteOccurrenceError, markSchemeItemCovered, MarkSchemeCoveredError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode, CompleteOccurrenceErrorCode, MarkCoveredErrorCode } from '@/lib/teaching/occurrence'
-import type { Lifecycle } from '@/lib/teaching/types'
+import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
+import type { TeachingOccurrence } from '@/lib/teaching/types'
 import ReflectionSheet from '@/components/teacher/ReflectionSheet'
 import CoverageSheet from '@/components/teacher/CoverageSheet'
 import LessonPlanHistorySheet from '@/components/teacher/LessonPlanHistorySheet'
@@ -203,10 +204,15 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   // ReflectionSheet.tsx), and boot()'s auth.getUser() result isn't otherwise
   // exposed outside its own closure.
   const [teacherId,      setTeacherId]      = useState<string | null>(null)
-  // occLifecycle is fetched separately from `status` above — status is the
-  // publish/share pipeline (lesson_plans.status), a different axis from
-  // teaching_occurrences.lifecycle entirely.
-  const [occLifecycle,   setOccLifecycle]   = useState<Lifecycle | null>(null)
+  // TOS-006B: retain the complete authoritative occurrence rather than
+  // maintaining a second lifecycle-only interpretation in this component.
+  const [teachingOccurrence, setTeachingOccurrence] =
+    useState<TeachingOccurrence | null>(null)
+
+  const workspace = teachingOccurrence
+    ? deriveTeachingWorkspace(teachingOccurrence)
+    : null
+
   const [startingLesson, setStartingLesson] = useState(false)
   const [startLessonError, setStartLessonError] = useState<string | null>(null)
   const [completing,     setCompleting]     = useState(false)
@@ -223,6 +229,23 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
+  }
+
+  // TOS-006B: every consumer refresh goes through resolveOccurrence(), which
+  // joins the persisted lifecycle with plan, attendance, evidence, homework
+  // and reflection state for this exact slot/date.
+  async function refreshTeachingWorkspace(): Promise<void> {
+    if (!taughtDate) {
+      setTeachingOccurrence(null)
+      return
+    }
+
+    const occurrence = await resolveOccurrence({
+      timetableSlotId: slot.id,
+      occurrenceDate: taughtDate,
+    })
+
+    setTeachingOccurrence(occurrence)
   }
 
   // G1: auth guard — every action calls this first
@@ -398,19 +421,20 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
           loadExistingPlan(user.id),
         ])
 
-        // Fix 18D: isolated from the load above on purpose. A transient
-        // occurrence-read failure should disable the completion CTA and
-        // show a lifecycle-specific error — it must not block the lesson
-        // plan itself from loading, unlike loadContext/loadExistingPlan
-        // failing, which genuinely is fatal to the workspace.
+        // TOS-006B: occurrence loading remains isolated from lesson-plan
+        // loading. A transient workspace read failure disables teaching
+        // actions but does not prevent the plan itself from opening.
         try {
-          const lifecycle = taughtDate
-            ? await fetchOccurrenceLifecycle({ timetableSlotId: slot.id, occurrenceDate: taughtDate })
-            : null
-          setOccLifecycle(lifecycle)
-        } catch (lifecycleErr) {
-          console.error('[LessonPlanModal] occurrenceLifecycle', lifecycleErr)
-          setCompleteError('Could not load the lesson completion state.')
+          await refreshTeachingWorkspace()
+        } catch (workspaceErr) {
+          console.error(
+            '[LessonPlanModal] teachingWorkspace',
+            workspaceErr,
+          )
+          setTeachingOccurrence(null)
+          setCompleteError(
+            'Could not load the lesson teaching state.',
+          )
         }
 
         if (existing != null && existing.body) {
@@ -575,6 +599,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       // start is (see Fix 18E-C). Scheme stays 'planned' until then.
 
       setStatus('draft')
+      await refreshTeachingWorkspace()
       setPhase('view')
     } catch (err) {
       // G7
@@ -747,11 +772,11 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
     setStartLessonError(null)
 
     try {
-      const row = await startTeachingOccurrence({
+      await startTeachingOccurrence({
         timetableSlotId: slot.id,
         occurrenceDate: taughtDate,
       })
-      setOccLifecycle(row.lifecycle)
+      await refreshTeachingWorkspace()
       showToast('Lesson started ✓')
       refreshPulse('lesson')
 
@@ -775,10 +800,9 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
     }
   }
 
-  // Fix 18D: the lesson workspace's own completion CTA — separate from the
-  // timetable drawer's start CTA (Fix 18C). Only renders when occLifecycle
-  // === 'in_progress' (see render below), but the RPC itself is still the
-  // sole source of truth on whether the transition is actually valid.
+  // TOS-006B: completion availability is derived from the shared
+  // TeachingWorkspace. The RPC remains the sole mutation authority and
+  // performs the final transition validation.
   //
   // Product rule: completing a lesson occurrence is a teaching-workflow
   // event only. It never writes to scheme_of_work or curriculum progress —
@@ -796,7 +820,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         timetableSlotId: slot.id,
         occurrenceDate:   taughtDate,
       })
-      setOccLifecycle(row.lifecycle)
+      await refreshTeachingWorkspace()
       showToast('Lesson marked complete ✓')
       // Fix 18E-D: use the RPC-returned occurrence's own id — never a slot
       // id or plan id — so the coverage prompt always targets the exact
@@ -1099,8 +1123,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                     ⚠ {startLessonError}
                   </div>
                 )}
-                {planId && occLifecycle !== 'in_progress' && occLifecycle !== 'completed'
-                  && occLifecycle !== 'cancelled' && occLifecycle !== 'rescheduled' && (
+                {planId && workspace?.canStart && (
                   <button onClick={handleStartLesson} disabled={startingLesson} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
                     background: C.accent, color: '#fff', fontSize: 13, fontWeight: 800,
@@ -1119,7 +1142,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                     ⚠ {completeError}
                   </div>
                 )}
-                {occLifecycle === 'in_progress' && (
+                {workspace?.canComplete && (
                   <button onClick={handleCompleteLesson} disabled={completing} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
                     background: '#059669', color: '#fff', fontSize: 13, fontWeight: 800,
@@ -1128,7 +1151,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                     {completing ? 'Completing lesson…' : '✅ Complete Lesson'}
                   </button>
                 )}
-                {occLifecycle === 'completed' && (
+                {workspace?.lifecycle === 'completed' && (
                   <div style={{
                     padding: '12px 16px', borderRadius: 12, background: '#d1fae5',
                     color: '#065f46', fontSize: 13, fontWeight: 700, textAlign: 'center',
