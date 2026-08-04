@@ -37,6 +37,12 @@ export interface TeachingOccurrence {
     issued:     boolean
   }
 
+  assessment: {
+    count:              number
+    learnerCount:       number
+    latestAssessmentId: string | null
+  }
+
   reflection: {
     reflectionId: string | null
     completed:    boolean

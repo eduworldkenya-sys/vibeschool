@@ -53,11 +53,13 @@ export interface TeachingWorkspace {
   canCaptureAttendance: boolean
   canCaptureEvidence: boolean
   canAssignHomework: boolean
+  canCaptureAssessment: boolean
   canWriteReflection: boolean
 
   attendanceComplete: boolean
   evidenceCaptured: boolean
   homeworkIssued: boolean
+  assessmentCaptured: boolean
   reflectionCompleted: boolean
 
   stages: TeachingWorkspaceStageView[]
@@ -266,19 +268,31 @@ function homeworkStage(
 function assessmentStage(
   occurrence: TeachingOccurrence,
 ): TeachingWorkspaceStageView {
-  if (occurrence.lifecycle === 'completed') {
+  if (occurrence.assessment.count > 0) {
+    return stage('assessment', 'done')
+  }
+
+  if (
+    occurrence.lifecycle === 'cancelled' ||
+    occurrence.lifecycle === 'rescheduled'
+  ) {
     return stage(
       'assessment',
-      'available',
-      'Assessment remains a separate evidence and scoring workflow.',
+      'unavailable',
+      'Assessment is unavailable for an inactive occurrence.',
     )
   }
 
-  if (occurrence.lifecycle === 'in_progress') {
+  if (
+    occurrence.lifecycle === 'in_progress' ||
+    occurrence.lifecycle === 'completed'
+  ) {
     return stage(
       'assessment',
       'available',
-      'Formative assessment can be recorded during teaching.',
+      occurrence.lifecycle === 'in_progress'
+        ? 'Formative assessment can be recorded during teaching.'
+        : 'Assessment evidence can still be recorded after teaching.',
     )
   }
 
@@ -411,6 +425,10 @@ export function deriveTeachingWorkspace(
       occurrence.lifecycle === 'in_progress' ||
       occurrence.lifecycle === 'completed',
 
+    canCaptureAssessment:
+      occurrence.lifecycle === 'in_progress' ||
+      occurrence.lifecycle === 'completed',
+
     canWriteReflection:
       occurrence.lifecycle === 'completed' &&
       Boolean(occurrence.lessonPlanId),
@@ -423,6 +441,9 @@ export function deriveTeachingWorkspace(
 
     homeworkIssued:
       occurrence.homework.issued,
+
+    assessmentCaptured:
+      occurrence.assessment.count > 0,
 
     reflectionCompleted:
       occurrence.reflection.completed,

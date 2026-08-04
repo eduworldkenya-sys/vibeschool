@@ -421,6 +421,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
     attendanceRes,
     evidenceRes,
     homeworkRes,
+    assessmentRes,
     reflectionRes,
   ] = await Promise.all([
     supabase.from('attendance')
@@ -437,6 +438,19 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
       ? supabase.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null, error: null }),
     lessonPlanId
+      ? supabase.from('cbc_assessments')
+          .select('id, student_id, created_at')
+          .eq('lesson_plan_id', lessonPlanId)
+          .order('created_at', { ascending: false })
+      : Promise.resolve({
+          data: [] as {
+            id: string
+            student_id: string
+            created_at: string
+          }[],
+          error: null,
+        }),
+    lessonPlanId
       ? supabase.from('lesson_reflections')
           .select('id, what_worked, what_didnt, next_steps')
           .eq('lesson_plan_id', lessonPlanId)
@@ -444,7 +458,12 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
       : Promise.resolve({ data: null as { id: string; what_worked: string | null; what_didnt: string | null; next_steps: string | null } | null, error: null }),
   ])
 
-  const secondReadError = attendanceRes.error ?? evidenceRes.error ?? homeworkRes.error ?? reflectionRes.error
+  const secondReadError =
+    attendanceRes.error ??
+    evidenceRes.error ??
+    homeworkRes.error ??
+    assessmentRes.error ??
+    reflectionRes.error
   if (secondReadError) throw secondReadError
 
   const markedCount   = attendanceRes.data?.length ?? 0
@@ -454,6 +473,10 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
     markedCount < expectedCount ? 'partial' : 'complete'
 
   const evidenceRows = evidenceRes.data ?? []
+  const assessmentRows = assessmentRes.data ?? []
+  const assessedLearnerIds = new Set(
+    assessmentRows.map(row => row.student_id),
+  )
 
   const reflection = reflectionRes.data
   const reflectionCompleted = !!reflection && !!(reflection.what_worked || reflection.what_didnt || reflection.next_steps)
@@ -491,6 +514,12 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
     homework: {
       homeworkId: homeworkRes.data?.id ?? null,
       issued: !!homeworkRes.data,
+    },
+
+    assessment: {
+      count: assessmentRows.length,
+      learnerCount: assessedLearnerIds.size,
+      latestAssessmentId: assessmentRows[0]?.id ?? null,
     },
 
     reflection: {
