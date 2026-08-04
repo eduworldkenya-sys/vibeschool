@@ -7095,6 +7095,7 @@ export type Database = {
           id: string
           instructions: string | null
           lesson_plan_id: string | null
+          teaching_occurrence_id: string | null
           school_id: string
           subject: string | null
           target_group_id: string | null
@@ -7111,6 +7112,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           lesson_plan_id?: string | null
+          teaching_occurrence_id?: string | null
           school_id: string
           subject?: string | null
           target_group_id?: string | null
@@ -7127,6 +7129,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           lesson_plan_id?: string | null
+          teaching_occurrence_id?: string | null
           school_id?: string
           subject?: string | null
           target_group_id?: string | null

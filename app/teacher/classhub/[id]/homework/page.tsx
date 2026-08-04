@@ -481,7 +481,7 @@ function HomeworkInner() {
               sourceLessonPlanId || null,
             teaching_occurrence_id:
               sourceOccurrenceId || null,
-          } as any)
+          })
           .select("id")
           .single();
         if (homeworkError || !createdHomework || !createdHomework.id) {
