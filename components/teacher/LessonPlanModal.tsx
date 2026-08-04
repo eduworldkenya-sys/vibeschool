@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import type { Json } from '@/lib/database.types'
 
 import {
   EMPTY_LESSON_PLAN_SECTIONS,
@@ -800,7 +801,7 @@ export default function LessonPlanModal({
           sequence?: number
           page_start?: number | null
           page_end?: number | null
-          exercise_refs?: unknown[]
+          exercise_refs?: Json
         }>
       } | null
 
@@ -846,11 +847,7 @@ export default function LessonPlanModal({
             undefined,
           p_section_refs: [],
           p_exercise_refs:
-            Array.isArray(
-              resource.exercise_refs,
-            )
-              ? resource.exercise_refs
-              : [],
+            resource.exercise_refs ?? [],
         },
       )
 
