@@ -266,6 +266,34 @@ export default function SubjectHubPage() {
       activeAcademicTerm?.start_date ??
       nairobiDateStr()
 
+    const activeTermNumber =
+      activeAcademicTerm?.term ?? null
+
+    const activeAcademicYear =
+      activeAcademicTerm?.academic_year ?? null
+
+    const classAssessmentPromise =
+      activeTermNumber && activeAcademicYear
+        ? supabase
+            .from('cbc_assessments')
+            .select('class_id, performance')
+            .eq('teacher_id', currentId)
+            .eq('school_id', schoolId)
+            .eq('subject_id', subjectId)
+            .eq('term', activeTermNumber)
+            .eq(
+              'academic_year',
+              activeAcademicYear,
+            )
+            .in('class_id', classIds)
+        : Promise.resolve({
+            data: [] as {
+              class_id: string
+              performance: string
+            }[],
+            error: null,
+          })
+
     const [classRes, studentRes, perfRes, attRes] = await Promise.all([
       supabase
         .from('classes')
@@ -273,7 +301,7 @@ export default function SubjectHubPage() {
         .eq('school_id', schoolId)
         .in('id', classIds),
       supabase.from('students').select('class_id').in('class_id', classIds),
-      supabase.from('cbc_assessments').select('class_id, performance').eq('subject_id', subjectId).in('class_id', classIds),
+      classAssessmentPromise,
       supabase
         .from('attendance')
         .select(
@@ -464,7 +492,7 @@ export default function SubjectHubPage() {
   }
 
   async function loadGrowthData(subjectId: string) {
-    if (!subjectId || !currentId) return
+    if (!subjectId || !currentId || !schoolId) return
     setSuggLoading(true)
 
     const today = nairobiDateStr()
@@ -474,6 +502,10 @@ export default function SubjectHubPage() {
       nairobiDateStr()
     const activeTermNumber =
       activeAcademicTerm?.term ?? null
+
+    const activeAcademicYear =
+      activeAcademicTerm?.academic_year ?? null
+
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
@@ -513,8 +545,44 @@ export default function SubjectHubPage() {
 
     const [lpRes, assRes, strandPerfRes, strandNameRes, allStrandsRes, progressRes, attRes, canonicalSlots, resRes] = await Promise.all([
       supabase.from('lesson_plans').select('id, status, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
-      supabase.from('cbc_assessments').select('id, created_at').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
-      supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
+      activeTermNumber && activeAcademicYear
+        ? supabase
+            .from('cbc_assessments')
+            .select('id, created_at')
+            .eq('teacher_id', currentId)
+            .eq('school_id', schoolId)
+            .eq('subject_id', subjectId)
+            .eq('term', activeTermNumber)
+            .eq(
+              'academic_year',
+              activeAcademicYear,
+            )
+        : Promise.resolve({
+            data: [] as {
+              id: string
+              created_at: string
+            }[],
+            error: null,
+          }),
+      activeTermNumber && activeAcademicYear
+        ? supabase
+            .from('cbc_assessments')
+            .select('strand_id, performance')
+            .eq('teacher_id', currentId)
+            .eq('school_id', schoolId)
+            .eq('subject_id', subjectId)
+            .eq('term', activeTermNumber)
+            .eq(
+              'academic_year',
+              activeAcademicYear,
+            )
+        : Promise.resolve({
+            data: [] as {
+              strand_id: string | null
+              performance: string
+            }[],
+            error: null,
+          }),
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('id, strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       schoolId && activeTermNumber
