@@ -10,6 +10,7 @@ import {
   serializeLessonPlanBody,
 } from '@/lib/teaching/lessonPlanCodec'
 import { ensureLessonHomeworkDraft } from '@/lib/teaching/lessonHomeworkDraft'
+import { ensureLessonExerciseDraft } from '@/lib/teaching/lessonExerciseDraft'
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
@@ -740,14 +741,21 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       // before any student was actually observed/graded.
 
       if (sections.consolidation.trim() !== '') {
-        await supabase.from('exercises').upsert({
-          class_id:       slot.class_id,
-          teacher_id:     user.id,
-          school_id:      ctx.schoolId,
-          lesson_plan_id: currentId,
-          title:          topic + ' — In-Class Exercise',
-          instructions:   sections.consolidation.trim(),
-        }, { onConflict: 'lesson_plan_id' })
+        const exerciseResult = await ensureLessonExerciseDraft({
+          lessonPlanId: currentId,
+          classId: slot.class_id,
+          teacherId: user.id,
+          schoolId: ctx.schoolId,
+          title: topic + ' — In-Class Exercise',
+          instructions: sections.consolidation.trim(),
+        })
+
+        if (exerciseResult.outcome === 'preserved_existing') {
+          console.info(
+            '[LessonPlanModal] existing lesson exercise preserved',
+            exerciseResult.exerciseId,
+          )
+        }
       }
 
       setStatus('shared_to_parents')
