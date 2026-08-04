@@ -322,6 +322,10 @@ function SchemePageInner() {
 
   const [curriculumRows,   setCurriculumRows]   = useState<CurriculumRow[]>([])
   const [ebookSuggestions, setEbookSuggestions] = useState<EbookSuggestion[]>([])
+  const [
+    selectedSchemeResource,
+    setSelectedSchemeResource,
+  ] = useState<EbookSuggestion | null>(null)
   const [loadingCurric,    setLoadingCurric]    = useState(false)
   const [committing,       setCommitting]       = useState(false)
 
@@ -518,6 +522,7 @@ function SchemePageInner() {
     setSchemeItems([])
     setCurriculumRows([])
     setEbookSuggestions([])
+    setSelectedSchemeResource(null)
 
     const { data, error } = await supabase
       .from('scheme_of_work')
@@ -714,7 +719,11 @@ function SchemePageInner() {
                         libraryRow.resource_id
                       )
 
-                    if (!resource) {
+                    if (
+                      !resource ||
+                      !resource.chapter_id ||
+                      !resource.publication_id
+                    ) {
                       return []
                     }
 
@@ -918,14 +927,116 @@ function SchemePageInner() {
       source: 'custom'
     }
 
-    const { error } = await supabase.from('scheme_of_work').insert(payload)
-    if (error) {
-      setAddCustomError(error.message)
-    } else {
-      setNewTopicName('')
-      setNewStrandName('')
-      await loadScheme()
+    const {
+      data: insertedScheme,
+      error,
+    } = await supabase
+      .from('scheme_of_work')
+      .insert(payload)
+      .select('id')
+      .single()
+
+    if (error || !insertedScheme) {
+      setAddCustomError(
+        error?.message ??
+        'The scheme lesson could not be created.'
+      )
+      setAddCustomBusy(false)
+      return
     }
+
+    if (selectedSchemeResource) {
+      if (
+        !selectedSchemeResource.chapterId ||
+        !selectedSchemeResource.publicationId
+      ) {
+        await supabase
+          .from('scheme_of_work')
+          .delete()
+          .eq('id', insertedScheme.id)
+          .eq('teacher_id', uid)
+          .eq('school_id', schoolId)
+
+        setAddCustomError(
+          'Only chapter resources can currently be attached to Scheme lessons.'
+        )
+        setAddCustomBusy(false)
+        return
+      }
+
+      const allowedResourceRoles = new Set([
+        'primary',
+        'supplementary',
+        'teacher_reference',
+        'learner_reading',
+        'exercise',
+        'remedial',
+        'enrichment',
+        'project',
+        'assessment_source',
+        'before_class',
+        'in_class',
+        'after_class',
+        'homework',
+      ])
+
+      const resourceRole =
+        allowedResourceRoles.has(
+          selectedSchemeResource.resourceRole
+        )
+          ? selectedSchemeResource.resourceRole
+          : 'supplementary'
+
+      const {
+        data: linkResult,
+        error: linkError,
+      } = await supabase.rpc(
+        'upsert_scheme_lesson_resource',
+        {
+          p_scheme_lesson_id:
+            insertedScheme.id,
+          p_publication_id:
+            selectedSchemeResource.publicationId,
+          p_chapter_id:
+            selectedSchemeResource.chapterId,
+          p_resource_role:
+            resourceRole,
+          p_sequence: 1,
+          p_page_start: undefined,
+          p_page_end: undefined,
+          p_exercise_refs: [],
+        }
+      )
+
+      const linkPayload =
+        linkResult as {
+          ok?: boolean
+          reason?: string | null
+          resource_link_id?: string
+        } | null
+
+      if (linkError || !linkPayload?.ok) {
+        await supabase
+          .from('scheme_of_work')
+          .delete()
+          .eq('id', insertedScheme.id)
+          .eq('teacher_id', uid)
+          .eq('school_id', schoolId)
+
+        setAddCustomError(
+          linkError?.message ??
+          linkPayload?.reason ??
+          'The resource could not be attached to the scheme lesson.'
+        )
+        setAddCustomBusy(false)
+        return
+      }
+    }
+
+    setNewTopicName('')
+    setNewStrandName('')
+    setSelectedSchemeResource(null)
+    await loadScheme()
     setAddCustomBusy(false)
   }
 
@@ -1263,7 +1374,7 @@ function SchemePageInner() {
                       From this class library
                     </div>
                     {ebookSuggestions.map(s => (
-                      <div key={s.chapterId} style={{ padding: 10, borderRadius: 10, border: `1.5px solid #c7d2fe`, background: C.indigoLight }}>
+                      <div key={s.resourceId} style={{ padding: 10, borderRadius: 10, border: `1.5px solid #c7d2fe`, background: C.indigoLight }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{s.chapterTitle}</div>
                         <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{[
                           s.publicationTitle,
@@ -1272,16 +1383,33 @@ function SchemePageInner() {
                         ].filter(Boolean).join(' · ')}</div>
                         <button
                           type="button"
-                          onClick={() => { setNewTopicName(s.chapterTitle); setNewStrandName(s.strandName) }}
+                          onClick={() => {
+                            setNewTopicName(
+                              s.chapterTitle
+                            )
+                            setNewStrandName(
+                              s.strandName
+                            )
+                            setSelectedSchemeResource(
+                              s
+                            )
+                            setAddCustomError(null)
+                          }}
                           style={{ marginTop: 6, padding: '5px 10px', borderRadius: 8, border: 'none', background: C.indigo, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                         >
-                          Use this
+                          {selectedSchemeResource?.resourceId ===
+                          s.resourceId
+                            ? 'Selected ✓'
+                            : 'Use this'}
                         </button>
                       </div>
                     ))}
                   </div>
                 )}
-                <input value={newTopicName} onChange={e => setNewTopicName(e.target.value)} placeholder="Topic name, e.g. Whole Numbers" style={{ padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${C.border2}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', color: C.text, background: '#ffffff' }} />
+                <input value={newTopicName} onChange={e => {
+                  setNewTopicName(e.target.value)
+                  setSelectedSchemeResource(null)
+                }} placeholder="Topic name, e.g. Whole Numbers" style={{ padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${C.border2}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', color: C.text, background: '#ffffff' }} />
                 <input value={newStrandName} onChange={e => setNewStrandName(e.target.value)} placeholder="Strand name (optional), e.g. Numbers" style={{ padding: '9px 12px', borderRadius: 10, border: `1.5px solid ${C.border2}`, fontSize: 13, fontFamily: 'inherit', outline: 'none', color: C.text, background: '#ffffff' }} />
                 {addCustomError && <div style={{ fontSize: 11, color: C.red, fontWeight: 600 }}>{addCustomError}</div>}
                 <button type="button" onClick={addCustomItem} disabled={addCustomBusy || !newTopicName.trim()} style={{ padding: '10px 16px', background: C.indigo, color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: addCustomBusy ? 'not-allowed' : 'pointer', opacity: addCustomBusy || !newTopicName.trim() ? 0.6 : 1, fontFamily: 'inherit' }}>
