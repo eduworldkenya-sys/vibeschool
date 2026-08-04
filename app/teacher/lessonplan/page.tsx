@@ -66,6 +66,7 @@ function LessonPlanInner() {
   const urlSubjectId                  = searchParams.get('subjectId')
   const urlTimetableSlotId            = searchParams.get('timetableSlotId')
   const urlOccurrenceDate             = searchParams.get('date')
+  const urlSchemeId                   = searchParams.get('schemeId')
   const [weekStart,   setWeekStart]   = useState(() =>
     urlOccurrenceDate ? weekStartForDate(urlOccurrenceDate) : nairobiWeekStart()
   )
@@ -453,6 +454,7 @@ function LessonPlanInner() {
           // regression there fails loudly (as a save error) instead of
           // silently writing to the wrong date.
           taughtDate={activeSlot.occurrenceDate!}
+          requestedSchemeId={urlSchemeId}
           onClose={() => setActiveSlot(null)}
         />
       )}

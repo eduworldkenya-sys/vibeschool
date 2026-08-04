@@ -178,71 +178,29 @@ function GeneratePageInner() {
   const selectedSlot = slotsForSelectedWeek.find(s => s.id === selectedSlotId) ?? null
 
   async function generate() {
-    setGenerating(true)
-    setError(null)
-    setGenerated(null)
+    // FND-002C1: Scheme selects the educational source. The canonical
+    // timetable-backed lesson workspace owns generation and persistence.
+    const target = new URLSearchParams({
+      classId,
+      subjectId,
+      grade,
+      subject,
+      strand,
+      subStrand,
+      topic,
+      week: String(week),
+      term: String(term),
+    })
 
-    const prompt = `You are an expert CBC (Competency Based Curriculum) lesson plan writer for Kenyan primary schools.
-
-Generate a detailed, practical lesson plan for:
-- Grade: ${grade}
-- Subject: ${subject}
-- Strand: ${strand}
-- Sub-Strand: ${subStrand}
-- Topic: ${topic}
-- Term: ${term}, Week: ${week}
-- Class: ${className}
-
-Return ONLY a valid JSON object with exactly these keys:
-{
-  "objectives": "3-4 specific learning objectives starting with measurable action verbs",
-  "resources": "Locally available materials and learning resources",
-  "introduction": "5-7 minute practical and engaging introduction",
-  "development": "20-25 minute step-by-step teaching and learner activities, including CBC competencies",
-  "consolidation": "8-10 minute recap, learner practice and lesson closure",
-  "assessmentHook": "Specific formative assessment using observation, oral questions or a written task",
-  "homework": "Specific achievable homework with exact questions or instructions",
-  "differentiation": "Separate support for struggling learners, on-track learners and advanced learners"
-}
-
-Be specific, practical and rooted in the Kenyan CBC context. Use simple English appropriate for the grade level.`
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token ?? ''
-
-      const res = await fetch('/api/generate-lesson-plan', {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ prompt }),
-      })
-      const data = await res.json()
-
-      if (res.status === 402) {
-        setError('insufficient_credits')
-        return
-      }
-      if (data.error) throw new Error(data.error)
-
-      const parsedPlan =
-        parseGeneratedLessonPlan(data.plan)
-
-      if (!parsedPlan) {
-        throw new Error(
-          'The AI returned an invalid lesson-plan format.'
-        )
-      }
-
-      setGenerated(parsedPlan)
-      if (data.credits) setCredits(data.credits)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Generation failed')
-    } finally {
-      setGenerating(false)
+    if (curriculumId) {
+      target.set('curriculumId', curriculumId)
     }
+
+    if (schemeId) {
+      target.set('schemeId', schemeId)
+    }
+
+    router.push(`/teacher/lessonplan?${target.toString()}`)
   }
 
   function startEdit(section: keyof GeneratedPlan) {
@@ -257,45 +215,38 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
   }
 
   async function savePlan() {
-    if (!generated || !uid || !classId || !subjectId || !selectedSlot) return
-    if (selectedSlot.day_of_week < 1 || selectedSlot.day_of_week > 5) {
-      setError('This lesson slot is outside the supported Monday–Friday lesson-plan week.')
-      return
-    }
-    setSaving(true)
-    setError(null)
+    // FND-002C2: Scheme is no longer a lesson-plan persistence authority.
+    // This function remains temporarily only because the legacy generated
+    // preview UI still references it. The active Scheme action already hands
+    // off before that UI can be reached.
+    //
+    // Never reintroduce a direct lesson_plans insert here. The exact
+    // timetable occurrence and LessonPlanModal own plan persistence.
+    setError(
+      'Continue in the Lesson Workspace to generate and save this lesson plan.',
+    )
 
-    const body =
-      serializeLessonPlanBody(generated)
+    const target = new URLSearchParams({
+      classId,
+      subjectId,
+      grade,
+      subject,
+      strand,
+      subStrand,
+      topic,
+      week: String(week),
+      term: String(term),
+    })
 
-    const taughtDate = nairobiDateAdd(selectedWeekStart, selectedSlot.day_of_week - 1)
-
-    const payload = {
-      teacher_id:        uid,
-      school_id:         schoolId,
-      class_id:          classId,
-      subject_id:        subjectId,
-      title:              `${subject} — ${className} — ${topic}`,
-      topic:              topic,
-      body:               body,
-      timetable_slot_id: selectedSlot.id,
-      week_start:         selectedWeekStart,
-      day_of_week:        selectedSlot.day_of_week,
-      taught_date:        taughtDate,
-      curriculum_id:      curriculumId,
-      scheme_id:          schemeId,
-      status:             'draft',
-      generated_by:       'twin',
+    if (curriculumId) {
+      target.set('curriculumId', curriculumId)
     }
 
-    const { error: saveError } = await supabase.from('lesson_plans').insert(payload)
-    if (saveError) {
-      setError(saveError.message)
-    } else {
-      setSaved(true)
-      setTimeout(() => router.push('/teacher/lessonplan'), 1500)
+    if (schemeId) {
+      target.set('schemeId', schemeId)
     }
-    setSaving(false)
+
+    router.push(`/teacher/lessonplan?${target.toString()}`)
   }
 
   const SECTION_LABELS: Record<
@@ -432,7 +383,7 @@ Be specific, practical and rooted in the Kenyan CBC context. Use simple English 
               marginBottom: 12,
             }}
           >
-            ✨ Generate Lesson Plan
+            ✨ Continue to Lesson Workspace
           </button>
         )}
 

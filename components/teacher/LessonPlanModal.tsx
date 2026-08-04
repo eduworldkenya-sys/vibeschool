@@ -118,10 +118,11 @@ interface Ctx {
 }
 
 interface Props {
-  slot:       TimetableSlot
-  weekStart:  string
-  taughtDate: string
-  onClose:    () => void
+  slot:               TimetableSlot
+  weekStart:          string
+  taughtDate:         string
+  requestedSchemeId?: string | null
+  onClose:            () => void
 }
 
 type Phase  = 'loading' | 'form' | 'generating' | 'view' | 'edit'
@@ -171,7 +172,13 @@ function Skeleton({ h = 48 }: { h?: number }) {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }: Props) {
+export default function LessonPlanModal({
+  slot,
+  weekStart,
+  taughtDate,
+  requestedSchemeId = null,
+  onClose,
+}: Props) {
   const router = useRouter()
   const [phase,    setPhase]    = useState<Phase>('loading')
   const [sections, setSections] = useState<LessonPlanSections>(EMPTY)
@@ -310,20 +317,63 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         if (term) {
           const week = currentWeekOf(term)
 
-          // 1) The teacher's own Scheme of Work is the source of truth
-          //    for what is taught this week — suggest from it first.
-          const { data: schemeRows } = await supabase
-            .from('scheme_of_work')
-            .select('id, curriculum_id, strand, sub_strand, topic')
-            .eq('teacher_id',       userId)
-            .eq('class_id',         slot.class_id)
-            .eq('subject_id',       slot.subject_id)
-            .eq('academic_term_id', term.id)
-            .eq('school_id',        schoolId)
-            .eq('week',             week)
-            .limit(1)
+          // FND-002C1 source priority:
+          // 1. Explicit Scheme item selected by the teacher.
+          // 2. Existing automatic Scheme lookup for timetable entry.
+          let schemeRow: {
+            id: string
+            curriculum_id: string | null
+            strand: string | null
+            sub_strand: string | null
+            topic: string
+            week: number
+          } | null = null
 
-          const schemeRow = schemeRows?.[0]
+          if (requestedSchemeId) {
+            const {
+              data: requestedScheme,
+              error: requestedSchemeError,
+            } = await supabase
+              .from('scheme_of_work')
+              .select(
+                'id, curriculum_id, strand, sub_strand, topic, week',
+              )
+              .eq('id', requestedSchemeId)
+              .eq('teacher_id', userId)
+              .eq('class_id', slot.class_id)
+              .eq('subject_id', slot.subject_id)
+              .eq('academic_term_id', term.id)
+              .eq('school_id', schoolId)
+              .maybeSingle()
+
+            if (requestedSchemeError) {
+              throw requestedSchemeError
+            }
+
+            if (!requestedScheme) {
+              throw new Error(
+                'The selected Scheme item does not belong to this lesson.',
+              )
+            }
+
+            schemeRow = requestedScheme
+          } else {
+            const { data: schemeRows } = await supabase
+              .from('scheme_of_work')
+              .select(
+                'id, curriculum_id, strand, sub_strand, topic, week',
+              )
+              .eq('teacher_id', userId)
+              .eq('class_id', slot.class_id)
+              .eq('subject_id', slot.subject_id)
+              .eq('academic_term_id', term.id)
+              .eq('school_id', schoolId)
+              .eq('week', week)
+              .limit(1)
+
+            schemeRow = schemeRows?.[0] ?? null
+          }
+
           if (schemeRow) {
             setSuggestion({
               id:        schemeRow.curriculum_id ?? null,
@@ -331,7 +381,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
               subStrand: schemeRow.sub_strand ?? '',
               topic:     schemeRow.topic,
               term:      term.term,
-              week,
+              week:      schemeRow.week,
               strandId:  null,
               schemeId:  schemeRow.id,
             })
@@ -526,7 +576,12 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       }
     }
     boot()
-  }, [slot.id, slot.class_id, slot.subject_id])
+  }, [
+    slot.id,
+    slot.class_id,
+    slot.subject_id,
+    requestedSchemeId,
+  ])
 
   async function generate() {
     if (topic.trim() === '') { setError('Please enter a topic first.'); return }
