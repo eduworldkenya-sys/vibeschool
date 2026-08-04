@@ -32,6 +32,11 @@ interface Content {
   vibe_publication_id?: string | null;
   subject_id?: string | null;
   resource_id?: string | null;
+  registry_grade?: string | null;
+  registry_subject?: string | null;
+  registry_strand?: string | null;
+  registry_learning_outcomes?: string[];
+  curriculum_match?: "exact" | "subject" | "none";
 }
 
 interface Stats {
@@ -2427,6 +2432,23 @@ function DiscoverTab({ userId }: { userId: string | null }) {
     void loadContext();
   }, []);
 
+  function normalizeCurriculumLabel(
+    value: string | null | undefined
+  ): string {
+    return (value ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+  }
+
+  const selectedGradeKeys = new Set(
+    adoptionClasses.map(cls =>
+      normalizeCurriculumLabel(cls.name)
+    )
+  );
+
+  const selectedSubjectKey =
+    normalizeCurriculumLabel(subjectName);
+
   useEffect(() => {
     async function load() {
       if (mounted.current) setLoading(true);
@@ -2463,20 +2485,83 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         const resourcesByContentId = new Map(
           registryMappings.map(mapping => [
             mapping.contentId,
-            mapping.resourceId,
+            mapping,
           ])
         );
 
+        const rankedItems = rawItems
+          .map((item, originalIndex) => {
+            const registry =
+              resourcesByContentId.get(item.id);
+
+            const resourceSubjectKey =
+              normalizeCurriculumLabel(
+                registry?.subject
+              );
+
+            const resourceGradeKey =
+              normalizeCurriculumLabel(
+                registry?.grade
+              );
+
+            const subjectMatches =
+              Boolean(selectedSubjectKey) &&
+              resourceSubjectKey ===
+                selectedSubjectKey;
+
+            const gradeMatches =
+              Boolean(resourceGradeKey) &&
+              selectedGradeKeys.has(
+                resourceGradeKey
+              );
+
+            const curriculumMatch:
+              | "exact"
+              | "subject"
+              | "none" =
+              subjectMatches && gradeMatches
+                ? "exact"
+                : subjectMatches
+                  ? "subject"
+                  : "none";
+
+            const matchScore =
+              curriculumMatch === "exact"
+                ? 2
+                : curriculumMatch === "subject"
+                  ? 1
+                  : 0;
+
+            return {
+              item: {
+                ...item,
+                resource_id:
+                  registry?.resourceId ?? null,
+                registry_grade:
+                  registry?.grade ?? null,
+                registry_subject:
+                  registry?.subject ?? null,
+                registry_strand:
+                  registry?.strand ?? null,
+                registry_learning_outcomes:
+                  registry?.learningOutcomes ?? [],
+                curriculum_match:
+                  curriculumMatch,
+              } satisfies Content,
+              matchScore,
+              originalIndex,
+            };
+          })
+          .sort((left, right) =>
+            right.matchScore -
+              left.matchScore ||
+            left.originalIndex -
+              right.originalIndex
+          )
+          .map(entry => entry.item);
+
         if (mounted.current) {
-          setItems(
-            rawItems.map(item => ({
-              ...item,
-              resource_id:
-                resourcesByContentId.get(
-                  item.id
-                ) ?? null,
-            }))
-          );
+          setItems(rankedItems);
         }
       } finally {
         if (mounted.current) setLoading(false);
@@ -2484,7 +2569,13 @@ function DiscoverTab({ userId }: { userId: string | null }) {
     }
     const t = setTimeout(load, query ? 400 : 0);
     return () => clearTimeout(t);
-  }, [query, filter, userId]);
+  }, [
+    query,
+    filter,
+    userId,
+    subjectName,
+    adoptionClasses,
+  ]);
 
   const discoverCard: React.CSSProperties = {
     background: "#fff", borderRadius: 14,
@@ -2603,6 +2694,62 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               })()}
             </div>
           </div>
+
+          {subjectId &&
+            item.curriculum_match &&
+            item.curriculum_match !== "none" && (
+            <div style={{
+              display: "flex",
+              gap: 6,
+              flexWrap: "wrap",
+              marginTop: 10,
+            }}>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 800,
+                padding: "3px 8px",
+                borderRadius: 20,
+                background:
+                  item.curriculum_match === "exact"
+                    ? "#d1fae5"
+                    : "#dbeafe",
+                color:
+                  item.curriculum_match === "exact"
+                    ? "#065f46"
+                    : "#1d4ed8",
+              }}>
+                {item.curriculum_match === "exact"
+                  ? "Exact subject + grade"
+                  : "Subject match"}
+              </span>
+
+              {item.registry_grade && (
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: 20,
+                  background: "#f3f4f6",
+                  color: "#4b5563",
+                }}>
+                  {item.registry_grade}
+                </span>
+              )}
+
+              {item.registry_strand && (
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: 20,
+                  background: "#f5f3ff",
+                  color: "#6d28d9",
+                }}>
+                  {item.registry_strand}
+                </span>
+              )}
+            </div>
+          )}
 
           {subjectId && (
             <div style={{

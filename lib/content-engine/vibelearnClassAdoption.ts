@@ -9,6 +9,10 @@ export interface AdoptionClassOption {
 export interface RegistryResourceMap {
   contentId: string
   resourceId: string
+  grade: string | null
+  subject: string | null
+  strand: string | null
+  learningOutcomes: string[]
 }
 
 interface LearningResourceRow {
@@ -16,6 +20,10 @@ interface LearningResourceRow {
   source_type: string
   content_id: string | null
   publication_id: string | null
+  grade: string | null
+  subject: string | null
+  strand: string | null
+  learning_outcomes: string[]
 }
 
 export async function loadSubjectAdoptionClasses(
@@ -86,7 +94,7 @@ export async function resolvePublicRegistryResources(
     const { data, error } = await supabase
       .from('learning_resources')
       .select(
-        'id,source_type,content_id,publication_id'
+        'id,source_type,content_id,publication_id,grade,subject,strand,learning_outcomes'
       )
       .eq('status', 'active')
       .in('visibility', [
@@ -111,7 +119,7 @@ export async function resolvePublicRegistryResources(
     const { data, error } = await supabase
       .from('learning_resources')
       .select(
-        'id,source_type,content_id,publication_id'
+        'id,source_type,content_id,publication_id,grade,subject,strand,learning_outcomes'
       )
       .eq('status', 'active')
       .in('visibility', [
@@ -158,6 +166,11 @@ export async function resolvePublicRegistryResources(
     return [{
       contentId,
       resourceId: row.id,
+      grade: row.grade,
+      subject: row.subject,
+      strand: row.strand,
+      learningOutcomes:
+        row.learning_outcomes ?? [],
     }]
   })
 }
