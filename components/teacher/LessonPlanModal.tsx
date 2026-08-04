@@ -51,6 +51,7 @@ import type { TeachingOccurrence } from '@/lib/teaching/types'
 import ReflectionSheet from '@/components/teacher/ReflectionSheet'
 import CoverageSheet from '@/components/teacher/CoverageSheet'
 import LessonPlanHistorySheet from '@/components/teacher/LessonPlanHistorySheet'
+import EvidenceCaptureSheet from '@/components/teacher/EvidenceCaptureSheet'
 
 // TOS-002: human-facing text for starting the exact occurrence from
 // the lesson workspace. The RPC remains the lifecycle authority.
@@ -239,6 +240,7 @@ export default function LessonPlanModal({
   const [completing,     setCompleting]     = useState(false)
   const [completeError,  setCompleteError]  = useState<string | null>(null)
   const [showReflection, setShowReflection] = useState(false)
+  const [showEvidence,   setShowEvidence]   = useState(false)
   const [showHistory,    setShowHistory]    = useState(false)
   // Fix 18E-D: set from the RPC-returned completed occurrence's own id —
   // never a slot id or plan id — so the coverage prompt always targets the
@@ -1066,6 +1068,31 @@ export default function LessonPlanModal({
                     ⚠ {completeError}
                   </div>
                 )}
+                {workspace?.canCaptureEvidence &&
+                  planId &&
+                  teachingOccurrence?.occurrenceId && (
+                  <button
+                    onClick={() => setShowEvidence(true)}
+                    style={{
+                      width: '100%',
+                      padding: '13px',
+                      borderRadius: 12,
+                      border: '1.5px solid #047857',
+                      background: workspace.evidenceCaptured
+                        ? '#d1fae5'
+                        : '#ecfdf5',
+                      color: '#047857',
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {workspace.evidenceCaptured
+                      ? '✓ Add More Learning Evidence'
+                      : '📷 Capture Learning Evidence'}
+                  </button>
+                )}
                 {workspace?.canComplete && (
                   <button onClick={handleCompleteLesson} disabled={completing} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
@@ -1178,6 +1205,37 @@ export default function LessonPlanModal({
         </div>
       </div>
 
+      {showEvidence &&
+        teacherId &&
+        planId &&
+        teachingOccurrence?.occurrenceId && (
+        <EvidenceCaptureSheet
+          lessonId={planId}
+          occurrenceId={
+            teachingOccurrence.occurrenceId
+          }
+          classId={slot.class_id}
+          teacherId={teacherId}
+          defaultTitle={topic || slot.subject}
+          onClose={() => setShowEvidence(false)}
+          onSaved={() => {
+            setShowEvidence(false)
+            showToast('Learning evidence saved ✓')
+
+            void refreshTeachingWorkspace()
+              .then(() => {
+                refreshPulse('lesson')
+              })
+              .catch((refreshError) => {
+                console.error(
+                  '[LessonPlanModal] evidence refresh failed',
+                  refreshError,
+                )
+              })
+          }}
+        />
+      )}
+
       {showReflection && teacherId && planId && (
         <ReflectionSheet
           lessonId={planId}
@@ -1193,7 +1251,9 @@ export default function LessonPlanModal({
           appears once the reflection sheet has closed (save or dismiss) —
           never stacked on top of it. If there's no lesson plan to reflect
           on, showReflection never opens and this shows immediately. */}
-      {!showReflection && coveragePromptOccurrenceId && (
+      {!showReflection &&
+        !showEvidence &&
+        coveragePromptOccurrenceId && (
         <CoverageSheet
           marking={markingCovered}
           error={coverageError}
