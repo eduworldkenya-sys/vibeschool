@@ -487,7 +487,7 @@ export default function LessonPlanModal({
     try {
       await markOccurrenceResourceUsed({
         occurrenceId:
-          teachingOccurrence.id,
+          teachingOccurrence.occurrenceId,
         lessonPlanId: planId,
         resourceId:
           resource.resourceId,
