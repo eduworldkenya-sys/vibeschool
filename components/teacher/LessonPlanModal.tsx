@@ -27,6 +27,13 @@ import {
 import {
   generateLessonPlan,
 } from '@/lib/teaching/lessonGeneration'
+import {
+  loadLessonContext,
+} from '@/lib/teaching/lessonContext'
+import type {
+  LessonContext,
+  LessonContextStudent,
+} from '@/lib/teaching/lessonContext'
 import { C } from '@/components/teacher/ui'
 import { nairobiDateStr } from '@/lib/time'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
@@ -112,20 +119,8 @@ function coveredErrorMessage(code: MarkCoveredErrorCode): string {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface Student {
-  id:         string
-  name:       string
-  profile_id: string | null
-}
-
-interface Ctx {
-  teacherName:    string
-  schoolName:     string
-  schoolId:       string
-  studentCount:   number
-  previousTopics: string[]
-  students:       Student[]
-}
+type Student = LessonContextStudent
+type Ctx = Omit<LessonContext, 'grade'>
 
 interface Props {
   slot:               TimetableSlot
@@ -278,51 +273,28 @@ export default function LessonPlanModal({
     return session.access_token
   }
 
-  // G8: context load separated from plan load
+  // FND-003D: teacher, class, learner and history context is loaded through
+  // the shared lesson-context service. The modal only coordinates source
+  // resolution and UI state.
   async function loadContext(userId: string) {
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('full_name, school_id')
-      .eq('id', userId)
-      .single()
-
-    const schoolId = prof?.school_id ?? null
-
-    const [schoolRes, studentRes, prevRes, classRes] = await Promise.all([
-      schoolId
-        ? supabase.from('schools').select('name').eq('id', schoolId).single()
-        : Promise.resolve({ data: null }),
-      // G6 corrected — notifications need profile_id (auth id), not students.id
-      supabase.from('students')
-        .select('id, name, profile_id')
-        .eq('class_id', slot.class_id),
-      supabase.from('lesson_plans')
-        .select('topic')
-        .eq('teacher_id', userId)
-        .eq('class_id',   slot.class_id)
-        .eq('subject_id', slot.subject_id)
-        .not('topic', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase.from('classes').select('name').eq('id', slot.class_id).single(),
-    ])
-
-    setCtx({
-      teacherName:    prof?.full_name ?? 'Teacher',
-      schoolName:     (schoolRes as any).data?.name ?? 'the school',
-      schoolId:       schoolId ?? '',
-      studentCount:   studentRes.data?.length ?? 0,
-      previousTopics: (prevRes.data ?? []).map((r: any) => r.topic).filter(Boolean),
-      students:       (studentRes.data ?? []) as Student[],
+    const loadedContext = await loadLessonContext({
+      userId,
+      classId: slot.class_id,
+      subjectId: slot.subject_id,
     })
 
-    const grade = (classRes as any).data?.name ?? null
+    const {
+      grade,
+      ...context
+    } = loadedContext
 
-    if (schoolId && grade) {
+    setCtx(context)
+
+    if (context.schoolId && grade) {
       try {
         const resolvedSource = await resolveLessonSource({
           userId,
-          schoolId,
+          schoolId: context.schoolId,
           classId: slot.class_id,
           subjectId: slot.subject_id,
           subjectName: slot.subject,
