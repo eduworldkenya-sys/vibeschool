@@ -2048,3 +2048,13 @@ reaches the intended final timetable security contract.
 Next fix
 
 TBL-012 — Compare rebuilt schema with target schema.
+
+## Permanent Vibeschool product vision
+
+The authoritative long-term product and architecture vision is stored at:
+
+`docs/VIBESCHOOL_OS_VISION.md`
+
+All future Teacher OS, VibeTwin, VibeLearn, publishing, learner, parent and
+school work must remain aligned with that document. Do not create parallel
+architectures or isolated feature generators.
