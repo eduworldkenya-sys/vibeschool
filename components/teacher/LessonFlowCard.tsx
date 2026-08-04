@@ -404,6 +404,13 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
   const firstCurrentIndex = states.findIndex((item) => item.state === "Current");
   const firstFutureIndex = states.findIndex((item, index) => index > firstCurrentIndex && item.state !== "Done");
 
+  const evidenceLessonId =
+    activeSlot.teaching_workspace?.lessonPlanId ??
+    activeSlot.lesson_plan_id
+
+  const evidenceOccurrenceId =
+    activeSlot.teaching_workspace?.occurrenceId
+
   return (
     <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", marginBottom: 12 }}>
       <TeachJourney slot={activeSlot} />
@@ -499,12 +506,12 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
         })}
       </div>
 
-      {evidenceSheetOpen && (
+      {evidenceSheetOpen &&
+        evidenceLessonId &&
+        evidenceOccurrenceId && (
         <EvidenceCaptureSheet
-          lessonId={
-            activeSlot.teaching_workspace?.lessonPlanId ??
-            activeSlot.lesson_plan_id
-          }
+          lessonId={evidenceLessonId}
+          occurrenceId={evidenceOccurrenceId}
           classId={activeSlot.class_id}
           teacherId={teacherId ?? ""}
           defaultTitle={activeSlot.subject}

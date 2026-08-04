@@ -497,7 +497,7 @@ export default function LessonPlanModal({
         topic:              topic.trim(),
         title:              slot.subject + ' — ' + slot.class + ' — ' + topic.trim(),
         body:               serializeLessonPlanBody(parsed),
-        status:             'draft',
+        status:             'draft' as const,
         generated_by:       'twin',
         curriculum_id:      curriculumId,
         strand_id:          strandId,

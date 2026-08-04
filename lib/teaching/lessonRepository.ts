@@ -26,7 +26,7 @@ export interface SaveGeneratedLessonPlanInput {
   planId: string | null
   payload: {
     teacher_id: string
-    school_id: string
+    school_id: string | null
     class_id: string
     subject_id: string
     timetable_slot_id: string

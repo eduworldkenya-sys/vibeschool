@@ -6,7 +6,6 @@ import {
 } from '@/lib/teaching/occurrence'
 import type {
   TeachingOccurrence,
-  TeachingOccurrenceRow,
 } from '@/lib/teaching/types'
 
 export interface LessonOccurrenceKey {
@@ -35,7 +34,7 @@ export async function loadLessonOccurrence(
  */
 export async function startLessonOccurrence(
   key: LessonOccurrenceKey,
-): Promise<TeachingOccurrenceRow> {
+) {
   return startTeachingOccurrence(key)
 }
 
@@ -47,7 +46,7 @@ export async function startLessonOccurrence(
  */
 export async function completeLessonOccurrence(
   key: LessonOccurrenceKey,
-): Promise<TeachingOccurrenceRow> {
+) {
   return completeTeachingOccurrence(key)
 }
 

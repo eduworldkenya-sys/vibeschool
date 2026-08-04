@@ -106,7 +106,14 @@ export async function loadExactLessonAttendance({
     throw firstError
   }
 
+  const subjectRow = subjectResult.data
   const classRow = classResult.data
+
+  if (!subjectRow || !classRow) {
+    throw new Error(
+      'lessonAttendance: subject or class metadata was not found.',
+    )
+  }
 
   if (
     classRow.school_id &&
@@ -120,7 +127,7 @@ export async function loadExactLessonAttendance({
     classId: slot.class_id,
     subjectId: slot.subject_id,
     subject:
-      subjectResult.data.name ?? 'Unknown',
+      subjectRow.name ?? 'Unknown',
     className:
       classRow.name +
       (classRow.stream
