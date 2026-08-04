@@ -9,9 +9,6 @@ import {
   parseLessonPlanBody,
   serializeLessonPlanBody,
 } from '@/lib/teaching/lessonPlanCodec'
-import { ensureLessonHomeworkDraft } from '@/lib/teaching/lessonHomeworkDraft'
-import { ensureLessonExerciseDraft } from '@/lib/teaching/lessonExerciseDraft'
-import { deliverLessonPlanToParents } from '@/lib/teaching/lessonParentDelivery'
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
@@ -22,7 +19,6 @@ import {
   loadLessonPlanForOccurrence,
   saveGeneratedLessonPlan,
   updateLessonPlanBody,
-  updateLessonPlanStatus,
 } from '@/lib/teaching/lessonRepository'
 import {
   generateLessonPlan,
@@ -30,12 +26,15 @@ import {
 import {
   loadLessonContext,
 } from '@/lib/teaching/lessonContext'
+import {
+  publishLessonToStudents,
+  shareLessonToParents,
+} from '@/lib/teaching/lessonDelivery'
 import type {
   LessonContext,
   LessonContextStudent,
 } from '@/lib/teaching/lessonContext'
 import { C } from '@/components/teacher/ui'
-import { nairobiDateStr } from '@/lib/time'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
 import {
@@ -671,35 +670,29 @@ export default function LessonPlanModal({
   async function handlePublish() {
     const currentId = planIdRef.current
     if (currentId == null) return
+
     const token = await getToken()
     if (token == null) return
 
     setBusy('publishing')
+
     try {
-      await updateLessonPlanStatus({
+      await publishLessonToStudents({
         lessonPlanId: currentId,
-        status: 'published',
+        schoolId: ctx.schoolId,
+        topic,
+        subject: slot.subject,
+        teacherName: ctx.teacherName,
+        students: ctx.students,
       })
-      const linkedStudents = ctx.students.filter(
-        (s): s is typeof s & { profile_id: string } =>
-          typeof s.profile_id === 'string' && s.profile_id.length > 0
-      )
-      if (linkedStudents.length > 0) {
-        await supabase.from('notifications').insert(
-          linkedStudents.map(s => ({
-            school_id:  ctx.schoolId || null,
-            user_id:    s.profile_id,
-            title:      'New Lesson: ' + topic,
-            body:       slot.subject + ' lesson plan published by ' + ctx.teacherName,
-            type:       'lesson_plan',
-            related_id: currentId,
-          }))
-        )
-      }
+
       setStatus('published')
       showToast('Published to students ✓')
     } catch (err) {
-      console.error('[LessonPlanModal] publish', err)
+      console.error(
+        '[LessonPlanModal] publish',
+        err,
+      )
       setError('Publish failed. Try again.')
     } finally {
       setBusy('idle')
@@ -709,95 +702,42 @@ export default function LessonPlanModal({
   async function handleShareToParents() {
     const currentId = planIdRef.current
     if (currentId == null) return
+
     const token = await getToken()
     if (token == null) return
 
+    if (!teacherId) {
+      setError('Teacher context is unavailable.')
+      return
+    }
+
+    if (!ctx.schoolId) {
+      setError('School context is unavailable.')
+      return
+    }
+
     setBusy('sharing')
+
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user == null) return
-
-      if (!ctx.schoolId) {
-        setError('School context is unavailable.')
-        return
-      }
-
-      const summary = [
-        'Topic: ' + topic, '',
-        'Learning Objectives:', sections.objectives, '',
-        sections.homework ? 'Homework:\n' + sections.homework : '',
-      ].filter(Boolean).join('\n')
-
-      const deliveryResult = await deliverLessonPlanToParents({
+      await shareLessonToParents({
         lessonPlanId: currentId,
-        deliveryPurpose: 'lesson_summary',
-        subject: slot.subject + ' — Lesson: ' + topic,
-        body: summary,
-      })
-
-      if (deliveryResult.recipientCount === 0) {
-        console.info(
-          '[LessonPlanModal] lesson parent delivery had no active recipients',
-          currentId,
-        )
-      }
-
-      if (sections.homework.trim() !== '') {
-        const due = new Date()
-        due.setDate(due.getDate() + 1) // TODO LP-002A2: teacher selects due date before assignment
-
-        const homeworkResult = await ensureLessonHomeworkDraft({
-          lessonPlanId: currentId,
-          classId: slot.class_id,
-          teacherId: user.id,
-          schoolId: ctx.schoolId,
-          subject: slot.subject,
-          title: topic + ' — Homework',
-          instructions: sections.homework.trim(),
-          suggestedDueDate: nairobiDateStr(due),
-        })
-
-        if (homeworkResult.outcome === 'preserved_existing') {
-          console.info(
-            '[LessonPlanModal] existing lesson homework preserved',
-            homeworkResult.homeworkId,
-          )
-        }
-      }
-
-      // NOTE: assessmentHook content lives in lesson_plans.body already.
-      // Actual student scoring happens in /teacher/assessment (cbc_assessments),
-      // which now carries lesson_plan_id for traceability. We deliberately do NOT
-      // auto-insert a score here — that would fabricate an assessment result
-      // before any student was actually observed/graded.
-
-      if (sections.consolidation.trim() !== '') {
-        const exerciseResult = await ensureLessonExerciseDraft({
-          lessonPlanId: currentId,
-          classId: slot.class_id,
-          teacherId: user.id,
-          schoolId: ctx.schoolId,
-          title: topic + ' — In-Class Exercise',
-          instructions: sections.consolidation.trim(),
-        })
-
-        if (exerciseResult.outcome === 'preserved_existing') {
-          console.info(
-            '[LessonPlanModal] existing lesson exercise preserved',
-            exerciseResult.exerciseId,
-          )
-        }
-      }
-
-      await updateLessonPlanStatus({
-        lessonPlanId: currentId,
-        status: 'shared_to_parents',
+        classId: slot.class_id,
+        teacherId,
+        schoolId: ctx.schoolId,
+        subject: slot.subject,
+        topic,
+        sections,
       })
 
       setStatus('shared_to_parents')
-      showToast('Shared to parents + lesson work synced ✓')
+      showToast(
+        'Shared to parents + lesson work synced ✓',
+      )
     } catch (err) {
-      console.error('[LessonPlanModal] shareToParents', err)
+      console.error(
+        '[LessonPlanModal] shareToParents',
+        err,
+      )
       setError('Share failed. Try again.')
     } finally {
       setBusy('idle')
