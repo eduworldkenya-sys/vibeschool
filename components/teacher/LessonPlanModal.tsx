@@ -13,10 +13,6 @@ import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
 import {
-  resolveLessonSource,
-} from '@/lib/teaching/lessonSource'
-import {
-  loadLessonPlanForOccurrence,
   saveGeneratedLessonPlan,
   updateLessonPlanBody,
 } from '@/lib/teaching/lessonRepository'
@@ -24,12 +20,12 @@ import {
   generateLessonPlan,
 } from '@/lib/teaching/lessonGeneration'
 import {
-  loadLessonContext,
-} from '@/lib/teaching/lessonContext'
-import {
   publishLessonToStudents,
   shareLessonToParents,
 } from '@/lib/teaching/lessonDelivery'
+import {
+  loadLessonWorkspace,
+} from '@/lib/teaching/lessonWorkspace'
 import type {
   LessonContext,
   LessonContextStudent,
@@ -283,185 +279,93 @@ export default function LessonPlanModal({
     return session.access_token
   }
 
-  // FND-003D: teacher, class, learner and history context is loaded through
-  // the shared lesson-context service. The modal only coordinates source
-  // resolution and UI state.
-  async function loadContext(userId: string) {
-    const loadedContext = await loadLessonContext({
-      userId,
-      classId: slot.class_id,
-      subjectId: slot.subject_id,
-    })
-
-    const {
-      grade,
-      ...context
-    } = loadedContext
-
-    setCtx(context)
-
-    if (context.schoolId && grade) {
-      try {
-        const resolvedSource = await resolveLessonSource({
-          userId,
-          schoolId: context.schoolId,
-          classId: slot.class_id,
-          subjectId: slot.subject_id,
-          subjectName: slot.subject,
-          grade,
-          requestedSchemeId,
-        })
-
-        setSuggestion(resolvedSource)
-      } catch (sourceError) {
-        console.error(
-          '[LessonPlanModal] lesson source resolution failed',
-          sourceError,
-        )
-        // Non-fatal: the teacher may still use a custom topic.
-        setSuggestion(null)
-      }
-    } else {
-      setSuggestion(null)
-    }
-  }
-
-  async function loadExistingPlan(userId: string) {
-    if (!taughtDate) {
-      throw new Error(
-        'LessonPlanModal: taughtDate is missing — cannot resolve occurrence.',
-      )
-    }
-
-    return loadLessonPlanForOccurrence({
-      teacherId: userId,
-      timetableSlotId: slot.id,
-      taughtDate,
-    })
-  }
 
   useEffect(() => {
+    let cancelled = false
+
     async function boot() {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user == null) { setError('Not signed in.'); setPhase('form'); return }
-        setTeacherId(user.id)
-
-        // Fix 18F: reset transient source-link state for this exact
-        // slot/date. Persisted source identity is restored below.
         planSchemeIdRef.current = null
         setSuggestionLinked(false)
 
-        const [, existing] = await Promise.all([
-          loadContext(user.id),
-          loadExistingPlan(user.id),
-        ])
+        const loaded = await loadLessonWorkspace({
+          timetableSlotId: slot.id,
+          occurrenceDate: taughtDate,
+          classId: slot.class_id,
+          subjectId: slot.subject_id,
+          subjectName: slot.subject,
+          requestedSchemeId,
+        })
 
-        // TOS-006B: occurrence loading remains isolated from lesson-plan
-        // loading. A transient workspace read failure disables teaching
-        // actions but does not prevent the plan itself from opening.
-        try {
-          await refreshTeachingWorkspace()
-        } catch (workspaceErr) {
-          console.error(
-            '[LessonPlanModal] teachingWorkspace',
-            workspaceErr,
-          )
-          setTeachingOccurrence(null)
-          setCompleteError(
-            'Could not load the lesson teaching state.',
-          )
+        if (cancelled) return
+
+        if (!loaded) {
+          setError('Not signed in.')
+          setPhase('form')
+          return
         }
 
-        if (existing != null && existing.body) {
-          // G3: check null before trusting parse
-          const parsed = parseLessonPlanBody(existing.body)
-          setSections(parsed ?? { ...EMPTY, development: existing.body })
-          if (existing.topic)  setTopic(existing.topic)
-          if (existing.status) setStatus(existing.status as Status)
-          setPlanId(existing.id)
-          // Fix 18E-D correction: source of truth for the coverage-prompt
-          // gate is the persisted row's own scheme_id, not the suggestion.
-          planSchemeIdRef.current = existing.scheme_id ?? null
+        setTeacherId(loaded.teacherId)
+        setCtx(loaded.context)
+        setSuggestion(loaded.source)
+        setSuggestionLinked(loaded.sourceLinked)
+        setTeachingOccurrence(loaded.occurrence)
+        setCompleteError(loaded.occurrenceError)
 
-          // Fix 18F: restore source identity from the persisted lesson plan.
-          // scheme_id is authoritative even when curriculum_id is null.
-          if (existing.scheme_id) {
-            try {
-              const { data: schemeRow, error: schemeError } = await supabase
-                .from('scheme_of_work')
-                .select('id, curriculum_id, strand, sub_strand, topic, week, term')
-                .eq('id', existing.scheme_id)
-                .single()
+        const existing = loaded.existingPlan
 
-              if (schemeError) throw schemeError
+        if (existing && existing.body) {
+          const parsed = parseLessonPlanBody(
+            existing.body,
+          )
 
-              if (schemeRow) {
-                setSuggestion({
-                  id:        schemeRow.curriculum_id ?? existing.curriculum_id ?? null,
-                  strand:    schemeRow.strand ?? '',
-                  subStrand: schemeRow.sub_strand ?? '',
-                  topic:     schemeRow.topic,
-                  term:      schemeRow.term,
-                  week:      schemeRow.week,
-                  strandId:  existing.strand_id ?? null,
-                  schemeId:  schemeRow.id,
-                })
-                setSuggestionLinked(true)
-              }
-            } catch (sourceError) {
-              console.error(
-                '[LessonPlanModal] failed to restore scheme source',
-                sourceError,
-              )
-            }
-          } else if (existing.curriculum_id) {
-            try {
-              const { data: currRow, error: curriculumError } = await supabase
-                .from('curriculum')
-                .select('id, strand, sub_strand, topic, week, term')
-                .eq('id', existing.curriculum_id)
-                .single()
+          setSections(
+            parsed ?? {
+              ...EMPTY,
+              development: existing.body,
+            },
+          )
 
-              if (curriculumError) throw curriculumError
-
-              if (currRow) {
-                setSuggestion({
-                  id:        currRow.id,
-                  strand:    currRow.strand,
-                  subStrand: currRow.sub_strand,
-                  topic:     currRow.topic,
-                  term:      currRow.term,
-                  week:      currRow.week,
-                  strandId:  existing.strand_id ?? null,
-                  schemeId:  null,
-                })
-                setSuggestionLinked(true)
-              }
-            } catch (sourceError) {
-              console.error(
-                '[LessonPlanModal] failed to restore curriculum source',
-                sourceError,
-              )
-            }
+          if (existing.topic) {
+            setTopic(existing.topic)
           }
 
+          if (existing.status) {
+            setStatus(existing.status as Status)
+          }
+
+          setPlanId(existing.id)
+          planSchemeIdRef.current =
+            existing.scheme_id ?? null
           setPhase('view')
         } else {
           setPhase('form')
         }
-      } catch (err) {
-        // G7: no silent swallows
-        console.error('[LessonPlanModal] boot', err)
-        setError('Failed to load. Please close and retry.')
+      } catch (bootError) {
+        if (cancelled) return
+
+        console.error(
+          '[LessonPlanModal] boot',
+          bootError,
+        )
+        setError(
+          'Failed to load. Please close and retry.',
+        )
         setPhase('form')
       }
     }
-    boot()
+
+    void boot()
+
+    return () => {
+      cancelled = true
+    }
   }, [
     slot.id,
     slot.class_id,
     slot.subject_id,
+    slot.subject,
+    taughtDate,
     requestedSchemeId,
   ])
 
