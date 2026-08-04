@@ -5,6 +5,8 @@ AGENT_LOGS="$AGENT_ROOT/logs"
 AGENT_REPORTS="$AGENT_ROOT/reports"
 AGENT_STATE="$AGENT_ROOT/state.json"
 AGENT_FIXES="scripts/agent/fixes"
+AGENT_REGISTRY="scripts/agent/registry.json"
+AGENT_REGISTRY_TOOL="scripts/agent/registry.py"
 
 mkdir -p "$AGENT_LOGS" "$AGENT_REPORTS"
 
@@ -36,7 +38,7 @@ agent_source_status() {
     | grep -vE \
       '^\?\? (\.[A-Za-z0-9_-]+-(audit|backups|tsc)/|\.ops001[^/]*/|PASTE_ME_[^/]+\.sh$)' \
     | grep -vE \
-      '^(\?\?| M) (\.gitignore|\.vibeschool-agent/|\.vibeschool-agent/state\.json|scripts/vibeschool-agent\.sh|scripts/agent/.*|scripts/test-ops001-agent-runner\.py)$' \
+      '^(\?\?| M) (\.gitignore|\.vibeschool-agent/|\.vibeschool-agent/state\.json|scripts/vibeschool-agent\.sh|scripts/agent/.*|scripts/test-ops001-agent-runner\.py|scripts/test-ops001c-fix-registry\.py)$' \
     || true
 }
 
@@ -93,6 +95,44 @@ PY
     echo "=== KNOWN TEMPORARY ARTIFACTS ==="
     agent_known_temp_paths
   fi
+}
+
+agent_validate_registry() {
+  python3 "$AGENT_REGISTRY_TOOL" validate \
+    --registry "$AGENT_REGISTRY"
+}
+
+agent_show_next_fix() {
+  agent_validate_registry >/dev/null
+  python3 "$AGENT_REGISTRY_TOOL" next \
+    --registry "$AGENT_REGISTRY"
+}
+
+agent_list_fixes() {
+  agent_validate_registry >/dev/null
+  python3 "$AGENT_REGISTRY_TOOL" list \
+    --registry "$AGENT_REGISTRY"
+}
+
+agent_next_fix_id() {
+  agent_validate_registry >/dev/null
+
+  python3 "$AGENT_REGISTRY_TOOL" next \
+    --registry "$AGENT_REGISTRY" \
+    | sed -n 's/^NEXT_FIX=//p' \
+    | head -1
+}
+
+agent_run_next_fix() {
+  local fix_id
+
+  fix_id="$(agent_next_fix_id)"
+
+  [ -n "$fix_id" ] || agent_abort "registry returned no next fix"
+  [ "$fix_id" != "NONE" ] || agent_abort "no actionable registered fix exists"
+
+  echo "AUTO_SELECTED_FIX=$fix_id"
+  agent_run_fix "$fix_id"
 }
 
 agent_run_fix() {

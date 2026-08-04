@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "project": "Vibeschool",
+  "active_track": "lesson-plan",
+  "fixes": [
+    {
+      "id": "LP-001",
+      "title": "Unify lesson-plan generator body contract",
+      "track": "lesson-plan",
+      "status": "complete",
+      "depends_on": [],
+      "definition": null,
+      "completion_commit": "f849d2c"
+    },
+    {
+      "id": "LP-002A1",
+      "title": "Preserve existing lesson homework authority",
+      "track": "lesson-plan",
+      "status": "complete",
+      "depends_on": [
+        "LP-001"
+      ],
+      "definition": null,
+      "completion_commit": "48cc500"
+    },
+    {
+      "id": "LP-002A2A",
+      "title": "Preserve existing lesson exercise authority",
+      "track": "lesson-plan",
+      "status": "complete",
+      "depends_on": [
+        "LP-002A1"
+      ],
+      "definition": null,
+      "completion_commit": "13d5e48"
+    },
+    {
+      "id": "LP-002A2B",
+      "title": "Make parent lesson delivery idempotent",
+      "track": "lesson-plan",
+      "status": "ready",
+      "depends_on": [
+        "LP-002A2A"
+      ],
+      "definition": "scripts/agent/fixes/LP-002A2B.sh",
+      "completion_commit": null
+    },
+    {
+      "id": "LP-002A2C",
+      "title": "Separate publish, parent delivery and derived asset actions",
+      "track": "lesson-plan",
+      "status": "blocked",
+      "depends_on": [
+        "LP-002A2B"
+      ],
+      "definition": null,
+      "completion_commit": null
+    },
+    {
+      "id": "OPS-001B",
+      "title": "Read-only autonomous engineering runner",
+      "track": "operations",
+      "status": "complete",
+      "depends_on": [],
+      "definition": null,
+      "completion_commit": "5fe1f35"
+    },
+    {
+      "id": "OPS-001C",
+      "title": "Structured fix registry and automatic selection",
+      "track": "operations",
+      "status": "in_progress",
+      "depends_on": [
+        "OPS-001B"
+      ],
+      "definition": null,
+      "completion_commit": null
+    }
+  ]
+}

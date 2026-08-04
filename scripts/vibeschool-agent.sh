@@ -15,8 +15,23 @@ case "$COMMAND" in
     ;;
 
   run)
-    [ -n "$ARGUMENT" ] || agent_abort "usage: bash scripts/vibeschool-agent.sh run FIX-ID"
-    agent_run_fix "$ARGUMENT"
+    if [ -n "$ARGUMENT" ]; then
+      agent_run_fix "$ARGUMENT"
+    else
+      agent_run_next_fix
+    fi
+    ;;
+
+  next)
+    agent_show_next_fix
+    ;;
+
+  list)
+    agent_list_fixes
+    ;;
+
+  validate-registry)
+    agent_validate_registry
     ;;
 
   report)
@@ -33,15 +48,20 @@ Vibeschool Autonomous Engineering Runner — read-only foundation
 
 Commands:
   status              Show repository and agent state
-  run FIX-ID          Run one registered read-only fix audit
+  run [FIX-ID]        Run a named fix or automatically run the next fix
+  next                Show the next actionable registered fix
+  list                List all registered fixes and dependency state
+  validate-registry   Validate the structured fix registry
   report              Show the most recent compact report
   clean               Remove known temporary audit/build artifacts
   help                Show this help
 
 Examples:
   bash scripts/vibeschool-agent.sh status
+  bash scripts/vibeschool-agent.sh next
+  bash scripts/vibeschool-agent.sh run
   bash scripts/vibeschool-agent.sh run LP-002A2B
-  bash scripts/vibeschool-agent.sh report
+  bash scripts/vibeschool-agent.sh list
 
 Safety:
   - does not edit application source;
