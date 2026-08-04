@@ -183,7 +183,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
   const [topic,    setTopic]    = useState('')
   const [focus,    setFocus]    = useState('')
   const [suggestion,      setSuggestion]      = useState<CurriculumSuggestion | null>(null)
-  const [usedSuggestion,  setUsedSuggestion]  = useState(false)
+  const [suggestionLinked,  setSuggestionLinked]  = useState(false)
   const [ctx,      setCtx]      = useState<Ctx>({
     teacherName: '', schoolName: '', schoolId: '',
     studentCount: 0, previousTopics: [], students: [],
@@ -415,9 +415,10 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         if (user == null) { setError('Not signed in.'); setPhase('form'); return }
         setTeacherId(user.id)
 
-        // Fix 18E-D correction: reset for this boot pass — repopulated below
-        // only if a persisted plan with a scheme link actually loads.
+        // Fix 18F: reset transient source-link state for this exact
+        // slot/date. Persisted source identity is restored below.
         planSchemeIdRef.current = null
+        setSuggestionLinked(false)
 
         const [, existing] = await Promise.all([
           loadContext(user.id),
@@ -451,16 +452,47 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
           // gate is the persisted row's own scheme_id, not the suggestion.
           planSchemeIdRef.current = existing.scheme_id ?? null
 
-          // Carry the curriculum identity this plan was actually generated
-          // against — not loadContext's guess for the CURRENT week, which
-          // would be wrong if this plan belongs to a past or future week.
-          if (existing.curriculum_id) {
+          // Fix 18F: restore source identity from the persisted lesson plan.
+          // scheme_id is authoritative even when curriculum_id is null.
+          if (existing.scheme_id) {
             try {
-              const { data: currRow } = await supabase
+              const { data: schemeRow, error: schemeError } = await supabase
+                .from('scheme_of_work')
+                .select('id, curriculum_id, strand, sub_strand, topic, week, term')
+                .eq('id', existing.scheme_id)
+                .single()
+
+              if (schemeError) throw schemeError
+
+              if (schemeRow) {
+                setSuggestion({
+                  id:        schemeRow.curriculum_id ?? existing.curriculum_id ?? null,
+                  strand:    schemeRow.strand ?? '',
+                  subStrand: schemeRow.sub_strand ?? '',
+                  topic:     schemeRow.topic,
+                  term:      schemeRow.term,
+                  week:      schemeRow.week,
+                  strandId:  existing.strand_id ?? null,
+                  schemeId:  schemeRow.id,
+                })
+                setSuggestionLinked(true)
+              }
+            } catch (sourceError) {
+              console.error(
+                '[LessonPlanModal] failed to restore scheme source',
+                sourceError,
+              )
+            }
+          } else if (existing.curriculum_id) {
+            try {
+              const { data: currRow, error: curriculumError } = await supabase
                 .from('curriculum')
                 .select('id, strand, sub_strand, topic, week, term')
                 .eq('id', existing.curriculum_id)
                 .single()
+
+              if (curriculumError) throw curriculumError
+
               if (currRow) {
                 setSuggestion({
                   id:        currRow.id,
@@ -470,12 +502,15 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                   term:      currRow.term,
                   week:      currRow.week,
                   strandId:  existing.strand_id ?? null,
-                  schemeId:  existing.scheme_id ?? null,
+                  schemeId:  null,
                 })
-                setUsedSuggestion(true)
+                setSuggestionLinked(true)
               }
-            } catch {
-              // non-fatal — plan still opens fine without the curriculum badge
+            } catch (sourceError) {
+              console.error(
+                '[LessonPlanModal] failed to restore curriculum source',
+                sourceError,
+              )
             }
           }
 
@@ -522,8 +557,8 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
             topic:          topic.trim(),
             focus:          focus.trim() || undefined,
             previousTopics: ctx.previousTopics,
-            curriculumStrand:    usedSuggestion ? suggestion?.strand    : undefined,
-            curriculumSubStrand: usedSuggestion ? suggestion?.subStrand : undefined,
+            curriculumStrand:    suggestionLinked ? suggestion?.strand    : undefined,
+            curriculumSubStrand: suggestionLinked ? suggestion?.subStrand : undefined,
           }),
         }
       )
@@ -575,9 +610,9 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         body:               serializeLessonPlanBody(parsed),
         status:             'draft',
         generated_by:       'twin',
-        curriculum_id:      usedSuggestion ? suggestion?.id ?? null : null,
-        strand_id:          usedSuggestion ? suggestion?.strandId ?? null : null,
-        scheme_id:          usedSuggestion ? suggestion?.schemeId ?? null : null,
+        curriculum_id:      suggestionLinked ? suggestion?.id ?? null : null,
+        strand_id:          suggestionLinked ? suggestion?.strandId ?? null : null,
+        scheme_id:          suggestionLinked ? suggestion?.schemeId ?? null : null,
       }
 
       // G4: read ref not state
@@ -979,21 +1014,24 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
               )}
               {suggestion && (
                 <div style={{
-                  background: usedSuggestion ? '#eef2ff' : '#fafafa',
-                  border: '1.5px solid ' + (usedSuggestion ? '#c7d2fe' : C.border),
+                  background: suggestionLinked ? '#eef2ff' : '#fafafa',
+                  border: '1.5px solid ' + (suggestionLinked ? '#c7d2fe' : C.border),
                   borderRadius: 12, padding: '12px 14px', marginBottom: 16,
                 }}>
                   <div style={{
-                    fontSize: 10, fontWeight: 800, color: usedSuggestion ? '#4338ca' : C.textMuted,
+                    fontSize: 10, fontWeight: 800, color: suggestionLinked ? '#4338ca' : C.textMuted,
                     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
-                  }}>📘 From Scheme of Work · Week {suggestion.week}, Term {suggestion.term}</div>
+                  }}>
+                    📘 From {suggestion.schemeId ? 'Scheme of Work' : 'Curriculum'}
+                    {' · '}Week {suggestion.week}, Term {suggestion.term}
+                  </div>
                   <div style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{suggestion.topic}</div>
                   <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
                     {suggestion.strand}{suggestion.subStrand ? ' → ' + suggestion.subStrand : ''}
                   </div>
-                  {!usedSuggestion && (
+                  {!suggestionLinked && (
                     <button
-                      onClick={() => { setTopic(suggestion.topic); setUsedSuggestion(true) }}
+                      onClick={() => { setTopic(suggestion.topic); setSuggestionLinked(true) }}
                       style={{
                         marginTop: 8, padding: '7px 14px', borderRadius: 8, border: 'none',
                         background: C.accent, color: '#fff', fontSize: 12, fontWeight: 800,
@@ -1001,9 +1039,41 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                       }}
                     >Use This Topic</button>
                   )}
-                  {usedSuggestion && (
-                    <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#4338ca' }}>
-                      ✓ Will sync to Scheme of Work as "Teaching" on save
+                  {suggestionLinked && (
+                    <div style={{
+                      marginTop: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                    }}>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#4338ca',
+                      }}>
+                        ✓ Linked to this {suggestion.schemeId
+                          ? 'Scheme of Work item'
+                          : 'curriculum item'} — topic wording can be edited
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSuggestionLinked(false)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '5px 10px',
+                          borderRadius: 8,
+                          border: '1px solid #c7d2fe',
+                          background: '#fff',
+                          color: '#4338ca',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        Use custom topic
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1014,7 +1084,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                   letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6,
                 }}>Topic *</label>
                 <input
-                  value={topic} onChange={e => { setTopic(e.target.value); setUsedSuggestion(false) }}
+                  value={topic} onChange={e => setTopic(e.target.value)}
                   placeholder="Topic e.g. Fractions on a Number Line"
                   style={{
                     width: '100%', padding: '12px 14px', borderRadius: 10,
@@ -1081,7 +1151,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
 
           {phase === 'view' && (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: suggestion ? 8 : 16, fontSize: 12, color: C.textMuted }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: suggestionLinked && suggestion ? 8 : 16, fontSize: 12, color: C.textMuted }}>
                 <span style={{ color: C.accent }}>✦</span>
                 <span>Generated by Twin · CBC aligned</span>
                 {topic !== '' && (
@@ -1091,7 +1161,7 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
                   }}>{topic}</span>
                 )}
               </div>
-              {suggestion && (
+              {suggestionLinked && suggestion && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16,
                   fontSize: 11, color: C.textMuted, flexWrap: 'wrap',
