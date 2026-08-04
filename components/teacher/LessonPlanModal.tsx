@@ -371,6 +371,112 @@ export default function LessonPlanModal({
     requestedSchemeId,
   ])
 
+  async function inheritSchemeResources({
+    schemeId,
+    lessonPlanId,
+  }: {
+    schemeId: string
+    lessonPlanId: string
+  }): Promise<void> {
+    const {
+      data: schemeResourceResult,
+      error: schemeResourceError,
+    } = await supabase.rpc(
+      'list_scheme_lesson_resources',
+      {
+        p_scheme_lesson_id: schemeId,
+      },
+    )
+
+    if (schemeResourceError) {
+      throw new Error(
+        `Could not load Scheme resources: ${schemeResourceError.message}`,
+      )
+    }
+
+    const schemePayload =
+      schemeResourceResult as {
+        ok?: boolean
+        reason?: string | null
+        resources?: Array<{
+          resource_id?: string
+          resource_role?: string
+          sequence?: number
+          page_start?: number | null
+          page_end?: number | null
+          exercise_refs?: unknown[]
+        }>
+      } | null
+
+    if (!schemePayload?.ok) {
+      throw new Error(
+        `Could not load Scheme resources: ${
+          schemePayload?.reason ??
+          'unknown_error'
+        }`,
+      )
+    }
+
+    const resources =
+      schemePayload.resources ?? []
+
+    for (const resource of resources) {
+      if (!resource.resource_id) {
+        continue
+      }
+
+      const {
+        data: linkResult,
+        error: linkError,
+      } = await supabase.rpc(
+        'link_learning_resource',
+        {
+          p_resource_id:
+            resource.resource_id,
+          p_target_type:
+            'lesson_plan',
+          p_target_id:
+            lessonPlanId,
+          p_usage_role:
+            resource.resource_role ??
+            'source',
+          p_sequence:
+            resource.sequence ?? 1,
+          p_page_start:
+            resource.page_start ??
+            undefined,
+          p_page_end:
+            resource.page_end ??
+            undefined,
+          p_section_refs: [],
+          p_exercise_refs:
+            Array.isArray(
+              resource.exercise_refs,
+            )
+              ? resource.exercise_refs
+              : [],
+        },
+      )
+
+      const linkPayload =
+        linkResult as {
+          ok?: boolean
+          error?: string | null
+          existing?: boolean
+        } | null
+
+      if (linkError || !linkPayload?.ok) {
+        throw new Error(
+          `Could not attach a Scheme resource to the lesson plan: ${
+            linkError?.message ??
+            linkPayload?.error ??
+            'unknown_error'
+          }`,
+        )
+      }
+    }
+  }
+
   async function generate() {
     if (topic.trim() === '') { setError('Please enter a topic first.'); return }
     // G1
@@ -522,6 +628,15 @@ export default function LessonPlanModal({
         setPlanId(savedPlan.id)
       }
 
+      if (savedPlan.scheme_id) {
+        await inheritSchemeResources({
+          schemeId:
+            savedPlan.scheme_id,
+          lessonPlanId:
+            savedPlan.id,
+        })
+      }
+
       // The database-returned row remains the source of truth for downstream
       // completion and scheme-coverage actions.
       planSchemeIdRef.current = savedPlan.scheme_id ?? null
@@ -535,8 +650,15 @@ export default function LessonPlanModal({
       setPhase('view')
     } catch (err) {
       // G7
-      console.error('[LessonPlanModal] generate', err)
-      setError('Something went wrong. Check your connection.')
+      console.error(
+        '[LessonPlanModal] generate',
+        err,
+      )
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Something went wrong. Check your connection.',
+      )
       setPhase('form')
     } finally {
       setBusy('idle')
