@@ -4,7 +4,11 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { nairobiWeekStart, nairobiDateAdd } from '@/lib/time'
+import {
+  nairobiDateAdd,
+  nairobiDateStr,
+  nairobiWeekStart,
+} from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 
 import {
@@ -178,29 +182,150 @@ function GeneratePageInner() {
   const selectedSlot = slotsForSelectedWeek.find(s => s.id === selectedSlotId) ?? null
 
   async function generate() {
-    // FND-002C1: Scheme selects the educational source. The canonical
-    // timetable-backed lesson workspace owns generation and persistence.
-    const target = new URLSearchParams({
-      classId,
-      subjectId,
-      grade,
-      subject,
-      strand,
-      subStrand,
-      topic,
-      week: String(week),
-      term: String(term),
-    })
-
-    if (curriculumId) {
-      target.set('curriculumId', curriculumId)
+    // FND-002C4: Scheme chooses the educational source. Resolve the earliest
+    // upcoming effective occurrence for this exact class and subject, then
+    // open the canonical timetable-backed lesson workspace immediately.
+    if (!uid || !schoolId) {
+      setError('Your teacher and school context is still loading.')
+      return
     }
 
-    if (schemeId) {
-      target.set('schemeId', schemeId)
+    if (!classId || !subjectId || !schemeId) {
+      setError(
+        'This Scheme lesson is missing its class, subject or Scheme identity.',
+      )
+      return
     }
 
-    router.push(`/teacher/lessonplan?${target.toString()}`)
+    setGenerating(true)
+    setError(null)
+
+    try {
+      const today = nairobiDateStr()
+      const searchEnd = nairobiDateAdd(today, 55)
+
+      const canonical = await loadTeacherTimetableForRange({
+        teacherId: uid,
+        schoolId,
+        rangeStart: today,
+        rangeEnd: searchEnd,
+      })
+
+      const matching = canonical.filter(
+        slot =>
+          slot.class_id === classId &&
+          slot.subject_id === subjectId,
+      )
+
+      const todayParts = today.split('-').map(Number)
+      const todayUtc = new Date(
+        Date.UTC(
+          todayParts[0],
+          todayParts[1] - 1,
+          todayParts[2],
+        ),
+      )
+      const todayDayOfWeek = todayUtc.getUTCDay() || 7
+
+      const candidates = matching.flatMap(slot => {
+        let daysAhead =
+          Number(slot.day_of_week) - todayDayOfWeek
+
+        if (daysAhead < 0) {
+          daysAhead += 7
+        }
+
+        let occurrenceDate =
+          nairobiDateAdd(today, daysAhead)
+
+        // A recurring slot can begin after its first calendar occurrence.
+        // Move forward week-by-week until its own effective range accepts it.
+        for (let attempt = 0; attempt < 9; attempt += 1) {
+          const effective =
+            slot.effective_from <= occurrenceDate &&
+            (
+              slot.effective_until === null ||
+              slot.effective_until >= occurrenceDate
+            )
+
+          if (effective && occurrenceDate <= searchEnd) {
+            return [{
+              slot,
+              occurrenceDate,
+            }]
+          }
+
+          occurrenceDate =
+            nairobiDateAdd(occurrenceDate, 7)
+        }
+
+        return []
+      })
+
+      candidates.sort((left, right) => {
+        const dateOrder =
+          left.occurrenceDate.localeCompare(
+            right.occurrenceDate,
+          )
+
+        if (dateOrder !== 0) {
+          return dateOrder
+        }
+
+        const timeOrder =
+          left.slot.start_time.localeCompare(
+            right.slot.start_time,
+          )
+
+        if (timeOrder !== 0) {
+          return timeOrder
+        }
+
+        return left.slot.id.localeCompare(right.slot.id)
+      })
+
+      const selected = candidates[0]
+
+      if (!selected) {
+        setError(
+          'No upcoming timetable occurrence exists for this Scheme lesson in the next eight weeks.',
+        )
+        return
+      }
+
+      const target = new URLSearchParams({
+        classId,
+        subjectId,
+        timetableSlotId: selected.slot.id,
+        date: selected.occurrenceDate,
+        grade,
+        subject,
+        strand,
+        subStrand,
+        topic,
+        week: String(week),
+        term: String(term),
+        schemeId,
+      })
+
+      if (curriculumId) {
+        target.set('curriculumId', curriculumId)
+      }
+
+      router.push(
+        `/teacher/lessonplan?${target.toString()}`,
+      )
+    } catch (navigationError) {
+      console.error(
+        '[SchemeGenerate] exact occurrence resolution failed',
+        navigationError,
+      )
+      setError(
+        'Could not open the next matching timetable lesson.',
+      )
+    } finally {
+      setGenerating(false)
+    }
   }
 
   function startEdit(section: keyof GeneratedPlan) {
