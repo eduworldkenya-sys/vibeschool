@@ -38,7 +38,18 @@ import { C } from '@/components/teacher/ui'
 import { nairobiDateStr } from '@/lib/time'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
-import { completeTeachingOccurrence, resolveOccurrence, startTeachingOccurrence, StartOccurrenceError, CompleteOccurrenceError, markSchemeItemCovered, MarkSchemeCoveredError } from '@/lib/teaching/occurrence'
+import {
+  StartOccurrenceError,
+  CompleteOccurrenceError,
+  MarkSchemeCoveredError,
+} from '@/lib/teaching/occurrence'
+import {
+  buildLessonAttendanceUrl,
+  completeLessonOccurrence,
+  loadLessonOccurrence,
+  markLessonSchemeCovered,
+  startLessonOccurrence,
+} from '@/lib/teaching/lessonLifecycle'
 import type { StartOccurrenceErrorCode, CompleteOccurrenceErrorCode, MarkCoveredErrorCode } from '@/lib/teaching/occurrence'
 import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
 import type { TeachingOccurrence } from '@/lib/teaching/types'
@@ -255,7 +266,7 @@ export default function LessonPlanModal({
       return
     }
 
-    const occurrence = await resolveOccurrence({
+    const occurrence = await loadLessonOccurrence({
       timetableSlotId: slot.id,
       occurrenceDate: taughtDate,
     })
@@ -803,7 +814,7 @@ export default function LessonPlanModal({
     setStartLessonError(null)
 
     try {
-      await startTeachingOccurrence({
+      await startLessonOccurrence({
         timetableSlotId: slot.id,
         occurrenceDate: taughtDate,
       })
@@ -814,13 +825,14 @@ export default function LessonPlanModal({
       // TOS-003: attendance belongs to this exact teaching occurrence. The
       // attendance page already validates and saves by timetable slot + date,
       // so carry those identities immediately after the lifecycle transition.
-      const attendanceUrl =
-        `/teacher/attendance?mode=lesson` +
-        `&classId=${encodeURIComponent(slot.class_id)}` +
-        `&timetableSlotId=${encodeURIComponent(slot.id)}` +
-        `&date=${encodeURIComponent(taughtDate)}` +
-        `&subjectId=${encodeURIComponent(slot.subject_id)}` +
-        `&subject=${encodeURIComponent(slot.subject)}`
+      const attendanceUrl = buildLessonAttendanceUrl({
+        classId: slot.class_id,
+        timetableSlotId: slot.id,
+        occurrenceDate: taughtDate,
+        subjectId: slot.subject_id,
+        subjectName: slot.subject,
+      })
+
       router.push(attendanceUrl)
     } catch (err) {
       const code = err instanceof StartOccurrenceError ? err.code : 'unknown'
@@ -847,9 +859,9 @@ export default function LessonPlanModal({
     setCompleteError(null)
 
     try {
-      const row = await completeTeachingOccurrence({
+      const row = await completeLessonOccurrence({
         timetableSlotId: slot.id,
-        occurrenceDate:   taughtDate,
+        occurrenceDate: taughtDate,
       })
       await refreshTeachingWorkspace()
       showToast('Lesson marked complete ✓')
@@ -893,7 +905,9 @@ export default function LessonPlanModal({
     setCoverageError(null)
 
     try {
-      await markSchemeItemCovered(coveragePromptOccurrenceId)
+      await markLessonSchemeCovered(
+        coveragePromptOccurrenceId,
+      )
       setCoveragePromptOccurrenceId(null)
       showToast('Marked covered in scheme ✓')
       refreshPulse('lesson')
