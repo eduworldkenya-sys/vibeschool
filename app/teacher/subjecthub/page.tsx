@@ -1,5 +1,11 @@
 "use client";
 import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
+import {
+  getActiveTerm,
+} from '@/lib/academicTerm'
+import type {
+  ActiveTerm,
+} from '@/lib/academicTerm'
 import { loadActiveTeacherTimetable, timetableSlotsForDay, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
 import { Card, C } from '@/components/teacher/ui'
@@ -83,6 +89,8 @@ export default function SubjectHubPage() {
   const [classes,        setClasses]        = useState<ClassForSubject[]>([])
   const [teammates,      setTeammates]      = useState<Teammate[]>([])
   const [schoolId,       setSchoolId]       = useState<string | null>(null)
+  const [activeAcademicTerm, setActiveAcademicTerm] =
+    useState<ActiveTerm | null>(null)
   const [currentId,      setCurrentId]      = useState<string | null>(null)
   const [loading,        setLoading]        = useState(true)
   const [classLoading,   setClassLoading]   = useState(false)
@@ -131,8 +139,29 @@ export default function SubjectHubPage() {
         supabase.from('profiles').select('school_id').eq('id', user.id).single(),
       ])
 
-      const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
+      const sid =
+        memberRes.data?.school_id ??
+        teacherRes.data?.school_id ??
+        profileRes.data?.school_id ??
+        null
+
       setSchoolId(sid)
+
+      if (sid) {
+        try {
+          setActiveAcademicTerm(
+            await getActiveTerm(sid),
+          )
+        } catch (termError) {
+          console.error(
+            '[SubjectHub] active term load failed',
+            termError,
+          )
+          setActiveAcademicTerm(null)
+        }
+      } else {
+        setActiveAcademicTerm(null)
+      }
 
       const subjectIds = Array.from(new Set(
         (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
@@ -178,7 +207,13 @@ export default function SubjectHubPage() {
     loadClassesForSubject(subjects[activeIdx]?.id)
     loadTeamForSubject(subjects[activeIdx]?.id)
     loadGrowthData(subjects[activeIdx]?.id)
-  }, [subjects, activeIdx, schoolId, currentId])
+  }, [
+    subjects,
+    activeIdx,
+    schoolId,
+    currentId,
+    activeAcademicTerm,
+  ])
 
   async function loadClassesForSubject(subjectId: string) {
     if (!subjectId || !currentId) { setClassLoading(false); return }
@@ -199,7 +234,9 @@ export default function SubjectHubPage() {
 
     if (classIds.length === 0) { setClasses([]); setAttRateByClass({}); setClassLoading(false); return }
 
-    const termStart = nairobiDateStr(new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 4) * 4, 1))
+    const termStart =
+      activeAcademicTerm?.start_date ??
+      nairobiDateStr()
 
     const [classRes, studentRes, perfRes, attRes] = await Promise.all([
       supabase.from('classes').select('id, name, stream').in('id', classIds),
@@ -349,8 +386,11 @@ export default function SubjectHubPage() {
 
     const today = nairobiDateStr()
     const weekAgo = nairobiDateStr(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
-    const termStart = nairobiDateStr(new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 4) * 4, 1))
-    const activeTerm = Math.floor(new Date().getMonth() / 4) + 1
+    const termStart =
+      activeAcademicTerm?.start_date ??
+      nairobiDateStr()
+    const activeTermNumber =
+      activeAcademicTerm?.term ?? null
     const now = new Date()
     const nowMin = now.getHours() * 60 + now.getMinutes()
 
@@ -388,7 +428,15 @@ export default function SubjectHubPage() {
       supabase.from('cbc_assessments').select('strand_id, performance').eq('subject_id', subjectId).eq('teacher_id', currentId).gte('created_at', termStart),
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('id, strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
       gradeForCurriculum && subjectName2 ? supabase.from('curriculum').select('strand').eq('grade', gradeForCurriculum).eq('subject', subjectName2) : Promise.resolve({ data: [] }),
-      schoolId ? supabase.from('scheme_of_work').select('curriculum_id, status').eq('teacher_id', currentId).eq('subject_id', subjectId).eq('school_id', schoolId).eq('term', activeTerm) : Promise.resolve({ data: [] }),
+      schoolId && activeTermNumber
+        ? supabase
+            .from('scheme_of_work')
+            .select('curriculum_id, status')
+            .eq('teacher_id', currentId)
+            .eq('subject_id', subjectId)
+            .eq('school_id', schoolId)
+            .eq('term', activeTermNumber)
+        : Promise.resolve({ data: [] }),
       supabase
         .from('attendance')
         .select('id, date, timetable_slot_id')
@@ -650,7 +698,9 @@ export default function SubjectHubPage() {
   ]
 
   // Task 1 — derived values for Subject Intelligence card
-  const termTag = `Term ${Math.floor(new Date().getMonth() / 4) + 1}`
+  const termTag = activeAcademicTerm
+    ? `Term ${activeAcademicTerm.term} · ${activeAcademicTerm.academic_year}`
+    : 'No active term'
   const totalStudents = classes.reduce((sum, c) => sum + c.studentCount, 0)
   const perfClasses = classes.filter(c => c.perfPct !== null)
   const avgPerfPct = perfClasses.length > 0
