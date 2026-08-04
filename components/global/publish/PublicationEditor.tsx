@@ -102,6 +102,20 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       titleInputRef.current?.focus()
       return
     }
+
+    const textbookAlignmentMissing =
+      publication.format === 'vibetextbook' &&
+      (
+        !publication.cbc_subject?.trim() ||
+        !publication.cbc_grade?.trim()
+      )
+
+    if (textbookAlignmentMissing) {
+      setTitleError(false)
+      setSetupOpen(true)
+      return
+    }
+
     setTitleError(false)
     setPublishing(true)
     const ok = await publishPublication()

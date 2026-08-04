@@ -127,7 +127,31 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
   const wasAlreadyLive = publication.status === 'published'
 
   const handlePublish = async () => {
-    if (!publication.title?.trim()) { setValidErr("Title is required"); return }
+    if (!publication.title?.trim()) {
+      setValidErr('Title is required')
+      return
+    }
+
+    if (
+      isTextbook &&
+      !publication.cbc_subject?.trim()
+    ) {
+      setValidErr(
+        'Select the CBC subject before publishing this textbook.'
+      )
+      return
+    }
+
+    if (
+      isTextbook &&
+      !publication.cbc_grade?.trim()
+    ) {
+      setValidErr(
+        'Select the grade before publishing this textbook.'
+      )
+      return
+    }
+
     setValidErr(null)
     setPublishing(true)
     const ok = await onPublish()

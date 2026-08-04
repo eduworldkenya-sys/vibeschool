@@ -355,13 +355,41 @@ export function usePublicationDraft(
 
   // ── Publish ───────────────────────────────────────────────────────────────
   const publishPublication = useCallback(async (): Promise<boolean> => {
+    const pub = pubRef.current
+    if (!pub) {
+      setError('Publication is not available.')
+      return false
+    }
+
+    if (!pub.title?.trim()) {
+      setError('Title is required before publishing.')
+      return false
+    }
+
+    if (
+      pub.format === 'vibetextbook' &&
+      !pub.cbc_subject?.trim()
+    ) {
+      setError(
+        'Select the CBC subject before publishing this textbook.'
+      )
+      return false
+    }
+
+    if (
+      pub.format === 'vibetextbook' &&
+      !pub.cbc_grade?.trim()
+    ) {
+      setError(
+        'Select the grade before publishing this textbook.'
+      )
+      return false
+    }
+
     const saved = await forceSave()
     if (!saved) return false
 
     const sb = getSupabaseClient()
-    const pub = pubRef.current
-    if (!pub) return false
-
     const now = new Date().toISOString()
     const isTextbook = pub.format === 'vibetextbook'
     let lifecycleApplied = false
