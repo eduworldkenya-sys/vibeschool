@@ -149,14 +149,6 @@ function attendanceStage(
     return stage('attendance', 'done')
   }
 
-  if (!occurrence.lessonPlanId) {
-    return stage(
-      'attendance',
-      'blocked',
-      'Prepare the lesson before recording lesson attendance.',
-    )
-  }
-
   if (
     occurrence.lifecycle === 'cancelled' ||
     occurrence.lifecycle === 'rescheduled'
@@ -165,6 +157,14 @@ function attendanceStage(
       'attendance',
       'unavailable',
       'Attendance is unavailable for an inactive occurrence.',
+    )
+  }
+
+  if (!occurrence.lessonPlanId) {
+    return stage(
+      'attendance',
+      'blocked',
+      'Prepare the lesson before recording lesson attendance.',
     )
   }
 
@@ -231,6 +231,17 @@ function evidenceStage(
   }
 
   if (
+    occurrence.lifecycle === 'cancelled' ||
+    occurrence.lifecycle === 'rescheduled'
+  ) {
+    return stage(
+      'evidence',
+      'unavailable',
+      'Evidence is unavailable for an inactive occurrence.',
+    )
+  }
+
+  if (
     occurrence.lifecycle === 'in_progress' ||
     occurrence.lifecycle === 'completed'
   ) {
@@ -249,6 +260,17 @@ function homeworkStage(
 ): TeachingWorkspaceStageView {
   if (occurrence.homework.issued) {
     return stage('homework', 'done')
+  }
+
+  if (
+    occurrence.lifecycle === 'cancelled' ||
+    occurrence.lifecycle === 'rescheduled'
+  ) {
+    return stage(
+      'homework',
+      'unavailable',
+      'Homework is unavailable for an inactive occurrence.',
+    )
   }
 
   if (
@@ -308,6 +330,17 @@ function reflectionStage(
 ): TeachingWorkspaceStageView {
   if (occurrence.reflection.completed) {
     return stage('reflection', 'done')
+  }
+
+  if (
+    occurrence.lifecycle === 'cancelled' ||
+    occurrence.lifecycle === 'rescheduled'
+  ) {
+    return stage(
+      'reflection',
+      'unavailable',
+      'Reflection is unavailable for an inactive occurrence.',
+    )
   }
 
   if (occurrence.lifecycle === 'completed') {
