@@ -594,11 +594,71 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
       if (!taughtDate) {
         throw new Error('LessonPlanModal: taughtDate is missing — refusing to save to an unknown occurrence.')
       }
-      const { data: prof } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
+      const { data: prof, error: profileError } = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) throw profileError
+
+      const schoolId = prof?.school_id ?? null
+      if (!schoolId) {
+        throw new Error(
+          'LessonPlanModal: school identity is required before saving a lesson plan.',
+        )
+      }
+
+      // FND-002A: text editing and curriculum identity are separate concerns.
+      // Resolve the intended persisted identity once, validate it, then use the
+      // same immutable values for both the write and returned-row verification.
+      if (suggestionLinked && !suggestion) {
+        throw new Error(
+          'LessonPlanModal: a linked curriculum source is missing.',
+        )
+      }
+
+      let curriculumId: string | null = null
+      let strandId: string | null = null
+      let schemeId: string | null = null
+
+      if (suggestionLinked && suggestion) {
+        curriculumId = suggestion.id ?? null
+        strandId = suggestion.strandId ?? null
+        schemeId = suggestion.schemeId ?? null
+
+        if (schemeId) {
+          const { data: schemeRow, error: schemeError } = await supabase
+            .from('scheme_of_work')
+            .select(
+              'id, curriculum_id, teacher_id, school_id, class_id, subject_id',
+            )
+            .eq('id', schemeId)
+            .single()
+
+          if (schemeError) throw schemeError
+
+          const schemeMatchesOccurrence =
+            schemeRow.teacher_id === user.id &&
+            schemeRow.school_id === schoolId &&
+            schemeRow.class_id === slot.class_id &&
+            schemeRow.subject_id === slot.subject_id
+
+          if (!schemeMatchesOccurrence) {
+            throw new Error(
+              'LessonPlanModal: the selected scheme item does not belong to this teaching assignment.',
+            )
+          }
+
+          // The persisted scheme row is authoritative for its curriculum link.
+          // A stale client suggestion must never write a conflicting identity.
+          curriculumId = schemeRow.curriculum_id ?? curriculumId
+        }
+      }
 
       const payload = {
         teacher_id:         user.id,
-        school_id:          prof?.school_id ?? null,
+        school_id:          schoolId,
         class_id:           slot.class_id,
         subject_id:         slot.subject_id,
         timetable_slot_id:  slot.id,
@@ -610,27 +670,56 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
         body:               serializeLessonPlanBody(parsed),
         status:             'draft',
         generated_by:       'twin',
-        curriculum_id:      suggestionLinked ? suggestion?.id ?? null : null,
-        strand_id:          suggestionLinked ? suggestion?.strandId ?? null : null,
-        scheme_id:          suggestionLinked ? suggestion?.schemeId ?? null : null,
+        curriculum_id:      curriculumId,
+        strand_id:          strandId,
+        scheme_id:          schemeId,
       }
 
-      // G4: read ref not state
+      // FND-002A: persistence is successful only when Supabase returns the
+      // authoritative saved row. Never continue to the plan view after an
+      // ignored insert/update error or a missing return value.
       const currentId = planIdRef.current
-      if (currentId != null) {
-        const { data: upd } = await supabase.from('lesson_plans')
-          .update(payload)
-          .eq('id', currentId)
-          .select('id, scheme_id')
-          .single()
-        // Fix 18E-D correction: populate from the row returned by the
-        // update itself, not from payload — the row is the source of truth.
-        planSchemeIdRef.current = upd?.scheme_id ?? null
-      } else {
-        const { data: ins } = await supabase.from('lesson_plans').insert(payload).select('id, scheme_id').single()
-        if (ins?.id) setPlanId(ins.id)
-        planSchemeIdRef.current = ins?.scheme_id ?? null
+
+      const writeResult = currentId != null
+        ? await supabase
+            .from('lesson_plans')
+            .update(payload)
+            .eq('id', currentId)
+            .select('id, curriculum_id, strand_id, scheme_id')
+            .single()
+        : await supabase
+            .from('lesson_plans')
+            .insert(payload)
+            .select('id, curriculum_id, strand_id, scheme_id')
+            .single()
+
+      if (writeResult.error) throw writeResult.error
+      if (!writeResult.data) {
+        throw new Error(
+          'LessonPlanModal: lesson plan persistence returned no row.',
+        )
       }
+
+      const savedPlan = writeResult.data
+
+      const persistedIdentityMatches =
+        (savedPlan.curriculum_id ?? null) === curriculumId &&
+        (savedPlan.strand_id ?? null) === strandId &&
+        (savedPlan.scheme_id ?? null) === schemeId
+
+      if (!persistedIdentityMatches) {
+        throw new Error(
+          'LessonPlanModal: saved curriculum identity did not match the selected source.',
+        )
+      }
+
+      if (currentId == null) {
+        setPlanId(savedPlan.id)
+      }
+
+      // The database-returned row remains the source of truth for downstream
+      // completion and scheme-coverage actions.
+      planSchemeIdRef.current = savedPlan.scheme_id ?? null
 
       // Fix 18E-B: scheme status is no longer set here. Lesson-plan
       // generation is not evidence teaching has started — occurrence
