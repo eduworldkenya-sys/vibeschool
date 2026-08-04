@@ -12,9 +12,16 @@ const TYPES: { key: string; label: string }[] = [
 ];
 
 export default function EvidenceCaptureSheet({
-  lessonId, classId, teacherId, defaultTitle, onClose, onSaved,
+  lessonId,
+  occurrenceId,
+  classId,
+  teacherId,
+  defaultTitle,
+  onClose,
+  onSaved,
 }: {
-  lessonId: string | null;
+  lessonId: string;
+  occurrenceId: string;
   classId: string;
   teacherId: string;
   defaultTitle?: string;
@@ -54,8 +61,10 @@ export default function EvidenceCaptureSheet({
       setError("Give it a short title.");
       return;
     }
-    if (!lessonId) {
-      setError("Create or open the lesson plan before adding evidence.");
+    if (!occurrenceId) {
+      setError(
+        "Start the lesson before adding classroom evidence."
+      );
       return;
     }
     setSaving(true);
@@ -64,6 +73,7 @@ export default function EvidenceCaptureSheet({
       const mediaUrl = await uploadPhoto();
       const { error: insErr } = await supabase.from("lesson_evidence").insert({
         lesson_id: lessonId,
+        teaching_occurrence_id: occurrenceId,
         class_id: classId,
         teacher_id: teacherId,
         evidence_type: type,
@@ -87,7 +97,7 @@ export default function EvidenceCaptureSheet({
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, background: "rgba(17,24,39,0.45)",
-        zIndex: 60, display: "flex", alignItems: "flex-end",
+        zIndex: 960, display: "flex", alignItems: "flex-end",
       }}
     >
       <div
