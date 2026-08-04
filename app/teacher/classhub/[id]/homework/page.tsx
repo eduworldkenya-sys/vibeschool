@@ -18,10 +18,21 @@ interface Homework {
   type:            string;
   created_at:      string;
   target_group_id: string | null;
+  lesson_plan_id:  string | null;
   sub_count:       number;
   student_count:   number;
 }
 interface Group { id: string; name: string; }
+
+interface HomeworkLinkedResource {
+  resourceId: string;
+  title: string;
+  sourceType: string;
+  usageRole: string;
+  sequence: number;
+  pageStart: number | null;
+  pageEnd: number | null;
+}
 
 interface SourceLessonResource {
   resourceId: string;
@@ -66,6 +77,18 @@ function HomeworkInner() {
   const [schoolId,  setSchoolId]  = useState<string | null>(null);
 
   const [
+    linkedResourcesByHomeworkId,
+    setLinkedResourcesByHomeworkId,
+  ] = useState<
+    Record<string, HomeworkLinkedResource[]>
+  >({});
+
+  const [
+    homeworkResourceLoadError,
+    setHomeworkResourceLoadError,
+  ] = useState("");
+
+  const [
     sourceLessonResources,
     setSourceLessonResources,
   ] = useState<SourceLessonResource[]>([]);
@@ -89,6 +112,141 @@ function HomeworkInner() {
   const [editTarget, setEditTarget] = useState<Homework | null>(null);
   const [editForm, setEditForm] = useState<{ title: string; instructions: string; due_date: string } | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+
+  async function loadHomeworkResources(
+    homeworkIds: string[],
+  ): Promise<void> {
+    if (homeworkIds.length === 0) {
+      setLinkedResourcesByHomeworkId({});
+      setHomeworkResourceLoadError("");
+      return;
+    }
+
+    const entries = await Promise.all(
+      homeworkIds.map(async homeworkId => {
+        const {
+          data: resourceResult,
+          error: resourceError,
+        } = await supabase.rpc(
+          "list_teaching_resources",
+          {
+            p_target_type: "homework",
+            p_target_id: homeworkId,
+          }
+        );
+
+        if (resourceError) {
+          return {
+            homeworkId,
+            resources:
+              [] as HomeworkLinkedResource[],
+            error: resourceError.message,
+          };
+        }
+
+        const payload =
+          resourceResult as {
+            ok?: boolean;
+            error?: string | null;
+            resources?: Array<{
+              resource_id?: string;
+              title?: string;
+              source_type?: string;
+              usage_role?: string;
+              sequence?: number;
+              page_start?: number | null;
+              page_end?: number | null;
+            }>;
+          } | null;
+
+        if (!payload?.ok) {
+          return {
+            homeworkId,
+            resources:
+              [] as HomeworkLinkedResource[],
+            error:
+              payload?.error ??
+              "homework_resource_load_failed",
+          };
+        }
+
+        const resources =
+          (payload.resources ?? [])
+            .flatMap(resource => {
+              if (!resource.resource_id) {
+                return [];
+              }
+
+              return [{
+                resourceId:
+                  resource.resource_id,
+                title:
+                  resource.title ??
+                  "Untitled resource",
+                sourceType:
+                  resource.source_type ??
+                  "resource",
+                usageRole:
+                  resource.usage_role ??
+                  "homework_source",
+                sequence:
+                  resource.sequence ?? 1,
+                pageStart:
+                  resource.page_start ?? null,
+                pageEnd:
+                  resource.page_end ?? null,
+              }];
+            })
+            .sort(
+              (left, right) =>
+                left.sequence -
+                right.sequence
+            );
+
+        return {
+          homeworkId,
+          resources,
+          error: null,
+        };
+      })
+    );
+
+    const resourceMap:
+      Record<
+        string,
+        HomeworkLinkedResource[]
+      > = {};
+
+    const errors: string[] = [];
+
+    for (const entry of entries) {
+      resourceMap[entry.homeworkId] =
+        entry.resources;
+
+      if (entry.error) {
+        errors.push(
+          `${entry.homeworkId}: ${entry.error}`
+        );
+      }
+    }
+
+    setLinkedResourcesByHomeworkId(
+      resourceMap
+    );
+
+    if (errors.length > 0) {
+      console.error(
+        "[Homework] linked resource loading failed",
+        errors
+      );
+
+      setHomeworkResourceLoadError(
+        "Some attached homework resources could not be loaded."
+      );
+    } else {
+      setHomeworkResourceLoadError("");
+    }
+  }
 
   async function loadSourceLessonResources(
     lessonPlanId: string,
@@ -228,6 +386,11 @@ function HomeworkInner() {
     }));
 
     setList(hwList);
+
+    await loadHomeworkResources(
+      hwList.map(homework => homework.id)
+    );
+
     setClassInfo(clsRes.data);
     setSchoolId((clsRes.data as { school_id?: string | null } | null)?.school_id ?? null);
     setGroups(grpRes.data ?? []);
@@ -313,7 +476,11 @@ function HomeworkInner() {
             class_id: classId, teacher_id: user.id, school_id: schoolId,
             title: form.title.trim(), subject: form.subject.trim(),
             instructions: form.instructions.trim(), due_date: form.due_date,
-            type: form.type, target_group_id: form.target_group_id || null,
+            type: form.type,
+            target_group_id:
+              form.target_group_id || null,
+            lesson_plan_id:
+              sourceLessonPlanId || null,
           })
           .select("id")
           .single();
@@ -396,7 +563,7 @@ function HomeworkInner() {
               p_target_id:
                 homeworkId,
               p_usage_role:
-                resource.usageRole,
+                "homework_source",
               p_sequence:
                 resource.sequence,
               p_page_start:
@@ -721,6 +888,21 @@ function HomeworkInner() {
           </div>
         )}
 
+        {homeworkResourceLoadError && (
+          <div style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 10,
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            color: C.error,
+            fontSize: 11,
+            fontWeight: 600,
+          }}>
+            ⚠ {homeworkResourceLoadError}
+          </div>
+        )}
+
         {loading ? (
           <div style={{ textAlign: "center", padding: "40px 0", color: C.textMuted }}>Loading…</div>
         ) : list.length === 0 ? (
@@ -733,8 +915,24 @@ function HomeworkInner() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {list.map(h => {
-              const overdue = isOverdue(h.due_date);
-              const pct     = h.student_count > 0 ? Math.round((h.sub_count / h.student_count) * 100) : 0;
+              const overdue =
+                isOverdue(h.due_date);
+
+              const pct =
+                h.student_count > 0
+                  ? Math.round(
+                      (
+                        h.sub_count /
+                        h.student_count
+                      ) * 100
+                    )
+                  : 0;
+
+              const linkedResources =
+                linkedResourcesByHomeworkId[
+                  h.id
+                ] ?? [];
+
               return (
                 <div
                   key={h.id}
@@ -769,7 +967,102 @@ function HomeworkInner() {
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{h.title}</p>
                         {h.subject && <p style={{ fontSize: 11, color: C.textMuted, margin: "3px 0 0" }}>{h.subject}</p>}
-                        {h.instructions && <p style={{ fontSize: 12, color: C.textMuted, margin: "6px 0 0", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" } as React.CSSProperties}>{h.instructions}</p>}
+                        {h.instructions && (
+                          <p style={{
+                            fontSize: 12,
+                            color: C.textMuted,
+                            margin: "6px 0 0",
+                            lineHeight: 1.4,
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient:
+                              "vertical",
+                          } as React.CSSProperties}>
+                            {h.instructions}
+                          </p>
+                        )}
+
+                        {h.lesson_plan_id && (
+                          <div style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            marginTop: 7,
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                            background: "#eef2ff",
+                            color: "#4338ca",
+                            fontSize: 9,
+                            fontWeight: 800,
+                          }}>
+                            📘 From lesson plan
+                          </div>
+                        )}
+
+                        {linkedResources.length > 0 && (
+                          <div style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 5,
+                            marginTop: 8,
+                          }}>
+                            {linkedResources.map(
+                              resource => {
+                                const pageLabel =
+                                  resource.pageStart !==
+                                    null
+                                    ? resource.pageEnd !==
+                                        null
+                                      ? ` · pp. ${resource.pageStart}–${resource.pageEnd}`
+                                      : ` · p. ${resource.pageStart}`
+                                    : "";
+
+                                return (
+                                  <div
+                                    key={
+                                      resource.resourceId +
+                                      resource.usageRole
+                                    }
+                                    style={{
+                                      padding:
+                                        "6px 8px",
+                                      borderRadius: 8,
+                                      background:
+                                        "#f0fdfa",
+                                      border:
+                                        "1px solid #99f6e4",
+                                      maxWidth: 360,
+                                    }}
+                                  >
+                                    <div style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      color: "#0f766e",
+                                      lineHeight: 1.35,
+                                    }}>
+                                      📚 {resource.title}
+                                    </div>
+
+                                    <div style={{
+                                      fontSize: 9,
+                                      color:
+                                        C.textMuted,
+                                      marginTop: 2,
+                                    }}>
+                                      {resource.sourceType
+                                        .replaceAll(
+                                          "_",
+                                          " "
+                                        )}
+                                      {pageLabel}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div style={{ flexShrink: 0, textAlign: "right" }}>
                         <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20, background: overdue ? "#fee2e2" : "#d1fae5", color: overdue ? "#991b1b" : "#065f46" }}>
