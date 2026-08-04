@@ -52,6 +52,10 @@ import ReflectionSheet from '@/components/teacher/ReflectionSheet'
 import CoverageSheet from '@/components/teacher/CoverageSheet'
 import LessonPlanHistorySheet from '@/components/teacher/LessonPlanHistorySheet'
 import EvidenceCaptureSheet from '@/components/teacher/EvidenceCaptureSheet'
+import {
+  listOccurrenceResourceUsage,
+  markOccurrenceResourceUsed,
+} from '@/lib/content-engine/resourceUsage'
 
 // TOS-002: human-facing text for starting the exact occurrence from
 // the lesson workspace. The RPC remains the lifecycle authority.
@@ -281,6 +285,23 @@ export default function LessonPlanModal({
     setLessonResourcesError,
   ] = useState<string | null>(null)
 
+  const [
+    usedResourceIds,
+    setUsedResourceIds,
+  ] = useState<Set<string>>(
+    () => new Set(),
+  )
+
+  const [
+    markingResourceId,
+    setMarkingResourceId,
+  ] = useState<string | null>(null)
+
+  const [
+    resourceUsageError,
+    setResourceUsageError,
+  ] = useState<string | null>(null)
+
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
@@ -417,6 +438,86 @@ export default function LessonPlanModal({
     }
   }
 
+  async function loadUsedResources(
+    occurrenceId: string,
+  ): Promise<void> {
+    setResourceUsageError(null)
+
+    try {
+      const items =
+        await listOccurrenceResourceUsage(
+          occurrenceId,
+        )
+
+      setUsedResourceIds(
+        new Set(
+          items.map(
+            item => item.resourceId,
+          ),
+        ),
+      )
+    } catch (usageLoadError) {
+      console.error(
+        '[LessonPlanModal] load used resources',
+        usageLoadError,
+      )
+      setUsedResourceIds(new Set())
+      setResourceUsageError(
+        'Actual resource usage could not be loaded.',
+      )
+    }
+  }
+
+  async function handleMarkResourceUsed(
+    resource: LessonTeachingResource,
+  ): Promise<void> {
+    if (
+      !teachingOccurrence ||
+      !planId ||
+      markingResourceId
+    ) {
+      return
+    }
+
+    setMarkingResourceId(
+      resource.resourceId,
+    )
+    setResourceUsageError(null)
+
+    try {
+      await markOccurrenceResourceUsed({
+        occurrenceId:
+          teachingOccurrence.id,
+        lessonPlanId: planId,
+        resourceId:
+          resource.resourceId,
+      })
+
+      setUsedResourceIds(current => {
+        const next = new Set(current)
+        next.add(resource.resourceId)
+        return next
+      })
+
+      showToast(
+        'Resource marked used ✓',
+      )
+    } catch (usageError) {
+      console.error(
+        '[LessonPlanModal] mark resource used',
+        usageError,
+      )
+
+      setResourceUsageError(
+        usageError instanceof Error
+          ? usageError.message
+          : 'Resource usage could not be recorded.',
+      )
+    } finally {
+      setMarkingResourceId(null)
+    }
+  }
+
   function openLessonResource(
     resource: LessonTeachingResource,
   ): void {
@@ -483,6 +584,21 @@ export default function LessonPlanModal({
     return session.access_token
   }
 
+
+  useEffect(() => {
+    const occurrenceId =
+      teachingOccurrence?.id
+
+    if (!occurrenceId) {
+      setUsedResourceIds(new Set())
+      setResourceUsageError(null)
+      return
+    }
+
+    void loadUsedResources(
+      occurrenceId,
+    )
+  }, [teachingOccurrence?.id])
 
   useEffect(() => {
     let cancelled = false
@@ -1432,6 +1548,22 @@ export default function LessonPlanModal({
                   )}
                 </div>
 
+                {resourceUsageError && (
+                  <div style={{
+                    marginBottom: 8,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: '#fef2f2',
+                    border:
+                      '1px solid #fecaca',
+                    color: '#b91c1c',
+                    fontSize: 10,
+                    fontWeight: 600,
+                  }}>
+                    ⚠ {resourceUsageError}
+                  </div>
+                )}
+
                 {lessonResourcesLoading && (
                   <div style={{
                     fontSize: 12,
@@ -1598,31 +1730,100 @@ export default function LessonPlanModal({
                                 )}
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openLessonResource(
-                                    resource,
-                                  )
-                                }
-                                style={{
-                                  flexShrink: 0,
-                                  padding:
-                                    '7px 10px',
-                                  borderRadius: 8,
-                                  border: 'none',
-                                  background:
-                                    '#4338ca',
-                                  color: '#fff',
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                  fontFamily:
-                                    'inherit',
-                                }}
-                              >
-                                Open
-                              </button>
+                              <div style={{
+                                display: 'flex',
+                                flexDirection:
+                                  'column',
+                                gap: 6,
+                                flexShrink: 0,
+                              }}>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openLessonResource(
+                                      resource,
+                                    )
+                                  }
+                                  style={{
+                                    padding:
+                                      '7px 10px',
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    background:
+                                      '#4338ca',
+                                    color: '#fff',
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    cursor:
+                                      'pointer',
+                                    fontFamily:
+                                      'inherit',
+                                  }}
+                                >
+                                  Open
+                                </button>
+
+                                {teachingOccurrence &&
+                                  workspace &&
+                                  (
+                                    workspace.lifecycle ===
+                                      'in_progress' ||
+                                    workspace.lifecycle ===
+                                      'completed'
+                                  ) && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleMarkResourceUsed(
+                                        resource,
+                                      )
+                                    }
+                                    disabled={
+                                      usedResourceIds.has(
+                                        resource.resourceId,
+                                      ) ||
+                                      markingResourceId ===
+                                        resource.resourceId
+                                    }
+                                    style={{
+                                      padding:
+                                        '7px 10px',
+                                      borderRadius: 8,
+                                      border:
+                                        '1px solid #10b981',
+                                      background:
+                                        usedResourceIds.has(
+                                          resource.resourceId,
+                                        )
+                                          ? '#d1fae5'
+                                          : '#fff',
+                                      color:
+                                        '#065f46',
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      cursor:
+                                        usedResourceIds.has(
+                                          resource.resourceId,
+                                        ) ||
+                                        markingResourceId ===
+                                          resource.resourceId
+                                          ? 'default'
+                                          : 'pointer',
+                                      fontFamily:
+                                        'inherit',
+                                    }}
+                                  >
+                                    {usedResourceIds.has(
+                                      resource.resourceId,
+                                    )
+                                      ? 'Used ✓'
+                                      : markingResourceId ===
+                                          resource.resourceId
+                                        ? 'Saving…'
+                                        : 'Mark used'}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )
