@@ -471,9 +471,14 @@ export default function LessonPlanModal({
   async function handleMarkResourceUsed(
     resource: LessonTeachingResource,
   ): Promise<void> {
+    const occurrenceId =
+      teachingOccurrence?.occurrenceId
+
+    const lessonPlanId = planId
+
     if (
-      !teachingOccurrence ||
-      !planId ||
+      !occurrenceId ||
+      !lessonPlanId ||
       markingResourceId
     ) {
       return
@@ -486,9 +491,8 @@ export default function LessonPlanModal({
 
     try {
       await markOccurrenceResourceUsed({
-        occurrenceId:
-          teachingOccurrence.occurrenceId,
-        lessonPlanId: planId,
+        occurrenceId,
+        lessonPlanId,
         resourceId:
           resource.resourceId,
       })
