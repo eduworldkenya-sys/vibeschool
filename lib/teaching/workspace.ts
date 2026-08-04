@@ -364,7 +364,6 @@ function completeStage(
  */
 export function deriveTeachingWorkspace(
   occurrence: TeachingOccurrence,
-  occurrenceId: string | null = null,
 ): TeachingWorkspace {
   const stages: TeachingWorkspaceStageView[] = [
     planStage(occurrence),
@@ -389,7 +388,7 @@ export function deriveTeachingWorkspace(
 
   return {
     key: occurrence.key,
-    occurrenceId,
+    occurrenceId: occurrence.occurrenceId,
 
     lifecycle: occurrence.lifecycle,
 

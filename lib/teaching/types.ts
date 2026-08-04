@@ -9,6 +9,7 @@ export type Lifecycle =
 
 export interface TeachingOccurrence {
   key: OccurrenceKey
+  occurrenceId: string | null
 
   schoolId:  string
   teacherId: string

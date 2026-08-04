@@ -402,7 +402,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
       .eq('taught_date', key.occurrenceDate)
       .maybeSingle(),
     supabase.from('teaching_occurrences')
-      .select('lifecycle')
+      .select('id, lifecycle')
       .eq('timetable_slot_id', key.timetableSlotId)
       .eq('occurrence_date', key.occurrenceDate)
       .maybeSingle(),
@@ -481,8 +481,13 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
   const reflection = reflectionRes.data
   const reflectionCompleted = !!reflection && !!(reflection.what_worked || reflection.what_didnt || reflection.next_steps)
 
+  const persistedOccurrence = occurrenceRes.data as {
+    id: string
+    lifecycle: Lifecycle
+  } | null
+
   const lifecycle = deriveLifecycle(
-    occurrenceRes.data as { lifecycle: Lifecycle } | null,
+    persistedOccurrence,
     lessonPlanId,
     slot.end_time,
     key.occurrenceDate,
@@ -490,6 +495,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   return {
     key,
+    occurrenceId: persistedOccurrence?.id ?? null,
     schoolId:  slot.school_id,
     teacherId: slot.teacher_id,
     classId:   slot.class_id,
