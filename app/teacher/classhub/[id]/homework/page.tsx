@@ -20,6 +20,7 @@ interface Homework {
   created_at:      string;
   target_group_id: string | null;
   lesson_plan_id:  string | null;
+  teaching_occurrence_id: string | null;
   sub_count:       number;
   student_count:   number;
 }
@@ -58,6 +59,9 @@ function HomeworkInner() {
 
   const sourceSubjectId =
     searchParams.get("subjectId");
+
+  const sourceOccurrenceId =
+    searchParams.get("occurrenceId");
 
   const sourceSubjectName =
     searchParams.get("subject") ?? "";
@@ -421,6 +425,7 @@ function HomeworkInner() {
   }, [
     classId,
     sourceLessonPlanId,
+    sourceOccurrenceId,
     sourceSubjectName,
     sourceTopic,
   ]);
@@ -474,7 +479,9 @@ function HomeworkInner() {
               form.target_group_id || null,
             lesson_plan_id:
               sourceLessonPlanId || null,
-          })
+            teaching_occurrence_id:
+              sourceOccurrenceId || null,
+          } as any)
           .select("id")
           .single();
         if (homeworkError || !createdHomework || !createdHomework.id) {
@@ -974,6 +981,24 @@ function HomeworkInner() {
                           } as React.CSSProperties}>
                             {h.instructions}
                           </p>
+                        )}
+
+                        {h.teaching_occurrence_id && (
+                          <div style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            marginTop: 7,
+                            marginRight: 5,
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                            background: "#d1fae5",
+                            color: "#065f46",
+                            fontSize: 9,
+                            fontWeight: 800,
+                          }}>
+                            ✓ Exact taught lesson
+                          </div>
                         )}
 
                         {h.lesson_plan_id && (

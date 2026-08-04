@@ -302,6 +302,11 @@ export default function LessonPlanModal({
     setResourceUsageError,
   ] = useState<string | null>(null)
 
+  const [
+    homeworkCreatedForOccurrence,
+    setHomeworkCreatedForOccurrence,
+  ] = useState(false)
+
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
@@ -591,7 +596,7 @@ export default function LessonPlanModal({
 
   useEffect(() => {
     const occurrenceId =
-      teachingOccurrence?.id
+      teachingOccurrence?.occurrenceId
 
     if (!occurrenceId) {
       setUsedResourceIds(new Set())
@@ -602,7 +607,67 @@ export default function LessonPlanModal({
     void loadUsedResources(
       occurrenceId,
     )
-  }, [teachingOccurrence?.id])
+  }, [teachingOccurrence?.occurrenceId])
+
+  useEffect(() => {
+    const occurrenceId =
+      teachingOccurrence?.occurrenceId
+
+    const lessonPlanId = planId
+
+    if (!occurrenceId || !lessonPlanId) {
+      setHomeworkCreatedForOccurrence(false)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadHomeworkLineage() {
+      const query =
+        supabase
+          .from('homework') as any
+
+      const {
+        data,
+        error: homeworkError,
+      } = await query
+        .select('id')
+        .eq(
+          'teaching_occurrence_id',
+          occurrenceId,
+        )
+        .eq(
+          'lesson_plan_id',
+          lessonPlanId,
+        )
+        .limit(1)
+
+      if (cancelled) return
+
+      if (homeworkError) {
+        console.error(
+          '[LessonPlanModal] Homework lineage load failed',
+          homeworkError,
+        )
+        setHomeworkCreatedForOccurrence(false)
+        return
+      }
+
+      setHomeworkCreatedForOccurrence(
+        Array.isArray(data) &&
+        data.length > 0,
+      )
+    }
+
+    void loadHomeworkLineage()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    teachingOccurrence?.occurrenceId,
+    planId,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -1857,6 +1922,110 @@ export default function LessonPlanModal({
 
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
 
+              <div style={{
+                marginTop: 8,
+                marginBottom: 16,
+                padding: '14px 12px',
+                borderRadius: 12,
+                border: '1px solid #e5e7eb',
+                background: '#f9fafb',
+              }}>
+                <div style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: C.textMuted,
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  marginBottom: 10,
+                }}>
+                  Teaching Lifecycle
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    'repeat(3, minmax(0, 1fr))',
+                  gap: 7,
+                }}>
+                  {[
+                    {
+                      label: 'Planned',
+                      done: Boolean(planId),
+                      icon: '📘',
+                    },
+                    {
+                      label: 'Started',
+                      done:
+                        workspace?.lifecycle ===
+                          'in_progress' ||
+                        workspace?.lifecycle ===
+                          'completed',
+                      icon: '▶',
+                    },
+                    {
+                      label: 'Resources',
+                      done:
+                        usedResourceIds.size > 0,
+                      icon: '📚',
+                    },
+                    {
+                      label: 'Evidence',
+                      done:
+                        workspace?.evidenceCaptured ??
+                        false,
+                      icon: '📷',
+                    },
+                    {
+                      label: 'Homework',
+                      done:
+                        homeworkCreatedForOccurrence,
+                      icon: '📝',
+                    },
+                    {
+                      label: 'Completed',
+                      done:
+                        workspace?.lifecycle ===
+                        'completed',
+                      icon: '✓',
+                    },
+                  ].map(step => (
+                    <div
+                      key={step.label}
+                      style={{
+                        padding: '8px 6px',
+                        borderRadius: 9,
+                        textAlign: 'center',
+                        background: step.done
+                          ? '#d1fae5'
+                          : '#fff',
+                        border:
+                          step.done
+                            ? '1px solid #6ee7b7'
+                            : '1px solid #e5e7eb',
+                      }}
+                    >
+                      <div style={{
+                        fontSize: 14,
+                        marginBottom: 3,
+                      }}>
+                        {step.done
+                          ? '✓'
+                          : step.icon}
+                      </div>
+                      <div style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: step.done
+                          ? '#065f46'
+                          : C.textMuted,
+                      }}>
+                        {step.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 16, borderTop: '1px solid ' + C.border, marginTop: 8 }}>
                 {startLessonError && (
                   <div style={{
@@ -1964,6 +2133,17 @@ export default function LessonPlanModal({
                             slot.subject,
                           topic,
                         })
+
+                      const occurrenceId =
+                        teachingOccurrence
+                          ?.occurrenceId
+
+                      if (occurrenceId) {
+                        params.set(
+                          'occurrenceId',
+                          occurrenceId,
+                        )
+                      }
 
                       router.push(
                         `/teacher/classhub/${slot.class_id}/homework?${params.toString()}`,

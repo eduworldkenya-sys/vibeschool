@@ -71,18 +71,76 @@ export default function EvidenceCaptureSheet({
     setError(null);
     try {
       const mediaUrl = await uploadPhoto();
-      const { error: insErr } = await supabase.from("lesson_evidence").insert({
-        lesson_id: lessonId,
-        teaching_occurrence_id: occurrenceId,
-        class_id: classId,
-        teacher_id: teacherId,
-        evidence_type: type,
-        title: title.trim(),
-        description: description.trim() || null,
-        media_url: mediaUrl,
-        score: score.trim() ? Number(score) : null,
-      });
-      if (insErr) throw insErr;
+      const {
+        data: evidenceRow,
+        error: insErr,
+      } = await supabase
+        .from("lesson_evidence")
+        .insert({
+          lesson_id: lessonId,
+          teaching_occurrence_id:
+            occurrenceId,
+          class_id: classId,
+          teacher_id: teacherId,
+          evidence_type: type,
+          title: title.trim(),
+          description:
+            description.trim() || null,
+          media_url: mediaUrl,
+          score:
+            score.trim()
+              ? Number(score)
+              : null,
+        })
+        .select("id")
+        .single();
+
+      if (insErr || !evidenceRow?.id) {
+        throw (
+          insErr ??
+          new Error(
+            "Evidence identity was not returned."
+          )
+        );
+      }
+
+      const {
+        data: lineageResult,
+        error: lineageError,
+      } = await supabase.rpc(
+        "link_evidence_to_occurrence_resources",
+        {
+          p_evidence_id: evidenceRow.id,
+          p_occurrence_id: occurrenceId,
+        }
+      );
+
+      const lineagePayload =
+        lineageResult as {
+          ok?: boolean;
+          error?: string | null;
+          linked_count?: number;
+        } | null;
+
+      if (
+        lineageError ||
+        !lineagePayload?.ok
+      ) {
+        // Do not leave evidence claiming complete lineage
+        // when its occurrence-resource relationship failed.
+        await supabase
+          .from("lesson_evidence")
+          .delete()
+          .eq("id", evidenceRow.id)
+          .eq("teacher_id", teacherId);
+
+        throw new Error(
+          lineageError?.message ??
+          lineagePayload?.error ??
+          "Evidence resource lineage could not be saved."
+        );
+      }
+
       onSaved();
       onClose();
     } catch (e: any) {
