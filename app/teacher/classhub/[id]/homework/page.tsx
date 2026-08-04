@@ -285,8 +285,8 @@ function HomeworkInner() {
             sequence?: number;
             page_start?: number | null;
             page_end?: number | null;
-            section_refs?: unknown[];
-            exercise_refs?: unknown[];
+            section_refs?: Json;
+            exercise_refs?: Json;
           }>;
         } | null;
 
