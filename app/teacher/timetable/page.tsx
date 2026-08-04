@@ -385,7 +385,7 @@ function SlotDrawer({
   // TOS-006: the drawer consumes the shared Teaching Workspace contract.
   // It no longer owns a private lifecycle-to-action engine.
   const workspace = occurrence
-    ? deriveTeachingWorkspace(occurrence, occRowId)
+    ? deriveTeachingWorkspace(occurrence)
     : null
 
   const primaryAction = workspace
