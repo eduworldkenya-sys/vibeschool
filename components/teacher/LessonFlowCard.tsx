@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import type { PulseSnapshot, Slot, WorkflowState } from "@/lib/types";
+import type {
+  TeachingWorkspaceStage,
+  WorkspaceStageState,
+} from "@/lib/teaching/workspace";
 import EvidenceCaptureSheet from "./EvidenceCaptureSheet";
 import ReflectionSheet from "./ReflectionSheet";
 import { nairobiDateStr } from "@/lib/time";
@@ -39,37 +43,113 @@ const steps: StepName[] = [
   "Prepare Next Lesson",
 ];
 
-function getStepState(step: StepName, slot: Slot): WorkflowState {
+function toWorkflowState(
+  state: WorkspaceStageState,
+): WorkflowState {
+  switch (state) {
+    case "done":
+      return "Done";
+
+    case "current":
+      return "Current";
+
+    case "available":
+      return "Next";
+
+    case "blocked":
+      return "Blocked";
+
+    case "unavailable":
+      return "Not available yet";
+  }
+}
+
+function workspaceStageState(
+  slot: Slot,
+  stage: TeachingWorkspaceStage,
+): WorkflowState {
+  const workspace = slot.teaching_workspace;
+
+  if (!workspace) {
+    return "Not available yet";
+  }
+
+  const stageView = workspace.stages.find(
+    (item) => item.stage === stage,
+  );
+
+  return stageView
+    ? toWorkflowState(stageView.state)
+    : "Not available yet";
+}
+
+/**
+ * Core lesson stages come only from the shared TeachingWorkspace.
+ *
+ * Submission review, marking, formal progress recording and preparation of
+ * the next lesson remain post-teaching workflows until those domains gain
+ * their own shared contracts.
+ */
+function cardStepState(
+  step: StepName,
+  slot: Slot,
+): WorkflowState {
   switch (step) {
     case "Plan Lesson":
-      return slot.lesson_plan_id ? "Done" : "Current";
+      return workspaceStageState(slot, "plan");
+
     case "Take Attendance":
-      if (!slot.lesson_plan_id) return "Blocked";
-      return slot.attendance_status === "completed" ? "Done" : "Current";
+      return workspaceStageState(slot, "attendance");
+
     case "Teach Lesson":
-      if (slot.attendance_status !== "completed") return "Blocked";
-      return slot.evidence_count > 0 || slot.task_status !== "none" ? "Done" : "Current";
+      return workspaceStageState(slot, "teach");
+
     case "Collect Evidence":
-      if (slot.attendance_status !== "completed") return "Blocked";
-      return slot.evidence_count > 0 ? "Done" : "Not available yet";
+      return workspaceStageState(slot, "evidence");
+
     case "Assign Task":
-      if (slot.attendance_status !== "completed") return "Blocked";
-      return slot.task_status !== "none" ? "Done" : "Not available yet";
-    case "Review Submissions":
-      if (slot.task_status === "none") return "Not available yet";
-      return slot.submission_count > 0 ? "Done" : "Current";
-    case "Mark Work":
-      if (slot.submission_count === 0) return "Blocked";
-      return slot.marking_status === "completed" ? "Done" : "Current";
-    case "Record Progress":
-      if (slot.marking_status !== "completed") return "Blocked";
-      return slot.progress_record_status === "completed" ? "Done" : "Not available yet";
+      return workspaceStageState(slot, "homework");
+
     case "Write Reflection":
-      if (slot.marking_status !== "completed") return "Blocked";
-      return slot.reflection_status === "completed" ? "Done" : "Not available yet";
+      return workspaceStageState(slot, "reflection");
+
+    case "Review Submissions":
+      if (slot.task_status === "none") {
+        return "Not available yet";
+      }
+
+      return slot.submission_count > 0
+        ? "Done"
+        : "Current";
+
+    case "Mark Work":
+      if (slot.submission_count === 0) {
+        return "Blocked";
+      }
+
+      return slot.marking_status === "completed"
+        ? "Done"
+        : "Current";
+
+    case "Record Progress":
+      if (slot.marking_status !== "completed") {
+        return "Blocked";
+      }
+
+      return slot.progress_record_status === "completed"
+        ? "Done"
+        : "Not available yet";
+
     case "Prepare Next Lesson":
-      if (slot.reflection_status !== "completed") return "Not available yet";
-      return slot.next_lesson_status === "completed" ? "Done" : "Current";
+      if (
+        workspaceStageState(slot, "reflection") !== "Done"
+      ) {
+        return "Not available yet";
+      }
+
+      return slot.next_lesson_status === "completed"
+        ? "Done"
+        : "Current";
   }
 }
 
@@ -144,7 +224,7 @@ function TeachJourney({ slot }: { slot: Slot }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingBottom: 14, borderBottom: "1px solid #f3f4f6" }}>
       {journeyStages.map((stage) => {
-        const state = getStepState(stage.step, slot);
+        const state = cardStepState(stage.step, slot);
         const status = journeyStatus(state);
         const isDone = state === "Done";
 
@@ -265,19 +345,48 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
 
   const activeSlot = slots[Math.min(activeIndex, slots.length - 1)];
 
+  const occurrenceDate =
+    activeSlot.teaching_workspace?.key.occurrenceDate ??
+    nairobiDateStr();
+
+  const exactLessonUrl =
+    `/teacher/lessonplan?` +
+    `timetableSlotId=${encodeURIComponent(activeSlot.id)}` +
+    `&date=${encodeURIComponent(occurrenceDate)}` +
+    `&subjectId=${encodeURIComponent(activeSlot.subject_id)}` +
+    `&classId=${encodeURIComponent(activeSlot.class_id)}`;
+
   const routes: Partial<Record<StepName, string>> = {
-    "Plan Lesson": `/teacher/lessonplan?subjectId=${activeSlot.subject_id}&classId=${activeSlot.class_id}`,
+    "Plan Lesson": exactLessonUrl,
+
     "Take Attendance":
       `/teacher/attendance?mode=lesson` +
       `&classId=${encodeURIComponent(activeSlot.class_id)}` +
       `&timetableSlotId=${encodeURIComponent(activeSlot.id)}` +
-      `&date=${encodeURIComponent(nairobiDateStr())}`,
-    "Teach Lesson": `/teacher/teach?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
-    "Assign Task": `/teacher/homework?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
-    "Review Submissions": `/teacher/homework?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
-    "Mark Work": `/teacher/assessment?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
-    "Record Progress": `/teacher/progress?classId=${activeSlot.class_id}&subjectId=${activeSlot.subject_id}`,
-    "Prepare Next Lesson": `/teacher/lessonplan?subjectId=${activeSlot.subject_id}&classId=${activeSlot.class_id}`,
+      `&date=${encodeURIComponent(occurrenceDate)}` +
+      `&subjectId=${encodeURIComponent(activeSlot.subject_id)}`,
+
+    // Teaching lifecycle mutations and completion remain inside the exact
+    // lesson workspace rather than navigating to an unrelated generic page.
+    "Teach Lesson": exactLessonUrl,
+
+    "Assign Task":
+      `/teacher/homework?classId=${activeSlot.class_id}` +
+      `&subjectId=${activeSlot.subject_id}`,
+
+    "Review Submissions":
+      `/teacher/homework?classId=${activeSlot.class_id}` +
+      `&subjectId=${activeSlot.subject_id}`,
+
+    "Mark Work":
+      `/teacher/assessment?classId=${activeSlot.class_id}` +
+      `&subjectId=${activeSlot.subject_id}`,
+
+    "Record Progress":
+      `/teacher/progress?classId=${activeSlot.class_id}` +
+      `&subjectId=${activeSlot.subject_id}`,
+
+    "Prepare Next Lesson": exactLessonUrl,
   };
 
   // These two steps open an in-page sheet instead of navigating away —
@@ -288,7 +397,10 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
     "Write Reflection": () => setReflectionSheetOpen(true),
   };
 
-  const states = steps.map((step) => ({ step, state: getStepState(step, activeSlot) }));
+  const states = steps.map((step) => ({
+    step,
+    state: cardStepState(step, activeSlot),
+  }));
   const firstCurrentIndex = states.findIndex((item) => item.state === "Current");
   const firstFutureIndex = states.findIndex((item, index) => index > firstCurrentIndex && item.state !== "Done");
 
@@ -389,7 +501,10 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
 
       {evidenceSheetOpen && (
         <EvidenceCaptureSheet
-          lessonId={activeSlot.lesson_plan_id}
+          lessonId={
+            activeSlot.teaching_workspace?.lessonPlanId ??
+            activeSlot.lesson_plan_id
+          }
           classId={activeSlot.class_id}
           teacherId={teacherId ?? ""}
           defaultTitle={activeSlot.subject}
@@ -400,7 +515,10 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
 
       {reflectionSheetOpen && (
         <ReflectionSheet
-          lessonId={activeSlot.lesson_plan_id}
+          lessonId={
+            activeSlot.teaching_workspace?.lessonPlanId ??
+            activeSlot.lesson_plan_id
+          }
           classId={activeSlot.class_id}
           subjectId={activeSlot.subject_id}
           teacherId={teacherId ?? ""}

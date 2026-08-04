@@ -1,5 +1,7 @@
 // lib/types.ts
 
+import type { TeachingWorkspace } from "./teaching/workspace";
+
 // ─── Union Types ─────────────────────────────────────────────────────────────
 
 export type TrendDirection   = "improving" | "stable" | "declining";
@@ -726,6 +728,13 @@ export interface Slot {
   progress_record_status: RecordStatus;
   reflection_status: RecordStatus;
   next_lesson_status: RecordStatus;
+
+  /**
+   * TOS-006C1: presentation-safe projection of the authoritative
+   * dated teaching occurrence. Null means resolution failed or the
+   * slot could not represent a valid occurrence.
+   */
+  teaching_workspace: TeachingWorkspace | null;
 }
 
 export interface ActivityLog {

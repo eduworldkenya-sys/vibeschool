@@ -3,6 +3,9 @@ import type { Slot, ActivityLog, PulseSnapshot } from "@/lib/types";
 import { nairobiDateStr, nairobiDayOfWeek, nairobiDateAdd } from "@/lib/time";
 import { loadActiveTeacherTimetable } from "@/lib/timetable/engine";
 import { ensureDailyOccurrences } from "@/lib/teaching/occurrenceGuard";
+import { resolveOccurrence } from "@/lib/teaching/occurrence";
+import { deriveTeachingWorkspace } from "@/lib/teaching/workspace";
+import type { TeachingWorkspace } from "@/lib/teaching/workspace";
 
 interface TimetableSlotRow {
   id: string;
@@ -294,6 +297,8 @@ export async function fetchPulseData(
     progress_record_status: "none",
     reflection_status: "none",
     next_lesson_status: "none",
+
+    teaching_workspace: null,
   }));
 
   const todayBaseSlots = baseSlots.filter((slot) => Number(slot.day_of_week) === todayDow);
@@ -548,6 +553,42 @@ export async function fetchPulseData(
   const progressDoneLessonIds = new Set((progressRes.data ?? []).map((row) => row.lesson_plan_id).filter(Boolean));
   const reflectionDoneLessonIds = new Set((reflectionRes.data ?? []).map((row) => row.lesson_plan_id).filter(Boolean));
 
+  // TOS-006C1: Pulse must not infer teaching lifecycle from attendance,
+  // plans or homework. Resolve each exact dated lesson through the same
+  // authoritative occurrence resolver used by the timetable and lesson
+  // workspace. A single failed resolution is isolated to that slot.
+  const workspaceEntries = await Promise.all(
+    todayBaseSlots.map(async (slot): Promise<
+      readonly [string, TeachingWorkspace | null]
+    > => {
+      try {
+        const occurrence = await resolveOccurrence({
+          timetableSlotId: slot.id,
+          occurrenceDate: today,
+        });
+
+        return [
+          slot.id,
+          occurrence
+            ? deriveTeachingWorkspace(occurrence)
+            : null,
+        ] as const;
+      } catch (error) {
+        console.error(
+          `[Pulse] workspace resolution failed for slot ${slot.id}:`,
+          error,
+        );
+
+        return [slot.id, null] as const;
+      }
+    })
+  );
+
+  const workspaceBySlot = new Map<
+    string,
+    TeachingWorkspace | null
+  >(workspaceEntries);
+
   const todaySlots = todayBaseSlots.map((slot): Slot => {
     const lessonPlanId =
       lessonPlanBySlot.get(slot.id) ??
@@ -579,6 +620,9 @@ export async function fetchPulseData(
       progress_record_status: lessonPlanId && progressDoneLessonIds.has(lessonPlanId) ? "completed" : "none",
       reflection_status: lessonPlanId && reflectionDoneLessonIds.has(lessonPlanId) ? "completed" : "none",
       next_lesson_status: "none",
+
+      teaching_workspace:
+        workspaceBySlot.get(slot.id) ?? null,
     };
   });
 
