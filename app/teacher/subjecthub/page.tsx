@@ -12,6 +12,7 @@ import { Card, C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { resolveSchoolId } from '@/lib/school'
 import type { Database } from '@/lib/database.types'
 import { useRouter } from 'next/navigation'
 
@@ -132,52 +133,73 @@ export default function SubjectHubPage() {
       if (!user) { router.push('/?role=teacher'); return }
       setCurrentId(user.id)
 
-      const [tcRes, teacherRes, memberRes, profileRes] = await Promise.all([
-        supabase.from('teacher_classes').select('subject_id').eq('teacher_id', user.id),
-        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('profiles').select('school_id').eq('id', user.id).single(),
-      ])
-
-      const sid =
-        memberRes.data?.school_id ??
-        teacherRes.data?.school_id ??
-        profileRes.data?.school_id ??
-        null
+      const sid = await resolveSchoolId(user.id)
 
       setSchoolId(sid)
 
-      if (sid) {
-        try {
-          setActiveAcademicTerm(
-            await getActiveTerm(sid),
-          )
-        } catch (termError) {
-          console.error(
-            '[SubjectHub] active term load failed',
-            termError,
-          )
-          setActiveAcademicTerm(null)
-        }
-      } else {
+      if (!sid) {
+        setActiveAcademicTerm(null)
+        setSubjects([])
+        setAllClasses([])
+        setError(
+          'Your teacher account is not linked to a school.'
+        )
+        return
+      }
+
+      try {
+        setActiveAcademicTerm(
+          await getActiveTerm(sid),
+        )
+      } catch (termError) {
+        console.error(
+          '[SubjectHub] active term load failed',
+          termError,
+        )
         setActiveAcademicTerm(null)
       }
 
-      const subjectIds = Array.from(new Set(
-        (tcRes.data ?? []).map((r: { subject_id: string }) => r.subject_id).filter(Boolean)
-      ))
+      const { data: assignmentRows, error: assignmentError } =
+        await supabase
+          .from('teacher_classes')
+          .select(
+            'school_id,class_id,subject_id'
+          )
+          .eq('teacher_id', user.id)
+          .eq('school_id', sid)
 
-      const { data: tcRows } = await supabase
-        .from('teacher_classes')
-        .select('class_id')
-        .eq('teacher_id', user.id)
-      const classIds = Array.from(new Set(
-        (tcRows ?? []).map((r: { class_id: string }) => r.class_id).filter(Boolean)
-      ))
+      if (assignmentError) {
+        throw assignmentError
+      }
+
+      const subjectIds = Array.from(
+        new Set(
+          (assignmentRows ?? [])
+            .map(row => row.subject_id)
+            .filter(
+              (id): id is string =>
+                typeof id === 'string' &&
+                id.length > 0
+            )
+        )
+      )
+
+      const classIds = Array.from(
+        new Set(
+          (assignmentRows ?? [])
+            .map(row => row.class_id)
+            .filter(
+              (id): id is string =>
+                typeof id === 'string' &&
+                id.length > 0
+            )
+        )
+      )
       if (classIds.length > 0) {
         const { data: classRows } = await supabase
           .from('classes')
           .select('id, name, stream, school_id')
+          .eq('school_id', sid)
           .in('id', classIds)
         setAllClasses(classRows ?? [])
       } else {
@@ -216,13 +238,17 @@ export default function SubjectHubPage() {
   ])
 
   async function loadClassesForSubject(subjectId: string) {
-    if (!subjectId || !currentId) { setClassLoading(false); return }
+    if (!subjectId || !currentId || !schoolId) {
+      setClassLoading(false)
+      return
+    }
     setClassLoading(true)
 
     const { data: tcData } = await supabase
       .from('teacher_classes')
       .select('class_id')
       .eq('teacher_id', currentId)
+      .eq('school_id', schoolId)
       .eq('subject_id', subjectId)
 
     const classIds: string[] = (tcData ?? [])
@@ -239,7 +265,11 @@ export default function SubjectHubPage() {
       nairobiDateStr()
 
     const [classRes, studentRes, perfRes, attRes] = await Promise.all([
-      supabase.from('classes').select('id, name, stream').in('id', classIds),
+      supabase
+        .from('classes')
+        .select('id, name, stream')
+        .eq('school_id', schoolId)
+        .in('id', classIds),
       supabase.from('students').select('class_id').in('class_id', classIds),
       supabase.from('cbc_assessments').select('class_id, performance').eq('subject_id', subjectId).in('class_id', classIds),
       supabase.from('attendance').select('class_id, student_id, status').in('class_id', classIds).eq('teacher_id', currentId).gte('date', termStart),
@@ -364,11 +394,12 @@ export default function SubjectHubPage() {
   }
 
   async function removeSubject(subjectId: string) {
-    if (!currentId) return
+    if (!currentId || !schoolId) return
     const { error: delErr } = await supabase
       .from('teacher_classes')
       .delete()
       .eq('teacher_id', currentId)
+      .eq('school_id', schoolId)
       .eq('subject_id', subjectId)
     if (delErr) { setError('Failed to remove subject. Please try again.'); return }
     const nextSubjects = subjects.filter(s => s.id !== subjectId)
@@ -396,7 +427,13 @@ export default function SubjectHubPage() {
 
     const [subNameRes2, tcRes2] = await Promise.all([
       supabase.from('subjects').select('name').eq('id', subjectId).single(),
-      supabase.from('teacher_classes').select('class_id').eq('teacher_id', currentId).eq('subject_id', subjectId).limit(1),
+      supabase
+        .from('teacher_classes')
+        .select('class_id')
+        .eq('teacher_id', currentId)
+        .eq('school_id', schoolId)
+        .eq('subject_id', subjectId)
+        .limit(1),
     ])
     const subjectName2 = subNameRes2.data?.name ?? ''
     const firstClassId = tcRes2.data?.[0]?.class_id ?? null
