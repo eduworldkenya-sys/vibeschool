@@ -83,3 +83,5 @@ supabase_linux
 .vibetextbook-lifecycle-backups/
 PASTE_ME_*.sh
 .vibelearn-*-backups/
+# Vibeschool autonomous engineering runner runtime state
+.vibeschool-agent/
