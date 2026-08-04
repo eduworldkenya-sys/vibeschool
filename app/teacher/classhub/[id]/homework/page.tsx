@@ -3,7 +3,11 @@ export const dynamic = "force-dynamic";
 import { C } from "@/components/teacher/ui";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter, useParams } from "next/navigation";
+import {
+  useRouter,
+  useParams,
+  useSearchParams,
+} from "next/navigation";
 
 interface Homework {
   id:              string;
@@ -19,10 +23,35 @@ interface Homework {
 }
 interface Group { id: string; name: string; }
 
+interface SourceLessonResource {
+  resourceId: string;
+  title: string;
+  sourceType: string;
+  usageRole: string;
+  sequence: number;
+  pageStart: number | null;
+  pageEnd: number | null;
+  sectionRefs: unknown[];
+  exerciseRefs: unknown[];
+}
+
 function HomeworkInner() {
   const router  = useRouter();
-  const params  = useParams();
+  const params = useParams();
+  const searchParams = useSearchParams();
   const classId = params.id as string;
+
+  const sourceLessonPlanId =
+    searchParams.get("lessonPlanId");
+
+  const sourceSubjectId =
+    searchParams.get("subjectId");
+
+  const sourceSubjectName =
+    searchParams.get("subject") ?? "";
+
+  const sourceTopic =
+    searchParams.get("topic") ?? "";
 
   const [list,      setList]      = useState<Homework[]>([]);
   const [groups,    setGroups]    = useState<Group[]>([]);
@@ -36,6 +65,21 @@ function HomeworkInner() {
   const [subjects,  setSubjects]  = useState<{ id: string; name: string }[]>([]);
   const [schoolId,  setSchoolId]  = useState<string | null>(null);
 
+  const [
+    sourceLessonResources,
+    setSourceLessonResources,
+  ] = useState<SourceLessonResource[]>([]);
+
+  const [
+    sourceLessonLoading,
+    setSourceLessonLoading,
+  ] = useState(false);
+
+  const [
+    sourceLessonError,
+    setSourceLessonError,
+  ] = useState("");
+
   const [form, setForm] = useState({
     title: "", subject: "", instructions: "", due_date: "", type: "general", target_group_id: "",
   });
@@ -45,6 +89,118 @@ function HomeworkInner() {
   const [editTarget, setEditTarget] = useState<Homework | null>(null);
   const [editForm, setEditForm] = useState<{ title: string; instructions: string; due_date: string } | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+
+  async function loadSourceLessonResources(
+    lessonPlanId: string,
+  ) {
+    setSourceLessonLoading(true);
+    setSourceLessonError("");
+
+    try {
+      const {
+        data: resourceResult,
+        error: resourceError,
+      } = await supabase.rpc(
+        "list_teaching_resources",
+        {
+          p_target_type:
+            "lesson_plan",
+          p_target_id:
+            lessonPlanId,
+        }
+      );
+
+      if (resourceError) {
+        throw resourceError;
+      }
+
+      const payload =
+        resourceResult as {
+          ok?: boolean;
+          error?: string | null;
+          resources?: Array<{
+            resource_id?: string;
+            title?: string;
+            source_type?: string;
+            usage_role?: string;
+            sequence?: number;
+            page_start?: number | null;
+            page_end?: number | null;
+            section_refs?: unknown[];
+            exercise_refs?: unknown[];
+          }>;
+        } | null;
+
+      if (!payload?.ok) {
+        throw new Error(
+          payload?.error ??
+          "lesson_resource_load_failed"
+        );
+      }
+
+      const resources =
+        (payload.resources ?? [])
+          .flatMap(resource => {
+            if (!resource.resource_id) {
+              return [];
+            }
+
+            return [{
+              resourceId:
+                resource.resource_id,
+              title:
+                resource.title ??
+                "Untitled resource",
+              sourceType:
+                resource.source_type ??
+                "resource",
+              usageRole:
+                resource.usage_role ??
+                "source",
+              sequence:
+                resource.sequence ?? 1,
+              pageStart:
+                resource.page_start ??
+                null,
+              pageEnd:
+                resource.page_end ??
+                null,
+              sectionRefs:
+                Array.isArray(
+                  resource.section_refs
+                )
+                  ? resource.section_refs
+                  : [],
+              exerciseRefs:
+                Array.isArray(
+                  resource.exercise_refs
+                )
+                  ? resource.exercise_refs
+                  : [],
+            }];
+          })
+          .sort(
+            (left, right) =>
+              left.sequence -
+              right.sequence
+          );
+
+      setSourceLessonResources(
+        resources
+      );
+    } catch (loadError) {
+      console.error(
+        "[Homework] source lesson resources",
+        loadError
+      );
+      setSourceLessonResources([]);
+      setSourceLessonError(
+        "The lesson resources could not be loaded."
+      );
+    } finally {
+      setSourceLessonLoading(false);
+    }
+  }
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -76,11 +232,42 @@ function HomeworkInner() {
     setSchoolId((clsRes.data as { school_id?: string | null } | null)?.school_id ?? null);
     setGroups(grpRes.data ?? []);
     setSubjects(subjRes.data ?? []);
-    if (clsRes.data?.subject) setForm(f => ({ ...f, subject: clsRes.data!.subject }));
+
+    setForm(current => ({
+      ...current,
+      subject:
+        sourceSubjectName ||
+        clsRes.data?.subject ||
+        current.subject,
+      title:
+        sourceTopic &&
+        !current.title
+          ? `${sourceTopic} Homework`
+          : current.title,
+    }));
+
+    if (sourceLessonPlanId) {
+      setShowForm(true);
+
+      await loadSourceLessonResources(
+        sourceLessonPlanId
+      );
+    } else {
+      setSourceLessonResources([]);
+      setSourceLessonError("");
+    }
+
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, [classId]);
+  useEffect(() => {
+    load();
+  }, [
+    classId,
+    sourceLessonPlanId,
+    sourceSubjectName,
+    sourceTopic,
+  ]);
 
   async function handleSubmit() {
     setError("");
@@ -97,10 +284,19 @@ function HomeworkInner() {
       const isRetry = pendingHomeworkIdRef.current !== null;
       let homeworkId = pendingHomeworkIdRef.current;
 
-      if (isRetry) {
-        const validQs = questionDrafts.map((q) => q.trim()).filter(Boolean);
+      if (
+        isRetry &&
+        addQuestions
+      ) {
+        const validQs =
+          questionDrafts
+            .map(q => q.trim())
+            .filter(Boolean);
+
         if (validQs.length === 0) {
-          setError("Add at least one question to save, or tap Cancel to leave this homework without questions.");
+          setError(
+            "Add at least one question to save, or turn off questions before retrying."
+          );
           return;
         }
       }
@@ -173,6 +369,67 @@ function HomeworkInner() {
           }
         } catch (_) {
           // notifications are best-effort
+        }
+      }
+
+      // REL-002F2D2: preserve the exact resources attached to the
+      // source Lesson Plan. The same resource IDs are linked to Homework;
+      // titles, URLs and publication metadata are never duplicated.
+      if (
+        sourceLessonPlanId &&
+        sourceLessonResources.length > 0
+      ) {
+        for (
+          const resource
+          of sourceLessonResources
+        ) {
+          const {
+            data: linkResult,
+            error: linkError,
+          } = await supabase.rpc(
+            "link_learning_resource",
+            {
+              p_resource_id:
+                resource.resourceId,
+              p_target_type:
+                "homework",
+              p_target_id:
+                homeworkId,
+              p_usage_role:
+                resource.usageRole,
+              p_sequence:
+                resource.sequence,
+              p_page_start:
+                resource.pageStart ??
+                undefined,
+              p_page_end:
+                resource.pageEnd ??
+                undefined,
+              p_section_refs:
+                resource.sectionRefs,
+              p_exercise_refs:
+                resource.exerciseRefs,
+            }
+          );
+
+          const linkPayload =
+            linkResult as {
+              ok?: boolean;
+              error?: string | null;
+              existing?: boolean;
+            } | null;
+
+          if (
+            linkError ||
+            !linkPayload?.ok
+          ) {
+            setError(
+              linkError?.message ??
+              linkPayload?.error ??
+              "Homework was created, but its lesson resources could not be attached. Tap Post Homework to retry."
+            );
+            return;
+          }
         }
       }
 
@@ -277,6 +534,128 @@ function HomeworkInner() {
           <div style={{ background: "#fff", borderRadius: 20, padding: "20px", marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", animation: "slideDown 0.2s ease" }}>
             <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }`}</style>
             <p style={{ fontSize: 12, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, margin: "0 0 16px" }}>New Assignment</p>
+
+            {sourceLessonPlanId && (
+              <div style={{
+                marginBottom: 16,
+                padding: "12px 13px",
+                borderRadius: 12,
+                background: "#eef2ff",
+                border: "1px solid #c7d2fe",
+              }}>
+                <div style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: "#4338ca",
+                  textTransform:
+                    "uppercase",
+                  letterSpacing: 0.8,
+                }}>
+                  📘 From Lesson Plan
+                </div>
+
+                {sourceTopic && (
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: C.textPrimary,
+                    marginTop: 5,
+                  }}>
+                    {sourceTopic}
+                  </div>
+                )}
+
+                {sourceLessonLoading && (
+                  <div style={{
+                    fontSize: 11,
+                    color: "#4338ca",
+                    marginTop: 7,
+                  }}>
+                    Loading lesson resources…
+                  </div>
+                )}
+
+                {sourceLessonError && (
+                  <div style={{
+                    fontSize: 11,
+                    color: C.error,
+                    marginTop: 7,
+                  }}>
+                    ⚠ {sourceLessonError}
+                  </div>
+                )}
+
+                {!sourceLessonLoading &&
+                  !sourceLessonError &&
+                  sourceLessonResources.length === 0 && (
+                  <div style={{
+                    fontSize: 11,
+                    color: C.textMuted,
+                    marginTop: 7,
+                  }}>
+                    This lesson has no attached
+                    resources.
+                  </div>
+                )}
+
+                {sourceLessonResources.length > 0 && (
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 5,
+                    marginTop: 8,
+                  }}>
+                    {sourceLessonResources.map(
+                      resource => (
+                        <div
+                          key={
+                            resource.resourceId +
+                            resource.usageRole
+                          }
+                          style={{
+                            padding: "7px 9px",
+                            borderRadius: 8,
+                            background: "#fff",
+                            border:
+                              "1px solid #c7d2fe",
+                          }}
+                        >
+                          <div style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color:
+                              C.textPrimary,
+                          }}>
+                            {resource.title}
+                          </div>
+
+                          <div style={{
+                            fontSize: 9,
+                            color: C.textMuted,
+                            marginTop: 2,
+                          }}>
+                            {[
+                              resource.sourceType,
+                              resource.usageRole,
+                              resource.pageStart !==
+                                null
+                                ? resource.pageEnd !==
+                                    null
+                                  ? `pages ${resource.pageStart}–${resource.pageEnd}`
+                                  : `page ${resource.pageStart}`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><label style={lbl}>Title *</label><input style={inp} placeholder="e.g. Read pages 12–15 and summarise" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
               <div><label style={lbl}>Subject</label>

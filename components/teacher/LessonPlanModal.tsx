@@ -1746,6 +1746,48 @@ export default function LessonPlanModal({
                     ✓ Lesson completed
                   </div>
                 )}
+                {planId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const params =
+                        new URLSearchParams({
+                          lessonPlanId: planId,
+                          subjectId:
+                            slot.subject_id,
+                          subject:
+                            slot.subject,
+                          topic,
+                        })
+
+                      router.push(
+                        `/teacher/classhub/${slot.class_id}/homework?${params.toString()}`,
+                      )
+                    }}
+                    disabled={isbusy}
+                    style={{
+                      width: '100%',
+                      padding: '13px',
+                      borderRadius: 12,
+                      border:
+                        '1.5px solid #0f766e',
+                      background: '#f0fdfa',
+                      color: '#0f766e',
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: isbusy
+                        ? 'not-allowed'
+                        : 'pointer',
+                      opacity: isbusy
+                        ? 0.7
+                        : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    📝 Create Homework from Lesson
+                  </button>
+                )}
+
                 {status === 'draft' && (
                   <button onClick={handlePublish} disabled={isbusy} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
