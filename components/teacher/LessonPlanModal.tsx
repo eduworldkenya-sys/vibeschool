@@ -15,10 +15,11 @@ import { deliverLessonPlanToParents } from '@/lib/teaching/lessonParentDelivery'
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
-import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
+import {
+  resolveLessonSource,
+} from '@/lib/teaching/lessonSource'
 import { C } from '@/components/teacher/ui'
 import { nairobiDateStr } from '@/lib/time'
-import { getActiveTerm, currentWeekOf } from '@/lib/academicTerm'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
 import { refreshPulse } from "@/lib/pulse/refresh";
 import { completeTeachingOccurrence, resolveOccurrence, startTeachingOccurrence, StartOccurrenceError, CompleteOccurrenceError, markSchemeItemCovered, MarkSchemeCoveredError } from '@/lib/teaching/occurrence'
@@ -306,160 +307,31 @@ export default function LessonPlanModal({
       students:       (studentRes.data ?? []) as Student[],
     })
 
-    // Connect to the Scheme of Work: look up what the KICD curriculum
-    // says should be taught this week for this exact grade/subject, so
-    // the lesson plan isn't just a freeform topic disconnected from
-    // everything else in the app.
     const grade = (classRes as any).data?.name ?? null
+
     if (schoolId && grade) {
       try {
-        const term = await getActiveTerm(schoolId)
-        if (term) {
-          const week = currentWeekOf(term)
+        const resolvedSource = await resolveLessonSource({
+          userId,
+          schoolId,
+          classId: slot.class_id,
+          subjectId: slot.subject_id,
+          subjectName: slot.subject,
+          grade,
+          requestedSchemeId,
+        })
 
-          // LP-OS-002 source priority:
-          // 1. Explicit Scheme item selected by the teacher.
-          // 2. Next Scheme item after actual completed teaching progress.
-          // 3. Current-week national curriculum fallback.
-          let schemeSource: {
-            schemeId: string
-            curriculumId: string | null
-            strand: string | null
-            subStrand: string | null
-            topic: string
-            week: number
-          } | null = null
-
-          if (requestedSchemeId) {
-            const {
-              data: requestedScheme,
-              error: requestedSchemeError,
-            } = await supabase
-              .from('scheme_of_work')
-              .select(
-                'id, curriculum_id, strand, sub_strand, topic, week',
-              )
-              .eq('id', requestedSchemeId)
-              .eq('teacher_id', userId)
-              .eq('class_id', slot.class_id)
-              .eq('subject_id', slot.subject_id)
-              .eq('academic_term_id', term.id)
-              .eq('school_id', schoolId)
-              .maybeSingle()
-
-            if (requestedSchemeError) {
-              throw requestedSchemeError
-            }
-
-            if (!requestedScheme) {
-              throw new Error(
-                'The selected Scheme item does not belong to this lesson.',
-              )
-            }
-
-            schemeSource = {
-              schemeId: requestedScheme.id,
-              curriculumId:
-                requestedScheme.curriculum_id ?? null,
-              strand: requestedScheme.strand,
-              subStrand: requestedScheme.sub_strand,
-              topic: requestedScheme.topic,
-              week: requestedScheme.week,
-            }
-          } else {
-            const {
-              data: nextSchemeRows,
-              error: nextSchemeError,
-            } = await supabase.rpc(
-              'get_next_scheme_item',
-              {
-                p_class_id: slot.class_id,
-                p_subject_id: slot.subject_id,
-                p_academic_term_id: term.id,
-              },
-            )
-
-            if (nextSchemeError) {
-              throw nextSchemeError
-            }
-
-            const nextScheme = nextSchemeRows?.[0]
-
-            if (nextScheme) {
-              schemeSource = {
-                schemeId: nextScheme.scheme_id,
-                curriculumId:
-                  nextScheme.curriculum_id ?? null,
-                strand: nextScheme.strand,
-                subStrand: nextScheme.sub_strand,
-                topic: nextScheme.topic,
-                week: nextScheme.week,
-              }
-            }
-          }
-
-          if (schemeSource) {
-            setSuggestion({
-              id:        schemeSource.curriculumId,
-              strand:    schemeSource.strand ?? '',
-              subStrand: schemeSource.subStrand ?? '',
-              topic:     schemeSource.topic,
-              term:      term.term,
-              week:      schemeSource.week,
-              strandId:  null,
-              schemeId:  schemeSource.schemeId,
-            })
-          } else {
-            // Fallback: use the current national curriculum week only when
-            // this assignment has no remaining sequenced Scheme item.
-            const { data: currRows } = await supabase
-              .from('curriculum')
-              .select('id, strand, sub_strand, topic')
-              .eq('grade',   grade)
-              .eq('subject', slot.subject)
-              .eq('term',    term.term)
-              .eq('week',    week)
-              .limit(1)
-
-            const currRow = currRows?.[0]
-            if (currRow) {
-              let strandId: string | null = null
-              try {
-                // TBL-010C: crosses via the FK bridge
-                // (subjects.global_subject_id), not a name match.
-                const globalSubjectId = await resolveGlobalSubjectId(slot.subject_id)
-                const strandRows = globalSubjectId
-                  ? (await supabase
-                      .from('cbc_strands')
-                      .select('id, name')
-                      .eq('subject_id', globalSubjectId)
-                      .ilike('grade', grade)).data
-                  : []
-                strandId = strandRows?.find(s => s.name === currRow.strand)?.id ?? null
-              } catch {
-                // non-fatal — suggestion still useful even without a strand_id
-              }
-
-              setSuggestion({
-                id:        currRow.id,
-                strand:    currRow.strand,
-                subStrand: currRow.sub_strand,
-                topic:     currRow.topic,
-                term:      term.term,
-                week,
-                strandId,
-                schemeId:  null,
-              })
-            }
-          }
-        }
+        setSuggestion(resolvedSource)
       } catch (sourceError) {
         console.error(
           '[LessonPlanModal] lesson source resolution failed',
           sourceError,
         )
         // Non-fatal: the teacher may still use a custom topic.
+        setSuggestion(null)
       }
+    } else {
+      setSuggestion(null)
     }
   }
 
