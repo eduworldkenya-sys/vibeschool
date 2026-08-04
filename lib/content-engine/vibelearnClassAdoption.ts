@@ -174,9 +174,6 @@ export async function addResourceToClass(input: {
       p_class_id: input.classId,
       p_subject_id: input.subjectId,
       p_usage_role: 'supplementary',
-      p_available_from: null,
-      p_available_until: null,
-      p_notes: null,
     },
   )
 
