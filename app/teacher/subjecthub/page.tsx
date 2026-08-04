@@ -972,7 +972,50 @@ export default function SubjectHubPage() {
   const termTag = activeAcademicTerm
     ? `Term ${activeAcademicTerm.term} · ${activeAcademicTerm.academic_year}`
     : 'No active term'
-  const totalStudents = classes.reduce((sum, c) => sum + c.studentCount, 0)
+  const totalStudents =
+    classes.reduce(
+      (sum, classRow) =>
+        sum + classRow.studentCount,
+      0,
+    )
+
+  const gradeGroups = Array.from(
+    classes.reduce(
+      (
+        groups,
+        classRow,
+      ) => {
+        const gradeClasses =
+          groups.get(classRow.name) ?? []
+
+        gradeClasses.push(classRow)
+        groups.set(
+          classRow.name,
+          gradeClasses,
+        )
+
+        return groups
+      },
+      new Map<string, ClassForSubject[]>(),
+    ),
+  )
+    .map(([grade, gradeClasses]) => ({
+      grade,
+      classes: [...gradeClasses].sort(
+        (left, right) =>
+          left.stream.localeCompare(
+            right.stream,
+          ),
+      ),
+    }))
+    .sort((left, right) =>
+      left.grade.localeCompare(
+        right.grade,
+        undefined,
+        { numeric: true },
+      ),
+    )
+
   const perfClasses = classes.filter(c => c.perfPct !== null)
   const avgPerfPct = perfClasses.length > 0
     ? Math.round(perfClasses.reduce((sum, c) => sum + (c.perfPct ?? 0), 0) / perfClasses.length)
@@ -1481,7 +1524,15 @@ export default function SubjectHubPage() {
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
             <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>My Classes</p>
-            <p style={{ fontSize: 12, color: C.textMuted, margin: '3px 0 0' }}>Classes you teach {activeSubject.name} in</p>
+            <p style={{
+              fontSize: 12,
+              color: C.textMuted,
+              margin: '3px 0 0',
+            }}>
+              Organised by grade for {
+                activeSubject.name
+              }
+            </p>
           </div>
 
           {classLoading && (
@@ -1502,66 +1553,279 @@ export default function SubjectHubPage() {
             </div>
           )}
 
-          {!classLoading && classes.map((cls, i) => (
-            <div
-              key={cls.id}
-              onClick={() => router.push('/teacher/classhub/' + cls.id + '?mode=subject&subjectId=' + activeSubject.id)}
-              style={{
-                width: '100%', padding: '14px 16px',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                borderTop: i === 0 ? 'none' : '1px solid #f3f4f6',
-                background: 'transparent',
-                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                boxSizing: 'border-box',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 12, background: PALETTES[i % PALETTES.length].bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🏫</div>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>
-                    {cls.name}{cls.stream ? ' · ' + cls.stream : ''}
-                  </p>
-                  <p style={{ fontSize: 12, color: C.textMuted, margin: '2px 0 0' }}>{cls.studentCount} {cls.studentCount === 1 ? 'student' : 'students'}</p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* Task 2A — attendance rate pill */}
-                {attRateByClass[cls.id] !== undefined && (
-                  <div style={{
-                    fontSize: 11, fontWeight: 800, padding: '4px 9px', borderRadius: 20,
-                    background: '#dbeafe', color: '#1d4ed8',
-                  }}>
-                    {attRateByClass[cls.id]}% att
-                  </div>
-                )}
-                {cls.perfPct !== null && (
-                  <div style={{
-                    fontSize: 11, fontWeight: 800, padding: '4px 9px', borderRadius: 20,
-                    background: cls.perfPct >= 70 ? '#d1fae5' : cls.perfPct >= 40 ? '#fef3c7' : '#fee2e2',
-                    color:      cls.perfPct >= 70 ? '#065f46' : cls.perfPct >= 40 ? '#92400e' : '#991b1b',
-                  }}>
-                    {cls.perfPct}%
-                  </div>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    router.push('/teacher/assessment?classId=' + cls.id + '&subjectId=' + activeSubject.id)
-                  }}
+          {!classLoading &&
+            gradeGroups.map(
+              (
+                gradeGroup,
+                gradeIndex,
+              ) => (
+                <div
+                  key={gradeGroup.grade}
                   style={{
-                    padding: '6px 12px', borderRadius: 8, border: 'none',
-                    background: '#92400e', color: '#fff',
-                    fontSize: 11, fontWeight: 700,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    flexShrink: 0,
+                    borderTop:
+                      gradeIndex === 0
+                        ? 'none'
+                        : '8px solid #f8fafc',
                   }}
                 >
-                  Assess
-                </button>
-                <span style={{ fontSize: 18, color: '#9ca3af' }}>›</span>
-              </div>
-            </div>
-          ))}
+                  <div style={{
+                    padding: '10px 16px',
+                    background: '#f8fafc',
+                    borderBottom:
+                      '1px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent:
+                      'space-between',
+                  }}>
+                    <div>
+                      <div style={{
+                        fontSize: 13,
+                        fontWeight: 900,
+                        color: C.textPrimary,
+                      }}>
+                        {gradeGroup.grade}
+                      </div>
+
+                      <div style={{
+                        marginTop: 2,
+                        fontSize: 10,
+                        color: C.textMuted,
+                        fontWeight: 600,
+                      }}>
+                        {
+                          gradeGroup.classes.length
+                        } {
+                          gradeGroup.classes.length === 1
+                            ? 'class'
+                            : 'classes'
+                        }
+                      </div>
+                    </div>
+
+                    <div style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: '#075985',
+                      background: '#dbeafe',
+                      padding: '3px 9px',
+                      borderRadius: 20,
+                    }}>
+                      {
+                        gradeGroup.classes.reduce(
+                          (
+                            total,
+                            classRow,
+                          ) =>
+                            total +
+                            classRow.studentCount,
+                          0,
+                        )
+                      } learners
+                    </div>
+                  </div>
+
+                  {gradeGroup.classes.map(
+                    (
+                      cls,
+                      classIndex,
+                    ) => {
+                      const paletteIndex =
+                        (
+                          gradeIndex +
+                          classIndex
+                        ) % PALETTES.length
+
+                      return (
+                        <div
+                          key={cls.id}
+                          onClick={() =>
+                            router.push(
+                              '/teacher/classhub/' +
+                              cls.id +
+                              '?mode=subject&subjectId=' +
+                              activeSubject.id,
+                            )
+                          }
+                          style={{
+                            width: '100%',
+                            padding: '14px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent:
+                              'space-between',
+                            borderTop:
+                              classIndex === 0
+                                ? 'none'
+                                : '1px solid #f3f4f6',
+                            background:
+                              'transparent',
+                            cursor: 'pointer',
+                            fontFamily:
+                              'inherit',
+                            textAlign: 'left',
+                            boxSizing:
+                              'border-box',
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                          }}>
+                            <div style={{
+                              width: 42,
+                              height: 42,
+                              borderRadius: 12,
+                              background:
+                                PALETTES[
+                                  paletteIndex
+                                ].bg,
+                              display: 'flex',
+                              alignItems:
+                                'center',
+                              justifyContent:
+                                'center',
+                              fontSize: 18,
+                              flexShrink: 0,
+                            }}>
+                              🏫
+                            </div>
+
+                            <div>
+                              <p style={{
+                                fontSize: 14,
+                                fontWeight: 800,
+                                color:
+                                  C.textPrimary,
+                                margin: 0,
+                              }}>
+                                {
+                                  cls.stream ||
+                                  cls.name
+                                }
+                              </p>
+
+                              <p style={{
+                                fontSize: 12,
+                                color:
+                                  C.textMuted,
+                                margin:
+                                  '2px 0 0',
+                              }}>
+                                {
+                                  cls.studentCount
+                                } {
+                                  cls.studentCount === 1
+                                    ? 'student'
+                                    : 'students'
+                                }
+                              </p>
+                            </div>
+                          </div>
+
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}>
+                            {
+                              attRateByClass[
+                                cls.id
+                              ] !== undefined &&
+                              (
+                                <div style={{
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  padding:
+                                    '4px 9px',
+                                  borderRadius:
+                                    20,
+                                  background:
+                                    '#dbeafe',
+                                  color:
+                                    '#1d4ed8',
+                                }}>
+                                  {
+                                    attRateByClass[
+                                      cls.id
+                                    ]
+                                  }% att
+                                </div>
+                              )
+                            }
+
+                            {
+                              cls.perfPct !== null &&
+                              (
+                                <div style={{
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  padding:
+                                    '4px 9px',
+                                  borderRadius:
+                                    20,
+                                  background:
+                                    cls.perfPct >= 70
+                                      ? '#d1fae5'
+                                      : cls.perfPct >= 40
+                                        ? '#fef3c7'
+                                        : '#fee2e2',
+                                  color:
+                                    cls.perfPct >= 70
+                                      ? '#065f46'
+                                      : cls.perfPct >= 40
+                                        ? '#92400e'
+                                        : '#991b1b',
+                                }}>
+                                  {cls.perfPct}%
+                                </div>
+                              )
+                            }
+
+                            <button
+                              onClick={event => {
+                                event.stopPropagation()
+                                router.push(
+                                  '/teacher/assessment?classId=' +
+                                  cls.id +
+                                  '&subjectId=' +
+                                  activeSubject.id,
+                                )
+                              }}
+                              style={{
+                                padding:
+                                  '6px 12px',
+                                borderRadius: 8,
+                                border: 'none',
+                                background:
+                                  '#92400e',
+                                color: '#fff',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontFamily:
+                                  'inherit',
+                                flexShrink: 0,
+                              }}
+                            >
+                              Assess
+                            </button>
+
+                            <span style={{
+                              fontSize: 18,
+                              color: '#9ca3af',
+                            }}>
+                              ›
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    },
+                  )}
+                </div>
+              ),
+            )}
         </div>
       )}
 
