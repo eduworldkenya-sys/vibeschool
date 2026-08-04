@@ -18,6 +18,12 @@ import type {
 import {
   resolveLessonSource,
 } from '@/lib/teaching/lessonSource'
+import {
+  loadLessonPlanForOccurrence,
+  saveGeneratedLessonPlan,
+  updateLessonPlanBody,
+  updateLessonPlanStatus,
+} from '@/lib/teaching/lessonRepository'
 import { C } from '@/components/teacher/ui'
 import { nairobiDateStr } from '@/lib/time'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
@@ -336,26 +342,17 @@ export default function LessonPlanModal({
   }
 
   async function loadExistingPlan(userId: string) {
-    // Fix 14C: lesson_plans' occurrence identity is (timetable_slot_id,
-    // taught_date) — the same pair Fix 14B hardened as a UNIQUE constraint.
-    // Load by that exact pair, not by day_of_week/week_start, which do not
-    // uniquely identify an occurrence on their own.
     if (!taughtDate) {
       throw new Error(
-        'LessonPlanModal: taughtDate is missing — cannot resolve occurrence.'
+        'LessonPlanModal: taughtDate is missing — cannot resolve occurrence.',
       )
     }
 
-    const { data, error } = await supabase
-      .from('lesson_plans')
-      .select('id, title, body, topic, status, curriculum_id, strand_id, scheme_id')
-      .eq('teacher_id', userId)
-      .eq('timetable_slot_id', slot.id)
-      .eq('taught_date', taughtDate)
-      .maybeSingle()
-
-    if (error) throw error
-    return data ?? null
+    return loadLessonPlanForOccurrence({
+      teacherId: userId,
+      timetableSlotId: slot.id,
+      taughtDate,
+    })
   }
 
   useEffect(() => {
@@ -630,43 +627,17 @@ export default function LessonPlanModal({
         scheme_id:          schemeId,
       }
 
-      // FND-002A: persistence is successful only when Supabase returns the
-      // authoritative saved row. Never continue to the plan view after an
-      // ignored insert/update error or a missing return value.
       const currentId = planIdRef.current
 
-      const writeResult = currentId != null
-        ? await supabase
-            .from('lesson_plans')
-            .update(payload)
-            .eq('id', currentId)
-            .select('id, curriculum_id, strand_id, scheme_id')
-            .single()
-        : await supabase
-            .from('lesson_plans')
-            .insert(payload)
-            .select('id, curriculum_id, strand_id, scheme_id')
-            .single()
-
-      if (writeResult.error) throw writeResult.error
-      if (!writeResult.data) {
-        throw new Error(
-          'LessonPlanModal: lesson plan persistence returned no row.',
-        )
-      }
-
-      const savedPlan = writeResult.data
-
-      const persistedIdentityMatches =
-        (savedPlan.curriculum_id ?? null) === curriculumId &&
-        (savedPlan.strand_id ?? null) === strandId &&
-        (savedPlan.scheme_id ?? null) === schemeId
-
-      if (!persistedIdentityMatches) {
-        throw new Error(
-          'LessonPlanModal: saved curriculum identity did not match the selected source.',
-        )
-      }
+      const savedPlan = await saveGeneratedLessonPlan({
+        planId: currentId,
+        payload,
+        expectedIdentity: {
+          curriculumId,
+          strandId,
+          schemeId,
+        },
+      })
 
       if (currentId == null) {
         setPlanId(savedPlan.id)
@@ -700,9 +671,16 @@ export default function LessonPlanModal({
         serializeLessonPlanBody(draft)
       const currentId = planIdRef.current
       if (currentId != null) {
-        await supabase.from('lesson_plans')
-          .update({ body: newBody, title: slot.subject + ' — ' + slot.class + ' — ' + topic, updated_at: new Date().toISOString() })
-          .eq('id', currentId)
+        await updateLessonPlanBody({
+          lessonPlanId: currentId,
+          body: newBody,
+          title:
+            slot.subject +
+            ' — ' +
+            slot.class +
+            ' — ' +
+            topic,
+        })
       }
       setSections(draft)
       setPhase('view')
@@ -724,7 +702,10 @@ export default function LessonPlanModal({
 
     setBusy('publishing')
     try {
-      await supabase.from('lesson_plans').update({ status: 'published' }).eq('id', currentId)
+      await updateLessonPlanStatus({
+        lessonPlanId: currentId,
+        status: 'published',
+      })
       const linkedStudents = ctx.students.filter(
         (s): s is typeof s & { profile_id: string } =>
           typeof s.profile_id === 'string' && s.profile_id.length > 0
@@ -834,12 +815,10 @@ export default function LessonPlanModal({
         }
       }
 
-      const { error: statusError } = await supabase
-        .from('lesson_plans')
-        .update({ status: 'shared_to_parents' })
-        .eq('id', currentId)
-
-      if (statusError) throw statusError
+      await updateLessonPlanStatus({
+        lessonPlanId: currentId,
+        status: 'shared_to_parents',
+      })
 
       setStatus('shared_to_parents')
       showToast('Shared to parents + lesson work synced ✓')
