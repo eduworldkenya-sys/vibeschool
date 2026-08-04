@@ -121,6 +121,15 @@ function LessonPlanInner() {
         return
       }
 
+      if (urlSchemeId && (!urlClassId || !urlSubjectId)) {
+        setLoadError(
+          'This Scheme lesson is missing its class or subject identity.',
+        )
+        setItems([])
+        setLoading(false)
+        return
+      }
+
       let timetableSlots: CanonicalTimetableSlot[]
 
       try {
@@ -192,27 +201,51 @@ function LessonPlanInner() {
         // Fix 14C: carry the browsed occurrence forward on the slot itself —
         // day_of_week and occurrenceDate must survive into activeSlot, or the
         // modal has no way to know which real-world date it's saving to.
-        const occurrenceDate = nairobiDateAdd(weekStart, Number(s.day_of_week) - 1)
+        const occurrenceDate = nairobiDateAdd(
+          weekStart,
+          Number(s.day_of_week) - 1,
+        )
+
         const slot: TimetableSlot = {
-          id: s.id, subject: subjMap[s.subject_id] ?? 'Unknown',
+          id: s.id,
+          subject: subjMap[s.subject_id] ?? 'Unknown',
           class: clsMap[s.class_id] ?? '',
-          room: s.room ?? '', start: s.start_time, end: s.end_time,
-          status: 'scheduled', planStatus: 'green', attendanceMarked: false,
-          class_id: s.class_id, subject_id: s.subject_id,
+          room: s.room ?? '',
+          start: s.start_time,
+          end: s.end_time,
+          status: 'scheduled',
+          planStatus: 'green',
+          attendanceMarked: false,
+          class_id: s.class_id,
+          subject_id: s.subject_id,
           day_of_week: s.day_of_week,
           occurrenceDate,
         }
-        return { slot, plan: planMap.get(s.id) ?? null }
+
+        return {
+          slot,
+          plan: planMap.get(s.id) ?? null,
+        }
       })
 
-      setItems(mapped)
+      // FND-002C3: Scheme entry is source-scoped. The teacher may choose any
+      // valid occurrence for the selected week, but never an unrelated class
+      // or subject. Normal timetable/lesson-plan entry remains unfiltered.
+      const selectableItems = urlSchemeId
+        ? mapped.filter(({ slot }) =>
+            slot.class_id === urlClassId &&
+            slot.subject_id === urlSubjectId
+          )
+        : mapped
+
+      setItems(selectableItems)
 
       // TOS-001: a timetable CTA must open the selected occurrence directly,
       // not merely land on the weekly lesson-plan index. The exact pair is
       // the same identity used by LessonPlanModal and lesson_plans:
       // (timetable_slot_id, taught_date).
       if (urlTimetableSlotId && urlOccurrenceDate) {
-        const target = mapped.find(({ slot }) =>
+        const target = selectableItems.find(({ slot }) =>
           slot.id === urlTimetableSlotId &&
           slot.occurrenceDate === urlOccurrenceDate &&
           (!urlClassId || slot.class_id === urlClassId) &&
@@ -229,7 +262,14 @@ function LessonPlanInner() {
       setLoading(false)
     }
     load()
-  }, [weekStart, urlClassId, urlSubjectId, urlTimetableSlotId, urlOccurrenceDate])
+  }, [
+    weekStart,
+    urlClassId,
+    urlSubjectId,
+    urlTimetableSlotId,
+    urlOccurrenceDate,
+    urlSchemeId,
+  ])
 
   useEffect(() => {
     async function loadHistory() {
@@ -325,7 +365,11 @@ function LessonPlanInner() {
 
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <SectionLabel>Today &amp; Upcoming</SectionLabel>
+          <SectionLabel>
+            {urlSchemeId
+              ? 'Choose Timetable Occurrence'
+              : 'Today & Upcoming'}
+          </SectionLabel>
           {diffFilter !== 'all' && (
             <button
               onClick={() => setDiffFilter('all')}
@@ -340,7 +384,16 @@ function LessonPlanInner() {
         ) : loadError ? (
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
         ) : items.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No classes scheduled</div>
+          <div style={{
+            textAlign: 'center',
+            padding: '28px 0',
+            fontSize: 13,
+            color: C.textMuted,
+          }}>
+            {urlSchemeId
+              ? 'No matching timetable occurrence exists for this Scheme lesson in the selected week.'
+              : 'No classes scheduled'}
+          </div>
         ) : visibleItems.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No slots match this filter</div>
         ) : (
