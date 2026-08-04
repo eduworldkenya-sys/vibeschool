@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase, SUPABASE_URL } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 import {
   EMPTY_LESSON_PLAN_SECTIONS,
@@ -24,6 +24,9 @@ import {
   updateLessonPlanBody,
   updateLessonPlanStatus,
 } from '@/lib/teaching/lessonRepository'
+import {
+  generateLessonPlan,
+} from '@/lib/teaching/lessonGeneration'
 import { C } from '@/components/teacher/ui'
 import { nairobiDateStr } from '@/lib/time'
 import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
@@ -494,46 +497,34 @@ export default function LessonPlanModal({
       const { data: { user } } = await supabase.auth.getUser()
       if (user == null) return
 
-      const res = await fetch(
-        SUPABASE_URL + '/functions/v1/generate-lesson-plan',
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({
-            teacher:        ctx.teacherName,
-            school:         ctx.schoolName,
-            subject:        slot.subject,
-            className:      slot.class,
-            studentCount:   ctx.studentCount,
-            duration:       calcDuration(slot.start, slot.end),
-            topic:          topic.trim(),
-            focus:          focus.trim() || undefined,
-            previousTopics: ctx.previousTopics,
-            curriculumStrand:    suggestionLinked ? suggestion?.strand    : undefined,
-            curriculumSubStrand: suggestionLinked ? suggestion?.subStrand : undefined,
-          }),
-        }
-      )
+      const generation = await generateLessonPlan({
+        accessToken: token,
+        teacherName: ctx.teacherName,
+        schoolName: ctx.schoolName,
+        subject: slot.subject,
+        className: slot.class,
+        studentCount: ctx.studentCount,
+        duration: calcDuration(slot.start, slot.end),
+        topic: topic.trim(),
+        focus: focus.trim() || undefined,
+        previousTopics: ctx.previousTopics,
+        curriculumStrand:
+          suggestionLinked
+            ? suggestion?.strand
+            : undefined,
+        curriculumSubStrand:
+          suggestionLinked
+            ? suggestion?.subStrand
+            : undefined,
+      })
 
-      const json = await res.json()
-      if (!res.ok || !json.plan) {
-        const detail = json.error === 'insufficient_credits'
-          ? (json.message ?? 'You have no Vibe Credits. Buy credits to generate lesson plans.')
-          : (json.error ?? 'Generation failed. Try again.')
-        setError(detail)
+      if (!generation.ok) {
+        setError(generation.message)
         setPhase('form')
-        setBusy('idle')
-        return
-      }
-      // G3: null check on parse
-      const parsed = parseLessonPlanBody(json.plan)
-      if (parsed == null) {
-        setError('The AI returned an unreadable plan. Try again.')
-        setPhase('form')
-        setBusy('idle')
         return
       }
 
+      const parsed = generation.sections
       setSections(parsed)
 
       // Fix 14C: week_start / day_of_week / taught_date come from the exact
