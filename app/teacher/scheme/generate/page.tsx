@@ -1,768 +1,574 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react'
+import {
+  useRouter,
+  useSearchParams,
+} from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   nairobiDateAdd,
   nairobiDateStr,
-  nairobiWeekStart,
 } from '@/lib/time'
-import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
-
 import {
-  parseGeneratedLessonPlan,
-  serializeLessonPlanBody,
-} from '@/lib/teaching/lessonPlanCodec'
+  loadTeacherTimetableForRange,
+} from '@/lib/timetable/engine'
 import type {
-  LessonPlanSections,
-} from '@/lib/teaching/lessonPlanCodec'
+  CanonicalTimetableSlot,
+} from '@/lib/timetable/engine'
+
+interface OccurrenceCandidate {
+  slot: CanonicalTimetableSlot
+  occurrenceDate: string
+}
+
+interface ExistingPlan {
+  id: string
+  timetable_slot_id: string
+  taught_date: string
+  scheme_id: string | null
+}
 
 const C = {
-  bg:          '#f8fafc',
-  surface:     '#ffffff',
-  surface2:    '#f1f5f9',
-  border:      '#e2e8f0',
-  text:        '#1e293b',
-  text2:       '#64748b',
-  text3:       '#94a3b8',
-  indigo:      '#4f46e5',
+  bg: '#f8fafc',
+  surface: '#ffffff',
+  border: '#e2e8f0',
+  text: '#1e293b',
+  muted: '#64748b',
+  indigo: '#4f46e5',
   indigoLight: '#e0e7ff',
-  teal:        '#0d9488',
-  tealLight:   '#ccfbf1',
-  dark:        '#0a1628',
-  green:       '#16a34a',
-  greenLight:  '#dcfce7',
-  amber:       '#d97706',
-  amberLight:  '#fef3c7',
-  red:         '#e11d48',
-  redLight:    '#ffe4e6',
-  heroFrom:    '#3730a3',
-  heroTo:      '#4338ca',
+  red: '#be123c',
+  redLight: '#fff1f2',
 }
 
-type GeneratedPlan = LessonPlanSections
+function isoDayOfWeek(date: string): number {
+  const [year, month, day] = date.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  const utcDay = parsed.getUTCDay()
 
-interface TimetableSlot {
-  id:              string
-  day_of_week:     number
-  start_time:      string
-  end_time:        string
-  room:            string | null
-  effective_from:  string
-  effective_until: string | null
+  return utcDay === 0 ? 7 : utcDay
 }
 
-const DAY_NAMES: Record<number, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri' }
+function buildCandidates(
+  slots: CanonicalTimetableSlot[],
+  rangeStart: string,
+  rangeEnd: string,
+): OccurrenceCandidate[] {
+  const candidates: OccurrenceCandidate[] = []
 
-function GeneratePageInner() {
-  const params     = useSearchParams()
-  const router     = useRouter()
+  for (const slot of slots) {
+    const startDay = isoDayOfWeek(rangeStart)
+    let daysAhead = Number(slot.day_of_week) - startDay
 
-  const classId    = params.get('classId')    ?? ''
-  const subjectId  = params.get('subjectId')  ?? ''
-  const grade      = params.get('grade')      ?? ''
-  const subject    = params.get('subject')    ?? ''
-  const strand     = params.get('strand')     ?? ''
-  const subStrand  = params.get('subStrand')  ?? ''
-  const topic      = params.get('topic')      ?? ''
-  const week       = parseInt(params.get('week') ?? '1')
-  const term       = parseInt(params.get('term') ?? '1')
-  const curriculumId = params.get('curriculumId') || null
-  const schemeId     = params.get('schemeId')     || null
-
-  const [uid,         setUid]         = useState<string | null>(null)
-  const [schoolId,    setSchoolId]    = useState<string | null>(null)
-  const [className,   setClassName]   = useState('')
-  const [generating,  setGenerating]  = useState(false)
-  const [saving,      setSaving]      = useState(false)
-  const [generated,   setGenerated]   = useState<GeneratedPlan | null>(null)
-  const [error,       setError]       = useState<string | null>(null)
-  const [saved,       setSaved]       = useState(false)
-  const [credits,     setCredits]     = useState<{ balance: number; used: number } | null>(null)
-  const [editSection, setEditSection] = useState<keyof GeneratedPlan | null>(null)
-  const [editValue,   setEditValue]   = useState('')
-
-  const [slots,        setSlots]        = useState<TimetableSlot[] | null>(null)
-  const [slotsLoading, setSlotsLoading] = useState(false)
-  const [weekOffset,   setWeekOffset]   = useState(0)
-  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function boot() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      setUid(user.id)
-
-      const [memberRes, teacherRes, profileRes, clRes] = await Promise.all([
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('profiles').select('school_id').eq('id', user.id).single(),
-        classId ? supabase.from('classes').select('name,stream').eq('id', classId).single() : Promise.resolve({ data: null }),
-      ])
-      setSchoolId(
-        memberRes.data?.school_id ??
-        teacherRes.data?.school_id ??
-        profileRes.data?.school_id ??
-        null
-      )
-      if (clRes.data) {
-        const cl = clRes.data as { name: string; stream: string | null }
-        setClassName(cl.stream ? `${cl.name} ${cl.stream}` : cl.name)
-      }
+    if (daysAhead < 0) {
+      daysAhead += 7
     }
-    boot()
-  }, [classId])
 
-  // Fetch the timetable occurrences this generated plan could be assigned to.
-  // These are the only valid save targets — the plan is not written to
-  // lesson_plans until the teacher picks one.
-  // TBL-007F1: routed through the canonical engine's range loader, keyed to
-  // the browsed week (activeOn=today would wrongly hide future-effective
-  // slots when paging forward). Per the engine contract, the per-occurrence
-  // effectiveness check below (slotsForSelectedWeek) remains the consumer's
-  // responsibility. School identity is required by the engine; without it
-  // there is no canonical timetable to read.
-  useEffect(() => {
-    if (!generated || !uid || !classId || !subjectId) return
-    let cancelled = false
-    async function loadSlots() {
-      setSlots(null)
-      setSlotsLoading(true)
-      setSelectedSlotId(null)
-      if (!schoolId) {
-        setSlots([])
-        setSlotsLoading(false)
-        return
-      }
-      const weekStart = nairobiDateAdd(nairobiWeekStart(), weekOffset * 7)
-      const weekEnd = nairobiDateAdd(weekStart, 6)
-      try {
-        const canonical = await loadTeacherTimetableForRange({
-          teacherId: uid!,
-          schoolId,
-          rangeStart: weekStart,
-          rangeEnd: weekEnd,
-        })
-        if (cancelled) return
-        const matching = canonical.filter(
-          (s) => s.class_id === classId && s.subject_id === subjectId
+    let occurrenceDate = nairobiDateAdd(
+      rangeStart,
+      daysAhead,
+    )
+
+    while (occurrenceDate <= rangeEnd) {
+      const effective =
+        slot.effective_from <= occurrenceDate &&
+        (
+          slot.effective_until === null ||
+          slot.effective_until >= occurrenceDate
         )
-        setError(null)
-        setSlots(matching as TimetableSlot[])
-        setSlotsLoading(false)
-      } catch (err) {
-        if (cancelled) return
-        console.error('[SchemeGenerate] canonical timetable load failed:', err)
-        setSlots([])
-        setSlotsLoading(false)
-        setError('Could not load matching timetable lessons.')
+
+      if (effective) {
+        candidates.push({
+          slot,
+          occurrenceDate,
+        })
       }
+
+      occurrenceDate = nairobiDateAdd(
+        occurrenceDate,
+        7,
+      )
     }
-    loadSlots()
-    return () => { cancelled = true }
-  }, [generated, uid, schoolId, classId, subjectId, weekOffset])
+  }
 
-  const selectedWeekStart = nairobiDateAdd(nairobiWeekStart(), weekOffset * 7)
+  candidates.sort((left, right) => {
+    const dateOrder =
+      left.occurrenceDate.localeCompare(
+        right.occurrenceDate,
+      )
 
-  // A slot is a valid target for the selected week only if THIS slot's
-  // specific weekday occurrence in that week falls inside its effective
-  // range — not merely that the range overlaps the week somewhere. E.g. a
-  // Monday slot effective from Wednesday must not show for that week's
-  // Monday even though the week overall overlaps effective_from.
-  const slotsForSelectedWeek = (slots ?? []).filter(s => {
-    const occurrenceDate = nairobiDateAdd(selectedWeekStart, s.day_of_week - 1)
-    return (
-      s.effective_from <= occurrenceDate &&
-      (s.effective_until === null || s.effective_until >= occurrenceDate)
+    if (dateOrder !== 0) {
+      return dateOrder
+    }
+
+    const timeOrder =
+      left.slot.start_time.localeCompare(
+        right.slot.start_time,
+      )
+
+    if (timeOrder !== 0) {
+      return timeOrder
+    }
+
+    return left.slot.id.localeCompare(
+      right.slot.id,
     )
   })
 
-  const selectedSlot = slotsForSelectedWeek.find(s => s.id === selectedSlotId) ?? null
+  return candidates
+}
 
-  async function generate() {
-    // FND-002C4: Scheme chooses the educational source. Resolve the earliest
-    // upcoming effective occurrence for this exact class and subject, then
-    // open the canonical timetable-backed lesson workspace immediately.
-    if (!uid || !schoolId) {
-      setError('Your teacher and school context is still loading.')
-      return
-    }
+function occurrenceKey(
+  slotId: string,
+  occurrenceDate: string,
+): string {
+  return `${slotId}:${occurrenceDate}`
+}
 
-    if (!classId || !subjectId || !schemeId) {
-      setError(
-        'This Scheme lesson is missing its class, subject or Scheme identity.',
-      )
-      return
-    }
+function SchemeLessonLauncherInner() {
+  const params = useSearchParams()
+  const router = useRouter()
 
-    setGenerating(true)
-    setError(null)
+  const classId = params.get('classId') ?? ''
+  const subjectId = params.get('subjectId') ?? ''
+  const schemeId = params.get('schemeId') ?? ''
+  const curriculumId =
+    params.get('curriculumId') ?? ''
+  const grade = params.get('grade') ?? ''
+  const subject = params.get('subject') ?? ''
+  const strand = params.get('strand') ?? ''
+  const subStrand = params.get('subStrand') ?? ''
+  const topic = params.get('topic') ?? ''
+  const week = params.get('week') ?? ''
+  const term = params.get('term') ?? ''
 
-    try {
-      const today = nairobiDateStr()
-      const searchEnd = nairobiDateAdd(today, 55)
+  const [error, setError] =
+    useState<string | null>(null)
+  const [resolving, setResolving] =
+    useState(true)
+  const [retryKey, setRetryKey] =
+    useState(0)
 
-      const canonical = await loadTeacherTimetableForRange({
-        teacherId: uid,
-        schoolId,
-        rangeStart: today,
-        rangeEnd: searchEnd,
-      })
+  const resolveAndOpen = useCallback(
+    async (cancelled: () => boolean) => {
+      setResolving(true)
+      setError(null)
 
-      const matching = canonical.filter(
-        slot =>
-          slot.class_id === classId &&
-          slot.subject_id === subjectId,
-      )
-
-      const todayParts = today.split('-').map(Number)
-      const todayUtc = new Date(
-        Date.UTC(
-          todayParts[0],
-          todayParts[1] - 1,
-          todayParts[2],
-        ),
-      )
-      const todayDayOfWeek = todayUtc.getUTCDay() || 7
-
-      const candidates = matching.flatMap(slot => {
-        let daysAhead =
-          Number(slot.day_of_week) - todayDayOfWeek
-
-        if (daysAhead < 0) {
-          daysAhead += 7
-        }
-
-        let occurrenceDate =
-          nairobiDateAdd(today, daysAhead)
-
-        // A recurring slot can begin after its first calendar occurrence.
-        // Move forward week-by-week until its own effective range accepts it.
-        for (let attempt = 0; attempt < 9; attempt += 1) {
-          const effective =
-            slot.effective_from <= occurrenceDate &&
-            (
-              slot.effective_until === null ||
-              slot.effective_until >= occurrenceDate
-            )
-
-          if (effective && occurrenceDate <= searchEnd) {
-            return [{
-              slot,
-              occurrenceDate,
-            }]
-          }
-
-          occurrenceDate =
-            nairobiDateAdd(occurrenceDate, 7)
-        }
-
-        return []
-      })
-
-      candidates.sort((left, right) => {
-        const dateOrder =
-          left.occurrenceDate.localeCompare(
-            right.occurrenceDate,
-          )
-
-        if (dateOrder !== 0) {
-          return dateOrder
-        }
-
-        const timeOrder =
-          left.slot.start_time.localeCompare(
-            right.slot.start_time,
-          )
-
-        if (timeOrder !== 0) {
-          return timeOrder
-        }
-
-        return left.slot.id.localeCompare(right.slot.id)
-      })
-
-      const selected = candidates[0]
-
-      if (!selected) {
+      if (!classId || !subjectId || !schemeId) {
         setError(
-          'No upcoming timetable occurrence exists for this Scheme lesson in the next eight weeks.',
+          'This Scheme lesson is missing its class, subject or Scheme identity.',
         )
+        setResolving(false)
         return
       }
 
-      const target = new URLSearchParams({
-        classId,
-        subjectId,
-        timetableSlotId: selected.slot.id,
-        date: selected.occurrenceDate,
-        grade,
-        subject,
-        strand,
-        subStrand,
-        topic,
-        week: String(week),
-        term: String(term),
-        schemeId,
-      })
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
-      if (curriculumId) {
-        target.set('curriculumId', curriculumId)
+        if (!user) {
+          setError(
+            'Please sign in to prepare this lesson.',
+          )
+          setResolving(false)
+          return
+        }
+
+        const [
+          memberRes,
+          teacherRes,
+          profileRes,
+          schemeRes,
+        ] = await Promise.all([
+          supabase
+            .from('school_members')
+            .select('school_id')
+            .eq('profile_id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('teacher_profiles')
+            .select('school_id')
+            .eq('profile_id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('school_id')
+            .eq('id', user.id)
+            .maybeSingle(),
+          supabase
+            .from('scheme_of_work')
+            .select(
+              'id, teacher_id, school_id, class_id, subject_id',
+            )
+            .eq('id', schemeId)
+            .maybeSingle(),
+        ])
+
+        if (cancelled()) return
+
+        const schoolId =
+          memberRes.data?.school_id ??
+          teacherRes.data?.school_id ??
+          profileRes.data?.school_id ??
+          null
+
+        if (!schoolId) {
+          setError(
+            'Your teacher profile is not connected to a school.',
+          )
+          setResolving(false)
+          return
+        }
+
+        if (schemeRes.error) {
+          throw schemeRes.error
+        }
+
+        const scheme = schemeRes.data
+
+        const validScheme =
+          scheme !== null &&
+          scheme.teacher_id === user.id &&
+          scheme.school_id === schoolId &&
+          scheme.class_id === classId &&
+          scheme.subject_id === subjectId
+
+        if (!validScheme) {
+          setError(
+            'This Scheme item does not belong to your selected class and subject.',
+          )
+          setResolving(false)
+          return
+        }
+
+        const rangeStart = nairobiDateStr()
+        const rangeEnd = nairobiDateAdd(
+          rangeStart,
+          55,
+        )
+
+        const timetable =
+          await loadTeacherTimetableForRange({
+            teacherId: user.id,
+            schoolId,
+            rangeStart,
+            rangeEnd,
+          })
+
+        if (cancelled()) return
+
+        const matchingSlots = timetable.filter(
+          slot =>
+            slot.class_id === classId &&
+            slot.subject_id === subjectId,
+        )
+
+        const candidates = buildCandidates(
+          matchingSlots,
+          rangeStart,
+          rangeEnd,
+        )
+
+        if (candidates.length === 0) {
+          setError(
+            'No upcoming timetable occurrence exists for this Scheme lesson in the next eight weeks.',
+          )
+          setResolving(false)
+          return
+        }
+
+        const slotIds = Array.from(
+          new Set(
+            candidates.map(
+              candidate => candidate.slot.id,
+            ),
+          ),
+        )
+
+        const { data: planRows, error: plansError } =
+          await supabase
+            .from('lesson_plans')
+            .select(
+              'id, timetable_slot_id, taught_date, scheme_id',
+            )
+            .eq('teacher_id', user.id)
+            .eq('class_id', classId)
+            .eq('subject_id', subjectId)
+            .gte('taught_date', rangeStart)
+            .lte('taught_date', rangeEnd)
+            .in('timetable_slot_id', slotIds)
+
+        if (plansError) {
+          throw plansError
+        }
+
+        if (cancelled()) return
+
+        const plans = (
+          planRows ?? []
+        ) as ExistingPlan[]
+
+        const planByOccurrence = new Map(
+          plans.map(plan => [
+            occurrenceKey(
+              plan.timetable_slot_id,
+              plan.taught_date,
+            ),
+            plan,
+          ]),
+        )
+
+        // OS authority order:
+        // 1. Resume an occurrence already linked to this Scheme.
+        // 2. Use the earliest empty occurrence.
+        // 3. Never overwrite an occurrence linked elsewhere.
+        const alreadyLinked =
+          candidates.find(candidate => {
+            const existing = planByOccurrence.get(
+              occurrenceKey(
+                candidate.slot.id,
+                candidate.occurrenceDate,
+              ),
+            )
+
+            return existing?.scheme_id === schemeId
+          })
+
+        const emptyOccurrence =
+          candidates.find(candidate => {
+            const existing = planByOccurrence.get(
+              occurrenceKey(
+                candidate.slot.id,
+                candidate.occurrenceDate,
+              ),
+            )
+
+            return existing === undefined
+          })
+
+        const selected =
+          alreadyLinked ?? emptyOccurrence
+
+        if (!selected) {
+          setError(
+            'All upcoming timetable occurrences already have lesson plans linked to other Scheme items. Open the timetable and choose another week.',
+          )
+          setResolving(false)
+          return
+        }
+
+        const target = new URLSearchParams({
+          classId,
+          subjectId,
+          timetableSlotId: selected.slot.id,
+          date: selected.occurrenceDate,
+          schemeId,
+        })
+
+        if (curriculumId) {
+          target.set(
+            'curriculumId',
+            curriculumId,
+          )
+        }
+
+        if (grade) target.set('grade', grade)
+        if (subject) target.set('subject', subject)
+        if (strand) target.set('strand', strand)
+        if (subStrand) {
+          target.set('subStrand', subStrand)
+        }
+        if (topic) target.set('topic', topic)
+        if (week) target.set('week', week)
+        if (term) target.set('term', term)
+
+        router.replace(
+          `/teacher/lessonplan?${target.toString()}`,
+        )
+      } catch (resolutionError) {
+        console.error(
+          '[SchemeLessonLauncher] resolution failed',
+          resolutionError,
+        )
+
+        if (!cancelled()) {
+          setError(
+            'Could not open this Scheme lesson in the lesson workspace.',
+          )
+          setResolving(false)
+        }
       }
-
-      router.push(
-        `/teacher/lessonplan?${target.toString()}`,
-      )
-    } catch (navigationError) {
-      console.error(
-        '[SchemeGenerate] exact occurrence resolution failed',
-        navigationError,
-      )
-      setError(
-        'Could not open the next matching timetable lesson.',
-      )
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  function startEdit(section: keyof GeneratedPlan) {
-    setEditSection(section)
-    setEditValue(generated![section])
-  }
-
-  function saveEdit() {
-    if (!editSection || !generated) return
-    setGenerated({ ...generated, [editSection]: editValue })
-    setEditSection(null)
-  }
-
-  async function savePlan() {
-    // FND-002C2: Scheme is no longer a lesson-plan persistence authority.
-    // This function remains temporarily only because the legacy generated
-    // preview UI still references it. The active Scheme action already hands
-    // off before that UI can be reached.
-    //
-    // Never reintroduce a direct lesson_plans insert here. The exact
-    // timetable occurrence and LessonPlanModal own plan persistence.
-    setError(
-      'Continue in the Lesson Workspace to generate and save this lesson plan.',
-    )
-
-    const target = new URLSearchParams({
+    },
+    [
       classId,
-      subjectId,
+      curriculumId,
       grade,
-      subject,
+      router,
+      schemeId,
       strand,
       subStrand,
+      subject,
+      subjectId,
+      term,
       topic,
-      week: String(week),
-      term: String(term),
-    })
+      week,
+      retryKey,
+    ],
+  )
 
-    if (curriculumId) {
-      target.set('curriculumId', curriculumId)
+  useEffect(() => {
+    let cancelled = false
+
+    void resolveAndOpen(() => cancelled)
+
+    return () => {
+      cancelled = true
     }
-
-    if (schemeId) {
-      target.set('schemeId', schemeId)
-    }
-
-    router.push(`/teacher/lessonplan?${target.toString()}`)
-  }
-
-  const SECTION_LABELS: Record<
-    keyof GeneratedPlan,
-    { label: string; icon: string }
-  > = {
-    objectives: {
-      label: 'Learning Objectives',
-      icon: '🎯',
-    },
-    resources: {
-      label: 'Resources',
-      icon: '🛠️',
-    },
-    introduction: {
-      label: 'Introduction',
-      icon: '🚀',
-    },
-    development: {
-      label: 'Development',
-      icon: '📚',
-    },
-    consolidation: {
-      label: 'Consolidation',
-      icon: '✅',
-    },
-    assessmentHook: {
-      label: 'Assessment Hook',
-      icon: '📊',
-    },
-    homework: {
-      label: 'Homework',
-      icon: '🏠',
-    },
-    differentiation: {
-      label: 'Differentiation',
-      icon: '⚡',
-    },
-  }
-
-  if (!classId || !subjectId || !topic) {
-    return (
-      <div style={{ padding: 24, textAlign: 'center', color: C.text2 }}>
-        Missing parameters. Go back and tap Generate from a strand.
-      </div>
-    )
-  }
+  }, [resolveAndOpen])
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', paddingBottom: 40 }}>
-      <style>{`* { box-sizing: border-box; }`}</style>
-
-      {/* Hero */}
-      <div style={{
-        background:    `linear-gradient(135deg, ${C.heroFrom}, ${C.heroTo})`,
-        padding:       '20px 16px 24px',
-        marginBottom:  16,
+    <main style={{
+      minHeight: '100vh',
+      background: C.bg,
+      padding: '24px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <section style={{
+        width: '100%',
+        maxWidth: 520,
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 18,
+        padding: 24,
+        textAlign: 'center',
+        boxShadow:
+          '0 16px 40px rgba(15,23,42,0.08)',
       }}>
-        <button
-          onClick={() => router.back()}
-          style={{
-            background: 'rgba(255,255,255,0.15)',
-            border:     'none',
-            color:      '#fff',
-            borderRadius: 8,
-            padding:    '6px 12px',
-            fontSize:   12,
-            fontWeight: 700,
-            cursor:     'pointer',
-            fontFamily: 'inherit',
-            marginBottom: 12,
-          }}
-        >← Back</button>
-
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>
-          Lesson Plan Generator
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-          {strand}
-        </div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
-          {subject} · {className} · Term {term} Week {week}
-        </div>
-        {subStrand && (
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
-            {subStrand} · {topic}
-          </div>
-        )}
-      </div>
-
-      <div style={{ padding: '0 16px' }}>
-
-        {/* Context card */}
-        <div style={{
-          background:   C.surface,
-          borderRadius: 16,
-          border:       `1px solid ${C.border}`,
-          padding:      16,
-          marginBottom: 12,
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.text3, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>
-            Plan Details
-          </div>
-          {[
-            { label: 'Grade',      value: grade },
-            { label: 'Subject',    value: subject },
-            { label: 'Strand',     value: strand },
-            { label: 'Sub-Strand', value: subStrand },
-            { label: 'Topic',      value: topic },
-            { label: 'Term/Week',  value: `Term ${term}, Week ${week}` },
-          ].map(r => r.value ? (
-            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, color: C.text3 }}>{r.label}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{r.value}</span>
-            </div>
-          ) : null)}
-        </div>
-
-        {/* Generate button */}
-        {!generated && !generating && (
-          <button
-            onClick={generate}
-            style={{
-              width:        '100%',
-              padding:      '14px',
-              background:   `linear-gradient(135deg, ${C.indigo}, #6366f1)`,
-              color:        '#fff',
-              border:       'none',
-              borderRadius: 14,
-              fontSize:     15,
-              fontWeight:   800,
-              cursor:       'pointer',
-              fontFamily:   'inherit',
-              marginBottom: 12,
-            }}
-          >
-            ✨ Continue to Lesson Workspace
-          </button>
-        )}
-
-        {/* Generating state */}
-        {generating && (
-          <div style={{
-            background:   C.surface,
-            borderRadius: 16,
-            border:       `1px solid ${C.border}`,
-            padding:      32,
-            textAlign:    'center',
-            marginBottom: 12,
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🤖</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-              Generating your lesson plan...
-            </div>
-            <div style={{ fontSize: 12, color: C.text3 }}>
-              Creating CBC-aligned content for {grade} {subject}
-            </div>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div style={{
-            background:   error === 'insufficient_credits' ? C.amberLight : C.redLight,
-            border:       `1px solid ${error === 'insufficient_credits' ? '#fcd34d' : '#fda4af'}`,
-            borderRadius: 12,
-            padding:      16,
-            marginBottom: 12,
-          }}>
-            {error === 'insufficient_credits' ? (
-              <>
-                <div style={{ fontSize: 14, fontWeight: 800, color: C.amber, marginBottom: 4 }}>
-                  🪙 No Vibe Credits
-                </div>
-                <div style={{ fontSize: 13, color: C.text2, marginBottom: 12 }}>
-                  You need Vibe Credits to generate lesson plans. Buy credits to continue.
-                </div>
-                <a
-                  href="/teacher/credits"
-                  style={{
-                    display: 'inline-block', padding: '9px 18px',
-                    background: C.amber, color: '#fff',
-                    borderRadius: 10, fontSize: 13, fontWeight: 700,
-                    textDecoration: 'none',
-                  }}
-                >Buy Vibe Credits →</a>
-              </>
-            ) : (
-              <div style={{ fontSize: 13, color: C.red, fontWeight: 600 }}>⚠️ {error}</div>
-            )}
-          </div>
-        )}
-
-        {/* Generated sections */}
-        {generated && (
+        {resolving && !error && (
           <>
-            {(Object.keys(SECTION_LABELS) as (keyof GeneratedPlan)[]).map(key => {
-              const { label, icon } = SECTION_LABELS[key]
-              const isEditing = editSection === key
-              return (
-                <div key={key} style={{
-                  background:   C.surface,
-                  borderRadius: 16,
-                  border:       `1px solid ${C.border}`,
-                  padding:      16,
-                  marginBottom: 10,
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
-                      {icon} {label}
-                    </div>
-                    {!isEditing && (
-                      <button
-                        onClick={() => startEdit(key)}
-                        style={{
-                          fontSize: 11, fontWeight: 700, color: C.indigo,
-                          background: C.indigoLight, border: 'none',
-                          borderRadius: 6, padding: '3px 9px',
-                          cursor: 'pointer', fontFamily: 'inherit',
-                        }}
-                      >Edit</button>
-                    )}
-                  </div>
-                  {isEditing ? (
-                    <>
-                      <textarea
-                        value={editValue}
-                        onChange={e => setEditValue(e.target.value)}
-                        style={{
-                          width: '100%', minHeight: 100,
-                          border: `1.5px solid ${C.indigo}`,
-                          borderRadius: 10, padding: 10,
-                          fontSize: 13, color: C.text,
-                          fontFamily: 'inherit', lineHeight: 1.6,
-                          resize: 'vertical', outline: 'none',
-                        }}
-                      />
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <button
-                          onClick={saveEdit}
-                          style={{
-                            flex: 1, padding: '8px', background: C.teal,
-                            color: '#fff', border: 'none', borderRadius: 8,
-                            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                          }}
-                        >Save</button>
-                        <button
-                          onClick={() => setEditSection(null)}
-                          style={{
-                            flex: 1, padding: '8px', background: C.surface2,
-                            color: C.text2, border: `1px solid ${C.border}`,
-                            borderRadius: 8, fontSize: 12, fontWeight: 700,
-                            cursor: 'pointer', fontFamily: 'inherit',
-                          }}
-                        >Cancel</button>
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                      {generated[key]}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-
-            {/* Credit usage */}
-            {credits && (
-              <div style={{
-                background: C.tealLight, border: `1px solid #5eead4`,
-                borderRadius: 10, padding: '10px 14px',
-                marginBottom: 10, display: 'flex',
-                justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <span style={{ fontSize: 12, color: C.teal, fontWeight: 700 }}>
-                  🪙 {credits.used} credit used
-                </span>
-                <span style={{ fontSize: 12, color: C.text2 }}>
-                  Balance: <strong>{credits.balance}</strong> credits remaining
-                </span>
-              </div>
-            )}
-
-            {/* Assign to lesson — bind this draft to a real timetable occurrence */}
             <div style={{
-              background:   C.surface,
-              borderRadius: 16,
-              border:       `1px solid ${C.border}`,
-              padding:      16,
-              marginBottom: 10,
+              width: 48,
+              height: 48,
+              margin: '0 auto 16px',
+              borderRadius: '50%',
+              background: C.indigoLight,
+              color: C.indigo,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 22,
+              fontWeight: 800,
             }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.text, marginBottom: 10 }}>
-                📌 Assign to Lesson
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <button
-                  onClick={() => { setWeekOffset(w => w - 1); setSelectedSlotId(null) }}
-                  style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
-                >‹</button>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                  Week of {selectedWeekStart}{weekOffset === 0 ? ' (this week)' : ''}
-                </span>
-                <button
-                  onClick={() => { setWeekOffset(w => w + 1); setSelectedSlotId(null) }}
-                  style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}
-                >›</button>
-              </div>
-
-              {slotsLoading && (
-                <div style={{ fontSize: 12, color: C.text3 }}>Loading timetable…</div>
-              )}
-
-              {!slotsLoading && slotsForSelectedWeek.length === 0 && (
-                <div style={{
-                  background: C.amberLight, border: '1px solid #fcd34d',
-                  borderRadius: 10, padding: 12,
-                }}>
-                  <div style={{ fontSize: 12, color: C.text, marginBottom: 8 }}>
-                    No timetable lesson exists for this class and subject in this week. Add the lesson to your timetable before creating a lesson plan.
-                  </div>
-                  <a
-                    href="/teacher/timetable"
-                    style={{ fontSize: 12, fontWeight: 700, color: C.indigo, textDecoration: 'none' }}
-                  >Go to Timetable →</a>
-                </div>
-              )}
-
-              {!slotsLoading && slotsForSelectedWeek.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {slotsForSelectedWeek.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSelectedSlotId(s.id)}
-                      style={{
-                        textAlign: 'left', padding: '10px 12px',
-                        borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
-                        border: `1.5px solid ${selectedSlotId === s.id ? C.indigo : C.border}`,
-                        background: selectedSlotId === s.id ? C.indigoLight : C.surface,
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                        {DAY_NAMES[s.day_of_week] ?? s.day_of_week} · {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
-                      </span>
-                      {s.room && <span style={{ fontSize: 11, color: C.text3 }}> · {s.room}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
+              ✦
             </div>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <h1 style={{
+              margin: 0,
+              color: C.text,
+              fontSize: 19,
+              fontWeight: 800,
+            }}>
+              Opening Lesson Workspace
+            </h1>
+
+            <p style={{
+              margin: '8px 0 0',
+              color: C.muted,
+              fontSize: 13,
+              lineHeight: 1.6,
+            }}>
+              Finding the next available timetable
+              occurrence for {topic || 'this Scheme lesson'}.
+            </p>
+          </>
+        )}
+
+        {error && (
+          <>
+            <div style={{
+              padding: 14,
+              borderRadius: 12,
+              background: C.redLight,
+              color: C.red,
+              fontSize: 13,
+              lineHeight: 1.6,
+              fontWeight: 600,
+              marginBottom: 16,
+            }}>
+              {error}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: 10,
+            }}>
               <button
-                onClick={generate}
-                disabled={generating}
+                type="button"
+                onClick={() =>
+                  router.push('/teacher/timetable')
+                }
                 style={{
-                  flex: 1, padding: '12px',
-                  background: C.surface, color: C.indigo,
-                  border: `1.5px solid ${C.indigo}`,
-                  borderRadius: 12, fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >🔄 Regenerate</button>
-              <button
-                onClick={savePlan}
-                disabled={saving || saved || !selectedSlot}
-                style={{
-                  flex: 2, padding: '12px',
-                  background: saved ? C.green : `linear-gradient(135deg, ${C.teal}, #0f766e)`,
-                  color: '#fff', border: 'none',
-                  borderRadius: 12, fontSize: 13, fontWeight: 800,
-                  cursor: (saving || saved || !selectedSlot) ? 'not-allowed' : 'pointer',
-                  opacity: !selectedSlot && !saved ? 0.6 : 1,
-                  fontFamily: 'inherit',
+                  flex: 1,
+                  padding: '11px 12px',
+                  borderRadius: 10,
+                  border: `1px solid ${C.border}`,
+                  background: C.surface,
+                  color: C.text,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
                 }}
               >
-                {saved ? '✅ Saved! Redirecting...' : saving ? 'Saving...' : !selectedSlot ? 'Select a lesson slot above' : '💾 Save to Lesson Plans'}
+                Open Timetable
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setRetryKey(value => value + 1)
+                }
+                style={{
+                  flex: 1,
+                  padding: '11px 12px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: C.indigo,
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Retry
               </button>
             </div>
           </>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }
 
-export default function GenerateLessonPlanPage() {
+export default function SchemeLessonLauncherPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, color: '#64748b' }}>Loading...</div>}>
-      <GeneratePageInner />
+    <Suspense fallback={
+      <div style={{
+        padding: 24,
+        color: C.muted,
+      }}>
+        Opening lesson workspace…
+      </div>
+    }>
+      <SchemeLessonLauncherInner />
     </Suspense>
   )
 }
