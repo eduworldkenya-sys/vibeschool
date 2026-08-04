@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import { nairobiDateStr } from "@/lib/time";
+import { ensureLessonHomeworkDraft } from "@/lib/teaching/lessonHomeworkDraft";
 
 type ProgressInsert =
   Database["public"]["Tables"]["progress_records"]["Insert"];
@@ -270,35 +271,38 @@ export default function LessonNotesPage() {
     setView("edit");
   }
 
-  // Mirrors LessonPlanModal.handleShareToParents' homework write —
-  // same upsert key (lesson_plan_id), same question-split heuristic —
-  // so "homework" set here and homework set pre-lesson land in one place.
+  // LP-002A1: lesson notes may propose homework only when this lesson has no
+  // homework yet. Once a homework row exists, the dedicated Homework workspace
+  // owns its title, instructions, due date and questions.
   async function syncHomeworkFromNote(
-    planId: string, teacherId: string, schoolId: string | null, linkedPlan: PlanOption | null
+    planId: string,
+    teacherId: string,
+    schoolId: string | null,
+    linkedPlan: PlanOption | null,
   ) {
     if (!homework.trim() || !schoolId) return
-    const due = new Date()
-    due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
-    const { data: hw } = await supabase.from("homework").upsert({
-      class_id:       linkedPlan?.class_id ?? null,
-      teacher_id:     teacherId,
-      school_id:      schoolId,
-      lesson_plan_id: planId,
-      title:          (linkedPlan?.topic || linkedPlan?.title || "Lesson") + " — Homework",
-      subject:        linkedPlan?.subject_name || "",
-      instructions:   homework.trim(),
-      type:           "written",
-      due_date:       nairobiDateStr(due),
-    }, { onConflict: "lesson_plan_id" }).select("id").single();
 
-    if (hw?.id) {
-      await supabase.from("homework_questions").delete().eq("homework_id", hw.id);
-      const questions = homework
-        .split("\n")
-        .filter((l: string) => l.trim().endsWith("?") || /^\d+\./.test(l.trim()))
-        .slice(0, 5)
-        .map((q: string, i: number) => ({ homework_id: hw.id, question: q.trim(), order_num: i + 1 }));
-      if (questions.length > 0) await supabase.from("homework_questions").insert(questions);
+    const due = new Date()
+    due.setDate(due.getDate() + 1) // TODO LP-002A2: teacher selects due date before assignment
+
+    const result = await ensureLessonHomeworkDraft({
+      lessonPlanId: planId,
+      classId: linkedPlan?.class_id ?? null,
+      teacherId,
+      schoolId,
+      subject: linkedPlan?.subject_name || "",
+      title:
+        (linkedPlan?.topic || linkedPlan?.title || "Lesson") +
+        " — Homework",
+      instructions: homework.trim(),
+      suggestedDueDate: nairobiDateStr(due),
+    })
+
+    if (result.outcome === "preserved_existing") {
+      console.info(
+        "[progress] existing lesson homework preserved",
+        result.homeworkId,
+      )
     }
   }
 

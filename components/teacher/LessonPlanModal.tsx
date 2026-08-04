@@ -9,6 +9,7 @@ import {
   parseLessonPlanBody,
   serializeLessonPlanBody,
 } from '@/lib/teaching/lessonPlanCodec'
+import { ensureLessonHomeworkDraft } from '@/lib/teaching/lessonHomeworkDraft'
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
@@ -711,27 +712,24 @@ export default function LessonPlanModal({ slot, weekStart, taughtDate, onClose }
 
       if (sections.homework.trim() !== '') {
         const due = new Date()
-        due.setDate(due.getDate() + 1) // TODO: allow teacher to set due date
-        const { data: hw } = await supabase.from('homework').upsert({
-          class_id:           slot.class_id,
-          teacher_id:         user.id,
-          school_id:          ctx.schoolId,
-          lesson_plan_id:     currentId,
-          title:              topic + ' — Homework',
-          subject:            slot.subject,
-          instructions:       sections.homework.trim(),
-          type:               'written',
-          due_date:           nairobiDateStr(due),
-        }, { onConflict: 'lesson_plan_id' }).select('id').single()
+        due.setDate(due.getDate() + 1) // TODO LP-002A2: teacher selects due date before assignment
 
-        if (hw?.id) {
-          await supabase.from('homework_questions').delete().eq('homework_id', hw.id)
-          const questions = sections.homework
-            .split('\n')
-            .filter((l: string) => l.trim().endsWith('?') || /^\d+\./.test(l.trim()))
-            .slice(0, 5)
-            .map((q: string, i: number) => ({ homework_id: hw.id, question: q.trim(), order_num: i + 1 }))
-          if (questions.length > 0) await supabase.from('homework_questions').insert(questions)
+        const homeworkResult = await ensureLessonHomeworkDraft({
+          lessonPlanId: currentId,
+          classId: slot.class_id,
+          teacherId: user.id,
+          schoolId: ctx.schoolId,
+          subject: slot.subject,
+          title: topic + ' — Homework',
+          instructions: sections.homework.trim(),
+          suggestedDueDate: nairobiDateStr(due),
+        })
+
+        if (homeworkResult.outcome === 'preserved_existing') {
+          console.info(
+            '[LessonPlanModal] existing lesson homework preserved',
+            homeworkResult.homeworkId,
+          )
         }
       }
 
