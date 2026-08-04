@@ -2384,7 +2384,10 @@ function DiscoverTab({ userId }: { userId: string | null }) {
       return;
     }
 
-    setSubjectId(requestedSubjectId);
+    const resolvedSubjectId =
+      requestedSubjectId;
+
+    setSubjectId(resolvedSubjectId);
 
     async function loadContext() {
       try {
@@ -2393,10 +2396,10 @@ function DiscoverTab({ userId }: { userId: string | null }) {
             supabase
               .from("subjects")
               .select("name")
-              .eq("id", requestedSubjectId)
+              .eq("id", resolvedSubjectId)
               .maybeSingle(),
             loadSubjectAdoptionClasses(
-              requestedSubjectId
+              resolvedSubjectId
             ),
           ]);
 
