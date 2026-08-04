@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { C } from "@/components/teacher/ui";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
+import type { Json } from "@/lib/database.types";
 import {
   useRouter,
   useParams,
@@ -42,8 +43,8 @@ interface SourceLessonResource {
   sequence: number;
   pageStart: number | null;
   pageEnd: number | null;
-  sectionRefs: unknown[];
-  exerciseRefs: unknown[];
+  sectionRefs: Json;
+  exerciseRefs: Json;
 }
 
 function HomeworkInner() {
@@ -324,17 +325,9 @@ function HomeworkInner() {
                 resource.page_end ??
                 null,
               sectionRefs:
-                Array.isArray(
-                  resource.section_refs
-                )
-                  ? resource.section_refs
-                  : [],
+                resource.section_refs ?? [],
               exerciseRefs:
-                Array.isArray(
-                  resource.exercise_refs
-                )
-                  ? resource.exercise_refs
-                  : [],
+                resource.exercise_refs ?? [],
             }];
           })
           .sort(
