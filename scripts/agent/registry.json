@@ -43,7 +43,53 @@
         "LP-002A2A"
       ],
       "definition": "scripts/agent/fixes/LP-002A2B.sh",
-      "completion_commit": null
+      "completion_commit": null,
+      "handoff": {
+        "finding": "parent_messages lacks canonical lesson-plan delivery identity and idempotent mutation authority",
+        "objective": "Make parent lesson delivery traceable to one lesson plan and safe to repeat without producing duplicate messages.",
+        "affected_files": [
+          "components/teacher/LessonPlanModal.tsx",
+          "lib/database.types.ts",
+          "lib/teaching/lessonParentDelivery.ts",
+          "supabase/migrations/<new_lp002a2b_parent_delivery_migration>.sql",
+          "scripts/test-lp002a2b-parent-delivery.py"
+        ],
+        "required_contracts": [
+          "parent_messages must carry lesson_plan_id referencing lesson_plans(id)",
+          "one lesson-plan delivery per student and delivery purpose must be enforced by a database uniqueness contract",
+          "delivery mutation must be authorized against the authenticated lesson-plan teacher or school administrator",
+          "repeating the same delivery request must preserve or update the canonical row instead of inserting a duplicate",
+          "LessonPlanModal must consume one shared parent-delivery service instead of inserting parent_messages directly",
+          "lesson plan status must change only after parent delivery and derived-asset operations return successful outcomes"
+        ],
+        "safety_constraints": [
+          "Do not delete existing parent messages.",
+          "Do not rewrite unrelated communication or VibeConnect architecture.",
+          "Do not send duplicate learner or parent notifications.",
+          "Do not use service-role credentials in client code.",
+          "Do not make parent delivery dependent on AI availability.",
+          "Do not combine this fix with LP-002A2C UI/action separation.",
+          "Migration must be additive, reversible where practical, and fail closed."
+        ],
+        "verification_commands": [
+          "python3 scripts/test-lp002a2b-parent-delivery.py",
+          "python3 scripts/test-ops001-agent-runner.py",
+          "python3 scripts/test-ops001c-fix-registry.py",
+          "python3 scripts/test-ops001d-handoff.py",
+          "npx tsc --noEmit --pretty false",
+          "git diff --check",
+          "bash scripts/vibeschool-agent.sh run LP-002A2B"
+        ],
+        "expected_scope": [
+          "one new Supabase migration",
+          "one shared lesson parent-delivery service",
+          "LessonPlanModal adoption",
+          "generated database types updated after schema confirmation",
+          "one focused contract test",
+          "registry and handover updates only after implementation verification"
+        ],
+        "next_action": "Audit the live parent_messages table and policies, then implement the smallest guarded migration and shared service that establish canonical lesson-plan delivery identity and idempotency."
+      }
     },
     {
       "id": "LP-002A2C",

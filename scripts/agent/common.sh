@@ -7,8 +7,10 @@ AGENT_STATE="$AGENT_ROOT/state.json"
 AGENT_FIXES="scripts/agent/fixes"
 AGENT_REGISTRY="scripts/agent/registry.json"
 AGENT_REGISTRY_TOOL="scripts/agent/registry.py"
+AGENT_HANDOFF_TOOL="scripts/agent/handoff.py"
+AGENT_HANDOFFS="$AGENT_ROOT/handoffs"
 
-mkdir -p "$AGENT_LOGS" "$AGENT_REPORTS"
+mkdir -p "$AGENT_LOGS" "$AGENT_REPORTS" "$AGENT_HANDOFFS"
 
 agent_abort() {
   echo "ABORT: $*" >&2
@@ -38,7 +40,7 @@ agent_source_status() {
     | grep -vE \
       '^\?\? (\.[A-Za-z0-9_-]+-(audit|backups|tsc)/|\.ops001[^/]*/|PASTE_ME_[^/]+\.sh$)' \
     | grep -vE \
-      '^(\?\?| M) (\.gitignore|\.vibeschool-agent/|\.vibeschool-agent/state\.json|scripts/vibeschool-agent\.sh|scripts/agent/.*|scripts/test-ops001-agent-runner\.py|scripts/test-ops001c-fix-registry\.py)$' \
+      '^(\?\?| M) (\.gitignore|\.vibeschool-agent/|\.vibeschool-agent/state\.json|scripts/vibeschool-agent\.sh|scripts/agent/.*|scripts/test-ops001-agent-runner\.py|scripts/test-ops001c-fix-registry\.py|scripts/test-ops001d-handoff\.py)$' \
     || true
 }
 
@@ -133,6 +135,18 @@ agent_run_next_fix() {
 
   echo "AUTO_SELECTED_FIX=$fix_id"
   agent_run_fix "$fix_id"
+}
+
+agent_generate_handoff() {
+  local fix_id="${1:-}"
+
+  agent_validate_registry >/dev/null
+
+  if [ -n "$fix_id" ]; then
+    python3 "$AGENT_HANDOFF_TOOL" "$fix_id"       --registry "$AGENT_REGISTRY"       --runtime "$AGENT_ROOT"
+  else
+    python3 "$AGENT_HANDOFF_TOOL"       --registry "$AGENT_REGISTRY"       --runtime "$AGENT_ROOT"
+  fi
 }
 
 agent_run_fix() {

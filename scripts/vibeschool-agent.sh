@@ -34,6 +34,10 @@ case "$COMMAND" in
     agent_validate_registry
     ;;
 
+  handoff)
+    agent_generate_handoff "$ARGUMENT"
+    ;;
+
   report)
     agent_show_latest_report
     ;;
@@ -52,6 +56,7 @@ Commands:
   next                Show the next actionable registered fix
   list                List all registered fixes and dependency state
   validate-registry   Validate the structured fix registry
+  handoff [FIX-ID]    Generate an implementation handoff
   report              Show the most recent compact report
   clean               Remove known temporary audit/build artifacts
   help                Show this help
@@ -62,6 +67,7 @@ Examples:
   bash scripts/vibeschool-agent.sh run
   bash scripts/vibeschool-agent.sh run LP-002A2B
   bash scripts/vibeschool-agent.sh list
+  bash scripts/vibeschool-agent.sh handoff
 
 Safety:
   - does not edit application source;
