@@ -417,6 +417,11 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   const lessonPlanId = lessonPlanRes.data?.id ?? null
 
+  const persistedOccurrence = occurrenceRes.data as {
+    id: string
+    lifecycle: Lifecycle
+  } | null
+
   const [
     attendanceRes,
     evidenceRes,
@@ -428,12 +433,23 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
       .select('student_id')
       .eq('timetable_slot_id', key.timetableSlotId)
       .eq('date', key.occurrenceDate),
-    lessonPlanId
+    persistedOccurrence
       ? supabase.from('lesson_evidence')
           .select('id, created_at')
-          .eq('lesson_id', lessonPlanId)
-          .order('created_at', { ascending: false })
-      : Promise.resolve({ data: [] as { id: string; created_at: string }[], error: null }),
+          .eq(
+            'teaching_occurrence_id',
+            persistedOccurrence.id,
+          )
+          .order('created_at', {
+            ascending: false,
+          })
+      : Promise.resolve({
+          data: [] as {
+            id: string
+            created_at: string
+          }[],
+          error: null,
+        }),
     lessonPlanId
       ? supabase.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).maybeSingle()
       : Promise.resolve({ data: null as { id: string } | null, error: null }),
@@ -480,11 +496,6 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   const reflection = reflectionRes.data
   const reflectionCompleted = !!reflection && !!(reflection.what_worked || reflection.what_didnt || reflection.next_steps)
-
-  const persistedOccurrence = occurrenceRes.data as {
-    id: string
-    lifecycle: Lifecycle
-  } | null
 
   const lifecycle = deriveLifecycle(
     persistedOccurrence,
