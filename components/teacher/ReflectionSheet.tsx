@@ -9,9 +9,10 @@ const ENGAGEMENT: { key: "low" | "medium" | "high"; label: string }[] = [
 ];
 
 export default function ReflectionSheet({
-  lessonId, classId, subjectId, teacherId, onClose, onSaved,
+  lessonId, occurrenceId, classId, subjectId, teacherId, onClose, onSaved,
 }: {
   lessonId: string | null;
+  occurrenceId: string | null;
   classId: string;
   subjectId: string;
   teacherId: string;
@@ -28,6 +29,13 @@ export default function ReflectionSheet({
       setError("This lesson isn't linked to a lesson plan yet.");
       return;
     }
+    if (!occurrenceId) {
+      setError(
+        "This reflection is not linked to a teaching occurrence."
+      );
+      return;
+    }
+
     if (!reflectionText.trim()) {
       setError("Add a short reflection before saving.");
       return;
@@ -39,6 +47,7 @@ export default function ReflectionSheet({
       {
         lesson_id: lessonId,
         lesson_plan_id: lessonId,
+        teaching_occurrence_id: occurrenceId,
         teacher_id: teacherId,
         class_id: classId,
         what_worked: reflectionText.trim(),

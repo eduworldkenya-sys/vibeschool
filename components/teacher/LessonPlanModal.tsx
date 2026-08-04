@@ -2296,9 +2296,15 @@ export default function LessonPlanModal({
         />
       )}
 
-      {showReflection && teacherId && planId && (
+      {showReflection &&
+        teacherId &&
+        planId &&
+        teachingOccurrence?.occurrenceId && (
         <ReflectionSheet
           lessonId={planId}
+          occurrenceId={
+            teachingOccurrence.occurrenceId
+          }
           classId={slot.class_id}
           subjectId={slot.subject_id}
           teacherId={teacherId}

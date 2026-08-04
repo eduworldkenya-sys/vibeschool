@@ -95,6 +95,7 @@ function AttendanceInner() {
   // lesson mode
   const [slots,           setSlots]           = useState<TSlot[]>([])
   const [activeSlot,      setActiveSlot]      = useState<TSlot | null>(null)
+  const [activeOccurrenceId, setActiveOccurrenceId] = useState<string | null>(null)
   const [slotsLoading,    setSlotsLoading]    = useState(true)
 
   // register
@@ -316,6 +317,7 @@ function AttendanceInner() {
   const loadClassRegister = useCallback(async (classId: string) => {
     setStudentsLoading(true)
     setStatuses({})
+    setActiveOccurrenceId(null)
 
     const [studentsRes, attRes] = await Promise.all([
       supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', classId).eq('is_current', true),
@@ -343,10 +345,51 @@ function AttendanceInner() {
   const loadSlotRegister = useCallback(async (slot: TSlot) => {
     setStudentsLoading(true)
     setStatuses({})
+    setActiveOccurrenceId(null)
+    setSlotError(null)
+
+    if (!uid) {
+      setStudents([])
+      setStudentsLoading(false)
+      return
+    }
+
+    const {
+      data: occurrence,
+      error: occurrenceError,
+    } = await supabase
+      .from('teaching_occurrences')
+      .select('id')
+      .eq('timetable_slot_id', slot.id)
+      .eq('occurrence_date', selectedDate)
+      .eq('teacher_id', uid)
+      .maybeSingle()
+
+    if (
+      occurrenceError ||
+      !occurrence?.id
+    ) {
+      if (occurrenceError) {
+        console.error(
+          'attendance occurrence load error:',
+          occurrenceError,
+        )
+      }
+
+      setStudents([])
+      setStatuses({})
+      setSlotError(
+        'Start this lesson before marking its attendance register.',
+      )
+      setStudentsLoading(false)
+      return
+    }
+
+    setActiveOccurrenceId(occurrence.id)
 
     const [studentsRes, attRes] = await Promise.all([
       supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', slot.classId).eq('is_current', true),
-      supabase.from('attendance').select('student_id, status, is_late').eq('timetable_slot_id', slot.id).gte('timestamp', selectedDate + 'T00:00:00').lte('timestamp', selectedDate + 'T23:59:59'),
+      supabase.from('attendance').select('student_id, status, is_late').eq('teaching_occurrence_id', occurrence.id),
     ])
 
     const studs: Student[] = (studentsRes.data ?? []).map((r: any) => r.students).filter(Boolean).map((s: any) => ({
@@ -364,7 +407,7 @@ function AttendanceInner() {
     setStudents(studs)
     setStatuses(initialStatuses)
     setStudentsLoading(false)
-  }, [selectedDate])
+  }, [selectedDate, uid])
 
   useEffect(() => {
     if (mode === 'class' && activeClassId) loadClassRegister(activeClassId)
@@ -386,6 +429,13 @@ function AttendanceInner() {
         setSlotError('The lesson date is missing.')
         return
       }
+
+      if (!activeOccurrenceId) {
+        setSlotError(
+          'Start this lesson before saving attendance.',
+        )
+        return
+      }
     }
     setSlotError(null)
     setSaving(true)
@@ -404,7 +454,14 @@ function AttendanceInner() {
       status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
       is_late:    statuses[s.id] === 'late',
       marked_at:  new Date().toISOString(),
-      ...(isLesson ? { timetable_slot_id: activeSlot!.id } : {}),
+      ...(isLesson
+        ? {
+            timetable_slot_id:
+              activeSlot!.id,
+            teaching_occurrence_id:
+              activeOccurrenceId,
+          }
+        : {}),
     }))
 
     const { error } = await supabase
@@ -468,7 +525,10 @@ function AttendanceInner() {
               setStudents([])
               setStatuses({})
               setSlotError(null)
-              if (m === 'class') setActiveSlot(null)
+              if (m === 'class') {
+                setActiveSlot(null)
+                setActiveOccurrenceId(null)
+              }
             }} style={{ flex: 1, padding: '9px 8px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 12, background: mode === m ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: mode === m ? '#065f46' : 'rgba(255,255,255,0.85)', transition: 'all 0.15s' }}>
               {m === 'class' ? '🏫 Class Register' : '📖 Lesson Register'}
             </button>

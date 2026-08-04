@@ -1105,6 +1105,7 @@ export type Database = {
           student_id: string
           teacher_id: string
           timetable_slot_id: string | null
+          teaching_occurrence_id: string | null
         }
         Insert: {
           arrived_at?: string | null
@@ -1119,6 +1120,7 @@ export type Database = {
           student_id: string
           teacher_id: string
           timetable_slot_id?: string | null
+          teaching_occurrence_id?: string | null
         }
         Update: {
           arrived_at?: string | null
@@ -1133,6 +1135,7 @@ export type Database = {
           student_id?: string
           teacher_id?: string
           timetable_slot_id?: string | null
+          teaching_occurrence_id?: string | null
         }
         Relationships: [
           {
@@ -8411,6 +8414,7 @@ export type Database = {
           next_steps: string | null
           school_id: string | null
           teacher_id: string
+          teaching_occurrence_id: string | null
           updated_at: string
           what_didnt: string | null
           what_worked: string | null
@@ -8427,6 +8431,7 @@ export type Database = {
           next_steps?: string | null
           school_id?: string | null
           teacher_id: string
+          teaching_occurrence_id?: string | null
           updated_at?: string
           what_didnt?: string | null
           what_worked?: string | null
@@ -8443,6 +8448,7 @@ export type Database = {
           next_steps?: string | null
           school_id?: string | null
           teacher_id?: string
+          teaching_occurrence_id?: string | null
           updated_at?: string
           what_didnt?: string | null
           what_worked?: string | null
