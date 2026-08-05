@@ -131,7 +131,7 @@ export interface AttemptWorkspace {
 export interface SaveResponseInput {
   attemptId: string
   assessmentItemId: string
-  responseValue?: Json
+  responseValue?: unknown
   responseText?: string | null
 }
 
