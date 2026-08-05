@@ -30,6 +30,17 @@ function isOverdue(dateStr: string): boolean {
   return daysUntil(dateStr) < 0;
 }
 
+// Falls back to "Subject · Type" when a teacher enters a low-signal title
+// (e.g. "read", "Study") so the card headline is never a bare, ambiguous word.
+const GENERIC_TITLES = new Set(["read", "study", "test", "exercise", "homework", "revision", "write"]);
+function displayTitle(title: string, subject: string, type: string): string {
+  const t = title.trim();
+  const isGeneric = t.length <= 6 || GENERIC_TITLES.has(t.toLowerCase());
+  if (!isGeneric) return t;
+  const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+  return `${subject} · ${typeLabel}`;
+}
+
 function dueBadge(dateStr: string, submitted: boolean) {
   if (submitted) return { label: "Submitted", bg: "#d1fae5", text: "#065f46" };
   const d = daysUntil(dateStr);
@@ -83,15 +94,19 @@ export default function MyWorkPage() {
     if (cached) { setItems(cached); setLoading(false); }
 
     async function load(validClassId: string, validStudentId: string) {
-      const [hwRes, subRes] = await Promise.all([
+      const [hwRes, subRes, grpRes] = await Promise.all([
         supabase
           .from("homework")
-          .select("id, title, subject, due_date, type")
+          .select("id, title, subject, due_date, type, target_group_id")
           .eq("class_id", validClassId)
           .order("due_date", { ascending: true }),
         supabase
           .from("homework_submissions")
           .select("homework_id, status, mark, feedback")
+          .eq("student_id", validStudentId),
+        supabase
+          .from("class_group_members")
+          .select("group_id")
           .eq("student_id", validStudentId),
       ]);
 
@@ -105,8 +120,14 @@ export default function MyWorkPage() {
         });
       }
 
+      // Only whole-class homework (target_group_id null) or homework targeted
+      // at a group this student belongs to — matches the filter already
+      // applied on /student/homework so both surfaces agree.
+      const myGroupIds = new Set((grpRes.data ?? []).map(g => g.group_id));
+
       const result: HWItem[] = (hwRes.data ?? [])
         .filter((h): h is typeof h & { due_date: string } => !!h.due_date)
+        .filter(h => h.target_group_id === null || myGroupIds.has(h.target_group_id))
         .map(h => {
           const sub = subMap.get(h.id);
           return {
@@ -233,7 +254,7 @@ export default function MyWorkPage() {
               >
                 <div style={{ padding: "14px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", flex: 1, lineHeight: 1.4 }}>{h.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", flex: 1, lineHeight: 1.4 }}>{displayTitle(h.title, h.subject, h.type)}</div>
                     <span style={{ padding: "3px 8px", borderRadius: 20, background: badge.bg, color: badge.text, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{badge.label}</span>
                   </div>
                   <div style={{ fontSize: 11, color: "var(--vs-muted)", marginBottom: isMarked ? 8 : h.submitted ? 0 : 10 }}>
