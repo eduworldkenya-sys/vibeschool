@@ -10,8 +10,20 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 function text(value: unknown): string | null { return typeof value === 'string' ? value : null }
+function numberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  const result = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(result) ? result : null
+}
 
 export type ReportCardStatus = 'draft' | 'review' | 'approved' | 'published' | 'locked' | 'returned'
+export type ReportCompletenessStatus = 'not_generated' | 'incomplete' | 'complete' | 'frozen'
+
+export interface ReportCompletenessIssue {
+  code: string
+  message: string
+  count?: number
+}
 
 export interface ReportCardSummary {
   id: string
@@ -24,7 +36,47 @@ export interface ReportCardSummary {
   academicYear: number
   status: ReportCardStatus
   revision: number
+  completenessStatus: ReportCompletenessStatus
+  completenessIssues: ReportCompletenessIssue[]
+  evidenceVersion: number
+  evidenceGeneratedAt: string | null
   updatedAt: string
+}
+
+export interface ReportSubjectEvidence {
+  reportCardSubjectId: string
+  subjectId: string
+  subjectName: string
+  assessmentAverage: number | null
+  masteryAverage: number | null
+  growthPercentage: number | null
+  strongestOutcomes: Json
+  supportOutcomes: Json
+  interventionSummary: Json
+  teacherComment: string | null
+  evidenceSnapshot: Json
+}
+
+export interface ReportEvidenceDetail {
+  reportCardId: string
+  status: ReportCardStatus
+  completenessStatus: ReportCompletenessStatus
+  completenessIssues: ReportCompletenessIssue[]
+  evidenceVersion: number
+  evidenceGeneratedAt: string | null
+  snapshot: Json
+}
+
+function parseIssues(value: unknown): ReportCompletenessIssue[] {
+  if (!Array.isArray(value)) return []
+  return value.map(item => {
+    const row = record(item)
+    return {
+      code: text(row.code) ?? 'issue',
+      message: text(row.message) ?? 'Evidence issue',
+      count: numberOrNull(row.count) ?? undefined,
+    }
+  })
 }
 
 export async function createReportCard(input: {
@@ -42,6 +94,27 @@ export async function createReportCard(input: {
   if (error) throw new Error(error.message || 'Report card could not be created.')
   if (typeof data !== 'string' || !data) throw new Error('Report card ID was not returned.')
   return data
+}
+
+export async function generateReportCardEvidence(reportCardId: string): Promise<ReportEvidenceDetail> {
+  const { error } = await rpc<Json>('exq_generate_report_card_evidence', { p_report_card_id: reportCardId })
+  if (error) throw new Error(error.message || 'Report evidence could not be generated.')
+  return getReportCardEvidence(reportCardId)
+}
+
+export async function getReportCardEvidence(reportCardId: string): Promise<ReportEvidenceDetail> {
+  const { data, error } = await rpc<Json>('exq_get_report_card_evidence', { p_report_card_id: reportCardId })
+  if (error) throw new Error(error.message || 'Report evidence could not be loaded.')
+  const payload = record(data)
+  return {
+    reportCardId: text(payload.report_card_id) ?? reportCardId,
+    status: (text(payload.status) ?? 'draft') as ReportCardStatus,
+    completenessStatus: (text(payload.completeness_status) ?? 'not_generated') as ReportCompletenessStatus,
+    completenessIssues: parseIssues(payload.completeness_issues),
+    evidenceVersion: numberOrNull(payload.evidence_version) ?? 1,
+    evidenceGeneratedAt: text(payload.evidence_generated_at),
+    snapshot: (payload.snapshot ?? {}) as Json,
+  }
 }
 
 export async function submitReportCard(reportCardId: string, overallComment?: string | null): Promise<void> {
@@ -78,7 +151,7 @@ export async function lockReportCard(reportCardId: string): Promise<void> {
 export async function listReportCards(): Promise<ReportCardSummary[]> {
   const { data, error } = await supabase
     .from('report_cards')
-    .select('id,student_id,class_id,term_id,academic_year,status,revision,updated_at,students(name),classes(name),academic_terms(name)')
+    .select('id,student_id,class_id,term_id,academic_year,status,revision,completeness_status,completeness_issues,evidence_version,evidence_generated_at,updated_at,students(name),classes(name),academic_terms(name)')
     .order('updated_at', { ascending: false })
 
   if (error) throw new Error(error.message || 'Report cards could not be loaded.')
@@ -99,7 +172,47 @@ export async function listReportCards(): Promise<ReportCardSummary[]> {
       academicYear: Number(value.academic_year),
       status: (text(value.status) ?? 'draft') as ReportCardStatus,
       revision: Number(value.revision),
+      completenessStatus: (text(value.completeness_status) ?? 'not_generated') as ReportCompletenessStatus,
+      completenessIssues: parseIssues(value.completeness_issues),
+      evidenceVersion: numberOrNull(value.evidence_version) ?? 1,
+      evidenceGeneratedAt: text(value.evidence_generated_at),
       updatedAt: text(value.updated_at) ?? '',
     }
   })
+}
+
+export async function listReportSubjects(reportCardId: string): Promise<ReportSubjectEvidence[]> {
+  const { data, error } = await supabase
+    .from('report_card_subjects')
+    .select('id,subject_id,assessment_average,mastery_average,growth_percentage,strongest_outcomes,support_outcomes,intervention_summary,teacher_comment,evidence_snapshot,subjects(name)')
+    .eq('report_card_id', reportCardId)
+    .order('subject_id')
+
+  if (error) throw new Error(error.message || 'Report subject evidence could not be loaded.')
+
+  return (data ?? []).map(row => {
+    const value = record(row)
+    const subject = record(value.subjects)
+    return {
+      reportCardSubjectId: text(value.id) ?? '',
+      subjectId: text(value.subject_id) ?? '',
+      subjectName: text(subject.name) ?? 'Subject',
+      assessmentAverage: numberOrNull(value.assessment_average),
+      masteryAverage: numberOrNull(value.mastery_average),
+      growthPercentage: numberOrNull(value.growth_percentage),
+      strongestOutcomes: (value.strongest_outcomes ?? []) as Json,
+      supportOutcomes: (value.support_outcomes ?? []) as Json,
+      interventionSummary: (value.intervention_summary ?? []) as Json,
+      teacherComment: text(value.teacher_comment),
+      evidenceSnapshot: (value.evidence_snapshot ?? {}) as Json,
+    }
+  })
+}
+
+export async function saveSubjectComment(reportCardSubjectId: string, comment: string): Promise<void> {
+  const { error } = await supabase
+    .from('report_card_subjects')
+    .update({ teacher_comment: comment.trim() || null, updated_at: new Date().toISOString() })
+    .eq('id', reportCardSubjectId)
+  if (error) throw new Error(error.message || 'Subject comment could not be saved.')
 }
