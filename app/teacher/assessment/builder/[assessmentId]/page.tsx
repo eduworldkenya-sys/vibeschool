@@ -2,8 +2,15 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
+import {
+  addQuestionBankItemToAssessment,
+  approveQuestionBankItem,
+  listQuestionBank,
+  promoteAssessmentItemToQuestionBank,
+  type QuestionBankItem,
+} from '@/lib/assessment'
 import {
   createBuilderSection,
   deleteBuilderSection,
@@ -24,6 +31,19 @@ export default function AssessmentBuilderPage() {
   const [error, setError] = useState('')
   const [newTitle, setNewTitle] = useState('')
   const [editing, setEditing] = useState<Record<string, { title: string; instructions: string; minutes: string }>>({})
+  const [bankOpen, setBankOpen] = useState(false)
+  const [bankSearch, setBankSearch] = useState('')
+  const [bankLoading, setBankLoading] = useState(false)
+  const [bankItems, setBankItems] = useState<QuestionBankItem[]>([])
+  const [bankActionId, setBankActionId] = useState<string | null>(null)
+  const [bankMessage, setBankMessage] = useState('')
+
+  const allItems = useMemo(
+    () => assessment
+      ? [...assessment.sections.flatMap(section => section.items), ...assessment.unsectionedItems]
+      : [],
+    [assessment],
+  )
 
   async function refresh() {
     setLoading(true)
@@ -34,6 +54,18 @@ export default function AssessmentBuilderPage() {
       setError(cause instanceof Error ? cause.message : 'Could not load Assessment Builder.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function refreshBank(search = bankSearch) {
+    setBankLoading(true)
+    setBankMessage('')
+    try {
+      setBankItems(await listQuestionBank({ search, limit: 50 }))
+    } catch (cause) {
+      setBankMessage(cause instanceof Error ? cause.message : 'Question Bank could not be loaded.')
+    } finally {
+      setBankLoading(false)
     }
   }
 
@@ -135,6 +167,55 @@ export default function AssessmentBuilderPage() {
     }
   }
 
+  async function saveItemToBank(itemId: string) {
+    if (bankActionId) return
+    setBankActionId(itemId)
+    setBankMessage('')
+    try {
+      const promoted = await promoteAssessmentItemToQuestionBank({ assessmentItemId: itemId })
+      await approveQuestionBankItem(promoted.questionId)
+      setBankMessage(promoted.created ? 'Question saved and approved in the Question Bank.' : 'Question already exists in the Question Bank.')
+      if (bankOpen) await refreshBank()
+    } catch (cause) {
+      setBankMessage(cause instanceof Error ? cause.message : 'Question could not be saved to the Question Bank.')
+    } finally {
+      setBankActionId(null)
+    }
+  }
+
+  async function reuseBankItem(questionId: string) {
+    if (!assessment || bankActionId) return
+    setBankActionId(questionId)
+    setBankMessage('')
+    try {
+      await addQuestionBankItemToAssessment({
+        questionId,
+        assessmentId: assessment.id,
+        orderNum: allItems.length + 1,
+      })
+      await refresh()
+      await refreshBank()
+      setBankMessage('Question added to this assessment draft.')
+    } catch (cause) {
+      setBankMessage(cause instanceof Error ? cause.message : 'Question could not be added to this assessment.')
+    } finally {
+      setBankActionId(null)
+    }
+  }
+
+  function renderQuestionActions(itemId: string) {
+    return (
+      <button
+        type="button"
+        disabled={Boolean(bankActionId)}
+        onClick={() => void saveItemToBank(itemId)}
+        style={bankButton}
+      >
+        {bankActionId === itemId ? 'Saving…' : 'Save to Bank'}
+      </button>
+    )
+  }
+
   return (
     <main style={shell}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
@@ -142,11 +223,12 @@ export default function AssessmentBuilderPage() {
           <div style={eyebrow}>Assessment Builder</div>
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
           <p style={{ margin: 0, color: '#6b7280' }}>
-            Organize questions into sections without changing the authoritative question model.
+            Organize questions, save strong items to the Question Bank, and reuse approved questions without changing assessment authority.
           </p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
+        {bankMessage && <section style={{ ...card, color: bankMessage.includes('could not') ? '#b91c1c' : '#065f46' }}>{bankMessage}</section>}
 
         {loading ? (
           <section style={card}>Loading builder…</section>
@@ -157,7 +239,60 @@ export default function AssessmentBuilderPage() {
                 <input value={newTitle} onChange={event => setNewTitle(event.target.value)} placeholder="New section title" style={input} />
                 <button type="button" disabled={busy || !newTitle.trim()} onClick={() => void addSection()} style={primaryButton}>Add section</button>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !bankOpen
+                  setBankOpen(next)
+                  if (next && bankItems.length === 0) void refreshBank('')
+                }}
+                style={{ ...secondaryButton, width: '100%', marginTop: 10 }}
+              >
+                {bankOpen ? 'Hide Question Bank' : 'Open Question Bank'}
+              </button>
             </section>
+
+            {bankOpen && (
+              <section style={card}>
+                <div style={eyebrow}>Question Bank</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 10 }}>
+                  <input
+                    value={bankSearch}
+                    onChange={event => setBankSearch(event.target.value)}
+                    placeholder="Search approved questions"
+                    style={input}
+                  />
+                  <button type="button" onClick={() => void refreshBank()} disabled={bankLoading} style={secondaryButton}>
+                    {bankLoading ? 'Searching…' : 'Search'}
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+                  {!bankLoading && bankItems.length === 0 ? (
+                    <div style={emptyBox}>No approved Question Bank items match this search.</div>
+                  ) : bankItems.map(question => (
+                    <div key={question.id} style={itemRow}>
+                      <div style={{ flex: 1 }}>
+                        <strong>{question.questionText}</strong>
+                        <div style={muted}>
+                          {question.questionType.replaceAll('_', ' ')} · {question.marks} marks
+                          {question.difficulty ? ` · ${question.difficulty}` : ''}
+                          {question.bloomLevel ? ` · ${question.bloomLevel}` : ''}
+                          {` · used ${question.usageCount} times`}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={Boolean(bankActionId)}
+                        onClick={() => void reuseBankItem(question.id)}
+                        style={primaryButton}
+                      >
+                        {bankActionId === question.id ? 'Adding…' : 'Add'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {assessment.sections.map((section, index) => {
               const draft = editing[section.id]
@@ -182,7 +317,7 @@ export default function AssessmentBuilderPage() {
                       )}
                     </div>
                     {!draft && (
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         <button type="button" disabled={busy || index === 0} onClick={() => void moveSection(section.id, -1)} style={smallButton}>↑</button>
                         <button type="button" disabled={busy || index === assessment.sections.length - 1} onClick={() => void moveSection(section.id, 1)} style={smallButton}>↓</button>
                         <button type="button" onClick={() => startEditing(section)} style={smallButton}>Edit</button>
@@ -196,14 +331,17 @@ export default function AssessmentBuilderPage() {
                       <div style={emptyBox}>No questions in this section.</div>
                     ) : section.items.map(item => (
                       <div key={item.id} style={itemRow}>
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <strong>{item.orderNum}. {item.prompt}</strong>
                           <div style={muted}>{item.questionType.replaceAll('_', ' ')} · {item.marks} marks</div>
                         </div>
-                        <select disabled={busy} value={section.id} onChange={event => void placeItem(item.id, event.target.value || null)} style={select}>
-                          <option value="">Unsectioned</option>
-                          {assessment.sections.map(option => <option key={option.id} value={option.id}>{option.title}</option>)}
-                        </select>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {renderQuestionActions(item.id)}
+                          <select disabled={busy} value={section.id} onChange={event => void placeItem(item.id, event.target.value || null)} style={select}>
+                            <option value="">Unsectioned</option>
+                            {assessment.sections.map(option => <option key={option.id} value={option.id}>{option.title}</option>)}
+                          </select>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -217,14 +355,17 @@ export default function AssessmentBuilderPage() {
                 <div style={emptyBox}>All questions are organized into sections.</div>
               ) : assessment.unsectionedItems.map(item => (
                 <div key={item.id} style={itemRow}>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <strong>{item.orderNum}. {item.prompt}</strong>
                     <div style={muted}>{item.questionType.replaceAll('_', ' ')} · {item.marks} marks</div>
                   </div>
-                  <select disabled={busy} value="" onChange={event => void placeItem(item.id, event.target.value || null)} style={select}>
-                    <option value="">Choose section</option>
-                    {assessment.sections.map(section => <option key={section.id} value={section.id}>{section.title}</option>)}
-                  </select>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {renderQuestionActions(item.id)}
+                    <select disabled={busy} value="" onChange={event => void placeItem(item.id, event.target.value || null)} style={select}>
+                      <option value="">Choose section</option>
+                      {assessment.sections.map(section => <option key={section.id} value={section.id}>{section.title}</option>)}
+                    </select>
+                  </div>
                 </div>
               ))}
             </section>
@@ -242,6 +383,8 @@ const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
 const select: React.CSSProperties = { minWidth: 150, border: '1px solid #d1d5db', borderRadius: 9, padding: '8px 10px', background: '#fff', font: 'inherit' }
 const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 10, padding: '10px 14px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
 const smallButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 8, padding: '7px 9px', background: '#fff', fontWeight: 700, cursor: 'pointer' }
+const bankButton: React.CSSProperties = { border: '1px solid #0f766e', borderRadius: 8, padding: '7px 9px', background: '#f0fdfa', color: '#0f766e', fontWeight: 800, cursor: 'pointer' }
 const itemRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }
 const emptyBox: React.CSSProperties = { border: '1px dashed #cbd5e1', borderRadius: 10, padding: 14, color: '#6b7280' }
