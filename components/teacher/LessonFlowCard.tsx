@@ -526,6 +526,10 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
             activeSlot.teaching_workspace?.lessonPlanId ??
             activeSlot.lesson_plan_id
           }
+          occurrenceId={
+            activeSlot.teaching_workspace?.occurrenceId ??
+            null
+          }
           classId={activeSlot.class_id}
           subjectId={activeSlot.subject_id}
           teacherId={teacherId ?? ""}
