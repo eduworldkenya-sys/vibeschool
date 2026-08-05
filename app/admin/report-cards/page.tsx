@@ -10,6 +10,7 @@ import {
   lockReportCard,
   publishReportCard,
   reviewReportCard,
+  validateReportCard,
   type ReportCardSummary,
   type ReportEvidenceDetail,
   type ReportSubjectEvidence,
@@ -45,6 +46,16 @@ export default function AdminReportCardsPage() {
     finally { setBusyId(null) }
   }
 
+  async function revalidate(item: ReportCardSummary) {
+    setBusyId(item.id); setError(''); setMessage('')
+    try {
+      const result = await validateReportCard(item.id)
+      setMessage(`Validation ${result.validationStatus}: ${result.blockingCount} blocking issue(s), ${result.warningCount} warning(s).`)
+      await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Report validation failed.') }
+    finally { setBusyId(null) }
+  }
+
   async function run(item: ReportCardSummary, action: 'approved' | 'returned' | 'published' | 'locked') {
     setBusyId(item.id); setError(''); setMessage('')
     try {
@@ -60,7 +71,7 @@ export default function AdminReportCardsPage() {
   }
 
   return <main style={shell}><div style={{ maxWidth: 980, margin: '0 auto' }}>
-    <section style={card}><div style={eyebrow}>School Reporting Governance</div><h1 style={{ margin: '6px 0' }}>Report Card Review</h1><p style={{ margin: 0, color: '#6b7280' }}>Review the exact evidence snapshot, subject narratives, teacher wording, and parent guidance before approval and publication.</p></section>
+    <section style={card}><div style={eyebrow}>School Reporting Governance</div><h1 style={{ margin: '6px 0' }}>Report Card Review</h1><p style={{ margin: 0, color: '#6b7280' }}>Review evidence, validation results, subject narratives, teacher wording, and parent guidance before publication.</p></section>
     {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
     {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
 
@@ -70,13 +81,18 @@ export default function AdminReportCardsPage() {
       const snapshot = detail?.snapshot && typeof detail.snapshot === 'object' && !Array.isArray(detail.snapshot) ? detail.snapshot as Record<string, unknown> : null
       const summary = snapshot?.summary && typeof snapshot.summary === 'object' && !Array.isArray(snapshot.summary) ? snapshot.summary as Record<string, unknown> : null
       const attendance = snapshot?.attendance && typeof snapshot.attendance === 'object' && !Array.isArray(snapshot.attendance) ? snapshot.attendance as Record<string, unknown> : null
+      const validForApproval = item.validationStatus === 'passed' || item.validationStatus === 'warnings'
       return <section key={item.id} style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-          <div><div style={eyebrow}>{item.termName} · {item.academicYear}</div><h2 style={{ fontSize: 18, margin: '5px 0' }}>{item.studentName}</h2><div style={muted}>{item.className} · Revision {item.revision}</div><div style={muted}>Evidence {item.completenessStatus.replaceAll('_', ' ')} · v{item.evidenceVersion}</div></div>
+          <div><div style={eyebrow}>{item.termName} · {item.academicYear}</div><h2 style={{ fontSize: 18, margin: '5px 0' }}>{item.studentName}</h2><div style={muted}>{item.className} · Revision {item.revision}</div><div style={muted}>Evidence {item.completenessStatus.replaceAll('_', ' ')} · Validation {item.validationStatus.replaceAll('_', ' ')}</div></div>
           <strong style={{ textTransform: 'capitalize', color: '#4338ca' }}>{item.status}</strong>
         </div>
         {item.completenessIssues.length > 0 && <div style={issueBox}>{item.completenessIssues.map(issue => <div key={`${issue.code}-${issue.message}`}>• {issue.message}</div>)}</div>}
-        <button disabled={busyId === item.id} onClick={() => void openReview(item)} style={{ ...secondaryButton, marginTop: 12 }}>{openId === item.id ? 'Hide review' : 'Review evidence and narratives'}</button>
+        {item.validationIssues.length > 0 && <div style={validationBox}>{item.validationIssues.map(issue => <div key={`${issue.code}-${issue.message}`}><strong>{issue.severity ?? 'issue'}:</strong> {issue.message}</div>)}</div>}
+        <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+          <button disabled={busyId === item.id} onClick={() => void openReview(item)} style={secondaryButton}>{openId === item.id ? 'Hide review' : 'Review evidence and narratives'}</button>
+          {item.status !== 'published' && item.status !== 'locked' && <button disabled={busyId === item.id} onClick={() => void revalidate(item)} style={secondaryButton}>Revalidate</button>}
+        </div>
 
         {openId === item.id && detail && <div style={evidenceBox}>
           <div style={metricGrid}><Metric label="Subjects" value={String(summary?.subject_count ?? rows.length)} /><Metric label="Assessment" value={formatPercent(summary?.overall_assessment_average)} /><Metric label="Mastery" value={formatPercent(summary?.overall_mastery_average)} /><Metric label="Attendance" value={formatPercent(attendance?.attendance_rate)} /></div>
@@ -96,8 +112,8 @@ export default function AdminReportCardsPage() {
 
         {item.status === 'review' && <textarea value={reason[item.id] ?? ''} onChange={event => setReason(current => ({ ...current, [item.id]: event.target.value }))} rows={3} placeholder="Reason when returning the report" style={{ ...input, marginTop: 12, resize: 'vertical' }} />}
         <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-          {item.status === 'review' && <><button disabled={busyId === item.id} onClick={() => void run(item, 'returned')} style={secondaryButton}>Return</button><button disabled={busyId === item.id || item.completenessStatus !== 'complete'} onClick={() => void run(item, 'approved')} style={primaryButton}>Approve</button></>}
-          {item.status === 'approved' && <button disabled={busyId === item.id || item.completenessStatus !== 'complete'} onClick={() => void run(item, 'published')} style={primaryButton}>Publish and freeze</button>}
+          {item.status === 'review' && <><button disabled={busyId === item.id} onClick={() => void run(item, 'returned')} style={secondaryButton}>Return</button><button disabled={busyId === item.id || !validForApproval} onClick={() => void run(item, 'approved')} style={primaryButton}>Approve</button></>}
+          {item.status === 'approved' && <button disabled={busyId === item.id || !validForApproval} onClick={() => void run(item, 'published')} style={primaryButton}>Publish and freeze</button>}
           {item.status === 'published' && <button disabled={busyId === item.id} onClick={() => void run(item, 'locked')} style={primaryButton}>Lock report</button>}
           {item.status === 'locked' && <div style={lockedBox}>Locked and immutable</div>}
         </div>
@@ -116,6 +132,7 @@ const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4
 const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
 const issueBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fff7ed', color: '#9a3412', fontSize: 13, lineHeight: 1.5 }
+const validationBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fef2f2', color: '#991b1b', fontSize: 13, lineHeight: 1.5 }
 const evidenceBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5e7eb' }
 const subjectBox: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#fff', border: '1px solid #e5e7eb' }
 const metricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }
