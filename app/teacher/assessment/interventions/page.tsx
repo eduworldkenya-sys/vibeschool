@@ -3,7 +3,10 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
+  createInterventionAssessment,
+  evaluateIntervention,
   listInterventionQueue,
   updateIntervention,
   type InterventionQueueItem,
@@ -11,10 +14,12 @@ import {
 } from '@/lib/assessment/interventions'
 
 export default function AssessmentInterventionsPage() {
+  const router = useRouter()
   const [items, setItems] = useState<InterventionQueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [notes, setNotes] = useState<Record<string, string>>({})
 
   async function load() {
@@ -27,6 +32,32 @@ export default function AssessmentInterventionsPage() {
 
   useEffect(() => { void load() }, [])
 
+  async function openRemedialBuilder(item: InterventionQueueItem) {
+    setBusyId(item.interventionId)
+    setError('')
+    setMessage('')
+    try {
+      const assessmentId = item.remedialAssessmentId ?? await createInterventionAssessment(item.interventionId)
+      router.push(`/teacher/assessment/builder/${assessmentId}`)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Remedial assessment could not be opened.')
+      setBusyId(null)
+    }
+  }
+
+  async function evaluate(item: InterventionQueueItem) {
+    setBusyId(item.interventionId)
+    setError('')
+    setMessage('')
+    try {
+      const result = await evaluateIntervention(item.interventionId)
+      setMessage(`Follow-up evaluated: ${result.baselineMasteryScore.toFixed(1)}% → ${result.followupMasteryScore.toFixed(1)}% (${result.masteryChange >= 0 ? '+' : ''}${result.masteryChange.toFixed(1)}). ${result.recommendation}`)
+      await load()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Follow-up evidence could not be evaluated.')
+    } finally { setBusyId(null) }
+  }
+
   async function changeStatus(item: InterventionQueueItem, status: InterventionStatus) {
     const note = notes[item.interventionId]?.trim() ?? ''
     if (status === 'completed' && note.length < 3) {
@@ -35,9 +66,10 @@ export default function AssessmentInterventionsPage() {
     }
     setBusyId(item.interventionId)
     setError('')
+    setMessage('')
     try {
       await updateIntervention({ interventionId: item.interventionId, status, completionNote: note || null })
-      setItems(current => current.filter(entry => entry.interventionId !== item.interventionId))
+      await load()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Intervention could not be updated.')
     } finally { setBusyId(null) }
@@ -46,7 +78,8 @@ export default function AssessmentInterventionsPage() {
   const stats = useMemo(() => ({
     urgent: items.filter(item => item.priority === 'urgent').length,
     high: items.filter(item => item.priority === 'high').length,
-    extension: items.filter(item => item.priority === 'extension').length,
+    followupReady: items.filter(item => item.remedialAssignmentId).length,
+    escalated: items.filter(item => item.status === 'escalated').length,
   }), [items])
 
   return (
@@ -55,18 +88,20 @@ export default function AssessmentInterventionsPage() {
         <section style={card}>
           <div style={eyebrow}>Assessment Intelligence</div>
           <h1 style={{ margin: '6px 0' }}>Learner Intervention Queue</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Prioritized follow-up generated from outcome mastery, repeated weakness, evidence recency, and confidence.</p>
+          <p style={{ margin: 0, color: '#6b7280' }}>Turn mastery gaps into targeted practice, collect follow-up evidence, and close or escalate support.</p>
         </section>
 
         <section style={card}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10 }}>
             <Metric label="Urgent" value={stats.urgent} />
             <Metric label="High" value={stats.high} />
-            <Metric label="Extension" value={stats.extension} />
+            <Metric label="Assigned" value={stats.followupReady} />
+            <Metric label="Escalated" value={stats.escalated} />
           </div>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
+        {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
 
         {loading ? <section style={card}>Building intervention queue…</section>
           : items.length === 0 ? <section style={card}><strong>No open interventions</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>New follow-up actions will appear as released assessment evidence is processed.</p></section>
@@ -74,7 +109,7 @@ export default function AssessmentInterventionsPage() {
             <section key={item.interventionId} style={{ ...card, borderColor: priorityBorder[item.priority] }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <div>
-                  <div style={eyebrow}>{item.priority} priority · {item.recommendationType.replaceAll('_', ' ')}</div>
+                  <div style={eyebrow}>{item.priority} priority · {item.status.replaceAll('_', ' ')}</div>
                   <h2 style={{ fontSize: 18, margin: '6px 0' }}>{item.studentName}</h2>
                   <div style={muted}>{item.className}{item.classStream ? ` ${item.classStream}` : ''} · {item.subjectName}</div>
                 </div>
@@ -90,7 +125,28 @@ export default function AssessmentInterventionsPage() {
               </div>
 
               <div style={recommendationBox}>{item.recommendation}</div>
+
+              {(item.baselineMasteryScore !== null || item.followupMasteryScore !== null) && (
+                <div style={progressBox}>
+                  <strong>Intervention evidence</strong>
+                  <div style={{ marginTop: 5 }}>
+                    Baseline {item.baselineMasteryScore?.toFixed(1) ?? item.masteryScore.toFixed(1)}%
+                    {item.followupMasteryScore !== null && ` → Follow-up ${item.followupMasteryScore.toFixed(1)}%`}
+                    {item.masteryChange !== null && ` (${item.masteryChange >= 0 ? '+' : ''}${item.masteryChange.toFixed(1)})`}
+                  </div>
+                </div>
+              )}
+
               {item.dueAt && <div style={{ ...muted, marginTop: 8 }}>Due {new Date(item.dueAt).toLocaleDateString('en-KE')}</div>}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                <button disabled={busyId === item.interventionId} onClick={() => void openRemedialBuilder(item)} style={primaryButton}>
+                  {item.remedialAssessmentId ? 'Open remedial assessment' : 'Create remedial assessment'}
+                </button>
+                {item.remedialAssignmentId && (
+                  <button disabled={busyId === item.interventionId} onClick={() => void evaluate(item)} style={secondaryButton}>Evaluate follow-up</button>
+                )}
+              </div>
 
               <textarea
                 rows={2}
@@ -102,7 +158,7 @@ export default function AssessmentInterventionsPage() {
 
               <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'in_progress')} style={secondaryButton}>Start</button>
-                <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'completed')} style={primaryButton}>Complete</button>
+                <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'completed')} style={secondaryButton}>Complete manually</button>
                 <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'dismissed')} style={secondaryButton}>Dismiss</button>
               </div>
             </section>
@@ -124,6 +180,7 @@ const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 
 const metric: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: 12, borderRadius: 12, background: '#f8fafc' }
 const outcomeBox: React.CSSProperties = { marginTop: 14, padding: 12, borderRadius: 10, background: '#f8fafc', lineHeight: 1.5 }
 const recommendationBox: React.CSSProperties = { marginTop: 10, padding: 12, borderRadius: 10, background: '#eef2ff', color: '#3730a3', lineHeight: 1.5, fontWeight: 700 }
+const progressBox: React.CSSProperties = { marginTop: 10, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46' }
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
 const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 10, padding: '10px 14px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
 const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
