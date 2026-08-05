@@ -1,0 +1,129 @@
+'use client'
+
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useMemo, useState } from 'react'
+import {
+  listInterventionQueue,
+  updateIntervention,
+  type InterventionQueueItem,
+  type InterventionStatus,
+} from '@/lib/assessment/interventions'
+
+export default function AssessmentInterventionsPage() {
+  const [items, setItems] = useState<InterventionQueueItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [notes, setNotes] = useState<Record<string, string>>({})
+
+  async function load() {
+    setLoading(true)
+    setError('')
+    try { setItems(await listInterventionQueue()) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load intervention queue.') }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { void load() }, [])
+
+  async function changeStatus(item: InterventionQueueItem, status: InterventionStatus) {
+    const note = notes[item.interventionId]?.trim() ?? ''
+    if (status === 'completed' && note.length < 3) {
+      setError('Add a short completion note before marking an intervention complete.')
+      return
+    }
+    setBusyId(item.interventionId)
+    setError('')
+    try {
+      await updateIntervention({ interventionId: item.interventionId, status, completionNote: note || null })
+      setItems(current => current.filter(entry => entry.interventionId !== item.interventionId))
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Intervention could not be updated.')
+    } finally { setBusyId(null) }
+  }
+
+  const stats = useMemo(() => ({
+    urgent: items.filter(item => item.priority === 'urgent').length,
+    high: items.filter(item => item.priority === 'high').length,
+    extension: items.filter(item => item.priority === 'extension').length,
+  }), [items])
+
+  return (
+    <main style={shell}>
+      <div style={{ maxWidth: 980, margin: '0 auto' }}>
+        <section style={card}>
+          <div style={eyebrow}>Assessment Intelligence</div>
+          <h1 style={{ margin: '6px 0' }}>Learner Intervention Queue</h1>
+          <p style={{ margin: 0, color: '#6b7280' }}>Prioritized follow-up generated from outcome mastery, repeated weakness, evidence recency, and confidence.</p>
+        </section>
+
+        <section style={card}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
+            <Metric label="Urgent" value={stats.urgent} />
+            <Metric label="High" value={stats.high} />
+            <Metric label="Extension" value={stats.extension} />
+          </div>
+        </section>
+
+        {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
+
+        {loading ? <section style={card}>Building intervention queue…</section>
+          : items.length === 0 ? <section style={card}><strong>No open interventions</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>New follow-up actions will appear as released assessment evidence is processed.</p></section>
+          : items.map(item => (
+            <section key={item.interventionId} style={{ ...card, borderColor: priorityBorder[item.priority] }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={eyebrow}>{item.priority} priority · {item.recommendationType.replaceAll('_', ' ')}</div>
+                  <h2 style={{ fontSize: 18, margin: '6px 0' }}>{item.studentName}</h2>
+                  <div style={muted}>{item.className}{item.classStream ? ` ${item.classStream}` : ''} · {item.subjectName}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <strong style={{ fontSize: 22, color: item.masteryScore < 40 ? '#b91c1c' : item.masteryScore < 80 ? '#b45309' : '#065f46' }}>{item.masteryScore.toFixed(1)}%</strong>
+                  <div style={muted}>{item.confidenceScore.toFixed(0)}% confidence</div>
+                </div>
+              </div>
+
+              <div style={outcomeBox}>
+                <strong>{item.outcomeCode ? `${item.outcomeCode} · ` : ''}{item.outcomeText}</strong>
+                <div style={muted}>{item.evidenceCount} evidence records · {item.repeatedWeaknessCount} recent results below 50%</div>
+              </div>
+
+              <div style={recommendationBox}>{item.recommendation}</div>
+              {item.dueAt && <div style={{ ...muted, marginTop: 8 }}>Due {new Date(item.dueAt).toLocaleDateString('en-KE')}</div>}
+
+              <textarea
+                rows={2}
+                value={notes[item.interventionId] ?? ''}
+                onChange={event => setNotes(current => ({ ...current, [item.interventionId]: event.target.value }))}
+                placeholder="Completion note or follow-up observation"
+                style={{ ...input, marginTop: 12, resize: 'vertical' }}
+              />
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'in_progress')} style={secondaryButton}>Start</button>
+                <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'completed')} style={primaryButton}>Complete</button>
+                <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'dismissed')} style={secondaryButton}>Dismiss</button>
+              </div>
+            </section>
+          ))}
+      </div>
+    </main>
+  )
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return <div style={metric}><strong style={{ fontSize: 22 }}>{value}</strong><span style={muted}>{label}</span></div>
+}
+
+const priorityBorder: Record<InterventionQueueItem['priority'], string> = { urgent: '#fecaca', high: '#fed7aa', medium: '#fde68a', extension: '#a7f3d0' }
+const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12 }
+const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
+const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
+const metric: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: 12, borderRadius: 12, background: '#f8fafc' }
+const outcomeBox: React.CSSProperties = { marginTop: 14, padding: 12, borderRadius: 10, background: '#f8fafc', lineHeight: 1.5 }
+const recommendationBox: React.CSSProperties = { marginTop: 10, padding: 12, borderRadius: 10, background: '#eef2ff', color: '#3730a3', lineHeight: 1.5, fontWeight: 700 }
+const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
+const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 10, padding: '10px 14px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
