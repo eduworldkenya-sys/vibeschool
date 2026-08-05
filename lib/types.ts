@@ -234,7 +234,7 @@ export interface ParentNavTab {
 
 // ─── Homework ─────────────────────────────────────────────────────────────────
 
-export type HomeworkType     = "smart" | "general" | "reading" | "writing" | "project" | "revision";
+export type HomeworkType     = "general" | "reading" | "writing" | "project" | "revision" | "written" | "book";
 export type SubmissionStatus = "pending" | "submitted" | "marked";
 
 export interface Homework {

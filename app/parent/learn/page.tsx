@@ -32,7 +32,7 @@ interface HomeworkItem {
   subject:      string;
   title:        string;
   instructions: string | null;
-  type:         "smart" | "book";
+  type:         string;
   due_date:     string;
   submission:   SubmissionItem | null;
   teacherName:  string;
@@ -445,7 +445,7 @@ export default function ParentLearnPage() {
               subject: hw.subject ?? "Subject",
               title: hw.title,
               instructions: hw.instructions,
-              type: hw.type === "smart" ? "smart" : "book",
+              type: hw.type,
               due_date: hw.due_date,
               teacherName: hw.teacher_id
                 ? teacherMap.get(hw.teacher_id) ?? "Teacher"

@@ -263,8 +263,8 @@ export default function HomeworkDetailPage() {
         </div>
       )}
 
-      {/* Smart: questions */}
-      {hw.type === "smart" && questions.length > 0 && (
+      {/* Questions the teacher attached to this homework */}
+      {questions.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
           {questions.map((q, i) => (
             <div key={q.id} style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "14px 16px" }}>
@@ -288,8 +288,8 @@ export default function HomeworkDetailPage() {
         </div>
       )}
 
-      {/* Book type: photo upload */}
-      {hw.type !== "smart" && !isSubmitted && (
+      {/* No questions attached: photo-of-work upload */}
+      {questions.length === 0 && !isSubmitted && (
         <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "16px", marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: "var(--vs-muted)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Your Work</div>
           <p style={{ fontSize: 13, color: "var(--vs-muted)", lineHeight: 1.6, marginBottom: 14 }}>

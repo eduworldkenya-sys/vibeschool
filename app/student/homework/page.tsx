@@ -285,7 +285,7 @@ export default function HomeworkListPage() {
                       <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>{h.subject}</span>
                       <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--vs-border)", flexShrink: 0 }} />
                       <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 20, background: "var(--vs-surface)", color: "var(--vs-muted)" }}>
-                        {h.type === "smart" ? "Smart" : h.type.charAt(0).toUpperCase() + h.type.slice(1)}
+                        {h.type.charAt(0).toUpperCase() + h.type.slice(1)}
                       </span>
                       <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--vs-border)", flexShrink: 0 }} />
                       <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>
