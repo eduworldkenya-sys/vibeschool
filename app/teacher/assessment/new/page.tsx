@@ -6,475 +6,299 @@ import { Suspense, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   addDraftItem,
-  approveAssessment,
-  assignAssessment,
-  createDraftAssessment,
+  completeLessonAssessmentGeneration,
+  failLessonAssessmentGeneration,
+  requestLessonAssessment,
 } from '@/lib/assessment'
 import type {
   AutoMarkingMode,
+  LessonAssessmentType,
   QuestionType,
 } from '@/lib/assessment'
 
+type StudioType = 'exercise' | 'quiz' | 'homework' | 'test'
 type DraftQuestion = {
   prompt: string
   answer: string
   marks: number
   questionType: QuestionType
   autoMarkingMode: AutoMarkingMode
+  difficulty: 'easy' | 'medium' | 'hard'
+  bloomLevel: string
 }
 
-function buildStarterQuestions(
-  topic: string,
-  assessmentHook: string,
-): DraftQuestion[] {
-  const focus = topic.trim() || 'this lesson'
-  const hook = assessmentHook.trim()
+const TYPE_LABEL: Record<StudioType, string> = {
+  exercise: 'Exercise',
+  quiz: 'Quiz',
+  homework: 'Homework',
+  test: 'CAT',
+}
 
-  return [
+const BLUEPRINT: Record<StudioType, { minutes: number; instructions: string }> = {
+  exercise: { minutes: 25, instructions: 'Answer all questions. Show your working where required.' },
+  quiz: { minutes: 15, instructions: 'Answer all questions within the suggested time.' },
+  homework: { minutes: 35, instructions: 'Complete all questions and submit by the due date set by your teacher.' },
+  test: { minutes: 40, instructions: 'Answer all questions. Read each question carefully and manage your time.' },
+}
+
+function buildQuestions(type: StudioType, topic: string, hook: string): DraftQuestion[] {
+  const focus = topic.trim() || 'this lesson'
+  const base: DraftQuestion[] = [
     {
       prompt: `State one key idea you learned about ${focus}.`,
-      answer: '',
-      marks: 2,
-      questionType: 'short_answer',
-      autoMarkingMode: 'none',
+      answer: '', marks: 2, questionType: 'short_answer', autoMarkingMode: 'none',
+      difficulty: 'easy', bloomLevel: 'remember',
+    },
+    {
+      prompt: `Explain ${focus} in your own words.`,
+      answer: '', marks: 3, questionType: 'structured', autoMarkingMode: 'none',
+      difficulty: 'medium', bloomLevel: 'understand',
+    },
+    {
+      prompt: hook.trim() || `Apply what you learned to solve one problem about ${focus}.`,
+      answer: '', marks: 4, questionType: 'structured', autoMarkingMode: 'none',
+      difficulty: 'medium', bloomLevel: 'apply',
     },
     {
       prompt: `Give one correct example that demonstrates ${focus}.`,
-      answer: '',
-      marks: 2,
-      questionType: 'short_answer',
-      autoMarkingMode: 'none',
+      answer: '', marks: 3, questionType: 'short_answer', autoMarkingMode: 'none',
+      difficulty: 'medium', bloomLevel: 'apply',
     },
     {
-      prompt: hook || `Explain how you would solve a problem about ${focus}.`,
-      answer: '',
-      marks: 3,
-      questionType: 'structured',
-      autoMarkingMode: 'none',
-    },
-    {
-      prompt: `True or false: I can apply what I learned about ${focus} independently.`,
-      answer: 'true',
-      marks: 1,
-      questionType: 'true_false',
-      autoMarkingMode: 'case_insensitive',
-    },
-    {
-      prompt: `What should you check before finalising an answer about ${focus}?`,
-      answer: '',
-      marks: 2,
-      questionType: 'short_answer',
-      autoMarkingMode: 'none',
+      prompt: `Identify one common mistake a learner could make when working with ${focus}, then correct it.`,
+      answer: '', marks: 4, questionType: 'structured', autoMarkingMode: 'none',
+      difficulty: 'hard', bloomLevel: 'analyse',
     },
   ]
+
+  if (type === 'exercise') return base
+  if (type === 'homework') {
+    return [...base, {
+      prompt: `Create and solve one new example about ${focus}.`,
+      answer: '', marks: 4, questionType: 'structured', autoMarkingMode: 'none',
+      difficulty: 'hard', bloomLevel: 'create',
+    }]
+  }
+  if (type === 'quiz') {
+    return [
+      {
+        prompt: `True or false: I can apply what I learned about ${focus} independently.`,
+        answer: 'true', marks: 1, questionType: 'true_false', autoMarkingMode: 'case_insensitive',
+        difficulty: 'easy', bloomLevel: 'understand',
+      },
+      ...base.slice(0, 4),
+    ]
+  }
+  return [...base, {
+    prompt: `Compare two methods or ideas used when solving problems about ${focus}.`,
+    answer: '', marks: 5, questionType: 'structured', autoMarkingMode: 'none',
+    difficulty: 'hard', bloomLevel: 'evaluate',
+  }]
 }
 
 function Studio() {
   const router = useRouter()
   const params = useSearchParams()
-
-  const classId = params.get('classId') ?? ''
-  const subjectId = params.get('subjectId') ?? ''
-  const lessonPlanId = params.get('lessonPlanId')
-  const occurrenceId = params.get('occurrenceId')
+  const lessonPlanId = params.get('lessonPlanId') ?? ''
   const topic = params.get('topic') ?? ''
   const assessmentHook = params.get('assessmentHook') ?? ''
+  const requestedType = params.get('type')
+  const initialType: StudioType =
+    requestedType === 'exercise' || requestedType === 'homework' || requestedType === 'test'
+      ? requestedType
+      : 'quiz'
 
-  const initialQuestions = useMemo(
-    () => buildStarterQuestions(topic, assessmentHook),
-    [topic, assessmentHook],
+  const [assessmentType, setAssessmentType] = useState<StudioType>(initialType)
+  const questions = useMemo(
+    () => buildQuestions(assessmentType, topic, assessmentHook),
+    [assessmentType, topic, assessmentHook],
   )
-
-  const [title, setTitle] = useState(
-    `${topic || 'Lesson'} Quick Quiz`,
-  )
-  const [instructions, setInstructions] = useState(
-    'Answer all questions. Show your working where required.',
-  )
-  const [questions, setQuestions] = useState(initialQuestions)
-  const [timeLimit, setTimeLimit] = useState(15)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState<{
-    assessmentId: string
-    assignmentId: string
-  } | null>(null)
 
-  const ready =
-    classId.length > 0 &&
-    subjectId.length > 0 &&
-    title.trim().length > 0 &&
-    questions.length > 0 &&
-    questions.every(question => question.prompt.trim().length > 0)
-
-  function updateQuestion(
-    index: number,
-    patch: Partial<DraftQuestion>,
-  ) {
-    setQuestions(current =>
-      current.map((question, questionIndex) =>
-        questionIndex === index
-          ? { ...question, ...patch }
-          : question,
-      ),
-    )
-  }
-
-  async function publishQuiz() {
-    if (!ready || saving) return
-
+  async function createDraft() {
+    if (!lessonPlanId || saving) return
     setSaving(true)
     setError('')
 
+    let assessmentId: string | null = null
     try {
-      const assessmentId = await createDraftAssessment({
-        classId,
-        subjectId,
-        assessmentType: 'quiz',
-        title: title.trim(),
-        instructions: instructions.trim() || null,
+      const label = TYPE_LABEL[assessmentType]
+      const request = await requestLessonAssessment({
         lessonPlanId,
-        teachingOccurrenceId: occurrenceId,
-        generationSource: 'lesson_plan_quick_quiz',
+        assessmentType: assessmentType as LessonAssessmentType,
+        requestKey: `lesson:${lessonPlanId}:${assessmentType}:v1`,
+        title: `${label} — ${topic || 'Lesson'}`,
         generationMetadata: {
-          topic,
-          assessment_hook: assessmentHook,
+          generator_version: 'exq-004b-v1',
+          blueprint: {
+            question_count: questions.length,
+            estimated_minutes: BLUEPRINT[assessmentType].minutes,
+            difficulty_progression: ['easy', 'medium', 'hard'],
+            bloom_distribution: questions.map(question => question.bloomLevel),
+          },
         },
       })
 
+      assessmentId = request.assessmentId
+      if (!request.created) {
+        router.push(`/teacher/assessment/builder/${assessmentId}`)
+        return
+      }
+
+      let totalMarks = 0
       for (let index = 0; index < questions.length; index += 1) {
         const question = questions[index]
+        totalMarks += question.marks
         await addDraftItem({
           assessmentId,
           questionType: question.questionType,
-          prompt: question.prompt.trim(),
+          prompt: question.prompt,
           marks: question.marks,
           orderNum: index + 1,
-          correctAnswer:
-            question.answer.trim().length > 0
-              ? question.answer.trim()
-              : null,
-          acceptedAnswers:
-            question.answer.trim().length > 0
-              ? [question.answer.trim()]
-              : [],
-          autoMarkingMode:
-            question.answer.trim().length > 0
-              ? question.autoMarkingMode
-              : 'none',
-          generatedBy: 'lesson_plan_studio',
+          acceptedAnswers: question.answer ? [question.answer] : [],
+          correctAnswer: question.answer || null,
+          autoMarkingMode: question.answer ? question.autoMarkingMode : 'none',
+          difficulty: question.difficulty,
+          bloomLevel: question.bloomLevel,
+          generatedBy: 'lesson_assessment_generator',
         })
       }
 
-      await approveAssessment(assessmentId)
-
-      const assignmentId = await assignAssessment({
+      await completeLessonAssessmentGeneration({
         assessmentId,
-        classId,
-        timeLimitMinutes: timeLimit,
-        maxAttempts: 1,
-        randomizeItems: false,
-        randomizeOptions: false,
-        showScorePolicy: 'after_review',
+        itemCount: questions.length,
+        totalMarks,
+        estimatedMinutes: BLUEPRINT[assessmentType].minutes,
+        generationMetadata: {
+          generated_from: 'lesson_plan',
+          teacher_review_required: true,
+        },
       })
 
-      setSuccess({ assessmentId, assignmentId })
-    } catch (publishError) {
-      console.error('[AssessmentStudio] publish quiz', publishError)
-      setError(
-        publishError instanceof Error
-          ? publishError.message
-          : 'Quiz could not be created.',
-      )
+      router.push(`/teacher/assessment/builder/${assessmentId}`)
+    } catch (generationError) {
+      console.error('[LessonAssessmentStudio] generation failed', generationError)
+      if (assessmentId) {
+        try {
+          await failLessonAssessmentGeneration({
+            assessmentId,
+            errorCode: 'draft_generation_failed',
+            errorMessage: generationError instanceof Error ? generationError.message : null,
+          })
+        } catch (recordError) {
+          console.error('[LessonAssessmentStudio] failure recording failed', recordError)
+        }
+      }
+      setError(generationError instanceof Error ? generationError.message : 'Assessment draft could not be generated.')
     } finally {
       setSaving(false)
     }
   }
 
-  if (!classId || !subjectId) {
+  if (!lessonPlanId) {
     return (
-      <main style={{ padding: 20, fontFamily: 'sans-serif' }}>
-        <h1 style={{ fontSize: 20, margin: '0 0 8px' }}>
-          Assessment Studio
-        </h1>
-        <p style={{ color: '#b91c1c', lineHeight: 1.5 }}>
-          Open this studio from a lesson so the class and subject are known.
-        </p>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          style={secondaryButton}
-        >
-          Go back
-        </button>
+      <main style={page}>
+        <section style={card}>
+          <h1 style={{ marginTop: 0 }}>Lesson Assessment Studio</h1>
+          <p style={{ color: '#b91c1c' }}>Open this studio from a saved lesson plan.</p>
+          <button type="button" onClick={() => router.back()} style={secondaryButton}>Go back</button>
+        </section>
       </main>
     )
   }
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      background: '#f8fafc',
-      padding: '18px 14px 80px',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-      color: '#111827',
-    }}>
-      <div style={{ maxWidth: 820, margin: '0 auto' }}>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          style={{ ...secondaryButton, marginBottom: 12 }}
-        >
-          ← Back to lesson
-        </button>
-
+    <main style={page}>
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <button type="button" onClick={() => router.back()} style={{ ...secondaryButton, marginBottom: 12 }}>← Back to lesson</button>
         <section style={card}>
-          <div style={{
-            fontSize: 11,
-            fontWeight: 800,
-            color: '#4338ca',
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-          }}>
-            Assessment Studio
-          </div>
-          <h1 style={{ fontSize: 22, margin: '6px 0' }}>
-            Generate Quiz from Lesson
-          </h1>
-          <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>
-            Review every question before approval. Correct answers stay hidden from learners during attempts.
+          <div style={eyebrow}>Lesson → Assessment</div>
+          <h1 style={{ margin: '6px 0 8px' }}>Generate a teacher-reviewed draft</h1>
+          <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.55 }}>
+            Choose the assessment purpose. Vibeschool creates a structured draft and opens it in the Assessment Builder. Nothing is published automatically.
           </p>
         </section>
 
-        {success ? (
-          <section style={{ ...card, border: '1px solid #6ee7b7', background: '#ecfdf5' }}>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, color: '#065f46' }}>
-              Quiz approved and assigned ✓
-            </h2>
-            <p style={{ margin: 0, color: '#047857', lineHeight: 1.5 }}>
-              The assessment is open for the class. Objective answers will be marked server-side; written answers will enter teacher review.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              style={{ ...primaryButton, marginTop: 16 }}
-            >
-              Return to lesson
-            </button>
-          </section>
-        ) : (
-          <>
-            <section style={card}>
-              <label style={label}>Quiz title</label>
-              <input
-                value={title}
-                onChange={event => setTitle(event.target.value)}
-                style={input}
-              />
-
-              <label style={{ ...label, marginTop: 14 }}>Instructions</label>
-              <textarea
-                value={instructions}
-                onChange={event => setInstructions(event.target.value)}
-                rows={3}
-                style={{ ...input, resize: 'vertical' }}
-              />
-
-              <label style={{ ...label, marginTop: 14 }}>Time limit</label>
-              <input
-                type="number"
-                min={1}
-                value={timeLimit}
-                onChange={event => setTimeLimit(Math.max(1, Number(event.target.value) || 1))}
-                style={input}
-              />
-            </section>
-
-            {questions.map((question, index) => (
-              <section key={index} style={card}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                  marginBottom: 10,
-                }}>
-                  <strong>Question {index + 1}</strong>
-                  <button
-                    type="button"
-                    onClick={() => setQuestions(current => current.filter((_, itemIndex) => itemIndex !== index))}
-                    style={{ border: 'none', background: 'none', color: '#b91c1c', fontWeight: 700 }}
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <label style={label}>Prompt</label>
-                <textarea
-                  value={question.prompt}
-                  onChange={event => updateQuestion(index, { prompt: event.target.value })}
-                  rows={3}
-                  style={{ ...input, resize: 'vertical' }}
-                />
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 10, marginTop: 12 }}>
-                  <div>
-                    <label style={label}>Question type</label>
-                    <select
-                      value={question.questionType}
-                      onChange={event => updateQuestion(index, {
-                        questionType: event.target.value as QuestionType,
-                        autoMarkingMode: event.target.value === 'true_false'
-                          ? 'case_insensitive'
-                          : 'none',
-                      })}
-                      style={input}
-                    >
-                      <option value="short_answer">Short answer</option>
-                      <option value="structured">Structured</option>
-                      <option value="true_false">True / false</option>
-                      <option value="numeric">Numeric</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={label}>Marks</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={question.marks}
-                      onChange={event => updateQuestion(index, {
-                        marks: Math.max(1, Number(event.target.value) || 1),
-                      })}
-                      style={input}
-                    />
-                  </div>
-                </div>
-
-                <label style={{ ...label, marginTop: 12 }}>
-                  Correct answer (optional)
-                </label>
-                <input
-                  value={question.answer}
-                  onChange={event => updateQuestion(index, {
-                    answer: event.target.value,
-                    autoMarkingMode:
-                      question.questionType === 'numeric'
-                        ? 'numeric_tolerance'
-                        : question.questionType === 'true_false'
-                          ? 'case_insensitive'
-                          : 'case_insensitive',
-                  })}
-                  placeholder="Leave blank for teacher marking"
-                  style={input}
-                />
-              </section>
+        <section style={card}>
+          <div style={eyebrow}>Assessment type</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10, marginTop: 12 }}>
+            {(Object.keys(TYPE_LABEL) as StudioType[]).map(type => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setAssessmentType(type)}
+                style={{
+                  padding: 14, borderRadius: 12,
+                  border: assessmentType === type ? '2px solid #4338ca' : '1px solid #d1d5db',
+                  background: assessmentType === type ? '#eef2ff' : '#fff',
+                  color: assessmentType === type ? '#4338ca' : '#374151',
+                  fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                {TYPE_LABEL[type]}
+              </button>
             ))}
+          </div>
+        </section>
 
-            <button
-              type="button"
-              onClick={() => setQuestions(current => [
-                ...current,
-                {
-                  prompt: '',
-                  answer: '',
-                  marks: 1,
-                  questionType: 'short_answer',
-                  autoMarkingMode: 'none',
-                },
-              ])}
-              style={{ ...secondaryButton, width: '100%', marginBottom: 12 }}
-            >
-              + Add question
-            </button>
+        <section style={card}>
+          <div style={eyebrow}>Blueprint</div>
+          <h2 style={{ fontSize: 17, margin: '8px 0' }}>{TYPE_LABEL[assessmentType]} — {topic || 'Lesson'}</h2>
+          <div style={{ color: '#4b5563', lineHeight: 1.7, fontSize: 13 }}>
+            {questions.length} questions · {questions.reduce((sum, question) => sum + question.marks, 0)} marks · about {BLUEPRINT[assessmentType].minutes} minutes
+          </div>
+          <ol style={{ paddingLeft: 22, color: '#374151', lineHeight: 1.6 }}>
+            {questions.map((question, index) => (
+              <li key={`${question.prompt}-${index}`} style={{ marginBottom: 8 }}>
+                {question.prompt} <strong>({question.marks})</strong>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-            {error && (
-              <div style={{
-                padding: 12,
-                borderRadius: 10,
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#b91c1c',
-                marginBottom: 12,
-              }}>
-                {error}
-              </div>
-            )}
+        {error && <div style={errorBox}>{error}</div>}
 
-            <button
-              type="button"
-              disabled={!ready || saving}
-              onClick={publishQuiz}
-              style={{
-                ...primaryButton,
-                width: '100%',
-                opacity: !ready || saving ? 0.6 : 1,
-                cursor: !ready || saving ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {saving ? 'Creating and assigning…' : 'Approve and Assign Quiz'}
-            </button>
-          </>
-        )}
+        <button
+          type="button"
+          onClick={createDraft}
+          disabled={saving}
+          style={{ ...primaryButton, width: '100%', opacity: saving ? 0.65 : 1 }}
+        >
+          {saving ? 'Generating draft…' : `Generate ${TYPE_LABEL[assessmentType]} Draft`}
+        </button>
       </div>
     </main>
   )
 }
 
+const page: React.CSSProperties = {
+  minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px',
+  fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827',
+}
 const card: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #e5e7eb',
-  borderRadius: 16,
-  padding: 16,
-  marginBottom: 12,
-  boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
+  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16,
+  padding: 16, marginBottom: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
 }
-
-const label: React.CSSProperties = {
-  display: 'block',
-  fontSize: 10,
-  fontWeight: 800,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: 0.8,
-  marginBottom: 6,
+const eyebrow: React.CSSProperties = {
+  fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1,
 }
-
-const input: React.CSSProperties = {
-  width: '100%',
-  boxSizing: 'border-box',
-  border: '1px solid #d1d5db',
-  borderRadius: 10,
-  padding: '10px 12px',
-  font: 'inherit',
-  color: '#111827',
-  background: '#fff',
-}
-
 const primaryButton: React.CSSProperties = {
-  border: 'none',
-  borderRadius: 12,
-  padding: '13px 16px',
-  background: '#4338ca',
-  color: '#fff',
-  fontWeight: 800,
-  fontSize: 13,
-  fontFamily: 'inherit',
+  border: 'none', borderRadius: 12, padding: '14px 16px', background: '#4338ca',
+  color: '#fff', fontWeight: 800, fontSize: 14, fontFamily: 'inherit', cursor: 'pointer',
 }
-
 const secondaryButton: React.CSSProperties = {
-  border: '1px solid #d1d5db',
-  borderRadius: 10,
-  padding: '10px 14px',
-  background: '#fff',
-  color: '#374151',
-  fontWeight: 700,
-  fontSize: 12,
-  fontFamily: 'inherit',
-  cursor: 'pointer',
+  border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff',
+  color: '#374151', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer',
+}
+const errorBox: React.CSSProperties = {
+  padding: 12, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca',
+  color: '#b91c1c', marginBottom: 12,
 }
 
 export default function NewAssessmentPage() {
   return (
-    <Suspense fallback={<main style={{ padding: 20 }}>Loading Assessment Studio…</main>}>
+    <Suspense fallback={<main style={{ padding: 20 }}>Loading Lesson Assessment Studio…</main>}>
       <Studio />
     </Suspense>
   )
