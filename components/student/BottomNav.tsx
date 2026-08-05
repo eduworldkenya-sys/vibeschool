@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 const TABS = [
   { id: "home",    label: "Home",    href: "/student"           },
   { id: "learn",   label: "Learn",   href: "/student/vibelearn" },
-  { id: "tasks",   label: "Tasks",   href: "/student/learn"     },
+  { id: "tasks",   label: "Tasks",   href: "/student/tasks"     },
   { id: "results", label: "Results", href: "/student/marks"     },
   { id: "me",      label: "Me",      href: "/student/profile"   },
 ] as const
@@ -22,6 +22,7 @@ function activeTab(path: string): TabId {
   ) return "learn"
 
   if (
+    path.startsWith("/student/tasks")    ||
     path.startsWith("/student/learn")    ||
     path.startsWith("/student/homework")
   ) return "tasks"

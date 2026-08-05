@@ -3,69 +3,43 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
-import { readCache, writeCache } from "@/lib/student-cache";
 import Skel from "@/components/student/Skel";
-import { Homework, HomeworkSubmission } from "@/lib/types";
-
-interface HWListItem extends Homework {
-  status: "pending" | "submitted" | "marked";
-  mark:   number | null;
-}
+import {
+  useHomeworkFeed,
+  daysUntil,
+  displayTitle,
+  HomeworkFeedItem,
+  LifecycleStatus,
+} from "@/lib/homework/useHomeworkFeed";
 
 type Filter = "all" | "pending" | "submitted" | "overdue";
 
-function isOverdue(due: string): boolean {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const d = new Date(due); d.setHours(0, 0, 0, 0);
-  return d < today;
-}
-
-function daysUntil(d: string): number {
-  const t = new Date(); t.setHours(0, 0, 0, 0);
-  const due = new Date(d); due.setHours(0, 0, 0, 0);
-  return Math.round((due.getTime() - t.getTime()) / 86400000);
-}
-
-// Priority: overdue=0, due today=1, due tomorrow=2, upcoming=3, done=4
-function priorityScore(h: HWListItem): number {
-  if (h.status === "marked" || h.status === "submitted") return 4;
+function dueBadge(h: HomeworkFeedItem) {
+  if (h.lifecycle === "marked" || h.lifecycle === "submitted") return { label: "Submitted", bg: "#d1fae5", color: "#065f46" };
+  if (h.lifecycle === "stale")        return { label: "Archived",     bg: "#f3f4f6", color: "#6b7280" };
+  if (h.lifecycle === "overdue")      return { label: "Overdue",      bg: "#fee2e2", color: "#991b1b" };
+  if (h.lifecycle === "due_today")    return { label: "Due Today",    bg: "#fef3c7", color: "#92400e" };
+  if (h.lifecycle === "due_tomorrow") return { label: "Due Tomorrow", bg: "#fff7ed", color: "#c2410c" };
   const n = daysUntil(h.due_date);
-  if (n < 0)  return 0;
-  if (n === 0) return 1;
-  if (n === 1) return 2;
-  return 3;
-}
-
-function sortByPriority(items: HWListItem[]): HWListItem[] {
-  return [...items].sort((a, b) => {
-    const pa = priorityScore(a);
-    const pb = priorityScore(b);
-    if (pa !== pb) return pa - pb;
-    // Within same priority bucket, sort by due date ascending
-    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-  });
-}
-
-function dueBadge(due: string, status: HWListItem["status"]) {
-  if (status === "marked")    return { label: "Marked",      bg: "#d1fae5", color: "#065f46" };
-  if (status === "submitted") return { label: "Submitted",   bg: "#d1fae5", color: "#065f46" };
-  const n = daysUntil(due);
-  if (n < 0)   return { label: "Overdue",     bg: "#fee2e2", color: "#991b1b" };
-  if (n === 0) return { label: "Due Today",   bg: "#fef3c7", color: "#92400e" };
-  if (n === 1) return { label: "Due Tomorrow",bg: "#fff7ed", color: "#c2410c" };
-  if (n <= 3)  return { label: `Due in ${n}d`, bg: "#fff7ed", color: "#c2410c" };
   return { label: `Due in ${n}d`, bg: "var(--vs-accent-soft)", color: "var(--vs-accent)" };
 }
 
-function priorityLabel(h: HWListItem): string | null {
-  if (h.status === "marked" || h.status === "submitted") return null;
-  const n = daysUntil(h.due_date);
-  if (n < 0)   return "⚠️ Overdue";
-  if (n === 0) return "🔥 Due Today";
-  if (n === 1) return "⏰ Due Tomorrow";
-  return null;
+const SECTION: Record<LifecycleStatus, { score: number; label: string }> = {
+  overdue:      { score: 0, label: "⚠️ Overdue" },
+  due_today:    { score: 1, label: "🔥 Due Today" },
+  due_tomorrow: { score: 2, label: "⏰ Due Tomorrow" },
+  upcoming:     { score: 3, label: "📅 Upcoming" },
+  submitted:    { score: 4, label: "✅ Done" },
+  marked:       { score: 4, label: "✅ Done" },
+  stale:        { score: 5, label: "🗄️ Archived (14+ days overdue)" },
+};
+
+function autoBandLabel(mark: number): string {
+  if (mark >= 80) return "Excellent";
+  if (mark >= 60) return "Good";
+  if (mark >= 40) return "Fair";
+  return "Needs Improvement";
 }
 
 function IconWork() {
@@ -96,75 +70,34 @@ function IconCheck() {
 export default function HomeworkListPage() {
   const router  = useRouter();
   const { identity, loading: idLoading } = useStudent();
-  const [items,   setItems]   = useState<HWListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter,  setFilter]  = useState<Filter>("all");
+  const feed = useHomeworkFeed(
+    identity?.classId ?? null,
+    identity?.studentId ?? null,
+    identity?.schoolId ?? null
+  );
 
+  const [filter, setFilter] = useState<Filter>("all");
+
+  // Support /student/homework?filter=overdue deep links (used by the
+  // "N archived assignments" link on /student/tasks) without pulling in
+  // useSearchParams, which needs its own Suspense boundary.
   useEffect(() => {
-    if (idLoading || !identity || !identity.classId) { setLoading(false); return; }
+    const f = new URLSearchParams(window.location.search).get("filter") as Filter | null;
+    if (f && ["all", "pending", "submitted", "overdue"].includes(f)) setFilter(f);
+  }, []);
 
-    const cached = readCache<HWListItem[]>("homework", identity.studentId);
-    if (cached) { setItems(sortByPriority(cached)); setLoading(false); }
+  const pending   = feed.pending;
+  const submitted = feed.submitted;
+  // Overdue tab includes archived (14d+) items too — this is where the
+  // "N archived assignments" link on /student/tasks lands.
+  const overdueAll = feed.items.filter(h => h.lifecycle === "overdue" || h.lifecycle === "stale");
 
-    async function load(
-      validClassId: string,
-      validStudentId: string,
-      validSchoolId: string | null
-    ) {
-      let hwQuery = supabase
-        .from("homework")
-        .select("*")
-        .eq("class_id", validClassId)
-        .order("due_date", { ascending: true });
-
-      if (validSchoolId) {
-        hwQuery = hwQuery.eq("school_id", validSchoolId);
-      }
-
-      // G3: fetch student group memberships alongside homework
-      const [hwRes, subRes, grpRes] = await Promise.all([
-        hwQuery,
-        supabase.from("homework_submissions").select("*").eq("student_id", validStudentId),
-        supabase.from("class_group_members").select("group_id").eq("student_id", validStudentId),
-      ]);
-
-      const myGroupIds = new Set(
-        (grpRes.data ?? []).map((g: { group_id: string }) => g.group_id)
-      );
-
-      const subMap = new Map<string, HomeworkSubmission>();
-      for (const s of (subRes.data as HomeworkSubmission[] | null) ?? []) {
-        subMap.set(s.homework_id, s);
-      }
-
-      // G3: only show whole-class OR student's group homework
-      const visible = ((hwRes.data as Homework[] | null) ?? []).filter(h =>
-        h.target_group_id === null || myGroupIds.has(h.target_group_id)
-      );
-
-      const result: HWListItem[] = visible.map(h => {
-        const sub = subMap.get(h.id);
-        return { ...h, status: sub?.status ?? "pending", mark: sub?.mark ?? null };
-      });
-
-      const sorted = sortByPriority(result);
-      writeCache("homework", validStudentId, sorted);
-      setItems(sorted);
-      setLoading(false);
-    }
-    void load(identity.classId, identity.studentId, identity.schoolId);
-  }, [identity, idLoading]);
-
-  const pending   = items.filter(h => h.status === "pending" && !isOverdue(h.due_date));
-  const submitted = items.filter(h => h.status === "submitted" || h.status === "marked");
-  const overdue   = items.filter(h => h.status === "pending" && isOverdue(h.due_date));
-
-  const filtered = filter === "pending"   ? sortByPriority(pending)
+  const filtered = filter === "pending"   ? pending
     : filter === "submitted" ? submitted
-    : filter === "overdue"   ? overdue
-    : items; // already sorted
+    : filter === "overdue"   ? overdueAll
+    : feed.items; // "all" — already sorted, stale sinks to the bottom
 
-  const isLoading = idLoading || (loading && items.length === 0);
+  const isLoading = idLoading || (feed.loading && feed.items.length === 0);
 
   if (isLoading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
@@ -180,14 +113,14 @@ export default function HomeworkListPage() {
   );
 
   const FILTERS: { id: Filter; label: string; count: number }[] = [
-    { id: "all",       label: "All",       count: items.length     },
-    { id: "pending",   label: "Pending",   count: pending.length   },
-    { id: "submitted", label: "Submitted", count: submitted.length },
-    { id: "overdue",   label: "Overdue",   count: overdue.length   },
+    { id: "all",       label: "All",       count: feed.items.length },
+    { id: "pending",   label: "Pending",   count: pending.length     },
+    { id: "submitted", label: "Submitted", count: submitted.length   },
+    { id: "overdue",   label: "Overdue",   count: overdueAll.length  },
   ];
 
   // Group label helpers for "all" view
-  let lastPriority = -1;
+  let lastScore = -1;
 
   return (
     <div style={{ animation: "slideIn 0.22s ease" }}>
@@ -198,10 +131,10 @@ export default function HomeworkListPage() {
         <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'Bricolage Grotesque', sans-serif", marginBottom: 12 }}>Homework</div>
         <div style={{ display: "flex", gap: 8 }}>
           {[
-            { label: "Total",     value: items.length },
-            { label: "Pending",   value: pending.length,  alert: pending.length > 0 },
+            { label: "Total",     value: feed.items.length },
+            { label: "Pending",   value: pending.length,    alert: pending.length > 0 },
             { label: "Submitted", value: submitted.length },
-            { label: "Overdue",   value: overdue.length,  alert: overdue.length > 0 },
+            { label: "Overdue",   value: overdueAll.length, alert: overdueAll.length > 0 },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: (s as {alert?:boolean}).alert ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.15)", borderRadius: 10, padding: "8px 4px", textAlign: "center" }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{s.value}</div>
@@ -240,25 +173,16 @@ export default function HomeworkListPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filtered.map(h => {
-            const badge      = dueBadge(h.due_date, h.status);
-            const overdueItem = h.status === "pending" && isOverdue(h.due_date);
-            const pScore     = priorityScore(h);
-            const pLabel     = priorityLabel(h);
+            const badge = dueBadge(h);
+            const section = SECTION[h.lifecycle];
 
             // Section divider in "all" view
             let divider: React.ReactNode = null;
-            if (filter === "all" && pScore !== lastPriority) {
-              lastPriority = pScore;
-              const sectionLabels: Record<number, string> = {
-                0: "⚠️ Overdue",
-                1: "🔥 Due Today",
-                2: "⏰ Due Tomorrow",
-                3: "📅 Upcoming",
-                4: "✅ Done",
-              };
+            if (filter === "all" && section.score !== lastScore) {
+              lastScore = section.score;
               divider = (
-                <div style={{ fontSize: 10, fontWeight: 800, color: "var(--vs-muted)", textTransform: "uppercase", letterSpacing: 1, marginTop: pScore === 0 ? 0 : 8, marginBottom: 2 }}>
-                  {sectionLabels[pScore]}
+                <div style={{ fontSize: 10, fontWeight: 800, color: "var(--vs-muted)", textTransform: "uppercase", letterSpacing: 1, marginTop: section.score === 0 ? 0 : 8, marginBottom: 2 }}>
+                  {section.label}
                 </div>
               );
             }
@@ -272,13 +196,14 @@ export default function HomeworkListPage() {
                     width: "100%", background: "var(--vs-card)", border: "none",
                     borderRadius: 14, padding: 0, cursor: "pointer", fontFamily: "inherit",
                     textAlign: "left",
-                    borderLeft: `4px solid ${overdueItem ? "#ef4444" : h.status !== "pending" ? "#10b981" : pScore === 1 ? "#f59e0b" : "#0f766e"}`,
-                    boxShadow: `0 1px 3px rgba(0,0,0,0.06)${pScore <= 1 && h.status === "pending" ? ", 0 0 0 1px rgba(239,68,68,0.08)" : ""}`,
+                    borderLeft: `4px solid ${h.lifecycle === "overdue" ? "#ef4444" : h.lifecycle === "stale" ? "#9ca3af" : h.status !== "pending" ? "#10b981" : section.score === 1 ? "#f59e0b" : "#0f766e"}`,
+                    boxShadow: `0 1px 3px rgba(0,0,0,0.06)${section.score <= 1 && h.status === "pending" ? ", 0 0 0 1px rgba(239,68,68,0.08)" : ""}`,
+                    opacity: h.lifecycle === "stale" ? 0.7 : 1,
                   }}
                 >
                   <div style={{ padding: "14px 16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", flex: 1, lineHeight: 1.4 }}>{h.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", flex: 1, lineHeight: 1.4 }}>{displayTitle(h.title, h.subject, h.type)}</div>
                       <span style={{ padding: "3px 8px", borderRadius: 20, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{badge.label}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: h.instructions ? 8 : 0 }}>
@@ -315,11 +240,3 @@ export default function HomeworkListPage() {
     </div>
   );
 }
-
-function autoBandLabel(mark: number): string {
-  if (mark >= 80) return "Excellent";
-  if (mark >= 60) return "Good";
-  if (mark >= 40) return "Fair";
-  return "Needs Improvement";
-}
-
