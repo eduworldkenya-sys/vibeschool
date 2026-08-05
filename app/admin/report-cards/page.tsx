@@ -4,15 +4,19 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import {
+  getReportCardEvidence,
   listReportCards,
   lockReportCard,
   publishReportCard,
   reviewReportCard,
   type ReportCardSummary,
+  type ReportEvidenceDetail,
 } from '@/lib/report-cards/service'
 
 export default function AdminReportCardsPage() {
   const [items, setItems] = useState<ReportCardSummary[]>([])
+  const [evidence, setEvidence] = useState<Record<string, ReportEvidenceDetail>>({})
+  const [openId, setOpenId] = useState<string | null>(null)
   const [reason, setReason] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -29,6 +33,18 @@ export default function AdminReportCardsPage() {
 
   useEffect(() => { void load() }, [])
 
+  async function openEvidence(item: ReportCardSummary) {
+    setBusyId(item.id)
+    setError('')
+    try {
+      const detail = await getReportCardEvidence(item.id)
+      setEvidence(current => ({ ...current, [item.id]: detail }))
+      setOpenId(current => current === item.id ? null : item.id)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Evidence snapshot could not be loaded.')
+    } finally { setBusyId(null) }
+  }
+
   async function run(item: ReportCardSummary, action: 'approved' | 'returned' | 'published' | 'locked') {
     setBusyId(item.id)
     setError('')
@@ -42,6 +58,7 @@ export default function AdminReportCardsPage() {
         await lockReportCard(item.id)
       }
       setMessage(`Report card ${action}.`)
+      setOpenId(null)
       await load()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Report card action failed.')
@@ -50,11 +67,11 @@ export default function AdminReportCardsPage() {
 
   return (
     <main style={shell}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>School Reporting Governance</div>
           <h1 style={{ margin: '6px 0' }}>Report Card Review</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Review, return, approve, publish, and permanently lock learner reports.</p>
+          <p style={{ margin: 0, color: '#6b7280' }}>Inspect the exact evidence snapshot, return incomplete reports, approve complete reports, publish, and permanently lock them.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
@@ -62,26 +79,60 @@ export default function AdminReportCardsPage() {
 
         {loading ? <section style={card}>Loading report cards…</section>
           : items.length === 0 ? <section style={card}>No report cards available.</section>
-          : items.map(item => (
-            <section key={item.id} style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <div><div style={eyebrow}>{item.termName} · {item.academicYear}</div><h2 style={{ fontSize: 18, margin: '5px 0' }}>{item.studentName}</h2><div style={muted}>{item.className} · Revision {item.revision}</div></div>
-                <strong style={{ textTransform: 'capitalize', color: '#4338ca' }}>{item.status}</strong>
-              </div>
+          : items.map(item => {
+            const detail = evidence[item.id]
+            const snapshot = detail?.snapshot && typeof detail.snapshot === 'object' && !Array.isArray(detail.snapshot)
+              ? detail.snapshot as Record<string, unknown>
+              : null
+            const summary = snapshot?.summary && typeof snapshot.summary === 'object' && !Array.isArray(snapshot.summary)
+              ? snapshot.summary as Record<string, unknown>
+              : null
+            const attendance = snapshot?.attendance && typeof snapshot.attendance === 'object' && !Array.isArray(snapshot.attendance)
+              ? snapshot.attendance as Record<string, unknown>
+              : null
+            return (
+              <section key={item.id} style={card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <div><div style={eyebrow}>{item.termName} · {item.academicYear}</div><h2 style={{ fontSize: 18, margin: '5px 0' }}>{item.studentName}</h2><div style={muted}>{item.className} · Revision {item.revision}</div><div style={muted}>Evidence {item.completenessStatus.replaceAll('_', ' ')} · v{item.evidenceVersion}</div></div>
+                  <strong style={{ textTransform: 'capitalize', color: '#4338ca' }}>{item.status}</strong>
+                </div>
 
-              {item.status === 'review' && <textarea value={reason[item.id] ?? ''} onChange={event => setReason(current => ({ ...current, [item.id]: event.target.value }))} rows={3} placeholder="Reason when returning the report" style={{ ...input, marginTop: 12, resize: 'vertical' }} />}
+                {item.completenessIssues.length > 0 && <div style={issueBox}>{item.completenessIssues.map(issue => <div key={`${issue.code}-${issue.message}`}>• {issue.message}</div>)}</div>}
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-                {item.status === 'review' && <><button type="button" disabled={busyId === item.id} onClick={() => void run(item, 'returned')} style={secondaryButton}>Return</button><button type="button" disabled={busyId === item.id} onClick={() => void run(item, 'approved')} style={primaryButton}>Approve</button></>}
-                {item.status === 'approved' && <button type="button" disabled={busyId === item.id} onClick={() => void run(item, 'published')} style={primaryButton}>Publish</button>}
-                {item.status === 'published' && <button type="button" disabled={busyId === item.id} onClick={() => void run(item, 'locked')} style={primaryButton}>Lock report</button>}
-                {item.status === 'locked' && <div style={lockedBox}>Locked and immutable</div>}
-              </div>
-            </section>
-          ))}
+                <button type="button" disabled={busyId === item.id} onClick={() => void openEvidence(item)} style={{ ...secondaryButton, marginTop: 12 }}>{openId === item.id ? 'Hide evidence' : 'Review evidence snapshot'}</button>
+
+                {openId === item.id && detail && <div style={evidenceBox}>
+                  <div style={metricGrid}>
+                    <Metric label="Subjects" value={String(summary?.subject_count ?? '—')} />
+                    <Metric label="Assessment" value={formatPercent(summary?.overall_assessment_average)} />
+                    <Metric label="Mastery" value={formatPercent(summary?.overall_mastery_average)} />
+                    <Metric label="Attendance" value={formatPercent(attendance?.attendance_rate)} />
+                  </div>
+                  <div style={{ ...muted, marginTop: 10 }}>Generated {detail.evidenceGeneratedAt ? new Date(detail.evidenceGeneratedAt).toLocaleString('en-KE') : '—'} · Snapshot v{detail.evidenceVersion}</div>
+                </div>}
+
+                {item.status === 'review' && <textarea value={reason[item.id] ?? ''} onChange={event => setReason(current => ({ ...current, [item.id]: event.target.value }))} rows={3} placeholder="Reason when returning the report" style={{ ...input, marginTop: 12, resize: 'vertical' }} />}
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+                  {item.status === 'review' && <><button type="button" disabled={busyId === item.id} onClick={() => void run(item, 'returned')} style={secondaryButton}>Return</button><button type="button" disabled={busyId === item.id || item.completenessStatus !== 'complete'} onClick={() => void run(item, 'approved')} style={primaryButton}>Approve</button></>}
+                  {item.status === 'approved' && <button type="button" disabled={busyId === item.id || item.completenessStatus !== 'complete'} onClick={() => void run(item, 'published')} style={primaryButton}>Publish and freeze</button>}
+                  {item.status === 'published' && <button type="button" disabled={busyId === item.id} onClick={() => void run(item, 'locked')} style={primaryButton}>Lock report</button>}
+                  {item.status === 'locked' && <div style={lockedBox}>Locked and immutable</div>}
+                </div>
+              </section>
+            )
+          })}
       </div>
     </main>
   )
+}
+
+function formatPercent(value: unknown): string {
+  const number = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(number) ? `${number.toFixed(1)}%` : '—'
+}
+function Metric({ label, value }: { label: string; value: string }) {
+  return <div style={metric}><div style={muted}>{label}</div><strong style={{ fontSize: 18 }}>{value}</strong></div>
 }
 
 const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
@@ -89,6 +140,10 @@ const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
 const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
+const issueBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fff7ed', color: '#9a3412', fontSize: 13, lineHeight: 1.5 }
+const evidenceBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e5e7eb' }
+const metricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }
+const metric: React.CSSProperties = { background: '#fff', borderRadius: 10, padding: 10 }
 const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '12px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
 const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
 const lockedBox: React.CSSProperties = { padding: '10px 12px', borderRadius: 10, background: '#ecfdf5', color: '#065f46', fontWeight: 800 }
