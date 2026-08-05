@@ -89,7 +89,10 @@ export default function AssessmentMarkingPage() {
     }
     setBusy(true)
     setError('')
-    try { setAudit(current => ({ ...current, [responseId]: await getScoreAudit(responseId) })) }
+    try {
+      const events = await getScoreAudit(responseId)
+      setAudit(current => ({ ...current, [responseId]: events }))
+    }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Score history could not be loaded.') }
     finally { setBusy(false) }
   }
@@ -113,7 +116,8 @@ export default function AssessmentMarkingPage() {
       await requestModeration({ responseId, requestedScore, reason })
       setMessage('Moderation request sent to a school administrator.')
       setDrafts(current => ({ ...current, [responseId]: { ...current[responseId], moderationReason: '' } }))
-      setAudit(current => ({ ...current, [responseId]: await getScoreAudit(responseId) }))
+      const events = await getScoreAudit(responseId)
+      setAudit(current => ({ ...current, [responseId]: events }))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Moderation request could not be sent.')
     } finally { setBusy(false) }
