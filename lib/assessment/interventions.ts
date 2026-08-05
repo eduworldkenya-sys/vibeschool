@@ -15,8 +15,11 @@ function numberValue(value: unknown): number {
   if (!Number.isFinite(resolved)) throw new Error('Intervention Engine returned an invalid number.')
   return resolved
 }
+function nullableNumber(value: unknown): number | null {
+  return value === null || value === undefined ? null : numberValue(value)
+}
 
-export type InterventionStatus = 'open' | 'in_progress' | 'completed' | 'dismissed'
+export type InterventionStatus = 'open' | 'in_progress' | 'completed' | 'dismissed' | 'escalated'
 
 export interface InterventionQueueItem {
   interventionId: string
@@ -42,6 +45,20 @@ export interface InterventionQueueItem {
   status: InterventionStatus
   dueAt: string | null
   updatedAt: string
+  remedialAssessmentId: string | null
+  remedialAssignmentId: string | null
+  baselineMasteryScore: number | null
+  followupMasteryScore: number | null
+  masteryChange: number | null
+  evaluatedAt: string | null
+}
+
+export interface InterventionEvaluation {
+  status: InterventionStatus
+  baselineMasteryScore: number
+  followupMasteryScore: number
+  masteryChange: number
+  recommendation: string
 }
 
 export async function listInterventionQueue(classId?: string | null): Promise<InterventionQueueItem[]> {
@@ -75,8 +92,39 @@ export async function listInterventionQueue(classId?: string | null): Promise<In
       status: (text(item.status) ?? 'open') as InterventionStatus,
       dueAt: text(item.due_at),
       updatedAt: text(item.updated_at) ?? '',
+      remedialAssessmentId: text(item.remedial_assessment_id),
+      remedialAssignmentId: text(item.remedial_assignment_id),
+      baselineMasteryScore: nullableNumber(item.baseline_mastery_score),
+      followupMasteryScore: nullableNumber(item.followup_mastery_score),
+      masteryChange: nullableNumber(item.mastery_change),
+      evaluatedAt: text(item.evaluated_at),
     }
   })
+}
+
+export async function createInterventionAssessment(interventionId: string): Promise<string> {
+  const { data, error } = await rpc<Json>('exq_create_intervention_assessment', {
+    p_intervention_id: interventionId,
+    p_title: null,
+  })
+  if (error) throw new Error(error.message || 'Remedial assessment could not be created.')
+  const payload = record(data)
+  const assessmentId = text(payload.assessment_id)
+  if (!assessmentId) throw new Error('Assessment ID was not returned.')
+  return assessmentId
+}
+
+export async function evaluateIntervention(interventionId: string): Promise<InterventionEvaluation> {
+  const { data, error } = await rpc<Json>('exq_evaluate_intervention', { p_intervention_id: interventionId })
+  if (error) throw new Error(error.message || 'Intervention could not be evaluated.')
+  const payload = record(data)
+  return {
+    status: (text(payload.status) ?? 'in_progress') as InterventionStatus,
+    baselineMasteryScore: numberValue(payload.baseline_mastery_score),
+    followupMasteryScore: numberValue(payload.followup_mastery_score),
+    masteryChange: numberValue(payload.mastery_change),
+    recommendation: text(payload.recommendation) ?? '',
+  }
 }
 
 export async function updateIntervention(input: {
