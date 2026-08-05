@@ -44,7 +44,8 @@ export default function AssessmentModerationPage() {
     }
     setBusyId(item.requestId)
     try {
-      setAudit(current => ({ ...current, [item.responseId]: await getScoreAudit(item.responseId) }))
+      const events = await getScoreAudit(item.responseId)
+      setAudit(current => ({ ...current, [item.responseId]: events }))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load score history.')
     } finally {
@@ -138,8 +139,8 @@ const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
 const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
 const questionBox: React.CSSProperties = { marginTop: 14, padding: 12, borderRadius: 10, background: '#f8fafc', lineHeight: 1.5 }
-const reasonBox: React.CSSProperties = { marginTop: 10, padding: 12, borderRadius: 10, background: '#fffbeb', color: '#78350f' }
-const auditRow: React.CSSProperties = { padding: 10, borderRadius: 10, border: '1px solid #e5e7eb', background: '#f8fafc' }
-const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
-const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '12px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
+const reasonBox: React.CSSProperties = { margin: '12px 0', padding: 12, borderRadius: 10, background: '#eef2ff', lineHeight: 1.5 }
+const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: 11, font: 'inherit' }
+const primaryButton: React.CSSProperties = { border: 0, borderRadius: 10, background: '#4338ca', color: '#fff', padding: '11px 14px', fontWeight: 800, cursor: 'pointer' }
+const secondaryButton: React.CSSProperties = { border: '1px solid #c7d2fe', borderRadius: 10, background: '#fff', color: '#3730a3', padding: '10px 13px', fontWeight: 800, cursor: 'pointer' }
+const auditRow: React.CSSProperties = { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, background: '#f9fafb' }
