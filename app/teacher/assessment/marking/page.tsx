@@ -11,28 +11,31 @@ import {
   type MarkingAttempt,
   type MarkingQueueItem,
 } from '@/lib/assessment/marking'
+import {
+  getScoreAudit,
+  requestModeration,
+  type ScoreAuditEvent,
+} from '@/lib/assessment/moderation'
 
-type DraftMarks = Record<string, { score: string; feedback: string; overrideReason: string }>
+type DraftMarks = Record<string, { score: string; feedback: string; overrideReason: string; moderationReason: string }>
 
 export default function AssessmentMarkingPage() {
   const [queue, setQueue] = useState<MarkingQueueItem[]>([])
   const [selected, setSelected] = useState<MarkingAttempt | null>(null)
   const [drafts, setDrafts] = useState<DraftMarks>({})
+  const [audit, setAudit] = useState<Record<string, ScoreAuditEvent[]>>({})
   const [attemptFeedback, setAttemptFeedback] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
 
   async function loadQueue() {
     setLoading(true)
     setError('')
-    try {
-      setQueue(await listMarkingQueue())
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load marking queue.')
-    } finally {
-      setLoading(false)
-    }
+    try { setQueue(await listMarkingQueue()) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load marking queue.') }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { void loadQueue() }, [])
@@ -40,59 +43,91 @@ export default function AssessmentMarkingPage() {
   async function openAttempt(attemptId: string) {
     setBusy(true)
     setError('')
+    setMessage('')
     try {
       const attempt = await getMarkingAttempt(attemptId)
       setSelected(attempt)
       setAttemptFeedback(attempt.feedback ?? '')
-      setDrafts(Object.fromEntries(attempt.responses.map(response => [
-        response.responseId,
-        {
-          score: response.finalScore === null ? '' : String(response.finalScore),
-          feedback: response.teacherFeedback ?? '',
-          overrideReason: '',
-        },
-      ])))
+      setDrafts(Object.fromEntries(attempt.responses.map(response => [response.responseId, {
+        score: response.finalScore === null ? '' : String(response.finalScore),
+        feedback: response.teacherFeedback ?? '',
+        overrideReason: '',
+        moderationReason: '',
+      }])))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not open submission.')
-    } finally {
-      setBusy(false)
-    }
+    } finally { setBusy(false) }
   }
 
   function validateResponse(responseId: string, maxScore: number, autoScore: number | null) {
     const draft = drafts[responseId]
     const score = Number(draft?.score)
-    if (!Number.isFinite(score) || score < 0 || score > maxScore) {
-      throw new Error(`Enter a score from 0 to ${maxScore}.`)
-    }
-    if (autoScore !== null && score !== autoScore && !draft?.overrideReason.trim()) {
-      throw new Error('Explain why the automatic score is being changed.')
-    }
+    if (!Number.isFinite(score) || score < 0 || score > maxScore) throw new Error(`Enter a score from 0 to ${maxScore}.`)
+    if (autoScore !== null && score !== autoScore && !draft?.overrideReason.trim()) throw new Error('Explain why the automatic score is being changed.')
     return { score, feedback: draft?.feedback ?? '', overrideReason: draft?.overrideReason ?? '' }
   }
 
   async function saveResponseMark(responseId: string, maxScore: number, autoScore: number | null) {
     setBusy(true)
     setError('')
+    setMessage('')
     try {
       const draft = validateResponse(responseId, maxScore, autoScore)
       await markResponse({ responseId, ...draft })
       if (selected) await openAttempt(selected.attemptId)
+      setMessage('Mark saved and added to the score audit trail.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Response could not be marked.')
       setBusy(false)
     }
   }
 
+  async function toggleAudit(responseId: string) {
+    if (audit[responseId]) {
+      setAudit(current => { const next = { ...current }; delete next[responseId]; return next })
+      return
+    }
+    setBusy(true)
+    setError('')
+    try { setAudit(current => ({ ...current, [responseId]: await getScoreAudit(responseId) })) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Score history could not be loaded.') }
+    finally { setBusy(false) }
+  }
+
+  async function submitModeration(responseId: string, maxScore: number) {
+    const draft = drafts[responseId]
+    const requestedScore = Number(draft?.score)
+    const reason = draft?.moderationReason.trim() ?? ''
+    if (!Number.isFinite(requestedScore) || requestedScore < 0 || requestedScore > maxScore) {
+      setError(`Enter a requested score from 0 to ${maxScore}.`)
+      return
+    }
+    if (reason.length < 5) {
+      setError('Enter a moderation reason of at least 5 characters.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      await requestModeration({ responseId, requestedScore, reason })
+      setMessage('Moderation request sent to a school administrator.')
+      setDrafts(current => ({ ...current, [responseId]: { ...current[responseId], moderationReason: '' } }))
+      setAudit(current => ({ ...current, [responseId]: await getScoreAudit(responseId) }))
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Moderation request could not be sent.')
+    } finally { setBusy(false) }
+  }
+
   async function finishAttempt(release: boolean) {
     if (!selected) return
     setBusy(true)
     setError('')
+    setMessage('')
     try {
       for (const response of selected.responses) {
         const draft = validateResponse(response.responseId, response.maxScore, response.autoScore)
-        const existingScore = response.finalScore
-        const changed = existingScore === null || Number(draft.score) !== existingScore || draft.feedback !== (response.teacherFeedback ?? '')
+        const changed = response.finalScore === null || Number(draft.score) !== response.finalScore || draft.feedback !== (response.teacherFeedback ?? '')
         if (changed) await markResponse({ responseId: response.responseId, ...draft })
       }
       await finalizeAttempt({ attemptId: selected.attemptId, feedback: attemptFeedback, release })
@@ -101,9 +136,7 @@ export default function AssessmentMarkingPage() {
       await loadQueue()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Attempt could not be finalized.')
-    } finally {
-      setBusy(false)
-    }
+    } finally { setBusy(false) }
   }
 
   const queueStats = useMemo(() => ({
@@ -118,89 +151,59 @@ export default function AssessmentMarkingPage() {
         <section style={card}>
           <div style={eyebrow}>Assessment Engine</div>
           <h1 style={{ margin: '6px 0' }}>Marking Centre</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Review learner responses, document score overrides, finalize totals, and release results.</p>
+          <p style={{ margin: 0, color: '#6b7280' }}>Review responses, preserve score history, request moderation, finalize totals, and release results.</p>
         </section>
 
-        {!selected && <section style={card}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
-            <div style={stat}><strong>{queueStats.waiting}</strong><span>Waiting</span></div>
-            <div style={stat}><strong>{queueStats.marked}</strong><span>Marked</span></div>
-            <div style={stat}><strong>{queueStats.released}</strong><span>Released</span></div>
-          </div>
-        </section>}
+        {!selected && <section style={card}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
+          <div style={stat}><strong>{queueStats.waiting}</strong><span>Waiting</span></div>
+          <div style={stat}><strong>{queueStats.marked}</strong><span>Marked</span></div>
+          <div style={stat}><strong>{queueStats.released}</strong><span>Released</span></div>
+        </div></section>}
 
         {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
+        {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
 
         {!selected ? (
           <section style={card}>
-            {loading ? 'Loading submissions…' : queue.length === 0 ? (
-              <div><strong>No submissions in the marking queue</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Submitted assessments will appear here.</p></div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {queue.map(item => (
-                  <button key={item.attemptId} type="button" disabled={busy} onClick={() => void openAttempt(item.attemptId)} style={queueButton}>
-                    <div style={{ textAlign: 'left' }}>
-                      <strong>{item.studentName}</strong>
-                      <div style={muted}>{item.assessmentTitle} · {item.className}{item.classStream ? ` ${item.classStream}` : ''}</div>
-                      {item.submittedAt && <div style={muted}>Submitted {new Date(item.submittedAt).toLocaleString('en-KE')}</div>}
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <strong style={{ color: item.unresolvedItems > 0 ? '#b45309' : item.attemptStatus === 'released' ? '#065f46' : '#4338ca' }}>
-                        {item.unresolvedItems > 0 ? `${item.unresolvedItems} to mark` : item.attemptStatus.replaceAll('_', ' ')}
-                      </strong>
-                      <div style={muted}>{item.markedItems}/{item.totalItems} scored</div>
-                      {item.percentage !== null && <div style={muted}>{item.percentage.toFixed(1)}%</div>}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+            {loading ? 'Loading submissions…' : queue.length === 0 ? <div><strong>No submissions in the marking queue</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Submitted assessments will appear here.</p></div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {queue.map(item => <button key={item.attemptId} type="button" disabled={busy} onClick={() => void openAttempt(item.attemptId)} style={queueButton}>
+                <div style={{ textAlign: 'left' }}><strong>{item.studentName}</strong><div style={muted}>{item.assessmentTitle} · {item.className}{item.classStream ? ` ${item.classStream}` : ''}</div>{item.submittedAt && <div style={muted}>Submitted {new Date(item.submittedAt).toLocaleString('en-KE')}</div>}</div>
+                <div style={{ textAlign: 'right' }}><strong style={{ color: item.unresolvedItems > 0 ? '#b45309' : item.attemptStatus === 'released' ? '#065f46' : '#4338ca' }}>{item.unresolvedItems > 0 ? `${item.unresolvedItems} to mark` : item.attemptStatus.replaceAll('_', ' ')}</strong><div style={muted}>{item.markedItems}/{item.totalItems} scored</div>{item.percentage !== null && <div style={muted}>{item.percentage.toFixed(1)}%</div>}</div>
+              </button>)}
+            </div>}
           </section>
-        ) : (
-          <>
-            <section style={card}>
-              <button type="button" onClick={() => setSelected(null)} style={secondaryButton}>← Back to queue</button>
-              <h2 style={{ margin: '14px 0 4px' }}>{selected.studentName}</h2>
-              <p style={{ margin: 0, color: '#6b7280' }}>{selected.assessmentTitle}</p>
-              <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700 }}>{selected.responses.filter(response => response.finalScore !== null).length}/{selected.responses.length} responses scored</div>
-            </section>
+        ) : <>
+          <section style={card}><button type="button" onClick={() => setSelected(null)} style={secondaryButton}>← Back to queue</button><h2 style={{ margin: '14px 0 4px' }}>{selected.studentName}</h2><p style={{ margin: 0, color: '#6b7280' }}>{selected.assessmentTitle}</p><div style={{ marginTop: 10, fontSize: 12, fontWeight: 700 }}>{selected.responses.filter(response => response.finalScore !== null).length}/{selected.responses.length} responses scored</div></section>
 
-            {selected.responses.map(response => {
-              const draft = drafts[response.responseId] ?? { score: '', feedback: '', overrideReason: '' }
-              const overridesAuto = response.autoScore !== null && Number(draft.score) !== response.autoScore
-              return (
-                <section key={response.responseId} style={card}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <strong>Question {response.orderNum}</strong>
-                    <span style={{ color: '#6b7280' }}>/{response.maxScore}</span>
-                  </div>
-                  <p style={{ lineHeight: 1.6 }}>{response.prompt}</p>
-                  <div style={answerBox}>{response.responseText || JSON.stringify(response.responseValue)}</div>
-                  {response.autoScore !== null && <div style={autoBox}>Automatic score: {response.autoScore}/{response.maxScore}</div>}
-                  <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, marginTop: 12 }}>
-                    <input type="number" min={0} max={response.maxScore} step="0.5" value={draft.score} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, score: event.target.value } }))} placeholder="Score" style={input} />
-                    <input value={draft.feedback} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, feedback: event.target.value } }))} placeholder="Feedback for learner" style={input} />
-                  </div>
-                  {overridesAuto && <textarea value={draft.overrideReason} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, overrideReason: event.target.value } }))} rows={2} placeholder="Required: explain the automatic-score override" style={{ ...input, marginTop: 10, resize: 'vertical' }} />}
-                  <button type="button" disabled={busy || selected.attemptStatus === 'released'} onClick={() => void saveResponseMark(response.responseId, response.maxScore, response.autoScore)} style={{ ...secondaryButton, marginTop: 10 }}>Save mark</button>
-                </section>
-              )
-            })}
-
-            <section style={card}>
-              <label style={label}>Overall feedback</label>
-              <textarea value={attemptFeedback} onChange={event => setAttemptFeedback(event.target.value)} rows={4} style={{ ...input, resize: 'vertical' }} />
-              {selected.attemptStatus === 'released' ? (
-                <div style={releasedBox}>This result has been released and is locked.</div>
-              ) : (
-                <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-                  <button type="button" disabled={busy} onClick={() => void finishAttempt(false)} style={{ ...secondaryButton, flex: 1 }}>Finalize only</button>
-                  <button type="button" disabled={busy} onClick={() => void finishAttempt(true)} style={{ ...primaryButton, flex: 1 }}>{busy ? 'Saving…' : 'Finalize and Release'}</button>
-                </div>
-              )}
+          {selected.responses.map(response => {
+            const draft = drafts[response.responseId] ?? { score: '', feedback: '', overrideReason: '', moderationReason: '' }
+            const overridesAuto = response.autoScore !== null && Number(draft.score) !== response.autoScore
+            return <section key={response.responseId} style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><strong>Question {response.orderNum}</strong><span style={{ color: '#6b7280' }}>/{response.maxScore}</span></div>
+              <p style={{ lineHeight: 1.6 }}>{response.prompt}</p>
+              <div style={answerBox}>{response.responseText || JSON.stringify(response.responseValue)}</div>
+              {response.autoScore !== null && <div style={autoBox}>Automatic score: {response.autoScore}/{response.maxScore}</div>}
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, marginTop: 12 }}>
+                <input type="number" min={0} max={response.maxScore} step="0.5" value={draft.score} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, score: event.target.value } }))} placeholder="Score" style={input} />
+                <input value={draft.feedback} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, feedback: event.target.value } }))} placeholder="Feedback for learner" style={input} />
+              </div>
+              {overridesAuto && <textarea value={draft.overrideReason} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, overrideReason: event.target.value } }))} rows={2} placeholder="Required: explain the automatic-score override" style={{ ...input, marginTop: 10, resize: 'vertical' }} />}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <button type="button" disabled={busy || selected.attemptStatus === 'released'} onClick={() => void saveResponseMark(response.responseId, response.maxScore, response.autoScore)} style={secondaryButton}>Save mark</button>
+                <button type="button" disabled={busy} onClick={() => void toggleAudit(response.responseId)} style={secondaryButton}>{audit[response.responseId] ? 'Hide history' : 'Score history'}</button>
+              </div>
+              {audit[response.responseId] && <div style={{ marginTop: 10, display: 'grid', gap: 7 }}>{audit[response.responseId].length === 0 ? <div style={muted}>No score events yet.</div> : audit[response.responseId].map(event => <div key={event.eventId} style={auditRow}><strong>{event.eventType.replaceAll('_', ' ')}</strong><div style={muted}>{event.previousScore ?? '—'} → {event.newScore ?? '—'} · {new Date(event.createdAt).toLocaleString('en-KE')}</div>{event.reason && <div style={{ marginTop: 4 }}>{event.reason}</div>}</div>)}</div>}
+              {selected.attemptStatus !== 'released' && <div style={moderationBox}>
+                <strong>Request moderation</strong>
+                <p style={{ margin: '5px 0 8px', fontSize: 12 }}>Ask a school administrator to approve or reject the score currently entered above.</p>
+                <textarea value={draft.moderationReason} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, moderationReason: event.target.value } }))} rows={2} placeholder="Why should this score be moderated?" style={{ ...input, resize: 'vertical' }} />
+                <button type="button" disabled={busy} onClick={() => void submitModeration(response.responseId, response.maxScore)} style={{ ...secondaryButton, marginTop: 8 }}>Send moderation request</button>
+              </div>}
             </section>
-          </>
-        )}
+          })}
+
+          <section style={card}><label style={label}>Overall feedback</label><textarea value={attemptFeedback} onChange={event => setAttemptFeedback(event.target.value)} rows={4} style={{ ...input, resize: 'vertical' }} />{selected.attemptStatus === 'released' ? <div style={releasedBox}>This result has been released and is locked.</div> : <div style={{ display: 'flex', gap: 10, marginTop: 12 }}><button type="button" disabled={busy} onClick={() => void finishAttempt(false)} style={{ ...secondaryButton, flex: 1 }}>Finalize only</button><button type="button" disabled={busy} onClick={() => void finishAttempt(true)} style={{ ...primaryButton, flex: 1 }}>{busy ? 'Saving…' : 'Finalize and Release'}</button></div>}</section>
+        </>}
       </div>
     </main>
   )
@@ -214,6 +217,8 @@ const stat: React.CSSProperties = { display: 'flex', flexDirection: 'column', ga
 const queueButton: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }
 const answerBox: React.CSSProperties = { background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, whiteSpace: 'pre-wrap', lineHeight: 1.5 }
 const autoBox: React.CSSProperties = { marginTop: 10, padding: 10, borderRadius: 10, background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700 }
+const moderationBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fffbeb', color: '#78350f' }
+const auditRow: React.CSSProperties = { padding: 10, borderRadius: 10, border: '1px solid #e5e7eb', background: '#f8fafc' }
 const releasedBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46', fontWeight: 700 }
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
 const label: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }
