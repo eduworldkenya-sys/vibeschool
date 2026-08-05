@@ -15,7 +15,10 @@ export interface MarkingQueueItem {
   maxScore: number | null
   percentage: number | null
   submittedAt: string | null
-  manualItems: number
+  teacherReviewedAt: string | null
+  unresolvedItems: number
+  markedItems: number
+  totalItems: number
 }
 
 export interface MarkingResponse {
@@ -59,11 +62,7 @@ function rec(value: unknown): Record<string, unknown> {
   }
   return value as Record<string, unknown>
 }
-
-function str(value: unknown): string | null {
-  return typeof value === 'string' ? value : null
-}
-
+function str(value: unknown): string | null { return typeof value === 'string' ? value : null }
 function num(value: unknown): number | null {
   if (value === null || value === undefined) return null
   const resolved = typeof value === 'number' ? value : Number(value)
@@ -81,9 +80,8 @@ export async function listMarkingQueue(): Promise<MarkingQueueItem[]> {
     const attemptId = str(item.attempt_id)
     const assessmentTitle = str(item.assessment_title)
     const studentName = str(item.student_name)
-    if (!attemptId || !assessmentTitle || !studentName) {
-      throw new Error('Marking queue returned incomplete data.')
-    }
+    if (!attemptId || !assessmentTitle || !studentName) throw new Error('Marking queue returned incomplete data.')
+
     return {
       attemptId,
       assessmentTitle,
@@ -98,15 +96,16 @@ export async function listMarkingQueue(): Promise<MarkingQueueItem[]> {
       maxScore: num(item.max_score),
       percentage: num(item.percentage),
       submittedAt: str(item.submitted_at),
-      manualItems: num(item.manual_items) ?? 0,
+      teacherReviewedAt: str(item.teacher_reviewed_at),
+      unresolvedItems: num(item.unresolved_items) ?? 0,
+      markedItems: num(item.marked_items) ?? 0,
+      totalItems: num(item.total_items) ?? 0,
     }
   })
 }
 
 export async function getMarkingAttempt(attemptId: string): Promise<MarkingAttempt> {
-  const { data, error } = await rpc<Json>('exq_get_marking_attempt', {
-    p_attempt_id: attemptId,
-  })
+  const { data, error } = await rpc<Json>('exq_get_marking_attempt', { p_attempt_id: attemptId })
   if (error) throw new Error(error.message || 'Could not load learner responses.')
   const payload = rec(data)
   const responses = Array.isArray(payload.responses) ? payload.responses : []
@@ -125,9 +124,7 @@ export async function getMarkingAttempt(attemptId: string): Promise<MarkingAttem
       const item = rec(value)
       const responseId = str(item.response_id)
       const assessmentItemId = str(item.assessment_item_id)
-      if (!responseId || !assessmentItemId) {
-        throw new Error('Marking attempt returned incomplete response data.')
-      }
+      if (!responseId || !assessmentItemId) throw new Error('Marking attempt returned incomplete response data.')
       return {
         responseId,
         assessmentItemId,
