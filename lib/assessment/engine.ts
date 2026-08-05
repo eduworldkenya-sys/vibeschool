@@ -102,7 +102,15 @@ function mapAttemptWorkspace(value: unknown): AttemptWorkspace {
     }),
     responses: responses.map(response => {
       const record = assertRecord(response, 'Saved assessment response')
-      return { assessmentItemId: assertString(record.assessment_item_id, 'Response item ID'), responseValue: (record.response_value ?? null) as Json, responseText: nullableString(record.response_text), status: assertString(record.status, 'Response status'), lastSavedAt: assertString(record.last_saved_at, 'Response save time') }
+      return {
+        assessmentItemId: assertString(record.assessment_item_id, 'Response item ID'),
+        responseValue: (record.response_value ?? null) as Json,
+        responseText: nullableString(record.response_text),
+        status: assertString(record.status, 'Response status'),
+        revision: numberValue(record.revision, 'Response revision'),
+        clientUpdatedAt: nullableString(record.client_updated_at),
+        lastSavedAt: assertString(record.last_saved_at, 'Response save time'),
+      }
     }),
   }
 }
