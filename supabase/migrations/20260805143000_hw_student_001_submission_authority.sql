@@ -15,6 +15,9 @@ alter table public.homework_submissions
   check (status in ('draft','submitted','received','under_review','returned','marked'));
 
 alter table public.homework_submissions
+  drop constraint if exists homework_submissions_revision_number_check;
+
+alter table public.homework_submissions
   add constraint homework_submissions_revision_number_check
   check (revision_number > 0);
 
@@ -41,43 +44,99 @@ declare
   v_student_id uuid;
   v_submission public.homework_submissions%rowtype;
   v_answer jsonb;
+  v_question_id uuid;
 begin
   if v_uid is null then raise exception 'not_authenticated'; end if;
+  if p_homework_id is null then raise exception 'homework_required'; end if;
+  if jsonb_typeof(coalesce(p_answers, '[]'::jsonb)) <> 'array' then
+    raise exception 'answers_must_be_array';
+  end if;
 
   select s.id into v_student_id
   from public.students s
-  join public.student_classes sc on sc.student_id=s.id and sc.is_current=true
-  join public.homework h on h.class_id=sc.class_id
-  where s.profile_id=v_uid and h.id=p_homework_id and s.deleted_at is null
+  join public.student_classes sc
+    on sc.student_id = s.id
+   and sc.is_current = true
+  join public.homework h
+    on h.class_id = sc.class_id
+  where s.profile_id = v_uid
+    and h.id = p_homework_id
+    and s.deleted_at is null
   limit 1;
 
   if v_student_id is null then raise exception 'homework_not_available'; end if;
 
-  insert into public.homework_submissions(homework_id,student_id,status,photo_url,updated_at)
-  values(p_homework_id,v_student_id,'draft',p_photo_url,clock_timestamp())
-  on conflict(homework_id,student_id) where homework_id is not null and student_id is not null
+  insert into public.homework_submissions(
+    homework_id,
+    student_id,
+    status,
+    photo_url,
+    updated_at
+  )
+  values(
+    p_homework_id,
+    v_student_id,
+    'draft',
+    p_photo_url,
+    clock_timestamp()
+  )
+  on conflict(homework_id,student_id)
+    where homework_id is not null and student_id is not null
   do update set
-    photo_url=coalesce(excluded.photo_url,public.homework_submissions.photo_url),
-    status=case when public.homework_submissions.status in ('marked','under_review') then public.homework_submissions.status else 'draft' end,
-    updated_at=clock_timestamp()
+    photo_url = coalesce(excluded.photo_url, public.homework_submissions.photo_url),
+    status = case
+      when public.homework_submissions.status in ('marked','under_review')
+        then public.homework_submissions.status
+      when public.homework_submissions.status = 'returned'
+        then 'returned'
+      else 'draft'
+    end,
+    updated_at = clock_timestamp()
   returning * into v_submission;
 
   if v_submission.status in ('marked','under_review') then
     raise exception 'submission_locked';
   end if;
 
-  for v_answer in select value from jsonb_array_elements(coalesce(p_answers,'[]'::jsonb)) loop
-    insert into public.homework_answers(submission_id,question_id,answer_text)
-    values(v_submission.id,(v_answer->>'question_id')::uuid,nullif(trim(v_answer->>'answer_text'),''))
-    on conflict(submission_id,question_id) where submission_id is not null and question_id is not null
-    do update set answer_text=excluded.answer_text;
+  for v_answer in
+    select value
+    from jsonb_array_elements(coalesce(p_answers,'[]'::jsonb))
+  loop
+    begin
+      v_question_id := (v_answer->>'question_id')::uuid;
+    exception when others then
+      raise exception 'invalid_question_id';
+    end;
+
+    if not exists(
+      select 1
+      from public.homework_questions q
+      where q.id = v_question_id
+        and q.homework_id = p_homework_id
+    ) then
+      raise exception 'question_not_in_homework';
+    end if;
+
+    insert into public.homework_answers(
+      submission_id,
+      question_id,
+      answer_text
+    )
+    values(
+      v_submission.id,
+      v_question_id,
+      nullif(trim(v_answer->>'answer_text'),'')
+    )
+    on conflict(submission_id,question_id)
+      where submission_id is not null and question_id is not null
+    do update set answer_text = excluded.answer_text;
   end loop;
 
   return jsonb_build_object(
-    'submission_id',v_submission.id,
-    'status',v_submission.status,
-    'revision_number',v_submission.revision_number,
-    'updated_at',v_submission.updated_at
+    'submission_id', v_submission.id,
+    'status', v_submission.status,
+    'revision_number', v_submission.revision_number,
+    'updated_at', v_submission.updated_at
   );
 end;
 $$;
@@ -93,40 +152,83 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
+  v_existing_status text;
   v_draft jsonb;
   v_submission public.homework_submissions%rowtype;
+  v_question_count integer;
+  v_answer_count integer;
 begin
-  v_draft := public.save_student_homework_draft(p_homework_id,p_answers,p_photo_url);
+  select hs.status
+  into v_existing_status
+  from public.homework_submissions hs
+  join public.students s on s.id = hs.student_id
+  where hs.homework_id = p_homework_id
+    and s.profile_id = auth.uid()
+  limit 1;
+
+  v_draft := public.save_student_homework_draft(
+    p_homework_id,
+    p_answers,
+    p_photo_url
+  );
 
   select * into v_submission
   from public.homework_submissions
-  where id=(v_draft->>'submission_id')::uuid
+  where id = (v_draft->>'submission_id')::uuid
   for update;
 
-  if v_submission.status in ('marked','under_review') then raise exception 'submission_locked'; end if;
+  if v_submission.status in ('marked','under_review') then
+    raise exception 'submission_locked';
+  end if;
+
+  select count(*) into v_question_count
+  from public.homework_questions q
+  where q.homework_id = p_homework_id;
+
+  select count(*) into v_answer_count
+  from public.homework_answers a
+  join public.homework_questions q on q.id = a.question_id
+  where a.submission_id = v_submission.id
+    and q.homework_id = p_homework_id
+    and nullif(trim(a.answer_text), '') is not null;
+
+  if v_question_count > 0 and v_answer_count <> v_question_count then
+    raise exception 'all_questions_required';
+  end if;
+
+  if v_question_count = 0 and coalesce(p_photo_url, v_submission.photo_url) is null then
+    raise exception 'photo_required';
+  end if;
 
   update public.homework_submissions
-  set status='received',
-      submitted_at=clock_timestamp(),
-      received_at=clock_timestamp(),
-      revision_number=case when status='returned' then revision_number+1 else revision_number end,
-      returned_at=null,
-      returned_reason=null,
-      updated_at=clock_timestamp()
-  where id=v_submission.id
+  set status = 'received',
+      submitted_at = clock_timestamp(),
+      received_at = clock_timestamp(),
+      revision_number = case
+        when v_existing_status = 'returned' then revision_number + 1
+        else revision_number
+      end,
+      returned_at = null,
+      returned_reason = null,
+      updated_at = clock_timestamp()
+  where id = v_submission.id
   returning * into v_submission;
 
   return jsonb_build_object(
-    'submission_id',v_submission.id,
-    'status',v_submission.status,
-    'revision_number',v_submission.revision_number,
-    'submitted_at',v_submission.submitted_at,
-    'received_at',v_submission.received_at
+    'submission_id', v_submission.id,
+    'status', v_submission.status,
+    'revision_number', v_submission.revision_number,
+    'submitted_at', v_submission.submitted_at,
+    'received_at', v_submission.received_at
   );
 end;
 $$;
 
-revoke all on function public.save_student_homework_draft(uuid,jsonb,text) from public, anon;
-revoke all on function public.submit_student_homework(uuid,jsonb,text) from public, anon;
-grant execute on function public.save_student_homework_draft(uuid,jsonb,text) to authenticated;
-grant execute on function public.submit_student_homework(uuid,jsonb,text) to authenticated;
+revoke all on function public.save_student_homework_draft(uuid,jsonb,text)
+  from public, anon;
+revoke all on function public.submit_student_homework(uuid,jsonb,text)
+  from public, anon;
+grant execute on function public.save_student_homework_draft(uuid,jsonb,text)
+  to authenticated;
+grant execute on function public.submit_student_homework(uuid,jsonb,text)
+  to authenticated;
