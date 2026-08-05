@@ -51,32 +51,53 @@ function parseResult(data: unknown): StudentHomeworkSubmissionResult {
   }
 }
 
-export async function saveStudentHomeworkDraft(input: {
-  homeworkId: string
-  answers: StudentHomeworkAnswerInput[]
-  photoUrl?: string | null
-}): Promise<StudentHomeworkSubmissionResult> {
-  const { data, error } = await supabase.rpc('save_student_homework_draft', {
+async function callSubmissionRpc(
+  name: 'save_student_homework_draft' | 'submit_student_homework',
+  input: {
+    homeworkId: string
+    answers: StudentHomeworkAnswerInput[]
+    photoUrl?: string | null
+  },
+): Promise<StudentHomeworkSubmissionResult> {
+  // The migration and generated database types land together. This narrow cast
+  // keeps the service usable before the next Supabase type regeneration.
+  const client = supabase as unknown as {
+    rpc: (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message?: string } | null }>
+  }
+
+  const { data, error } = await client.rpc(name, {
     p_homework_id: input.homeworkId,
     p_answers: normalizeAnswers(input.answers),
     p_photo_url: input.photoUrl ?? null,
   })
 
-  if (error) throw new Error(error.message || 'Could not save homework draft.')
+  if (error) {
+    throw new Error(
+      error.message ||
+        (name === 'save_student_homework_draft'
+          ? 'Could not save homework draft.'
+          : 'Could not submit homework.'),
+    )
+  }
+
   return parseResult(data)
 }
 
-export async function submitStudentHomework(input: {
+export function saveStudentHomeworkDraft(input: {
   homeworkId: string
   answers: StudentHomeworkAnswerInput[]
   photoUrl?: string | null
 }): Promise<StudentHomeworkSubmissionResult> {
-  const { data, error } = await supabase.rpc('submit_student_homework', {
-    p_homework_id: input.homeworkId,
-    p_answers: normalizeAnswers(input.answers),
-    p_photo_url: input.photoUrl ?? null,
-  })
+  return callSubmissionRpc('save_student_homework_draft', input)
+}
 
-  if (error) throw new Error(error.message || 'Could not submit homework.')
-  return parseResult(data)
+export function submitStudentHomework(input: {
+  homeworkId: string
+  answers: StudentHomeworkAnswerInput[]
+  photoUrl?: string | null
+}): Promise<StudentHomeworkSubmissionResult> {
+  return callSubmissionRpc('submit_student_homework', input)
 }
