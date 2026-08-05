@@ -2118,103 +2118,62 @@ export default function LessonPlanModal({
                   </div>
                 )}
                 {planId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const params = new URLSearchParams({
-                        classId: slot.class_id,
-                        subjectId: slot.subject_id,
-                        lessonPlanId: planId,
-                        topic,
-                        assessmentHook: sections.assessmentHook,
-                      })
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: 8,
+                  }}>
+                    {[
+                      { type: 'exercise', label: 'Exercise', icon: '✍️' },
+                      { type: 'quiz', label: 'Quiz', icon: '📊' },
+                      { type: 'homework', label: 'Homework', icon: '📝' },
+                      { type: 'test', label: 'CAT', icon: '📋' },
+                    ].map(action => (
+                      <button
+                        key={action.type}
+                        type="button"
+                        onClick={() => {
+                          const params = new URLSearchParams({
+                            lessonPlanId: planId,
+                            topic,
+                            assessmentHook: sections.assessmentHook,
+                            type: action.type,
+                          })
 
-                      const occurrenceId =
-                        teachingOccurrence?.occurrenceId
+                          const occurrenceId =
+                            teachingOccurrence?.occurrenceId
 
-                      if (occurrenceId) {
-                        params.set(
-                          'occurrenceId',
-                          occurrenceId,
-                        )
-                      }
+                          if (occurrenceId) {
+                            params.set(
+                              'occurrenceId',
+                              occurrenceId,
+                            )
+                          }
 
-                      router.push(
-                        `/teacher/assessment/new?${params.toString()}`,
-                      )
-                    }}
-                    disabled={isbusy}
-                    style={{
-                      width: '100%',
-                      padding: '13px',
-                      borderRadius: 12,
-                      border: '1.5px solid #4338ca',
-                      background: '#eef2ff',
-                      color: '#4338ca',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: isbusy
-                        ? 'not-allowed'
-                        : 'pointer',
-                      opacity: isbusy ? 0.7 : 1,
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    📊 Generate Quiz from Lesson
-                  </button>
-                )}
-
-                {planId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const params =
-                        new URLSearchParams({
-                          lessonPlanId: planId,
-                          subjectId:
-                            slot.subject_id,
-                          subject:
-                            slot.subject,
-                          topic,
-                        })
-
-                      const occurrenceId =
-                        teachingOccurrence
-                          ?.occurrenceId
-
-                      if (occurrenceId) {
-                        params.set(
-                          'occurrenceId',
-                          occurrenceId,
-                        )
-                      }
-
-                      router.push(
-                        `/teacher/classhub/${slot.class_id}/homework?${params.toString()}`,
-                      )
-                    }}
-                    disabled={isbusy}
-                    style={{
-                      width: '100%',
-                      padding: '13px',
-                      borderRadius: 12,
-                      border:
-                        '1.5px solid #0f766e',
-                      background: '#f0fdfa',
-                      color: '#0f766e',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: isbusy
-                        ? 'not-allowed'
-                        : 'pointer',
-                      opacity: isbusy
-                        ? 0.7
-                        : 1,
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    📝 Create Homework from Lesson
-                  </button>
+                          router.push(
+                            `/teacher/assessment/new?${params.toString()}`,
+                          )
+                        }}
+                        disabled={isbusy}
+                        style={{
+                          padding: '12px 10px',
+                          borderRadius: 12,
+                          border: '1.5px solid #4338ca',
+                          background: '#eef2ff',
+                          color: '#4338ca',
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: isbusy
+                            ? 'not-allowed'
+                            : 'pointer',
+                          opacity: isbusy ? 0.7 : 1,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {action.icon} Generate {action.label}
+                      </button>
+                    ))}
+                  </div>
                 )}
 
                 {status === 'draft' && (
