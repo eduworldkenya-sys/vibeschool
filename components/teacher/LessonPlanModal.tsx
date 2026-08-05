@@ -2121,6 +2121,53 @@ export default function LessonPlanModal({
                   <button
                     type="button"
                     onClick={() => {
+                      const params = new URLSearchParams({
+                        classId: slot.class_id,
+                        subjectId: slot.subject_id,
+                        lessonPlanId: planId,
+                        topic,
+                        assessmentHook: sections.assessmentHook,
+                      })
+
+                      const occurrenceId =
+                        teachingOccurrence?.occurrenceId
+
+                      if (occurrenceId) {
+                        params.set(
+                          'occurrenceId',
+                          occurrenceId,
+                        )
+                      }
+
+                      router.push(
+                        `/teacher/assessment/new?${params.toString()}`,
+                      )
+                    }}
+                    disabled={isbusy}
+                    style={{
+                      width: '100%',
+                      padding: '13px',
+                      borderRadius: 12,
+                      border: '1.5px solid #4338ca',
+                      background: '#eef2ff',
+                      color: '#4338ca',
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: isbusy
+                        ? 'not-allowed'
+                        : 'pointer',
+                      opacity: isbusy ? 0.7 : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    📊 Generate Quiz from Lesson
+                  </button>
+                )}
+
+                {planId && (
+                  <button
+                    type="button"
+                    onClick={() => {
                       const params =
                         new URLSearchParams({
                           lessonPlanId: planId,
