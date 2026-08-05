@@ -11,7 +11,15 @@ export interface ApproveAssessmentResult { ok: true; assessmentId: string; itemC
 export interface AssignAssessmentInput { assessmentId: string; classId: string; targetGroupId?: string | null; opensAt?: string | null; closesAt?: string | null; timeLimitMinutes?: number | null; maxAttempts?: number; randomizeItems?: boolean; randomizeOptions?: boolean; showScorePolicy?: ScorePolicy }
 
 export interface LearnerAssessmentItem { id: string; questionType: QuestionType; prompt: string; options: Json; marks: number; orderNum: number; media: Json; hint: string | null }
-export interface SavedAssessmentResponse { assessmentItemId: string; responseValue: Json; responseText: string | null; status: string; lastSavedAt: string }
+export interface SavedAssessmentResponse {
+  assessmentItemId: string
+  responseValue: Json
+  responseText: string | null
+  status: string
+  revision: number
+  clientUpdatedAt: string | null
+  lastSavedAt: string
+}
 
 export interface AttemptWorkspace {
   ok: true
