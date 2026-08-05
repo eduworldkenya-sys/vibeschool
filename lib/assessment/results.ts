@@ -1,8 +1,11 @@
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
 
+export type AnswerReviewPolicy = 'never' | 'after_release' | 'after_close'
+
 export interface LearnerResultSummary {
   attemptId: string
+  assignmentId: string
   title: string
   assessmentType: string
   score: number
@@ -12,6 +15,7 @@ export interface LearnerResultSummary {
   submittedAt: string | null
   releasedAt: string | null
   attemptNumber: number
+  maxAttempts: number
 }
 
 export interface LearnerResultItem {
@@ -24,12 +28,16 @@ export interface LearnerResultItem {
   finalScore: number
   maxScore: number
   teacherFeedback: string | null
+  answerRevealed: boolean
   explanation: string | null
   workedSolution: string | null
   correctAnswer: Json
 }
 
 export interface LearnerResultDetail extends LearnerResultSummary {
+  attemptsUsed: number
+  answerReviewPolicy: AnswerReviewPolicy
+  answersRevealed: boolean
   canRetry: boolean
   items: LearnerResultItem[]
 }
@@ -39,16 +47,10 @@ type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcR
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
 function rec(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Results Engine returned an invalid payload.')
-  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Results Engine returned an invalid payload.')
   return value as Record<string, unknown>
 }
-
-function str(value: unknown): string | null {
-  return typeof value === 'string' ? value : null
-}
-
+function str(value: unknown): string | null { return typeof value === 'string' ? value : null }
 function num(value: unknown): number {
   const resolved = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(resolved)) throw new Error('Results Engine returned an invalid score.')
@@ -64,10 +66,12 @@ export async function listMyResults(): Promise<LearnerResultSummary[]> {
   return results.map(value => {
     const item = rec(value)
     const attemptId = str(item.attempt_id)
+    const assignmentId = str(item.assignment_id)
     const title = str(item.title)
-    if (!attemptId || !title) throw new Error('Results Engine returned incomplete result data.')
+    if (!attemptId || !assignmentId || !title) throw new Error('Results Engine returned incomplete result data.')
     return {
       attemptId,
+      assignmentId,
       title,
       assessmentType: str(item.assessment_type) ?? 'assessment',
       score: num(item.score),
@@ -77,6 +81,7 @@ export async function listMyResults(): Promise<LearnerResultSummary[]> {
       submittedAt: str(item.submitted_at),
       releasedAt: str(item.released_at),
       attemptNumber: num(item.attempt_number),
+      maxAttempts: num(item.max_attempts),
     }
   })
 }
@@ -87,10 +92,12 @@ export async function getMyResult(attemptId: string): Promise<LearnerResultDetai
   const payload = rec(data)
   const items = Array.isArray(payload.items) ? payload.items : []
   const title = str(payload.title)
-  if (!title) throw new Error('Results Engine returned incomplete result details.')
+  const assignmentId = str(payload.assignment_id)
+  if (!title || !assignmentId) throw new Error('Results Engine returned incomplete result details.')
 
   return {
     attemptId: str(payload.attempt_id) ?? attemptId,
+    assignmentId,
     title,
     assessmentType: str(payload.assessment_type) ?? 'assessment',
     score: num(payload.score),
@@ -100,6 +107,10 @@ export async function getMyResult(attemptId: string): Promise<LearnerResultDetai
     submittedAt: str(payload.submitted_at),
     releasedAt: str(payload.released_at),
     attemptNumber: num(payload.attempt_number),
+    attemptsUsed: num(payload.attempts_used),
+    maxAttempts: num(payload.max_attempts),
+    answerReviewPolicy: (str(payload.answer_review_policy) ?? 'never') as AnswerReviewPolicy,
+    answersRevealed: payload.answers_revealed === true,
     canRetry: payload.can_retry === true,
     items: items.map(value => {
       const item = rec(value)
@@ -113,10 +124,26 @@ export async function getMyResult(attemptId: string): Promise<LearnerResultDetai
         finalScore: num(item.final_score),
         maxScore: num(item.max_score),
         teacherFeedback: str(item.teacher_feedback),
+        answerRevealed: item.answer_revealed === true,
         explanation: str(item.explanation),
         workedSolution: str(item.worked_solution),
         correctAnswer: (item.correct_answer ?? null) as Json,
       }
     }),
   }
+}
+
+export async function setResultVisibility(input: {
+  assignmentId: string
+  answerReviewPolicy: AnswerReviewPolicy
+  showExplanations?: boolean
+  showWorkedSolutions?: boolean
+}): Promise<void> {
+  const { error } = await rpc<Json>('exq_set_result_visibility', {
+    p_assignment_id: input.assignmentId,
+    p_answer_review_policy: input.answerReviewPolicy,
+    p_show_explanations: input.showExplanations ?? true,
+    p_show_worked_solutions: input.showWorkedSolutions ?? true,
+  })
+  if (error) throw new Error(error.message || 'Result visibility could not be updated.')
 }
