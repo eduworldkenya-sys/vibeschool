@@ -24,8 +24,67 @@ function text(value: unknown, label: string): string {
   return value
 }
 
+function numberValue(value: unknown, label: string): number {
+  const resolved = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(resolved)) throw new Error(`${label} was not numeric.`)
+  return resolved
+}
+
+function optionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
 function rpcFailure(action: string, error: RpcError | null): Error {
   return new Error(error?.message || `Question bank ${action} failed.`)
+}
+
+export interface QuestionBankItem {
+  id: string
+  questionText: string
+  questionType: string
+  marks: number
+  difficulty: string | null
+  bloomLevel: string | null
+  competencyTag: string | null
+  subjectId: string | null
+  learningOutcomeId: string | null
+  reviewStatus: string
+  usageCount: number
+  updatedAt: string
+}
+
+export async function listQuestionBank(input: {
+  subjectId?: string | null
+  search?: string | null
+  limit?: number
+} = {}): Promise<QuestionBankItem[]> {
+  const { data, error } = await rpc<Json>('exq_list_question_bank', {
+    p_subject_id: input.subjectId ?? null,
+    p_search: input.search ?? null,
+    p_limit: input.limit ?? 50,
+  })
+
+  if (error) throw rpcFailure('discovery', error)
+  const payload = record(data, 'Question bank discovery')
+  const questions = Array.isArray(payload.questions) ? payload.questions : []
+
+  return questions.map(value => {
+    const item = record(value, 'Question bank item')
+    return {
+      id: text(item.id, 'Question ID'),
+      questionText: text(item.question_text, 'Question text'),
+      questionType: text(item.question_type, 'Question type'),
+      marks: numberValue(item.marks, 'Question marks'),
+      difficulty: optionalText(item.difficulty),
+      bloomLevel: optionalText(item.bloom_level),
+      competencyTag: optionalText(item.competency_tag),
+      subjectId: optionalText(item.subject_id),
+      learningOutcomeId: optionalText(item.learning_outcome_id),
+      reviewStatus: text(item.review_status, 'Review status'),
+      usageCount: numberValue(item.usage_count, 'Usage count'),
+      updatedAt: text(item.updated_at, 'Updated timestamp'),
+    }
+  })
 }
 
 export async function promoteAssessmentItemToQuestionBank(input: {
@@ -48,9 +107,7 @@ export async function promoteAssessmentItemToQuestionBank(input: {
   }
 }
 
-export async function approveQuestionBankItem(
-  questionId: string,
-): Promise<void> {
+export async function approveQuestionBankItem(questionId: string): Promise<void> {
   const { error } = await rpc<Json>('exq_approve_question_bank_item', {
     p_question_id: questionId,
   })
