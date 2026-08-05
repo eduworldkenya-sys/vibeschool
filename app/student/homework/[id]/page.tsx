@@ -1,347 +1,279 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
 import Skel from "@/components/student/Skel";
-import { Homework, HomeworkQuestion, HomeworkSubmission, HomeworkAnswer } from "@/lib/types";
+import type { Homework, HomeworkAnswer, HomeworkQuestion } from "@/lib/types";
+import {
+  saveStudentHomeworkDraft,
+  submitStudentHomework,
+} from "@/lib/homework/studentSubmission";
 
-function daysUntil(d: string): number {
-  const t = new Date(); t.setHours(0, 0, 0, 0);
-  const due = new Date(d); due.setHours(0, 0, 0, 0);
-  return Math.round((due.getTime() - t.getTime()) / 86400000);
+type SubmissionStatus = "draft" | "submitted" | "received" | "under_review" | "returned" | "marked";
+
+interface SubmissionRow {
+  id: string;
+  status: SubmissionStatus;
+  photo_url: string | null;
+  mark: number | null;
+  feedback: string | null;
+  submitted_at: string | null;
+  received_at: string | null;
+  revision_number: number;
+  returned_reason: string | null;
 }
 
-function dueBadge(d: string, status: string | undefined) {
-  if (status === "marked")    return { label: "Marked",    bg: "#d1fae5", color: "#065f46" };
-  if (status === "submitted") return { label: "Submitted", bg: "#d1fae5", color: "#065f46" };
+function daysUntil(d: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(d);
+  due.setHours(0, 0, 0, 0);
+  return Math.round((due.getTime() - today.getTime()) / 86400000);
+}
+
+function dueBadge(d: string, status?: SubmissionStatus) {
+  if (status === "marked") return { label: "Marked", bg: "#d1fae5", color: "#065f46" };
+  if (status === "under_review") return { label: "Under review", bg: "#dbeafe", color: "#1e40af" };
+  if (status === "received" || status === "submitted") return { label: "Received", bg: "#d1fae5", color: "#065f46" };
+  if (status === "returned") return { label: "Correction needed", bg: "#fef3c7", color: "#92400e" };
+  if (status === "draft") return { label: "Draft", bg: "#f3f4f6", color: "#4b5563" };
   const n = daysUntil(d);
-  if (n < 0)   return { label: "Overdue",      bg: "#fee2e2", color: "#991b1b" };
-  if (n === 0) return { label: "Due Today",    bg: "#fef3c7", color: "#92400e" };
-  if (n === 1) return { label: "Due Tomorrow", bg: "#fff7ed", color: "#c2410c" };
+  if (n < 0) return { label: "Overdue", bg: "#fee2e2", color: "#991b1b" };
+  if (n === 0) return { label: "Due today", bg: "#fef3c7", color: "#92400e" };
+  if (n === 1) return { label: "Due tomorrow", bg: "#fff7ed", color: "#c2410c" };
   return { label: `Due in ${n}d`, bg: "var(--vs-accent-soft)", color: "var(--vs-accent)" };
 }
 
-function autoBandLabel(mark: number): string {
-  if (mark >= 80) return "Excellent";
-  if (mark >= 60) return "Good";
-  if (mark >= 40) return "Fair";
-  return "Needs Improvement";
-}
-
-function IconBack() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
-}
-function IconCalendar() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
-}
-function IconCheck() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
-}
-function IconCamera() {
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>;
+function formatReceipt(value: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en-KE", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export default function HomeworkDetailPage() {
-  const { id }   = useParams<{ id: string }>();
-  const router   = useRouter();
-  const { identity, loading: idLoading } = useStudent();
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { identity, loading: identityLoading } = useStudent();
 
-  const [hw,          setHw]          = useState<Homework | null>(null);
-  const [teacher,     setTeacher]     = useState("Teacher");
-  const [questions,   setQuestions]   = useState<HomeworkQuestion[]>([]);
-  const [submission,  setSubmission]  = useState<HomeworkSubmission | null>(null);
-  const [answers,     setAnswers]     = useState<HomeworkAnswer[]>([]);
-  const [draft,       setDraft]       = useState<Record<string, string>>({});
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-
-  // Photo upload state
-  const [photoFile,    setPhotoFile]    = useState<File | null>(null);
+  const [homework, setHomework] = useState<Homework | null>(null);
+  const [teacher, setTeacher] = useState("Teacher");
+  const [questions, setQuestions] = useState<HomeworkQuestion[]>([]);
+  const [submission, setSubmission] = useState<SubmissionRow | null>(null);
+  const [answers, setAnswers] = useState<HomeworkAnswer[]>([]);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [uploading,    setUploading]    = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<"idle" | "draft" | "submit" | "upload">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (idLoading || !identity || !id) return;
+    if (identityLoading || !identity || !id) return;
 
     async function load() {
+      setLoading(true);
       const { data: raw } = await supabase.from("homework").select("*").eq("id", id).maybeSingle();
-      if (!raw) { setLoading(false); return; }
-      const homework = raw as Homework;
-      setHw(homework);
+      if (!raw) {
+        setLoading(false);
+        return;
+      }
 
-      const [teachRes, qRes, subRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", homework.teacher_id).maybeSingle(),
-        supabase.from("homework_questions").select("*").eq("homework_id", homework.id).order("order_num", { ascending: true }),
-        supabase.from("homework_submissions").select("*").eq("homework_id", homework.id).eq("student_id", identity!.studentId).maybeSingle(),
+      const hw = raw as Homework;
+      setHomework(hw);
+
+      const [teacherRes, questionRes, submissionRes] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", hw.teacher_id).maybeSingle(),
+        // Never fetch model_answer into the learner browser.
+        supabase.from("homework_questions").select("id,homework_id,question,order_num").eq("homework_id", hw.id).order("order_num"),
+        supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
       ]);
 
-      setTeacher(teachRes.data?.full_name ?? "Teacher");
-      setQuestions((qRes.data as HomeworkQuestion[]) ?? []);
-      const sub = subRes.data as HomeworkSubmission | null;
-      setSubmission(sub ?? null);
+      setTeacher(teacherRes.data?.full_name ?? "Teacher");
+      setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
+
+      const sub = submissionRes.data as SubmissionRow | null;
+      setSubmission(sub);
+      if (sub?.photo_url) setPhotoPreview(sub.photo_url);
 
       if (sub) {
-        const { data: ans } = await supabase.from("homework_answers").select("*").eq("submission_id", sub.id);
-        setAnswers((ans as HomeworkAnswer[]) ?? []);
-        if (sub.photo_url) setPhotoPreview(sub.photo_url);
+        const { data } = await supabase.from("homework_answers").select("id,submission_id,question_id,answer_text,created_at").eq("submission_id", sub.id);
+        const loadedAnswers = (data as HomeworkAnswer[]) ?? [];
+        setAnswers(loadedAnswers);
+        setDraft(Object.fromEntries(loadedAnswers.map(answer => [answer.question_id, answer.answer_text ?? ""])));
       }
+
       setLoading(false);
     }
-    load();
-  }, [identity, idLoading, id]);
 
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    void load();
+  }, [id, identity, identityLoading]);
+
+  const locked = submission?.status === "marked" || submission?.status === "under_review";
+  const editable = !locked;
+  const finalSubmitted = submission != null && ["submitted", "received", "under_review", "marked"].includes(submission.status);
+  const badge = homework ? dueBadge(homework.due_date, submission?.status) : null;
+
+  function answerPayload() {
+    return questions.map(question => ({
+      questionId: question.id,
+      answerText: draft[question.id] ?? "",
+    }));
   }
 
-  async function uploadPhoto(file: File, studentId: string): Promise<string | null> {
-    const ext  = file.name.split(".").pop() ?? "jpg";
-    const path = `${studentId}/${id}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("homework-photos").upload(path, file, { upsert: true });
-    if (error) return null;
+  function validateComplete(): boolean {
+    if (questions.length > 0 && !questions.every(question => (draft[question.id] ?? "").trim())) {
+      setError("Please answer every question before submitting.");
+      return false;
+    }
+    if (questions.length === 0 && !photoFile && !photoPreview) {
+      setError("Please add a clear photo of your completed work.");
+      return false;
+    }
+    return true;
+  }
+
+  async function uploadPhoto(): Promise<string | null> {
+    if (!photoFile || !identity) return photoPreview;
+    setSaving("upload");
+    const extension = photoFile.name.split(".").pop() ?? "jpg";
+    const path = `${identity.studentId}/${id}-${Date.now()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("homework-photos").upload(path, photoFile, { upsert: true });
+    if (uploadError) throw new Error("Photo upload failed. Please try again.");
     const { data } = supabase.storage.from("homework-photos").getPublicUrl(path);
     return data.publicUrl;
   }
 
-  async function submit() {
-    if (!identity || !hw) return;
-
-    if (questions.length > 0 && !questions.every(q => (draft[q.id] ?? "").trim() !== "")) {
-      setError("Please answer every question before submitting.");
-      return;
-    }
-    if (questions.length === 0 && !photoFile && !photoPreview) {
-      setError("Please take a photo of your completed work.");
-      return;
-    }
-
-    setSaving(true); setUploading(true); setError(null);
-
-    let photoUrl: string | null = null;
-    if (photoFile) {
-      photoUrl = await uploadPhoto(photoFile, identity.studentId);
-      if (!photoUrl) {
-        setError("Photo upload failed. Please try again.");
-        setSaving(false); setUploading(false); return;
-      }
-    }
-    setUploading(false);
-
-    // G8: duplicate guard
-    const { data: existing } = await supabase
-      .from("homework_submissions")
-      .select("id")
-      .eq("homework_id", hw.id)
-      .eq("student_id", identity.studentId)
-      .maybeSingle();
-
-    if (existing) {
-      setError("You have already submitted this homework.");
-      setSaving(false);
-      return;
-    }
-
-    // G7: include school_id
-    const { data: sub, error: subErr } = await supabase
-      .from("homework_submissions")
-      .insert({
-        homework_id:  hw.id,
-        student_id:   identity.studentId,
-        status:       "submitted",
-        submitted_at: new Date().toISOString(),
-        photo_url:    photoUrl,
-      })
-      .select()
-      .single();
-
-    if (subErr || !sub) { setError("Could not submit. Please try again."); setSaving(false); return; }
-
-    if (questions.length > 0) {
-      const rows = questions.map(q => ({
-        submission_id: sub.id,
-        question_id:   q.id,
-        answer_text:   draft[q.id].trim(),
+  async function saveDraft() {
+    if (!homework || locked) return;
+    setSaving("draft");
+    setError(null);
+    setMessage(null);
+    try {
+      const photoUrl = await uploadPhoto();
+      const result = await saveStudentHomeworkDraft({ homeworkId: homework.id, answers: answerPayload(), photoUrl });
+      setSubmission(previous => ({
+        id: result.submissionId,
+        status: "draft",
+        photo_url: photoUrl ?? previous?.photo_url ?? null,
+        mark: previous?.mark ?? null,
+        feedback: previous?.feedback ?? null,
+        submitted_at: previous?.submitted_at ?? null,
+        received_at: previous?.received_at ?? null,
+        revision_number: result.revisionNumber,
+        returned_reason: previous?.returned_reason ?? null,
       }));
-      await supabase.from("homework_answers").insert(rows);
-      setAnswers(rows.map((r, i) => ({ ...r, id: `tmp-${i}`, created_at: "" })));
+      setPhotoPreview(photoUrl);
+      setPhotoFile(null);
+      setMessage("Draft saved. You can continue later.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save draft.");
+    } finally {
+      setSaving("idle");
     }
-
-    setSubmission(sub as HomeworkSubmission);
-    setSaving(false);
   }
 
-  if (idLoading || loading) return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
-      <Skel h={24} radius={8} w="60%" /><Skel h={100} radius={12} /><Skel h={160} radius={12} />
-    </div>
-  );
+  async function submit() {
+    if (!homework || locked || !validateComplete()) return;
+    setSaving("submit");
+    setError(null);
+    setMessage(null);
+    try {
+      const photoUrl = await uploadPhoto();
+      const result = await submitStudentHomework({ homeworkId: homework.id, answers: answerPayload(), photoUrl });
+      setSubmission(previous => ({
+        id: result.submissionId,
+        status: "received",
+        photo_url: photoUrl ?? previous?.photo_url ?? null,
+        mark: previous?.mark ?? null,
+        feedback: previous?.feedback ?? null,
+        submitted_at: result.submittedAt ?? null,
+        received_at: result.receivedAt ?? null,
+        revision_number: result.revisionNumber,
+        returned_reason: null,
+      }));
+      setAnswers(answerPayload().map((answer, index) => ({
+        id: `local-${index}`,
+        submission_id: result.submissionId,
+        question_id: answer.questionId,
+        answer_text: answer.answerText,
+        created_at: result.receivedAt ?? "",
+      })));
+      setPhotoPreview(photoUrl);
+      setPhotoFile(null);
+      setMessage("Submitted successfully. Vibeschool has received your work.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not submit homework.");
+    } finally {
+      setSaving("idle");
+    }
+  }
 
-  if (!hw) return <div style={{ textAlign: "center", padding: "40px 24px", color: "var(--vs-muted)", fontSize: 13 }}>Homework not found</div>;
-
-  const badge       = dueBadge(hw.due_date, submission?.status);
-  const isSubmitted = !!submission;
-  const isMarked    = submission?.status === "marked";
-  const answerFor   = (qid: string) => answers.find(a => a.question_id === qid)?.answer_text ?? "No answer given";
+  if (identityLoading || loading) return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}><Skel h={28} radius={8} /><Skel h={120} radius={14} /><Skel h={180} radius={14} /></div>;
+  if (!homework || !badge) return <div style={{ padding: 32, textAlign: "center", color: "var(--vs-muted)" }}>Homework not found</div>;
 
   return (
-    <div style={{ animation: "slideIn 0.22s ease" }}>
+    <div style={{ paddingBottom: 90 }}>
+      <button onClick={() => router.back()} style={{ border: 0, background: "none", color: "var(--vs-muted)", fontWeight: 700, marginBottom: 14 }}>← Back</button>
 
-      <button onClick={() => router.back()} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "var(--vs-muted)", fontSize: 13, fontWeight: 600, marginBottom: 16, padding: 0, fontFamily: "inherit" }}>
-        <IconBack /> Back
-      </button>
+      <section style={{ background: "linear-gradient(135deg,#0f766e,#14b8a6)", color: "white", borderRadius: 16, padding: 18, marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+          <h1 style={{ margin: 0, fontSize: 19 }}>{homework.title}</h1>
+          <span style={{ background: badge.bg, color: badge.color, borderRadius: 20, padding: "5px 10px", fontSize: 11, fontWeight: 800 }}>{badge.label}</span>
+        </div>
+        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>{homework.subject} · {teacher} · Due {new Date(homework.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}</div>
+      </section>
 
-      {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)", borderRadius: 16, padding: "16px", marginBottom: 14, color: "#fff" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-          <h1 style={{ fontSize: 17, fontWeight: 800, fontFamily: "'Bricolage Grotesque', sans-serif", lineHeight: 1.3, color: "#fff" }}>{hw.title}</h1>
-          <span style={{ padding: "4px 10px", borderRadius: 20, background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{badge.label}</span>
-        </div>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", display: "flex", alignItems: "center", gap: 6 }}>
-          <IconCalendar />
-          {hw.subject} · {teacher} · Due {new Date(hw.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          {[
-            { label: "Type",      value: hw.type.charAt(0).toUpperCase() + hw.type.slice(1) },
-            { label: "Questions", value: questions.length > 0 ? `${questions.length}` : "—" },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.15)", borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600, marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+      {homework.instructions && <section style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: 16, marginBottom: 14 }}><strong>Instructions</strong><p style={{ lineHeight: 1.6 }}>{homework.instructions}</p></section>}
+
+      {submission && finalSubmitted && (
+        <section style={{ background: submission.status === "marked" ? "var(--vs-accent-soft)" : "#d1fae5", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <strong>{submission.status === "marked" ? "Marked" : submission.status === "under_review" ? "Teacher is reviewing" : "Received by Vibeschool"}</strong>
+          <div style={{ fontSize: 12, marginTop: 6 }}>Submitted: {formatReceipt(submission.submitted_at)}</div>
+          <div style={{ fontSize: 12, marginTop: 2 }}>Server receipt: {formatReceipt(submission.received_at)}</div>
+          <div style={{ fontSize: 12, marginTop: 2 }}>Revision: {submission.revision_number}</div>
+          {submission.mark != null && <div style={{ fontSize: 20, fontWeight: 900, marginTop: 10 }}>{submission.mark} marks</div>}
+          {submission.feedback && <p style={{ marginBottom: 0 }}>{submission.feedback}</p>}
+        </section>
+      )}
+
+      {submission?.status === "returned" && <section style={{ background: "#fef3c7", borderRadius: 14, padding: 16, marginBottom: 14 }}><strong>Returned for correction</strong><p>{submission.returned_reason || "Please review your work, make corrections and submit again."}</p></section>}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
+        {questions.map((question, index) => (
+          <section key={question.id} style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: 16 }}>
+            <div style={{ color: "var(--vs-accent)", fontSize: 12, fontWeight: 800 }}>Question {index + 1}</div>
+            <p>{question.question}</p>
+            <textarea disabled={!editable} value={draft[question.id] ?? ""} onChange={event => setDraft(current => ({ ...current, [question.id]: event.target.value }))} rows={3} placeholder="Write your answer here..." style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--vs-border)", borderRadius: 10, padding: 12, background: editable ? "var(--vs-surface)" : "#f3f4f6", color: "var(--vs-text)", fontFamily: "inherit" }} />
+          </section>
+        ))}
       </div>
 
-      {/* Instructions */}
-      {hw.instructions && (
-        <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "14px 16px", marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--vs-muted)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Instructions</div>
-          <p style={{ fontSize: 13, color: "var(--vs-text)", lineHeight: 1.7, margin: 0 }}>{hw.instructions}</p>
-        </div>
+      {questions.length === 0 && editable && (
+        <section style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={event => { const file = event.target.files?.[0]; if (file) { setPhotoFile(file); setPhotoPreview(URL.createObjectURL(file)); } }} style={{ display: "none" }} />
+          {photoPreview && <img src={photoPreview} alt="Homework preview" style={{ width: "100%", maxHeight: 300, objectFit: "cover", borderRadius: 10, marginBottom: 10 }} />}
+          <button onClick={() => fileInputRef.current?.click()} style={{ width: "100%", padding: 14, borderRadius: 10, border: "1px dashed var(--vs-border)", background: "var(--vs-surface)", fontWeight: 700 }}>{photoPreview ? "Replace photo" : "Take a photo of your work"}</button>
+        </section>
       )}
 
-      {/* Marked feedback */}
-      {isMarked && (
-        <div style={{ background: "var(--vs-accent-soft)", border: "1px solid var(--vs-accent)", borderRadius: 14, padding: "14px 16px", marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--vs-accent)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Teacher Feedback</div>
-          {submission?.mark !== null && submission?.mark !== undefined && (
-            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--vs-accent)" }}>
-              {submission.mark} marks · <span style={{ fontSize: 14 }}>{autoBandLabel(submission.mark)}</span>
-            </div>
-          )}
-          {submission?.feedback && (
-            <p style={{ fontSize: 13, color: "var(--vs-text)", marginTop: 8, lineHeight: 1.6, margin: "8px 0 0" }}>{submission.feedback}</p>
-          )}
+      {message && <div style={{ background: "#d1fae5", color: "#065f46", borderRadius: 10, padding: 12, marginBottom: 10 }}>{message}</div>}
+      {error && <div style={{ color: "#b91c1c", marginBottom: 10 }}>{error}</div>}
+
+      {editable && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <button onClick={saveDraft} disabled={saving !== "idle"} style={{ padding: 14, borderRadius: 12, border: "1px solid #0f766e", background: "white", color: "#0f766e", fontWeight: 800 }}>{saving === "draft" || saving === "upload" ? "Saving…" : "Save Draft"}</button>
+          <button onClick={submit} disabled={saving !== "idle"} style={{ padding: 14, borderRadius: 12, border: 0, background: "#0f766e", color: "white", fontWeight: 800 }}>{saving === "submit" || saving === "upload" ? "Submitting…" : submission?.status === "returned" ? "Resubmit" : "Submit Work"}</button>
         </div>
-      )}
-
-      {/* Submitted banner */}
-      {isSubmitted && !isMarked && (
-        <div style={{ background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 14, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: "#065f46" }}><IconCheck /></span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#065f46" }}>Work submitted</div>
-            <div style={{ fontSize: 11, color: "#047857", marginTop: 2 }}>Waiting for your teacher to mark it</div>
-          </div>
-        </div>
-      )}
-
-      {/* Submitted photo preview */}
-      {isSubmitted && submission?.photo_url && (
-        <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "14px 16px", marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--vs-muted)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Your Work</div>
-          <img src={submission.photo_url} alt="Submitted work" style={{ width: "100%", borderRadius: 10, objectFit: "cover", maxHeight: 320 }} />
-        </div>
-      )}
-
-      {/* Questions the teacher attached to this homework */}
-      {questions.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
-          {questions.map((q, i) => (
-            <div key={q.id} style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--vs-accent)", marginBottom: 8 }}>Question {i + 1}</div>
-              <p style={{ fontSize: 13, color: "var(--vs-text)", lineHeight: 1.6, marginBottom: isSubmitted ? 0 : 10 }}>{q.question}</p>
-              {!isSubmitted ? (
-                <textarea
-                  value={draft[q.id] ?? ""}
-                  onChange={e => setDraft(prev => ({ ...prev, [q.id]: e.target.value }))}
-                  placeholder="Write your answer here..."
-                  rows={3}
-                  style={{ width: "100%", borderRadius: 10, border: "1px solid var(--vs-border)", background: "var(--vs-surface)", color: "var(--vs-text)", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
-                />
-              ) : (
-                <div style={{ fontSize: 13, color: "var(--vs-muted)", background: "var(--vs-surface)", borderRadius: 10, padding: "10px 12px", lineHeight: 1.6, marginTop: 8 }}>
-                  {answerFor(q.id)}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* No questions attached: photo-of-work upload */}
-      {questions.length === 0 && !isSubmitted && (
-        <div style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "16px", marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--vs-muted)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Your Work</div>
-          <p style={{ fontSize: 13, color: "var(--vs-muted)", lineHeight: 1.6, marginBottom: 14 }}>
-            Complete in your exercise book, then take a clear photo of your work.
-          </p>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoChange}
-            style={{ display: "none" }}
-          />
-
-          {photoPreview ? (
-            <div>
-              <img src={photoPreview} alt="Work preview" style={{ width: "100%", borderRadius: 10, objectFit: "cover", maxHeight: 280, marginBottom: 10 }} />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px dashed var(--vs-border)", background: "var(--vs-surface)", color: "var(--vs-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                Retake photo
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{ width: "100%", padding: "24px 16px", borderRadius: 12, border: "2px dashed var(--vs-border)", background: "var(--vs-surface)", color: "var(--vs-accent)", cursor: "pointer", fontFamily: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
-            >
-              <IconCamera />
-              <span style={{ fontSize: 13, fontWeight: 700 }}>Take a photo of your work</span>
-              <span style={{ fontSize: 11, color: "var(--vs-muted)" }}>Tap to open camera</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Submit */}
-      {!isSubmitted && (
-        <>
-          {error && <div style={{ fontSize: 12, color: "var(--vs-error, #ef4444)", marginBottom: 10 }}>{error}</div>}
-          <button
-            onClick={submit}
-            disabled={saving}
-            style={{ width: "100%", padding: "14px", borderRadius: 14, border: "none", background: "#0f766e", color: "#fff", fontSize: 14, fontWeight: 800, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "all 0.2s" }}
-          >
-            {uploading ? "Uploading photo…" : saving ? "Submitting…" : "Submit My Work"}
-          </button>
-        </>
       )}
     </div>
   );
 }
-
