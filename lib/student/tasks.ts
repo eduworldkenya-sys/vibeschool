@@ -39,6 +39,19 @@ export interface StudentTask {
   maxScore: number | null
   feedback: string | null
 }
+export interface StudentTaskLaunch {
+  studentId: string
+  taskId: string
+  taskType: StudentTaskType
+  sourceId: string
+  title: string
+  subject: string
+  status: StudentTaskStatus
+  actionUrl: string
+  actionLabel: string
+  progress: number
+  resolvedAt: string
+}
 export interface StudentTaskCounts { toDo: number; inProgress: number; submitted: number; results: number; upcoming: number; overdue: number }
 export interface StudentTaskFeed { studentId: string; tasks: StudentTask[]; counts: StudentTaskCounts }
 export interface StudentAchievement { slug: string; title: string; description: string; icon: string; awardedAt: string | null }
@@ -105,6 +118,25 @@ export async function listMyTasks(): Promise<StudentTaskFeed> {
     studentId: text(payload.student_id) ?? '',
     counts: { toDo: numberOrNull(counts.to_do) ?? 0, inProgress: numberOrNull(counts.in_progress) ?? 0, submitted: numberOrNull(counts.submitted) ?? 0, results: numberOrNull(counts.results) ?? 0, upcoming: numberOrNull(counts.upcoming) ?? 0, overdue: numberOrNull(counts.overdue) ?? 0 },
     tasks: tasks.map(parseTask),
+  }
+}
+
+export async function resolveTaskLaunch(taskId: string): Promise<StudentTaskLaunch> {
+  const { data, error } = await rpc<Json>('student_resolve_task_launch', { p_task_id: taskId })
+  if (error) throw new Error(error.message || 'Task could not be opened.')
+  const payload = record(data)
+  return {
+    studentId: text(payload.student_id) ?? '',
+    taskId: text(payload.task_id) ?? taskId,
+    taskType: text(payload.task_type) ?? 'task',
+    sourceId: text(payload.source_id) ?? '',
+    title: text(payload.title) ?? 'Task',
+    subject: text(payload.subject) ?? 'General',
+    status: (text(payload.status) ?? 'ready') as StudentTaskStatus,
+    actionUrl: text(payload.action_url) ?? '/student/tasks',
+    actionLabel: text(payload.action_label) ?? 'Open task',
+    progress: numberOrNull(payload.progress) ?? 0,
+    resolvedAt: text(payload.resolved_at) ?? new Date().toISOString(),
   }
 }
 
