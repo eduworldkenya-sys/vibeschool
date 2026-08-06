@@ -2,9 +2,10 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { recordPracticeAnswer } from '@/lib/student/vibelearn'
 
 type Question = {
   id: string
@@ -41,6 +42,7 @@ export default function VibeLearnPracticePage() {
   const router = useRouter()
   const params = useSearchParams()
   const requestedSubject = params.get('subject')?.replaceAll('-', ' ') ?? ''
+  const requestedTopic = params.get('topic')?.replaceAll('-', ' ') ?? ''
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -48,7 +50,10 @@ export default function VibeLearnPracticePage() {
   const [submitted, setSubmitted] = useState(false)
   const [correct, setCorrect] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const startedAtRef = useRef(Date.now())
+  const sessionIdRef = useRef(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : null)
 
   useEffect(() => {
     let cancelled = false
@@ -60,6 +65,7 @@ export default function VibeLearnPracticePage() {
           .eq('status', 'published')
           .limit(20)
         if (requestedSubject) query = query.ilike('subject', requestedSubject)
+        if (requestedTopic) query = query.ilike('topic', requestedTopic)
         const { data, error: loadError } = await query
         if (loadError) throw loadError
         if (!cancelled) setQuestions((data ?? []).flatMap(value => {
@@ -74,7 +80,7 @@ export default function VibeLearnPracticePage() {
     }
     void load()
     return () => { cancelled = true }
-  }, [requestedSubject])
+  }, [requestedSubject, requestedTopic])
 
   const question = questions[index] ?? null
   const finished = questions.length > 0 && index >= questions.length
@@ -82,10 +88,24 @@ export default function VibeLearnPracticePage() {
   const answerCorrect = submitted && selected === question?.correctIndex
   const scoreLabel = useMemo(() => questions.length ? `${correct}/${questions.length}` : '0/0', [correct, questions.length])
 
-  function checkAnswer() {
-    if (selected === null || !question || submitted) return
-    setSubmitted(true)
-    if (selected === question.correctIndex) setCorrect(value => value + 1)
+  async function checkAnswer() {
+    if (selected === null || !question || submitted || saving) return
+    setSaving(true)
+    setError('')
+    try {
+      const result = await recordPracticeAnswer({
+        questionId: question.id,
+        selectedIndex: selected,
+        responseMs: Math.max(0, Date.now() - startedAtRef.current),
+        sessionId: sessionIdRef.current,
+      })
+      setSubmitted(true)
+      if (result.correct) setCorrect(value => value + 1)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Your answer could not be saved. Try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function nextQuestion() {
@@ -93,6 +113,7 @@ export default function VibeLearnPracticePage() {
     setSelected(null)
     setSubmitted(false)
     setShowHint(false)
+    startedAtRef.current = Date.now()
   }
 
   return (
@@ -101,19 +122,21 @@ export default function VibeLearnPracticePage() {
         <button style={backButton} onClick={() => router.push('/student/vibelearn')}>← VibeLearn</button>
         <section style={hero}>
           <div style={eyebrow}>Practice mode</div>
-          <h1 style={{ margin: '7px 0 4px' }}>{requestedSubject || 'Mixed subject'} practice</h1>
-          <p style={{ margin: 0, color: '#cbd5e1' }}>Hints and explanations come from the verified question bank. No AI tutor is active during this scored session.</p>
+          <h1 style={{ margin: '7px 0 4px' }}>{requestedTopic || requestedSubject || 'Mixed subject'} practice</h1>
+          <p style={{ margin: 0, color: '#cbd5e1' }}>Every checked answer now strengthens your personal revision plan and mistake notebook. No AI tutor is active during scoring.</p>
         </section>
 
+        {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
+
         {loading ? <section style={card}>Loading questions…</section>
-          : error ? <section style={{ ...card, color: '#b91c1c' }}>{error}</section>
-          : questions.length === 0 ? <section style={card}><strong>No questions available</strong><p style={muted}>Choose another subject from VibeLearn.</p></section>
+          : questions.length === 0 ? <section style={card}><strong>No questions available</strong><p style={muted}>Choose another subject or topic from VibeLearn.</p></section>
           : finished ? <section style={card}>
               <div style={eyebrowDark}>Session complete</div>
               <h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2>
-              <p style={muted}>Review the explanations you saw, then try another subject or enter the full assessment hub.</p>
+              <p style={muted}>Your correct answers and mistakes are now part of your learning journey and recovery plan.</p>
               <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-                <button style={primaryButton} onClick={() => { setIndex(0); setCorrect(0); setSelected(null); setSubmitted(false); setShowHint(false) }}>Try again</button>
+                <button style={primaryButton} onClick={() => { setIndex(0); setCorrect(0); setSelected(null); setSubmitted(false); setShowHint(false); startedAtRef.current = Date.now(); sessionIdRef.current = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : null }}>Try again</button>
+                <button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision plan</button>
                 <button style={secondaryButton} onClick={() => router.push('/student/assessment')}>Assessment hub</button>
               </div>
             </section>
@@ -130,25 +153,15 @@ export default function VibeLearnPracticePage() {
                     const isSelected = selected === optionIndex
                     const isCorrect = submitted && optionIndex === question.correctIndex
                     const isWrongSelected = submitted && isSelected && optionIndex !== question.correctIndex
-                    return <button
-                      key={`${question.id}-${optionIndex}`}
-                      disabled={submitted}
-                      onClick={() => setSelected(optionIndex)}
-                      style={{
-                        ...optionButton,
-                        borderColor: isCorrect ? '#10b981' : isWrongSelected ? '#ef4444' : isSelected ? '#4f46e5' : '#e2e8f0',
-                        background: isCorrect ? '#ecfdf5' : isWrongSelected ? '#fef2f2' : isSelected ? '#eef2ff' : '#fff',
-                      }}
-                    >
-                      <span style={optionLetter}>{String.fromCharCode(65 + optionIndex)}</span>
-                      <span>{option}</span>
+                    return <button key={`${question.id}-${optionIndex}`} disabled={submitted || saving} onClick={() => setSelected(optionIndex)} style={{ ...optionButton, borderColor: isCorrect ? '#10b981' : isWrongSelected ? '#ef4444' : isSelected ? '#4f46e5' : '#e2e8f0', background: isCorrect ? '#ecfdf5' : isWrongSelected ? '#fef2f2' : isSelected ? '#eef2ff' : '#fff' }}>
+                      <span style={optionLetter}>{String.fromCharCode(65 + optionIndex)}</span><span>{option}</span>
                     </button>
                   })}
                 </div>
 
                 {!submitted && <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
                   <button style={secondaryButton} onClick={() => setShowHint(value => !value)}>{showHint ? 'Hide hint' : 'Need a hint?'}</button>
-                  <button style={{ ...primaryButton, opacity: selected === null ? 0.5 : 1 }} disabled={selected === null} onClick={checkAnswer}>Check answer</button>
+                  <button style={{ ...primaryButton, opacity: selected === null || saving ? 0.5 : 1 }} disabled={selected === null || saving} onClick={() => void checkAnswer()}>{saving ? 'Saving…' : 'Check answer'}</button>
                 </div>}
 
                 {showHint && !submitted && <div style={hintBox}><strong>Hint</strong><div style={{ marginTop: 5 }}>{question.hint ?? 'Eliminate options that clearly conflict with the topic, then compare the remaining choices carefully.'}</div></div>}
