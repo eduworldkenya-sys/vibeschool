@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/app/teacher/layout";
 import { fetchPulseData } from "@/lib/pulse/fetcher";
-import type { PulseSnapshot, ActivityLog, PriorityTask, ActivityItem } from "@/lib/types";
+import type { PulseSnapshot, PriorityTask, ActivityItem } from "@/lib/types";
 import { runRules } from "@/lib/pulse/rules";
 import {
   fingerprint,
@@ -340,6 +340,13 @@ export default function PulsePage() {
     month: "long",
     year: "numeric",
   });
+  const recentItems: ActivityItem[] = (snap.recentActivity ?? []).map((activity) => ({
+    id: activity.id,
+    type: activity.type === "homework" ? "gradebook" : activity.type,
+    title: activity.title,
+    subtitle: activity.subtitle,
+    timestamp: relativeTime(activity.timestamp),
+  }));
 
   return (
     <div
@@ -451,26 +458,25 @@ export default function PulsePage() {
         </Card>
       )}
 
-      <LessonFlowCard snap={snap} onNavigate={(href) => router.push(href)} />
-
-      <WeekOverview snap={snap} onNavigate={(href) => router.push(href)} />
-
-      <RecentActivity
-        activities={(snap.recentActivity ?? []).map((activity: ActivityLog) => ({
-          id: activity.id,
-          type: activity.type,
-          title: activity.title,
-          subtitle: activity.subtitle,
-          timestamp: activity.timestamp,
-        }))}
-        relativeTime={relativeTime}
+      <LessonFlowCard
+        slots={snap.todaySlots ?? []}
+        snap={snap}
+        teacherId={snap.userId}
+        onNavigate={(href) => router.push(href)}
+        onSaved={() => boot(true)}
       />
+
+      <WeekOverview overview={snap.weekOverview} />
+
+      <RecentActivity items={recentItems} />
 
       <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
 
       <QuickActions onNavigate={(href) => router.push(href)} />
 
-      <TwinShortcut onNavigate={() => router.push("/teacher/twin")} />
+      <TwinShortcut
+        onOpen={(mode) => router.push(`/teacher/twin?mode=${encodeURIComponent(mode)}`)}
+      />
     </div>
   );
 }
