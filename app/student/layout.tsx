@@ -1,21 +1,14 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import BottomNav from "@/components/student/BottomNav";
 import OfflineBar from "@/components/student/OfflineBar";
 import TwinWorkspaceProvider from "@/components/student/VibeTwin/TwinWorkspaceProvider";
+import { ToastContext, ThemeContext } from "@/components/student/StudentUiContext";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
-
-interface ToastCtx { showToast: (msg: string) => void }
-const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
-export const useToast = () => useContext(ToastContext);
-
-interface ThemeCtx { theme: StudentTheme; setTheme: (t: StudentTheme) => void }
-const ThemeContext = createContext<ThemeCtx>({ theme: "auto", setTheme: () => {} });
-export const useTheme = () => useContext(ThemeContext);
 
 function TopBar({ name, className, schoolName }: { name: string; className: string; schoolName: string }) {
   const router   = useRouter();
