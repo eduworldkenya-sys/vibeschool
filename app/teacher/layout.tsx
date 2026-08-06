@@ -32,15 +32,43 @@ type TabId = typeof NAV_TABS[number]["id"];
 function tabIdFromPath(path: string): TabId {
   if (path === "/teacher" || path === "/teacher/") return "today";
   if (path.startsWith("/teacher/pulse")) return "today";
-  if (path.startsWith("/teacher/twin"))  return "today";
+  if (path.startsWith("/teacher/twin")) return "today";
 
-  if (path.startsWith("/teacher/teach-today") || path.startsWith("/teacher/week") || path.startsWith("/teacher/subjecthub") || path.startsWith("/teacher/scheme") || path.startsWith("/teacher/lessonplan") || path.startsWith("/teacher/progress") || path.startsWith("/teacher/resources") || path.startsWith("/teacher/vibelearn")) return "teach";
+  if (
+    path.startsWith("/teacher/teach-today") ||
+    path.startsWith("/teacher/timetable") ||
+    path.startsWith("/teacher/week") ||
+    path.startsWith("/teacher/subjecthub") ||
+    path.startsWith("/teacher/scheme") ||
+    path.startsWith("/teacher/lessonplan") ||
+    path.startsWith("/teacher/progress") ||
+    path.startsWith("/teacher/resources") ||
+    path.startsWith("/teacher/vibelearn")
+  ) return "teach";
 
-  if (path.startsWith("/teacher/classhub") || path.startsWith("/teacher/students") || path.startsWith("/teacher/attendance") || path.startsWith("/teacher/homework") || path.startsWith("/teacher/vibeconnect") || path.startsWith("/teacher/timetable")) return "classes";
+  if (
+    path.startsWith("/teacher/classhub") ||
+    path.startsWith("/teacher/students") ||
+    path.startsWith("/teacher/attendance") ||
+    path.startsWith("/teacher/homework") ||
+    path.startsWith("/teacher/vibeconnect")
+  ) return "classes";
 
-  if (path.startsWith("/teacher/results") || path.startsWith("/teacher/assessment") || path.startsWith("/teacher/academics")) return "assess";
+  if (
+    path.startsWith("/teacher/results") ||
+    path.startsWith("/teacher/assessment") ||
+    path.startsWith("/teacher/academics")
+  ) return "assess";
 
-  if (path.startsWith("/teacher/profile") || path.startsWith("/teacher/credits") || path.startsWith("/teacher/tpad") || path.startsWith("/teacher/schoolhub") || path.startsWith("/teacher/settings") || path.startsWith("/teacher/help") || path.startsWith("/teacher/more")) return "me";
+  if (
+    path.startsWith("/teacher/profile") ||
+    path.startsWith("/teacher/credits") ||
+    path.startsWith("/teacher/tpad") ||
+    path.startsWith("/teacher/schoolhub") ||
+    path.startsWith("/teacher/settings") ||
+    path.startsWith("/teacher/help") ||
+    path.startsWith("/teacher/more")
+  ) return "me";
 
   return "today";
 }
@@ -75,14 +103,14 @@ function IconAssess({ size = 22 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="20" x2="18" y2="10"/>
       <line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6"  y1="20" x2="6"  y2="14"/>
+      <line x1="6" y1="20" x2="6" y2="14"/>
     </svg>
   );
 }
 function IconMore({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="5"  cy="12" r="1.2" fill="currentColor" stroke="none"/>
+      <circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none"/>
       <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>
       <circle cx="19" cy="12" r="1.2" fill="currentColor" stroke="none"/>
     </svg>
@@ -90,21 +118,21 @@ function IconMore({ size = 22 }: { size?: number }) {
 }
 
 const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
-  today:   (a) => <IconPulse    size={a ? 23 : 21} />,
-  teach:   (a) => <IconTeach    size={a ? 23 : 21} />,
+  today: (a) => <IconPulse size={a ? 23 : 21} />,
+  teach: (a) => <IconTeach size={a ? 23 : 21} />,
   classes: (a) => <IconStudents size={a ? 23 : 21} />,
-  assess:  (a) => <IconAssess   size={a ? 23 : 21} />,
-  me:      (a) => <IconMe       size={a ? 23 : 21} />,
+  assess: (a) => <IconAssess size={a ? 23 : 21} />,
+  me: (a) => <IconMe size={a ? 23 : 21} />,
 };
 
 function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
-  const [pos,      setPos]      = useState<{ x: number; y: number } | null>(null)
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const dragging      = useRef(false)
-  const startPointer  = useRef({ x: 0, y: 0 })
-  const startPos      = useRef({ x: 0, y: 0 })
-  const pillRef       = useRef<HTMLDivElement>(null)
-  const moved         = useRef(false)
+  const dragging = useRef(false)
+  const startPointer = useRef({ x: 0, y: 0 })
+  const startPos = useRef({ x: 0, y: 0 })
+  const pillRef = useRef<HTMLDivElement>(null)
+  const moved = useRef(false)
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -114,19 +142,17 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   }, [])
 
   useEffect(() => {
-    if (expanded) {
-      collapseTimer.current = setTimeout(() => setExpanded(false), 3000)
-    }
+    if (expanded) collapseTimer.current = setTimeout(() => setExpanded(false), 3000)
     return () => {
       if (collapseTimer.current) clearTimeout(collapseTimer.current)
     }
   }, [expanded])
 
   function onPointerDown(e: React.PointerEvent) {
-    dragging.current     = true
-    moved.current        = false
+    dragging.current = true
+    moved.current = false
     startPointer.current = { x: e.clientX, y: e.clientY }
-    startPos.current     = pos ?? { x: window.innerWidth / 2 - 28, y: window.innerHeight - 136 }
+    startPos.current = pos ?? { x: window.innerWidth / 2 - 28, y: window.innerHeight - 136 }
     pillRef.current?.setPointerCapture(e.pointerId)
     e.preventDefault()
   }
@@ -136,9 +162,9 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
     const dx = e.clientX - startPointer.current.x
     const dy = e.clientY - startPointer.current.y
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved.current = true
-    const w  = window.innerWidth
-    const h  = window.innerHeight
-    const pw = pillRef.current?.offsetWidth  ?? 56
+    const w = window.innerWidth
+    const h = window.innerHeight
+    const pw = pillRef.current?.offsetWidth ?? 56
     const ph = pillRef.current?.offsetHeight ?? 56
     setPos({
       x: Math.min(Math.max(startPos.current.x + dx, 8), w - pw - 8),
@@ -152,7 +178,7 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
     if (typeof window === 'undefined') return
     window.speechSynthesis?.cancel()
     const u = new SpeechSynthesisUtterance(text)
-    u.rate  = 0.88
+    u.rate = 0.88
     u.pitch = 1.05
     window.speechSynthesis?.speak(u)
   }
@@ -187,33 +213,28 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
       <style>{`
         @keyframes twinGlow {
           0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.0), 0 0 16px 4px rgba(16,185,129,0.35), 0 4px 24px rgba(30,27,75,0.4); }
-          50%       { box-shadow: 0 0 0 8px rgba(16,185,129,0.0), 0 0 28px 8px rgba(16,185,129,0.55), 0 4px 24px rgba(30,27,75,0.4); }
+          50% { box-shadow: 0 0 0 8px rgba(16,185,129,0.0), 0 0 28px 8px rgba(16,185,129,0.55), 0 4px 24px rgba(30,27,75,0.4); }
         }
         @keyframes twinRingPulse {
-          0%, 100% { transform: scale(1);    opacity: 0.6; }
-          50%       { transform: scale(1.18); opacity: 0;   }
+          0%, 100% { transform: scale(1); opacity: 0.6; }
+          50% { transform: scale(1.18); opacity: 0; }
         }
         @keyframes twinExpand {
           from { opacity: 0; transform: scaleX(0.7) translateX(-10px); }
-          to   { opacity: 1; transform: scaleX(1)   translateX(0);     }
+          to { opacity: 1; transform: scaleX(1) translateX(0); }
         }
         @keyframes twinDotPulse {
           0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
-          40%            { transform: scale(1);   opacity: 1;   }
+          40% { transform: scale(1); opacity: 1; }
         }
       `}</style>
       {!expanded && (
         <div style={{
-          position:      'fixed',
-          left:          pos.x - 8,
-          top:           pos.y - 8,
-          width:         SIZE + 16,
-          height:        SIZE + 16,
-          borderRadius:  '50%',
-          border:        '2px solid rgba(16,185,129,0.45)',
-          animation:     'twinRingPulse 2s ease-in-out infinite',
-          zIndex:        748,
-          pointerEvents: 'none',
+          position: 'fixed', left: pos.x - 8, top: pos.y - 8,
+          width: SIZE + 16, height: SIZE + 16, borderRadius: '50%',
+          border: '2px solid rgba(16,185,129,0.45)',
+          animation: 'twinRingPulse 2s ease-in-out infinite',
+          zIndex: 748, pointerEvents: 'none',
         }} />
       )}
       <div
@@ -222,57 +243,38 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         style={{
-          position:       'fixed',
-          left:           expanded && pos.x + 56 > window.innerWidth / 2 ? pos.x - (180 - 56) : pos.x,
-          top:            pos.y,
-          zIndex:         750,
-          width:          expanded ? 180 : SIZE,
-          height:         SIZE,
-          borderRadius:   expanded ? 32 : '50%',
-          background:     'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #064e3b 100%)',
-          border:         '1.5px solid rgba(16,185,129,0.5)',
-          animation:      'twinGlow 2.4s ease-in-out infinite',
-          cursor:         'grab',
-          userSelect:     'none',
-          touchAction:    'none',
-          transition:     'width 0.28s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.28s ease',
-          display:        'flex',
-          alignItems:     'center',
+          position: 'fixed',
+          left: expanded && pos.x + 56 > window.innerWidth / 2 ? pos.x - (180 - 56) : pos.x,
+          top: pos.y, zIndex: 750, width: expanded ? 180 : SIZE, height: SIZE,
+          borderRadius: expanded ? 32 : '50%',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #064e3b 100%)',
+          border: '1.5px solid rgba(16,185,129,0.5)',
+          animation: 'twinGlow 2.4s ease-in-out infinite',
+          cursor: 'grab', userSelect: 'none', touchAction: 'none',
+          transition: 'width 0.28s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.28s ease',
+          display: 'flex', alignItems: 'center',
           justifyContent: expanded ? (pos.x + 56 > window.innerWidth / 2 ? 'flex-end' : 'flex-start') : 'center',
-          overflow:       'hidden',
-          paddingLeft:    expanded && pos.x + 56 <= window.innerWidth / 2 ? 8 : 0,
-          paddingRight:   expanded && pos.x + 56 > window.innerWidth / 2 ? 8 : 0,
-          gap:            expanded ? 8 : 0,
+          overflow: 'hidden',
+          paddingLeft: expanded && pos.x + 56 <= window.innerWidth / 2 ? 8 : 0,
+          paddingRight: expanded && pos.x + 56 > window.innerWidth / 2 ? 8 : 0,
+          gap: expanded ? 8 : 0,
         }}
       >
         <div style={{
-          flexShrink:     0,
-          width:          40,
-          height:         40,
-          borderRadius:   '50%',
-          background:     'radial-gradient(circle at 35% 35%, rgba(16,185,129,0.35), rgba(16,185,129,0.08))',
-          border:         '1.5px solid rgba(16,185,129,0.6)',
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'center',
-          fontSize:       18,
-          color:          '#10b981',
-          pointerEvents:  'none',
-        }}>
-          ✦
-        </div>
+          flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
+          background: 'radial-gradient(circle at 35% 35%, rgba(16,185,129,0.35), rgba(16,185,129,0.08))',
+          border: '1.5px solid rgba(16,185,129,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18, color: '#10b981', pointerEvents: 'none',
+        }}>✦</div>
         {expanded && (
           <div style={{ animation: 'twinExpand 0.22s ease', pointerEvents: 'none', minWidth: 0 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap' }}>Your Twin</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 3 }}>
               {[0, 0.2, 0.4].map(delay => (
                 <span key={delay} style={{
-                  display:      'inline-block',
-                  width:        5,
-                  height:       5,
-                  borderRadius: '50%',
-                  background:   '#10b981',
-                  animation:    `twinDotPulse 1.4s ease-in-out ${delay}s infinite`,
+                  display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
+                  background: '#10b981', animation: `twinDotPulse 1.4s ease-in-out ${delay}s infinite`,
                 }} />
               ))}
             </div>
@@ -280,19 +282,10 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
         )}
         {unread > 0 && (
           <div style={{
-            position:       'absolute',
-            top:            2,
-            right:          2,
-            width:          18,
-            height:         18,
-            borderRadius:   '50%',
-            background:     '#ef4444',
-            color:          '#fff',
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            fontSize:       10,
-            fontWeight:     800,
+            position: 'absolute', top: 2, right: 2, width: 18, height: 18,
+            borderRadius: '50%', background: '#ef4444', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 10, fontWeight: 800,
           }}>{unread}</div>
         )}
       </div>
@@ -326,78 +319,57 @@ interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
 const TRAY_ITEMS: Record<string, TrayItem[]> = {
   teach: [
-    { label: "Today",       icon: <IconPulse      size={24} />, href: "/teacher/teach-today"       },
-    { label: "Week",        icon: <IconWeek       size={24} />, href: "/teacher/week"              },
-    { label: "SubjectHub",  icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub"        },
-    { label: "Scheme",      icon: <IconScheme     size={24} />, href: "/teacher/scheme"            },
-    { label: "Lesson Plan", icon: <IconPlans      size={24} />, href: "/teacher/lessonplan"        },
-    { label: "Progress",    icon: <IconVibeLearn  size={24} />, href: "/teacher/progress"          },
-    { label: "Resources",   icon: <IconResources  size={24} />, href: "/teacher/resources"         },
-    { label: "VibeLearn",   icon: <IconIndexer    size={24} />, href: "/teacher/vibelearn"         },
+    { label: "Teach Today", icon: <IconPulse size={24} />, href: "/teacher/teach-today" },
+    { label: "Timetable", icon: <IconTimetable size={24} />, href: "/teacher/timetable" },
+    { label: "Subjects", icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub" },
+    { label: "Scheme of Work", icon: <IconScheme size={24} />, href: "/teacher/scheme" },
+    { label: "Lesson Plans", icon: <IconPlans size={24} />, href: "/teacher/lessonplan" },
+    { label: "Week", icon: <IconWeek size={24} />, href: "/teacher/week" },
+    { label: "Progress", icon: <IconVibeLearn size={24} />, href: "/teacher/progress" },
+    { label: "Resources", icon: <IconResources size={24} />, href: "/teacher/resources" },
+    { label: "VibeLearn", icon: <IconIndexer size={24} />, href: "/teacher/vibelearn" },
   ],
   classes: [
-    { label: "My Classes",  icon: <IconClassHub     size={24} />, href: "/teacher/classhub"    },
-    { label: "Students",    icon: <IconStudents     size={24} />, href: "/teacher/students"    },
-    { label: "Attendance",  icon: <IconAttendance   size={24} />, href: "/teacher/attendance"  },
-    { label: "Homework",    icon: <IconHomework     size={24} />, href: "/teacher/homework"    },
-    { label: "VibeConnect", icon: <IconVibeConnect  size={24} />, href: "/teacher/vibeconnect" },
-    { label: "Timetable",   icon: <IconTimetable    size={24} />, href: "/teacher/timetable"   },
+    { label: "My Classes", icon: <IconClassHub size={24} />, href: "/teacher/classhub" },
+    { label: "Students", icon: <IconStudents size={24} />, href: "/teacher/students" },
+    { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance" },
+    { label: "Homework", icon: <IconHomework size={24} />, href: "/teacher/homework" },
+    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect" },
   ],
   assess: [
-    { label: "Assessment",    icon: <IconAssess     size={24} />, href: "/teacher/assessment"               },
-    { label: "Builder",       icon: <IconPlans      size={24} />, href: "/teacher/assessment/new"           },
-    { label: "Marking",       icon: <IconAttendance size={24} />, href: "/teacher/assessment/marking"       },
-    { label: "Gradebook",     icon: <IconResults    size={24} />, href: "/teacher/assessment/gradebook"     },
-    { label: "Analytics",     icon: <IconAssess     size={24} />, href: "/teacher/assessment/analytics"     },
-    { label: "Interventions", icon: <IconStudents   size={24} />, href: "/teacher/assessment/interventions" },
-    { label: "Results",       icon: <IconResults    size={24} />, href: "/teacher/results"                  },
-    { label: "Report Cards",  icon: <IconReportCard size={24} />, href: "/teacher/results/report-card"      },
+    { label: "Assessments", icon: <IconAssess size={24} />, href: "/teacher/assessment" },
+    { label: "Marking", icon: <IconAttendance size={24} />, href: "/teacher/assessment/marking" },
+    { label: "Gradebook", icon: <IconResults size={24} />, href: "/teacher/assessment/gradebook" },
+    { label: "Analytics", icon: <IconAssess size={24} />, href: "/teacher/assessment/analytics" },
+    { label: "Curriculum", icon: <IconVibeLearn size={24} />, href: "/teacher/assessment/curriculum" },
+    { label: "Interventions", icon: <IconStudents size={24} />, href: "/teacher/assessment/interventions" },
+    { label: "Results", icon: <IconResults size={24} />, href: "/teacher/results" },
+    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card" },
   ],
   me: [
-    { label: "Profile",  icon: <IconProfile   size={24} />, href: "/teacher/profile"   },
-    { label: "Credits",  icon: <IconCredits   size={24} />, href: "/teacher/credits"   },
-    { label: "TPAD",     icon: <IconTPAD      size={24} />, href: "/teacher/tpad"      },
-    { label: "School",   icon: <IconSchoolHub size={24} />, href: "/teacher/schoolhub" },
-    { label: "Settings", icon: <IconSettings  size={24} />, href: "/teacher/settings"  },
-    { label: "Help",     icon: <IconHelp      size={24} />, href: "/teacher/help"      },
+    { label: "Profile", icon: <IconProfile size={24} />, href: "/teacher/profile" },
+    { label: "School", icon: <IconSchoolHub size={24} />, href: "/teacher/schoolhub" },
+    { label: "TPAD", icon: <IconTPAD size={24} />, href: "/teacher/tpad" },
+    { label: "Credits", icon: <IconCredits size={24} />, href: "/teacher/credits" },
+    { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
+    { label: "Help", icon: <IconHelp size={24} />, href: "/teacher/help" },
   ],
 }
 
-const WORKSPACE_STORAGE_KEY = "vs_teacher_workspace_v1";
-
 function BottomNav({ activeId }: { activeId: string }) {
-  const router   = useRouter()
+  const router = useRouter()
   const pathname = usePathname()
   const [openTray, setOpenTray] = useState<string | null>(null)
-  const [lastWorkspacePath, setLastWorkspacePath] = useState<Record<string, string>>({})
 
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
-      if (saved) setLastWorkspacePath(JSON.parse(saved) as Record<string, string>)
-    } catch {}
-  }, [])
-
-  useEffect(() => {
-    const id = tabIdFromPath(pathname)
-    setLastWorkspacePath(prev => {
-      const next = { ...prev, [id]: pathname }
-      try { window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next)) } catch {}
-      return next
-    })
-    setOpenTray(null)
-  }, [pathname])
+  useEffect(() => { setOpenTray(null) }, [pathname])
 
   function handleTab(t: typeof NAV_TABS[number]) {
-    const isCurrentWorkspace = t.id === activeId
-    if (isCurrentWorkspace) {
-      setOpenTray(prev => prev === t.id ? null : t.id)
+    if (t.id === "today") {
+      setOpenTray(null)
+      router.push("/teacher/pulse")
       return
     }
-
-    setOpenTray(null)
-    const resumePath = lastWorkspacePath[t.id]
-    router.push(resumePath || t.href)
+    setOpenTray(prev => prev === t.id ? null : t.id)
   }
 
   function handleTrayItem(href: string) {
@@ -420,11 +392,8 @@ function BottomNav({ activeId }: { activeId: string }) {
         transition: "transform 0.28s cubic-bezier(0.32,0.72,0,1)",
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 14px" }} />
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 4px 2px" }}>
-          {{ today: "Today workspace", teach: "Teaching workspace", classes: "Classes workspace", assess: "Assessment workspace", me: "Personal workspace" }[openTray ?? ""] ?? openTray}
-        </p>
-        <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 12px 2px" }}>
-          Tap another dock icon to resume that workspace. Tap the active icon to open its tools.
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 12px 2px" }}>
+          {{ teach: "Teaching Tools", classes: "My Classes", assess: "Assessment & Results", me: "My Account" }[openTray ?? ""] ?? openTray}
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8 }}>
           {trayItems?.map(item => (
@@ -454,12 +423,11 @@ function BottomNav({ activeId }: { activeId: string }) {
       }}>
         {NAV_TABS.map(t => {
           const isActive = t.id === activeId || openTray === t.id
-          const canResume = Boolean(lastWorkspacePath[t.id] && lastWorkspacePath[t.id] !== t.href)
           return (
             <button
               key={t.id}
               onClick={() => handleTab(t)}
-              aria-label={isActive ? `Open ${t.label} workspace tools` : `Resume ${t.label} workspace`}
+              aria-label={t.id === "today" ? "Open Today" : `Open ${t.label} tools`}
               style={{
                 flex: 1, display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center", gap: 3,
@@ -469,9 +437,8 @@ function BottomNav({ activeId }: { activeId: string }) {
               }}
             >
               {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 3, background: C.accent, borderRadius: "0 0 4px 4px" }} />}
-              {canResume && !isActive && <span style={{ position: "absolute", top: 7, right: "28%", width: 6, height: 6, borderRadius: 999, background: C.accent }} />}
-              <span style={{ lineHeight: 1, position:"relative", zIndex:1 }}>{NAV_ICONS[t.id]?.(isActive)}</span>
-              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1, position:"relative", zIndex:1 }}>{t.label}</span>
+              <span style={{ lineHeight: 1, position: "relative", zIndex: 1 }}>{NAV_ICONS[t.id]?.(isActive)}</span>
+              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1, position: "relative", zIndex: 1 }}>{t.label}</span>
             </button>
           )
         })}
@@ -481,9 +448,9 @@ function BottomNav({ activeId }: { activeId: string }) {
 }
 
 function TopBar({ school, initials, unreadConnect, creditBalance }: { school: string; initials: string; unreadConnect: number; creditBalance: number | null }) {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
-  const isRoot   = pathname === "/teacher" || pathname === "/teacher/" || pathname.startsWith("/teacher/pulse");
+  const isRoot = pathname === "/teacher" || pathname === "/teacher/" || pathname.startsWith("/teacher/pulse");
 
   return (
     <div style={{
