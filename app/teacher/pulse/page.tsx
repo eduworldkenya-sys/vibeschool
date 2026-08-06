@@ -25,6 +25,7 @@ import TodayGlance from "@/components/teacher/TodayGlance";
 import TwinShortcut from "@/components/teacher/TwinShortcut";
 import QuickActions from "@/components/teacher/QuickActions";
 import WeekOverview from "@/components/teacher/WeekOverview";
+import AssessmentPulseCard from "@/components/teacher/AssessmentPulseCard";
 import { subscribePulse } from "@/lib/pulse/refresh";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -409,6 +410,8 @@ export default function PulsePage() {
 
       <QuickActions onNavigate={(href) => router.push(href)} />
 
+      <AssessmentPulseCard />
+
       <GuideCard
         headline={guideHeadline}
         message={guideMsg}
@@ -428,125 +431,47 @@ export default function PulsePage() {
 
       {tasks.length > 1 && (
         <Card>
-          <Label text="Next Teaching Actions" />
-          {tasks.slice(1).map((task, index, remaining) => (
-            <Pressable key={task.id} onClick={() => router.push(task.href)}>
-              <div style={{
-                padding: "11px 0",
-                borderBottom: index < remaining.length - 1 ? "1px solid #f3f4f6" : "none",
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
-                  {task.label}
+          <Label text="Other priorities" />
+          <div style={{ display: "grid", gap: 10 }}>
+            {tasks.slice(1).map((task, index) => (
+              <Pressable key={`${task.href}-${index}`} onClick={() => router.push(task.href)}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  background: "#f8fafc",
+                  border: "1px solid #e5e7eb",
+                }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{task.title}</div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{task.subtitle}</div>
+                  </div>
+                  <div style={{ fontSize: 16, color: "#9ca3af" }}>›</div>
                 </div>
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-                  {task.detail}
-                </div>
-              </div>
-            </Pressable>
-          ))}
+              </Pressable>
+            ))}
+          </div>
         </Card>
       )}
 
-      <Label text="Today’s Teaching Flow" />
-      <LessonFlowCard
-        slots={snap.todaySlots}
-        snap={snap}
-        teacherId={snap.userId}
+      <LessonFlowCard snap={snap} onNavigate={(href) => router.push(href)} />
+
+      <WeekOverview snap={snap} onNavigate={(href) => router.push(href)} />
+
+      <RecentActivity
+        activities={(snap.recentActivities ?? []).map((activity: ActivityItem) => ({
+          id: activity.id,
+          icon: activity.icon,
+          title: activity.title,
+          subtitle: activity.subtitle,
+          time: relativeTime(activity.created_at),
+          href: activity.href,
+        }) as ActivityLog)}
         onNavigate={(href) => router.push(href)}
-        onSaved={() => {
-          const controller = new AbortController();
-          boot(true, controller.signal);
-        }}
       />
-
-      {(snap.currStats ?? []).length > 0 && (
-        <Card>
-          <Label text="Curriculum Progress" />
-          {(snap.currStats ?? []).map((stat) => {
-            const pct = stat.total > 0 ? Math.round((stat.covered / stat.total) * 100) : 0;
-
-            return (
-              <div key={`${stat.classId}-${stat.subjectId}`} style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 800 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#1e1b4b" }}>
-                    <span style={{ color: "#10b981" }}><IconBook /></span>
-                    {stat.subject}
-                  </span>
-                  <span>{pct}%</span>
-                </div>
-                <div style={{ height: 7, background: "#f3f4f6", borderRadius: 999, marginTop: 6, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: "#10b981" }} />
-                </div>
-              </div>
-            );
-          })}
-          <Pressable onClick={() => router.push("/teacher/scheme")}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#10b981" }}>
-              View scheme →
-            </div>
-          </Pressable>
-        </Card>
-      )}
-
-      {((snap.atRisk ?? []).length > 0 || (snap.consecutiveAbsences ?? []).length > 0) && (
-        <Card>
-          <Label text="Class Support Needed" />
-          {[...(snap.consecutiveAbsences ?? []).slice(0, 3), ...(snap.atRisk ?? []).slice(0, 3).map((student) => ({
-            studentId: student.id,
-            name: student.name,
-            days: 0,
-          }))].slice(0, 4).map((student) => (
-            <Pressable key={student.studentId} onClick={() => router.push("/teacher/students")}>
-              <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <span style={{ marginTop: 2, color: "#ef4444", flexShrink: 0 }}><IconAlert /></span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
-                    {student.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#ef4444", marginTop: 2 }}>
-                    Needs teacher follow-up
-                  </div>
-                </div>
-              </div>
-            </Pressable>
-          ))}
-        </Card>
-      )}
-
-      {(snap.tomorrowSlots ?? []).length > 0 && (
-        <Card>
-          <Label text="Prepare Tomorrow" />
-          {(snap.tomorrowSlots ?? []).slice(0, 3).map((slot) => (
-            <Pressable key={slot.id} onClick={() => router.push(`/teacher/lessonplan?subjectId=${slot.subject_id}&classId=${slot.class_id}`)}>
-              <div style={{ padding: "9px 0", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <span style={{ marginTop: 2, color: "#8b5cf6", flexShrink: 0 }}><IconClock /></span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b" }}>
-                    {slot.subject}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-                    {slot.class_name} · {slot.start_time}
-                  </div>
-                </div>
-              </div>
-            </Pressable>
-          ))}
-        </Card>
-      )}
-
-      <WeekOverview overview={snap.weekOverview} />
-
-      {(snap.recentActivity ?? []).length > 0 && (
-        <RecentActivity
-          items={(snap.recentActivity ?? []).map((activity: ActivityLog): ActivityItem => ({
-            id: activity.id,
-            type: activity.type === "homework" ? "gradebook" : activity.type,
-            title: activity.title,
-            subtitle: activity.subtitle,
-            timestamp: relativeTime(activity.timestamp),
-          }))}
-        />
-      )}
     </div>
   );
 }
