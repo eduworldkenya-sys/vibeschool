@@ -5,20 +5,18 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import { useRouter, usePathname } from "next/navigation";
 import BottomNav from "@/components/student/BottomNav";
 import OfflineBar from "@/components/student/OfflineBar";
+import TwinWorkspaceProvider from "@/components/student/VibeTwin/TwinWorkspaceProvider";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
 export const useToast = () => useContext(ToastContext);
 
-// ── Theme ─────────────────────────────────────────────────────────────────────
 interface ThemeCtx { theme: StudentTheme; setTheme: (t: StudentTheme) => void }
 const ThemeContext = createContext<ThemeCtx>({ theme: "auto", setTheme: () => {} });
 export const useTheme = () => useContext(ThemeContext);
 
-// ── TopBar ────────────────────────────────────────────────────────────────────
 function TopBar({ name, className, schoolName }: { name: string; className: string; schoolName: string }) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -228,9 +226,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
         <div style={{ minHeight: "100dvh", background: "var(--vs-bg)" }}>
           <StudentProvider>
-            <StudentShell>
-              {children}
-            </StudentShell>
+            <TwinWorkspaceProvider>
+              <StudentShell>
+                {children}
+              </StudentShell>
+            </TwinWorkspaceProvider>
           </StudentProvider>
           {toast && <Toast msg={toast} />}
         </div>
