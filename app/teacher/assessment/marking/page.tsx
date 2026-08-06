@@ -16,11 +16,16 @@ import {
   requestModeration,
   type ScoreAuditEvent,
 } from '@/lib/assessment/moderation'
+import {
+  getMarkingCentreSummary,
+  type MarkingCentreSummary,
+} from '@/lib/assessment/centre'
 
 type DraftMarks = Record<string, { score: string; feedback: string; overrideReason: string; moderationReason: string }>
 
 export default function AssessmentMarkingPage() {
   const [queue, setQueue] = useState<MarkingQueueItem[]>([])
+  const [centre, setCentre] = useState<MarkingCentreSummary | null>(null)
   const [selected, setSelected] = useState<MarkingAttempt | null>(null)
   const [drafts, setDrafts] = useState<DraftMarks>({})
   const [audit, setAudit] = useState<Record<string, ScoreAuditEvent[]>>({})
@@ -33,9 +38,13 @@ export default function AssessmentMarkingPage() {
   async function loadQueue() {
     setLoading(true)
     setError('')
-    try { setQueue(await listMarkingQueue()) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load marking queue.') }
-    finally { setLoading(false) }
+    try {
+      const [items, summary] = await Promise.all([listMarkingQueue(), getMarkingCentreSummary()])
+      setQueue(items)
+      setCentre(summary)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not load marking centre.')
+    } finally { setLoading(false) }
   }
 
   useEffect(() => { void loadQueue() }, [])
@@ -92,9 +101,9 @@ export default function AssessmentMarkingPage() {
     try {
       const events = await getScoreAudit(responseId)
       setAudit(current => ({ ...current, [responseId]: events }))
-    }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Score history could not be loaded.') }
-    finally { setBusy(false) }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Score history could not be loaded.')
+    } finally { setBusy(false) }
   }
 
   async function submitModeration(responseId: string, maxScore: number) {
@@ -118,6 +127,7 @@ export default function AssessmentMarkingPage() {
       setDrafts(current => ({ ...current, [responseId]: { ...current[responseId], moderationReason: '' } }))
       const events = await getScoreAudit(responseId)
       setAudit(current => ({ ...current, [responseId]: events }))
+      await loadQueue()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Moderation request could not be sent.')
     } finally { setBusy(false) }
@@ -151,18 +161,40 @@ export default function AssessmentMarkingPage() {
 
   return (
     <main style={shell}>
-      <div style={{ maxWidth: 980, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Engine</div>
           <h1 style={{ margin: '6px 0' }}>Marking Centre</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Review responses, preserve score history, request moderation, finalize totals, and release results.</p>
+          <p style={{ margin: 0, color: '#6b7280' }}>Review responses, preserve score history, monitor workload, request moderation, finalize totals, and release results.</p>
         </section>
 
-        {!selected && <section style={card}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 10 }}>
-          <div style={stat}><strong>{queueStats.waiting}</strong><span>Waiting</span></div>
-          <div style={stat}><strong>{queueStats.marked}</strong><span>Marked</span></div>
-          <div style={stat}><strong>{queueStats.released}</strong><span>Released</span></div>
-        </div></section>}
+        {!selected && <section style={card}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: 8 }}>
+            <div style={stat}><strong>{centre?.counts.submittedAttempts ?? queueStats.waiting}</strong><span>Submitted</span></div>
+            <div style={stat}><strong>{centre?.counts.partiallyMarkedAttempts ?? 0}</strong><span>Partially marked</span></div>
+            <div style={stat}><strong>{centre?.counts.markedAttempts ?? queueStats.marked}</strong><span>Ready to release</span></div>
+            <div style={stat}><strong>{centre?.counts.releasedAttempts ?? queueStats.released}</strong><span>Released</span></div>
+            <div style={{ ...stat, background: (centre?.counts.pendingModerations ?? 0) > 0 ? '#fff7ed' : '#f8fafc' }}><strong>{centre?.counts.pendingModerations ?? 0}</strong><span>Moderations</span></div>
+          </div>
+        </section>}
+
+        {!selected && (centre?.workload.length ?? 0) > 0 && <section style={card}>
+          <h2 style={{ marginTop: 0, fontSize: 18 }}>Assignment workload</h2>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {centre?.workload.map(item => <div key={item.assignmentId} style={workloadRow}>
+              <div>
+                <strong>{item.assessmentTitle}</strong>
+                <div style={muted}>{item.className}{item.classStream ? ` ${item.classStream}` : ''} · {item.assessmentType.replaceAll('_', ' ')}</div>
+                {item.oldestUnmarkedAt && <div style={muted}>Oldest waiting since {new Date(item.oldestUnmarkedAt).toLocaleString('en-KE')}</div>}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <strong style={{ color: item.unresolvedAttempts > 0 ? '#b45309' : '#065f46' }}>{item.unresolvedAttempts} unresolved</strong>
+                <div style={muted}>{item.markedCount} marked · {item.releasedCount} released</div>
+                <div style={muted}>{item.averageTurnaroundHours === null ? 'No turnaround data' : `${item.averageTurnaroundHours.toFixed(1)}h average turnaround`}</div>
+              </div>
+            </div>)}
+          </div>
+        </section>}
 
         {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
         {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
@@ -218,13 +250,14 @@ const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
 const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
 const stat: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 4, padding: 12, borderRadius: 12, background: '#f8fafc', textAlign: 'center', fontSize: 12 }
+const workloadRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 13, background: '#f8fafc' }
 const queueButton: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }
 const answerBox: React.CSSProperties = { background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, whiteSpace: 'pre-wrap', lineHeight: 1.5 }
 const autoBox: React.CSSProperties = { marginTop: 10, padding: 10, borderRadius: 10, background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700 }
 const moderationBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fffbeb', color: '#78350f' }
 const auditRow: React.CSSProperties = { padding: 10, borderRadius: 10, border: '1px solid #e5e7eb', background: '#f8fafc' }
 const releasedBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46', fontWeight: 700 }
-const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
-const label: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }
-const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '12px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const label: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 800, marginBottom: 6 }
+const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 11px', fontFamily: 'inherit' }
+const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 10, padding: '11px 14px', background: '#4338ca', color: '#fff', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer' }
 const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
