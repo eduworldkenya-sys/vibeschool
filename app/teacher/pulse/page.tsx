@@ -401,16 +401,10 @@ export default function PulsePage() {
       <div style={{ fontSize: 12, color: "#9ca3af", marginTop: -8, marginBottom: 14 }}>
         {todayName} · {dateStr}
         {snap.termNumber != null && snap.weekNumber != null
-          ? ` · Term ${snap.termNumber}`
+          ? ` · Term ${snap.termNumber}, Week ${snap.weekNumber}`
           : ""}
-        {usingCachedSnap ? " · Offline copy" : ""}
+        {usingCachedSnap ? " · Offline snapshot" : ""}
       </div>
-
-      <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
-
-      <QuickActions onNavigate={(href) => router.push(href)} />
-
-      <AssessmentPulseCard />
 
       <GuideCard
         headline={guideHeadline}
@@ -419,13 +413,10 @@ export default function PulsePage() {
         active={guideActive}
       />
 
-      <TwinShortcut onOpen={() => router.push("/teacher/pulse?twin=1")} />
+      <AssessmentPulseCard schoolId={activeSchoolId ?? snap.schoolId} />
 
       <NextTeachingAction
         task={tasks[0] ?? null}
-        hasLessons={(snap.todaySlots ?? []).length > 0}
-        headline={guideHeadline}
-        snap={snap}
         onNavigate={(href) => router.push(href)}
       />
 
@@ -446,8 +437,8 @@ export default function PulsePage() {
                   border: "1px solid #e5e7eb",
                 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{task.title}</div>
-                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{task.subtitle}</div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{task.label}</div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{task.detail}</div>
                   </div>
                   <div style={{ fontSize: 16, color: "#9ca3af" }}>›</div>
                 </div>
@@ -462,16 +453,21 @@ export default function PulsePage() {
       <WeekOverview snap={snap} onNavigate={(href) => router.push(href)} />
 
       <RecentActivity
-        activities={(snap.recentActivities ?? []).map((activity: ActivityItem) => ({
+        activities={(snap.recentActivity ?? []).map((activity: ActivityLog) => ({
           id: activity.id,
-          icon: activity.icon,
+          type: activity.type,
           title: activity.title,
           subtitle: activity.subtitle,
-          time: relativeTime(activity.created_at),
-          href: activity.href,
-        }) as ActivityLog)}
-        onNavigate={(href) => router.push(href)}
+          timestamp: activity.timestamp,
+        }))}
+        relativeTime={relativeTime}
       />
+
+      <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
+
+      <QuickActions onNavigate={(href) => router.push(href)} />
+
+      <TwinShortcut onNavigate={() => router.push("/teacher/twin")} />
     </div>
   );
 }
