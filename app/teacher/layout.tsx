@@ -20,14 +20,12 @@ interface CreditCtx { creditBalance: number | null; refreshCredits: () => void }
 const CreditContext = createContext<CreditCtx>({ creditBalance: null, refreshCredits: () => {} });
 export const useCredits = () => useContext(CreditContext);
 
-// ── Nav config — single source of truth ──────────────────────────────────────
-// v2: workflow-organized trays (Today / Teach / Classes / Assess / Me)
 const NAV_TABS = [
-  { id: "today",   label: "Today",   href: "/teacher/pulse"      },
+  { id: "today",   label: "Today",   href: "/teacher/pulse"       },
   { id: "teach",   label: "Teach",   href: "/teacher/teach-today" },
-  { id: "classes", label: "Classes", href: "/teacher/classhub"   },
-  { id: "assess",  label: "Assess",  href: "/teacher/results"    },
-  { id: "me",      label: "Me",      href: "/teacher/profile"    },
+  { id: "classes", label: "Classes", href: "/teacher/classhub"    },
+  { id: "assess",  label: "Assess",  href: "/teacher/assessment"  },
+  { id: "me",      label: "Me",      href: "/teacher/profile"     },
 ] as const;
 
 type TabId = typeof NAV_TABS[number]["id"];
@@ -290,193 +288,40 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
             height:         18,
             borderRadius:   '50%',
             background:     '#ef4444',
-            border:         '2px solid #0f172a',
             color:          '#fff',
-            fontSize:       9,
-            fontWeight:     800,
             display:        'flex',
             alignItems:     'center',
             justifyContent: 'center',
-            pointerEvents:  'none',
-          }}>
-            {unread}
-          </div>
+            fontSize:       10,
+            fontWeight:     800,
+          }}>{unread}</div>
         )}
       </div>
     </>
   )
 }
 
-function IconPulse({ size = 22 }: { size?: number }) {
-  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>)
-}
-function IconTeach({ size = 22 }: { size?: number }) {
-  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>)
-}
-function IconTwin({ size = 22 }: { size?: number }) {
-  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>)
-}
-function IconStudents({ size = 22 }: { size?: number }) {
-  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>)
-}
-function IconMe({ size = 22 }: { size?: number }) {
-  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>)
-}
-function IconAttendance({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <polyline points="16 11 18 13 22 9"/>
-    </svg>
-  )
-}
-function IconTimetable({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8"  y1="2" x2="8"  y2="6"/>
-      <line x1="3"  y1="10" x2="21" y2="10"/>
-    </svg>
-  )
-}
-function IconSchoolHub({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="2" y1="12" x2="22" y2="12"/>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-    </svg>
-  )
-}
-function IconIndexer({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      <line x1="11" y1="8"  x2="11"   y2="14"/>
-      <line x1="8"  y1="11" x2="14"   y2="11"/>
-    </svg>
-  )
-}
-function IconResources({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-    </svg>
-  )
-}
-function IconHomework({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 12h6"/>
-      <path d="M9 16h6"/>
-      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="13 2 13 8 19 8"/>
-    </svg>
-  )
-}
-function IconVibeConnect({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  )
-}
-function IconWeek({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="17" rx="2"/>
-      <line x1="3" y1="10" x2="21" y2="10"/>
-      <line x1="8" y1="2" x2="8" y2="6"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="7" y1="14" x2="7" y2="14.01"/>
-      <line x1="12" y1="14" x2="12" y2="14.01"/>
-      <line x1="17" y1="14" x2="17" y2="14.01"/>
-    </svg>
-  )
-}
-function IconScheme({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="8"  y1="6"  x2="21" y2="6"/>
-      <line x1="8"  y1="12" x2="21" y2="12"/>
-      <line x1="8"  y1="18" x2="21" y2="18"/>
-      <line x1="3"  y1="6"  x2="3.01" y2="6"/>
-      <line x1="3"  y1="12" x2="3.01" y2="12"/>
-      <line x1="3"  y1="18" x2="3.01" y2="18"/>
-    </svg>
-  )
-}
-function IconSubjectHub({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-    </svg>
-  )
-}
-function IconResults({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-    </svg>
-  )
-}
-function IconReportCard({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="9" y1="13" x2="15" y2="13"/>
-      <line x1="9" y1="17" x2="15" y2="17"/>
-    </svg>
-  )
-}
-function IconProfile({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-      <circle cx="12" cy="7" r="4"/>
-    </svg>
-  )
-}
-function IconSettings({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
-  )
-}
-function IconHelp({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-      <line x1="12" y1="17" x2="12.01" y2="17"/>
-    </svg>
-  )
-}
-function IconTPAD({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 11l3 3L22 4"/>
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-    </svg>
-  )
-}
-function IconCredits({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M14.5 8.5A2.5 2.5 0 0 0 12 7a2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1-2.5-1.5"/>
-      <line x1="12" y1="6" x2="12" y2="7"/>
-      <line x1="12" y1="17" x2="12" y2="18"/>
-    </svg>
-  )
-}
+function IconPulse({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg> }
+function IconTeach({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg> }
+function IconStudents({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> }
+function IconMe({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg> }
+function IconWeek({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg> }
+function IconSubjectHub({ size = 22 }: { size?: number }) { return <IconClassHub size={size} /> }
+function IconScheme({ size = 22 }: { size?: number }) { return <IconPlans size={size} /> }
+function IconResources({ size = 22 }: { size?: number }) { return <IconVibeLearn size={size} /> }
+function IconIndexer({ size = 22 }: { size?: number }) { return <IconVibeLearn size={size} /> }
+function IconAttendance({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> }
+function IconHomework({ size = 22 }: { size?: number }) { return <IconPlans size={size} /> }
+function IconVibeConnect({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> }
+function IconTimetable({ size = 22 }: { size?: number }) { return <IconWeek size={size} /> }
+function IconResults({ size = 22 }: { size?: number }) { return <IconAssess size={size} /> }
+function IconReportCard({ size = 22 }: { size?: number }) { return <IconPlans size={size} /> }
+function IconProfile({ size = 22 }: { size?: number }) { return <IconMe size={size} /> }
+function IconSettings({ size = 22 }: { size?: number }) { return <IconMore size={size} /> }
+function IconHelp({ size = 22 }: { size?: number }) { return <IconMore size={size} /> }
+function IconTPAD({ size = 22 }: { size?: number }) { return <IconAttendance size={size} /> }
+function IconCredits({ size = 22 }: { size?: number }) { return <IconMore size={size} /> }
+function IconSchoolHub({ size = 22 }: { size?: number }) { return <IconClassHub size={size} /> }
 
 interface TrayItem { label: string; icon: React.ReactNode; href: string }
 
@@ -492,39 +337,68 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "VibeLearn",   icon: <IconIndexer    size={24} />, href: "/teacher/vibelearn"         },
   ],
   classes: [
-    { label: "My Classes",  icon: <IconClassHub     size={24} />, href: "/teacher/classhub"   },
-    { label: "Students",    icon: <IconStudents     size={24} />, href: "/teacher/students"   },
-    { label: "Attendance",  icon: <IconAttendance   size={24} />, href: "/teacher/attendance" },
-    { label: "Homework",    icon: <IconHomework     size={24} />, href: "/teacher/homework"   },
+    { label: "My Classes",  icon: <IconClassHub     size={24} />, href: "/teacher/classhub"    },
+    { label: "Students",    icon: <IconStudents     size={24} />, href: "/teacher/students"    },
+    { label: "Attendance",  icon: <IconAttendance   size={24} />, href: "/teacher/attendance"  },
+    { label: "Homework",    icon: <IconHomework     size={24} />, href: "/teacher/homework"    },
     { label: "VibeConnect", icon: <IconVibeConnect  size={24} />, href: "/teacher/vibeconnect" },
-    { label: "Timetable",   icon: <IconTimetable    size={24} />, href: "/teacher/timetable"  },
+    { label: "Timetable",   icon: <IconTimetable    size={24} />, href: "/teacher/timetable"   },
   ],
   assess: [
-    { label: "Assessment",   icon: <IconAssess     size={24} />, href: "/teacher/assessment"          },
-    { label: "Results",      icon: <IconResults    size={24} />, href: "/teacher/results"             },
-    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card" },
-    { label: "Academics",    icon: <IconVibeLearn  size={24} />, href: "/teacher/academics"           },
+    { label: "Assessment",    icon: <IconAssess     size={24} />, href: "/teacher/assessment"               },
+    { label: "Builder",       icon: <IconPlans      size={24} />, href: "/teacher/assessment/new"           },
+    { label: "Marking",       icon: <IconAttendance size={24} />, href: "/teacher/assessment/marking"       },
+    { label: "Gradebook",     icon: <IconResults    size={24} />, href: "/teacher/assessment/gradebook"     },
+    { label: "Analytics",     icon: <IconAssess     size={24} />, href: "/teacher/assessment/analytics"     },
+    { label: "Interventions", icon: <IconStudents   size={24} />, href: "/teacher/assessment/interventions" },
+    { label: "Results",       icon: <IconResults    size={24} />, href: "/teacher/results"                  },
+    { label: "Report Cards",  icon: <IconReportCard size={24} />, href: "/teacher/results/report-card"      },
   ],
   me: [
-    { label: "Profile",   icon: <IconProfile    size={24} />, href: "/teacher/profile"   },
-    { label: "Credits",   icon: <IconCredits    size={24} />, href: "/teacher/credits"   },
-    { label: "TPAD",      icon: <IconTPAD       size={24} />, href: "/teacher/tpad"      },
-    { label: "School",    icon: <IconSchoolHub  size={24} />, href: "/teacher/schoolhub" },
-    { label: "Settings",  icon: <IconSettings   size={24} />, href: "/teacher/settings"  },
-    { label: "Help",      icon: <IconHelp       size={24} />, href: "/teacher/help"      },
+    { label: "Profile",  icon: <IconProfile   size={24} />, href: "/teacher/profile"   },
+    { label: "Credits",  icon: <IconCredits   size={24} />, href: "/teacher/credits"   },
+    { label: "TPAD",     icon: <IconTPAD      size={24} />, href: "/teacher/tpad"      },
+    { label: "School",   icon: <IconSchoolHub size={24} />, href: "/teacher/schoolhub" },
+    { label: "Settings", icon: <IconSettings  size={24} />, href: "/teacher/settings"  },
+    { label: "Help",     icon: <IconHelp      size={24} />, href: "/teacher/help"      },
   ],
 }
+
+const WORKSPACE_STORAGE_KEY = "vs_teacher_workspace_v1";
 
 function BottomNav({ activeId }: { activeId: string }) {
   const router   = useRouter()
   const pathname = usePathname()
   const [openTray, setOpenTray] = useState<string | null>(null)
+  const [lastWorkspacePath, setLastWorkspacePath] = useState<Record<string, string>>({})
 
-  useEffect(() => { setOpenTray(null) }, [pathname])
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
+      if (saved) setLastWorkspacePath(JSON.parse(saved) as Record<string, string>)
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    const id = tabIdFromPath(pathname)
+    setLastWorkspacePath(prev => {
+      const next = { ...prev, [id]: pathname }
+      try { window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next)) } catch {}
+      return next
+    })
+    setOpenTray(null)
+  }, [pathname])
 
   function handleTab(t: typeof NAV_TABS[number]) {
-    if (t.id === "today") { setOpenTray(null); router.push("/teacher/pulse"); return }
-    setOpenTray(prev => prev === t.id ? null : t.id)
+    const isCurrentWorkspace = t.id === activeId
+    if (isCurrentWorkspace) {
+      setOpenTray(prev => prev === t.id ? null : t.id)
+      return
+    }
+
+    setOpenTray(null)
+    const resumePath = lastWorkspacePath[t.id]
+    router.push(resumePath || t.href)
   }
 
   function handleTrayItem(href: string) {
@@ -537,10 +411,7 @@ function BottomNav({ activeId }: { activeId: string }) {
   return (
     <>
       {openTray && (
-        <div
-          onClick={() => setOpenTray(null)}
-          style={{ position: "fixed", inset: 0, zIndex: 690, background: "rgba(0,0,0,0.2)" }}
-        />
+        <div onClick={() => setOpenTray(null)} style={{ position: "fixed", inset: 0, zIndex: 690, background: "rgba(0,0,0,0.2)" }} />
       )}
       <div style={{
         position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 695,
@@ -550,14 +421,11 @@ function BottomNav({ activeId }: { activeId: string }) {
         transition: "transform 0.28s cubic-bezier(0.32,0.72,0,1)",
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 14px" }} />
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 12px 2px" }}>
-          {{
-            today:   "Home",
-            teach:   "Teaching Tools",
-            classes: "My Classes",
-            assess:  "Assessment & Results",
-            me:      "My Account",
-          }[openTray ?? ""] ?? openTray}
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 4px 2px" }}>
+          {{ today: "Today workspace", teach: "Teaching workspace", classes: "Classes workspace", assess: "Assessment workspace", me: "Personal workspace" }[openTray ?? ""] ?? openTray}
+        </p>
+        <p style={{ fontSize: 11, color: "#6b7280", margin: "0 0 12px 2px" }}>
+          Tap another dock icon to resume that workspace. Tap the active icon to open its tools.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8 }}>
           {trayItems?.map(item => (
@@ -574,9 +442,7 @@ function BottomNav({ activeId }: { activeId: string }) {
               }}
             >
               {item.icon}
-              <span style={{ fontSize: 10, fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>
-                {item.label}
-              </span>
+              <span style={{ fontSize: 10, fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>{item.label}</span>
             </button>
           ))}
         </div>
@@ -588,11 +454,13 @@ function BottomNav({ activeId }: { activeId: string }) {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}>
         {NAV_TABS.map(t => {
-          const isActive  = t.id === activeId || openTray === t.id
+          const isActive = t.id === activeId || openTray === t.id
+          const canResume = Boolean(lastWorkspacePath[t.id] && lastWorkspacePath[t.id] !== t.href)
           return (
             <button
               key={t.id}
               onClick={() => handleTab(t)}
+              aria-label={isActive ? `Open ${t.label} workspace tools` : `Resume ${t.label} workspace`}
               style={{
                 flex: 1, display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center", gap: 3,
@@ -601,14 +469,10 @@ function BottomNav({ activeId }: { activeId: string }) {
                 transition: "color 0.15s", position: "relative",
               }}
             >
-              {isActive && (
-                <div style={{ position: "absolute", top: 0, width: 28, height: 3, background: C.accent, borderRadius: "0 0 4px 4px" }} />
-              )}
-
+              {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 3, background: C.accent, borderRadius: "0 0 4px 4px" }} />}
+              {canResume && !isActive && <span style={{ position: "absolute", top: 7, right: "28%", width: 6, height: 6, borderRadius: 999, background: C.accent }} />}
               <span style={{ lineHeight: 1, position:"relative", zIndex:1 }}>{NAV_ICONS[t.id]?.(isActive)}</span>
-              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1, position:"relative", zIndex:1 }}>
-                {t.label}
-              </span>
+              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1, position:"relative", zIndex:1 }}>{t.label}</span>
             </button>
           )
         })}
@@ -624,135 +488,41 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
 
   return (
     <div style={{
-      background:      C.dark,
-      color:           "#fff",
-      padding:         "0 20px",
-      height:          56,
-      display:         "flex",
-      alignItems:      "center",
-      justifyContent:  "space-between",
-      position:        "sticky",
-      top:             0,
-      zIndex:          600,
-      boxShadow:       "0 2px 12px rgba(0,0,0,0.18)",
+      background: C.dark, color: "#fff", padding: "0 20px", height: 56,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      position: "sticky", top: 0, zIndex: 600, boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {!isRoot && (
-          <div
-            onClick={() => router.back()}
-            style={{ cursor: "pointer", fontSize: 22, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 400, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            ‹
-          </div>
+          <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 22, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 400, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</div>
         )}
-        <div
-          onClick={() => router.push("/teacher")}
-          style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-        >
-          <div style={{
-            width: 30, height: 30, borderRadius: 9,
-            background: C.accent,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 15, fontWeight: 900, color: "#fff",
-          }}>
-            V
-          </div>
+        <div onClick={() => router.push("/teacher")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+          <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>
-              {school || "Independent"}
-            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>{school || "Independent"}</div>
           </div>
         </div>
       </div>
-
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div
-          style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }}
-          onClick={() => router.push("/teacher/vibeconnect")}
-        >
-          <svg
-            width="22" height="22" viewBox="0 0 24 24"
-            fill="none" stroke="rgba(255,255,255,0.75)"
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          {unreadConnect > 0 && (
-            <span style={{
-              position:     "absolute",
-              top:          -4,
-              right:        -4,
-              width:        16,
-              height:       16,
-              borderRadius: "50%",
-              background:   C.error,
-              color:        "#fff",
-              fontSize:     9,
-              fontWeight:   800,
-              display:      "flex",
-              alignItems:   "center",
-              justifyContent: "center",
-              border:       `2px solid ${C.dark}`,
-            }}>
-              {unreadConnect}
-            </span>
-          )}
+        <div style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => router.push("/teacher/vibeconnect")}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          {unreadConnect > 0 && <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${C.dark}` }}>{unreadConnect}</span>}
         </div>
-
-        <div
-          onClick={() => router.push("/teacher/credits")}
-          style={{
-            display: "flex", alignItems: "center", gap: 4,
-            background: "rgba(16,185,129,0.15)", borderRadius: 20,
-            padding: "4px 10px", cursor: "pointer",
-          }}
-        >
-          <span style={{ fontSize: 13 }}>🪙</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>
-            {creditBalance ?? "…"}
-          </span>
+        <div onClick={() => router.push("/teacher/credits")} style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(16,185,129,0.15)", borderRadius: 20, padding: "4px 10px", cursor: "pointer" }}>
+          <span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>{creditBalance ?? "…"}</span>
         </div>
-
-        <Avatar
-          initials={initials || "…"}
-          size={34}
-          onClick={() => router.push("/teacher/profile")}
-          style={{ cursor: "pointer" }}
-        />
+        <Avatar initials={initials || "…"} size={34} onClick={() => router.push("/teacher/profile")} style={{ cursor: "pointer" }} />
       </div>
     </div>
   );
 }
 
-function Toast({ msg }: { msg: string }) {
-  return (
-    <div style={{
-      position:   "fixed",
-      bottom:     140,
-      left:       "50%",
-      transform:  "translateX(-50%)",
-      background: C.dark,
-      color:      "#fff",
-      padding:    "11px 22px",
-      borderRadius: 12,
-      fontSize:   13,
-      fontWeight: 600,
-      zIndex:     9999,
-      animation:  "fadeIn 0.2s ease",
-      boxShadow:  "0 8px 24px rgba(0,0,0,0.18)",
-      whiteSpace: "nowrap",
-    }}>
-      {msg}
-    </div>
-  );
-}
+function Toast({ msg }: { msg: string }) { return <div style={{ position: "fixed", bottom: 140, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "11px 22px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, animation: "fadeIn 0.2s ease", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}>{msg}</div> }
 
 function SearchParamWatcher({ onTwin }: { onTwin: () => void }) {
   const searchParams = useSearchParams();
-  useEffect(() => {
-    if (searchParams?.get("twin") === "1") onTwin();
-  }, [searchParams, onTwin]);
+  useEffect(() => { if (searchParams?.get("twin") === "1") onTwin(); }, [searchParams, onTwin]);
   return null;
 }
 
@@ -761,30 +531,24 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const activeId = tabIdFromPath(pathname);
 
-  const [twinOpen,      setTwinOpen]      = useState(false);
-  const [twinUnread,    setTwinUnread]    = useState(0);
-  // searchParams handled in SearchParamWatcher (see JSX below)
-
-  const [toast,         setToast]         = useState<string | null>(null);
-  const [school,        setSchool]        = useState("");
-  const [initials,      setInitials]      = useState("");
-  const [fullName,      setFullName]      = useState("");
+  const [twinOpen, setTwinOpen] = useState(false);
+  const [twinUnread, setTwinUnread] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const [school, setSchool] = useState("");
+  const [initials, setInitials] = useState("");
+  const [fullName, setFullName] = useState("");
   const [unreadConnect, setUnreadConnect] = useState(0);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
-  const [authReady,     setAuthReady]     = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const teacherIdRef = useRef<string | null>(null);
 
   const refreshCredits = useCallback(() => {
     const uid = teacherIdRef.current;
     if (!uid) return;
-    supabase.rpc("get_credit_balance", { p_teacher_id: uid })
-      .then(
-        ({ data: creditData }) => {
-          const result = creditData as { success?: boolean; balance?: number } | null;
-          if (result?.success) setCreditBalance(result.balance ?? null);
-        },
-        () => {}
-      );
+    supabase.rpc("get_credit_balance", { p_teacher_id: uid }).then(({ data: creditData }) => {
+      const result = creditData as { success?: boolean; balance?: number } | null;
+      if (result?.success) setCreditBalance(result.balance ?? null);
+    }, () => {});
   }, []);
 
   const showToast = useCallback((msg: string) => {
@@ -794,155 +558,51 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function fetchProfile() {
-      // Legacy non-scoped cache removed — full auth check always runs
-
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
       if (userErr || !user) { router.replace("/?role=teacher"); return; }
 
-      const { data: profileData, error: profileErr } = await supabase
-        .from("profiles")
-        .select("full_name, school_id, role")
-        .eq("id", user.id)
-        .single();
-      if (profileErr || !profileData || profileData.role !== "teacher") {
-        router.replace("/?role=teacher");
-        return;
-      }
+      const { data: profileData, error: profileErr } = await supabase.from("profiles").select("full_name, school_id, role").eq("id", user.id).single();
+      if (profileErr || !profileData || profileData.role !== "teacher") { router.replace("/?role=teacher"); return; }
       localStorage.setItem(`vs_role_${user.id}`, JSON.stringify({ role: 'teacher', t: Date.now() }));
-      const name  = profileData.full_name ?? "";
+      const name = profileData.full_name ?? "";
       setFullName(name);
-      const parts   = name.trim().split(" ").filter(Boolean);
-      const derived = parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join("");
-      setInitials(derived);
-      // 3-source school resolution + onboarding guard
+      const parts = name.trim().split(" ").filter(Boolean);
+      setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+
       const [memberRes, teacherRes] = await Promise.all([
         supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
         supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
-      ])
-      // Guard: if teacher_profiles missing, onboarding never completed — send back
-      // Skip redirect if independent teacher (no school anywhere) — they can use the app without a school
+      ]);
       const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding")
       const hasSchool = !!(memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id)
-      if (!teacherRes.data?.profile_id && !isOnboardingPath && hasSchool) {
-        router.replace("/teacher/onboarding/school");
-        return;
-      }
-      const schoolId =
-        memberRes.data?.school_id ??
-        teacherRes.data?.school_id ??
-        profileData.school_id ??
-        null;
-
-      // UI unblocked here — school name, Twin brain, and unread count all load async below
-      teacherIdRef.current = user.id;
-      setAuthReady(true);
-      setTimeout(() => refreshCredits(), 2000); // deferred — avoid contending with VC/Twin queries on 2G
-
+      if (!teacherRes.data?.profile_id && !isOnboardingPath && hasSchool) { router.replace("/teacher/onboarding/school"); return; }
+      const schoolId = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id ?? null;
       if (schoolId) {
-        supabase
-          .from("schools")
-          .select("name")
-          .eq("id", schoolId)
-          .single()
-          .then(
-            ({ data: schoolData }) => {
-              setSchool(schoolData?.name ?? "");
-            },
-            () => {}
-          );
+        const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle();
+        setSchool(schoolData?.name ?? "");
       }
-
-      try {
-        const brain = await loadTwinBrain(user.id);
-        const p = brain.rulesOutput?.priority;
-        setTwinUnread(p === "critical" || p === "urgent" ? 1 : 0);
-      } catch { setTwinUnread(0); }
-
-      // Single round trip via RPC — replaces the 2-query vc_participants/vc_messages waterfall.
-      // NOTE: RPC also excludes soft-deleted messages (deleted_at IS NULL), which the old
-      // client-side query did not filter — a minor correctness improvement, not just a perf one.
-      try {
-        const { data: unreadCount, error: unreadErr } = await supabase
-          .rpc('get_unread_thread_count', { p_profile_id: user.id });
-        setUnreadConnect(unreadErr ? 0 : (unreadCount ?? 0));
-      } catch {
-        setUnreadConnect(0);
-      }
+      teacherIdRef.current = user.id;
+      refreshCredits();
+      setAuthReady(true);
     }
     fetchProfile();
-  }, []);
+  }, [refreshCredits, router]);
 
-  const userCtx: UserCtx = { fullName, initials, school };
-
-  if (!authReady) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-        <style>{`
-          @keyframes spin    { to { transform: rotate(360deg) } }
-          @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
-          .sk { background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%); background-size:200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
-        `}</style>
-        <div style={{ position:"sticky", top:0, height:56, background:"#1e1b4b", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:600 }}>
-          <div className="sk" style={{ width:28, height:28, borderRadius:"50%", opacity:0.3 }} />
-          <div className="sk" style={{ width:100, height:14, opacity:0.3 }} />
-          <div style={{ marginLeft:"auto", display:"flex", gap:10 }}>
-            <div className="sk" style={{ width:28, height:28, borderRadius:"50%", opacity:0.3 }} />
-            <div className="sk" style={{ width:28, height:28, borderRadius:"50%", opacity:0.3 }} />
-          </div>
-        </div>
-        <div style={{ maxWidth:768, margin:"0 auto", padding:"20px 16px" }}>
-          <div className="sk" style={{ height:18, width:"55%", marginBottom:12 }} />
-          <div className="sk" style={{ height:14, width:"80%", marginBottom:8 }} />
-          <div className="sk" style={{ height:14, width:"65%", marginBottom:24 }} />
-          <div className="sk" style={{ height:120, width:"100%", borderRadius:12, marginBottom:12 }} />
-          <div className="sk" style={{ height:80, width:"100%", borderRadius:12 }} />
-        </div>
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, height:64, background:"#fff", borderTop:"1px solid #e5e7eb", display:"flex", alignItems:"center", justifyContent:"space-around", padding:"0 8px", zIndex:700 }}>
-          {[0,1,2,3,4].map(i => (
-            <div key={i} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-              <div className="sk" style={{ width:22, height:22, borderRadius:4 }} />
-              <div className="sk" style={{ width:30, height:8, borderRadius:3 }} />
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
+  if (!authReady) return <div style={{ minHeight: "100vh", background: "#f8fafc" }} />;
 
   return (
     <ToastContext.Provider value={{ showToast }}>
-      <UserContext.Provider value={userCtx}>
+      <UserContext.Provider value={{ fullName, initials, school }}>
         <CreditContext.Provider value={{ creditBalance, refreshCredits }}>
-        <style>{`
-          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: var(--font-jakarta, 'Plus Jakarta Sans', system-ui, sans-serif); background: #f0f2f5; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-          @keyframes twinPulse { 0%,80%,100%{ transform:scale(0.7); opacity:0.5 } 40%{ transform:scale(1); opacity:1 } }
-          @keyframes slideIn   { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
-          @keyframes fadeIn    { from{ opacity:0 } to{ opacity:1 } }
-          @keyframes shimmer   { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
-          ::-webkit-scrollbar { width: 5px; }
-          ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
-        `}</style>
-        <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-          <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
           <OfflineBar />
-          <main style={{
-            maxWidth:      768,
-            margin:        "0 auto",
-            padding:       "clamp(12px, 3vw, 20px) clamp(12px, 4vw, 20px) 0",
-            paddingBottom: 160,
-            minHeight:     "calc(100vh - 120px)",
-            color:         "#111827",
-          }}>
-            {children}
-          </main>
-          <TwinPill onOpen={() => { setTwinOpen(true); setTwinUnread(0); }} unread={twinUnread} />
-          <TwinDrawer open={twinOpen} onClose={() => { setTwinOpen(false); }} />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
+          <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
+          <main style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84 }}>{children}</main>
+          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
           <BottomNav activeId={activeId} />
+          <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} brain={loadTwinBrain()} />
           {toast && <Toast msg={toast} />}
-        </div>
-      </CreditContext.Provider>
+        </CreditContext.Provider>
       </UserContext.Provider>
     </ToastContext.Provider>
   );
