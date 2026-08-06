@@ -1,0 +1,45 @@
+name: One-shot teacher layout repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/repair-teacher-layout.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Apply exact repair
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app/teacher/layout.tsx')
+          source = path.read_text()
+          replacements = [
+              ('import { loadTwinBrain } from "@/lib/twin/brain";\n', ''),
+              ('<TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} brain={loadTwinBrain()} />', '<TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />'),
+          ]
+          for old, new in replacements:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'ABORT: expected one match, found {count}: {old!r}')
+              source = source.replace(old, new, 1)
+          path.write_text(source)
+          PY
+          git diff --check
+          git diff -- app/teacher/layout.tsx
+      - name: Commit repair
+        run: |
+          git config user.name "Vibeschool Production Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add app/teacher/layout.tsx
+          git commit -m "fix(teacher): remove obsolete Twin brain preload"
+          git push origin HEAD:main
