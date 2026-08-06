@@ -13,9 +13,14 @@ import {
   getAssignmentIntelligence,
   type AssignmentIntelligence,
 } from '@/lib/assessment/intelligence'
+import {
+  getTeacherAssessmentIntelligence,
+  type TeacherAssessmentIntelligence,
+} from '@/lib/assessment/centre'
 
 export default function AssessmentAnalyticsPage() {
   const [summaries, setSummaries] = useState<AssessmentAnalyticsSummary[]>([])
+  const [overview, setOverview] = useState<TeacherAssessmentIntelligence | null>(null)
   const [detail, setDetail] = useState<AssessmentAnalyticsDetail | null>(null)
   const [intelligence, setIntelligence] = useState<AssignmentIntelligence | null>(null)
   const [loading, setLoading] = useState(true)
@@ -25,8 +30,14 @@ export default function AssessmentAnalyticsPage() {
     let cancelled = false
     async function load() {
       try {
-        const data = await listTeacherAssessmentAnalytics()
-        if (!cancelled) setSummaries(data)
+        const [data, consolidated] = await Promise.all([
+          listTeacherAssessmentAnalytics(),
+          getTeacherAssessmentIntelligence(),
+        ])
+        if (!cancelled) {
+          setSummaries(data)
+          setOverview(consolidated)
+        }
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load analytics.')
       } finally {
@@ -61,17 +72,75 @@ export default function AssessmentAnalyticsPage() {
 
   return (
     <main style={shell}>
-      <div style={{ maxWidth: 980, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Intelligence</div>
           <h1 style={{ margin: '6px 0' }}>Teacher Analytics</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Released-result evidence for learner performance, outcomes, difficulty, Bloom levels, and misconceptions.</p>
+          <p style={{ margin: 0, color: '#6b7280' }}>Released-result evidence for learner performance, outcomes, difficulty, Bloom levels, misconceptions, interventions, and assessment quality.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
 
+        {!detail && overview && <>
+          <section style={card}>
+            <div style={metricGrid}>
+              <Metric label="Assessments" value={String(overview.summary.assessmentCount)} />
+              <Metric label="Released attempts" value={String(overview.summary.releasedAttemptCount)} />
+              <Metric label="Average" value={overview.summary.averagePercentage === null ? '—' : `${overview.summary.averagePercentage.toFixed(1)}%`} />
+              <Metric label="Active interventions" value={String(overview.summary.activeInterventions)} />
+              <Metric label="High priority" value={String(overview.summary.highPriorityInterventions)} />
+              <Metric label="Mastery change" value={overview.summary.averageMasteryChange === null ? '—' : `${overview.summary.averageMasteryChange.toFixed(1)} pts`} />
+            </div>
+          </section>
+
+          {overview.weakQuestions.length > 0 && <section style={{ ...card, borderColor: '#fecaca' }}>
+            <h2 style={{ marginTop: 0, fontSize: 18, color: '#991b1b' }}>Cross-assessment weak questions</h2>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {overview.weakQuestions.slice(0, 6).map(item => <div key={item.assessmentItemId} style={{ ...questionBox, background: '#fef2f2', borderColor: '#fecaca' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <strong>{item.questionType.replaceAll('_', ' ')}</strong>
+                  <strong style={{ color: '#b91c1c' }}>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
+                </div>
+                <p style={{ margin: '8px 0', lineHeight: 1.5 }}>{item.prompt}</p>
+                <div style={muted}>{item.difficulty} · {item.bloomLevel} · {item.responseCount} responses</div>
+                <div style={muted}>{item.below50Count} below 50% · {item.zeroScoreCount} zero scores</div>
+              </div>)}
+            </div>
+          </section>}
+
+          {overview.outcomes.length > 0 && <section style={card}>
+            <h2 style={{ marginTop: 0, fontSize: 18 }}>Outcome intelligence</h2>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {overview.outcomes.slice(0, 8).map(item => <div key={item.outcomeId} style={dataRow}>
+                <div>
+                  <strong>{item.outcomeCode ? `${item.outcomeCode} · ` : ''}{item.outcomeText}</strong>
+                  <div style={muted}>{item.responseCount} responses · {item.learnersBelow50} below 50%</div>
+                </div>
+                <strong style={{ color: item.averagePercentage !== null && item.averagePercentage < 50 ? '#b91c1c' : '#065f46' }}>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
+              </div>)}
+            </div>
+          </section>}
+
+          {overview.assessmentTrends.length > 0 && <section style={card}>
+            <h2 style={{ marginTop: 0, fontSize: 18 }}>Assessment trends</h2>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {overview.assessmentTrends.map(item => <div key={item.assignmentId} style={dataRow}>
+                <div>
+                  <strong>{item.title}</strong>
+                  <div style={muted}>{item.assessmentType.replaceAll('_', ' ')} · {item.releasedCount} released</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <strong>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
+                  <div style={muted}>{item.lowestPercentage === null ? '—' : item.lowestPercentage.toFixed(1)}–{item.highestPercentage === null ? '—' : item.highestPercentage.toFixed(1)}%</div>
+                </div>
+              </div>)}
+            </div>
+          </section>}
+        </>}
+
         {!detail ? (
           <section style={card}>
+            <h2 style={{ marginTop: 0, fontSize: 18 }}>Assessment-level analytics</h2>
             {loading ? 'Loading analytics…' : summaries.length === 0 ? (
               <div><strong>No assessment analytics yet</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Assigned assessments will appear here.</p></div>
             ) : (
@@ -221,7 +290,7 @@ const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
 const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
 const rowButton: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }
-const metricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 16 }
+const metricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginTop: 16 }
 const bandGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }
 const metric: React.CSSProperties = { background: '#f8fafc', borderRadius: 12, padding: 12 }
 const dataRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 12, border: '1px solid #e5e7eb', borderRadius: 10 }
