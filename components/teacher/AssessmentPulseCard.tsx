@@ -4,18 +4,20 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getTeacherAssessmentPulse, type TeacherAssessmentPulse } from '@/lib/assessment/integration'
 
-export default function AssessmentPulseCard() {
+export default function AssessmentPulseCard({ schoolId }: { schoolId?: string }) {
   const router = useRouter()
   const [summary, setSummary] = useState<TeacherAssessmentPulse | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
+    setSummary(null)
+    setError('')
     getTeacherAssessmentPulse()
       .then(data => { if (!cancelled) setSummary(data) })
       .catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load assessment workload.') })
     return () => { cancelled = true }
-  }, [])
+  }, [schoolId])
 
   if (error) return null
 
