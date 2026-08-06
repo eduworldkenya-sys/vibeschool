@@ -49,6 +49,13 @@ export interface TeachingOccurrence {
     completed:    boolean
   }
 
+  progress: {
+    progressRecordId: string | null
+    recorded: boolean
+    teacherRemarks: string | null
+    nextSteps: string | null
+  }
+
   lifecycle: Lifecycle
 }
 
