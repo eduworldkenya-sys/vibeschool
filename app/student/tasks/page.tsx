@@ -8,6 +8,7 @@ import Skel from '@/components/student/Skel'
 import {
   getPersonalizedLearningPath,
   listMyTasks,
+  resolveTaskLaunch,
   type StudentPersonalizedPath,
   type StudentTask,
   type StudentTaskFeed,
@@ -47,6 +48,7 @@ export default function TasksPage() {
   const [path, setPath] = useState<StudentPersonalizedPath | null>(null)
   const [filter, setFilter] = useState<Filter>('focus')
   const [loading, setLoading] = useState(true)
+  const [launchingTaskId, setLaunchingTaskId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   async function load() {
@@ -56,6 +58,21 @@ export default function TasksPage() {
     finally { setLoading(false) }
   }
   useEffect(() => { void load() }, [])
+
+  async function openTask(task: StudentTask) {
+    if (launchingTaskId) return
+    setLaunchingTaskId(task.taskId)
+    setError('')
+    try {
+      const launch = await resolveTaskLaunch(task.taskId)
+      router.push(launch.actionUrl)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Task could not be opened.')
+      await load()
+    } finally {
+      setLaunchingTaskId(null)
+    }
+  }
 
   const motivation = path?.motivation
   const tasks = feed?.tasks ?? []
@@ -75,7 +92,7 @@ export default function TasksPage() {
   return <div style={{ animation: 'slideIn 0.22s ease' }}>
     <section style={hero}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}><div><div style={eyebrow}>TODAY'S BEST NEXT STEP</div><h1 style={{ margin: '5px 0 6px', fontSize: 23, fontFamily: "'Bricolage Grotesque',sans-serif" }}>{nextTask ? nextTask.title : 'You are caught up'}</h1><p style={heroText}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · ${nextTask.subject} · ${dueLabel(nextTask)}` : 'Review your recommendations or recent learning journey.'}</p></div><div style={{ textAlign: 'right', flex: '0 0 auto' }}><div style={{ fontSize: 18, fontWeight: 900 }}>{motivation?.totalXp ?? 0}</div><div style={eyebrow}>VERIFIED XP</div></div></div>
-      {nextTask && <button type="button" onClick={() => router.push(nextTask.actionUrl)} style={missionButton}>{nextTask.actionLabel}</button>}
+      {nextTask && <button type="button" disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={{ ...missionButton, opacity: launchingTaskId === nextTask.taskId ? .7 : 1 }}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button>}
       <div style={{ marginTop: 14 }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,.72)', marginBottom: 5 }}><span>Daily learning goal</span><strong>{goal?.completed ?? 0}/{goal?.target ?? 1}</strong></div><div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#fff', borderRadius: 999 }} /></div></div>
     </section>
 
@@ -93,7 +110,7 @@ export default function TasksPage() {
 
     <div style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 2 }}>{([['focus', 'Focus'], ['all', 'All tasks'], ['submitted', 'Submitted'], ['results', 'Results']] as const).map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} style={{ ...filterButton, ...(filter === id ? activeFilter : {}) }}>{label}</button>)}</div>
 
-    {filtered.length === 0 ? <section style={{ ...card, textAlign: 'center', padding: '42px 20px' }}><div style={{ fontSize: 30, marginBottom: 8 }}>✓</div><strong>No tasks in this section</strong><p style={{ margin: '6px 0 0', color: 'var(--vs-muted)', fontSize: 12 }}>Your next assigned task will appear here.</p></section> : <div style={{ display: 'grid', gap: 10 }}>{filtered.map(task => { const tone = taskTone(task); return <article key={task.taskId} style={{ ...card, borderLeft: `4px solid ${tone.accent}` }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 10, fontWeight: 800, color: tone.text, textTransform: 'uppercase', letterSpacing: .8 }}>{TYPE_LABEL[task.taskType] ?? task.taskType}</div><h2 style={{ fontSize: 14, margin: '4px 0', lineHeight: 1.35 }}>{task.title}</h2><div style={{ fontSize: 11, color: 'var(--vs-muted)' }}>{task.subject} · {dueLabel(task)}</div></div><span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: tone.soft, color: tone.text, fontSize: 9, fontWeight: 800, textTransform: 'capitalize' }}>{task.status.replaceAll('_', ' ')}</span></div>{task.progress > 0 && task.progress < 100 && <div style={{ marginTop: 10 }}><div style={track}><div style={{ width: `${task.progress}%`, height: '100%', background: tone.accent }} /></div></div>}{task.status === 'released' && task.score !== null && <div style={{ marginTop: 10, fontSize: 12, fontWeight: 800, color: '#065f46' }}>{task.score}{task.maxScore !== null ? ` / ${task.maxScore}` : ''}</div>}{task.feedback && <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--vs-muted)', lineHeight: 1.5 }}>{task.feedback}</p>}<button type="button" disabled={task.status === 'awaiting_marking' || task.status === 'closed' || task.status === 'upcoming'} onClick={() => router.push(task.actionUrl)} style={{ ...taskButton, background: tone.accent, opacity: ['awaiting_marking', 'closed', 'upcoming'].includes(task.status) ? .55 : 1 }}>{task.actionLabel}</button></article> })}</div>}
+    {filtered.length === 0 ? <section style={{ ...card, textAlign: 'center', padding: '42px 20px' }}><div style={{ fontSize: 30, marginBottom: 8 }}>✓</div><strong>No tasks in this section</strong><p style={{ margin: '6px 0 0', color: 'var(--vs-muted)', fontSize: 12 }}>Your next assigned task will appear here.</p></section> : <div style={{ display: 'grid', gap: 10 }}>{filtered.map(task => { const tone = taskTone(task); const disabled = ['awaiting_marking', 'closed', 'upcoming'].includes(task.status) || launchingTaskId !== null; return <article key={task.taskId} style={{ ...card, borderLeft: `4px solid ${tone.accent}` }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 10, fontWeight: 800, color: tone.text, textTransform: 'uppercase', letterSpacing: .8 }}>{TYPE_LABEL[task.taskType] ?? task.taskType}</div><h2 style={{ fontSize: 14, margin: '4px 0', lineHeight: 1.35 }}>{task.title}</h2><div style={{ fontSize: 11, color: 'var(--vs-muted)' }}>{task.subject} · {dueLabel(task)}</div></div><span style={{ alignSelf: 'flex-start', padding: '4px 8px', borderRadius: 999, background: tone.soft, color: tone.text, fontSize: 9, fontWeight: 800, textTransform: 'capitalize' }}>{task.status.replaceAll('_', ' ')}</span></div>{task.progress > 0 && task.progress < 100 && <div style={{ marginTop: 10 }}><div style={track}><div style={{ width: `${task.progress}%`, height: '100%', background: tone.accent }} /></div></div>}{task.status === 'released' && task.score !== null && <div style={{ marginTop: 10, fontSize: 12, fontWeight: 800, color: '#065f46' }}>{task.score}{task.maxScore !== null ? ` / ${task.maxScore}` : ''}</div>}{task.feedback && <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--vs-muted)', lineHeight: 1.5 }}>{task.feedback}</p>}<button type="button" disabled={disabled} onClick={() => void openTask(task)} style={{ ...taskButton, background: tone.accent, opacity: disabled ? .55 : 1 }}>{launchingTaskId === task.taskId ? 'Opening…' : task.actionLabel}</button></article> })}</div>}
 
     <p style={{ textAlign: 'center', fontSize: 10, color: 'var(--vs-muted)', marginTop: 16 }}>Recommendations are generated from real learning evidence, teacher priorities and completed schoolwork.</p>
   </div>
@@ -112,10 +129,10 @@ const sectionTitle: React.CSSProperties = { fontSize: 11, fontWeight: 900, textT
 const achievementRow: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center', padding: 10, borderRadius: 11, background: 'var(--vs-soft)' }
 const recommendationRow: React.CSSProperties = { padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)' }
 const recommendationBadge: React.CSSProperties = { flex: '0 0 auto', padding: '3px 7px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontSize: 9, fontWeight: 800 }
-const timelineRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '12px 1fr', gap: 9, alignItems: 'start' }
-const timelineDot: React.CSSProperties = { width: 8, height: 8, borderRadius: 999, background: 'var(--vs-accent)', marginTop: 4 }
-const track: React.CSSProperties = { height: 6, borderRadius: 999, background: 'var(--vs-border)', overflow: 'hidden', marginTop: 6 }
-const filterButton: React.CSSProperties = { flex: '0 0 auto', border: '1px solid var(--vs-border)', borderRadius: 999, padding: '8px 12px', background: 'var(--vs-card)', color: 'var(--vs-muted)', fontFamily: 'inherit', fontWeight: 700, fontSize: 11, cursor: 'pointer' }
-const activeFilter: React.CSSProperties = { background: 'var(--vs-accent)', color: '#fff', borderColor: 'var(--vs-accent)' }
-const taskButton: React.CSSProperties = { marginTop: 12, width: '100%', border: 'none', borderRadius: 10, padding: '10px 12px', color: '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 12, cursor: 'pointer' }
-const smallButton: React.CSSProperties = { border: '1px solid #fecaca', borderRadius: 8, padding: '5px 9px', background: '#fff', color: '#b91c1c', fontFamily: 'inherit', fontWeight: 700 }
+const track: React.CSSProperties = { height: 6, marginTop: 5, borderRadius: 999, background: 'var(--vs-border)', overflow: 'hidden' }
+const timelineRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '12px 1fr', gap: 9, alignItems: 'flex-start' }
+const timelineDot: React.CSSProperties = { width: 8, height: 8, marginTop: 4, borderRadius: 999, background: 'var(--vs-accent)' }
+const filterButton: React.CSSProperties = { flex: '0 0 auto', border: '1px solid var(--vs-border)', borderRadius: 999, padding: '7px 12px', background: 'var(--vs-card)', color: 'var(--vs-muted)', fontFamily: 'inherit', fontSize: 10, fontWeight: 800, cursor: 'pointer' }
+const activeFilter: React.CSSProperties = { borderColor: 'var(--vs-accent)', background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)' }
+const taskButton: React.CSSProperties = { marginTop: 12, width: '100%', border: 'none', borderRadius: 10, padding: '10px 12px', color: '#fff', fontFamily: 'inherit', fontSize: 11, fontWeight: 900, cursor: 'pointer' }
+const smallButton: React.CSSProperties = { border: 'none', borderRadius: 8, padding: '6px 9px', background: '#fee2e2', color: '#991b1b', fontFamily: 'inherit', fontSize: 10, fontWeight: 800, cursor: 'pointer' }
