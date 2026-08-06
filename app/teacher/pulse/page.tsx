@@ -417,6 +417,9 @@ export default function PulsePage() {
 
       <NextTeachingAction
         task={tasks[0] ?? null}
+        hasLessons={(snap.todaySlots ?? []).length > 0}
+        headline={guideHeadline}
+        snap={snap}
         onNavigate={(href) => router.push(href)}
       />
 
