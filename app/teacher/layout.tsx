@@ -563,7 +563,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <OfflineBar />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
-          <main style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84 }}>{children}</main>
+          <main style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f8fafc" }}>{children}</main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
           <BottomNav activeId={activeId} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
