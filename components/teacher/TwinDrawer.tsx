@@ -9,7 +9,7 @@ import {
 } from "@/lib/twin/brain";
 import { TwinMessage, TwinAction } from "@/lib/types";
 
-interface Props { open: boolean; onClose: () => void; }
+interface Props { open: boolean; onClose: () => void; brain?: Promise<TwinBrainState>; }
 
 const MAX_HISTORY = 10;
 
