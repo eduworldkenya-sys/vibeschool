@@ -5,7 +5,6 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
-import { loadTwinBrain } from "@/lib/twin/brain";
 import OfflineBar from "@/components/teacher/OfflineBar";
 
 interface ToastCtx { showToast: (msg: string) => void }
@@ -600,7 +599,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <main style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84 }}>{children}</main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
           <BottomNav activeId={activeId} />
-          <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} brain={loadTwinBrain()} />
+          <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
           {toast && <Toast msg={toast} />}
         </CreditContext.Provider>
       </UserContext.Provider>
