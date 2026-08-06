@@ -6,6 +6,7 @@ on:
       - main
       - ce-type-001
       - ce-fe-001
+      - feat/student-twin-workspace
   pull_request:
     branches:
       - main
