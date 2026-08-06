@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { useTheme } from '@/app/student/layout'
+import { useTheme } from '@/components/student/StudentUiContext'
 
 const C = {
   bg: '#f0f2f5', surface: '#ffffff', border: '#e5e7eb',
@@ -82,173 +82,111 @@ export default function StudentProfilePage() {
           return
         }
 
-        const p = profileRes.data
+        if (studentRes.error || !studentRes.data) {
+          setPageError('Failed to load your student record. Please refresh.')
+          setLoading(false)
+          return
+        }
+
+        const profileData = profileRes.data
+        const studentData = studentRes.data
+
         setProfile({
-          full_name:     p?.full_name     ?? '',
-          date_of_birth: p?.date_of_birth ?? '',
-          gender:        p?.gender        ?? '',
-          avatar_url:    p?.avatar_url    ?? '',
+          full_name: profileData?.full_name ?? '',
+          date_of_birth: profileData?.date_of_birth ?? '',
+          gender: profileData?.gender ?? '',
+          avatar_url: profileData?.avatar_url ?? '',
         })
 
-        const s = studentRes.data
         let className = ''
-        if (s?.class_id) {
-          const { data: cls } = await supabase.from('classes').select('name, stream').eq('id', s.class_id).single()
-          if (cls) className = cls.name + (cls.stream ? ' ' + cls.stream : '')
+        if (studentData.class_id) {
+          const { data: classRow } = await supabase.from('classes').select('name').eq('id', studentData.class_id).maybeSingle()
+          className = classRow?.name ?? ''
         }
 
         setStudent({
-          name:             s?.name             ?? '',
-          admission_number: s?.admission_number ?? '',
-          class_name:       className,
+          name: studentData.name ?? '',
+          admission_number: studentData.admission_number ?? '',
+          class_name: className,
         })
 
-        const { data: studentRow } = await supabase.from('students').select('id').eq('profile_id', uid).single()
-        if (studentRow?.id) {
-          const { data: link } = await supabase
-            .from('parent_student_links').select('parent_id')
-            .eq('student_id', studentRow.id).maybeSingle()
-          if (link?.parent_id) {
-            const [parentProfileRes, parentExtraRes] = await Promise.all([
-              supabase.from('profiles').select('full_name, phone').eq('id', link.parent_id).single(),
-              supabase.from('parent_profiles').select('relationship').eq('profile_id', link.parent_id).maybeSingle(),
-            ])
+        const { data: guardianLink } = await supabase
+          .from('student_guardians')
+          .select('guardian_id, relationship')
+          .eq('student_id', studentData.id)
+          .limit(1)
+          .maybeSingle()
+
+        if (guardianLink?.guardian_id) {
+          const { data: guardianRow } = await supabase
+            .from('guardians')
+            .select('full_name, phone')
+            .eq('id', guardianLink.guardian_id)
+            .maybeSingle()
+          if (guardianRow) {
             setGuardian({
-              full_name:    parentProfileRes.data?.full_name ?? '',
-              phone:        parentProfileRes.data?.phone     ?? '',
-              relationship: parentExtraRes.data?.relationship ?? '',
+              full_name: guardianRow.full_name ?? '',
+              phone: guardianRow.phone ?? '',
+              relationship: guardianLink.relationship ?? '',
             })
           }
         }
       } catch {
-        setPageError('Unexpected error. Please refresh.')
+        setPageError('Something went wrong loading your profile.')
       } finally {
         setLoading(false)
       }
     }
-    load()
+    void load()
   }, [])
 
   return (
-    <div style={{ background: C.bg, minHeight: '100%', padding: 16 }}>
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }`}</style>
+    <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 40 }}>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--vs-text)' }}>Profile</h1>
+        <p style={{ marginTop: 5, color: 'var(--vs-muted)', fontSize: 13 }}>Your account and learning preferences.</p>
+      </div>
 
-      <button
-        onClick={() => router.push('/student')}
-        style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
-      >
-        ← Back
-      </button>
-
-      <h1 style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, margin: '0 0 16px' }}>My Profile</h1>
-
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[1, 2, 3].map(i => <Skeleton key={i} h={56} />)}
-        </div>
-      ) : pageError ? (
-        <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: C.error, fontSize: 13 }}>
+      {pageError && (
+        <div style={{ padding: 14, borderRadius: 12, background: '#FEF2F2', color: C.error, marginBottom: 16, fontSize: 13 }}>
           {pageError}
         </div>
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: C.accentLight, border: `2px solid ${C.accent}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
-              {profile.avatar_url
-                ? <img src={profile.avatar_url} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : '👤'
-              }
+      )}
+
+      <section style={{ background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 18, padding: 18, marginBottom: 16 }}>
+        {loading ? <Skeleton h={90} /> : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', background: 'var(--vs-accent-soft)', display: 'grid', placeItems: 'center', color: 'var(--vs-accent)', fontWeight: 900, fontSize: 22 }}>
+              {profile.avatar_url ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (student.name || profile.full_name || 'S').charAt(0).toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.textPrimary }}>
-                {student.name || profile.full_name || 'Student'}
-              </div>
-              <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>
-                {student.class_name || 'No class assigned'}
-              </div>
+              <div style={{ color: 'var(--vs-text)', fontSize: 17, fontWeight: 800 }}>{student.name || profile.full_name || 'Student'}</div>
+              <div style={{ color: 'var(--vs-muted)', fontSize: 12, marginTop: 3 }}>{student.class_name || 'Student'}{student.admission_number ? ` · ${student.admission_number}` : ''}</div>
             </div>
           </div>
+        )}
+      </section>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[
-              { label: 'Admission Number', value: student.admission_number || '—' },
-              { label: 'Class',            value: student.class_name || '—' },
-              { label: 'Date of Birth',    value: profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' },
-              { label: 'Gender',           value: profile.gender || '—' },
-            ].map(row => (
-              <div key={row.label} style={{ background: C.surface, borderRadius: 12, padding: '12px 16px', border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{row.label}</span>
-                <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{row.value}</span>
-              </div>
-            ))}
+      <section style={{ background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 18, padding: 18, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--vs-text)', marginBottom: 14 }}>Appearance</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+          {(['light', 'dark', 'auto'] as const).map(option => (
+            <button key={option} onClick={() => setTheme(option)} style={{ minHeight: 44, borderRadius: 12, border: theme === option ? '2px solid var(--vs-accent)' : '1px solid var(--vs-border)', background: theme === option ? 'var(--vs-accent-soft)' : 'var(--vs-surface)', color: 'var(--vs-text)', fontWeight: 750, textTransform: 'capitalize', cursor: 'pointer' }}>{option}</button>
+          ))}
+        </div>
+      </section>
+
+      <section style={{ background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 18, padding: 18, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--vs-text)', marginBottom: 12 }}>Guardian</div>
+        {loading ? <Skeleton h={54} /> : guardian ? (
+          <div>
+            <div style={{ color: 'var(--vs-text)', fontSize: 14, fontWeight: 700 }}>{guardian.full_name}</div>
+            <div style={{ color: 'var(--vs-muted)', fontSize: 12, marginTop: 4 }}>{guardian.relationship || 'Guardian'}{guardian.phone ? ` · ${guardian.phone}` : ''}</div>
           </div>
+        ) : <div style={{ color: 'var(--vs-muted)', fontSize: 12 }}>No guardian details available.</div>}
+      </section>
 
-          {guardian && (
-            <>
-              <h2 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: '24px 0 10px' }}>Guardian</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { label: 'Name',         value: guardian.full_name    || '—' },
-                  { label: 'Relationship', value: guardian.relationship || '—' },
-                  { label: 'Phone',        value: guardian.phone        || '—' },
-                ].map(row => (
-                  <div key={row.label} style={{ background: C.surface, borderRadius: 12, padding: '12px 16px', border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{row.label}</span>
-                    <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{row.value}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Theme toggle */}
-          <h2 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: '24px 0 10px' }}>Display Theme</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['light', 'dark', 'auto'] as const).map(t => (
-              <button key={t} onClick={() => setTheme(t)} style={{
-                flex: 1, padding: '10px 4px', borderRadius: 12, border: 'none',
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
-                background: theme === t ? C.accent : C.surface,
-                color:      theme === t ? '#fff'   : C.textMuted,
-              }}>
-                {t === 'light' ? '☀️ Light' : t === 'dark' ? '🌙 Dark' : '⚙️ Auto'}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 20, padding: '14px 16px', borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center' }}>
-            <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
-              Need to update your details? Ask your class teacher or school admin.
-            </p>
-          </div>
-
-          <button
-            onClick={() => router.push('/student/workspace')}
-            style={{
-              width: '100%', marginTop: 20, padding: '14px 0',
-              borderRadius: 14, border: `1px solid ${C.border}`,
-              background: C.surface, color: C.textPrimary,
-              fontSize: 14, fontWeight: 800, cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            📚 My Study Workspace
-          </button>
-
-          {/* Sign out */}
-          <button
-            onClick={handleSignOut}
-            style={{
-              width: '100%', marginTop: 20, padding: '14px 0', borderRadius: 14,
-              border: `2px solid ${C.error}`, background: 'transparent',
-              color: C.error, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            Sign Out
-          </button>
-        </>
-      )}
+      <button onClick={() => void handleSignOut()} style={{ width: '100%', minHeight: 48, border: '1px solid #FCA5A5', borderRadius: 14, background: '#FEF2F2', color: '#B91C1C', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Sign out</button>
     </div>
   )
 }
