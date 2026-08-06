@@ -51,6 +51,13 @@ export interface VibeLearnWorkstation {
   tutorPolicy: VibeLearnTutorPolicy
 }
 
+type WorkstationRpcClient = {
+  rpc(
+    fn: 'student_get_vibelearn_workstation',
+    args?: Record<string, never>
+  ): Promise<{ data: unknown; error: { message: string } | null }>
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -66,8 +73,9 @@ function asNumber(value: unknown): number {
 }
 
 export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
-  const { data, error } = await supabase.rpc('student_get_vibelearn_workstation')
-  if (error) throw error
+  const rpcClient = supabase as unknown as WorkstationRpcClient
+  const { data, error } = await rpcClient.rpc('student_get_vibelearn_workstation')
+  if (error) throw new Error(error.message)
 
   const row = asRecord(data)
   const subjects = Array.isArray(row.subjects) ? row.subjects : []
