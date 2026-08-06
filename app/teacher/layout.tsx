@@ -382,7 +382,7 @@ function BottomNav({ activeId }: { activeId: string }) {
   return (
     <>
       {openTray && (
-        <div onClick={() => setOpenTray(null)} style={{ position: "fixed", inset: 0, zIndex: 690, background: "rgba(0,0,0,0.2)" }} />
+        <div onClick={() => setOpenTray(null)} style={{ position: "fixed", inset: 0, zIndex: 690, background: "transparent" }} />
       )}
       <div style={{
         position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 695,
