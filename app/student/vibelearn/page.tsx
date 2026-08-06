@@ -5,23 +5,68 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
-import { getVibeLearnWorkstation, type VibeLearnWorkstation } from '@/lib/student/vibelearn'
+import {
+  getExamReadinessBrief,
+  getVibeLearnWorkstation,
+  updateExamReadiness,
+  type ExamReadinessBrief,
+  type VibeLearnWorkstation,
+} from '@/lib/student/vibelearn'
 
 export default function StudentVibeLearnPage() {
   const router = useRouter()
   const [brief, setBrief] = useState<VibeLearnWorkstation | null>(null)
+  const [readiness, setReadiness] = useState<ExamReadinessBrief | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [editingPlan, setEditingPlan] = useState(false)
+  const [savingPlan, setSavingPlan] = useState(false)
+  const [examDate, setExamDate] = useState('')
+  const [dailyMinutes, setDailyMinutes] = useState(90)
+  const [confidence, setConfidence] = useState<number | null>(null)
+
+  async function loadWorkspace() {
+    const [workspace, readinessBrief] = await Promise.all([
+      getVibeLearnWorkstation(),
+      getExamReadinessBrief(),
+    ])
+    setBrief(workspace)
+    setReadiness(readinessBrief)
+    setExamDate(readinessBrief.examDate ?? '')
+    setDailyMinutes(readinessBrief.dailyRevisionMinutes)
+    setConfidence(readinessBrief.confidenceCheck)
+  }
 
   useEffect(() => {
     let cancelled = false
-    getVibeLearnWorkstation()
-      .then(value => { if (!cancelled) setBrief(value) })
+    Promise.all([getVibeLearnWorkstation(), getExamReadinessBrief()])
+      .then(([workspace, readinessBrief]) => {
+        if (cancelled) return
+        setBrief(workspace)
+        setReadiness(readinessBrief)
+        setExamDate(readinessBrief.examDate ?? '')
+        setDailyMinutes(readinessBrief.dailyRevisionMinutes)
+        setConfidence(readinessBrief.confidenceCheck)
+      })
       .catch(reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not open VibeLearn.') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [])
+
+  async function saveReadinessPlan() {
+    setSavingPlan(true)
+    setError('')
+    try {
+      await updateExamReadiness({ examDate: examDate || null, dailyRevisionMinutes: dailyMinutes, confidenceCheck: confidence })
+      await loadWorkspace()
+      setEditingPlan(false)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not save your exam plan.')
+    } finally {
+      setSavingPlan(false)
+    }
+  }
 
   if (libraryOpen) {
     return <VibeLearnShellWrapper isOpen={true} onClose={() => setLibraryOpen(false)} />
@@ -40,8 +85,93 @@ export default function StudentVibeLearnPage() {
         </section>
 
         {loading ? <section style={card}>Preparing your learning workspace…</section>
-          : error ? <section style={{ ...card, color: '#b91c1c' }}>{error}</section>
+          : error && !brief ? <section style={{ ...card, color: '#b91c1c' }}>{error}</section>
           : brief && <>
+            {readiness && <section style={{ ...card, borderColor: '#f59e0b', background: '#fffaf0' }}>
+              <div style={sectionHeader}>
+                <div>
+                  <div style={{ ...eyebrowDark, color: '#b45309' }}>Form 4 exam readiness</div>
+                  <h2 style={{ ...title, marginBottom: 4 }}>{readiness.examName} focus plan</h2>
+                  <p style={{ ...muted, lineHeight: 1.6 }}>{readiness.psychologyHeadline}</p>
+                </div>
+                <button style={{ ...secondaryButton, borderColor: '#fcd34d', background: '#fef3c7', color: '#92400e' }} onClick={() => setEditingPlan(value => !value)}>
+                  {editingPlan ? 'Close' : 'Set plan'}
+                </button>
+              </div>
+
+              <div style={{ ...grid, marginTop: 14 }}>
+                <div style={statCard}>
+                  <span style={statLabel}>Days remaining</span>
+                  <strong style={statValue}>{readiness.daysRemaining ?? '—'}</strong>
+                  <span style={muted}>{readiness.examDate ? `Exam date: ${new Date(readiness.examDate).toLocaleDateString('en-KE')}` : 'Set your exam date'}</span>
+                </div>
+                <div style={statCard}>
+                  <span style={statLabel}>Daily revision</span>
+                  <strong style={statValue}>{readiness.dailyRevisionMinutes} min</strong>
+                  <span style={muted}>Focused study target</span>
+                </div>
+                <div style={statCard}>
+                  <span style={statLabel}>Target grade</span>
+                  <strong style={statValue}>{readiness.targetGrade ?? 'Not set'}</strong>
+                  <span style={muted}>Set from Student Home goals</span>
+                </div>
+                <div style={statCard}>
+                  <span style={statLabel}>Assessment evidence</span>
+                  <strong style={statValue}>{readiness.averagePercentage == null ? '—' : `${readiness.averagePercentage}%`}</strong>
+                  <span style={muted}>{readiness.attemptCount} completed attempt{readiness.attemptCount === 1 ? '' : 's'}</span>
+                </div>
+              </div>
+
+              {editingPlan && <div style={planEditor}>
+                <label style={fieldLabel}>Exam date<input type="date" value={examDate} onChange={event => setExamDate(event.target.value)} style={inputStyle} /></label>
+                <label style={fieldLabel}>Daily revision minutes<input type="number" min={15} max={480} value={dailyMinutes} onChange={event => setDailyMinutes(Number(event.target.value) || 15)} style={inputStyle} /></label>
+                <div>
+                  <div style={fieldLabel}>How confident do you feel today?</div>
+                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                    {[1, 2, 3, 4, 5].map(value => <button key={value} onClick={() => setConfidence(value)} style={{ ...confidenceButton, ...(confidence === value ? confidenceButtonActive : {}) }}>{value}</button>)}
+                  </div>
+                </div>
+                <button style={primaryButton} disabled={savingPlan} onClick={saveReadinessPlan}>{savingPlan ? 'Saving…' : 'Save exam plan'}</button>
+              </div>}
+
+              {error && <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 12 }}>{error}</div>}
+
+              <div style={{ marginTop: 16 }}>
+                <div style={eyebrowDark}>What to revise now</div>
+                <h3 style={{ margin: '5px 0 10px', fontSize: 16 }}>Your highest-value practice</h3>
+                {readiness.revisionPriorities.length === 0 ? <p style={muted}>Form 4 practice priorities will appear when verified exam questions are available.</p>
+                  : <div style={{ display: 'grid', gap: 9 }}>
+                    {readiness.revisionPriorities.slice(0, 3).map(item => (
+                      <button key={`${item.subject}-${item.topic}`} style={rowButton} onClick={() => router.push(item.actionUrl)}>
+                        <div><strong>{item.subject}: {item.topic}</strong><div style={muted}>{item.reason} · {item.availableQuestions} questions</div></div>
+                        <span style={linkText}>Practise →</span>
+                      </button>
+                    ))}
+                  </div>}
+              </div>
+
+              {readiness.subjectSignals.length > 0 && <div style={{ marginTop: 16 }}>
+                <div style={eyebrowDark}>Your evidence</div>
+                <h3 style={{ margin: '5px 0 10px', fontSize: 16 }}>Subject signals</h3>
+                <div style={grid}>
+                  {readiness.subjectSignals.slice(0, 6).map(subject => (
+                    <div key={`${subject.subjectId ?? 'general'}-${subject.subjectName}`} style={subjectSignalCard}>
+                      <strong>{subject.subjectName}</strong>
+                      <span style={{ ...signalPill, ...(subject.signal === 'needs_attention' ? signalNeedsAttention : subject.signal === 'strong' ? signalStrong : signalDeveloping) }}>
+                        {subject.signal.replaceAll('_', ' ')}
+                      </span>
+                      <span style={muted}>{subject.averagePercentage}% across {subject.attempts} attempt{subject.attempts === 1 ? '' : 's'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>}
+
+              <div style={psychologyNote}>
+                <strong>{readiness.comparisonRule}</strong>
+                <span>{readiness.predictionDisclaimer}</span>
+              </div>
+            </section>}
+
             <section style={card}>
               <div style={sectionHeader}>
                 <div><div style={eyebrowDark}>Continue learning</div><h2 style={title}>Your study desk</h2></div>
@@ -151,3 +281,17 @@ const progressTrack: React.CSSProperties = { display: 'block', height: 6, border
 const progressFill: React.CSSProperties = { display: 'block', height: '100%', background: '#4f46e5' }
 const linkText: React.CSSProperties = { color: '#4338ca', fontSize: 12, fontWeight: 800 }
 const pill: React.CSSProperties = { fontSize: 11, color: '#6d28d9', background: '#ede9fe', borderRadius: 999, padding: '5px 9px', fontWeight: 700 }
+const statCard: React.CSSProperties = { border: '1px solid #fde68a', background: '#fff', borderRadius: 14, padding: 13, display: 'grid', gap: 4 }
+const statLabel: React.CSSProperties = { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: '#92400e', fontWeight: 800 }
+const statValue: React.CSSProperties = { fontSize: 24, color: '#78350f' }
+const planEditor: React.CSSProperties = { marginTop: 14, border: '1px solid #fde68a', background: '#fff', borderRadius: 14, padding: 14, display: 'grid', gap: 12 }
+const fieldLabel: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 12, fontWeight: 700, color: '#334155' }
+const inputStyle: React.CSSProperties = { border: '1px solid #cbd5e1', borderRadius: 10, padding: '10px 11px', font: 'inherit' }
+const confidenceButton: React.CSSProperties = { width: 38, height: 38, borderRadius: 999, border: '1px solid #cbd5e1', background: '#fff', fontWeight: 800, cursor: 'pointer' }
+const confidenceButtonActive: React.CSSProperties = { background: '#f59e0b', color: '#fff', borderColor: '#f59e0b' }
+const subjectSignalCard: React.CSSProperties = { border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, display: 'grid', gap: 7, background: '#fff' }
+const signalPill: React.CSSProperties = { width: 'fit-content', borderRadius: 999, padding: '4px 8px', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }
+const signalNeedsAttention: React.CSSProperties = { background: '#fee2e2', color: '#991b1b' }
+const signalDeveloping: React.CSSProperties = { background: '#fef3c7', color: '#92400e' }
+const signalStrong: React.CSSProperties = { background: '#dcfce7', color: '#166534' }
+const psychologyNote: React.CSSProperties = { marginTop: 16, borderRadius: 12, padding: 12, background: '#fffbeb', color: '#78350f', display: 'grid', gap: 5, fontSize: 12 }
