@@ -1,407 +1,274 @@
-"use client";
-export const dynamic = "force-dynamic";
+'use client'
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { nairobiDateStr, nairobiDayOfWeek } from "@/lib/time";
-import { loadActiveClassTimetable, timetableSlotsForDay } from "@/lib/timetable/engine";
-import { useStudent } from "@/lib/student-context";
-import { readCache, writeCache } from "@/lib/student-cache";
-import Skel from "@/components/student/Skel";
+export const dynamic = 'force-dynamic'
 
-interface DashData {
-  attendancePct:  number;
-  totalPresent:   number;
-  totalDays:      number;
-  pendingHW:      number;
-  todaySlots:     { subject: string; start: string; end: string; room: string }[];
-  avgMarksPct:    number | null;
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
+import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/engine'
+import { useStudent } from '@/lib/student-context'
+import Skel from '@/components/student/Skel'
+import {
+  getPersonalizedLearningPath,
+  listMyTasks,
+  resolveTaskLaunch,
+  type StudentPersonalizedPath,
+  type StudentTask,
+  type StudentTaskFeed,
+} from '@/lib/student/tasks'
+import { supabase } from '@/lib/supabase'
+
+type TodaySlot = { id: string; subject: string; start: string; end: string; room: string }
+
+type HomeData = {
+  feed: StudentTaskFeed
+  path: StudentPersonalizedPath
+  todaySlots: TodaySlot[]
+  attendancePct: number | null
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  homework: 'Homework',
+  exercise: 'Exercise',
+  quiz: 'Quiz',
+  cat: 'CAT',
+  exam: 'Exam',
+  project: 'Project',
+  remedial: 'Practice',
 }
 
 function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
 }
 
-// SVG icons
-function IconAttendance() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <polyline points="16 11 18 13 22 9"/>
-    </svg>
-  );
+function taskMeta(task: StudentTask) {
+  if (task.status === 'released') return 'Result and feedback ready'
+  if (task.status === 'returned') return 'Teacher returned this for revision'
+  if (task.status === 'overdue') return 'Past the due date — complete it now'
+  if (task.status === 'in_progress') return `${task.progress}% complete`
+  if (task.dueAt) return `Due ${new Date(task.dueAt).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}`
+  return 'Ready when you are'
 }
-function IconWork() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="9" y1="13" x2="15" y2="13"/>
-      <line x1="9" y1="17" x2="15" y2="17"/>
-    </svg>
-  );
-}
-function IconClock() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <polyline points="12 6 12 12 16 14"/>
-    </svg>
-  );
-}
-function IconCalendar() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-      <line x1="16" y1="2" x2="16" y2="6"/>
-      <line x1="8"  y1="2" x2="8"  y2="6"/>
-      <line x1="3"  y1="10" x2="21" y2="10"/>
-    </svg>
-  );
-}
-function IconMarks() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10"/>
-      <line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6"  y1="20" x2="6"  y2="14"/>
-    </svg>
-  );
-}
-function IconArrow() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-  );
+
+function tone(task: StudentTask) {
+  if (task.status === 'overdue' || task.status === 'returned') return { accent: '#dc2626', soft: '#fef2f2', text: '#991b1b' }
+  if (task.status === 'released') return { accent: '#059669', soft: '#ecfdf5', text: '#065f46' }
+  if (task.status === 'in_progress') return { accent: '#d97706', soft: '#fffbeb', text: '#92400e' }
+  return { accent: '#4f46e5', soft: '#eef2ff', text: '#3730a3' }
 }
 
 export default function StudentHomePage() {
-  const router              = useRouter();
-  const { identity, loading: idLoading } = useStudent();
-  const [data,    setData]    = useState<DashData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter()
+  const { identity, loading: identityLoading } = useStudent()
+  const [data, setData] = useState<HomeData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [launchingTaskId, setLaunchingTaskId] = useState<string | null>(null)
+  const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (idLoading || !identity) return;
+  async function load() {
+    if (!identity) return
+    setLoading(true)
+    setError('')
+    try {
+      const [feed, path] = await Promise.all([listMyTasks(), getPersonalizedLearningPath()])
 
-    // Show cache instantly
-    const cached = readCache<DashData>("dashboard", identity.studentId);
-    if (cached) {
-      setData(cached);
-      setLoading(false);
-    }
-
-    async function load() {
-      if (!identity?.classId) return;
-
-      // Attendance
-      const { data: att } = await supabase
-        .from("attendance")
-        .select("status")
-        .eq("student_id", identity.studentId);
-
-      const totalDays    = att?.length ?? 0;
-      const totalPresent = att?.filter(a => a.status === "present").length ?? 0;
-      const attendancePct = totalDays > 0 ? Math.round((totalPresent / totalDays) * 100) : 0;
-
-      // Pending homework — day_of_week is integer Mon=1…Sun=7
-      const { data: hw } = await supabase
-        .from("homework")
-        .select("id, homework_submissions(id, student_id)")
-        .eq("class_id", identity.classId)
-        .gte("due_date", nairobiDateStr());
-
-      const pendingHW = (hw ?? []).filter(homework => {
-        const submittedByStudent = (
-          homework.homework_submissions ?? []
-        ).some(
-          submission =>
-            submission.student_id === identity.studentId
-        );
-
-        return !submittedByStudent;
-      }).length;
-
-      // Today timetable — integer day Mon=1 Tue=2 Wed=3 Thu=4 Fri=5 Sat=6 Sun=7
-      // TBL-007F5: routed through the canonical engine (class isolation,
-      // school isolation, effective-date filtering, canonical ordering),
-      // anchored to Africa/Nairobi for both date and weekday. The engine
-      // requires a school identity; without one there are no slots to show.
-      // Engine failure degrades to an empty today-list so the rest of the
-      // dashboard still renders.
-      const dayInt = nairobiDayOfWeek();
-
+      const day = nairobiDayOfWeek()
       const slots = identity.classId && identity.schoolId
         ? await loadActiveClassTimetable({
             classId: identity.classId,
             schoolId: identity.schoolId,
             activeOn: nairobiDateStr(),
-          }).then((all) => timetableSlotsForDay(all, dayInt))
-          .catch((err) => {
-            console.error("[StudentDashboard] canonical timetable load failed:", err);
-            return [];
-          })
-        : [];
+          }).then(all => timetableSlotsForDay(all, day))
+        : []
 
-      const subjectIds = Array.from(
-        new Set(
-          slots
-            .map(slot => slot.subject_id)
-            .filter(
-              (subjectId): subjectId is string =>
-                typeof subjectId === "string" &&
-                subjectId.length > 0
-            )
-        )
-      );
-
-      let subjectMap: Record<string, string> = {};
+      const subjectIds = Array.from(new Set(slots.map(slot => slot.subject_id).filter((id): id is string => Boolean(id))))
+      let subjectNames: Record<string, string> = {}
       if (subjectIds.length > 0) {
-        const { data: subjects } = await supabase
-          .from("subjects")
-          .select("id, name")
-          .in("id", subjectIds);
-        subjectMap = Object.fromEntries((subjects ?? []).map(s => [s.id, s.name]));
+        const { data: rows } = await supabase.from('subjects').select('id,name').in('id', subjectIds)
+        subjectNames = Object.fromEntries((rows ?? []).map(row => [row.id, row.name]))
       }
 
       const todaySlots = slots.map(slot => ({
-        subject:
-          slot.subject_id
-            ? subjectMap[slot.subject_id] ?? "Lesson"
-            : "Lesson",
+        id: slot.id,
+        subject: slot.subject_id ? subjectNames[slot.subject_id] ?? 'Lesson' : 'Lesson',
         start: slot.start_time.slice(0, 5),
         end: slot.end_time.slice(0, 5),
-        room: slot.room ?? "",
-      }));
+        room: slot.room ?? '',
+      }))
 
-      // My Progress — exam_results.marks is the recorded percentage mark.
-      const { data: examRows } = await supabase
-        .from("exam_results")
-        .select("marks, is_absent")
-        .eq("student_id", identity.studentId);
+      const { data: attendance } = await supabase
+        .from('attendance')
+        .select('status')
+        .eq('student_id', identity.studentId)
 
-      const validMarks = (examRows ?? [])
-        .filter(row => !row.is_absent)
-        .map(row => Number(row.marks))
-        .filter(mark => Number.isFinite(mark));
+      const marked = attendance ?? []
+      const present = marked.filter(row => row.status === 'present').length
+      const attendancePct = marked.length > 0 ? Math.round((present / marked.length) * 100) : null
 
-      const avgMarksPct =
-        validMarks.length > 0
-          ? Math.round(
-              validMarks.reduce(
-                (sum, mark) => sum + mark,
-                0
-              ) / validMarks.length
-            )
-          : null;
-
-      const fresh: DashData = { attendancePct, totalPresent, totalDays, pendingHW, todaySlots, avgMarksPct };
-      writeCache("dashboard", identity.studentId, fresh);
-      setData(fresh);
-      setLoading(false);
+      setData({ feed, path, todaySlots, attendancePct })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Your learner home could not be loaded.')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    load();
-  }, [identity, idLoading]);
+  useEffect(() => {
+    if (!identityLoading && identity) void load()
+  }, [identityLoading, identity])
 
-  const isLoading = idLoading || (loading && !data);
+  async function openTask(task: StudentTask) {
+    if (launchingTaskId) return
+    setLaunchingTaskId(task.taskId)
+    setError('')
+    try {
+      const launch = await resolveTaskLaunch(task.taskId)
+      router.push(launch.actionUrl)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'This task could not be opened.')
+      await load()
+    } finally {
+      setLaunchingTaskId(null)
+    }
+  }
 
-  if (isLoading) return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
-      <Skel h={90}  radius={16} />
-      <div style={{ display: "flex", gap: 12 }}>
-        <Skel h={80} radius={12} />
-        <Skel h={80} radius={12} />
-        <Skel h={80} radius={12} />
-      </div>
-      <Skel h={180} radius={16} />
-      <Skel h={120} radius={16} />
-    </div>
-  );
+  const focusTasks = useMemo(
+    () => data?.feed.tasks.filter(task => ['overdue', 'returned', 'in_progress', 'ready'].includes(task.status)).slice(0, 4) ?? [],
+    [data],
+  )
+  const feedbackTasks = useMemo(
+    () => data?.feed.tasks.filter(task => task.status === 'released' || task.status === 'returned').slice(0, 3) ?? [],
+    [data],
+  )
+  const nextTask = data?.path.nextMission ?? data?.path.motivation.nextMission ?? focusTasks[0] ?? null
+  const motivation = data?.path.motivation
+  const goal = motivation?.dailyGoal
+  const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
 
-  if (!data || !identity) return null;
+  if (identityLoading || (loading && !data)) {
+    return <div style={{ display: 'grid', gap: 12 }}><Skel h={220} radius={22} /><Skel h={100} radius={16} /><Skel h={220} radius={16} /><Skel h={160} radius={16} /></div>
+  }
+  if (!identity) return null
 
-  const attColor  = data.attendancePct >= 80 ? "var(--vs-success)" : "var(--vs-warning)";
-
-  return (
-    <div style={{ animation: "slideIn 0.22s ease" }}>
-
-      {/* Hero */}
-      <div style={{
-        background:    "linear-gradient(135deg, #1C1A2E 0%, #2D2060 100%)",
-        borderRadius:  20,
-        padding:       "14px 16px",
-        marginBottom:  14,
-        color:         "#fff",
-      }}>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 600, marginBottom: 2 }}>
-          {new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" })}
+  return <div style={{ animation: 'slideIn .22s ease' }}>
+    <section style={hero}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
+        <div>
+          <div style={heroDate}>{new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+          <h1 style={{ margin: '4px 0 2px', fontSize: 23 }}>{greeting()}, {identity.firstName}</h1>
+          <p style={heroSub}>{identity.className}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p>
         </div>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>
-          {greeting()}, {identity.firstName}
-        </div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>
-          {identity.className}{identity.className && identity.schoolName ? " · " : ""}{identity.schoolName}
-        </div>
-        {identity.admissionNo && (
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
-            Adm: {identity.admissionNo}
-          </div>
-        )}
-      </div>
-
-      {/* Stats row */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        {[
-          {
-            label: "Attendance",
-            value: `${data.attendancePct}%`,
-            sub:   `${data.totalPresent}/${data.totalDays} days`,
-            icon:  <IconAttendance />,
-            color: attColor,
-          },
-          {
-            label: "My Work",
-            value: data.pendingHW > 0 ? `${data.pendingHW}` : "All done",
-            sub:   data.pendingHW > 0 ? "pending" : "No pending",
-            icon:  <IconWork />,
-            color: data.pendingHW > 0 ? "var(--vs-warning)" : "var(--vs-success)",
-            href:  "/student/homework",
-          },
-          {
-            label: "My Progress",
-            value: data.avgMarksPct !== null ? `${data.avgMarksPct}%` : "—",
-            sub:   data.avgMarksPct !== null ? "Average" : "No marks yet",
-            icon:  <IconMarks />,
-            color: data.avgMarksPct === null
-                     ? "var(--vs-muted)"
-                     : data.avgMarksPct >= 70 ? "var(--vs-success)"
-                     : data.avgMarksPct >= 50 ? "var(--vs-accent)"
-                     : "var(--vs-warning)",
-            href:  "/student/marks",
-          },
-        ].map(s => (
-          <button
-            key={s.label}
-            onClick={() => (s as {href?: string}).href && router.push((s as {href?: string}).href!)}
-            style={{
-              flex:          1,
-              background:    "var(--vs-card)",
-              border:        "1px solid var(--vs-border)",
-              borderRadius:  12,
-              padding:       "12px 8px",
-              textAlign:     "center",
-              cursor:        (s as {href?: string}).href ? "pointer" : "default",
-              fontFamily:    "inherit",
-            }}
-          >
-            <div style={{ color: s.color, display: "flex", justifyContent: "center", marginBottom: 4 }}>
-              {s.icon}
-            </div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--vs-muted)", marginTop: 2 }}>{s.label}</div>
-            <div style={{ fontSize: 9, color: "var(--vs-muted)", marginTop: 1 }}>{s.sub}</div>
-          </button>
-        ))}
+        <div style={{ textAlign: 'right' }}><strong style={{ fontSize: 19 }}>{motivation?.totalXp ?? 0}</strong><div style={heroDate}>VERIFIED XP</div></div>
       </div>
 
-      {/* Due Today banner */}
-      {data.pendingHW > 0 && (
-        <button
-          onClick={() => router.push("/student/homework")}
-          style={{ width: "100%", background: "linear-gradient(135deg, #fef3c7, #fde68a)", border: "1px solid #f59e0b", borderRadius: 14, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", fontFamily: "inherit" }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }}>📚</span>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e" }}>{data.pendingHW} assignment{data.pendingHW !== 1 ? "s" : ""} pending</div>
-              <div style={{ fontSize: 11, color: "#b45309", marginTop: 1 }}>Tap to see your homework</div>
-            </div>
-          </div>
-          <span style={{ fontSize: 18, color: "#b45309" }}>›</span>
-        </button>
-      )}
+      <div style={{ marginTop: 20, padding: 15, borderRadius: 15, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.14)' }}>
+        <div style={heroDate}>YOUR NEXT BEST STEP</div>
+        <h2 style={{ margin: '5px 0', fontSize: 19 }}>{nextTask?.title ?? 'You are caught up'}</h2>
+        <p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · ${nextTask.subject} · ${taskMeta(nextTask)}` : 'Use the time to revise, read, or explore your learning path.'}</p>
+        {nextTask
+          ? <button type="button" disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={{ ...heroButton, opacity: launchingTaskId === nextTask.taskId ? .7 : 1 }}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button>
+          : <button type="button" onClick={() => router.push('/student/learn')} style={heroButton}>Open Learn</button>}
+      </div>
 
-      {/* Today timetable */}
-      <div style={{
-        background:   "var(--vs-card)",
-        borderRadius: 16,
-        border:       "1px solid var(--vs-border)",
-        padding:      16,
-        marginBottom: 14,
-      }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--vs-text)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ color: "var(--vs-accent)" }}><IconCalendar /></span>
-          My Day
-        </div>
-        {data.todaySlots.length === 0 ? (
-          <div style={{ fontSize: 13, color: "var(--vs-muted)", textAlign: "center", padding: "16px 0" }}>
-            No lessons scheduled today
-          </div>
-        ) : (
-          data.todaySlots.map((slot, i) => (
-            <div
-              key={i}
-              style={{
-                display:      "flex",
-                alignItems:   "center",
-                gap:          12,
-                padding:      "10px 0",
-                borderBottom: i < data.todaySlots.length - 1 ? "1px solid var(--vs-border)" : "none",
-              }}
-            >
-              <div style={{ minWidth: 52, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                <span style={{ color: "var(--vs-accent)" }}><IconClock /></span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--vs-accent)" }}>{slot.start}</span>
-                <span style={{ fontSize: 10, color: "var(--vs-muted)" }}>{slot.end}</span>
+      <div style={{ marginTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,.75)', marginBottom: 6 }}><span>Daily learning goal</span><strong>{goal?.completed ?? 0}/{goal?.target ?? 1}</strong></div>
+        <div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#fff', borderRadius: 999 }} /></div>
+      </div>
+    </section>
+
+    {error && <section style={{ ...card, borderColor: '#fecaca', color: '#991b1b' }}>{error}<button type="button" onClick={() => void load()} style={retryButton}>Retry</button></section>}
+
+    <section style={pulseGrid}>
+      <Pulse label="To do" value={data?.feed.counts.toDo ?? 0} note={(data?.feed.counts.overdue ?? 0) > 0 ? `${data?.feed.counts.overdue} overdue` : 'Current queue'} tone={(data?.feed.counts.overdue ?? 0) > 0 ? '#dc2626' : '#4f46e5'} />
+      <Pulse label="In progress" value={data?.feed.counts.inProgress ?? 0} note="Resume work" tone="#d97706" />
+      <Pulse label="Day streak" value={motivation?.streak.current ?? 0} note={`Best ${motivation?.streak.longest ?? 0}`} tone="#059669" />
+      <Pulse label="Attendance" value={data?.attendancePct === null || data?.attendancePct === undefined ? '—' : `${data.attendancePct}%`} note="School record" tone="#0f766e" />
+    </section>
+
+    <section style={card}>
+      <SectionHeader title="Learning queue" action="See all tasks" onClick={() => router.push('/student/tasks')} />
+      {focusTasks.length === 0
+        ? <Empty title="No urgent work" body="New assigned work and returned revisions will appear here." />
+        : <div style={{ display: 'grid', gap: 10 }}>{focusTasks.map(task => {
+            const taskTone = tone(task)
+            return <article key={task.taskId} style={{ border: '1px solid var(--vs-border)', borderLeft: `4px solid ${taskTone.accent}`, borderRadius: 13, padding: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                <div><div style={{ fontSize: 9, fontWeight: 900, color: taskTone.text, textTransform: 'uppercase', letterSpacing: .8 }}>{TYPE_LABEL[task.taskType] ?? task.taskType}</div><strong style={{ display: 'block', fontSize: 13, marginTop: 3 }}>{task.title}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 3 }}>{task.subject} · {taskMeta(task)}</div></div>
+                <span style={{ alignSelf: 'flex-start', padding: '4px 7px', borderRadius: 999, background: taskTone.soft, color: taskTone.text, fontSize: 9, fontWeight: 800 }}>{task.status.replaceAll('_', ' ')}</span>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{slot.subject}</div>
-                {slot.room && <div style={{ fontSize: 11, color: "var(--vs-muted)" }}>Room {slot.room}</div>}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+              {task.progress > 0 && task.progress < 100 && <div style={track}><div style={{ width: `${task.progress}%`, height: '100%', background: taskTone.accent }} /></div>}
+              <button type="button" disabled={launchingTaskId !== null} onClick={() => void openTask(task)} style={{ ...taskButton, background: taskTone.accent, opacity: launchingTaskId ? .65 : 1 }}>{launchingTaskId === task.taskId ? 'Opening…' : task.actionLabel}</button>
+            </article>
+          })}</div>}
+    </section>
 
-      {/* Quick links */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-        {[
-          { label: "My Progress", icon: <IconMarks />,    href: "/student/marks"     },
-          { label: "Study Room",  icon: <IconWork />,     href: "/student/resources" },
-          { label: "My Day",      icon: <IconCalendar />, href: "/student/timetable" },
-          { label: "School Fees", icon: <IconAttendance />, href: "/student/fees"    },
-        ].map(q => (
-          <button
-            key={q.label}
-            onClick={() => router.push(q.href)}
-            style={{
-              background:    "var(--vs-card)",
-              border:        "1px solid var(--vs-border)",
-              borderRadius:  14,
-              padding:       "16px 12px",
-              display:       "flex",
-              alignItems:    "center",
-              justifyContent: "space-between",
-              cursor:        "pointer",
-              fontFamily:    "inherit",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ color: "var(--vs-accent)" }}>{q.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{q.label}</span>
-            </div>
-            <span style={{ color: "var(--vs-muted)" }}><IconArrow /></span>
-          </button>
-        ))}
-      </div>
+    <section style={card}>
+      <SectionHeader title="Feedback and revision" action="View results" onClick={() => router.push('/student/results')} />
+      {feedbackTasks.length === 0
+        ? <Empty title="Nothing waiting" body="Released results, teacher feedback and revision requests will appear here." />
+        : <div style={{ display: 'grid', gap: 9 }}>{feedbackTasks.map(task => <button key={task.taskId} type="button" onClick={() => void openTask(task)} style={feedbackRow}><div><strong style={{ fontSize: 12 }}>{task.title}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 3 }}>{task.feedback || taskMeta(task)}</div></div><span style={{ color: task.status === 'returned' ? '#dc2626' : '#059669', fontWeight: 900 }}>›</span></button>)}</div>}
+    </section>
 
-    </div>
-  );
+    <section style={card}>
+      <SectionHeader title="Mastery pulse" action="My progress" onClick={() => router.push('/student/results')} />
+      {(motivation?.subjectProgress.length ?? 0) === 0
+        ? <Empty title="Progress is building" body="Subject mastery will appear after marked and verified learning work." />
+        : <div style={{ display: 'grid', gap: 12 }}>{motivation?.subjectProgress.slice(0, 4).map(subject => {
+            const mastery = subject.masteryPercentage ?? subject.averageScore ?? 0
+            return <div key={subject.subjectId}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><strong>{subject.subjectName}</strong><span style={{ color: 'var(--vs-muted)' }}>{Math.round(mastery)}%</span></div><div style={track}><div style={{ width: `${Math.min(100, Math.max(0, mastery))}%`, height: '100%', background: '#4f46e5' }} /></div><div style={{ fontSize: 9, color: 'var(--vs-muted)', marginTop: 3 }}>{subject.completedTasks}/{subject.totalTasks} verified tasks</div></div>
+          })}</div>}
+    </section>
+
+    <section style={card}>
+      <SectionHeader title="Your learning path" action="Open Learn" onClick={() => router.push('/student/learn')} />
+      {(data?.path.recommendations.length ?? 0) === 0
+        ? <Empty title="No recommendation yet" body="Your path will adapt as teachers release feedback and your mastery evidence grows." />
+        : <div style={{ display: 'grid', gap: 9 }}>{data?.path.recommendations.slice(0, 3).map(item => <div key={item.id} style={recommendation}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong style={{ fontSize: 12 }}>{item.title}</strong><span style={recommendationBadge}>{item.type.replaceAll('_', ' ')}</span></div><p style={{ margin: '5px 0 0', fontSize: 10, lineHeight: 1.5, color: 'var(--vs-muted)' }}>{item.reason}</p></div>)}</div>}
+    </section>
+
+    <section style={card}>
+      <SectionHeader title="Today at school" action="Full timetable" onClick={() => router.push('/student/timetable')} />
+      {(data?.todaySlots.length ?? 0) === 0
+        ? <Empty title="No lessons scheduled today" body="Use the time for your learning queue or revision." />
+        : <div style={{ display: 'grid', gap: 8 }}>{data?.todaySlots.map((slot, index) => <div key={slot.id} style={slotRow}><div style={slotTime}>{slot.start}</div><div><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 2 }}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></div>{index === 0 && <span style={nowBadge}>TODAY</span>}</div>)}</div>}
+    </section>
+
+    <section style={quickGrid}>
+      <Quick label="Learn" note="Books and resources" onClick={() => router.push('/student/learn')} />
+      <Quick label="Tasks" note="All assigned work" onClick={() => router.push('/student/tasks')} />
+      <Quick label="Results" note="Scores and feedback" onClick={() => router.push('/student/results')} />
+      <Quick label="School" note="Fees and records" onClick={() => router.push('/student/fees')} />
+    </section>
+  </div>
 }
+
+function SectionHeader({ title, action, onClick }: { title: string; action: string; onClick: () => void }) {
+  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 14 }}>{title}</h2><button type="button" onClick={onClick} style={linkButton}>{action}</button></div>
+}
+function Empty({ title, body }: { title: string; body: string }) { return <div style={{ textAlign: 'center', padding: '18px 8px' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={{ margin: '5px 0 0', fontSize: 10, color: 'var(--vs-muted)', lineHeight: 1.5 }}>{body}</p></div> }
+function Pulse({ label, value, note, tone }: { label: string; value: string | number; note: string; tone: string }) { return <div style={pulse}><strong style={{ fontSize: 18, color: tone }}>{value}</strong><span style={{ fontSize: 10, fontWeight: 800 }}>{label}</span><span style={{ fontSize: 9, color: 'var(--vs-muted)' }}>{note}</span></div> }
+function Quick({ label, note, onClick }: { label: string; note: string; onClick: () => void }) { return <button type="button" onClick={onClick} style={quick}><strong style={{ fontSize: 12 }}>{label}</strong><span style={{ fontSize: 9, color: 'var(--vs-muted)', marginTop: 3 }}>{note}</span></button> }
+
+const hero: React.CSSProperties = { background: 'linear-gradient(140deg,#111827,#312e81 58%,#4f46e5)', color: '#fff', borderRadius: 22, padding: 18, marginBottom: 14, boxShadow: '0 14px 30px rgba(49,46,129,.22)' }
+const heroDate: React.CSSProperties = { fontSize: 9, letterSpacing: .9, fontWeight: 800, color: 'rgba(255,255,255,.62)' }
+const heroSub: React.CSSProperties = { margin: 0, fontSize: 11, color: 'rgba(255,255,255,.72)' }
+const heroButton: React.CSSProperties = { width: '100%', marginTop: 12, border: 'none', borderRadius: 11, padding: '11px 14px', background: '#fff', color: '#3730a3', fontFamily: 'inherit', fontWeight: 900, cursor: 'pointer' }
+const heroTrack: React.CSSProperties = { height: 7, borderRadius: 999, overflow: 'hidden', background: 'rgba(255,255,255,.18)' }
+const card: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 16, padding: 15, marginBottom: 14 }
+const pulseGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginBottom: 14 }
+const pulse: React.CSSProperties = { minWidth: 0, background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 13, padding: '10px 5px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }
+const track: React.CSSProperties = { height: 6, marginTop: 7, borderRadius: 999, background: 'var(--vs-border)', overflow: 'hidden' }
+const taskButton: React.CSSProperties = { width: '100%', marginTop: 10, border: 'none', borderRadius: 10, padding: '9px 11px', color: '#fff', fontFamily: 'inherit', fontSize: 10, fontWeight: 900, cursor: 'pointer' }
+const feedbackRow: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)', color: 'var(--vs-text)', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }
+const recommendation: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 11, padding: 11, background: 'var(--vs-soft)' }
+const recommendationBadge: React.CSSProperties = { flex: '0 0 auto', padding: '3px 7px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }
+const slotRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '45px 1fr auto', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--vs-border)' }
+const slotTime: React.CSSProperties = { fontSize: 11, fontWeight: 900, color: 'var(--vs-accent)' }
+const nowBadge: React.CSSProperties = { padding: '3px 6px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontSize: 8, fontWeight: 900 }
+const quickGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9, marginBottom: 6 }
+const quick: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 13, borderRadius: 13, border: '1px solid var(--vs-border)', background: 'var(--vs-card)', color: 'var(--vs-text)', fontFamily: 'inherit', cursor: 'pointer' }
+const linkButton: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--vs-accent)', fontFamily: 'inherit', fontSize: 9, fontWeight: 900, cursor: 'pointer' }
+const retryButton: React.CSSProperties = { marginLeft: 10, border: 'none', borderRadius: 8, padding: '6px 9px', background: '#fee2e2', color: '#991b1b', fontFamily: 'inherit', fontSize: 10, fontWeight: 800, cursor: 'pointer' }
