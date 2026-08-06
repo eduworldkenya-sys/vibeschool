@@ -5,6 +5,15 @@ type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
+type LooseQueryResult = RpcResult<unknown[]>
+interface LooseQuery extends PromiseLike<LooseQueryResult> {
+  select(columns: string): LooseQuery
+  order(column: string, options?: { ascending?: boolean }): LooseQuery
+  eq(column: string, value: unknown): LooseQuery
+}
+const fromUntyped = (table: string): LooseQuery =>
+  (supabase as unknown as { from(name: string): LooseQuery }).from(table)
+
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Report Card Engine returned an invalid payload.')
   return value as Record<string, unknown>
@@ -125,7 +134,7 @@ export async function lockReportCard(reportCardId: string): Promise<void> {
 }
 
 export async function listReportCards(): Promise<ReportCardSummary[]> {
-  const { data, error } = await supabase.from('report_cards')
+  const { data, error } = await fromUntyped('report_cards')
     .select('id,student_id,class_id,term_id,academic_year,status,revision,completeness_status,completeness_issues,validation_status,validation_issues,evidence_version,evidence_generated_at,updated_at,students(name),classes(name),academic_terms(name)')
     .order('updated_at', { ascending: false })
   if (error) throw new Error(error.message || 'Report cards could not be loaded.')
@@ -143,7 +152,7 @@ export async function listReportCards(): Promise<ReportCardSummary[]> {
   })
 }
 export async function listReportSubjects(reportCardId: string): Promise<ReportSubjectEvidence[]> {
-  const { data, error } = await supabase.from('report_card_subjects')
+  const { data, error } = await fromUntyped('report_card_subjects')
     .select('id,subject_id,assessment_average,mastery_average,growth_percentage,strongest_outcomes,support_outcomes,intervention_summary,achievement_summary,strengths_summary,support_summary,recommended_next_steps,parent_guidance,generated_comment,generated_comment_evidence,generated_at,teacher_comment,evidence_snapshot,subjects(name)')
     .eq('report_card_id', reportCardId).order('subject_id')
   if (error) throw new Error(error.message || 'Report subject evidence could not be loaded.')
