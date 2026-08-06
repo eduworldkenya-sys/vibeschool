@@ -51,10 +51,56 @@ export interface VibeLearnWorkstation {
   tutorPolicy: VibeLearnTutorPolicy
 }
 
+export interface ExamSubjectSignal {
+  subjectId: string | null
+  subjectName: string
+  attempts: number
+  averagePercentage: number
+  signal: 'needs_attention' | 'developing' | 'strong'
+}
+
+export interface ExamRevisionPriority {
+  subject: string
+  topic: string
+  availableQuestions: number
+  actionUrl: string
+  reason: string
+}
+
+export interface ExamReadinessBrief {
+  studentId: string
+  classId: string | null
+  className: string | null
+  examName: string
+  examDate: string | null
+  daysRemaining: number | null
+  targetGrade: string | null
+  dailyRevisionMinutes: number
+  confidenceCheck: number | null
+  attemptCount: number
+  averagePercentage: number | null
+  subjectSignals: ExamSubjectSignal[]
+  revisionPriorities: ExamRevisionPriority[]
+  psychologyHeadline: string
+  comparisonRule: string
+  predictionDisclaimer: string
+}
+
 type WorkstationRpcClient = {
   rpc(
     fn: 'student_get_vibelearn_workstation',
     args?: Record<string, never>
+  ): Promise<{ data: unknown; error: { message: string } | null }>
+}
+
+type ReadinessRpcClient = {
+  rpc(
+    fn: 'student_get_exam_readiness_brief',
+    args?: Record<string, never>
+  ): Promise<{ data: unknown; error: { message: string } | null }>
+  rpc(
+    fn: 'student_update_exam_readiness',
+    args: { p_exam_date: string | null; p_daily_revision_minutes: number; p_confidence_check: number | null }
   ): Promise<{ data: unknown; error: { message: string } | null }>
 }
 
@@ -70,6 +116,10 @@ function asString(value: unknown): string | null {
 
 function asNumber(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function asNullableNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
@@ -143,4 +193,76 @@ export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
       aiShareTargetPercent: asNumber(policy.ai_share_target_percent) || 10,
     },
   }
+}
+
+export async function getExamReadinessBrief(): Promise<ExamReadinessBrief> {
+  const rpcClient = supabase as unknown as ReadinessRpcClient
+  const { data, error } = await rpcClient.rpc('student_get_exam_readiness_brief')
+  if (error) throw new Error(error.message)
+
+  const row = asRecord(data)
+  const evidence = asRecord(row.evidence)
+  const psychology = asRecord(row.psychology)
+  const subjectSignals = Array.isArray(row.subject_signals) ? row.subject_signals : []
+  const priorities = Array.isArray(row.revision_priorities) ? row.revision_priorities : []
+  const studentId = asString(row.student_id)
+  if (!studentId) throw new Error('Student profile not found.')
+
+  return {
+    studentId,
+    classId: asString(row.class_id),
+    className: asString(row.class_name),
+    examName: asString(row.exam_name) ?? 'KCSE',
+    examDate: asString(row.exam_date),
+    daysRemaining: asNullableNumber(row.days_remaining),
+    targetGrade: asString(row.target_grade),
+    dailyRevisionMinutes: asNumber(row.daily_revision_minutes) || 90,
+    confidenceCheck: asNullableNumber(row.confidence_check),
+    attemptCount: asNumber(evidence.attempt_count),
+    averagePercentage: asNullableNumber(evidence.average_percentage),
+    subjectSignals: subjectSignals.flatMap(value => {
+      const item = asRecord(value)
+      const subjectName = asString(item.subject_name)
+      const signal = asString(item.signal)
+      if (!subjectName || !['needs_attention', 'developing', 'strong'].includes(signal ?? '')) return []
+      return [{
+        subjectId: asString(item.subject_id),
+        subjectName,
+        attempts: asNumber(item.attempts),
+        averagePercentage: asNumber(item.average_percentage),
+        signal: signal as ExamSubjectSignal['signal'],
+      }]
+    }),
+    revisionPriorities: priorities.flatMap(value => {
+      const item = asRecord(value)
+      const subject = asString(item.subject)
+      const topic = asString(item.topic)
+      const actionUrl = asString(item.action_url)
+      if (!subject || !topic || !actionUrl) return []
+      return [{
+        subject,
+        topic,
+        availableQuestions: asNumber(item.available_questions),
+        actionUrl,
+        reason: asString(item.reason) ?? 'Exam practice available',
+      }]
+    }),
+    psychologyHeadline: asString(psychology.headline) ?? 'Build confidence through focused daily practice.',
+    comparisonRule: asString(psychology.comparison_rule) ?? 'Compete with your previous performance, not public rankings.',
+    predictionDisclaimer: asString(psychology.prediction_disclaimer) ?? 'Readiness is not an official KCSE prediction.',
+  }
+}
+
+export async function updateExamReadiness(input: {
+  examDate: string | null
+  dailyRevisionMinutes: number
+  confidenceCheck: number | null
+}): Promise<void> {
+  const rpcClient = supabase as unknown as ReadinessRpcClient
+  const { error } = await rpcClient.rpc('student_update_exam_readiness', {
+    p_exam_date: input.examDate,
+    p_daily_revision_minutes: input.dailyRevisionMinutes,
+    p_confidence_check: input.confidenceCheck,
+  })
+  if (error) throw new Error(error.message)
 }
