@@ -64,6 +64,9 @@ insert into public.student_achievement_definitions(slug,title,description,icon,t
  ('three_day_streak','Three Strong Days','Learn meaningfully for three consecutive days.','🔥',3),
  ('seven_day_streak','Seven-Day Momentum','Learn meaningfully for seven consecutive days.','🏆',7)
 on conflict (slug) do update set title=excluded.title,description=excluded.description,icon=excluded.icon,threshold=excluded.threshold,is_active=true;
+alter table public.student_achievement_definitions enable row level security;
+drop policy if exists student_achievement_definitions_read on public.student_achievement_definitions;
+create policy student_achievement_definitions_read on public.student_achievement_definitions for select to authenticated using (is_active = true);
 revoke all on public.student_achievement_definitions from anon, public;
 grant select on public.student_achievement_definitions to authenticated;
 
