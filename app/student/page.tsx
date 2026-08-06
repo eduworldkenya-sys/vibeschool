@@ -9,20 +9,17 @@ import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/
 import { useStudent } from '@/lib/student-context'
 import Skel from '@/components/student/Skel'
 import {
-  getPersonalizedLearningPath,
-  listMyTasks,
+  getStudentHomeOsBrief,
   resolveTaskLaunch,
-  type StudentPersonalizedPath,
+  type StudentHomeOsBrief,
   type StudentTask,
-  type StudentTaskFeed,
 } from '@/lib/student/tasks'
 import { supabase } from '@/lib/supabase'
 
 type TodaySlot = { id: string; subject: string; start: string; end: string; room: string }
 
 type HomeData = {
-  feed: StudentTaskFeed
-  path: StudentPersonalizedPath
+  brief: StudentHomeOsBrief
   todaySlots: TodaySlot[]
   attendancePct: number | null
 }
@@ -86,6 +83,24 @@ function slotState(slot: TodaySlot, now: number): 'now' | 'next' | 'later' | 'do
   return 'later'
 }
 
+function urgencyStyle(level: StudentHomeOsBrief['urgency']['level']) {
+  if (level === 'urgent') return { border: '#fecaca', background: '#fef2f2', color: '#991b1b', label: 'ACT NOW' }
+  if (level === 'attention') return { border: '#fde68a', background: '#fffbeb', color: '#92400e', label: 'PAY ATTENTION' }
+  return { border: '#a7f3d0', background: '#ecfdf5', color: '#065f46', label: 'ON TRACK' }
+}
+
+function relativeTime(value: string) {
+  const time = new Date(value).getTime()
+  if (!Number.isFinite(time)) return ''
+  const minutesAgo = Math.max(0, Math.floor((Date.now() - time) / 60000))
+  if (minutesAgo < 1) return 'Just now'
+  if (minutesAgo < 60) return `${minutesAgo}m ago`
+  const hours = Math.floor(minutesAgo / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
 export default function StudentHomePage() {
   const router = useRouter()
   const { identity, loading: identityLoading } = useStudent()
@@ -99,7 +114,7 @@ export default function StudentHomePage() {
     setLoading(true)
     setError('')
     try {
-      const [feed, path] = await Promise.all([listMyTasks(), getPersonalizedLearningPath()])
+      const brief = await getStudentHomeOsBrief()
 
       const day = nairobiDayOfWeek()
       const slots = identity.classId && identity.schoolId
@@ -134,7 +149,7 @@ export default function StudentHomePage() {
       const present = marked.filter(row => row.status === 'present').length
       const attendancePct = marked.length > 0 ? Math.round((present / marked.length) * 100) : null
 
-      setData({ feed, path, todaySlots, attendancePct })
+      setData({ brief, todaySlots, attendancePct })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Your learner home could not be loaded.')
     } finally {
@@ -161,20 +176,23 @@ export default function StudentHomePage() {
     }
   }
 
+  const feed = data?.brief.taskFeed
+  const progress = data?.brief.progress
   const focusTasks = useMemo(
-    () => data?.feed.tasks.filter(task => ['overdue', 'returned', 'in_progress', 'ready'].includes(task.status)).slice(0, 4) ?? [],
-    [data],
+    () => feed?.tasks.filter(task => ['overdue', 'returned', 'in_progress', 'ready'].includes(task.status)).slice(0, 4) ?? [],
+    [feed],
   )
   const feedbackTasks = useMemo(
-    () => data?.feed.tasks.filter(task => task.status === 'released' || task.status === 'returned').slice(0, 3) ?? [],
-    [data],
+    () => feed?.tasks.filter(task => task.status === 'released' || task.status === 'returned').slice(0, 3) ?? [],
+    [feed],
   )
-  const nextTask = data?.path.nextMission ?? data?.path.motivation.nextMission ?? focusTasks[0] ?? null
-  const motivation = data?.path.motivation
-  const goal = motivation?.dailyGoal
+  const nextTask = data?.brief.nextAction ?? focusTasks[0] ?? null
+  const goal = progress?.dailyGoal
   const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
   const nowMinutes = nairobiNowMinutes()
   const firstUpcomingId = data?.todaySlots.find(slot => minutes(slot.start) > nowMinutes)?.id ?? null
+  const urgency = data?.brief.urgency
+  const urgencyTone = urgencyStyle(urgency?.level ?? 'clear')
 
   if (identityLoading || (loading && !data)) {
     return <div style={{ display: 'grid', gap: 12 }}><Skel h={220} radius={22} /><Skel h={100} radius={16} /><Skel h={220} radius={16} /><Skel h={160} radius={16} /></div>
@@ -189,11 +207,11 @@ export default function StudentHomePage() {
           <h1 style={{ margin: '4px 0 2px', fontSize: 23 }}>{greeting()}, {identity.firstName}</h1>
           <p style={heroSub}>{identity.className}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p>
         </div>
-        <div style={{ textAlign: 'right' }}><strong style={{ fontSize: 19 }}>{motivation?.totalXp ?? 0}</strong><div style={heroDate}>VERIFIED XP</div></div>
+        <div style={{ textAlign: 'right' }}><strong style={{ fontSize: 19 }}>{progress?.totalXp ?? 0}</strong><div style={heroDate}>VERIFIED XP</div></div>
       </div>
 
       <div style={{ marginTop: 20, padding: 15, borderRadius: 15, background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.14)' }}>
-        <div style={heroDate}>YOUR NEXT BEST STEP</div>
+        <div style={heroDate}>WHAT SHOULD I DO NOW?</div>
         <h2 style={{ margin: '5px 0', fontSize: 19 }}>{nextTask?.title ?? 'You are caught up'}</h2>
         <p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · ${nextTask.subject} · ${taskMeta(nextTask)}` : 'Use the time to revise, read, or explore your learning path.'}</p>
         {nextTask
@@ -209,11 +227,27 @@ export default function StudentHomePage() {
 
     {error && <section style={{ ...card, borderColor: '#fecaca', color: '#991b1b' }}>{error}<button type="button" onClick={() => void load()} style={retryButton}>Retry</button></section>}
 
+    <section style={{ ...card, borderColor: urgencyTone.border, background: urgencyTone.background, color: urgencyTone.color }}>
+      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: .9 }}>{urgencyTone.label}</div>
+      <h2 style={{ margin: '5px 0 3px', fontSize: 16 }}>{urgency?.headline ?? 'You are on track'}</h2>
+      <p style={{ margin: 0, fontSize: 11, lineHeight: 1.55 }}>{urgency?.message ?? 'No urgent work is waiting.'}</p>
+    </section>
+
     <section style={pulseGrid}>
-      <Pulse label="To do" value={data?.feed.counts.toDo ?? 0} note={(data?.feed.counts.overdue ?? 0) > 0 ? `${data?.feed.counts.overdue} overdue` : 'Current queue'} tone={(data?.feed.counts.overdue ?? 0) > 0 ? '#dc2626' : '#4f46e5'} />
-      <Pulse label="In progress" value={data?.feed.counts.inProgress ?? 0} note="Resume work" tone="#d97706" />
-      <Pulse label="Day streak" value={motivation?.streak.current ?? 0} note={`Best ${motivation?.streak.longest ?? 0}`} tone="#059669" />
+      <Pulse label="To do" value={feed?.counts.toDo ?? 0} note={(feed?.counts.overdue ?? 0) > 0 ? `${feed?.counts.overdue} overdue` : 'Current queue'} tone={(feed?.counts.overdue ?? 0) > 0 ? '#dc2626' : '#4f46e5'} />
+      <Pulse label="In progress" value={feed?.counts.inProgress ?? 0} note="Resume work" tone="#d97706" />
+      <Pulse label="Day streak" value={progress?.streak.current ?? 0} note={`Best ${progress?.streak.longest ?? 0}`} tone="#059669" />
       <Pulse label="Attendance" value={data?.attendancePct === null || data?.attendancePct === undefined ? '—' : `${data.attendancePct}%`} note="School record" tone="#0f766e" />
+    </section>
+
+    <section style={card}>
+      <SectionHeader title="What changed?" action="View all results" onClick={() => router.push('/student/marks')} />
+      {(data?.brief.recentChanges.length ?? 0) === 0
+        ? <Empty title="No new learning changes" body="New marks, teacher feedback, completed milestones and other learning updates will appear here." />
+        : <div style={{ display: 'grid', gap: 9 }}>{data?.brief.recentChanges.slice(0, 5).map(change => <div key={`${change.kind}:${change.id}:${change.occurredAt}`} style={changeRow}>
+            <div style={{ minWidth: 0 }}><div style={changeKind}>{change.kind.replaceAll('_', ' ')}</div><strong style={{ display: 'block', fontSize: 12 }}>{change.title}</strong>{change.summary && <div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 3 }}>{change.summary}</div>}</div>
+            <span style={{ fontSize: 9, color: 'var(--vs-muted)', whiteSpace: 'nowrap' }}>{relativeTime(change.occurredAt)}</span>
+          </div>)}</div>}
     </section>
 
     <section style={card}>
@@ -241,65 +275,72 @@ export default function StudentHomePage() {
     </section>
 
     <section style={card}>
-      <SectionHeader title="Mastery pulse" action="My progress" onClick={() => router.push('/student/marks')} />
-      {(motivation?.subjectProgress.length ?? 0) === 0
+      <SectionHeader title="How am I progressing?" action="My progress" onClick={() => router.push('/student/marks')} />
+      {(progress?.subjectProgress.length ?? 0) === 0
         ? <Empty title="Progress is building" body="Subject mastery will appear after marked and verified learning work." />
-        : <div style={{ display: 'grid', gap: 12 }}>{motivation?.subjectProgress.slice(0, 4).map(subject => {
+        : <div style={{ display: 'grid', gap: 12 }}>{progress?.subjectProgress.slice(0, 4).map(subject => {
             const mastery = subject.masteryPercentage ?? subject.averageScore ?? 0
             return <div key={subject.subjectId}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}><strong>{subject.subjectName}</strong><span style={{ color: 'var(--vs-muted)' }}>{Math.round(mastery)}%</span></div><div style={track}><div style={{ width: `${Math.min(100, Math.max(0, mastery))}%`, height: '100%', background: '#4f46e5' }} /></div><div style={{ fontSize: 9, color: 'var(--vs-muted)', marginTop: 3 }}>{subject.completedTasks}/{subject.totalTasks} verified tasks</div></div>
           })}</div>}
     </section>
 
     <section style={card}>
-      <SectionHeader title="Your learning path" action="Open Learn" onClick={() => router.push('/student/vibelearn')} />
-      {(data?.path.recommendations.length ?? 0) === 0
+      <SectionHeader title="What should I learn next?" action="Open Learn" onClick={() => router.push('/student/vibelearn')} />
+      {(progress?.recommendations.length ?? 0) === 0
         ? <Empty title="No recommendation yet" body="Your path will adapt as teachers release feedback and your mastery evidence grows." />
-        : <div style={{ display: 'grid', gap: 9 }}>{data?.path.recommendations.slice(0, 3).map(item => <div key={item.id} style={recommendation}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong style={{ fontSize: 12 }}>{item.title}</strong><span style={recommendationBadge}>{item.type.replaceAll('_', ' ')}</span></div><p style={{ margin: '5px 0 0', fontSize: 10, lineHeight: 1.5, color: 'var(--vs-muted)' }}>{item.reason}</p></div>)}</div>}
+        : <div style={{ display: 'grid', gap: 9 }}>{progress?.recommendations.slice(0, 3).map(item => <div key={item.id} style={recommendation}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong style={{ fontSize: 12 }}>{item.title}</strong><span style={recommendationBadge}>{item.type.replaceAll('_', ' ')}</span></div><p style={{ margin: '5px 0 0', fontSize: 10, lineHeight: 1.5, color: 'var(--vs-muted)' }}>{item.reason}</p></div>)}</div>}
     </section>
 
     <section style={card}>
-      <SectionHeader title="Today at school" action="Full timetable" onClick={() => router.push('/student/timetable')} />
+      <SectionHeader title="What is happening today?" action="Full timetable" onClick={() => router.push('/student/timetable')} />
       {(data?.todaySlots.length ?? 0) === 0
         ? <Empty title="No lessons scheduled today" body="Use the time for your learning queue or revision." />
         : <div style={{ display: 'grid', gap: 8 }}>{data?.todaySlots.map(slot => {
             const state = slotState(slot, nowMinutes)
-            const badge = state === 'now' ? 'NOW' : slot.id === firstUpcomingId ? 'NEXT' : null
-            return <div key={slot.id} style={{ ...slotRow, opacity: state === 'done' ? .55 : 1 }}><div style={slotTime}>{slot.start}</div><div><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 2 }}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></div>{badge && <span style={badge === 'NOW' ? nowBadge : nextBadge}>{badge}</span>}</div>
+            const isNext = state === 'next' && slot.id === firstUpcomingId
+            const label = state === 'now' ? 'NOW' : isNext ? 'NEXT' : null
+            return <div key={slot.id} style={{ ...slotRow, opacity: state === 'done' ? .55 : 1 }}><div style={slotTime}>{slot.start}</div><div><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 2 }}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></div>{label && <span style={nowBadge}>{label}</span>}</div>
           })}</div>}
     </section>
 
-    <section style={quickGrid}>
-      <Quick title="Learn" body="Books and study resources" onClick={() => router.push('/student/vibelearn')} />
-      <Quick title="Tasks" body="All assigned work" onClick={() => router.push('/student/tasks')} />
-      <Quick title="Results" body="Marks and feedback" onClick={() => router.push('/student/marks')} />
-      <Quick title="School" body="Timetable and records" onClick={() => router.push('/student/profile')} />
+    <section style={card}>
+      <SectionHeader title="Where do I need to go?" />
+      <div style={quickGrid}>
+        <Quick title="Learn" note="Books, notes and revision" onClick={() => router.push('/student/vibelearn')} />
+        <Quick title="Tasks" note={`${feed?.counts.toDo ?? 0} need action`} onClick={() => router.push('/student/tasks')} />
+        <Quick title="Results" note={`${feed?.counts.results ?? 0} released`} onClick={() => router.push('/student/marks')} />
+        <Quick title="School" note="Timetable, fees and records" onClick={() => router.push('/student/timetable')} />
+      </div>
     </section>
   </div>
 }
 
-function SectionHeader({ title, action, onClick }: { title: string; action: string; onClick: () => void }) { return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 14 }}>{title}</h2><button type="button" onClick={onClick} style={linkButton}>{action}</button></div> }
-function Pulse({ label, value, note, tone: color }: { label: string; value: string | number; note: string; tone: string }) { return <div style={pulse}><strong style={{ fontSize: 19, color }}>{value}</strong><span style={{ fontSize: 10, fontWeight: 800 }}>{label}</span><span style={{ fontSize: 9, color: 'var(--vs-muted)' }}>{note}</span></div> }
-function Empty({ title, body }: { title: string; body: string }) { return <div style={{ textAlign: 'center', padding: '18px 8px' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={{ margin: '5px 0 0', color: 'var(--vs-muted)', fontSize: 10 }}>{body}</p></div> }
-function Quick({ title, body, onClick }: { title: string; body: string; onClick: () => void }) { return <button type="button" onClick={onClick} style={quick}><strong style={{ fontSize: 12 }}>{title}</strong><span style={{ fontSize: 9, color: 'var(--vs-muted)', marginTop: 3 }}>{body}</span></button> }
+function SectionHeader({ title, action, onClick }: { title: string; action?: string; onClick?: () => void }) {
+  return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 14 }}>{title}</h2>{action && <button type="button" onClick={onClick} style={linkButton}>{action} →</button>}</div>
+}
+function Empty({ title, body }: { title: string; body: string }) { return <div style={{ padding: '17px 8px', textAlign: 'center' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={{ margin: '5px auto 0', maxWidth: 280, fontSize: 10, lineHeight: 1.5, color: 'var(--vs-muted)' }}>{body}</p></div> }
+function Pulse({ label, value, note, tone }: { label: string; value: string | number; note: string; tone: string }) { return <div style={pulse}><div style={{ fontSize: 9, color: 'var(--vs-muted)', fontWeight: 700 }}>{label}</div><strong style={{ display: 'block', margin: '4px 0 1px', fontSize: 19, color: tone }}>{value}</strong><div style={{ fontSize: 8.5, color: 'var(--vs-muted)' }}>{note}</div></div> }
+function Quick({ title, note, onClick }: { title: string; note: string; onClick: () => void }) { return <button type="button" onClick={onClick} style={quick}><strong style={{ fontSize: 12 }}>{title}</strong><span style={{ fontSize: 9, lineHeight: 1.4, color: 'var(--vs-muted)' }}>{note}</span></button> }
 
-const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#1e1b4b,#4f46e5)', color: '#fff', borderRadius: 22, padding: 18, marginBottom: 14, boxShadow: '0 14px 30px rgba(79,70,229,.22)' }
-const heroDate: React.CSSProperties = { fontSize: 9, fontWeight: 900, letterSpacing: 1, color: 'rgba(255,255,255,.65)' }
-const heroSub: React.CSSProperties = { margin: 0, fontSize: 11, color: 'rgba(255,255,255,.75)' }
-const heroButton: React.CSSProperties = { width: '100%', marginTop: 12, border: 'none', borderRadius: 11, padding: '11px 14px', background: '#fff', color: '#3730a3', fontFamily: 'inherit', fontWeight: 900, cursor: 'pointer' }
-const heroTrack: React.CSSProperties = { height: 7, borderRadius: 999, background: 'rgba(255,255,255,.2)', overflow: 'hidden' }
-const card: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 16, padding: 14, marginBottom: 14 }
-const pulseGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginBottom: 14 }
-const pulse: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 13, padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' }
-const track: React.CSSProperties = { height: 6, background: 'var(--vs-soft)', borderRadius: 999, overflow: 'hidden', marginTop: 8 }
-const taskButton: React.CSSProperties = { width: '100%', marginTop: 10, border: 'none', borderRadius: 9, padding: '9px 12px', color: '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 11, cursor: 'pointer' }
-const feedbackRow: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', textAlign: 'left', padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)', fontFamily: 'inherit', color: 'var(--vs-text)', cursor: 'pointer' }
-const recommendation: React.CSSProperties = { padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)' }
-const recommendationBadge: React.CSSProperties = { flex: '0 0 auto', padding: '3px 7px', borderRadius: 999, background: '#eef2ff', color: '#3730a3', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }
-const slotRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '50px minmax(0,1fr) auto', gap: 10, alignItems: 'center', padding: 10, borderRadius: 11, background: 'var(--vs-soft)' }
-const slotTime: React.CSSProperties = { fontSize: 11, fontWeight: 900, color: '#4f46e5' }
-const nowBadge: React.CSSProperties = { fontSize: 8, fontWeight: 900, color: '#065f46', background: '#d1fae5', padding: '4px 7px', borderRadius: 999 }
-const nextBadge: React.CSSProperties = { fontSize: 8, fontWeight: 900, color: '#3730a3', background: '#e0e7ff', padding: '4px 7px', borderRadius: 999 }
-const quickGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginBottom: 12 }
-const quick: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 13, border: '1px solid var(--vs-border)', borderRadius: 12, background: 'var(--vs-card)', fontFamily: 'inherit', color: 'var(--vs-text)', cursor: 'pointer', textAlign: 'left' }
-const linkButton: React.CSSProperties = { border: 'none', background: 'transparent', color: '#4f46e5', fontFamily: 'inherit', fontWeight: 800, fontSize: 10, cursor: 'pointer' }
-const retryButton: React.CSSProperties = { marginLeft: 10, border: '1px solid #fecaca', borderRadius: 8, padding: '5px 9px', background: '#fff', color: '#991b1b', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer' }
+const hero: React.CSSProperties = { padding: 20, borderRadius: 22, color: '#fff', background: 'linear-gradient(145deg,#111827,#312e81 70%,#4f46e5)', boxShadow: '0 16px 45px rgba(49,46,129,.24)', marginBottom: 13 }
+const heroDate: React.CSSProperties = { fontSize: 9, fontWeight: 800, letterSpacing: 1, color: 'rgba(255,255,255,.68)', textTransform: 'uppercase' }
+const heroSub: React.CSSProperties = { margin: 0, fontSize: 11, color: 'rgba(255,255,255,.72)' }
+const heroButton: React.CSSProperties = { marginTop: 11, width: '100%', border: 0, borderRadius: 11, padding: '11px 14px', color: '#312e81', background: '#fff', fontFamily: 'inherit', fontSize: 11, fontWeight: 900, cursor: 'pointer' }
+const heroTrack: React.CSSProperties = { height: 6, background: 'rgba(255,255,255,.18)', borderRadius: 999, overflow: 'hidden' }
+const card: React.CSSProperties = { padding: 15, borderRadius: 16, border: '1px solid var(--vs-border)', background: 'var(--vs-card)', marginTop: 12 }
+const pulseGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginTop: 12 }
+const pulse: React.CSSProperties = { minWidth: 0, padding: '11px 8px', borderRadius: 13, border: '1px solid var(--vs-border)', background: 'var(--vs-card)' }
+const track: React.CSSProperties = { height: 5, marginTop: 8, overflow: 'hidden', borderRadius: 999, background: 'var(--vs-border)' }
+const taskButton: React.CSSProperties = { marginTop: 10, width: '100%', border: 0, borderRadius: 9, padding: '9px 11px', color: '#fff', fontFamily: 'inherit', fontSize: 10, fontWeight: 900, cursor: 'pointer' }
+const feedbackRow: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 11px', textAlign: 'left', borderRadius: 11, border: '1px solid var(--vs-border)', background: 'var(--vs-soft)', color: 'var(--vs-text)', fontFamily: 'inherit', cursor: 'pointer' }
+const changeRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '10px 11px', borderRadius: 11, border: '1px solid var(--vs-border)', background: 'var(--vs-soft)' }
+const changeKind: React.CSSProperties = { marginBottom: 3, fontSize: 8.5, fontWeight: 900, letterSpacing: .7, color: '#4f46e5', textTransform: 'uppercase' }
+const recommendation: React.CSSProperties = { padding: '11px 12px', borderRadius: 11, border: '1px solid var(--vs-border)', background: 'var(--vs-soft)' }
+const recommendationBadge: React.CSSProperties = { alignSelf: 'flex-start', whiteSpace: 'nowrap', padding: '3px 6px', borderRadius: 999, background: '#eef2ff', color: '#4338ca', fontSize: 8, fontWeight: 800, textTransform: 'uppercase' }
+const slotRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '46px 1fr auto', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 11, border: '1px solid var(--vs-border)' }
+const slotTime: React.CSSProperties = { fontSize: 10, fontWeight: 900, color: '#4f46e5' }
+const nowBadge: React.CSSProperties = { padding: '3px 6px', borderRadius: 999, background: '#ecfdf5', color: '#047857', fontSize: 8, fontWeight: 900 }
+const quickGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }
+const quick: React.CSSProperties = { display: 'grid', gap: 4, textAlign: 'left', minHeight: 67, padding: 11, borderRadius: 12, border: '1px solid var(--vs-border)', background: 'var(--vs-soft)', color: 'var(--vs-text)', fontFamily: 'inherit', cursor: 'pointer' }
+const linkButton: React.CSSProperties = { padding: 0, border: 0, background: 'transparent', color: '#4f46e5', fontFamily: 'inherit', fontSize: 9.5, fontWeight: 800, cursor: 'pointer' }
+const retryButton: React.CSSProperties = { float: 'right', border: 0, background: 'transparent', color: 'inherit', fontFamily: 'inherit', fontWeight: 900, cursor: 'pointer' }

@@ -96,6 +96,35 @@ export interface StudentPersonalizedPath {
   nextMission: StudentTask | null
   motivation: StudentMotivationSummary
 }
+export interface StudentHomeChange {
+  id: string
+  kind: 'result' | 'feedback' | 'completion' | 'update' | string
+  title: string
+  summary: string
+  occurredAt: string
+  sourceType: string
+  sourceId: string | null
+}
+export interface StudentHomeUrgency {
+  level: 'urgent' | 'attention' | 'clear'
+  headline: string
+  message: string
+}
+export interface StudentHomeOsBrief {
+  studentId: string
+  generatedAt: string
+  nextAction: StudentTask | null
+  urgency: StudentHomeUrgency
+  taskFeed: StudentTaskFeed
+  recentChanges: StudentHomeChange[]
+  progress: {
+    dailyGoal: StudentMotivationSummary['dailyGoal']
+    streak: StudentMotivationSummary['streak']
+    totalXp: number
+    subjectProgress: StudentSubjectProgress[]
+    recommendations: StudentLearningRecommendation[]
+  }
+}
 
 function parseTask(value: unknown): StudentTask {
   const item = record(value)
@@ -109,16 +138,30 @@ function parseTask(value: unknown): StudentTask {
     score: numberOrNull(item.score), maxScore: numberOrNull(item.max_score), feedback: text(item.feedback),
   }
 }
-
-export async function listMyTasks(): Promise<StudentTaskFeed> {
-  const { data, error } = await rpc<Json>('student_list_my_tasks')
-  if (error) throw new Error(error.message || 'Tasks could not be loaded.')
-  const payload = record(data); const counts = record(payload.counts ?? {}); const tasks = Array.isArray(payload.tasks) ? payload.tasks : []
+function parseTaskFeed(value: unknown): StudentTaskFeed {
+  const payload = record(value); const counts = record(payload.counts ?? {}); const tasks = Array.isArray(payload.tasks) ? payload.tasks : []
   return {
     studentId: text(payload.student_id) ?? '',
     counts: { toDo: numberOrNull(counts.to_do) ?? 0, inProgress: numberOrNull(counts.in_progress) ?? 0, submitted: numberOrNull(counts.submitted) ?? 0, results: numberOrNull(counts.results) ?? 0, upcoming: numberOrNull(counts.upcoming) ?? 0, overdue: numberOrNull(counts.overdue) ?? 0 },
     tasks: tasks.map(parseTask),
   }
+}
+function parseRecommendations(value: unknown): StudentLearningRecommendation[] {
+  const recommendations = Array.isArray(value) ? value : []
+  return recommendations.map(item => {
+    const row = record(item)
+    return { id: text(row.id) ?? '', subjectId: text(row.subject_id), outcomeId: text(row.outcome_id), type: (text(row.type) ?? 'practice') as StudentRecommendationType, title: text(row.title) ?? 'Learning recommendation', reason: text(row.reason) ?? '', confidence: numberOrNull(row.confidence) ?? 0, priority: numberOrNull(row.priority) ?? 0, nextReviewAt: text(row.next_review_at) }
+  })
+}
+function parseSubjectProgress(value: unknown): StudentSubjectProgress[] {
+  const subjects = Array.isArray(value) ? value : []
+  return subjects.map(item => { const row = record(item); return { subjectId: text(row.subject_id) ?? '', subjectName: text(row.subject_name) ?? 'Subject', completedTasks: numberOrNull(row.completed_tasks) ?? 0, totalTasks: numberOrNull(row.total_tasks) ?? 0, averageScore: numberOrNull(row.average_score), masteryPercentage: numberOrNull(row.mastery_percentage) } })
+}
+
+export async function listMyTasks(): Promise<StudentTaskFeed> {
+  const { data, error } = await rpc<Json>('student_list_my_tasks')
+  if (error) throw new Error(error.message || 'Tasks could not be loaded.')
+  return parseTaskFeed(data)
 }
 
 export async function resolveTaskLaunch(taskId: string): Promise<StudentTaskLaunch> {
@@ -149,20 +192,37 @@ export async function getPersonalizedLearningPath(): Promise<StudentPersonalized
   const { data, error } = await rpc<Json>('student_refresh_personalized_path')
   if (error) throw new Error(error.message || 'Personal learning path could not be loaded.')
   const payload = record(data)
-  const recommendations = Array.isArray(payload.recommendations) ? payload.recommendations : []
   const timeline = Array.isArray(payload.timeline) ? payload.timeline : []
   return {
     studentId: text(payload.student_id) ?? '',
-    recommendations: recommendations.map(item => {
-      const row = record(item)
-      return { id: text(row.id) ?? '', subjectId: text(row.subject_id), outcomeId: text(row.outcome_id), type: (text(row.type) ?? 'practice') as StudentRecommendationType, title: text(row.title) ?? 'Learning recommendation', reason: text(row.reason) ?? '', confidence: numberOrNull(row.confidence) ?? 0, priority: numberOrNull(row.priority) ?? 0, nextReviewAt: text(row.next_review_at) }
-    }),
+    recommendations: parseRecommendations(payload.recommendations),
     timeline: timeline.map(item => {
       const row = record(item)
       return { id: text(row.id) ?? '', eventType: text(row.event_type) ?? 'learning_event', sourceType: text(row.source_type) ?? 'learning', sourceId: text(row.source_id), subjectId: text(row.subject_id), title: text(row.title) ?? 'Learning event', summary: text(row.summary), occurredAt: text(row.occurred_at) ?? '', metadata: (row.metadata ?? {}) as Json }
     }),
     nextMission: payload.next_mission && typeof payload.next_mission === 'object' ? parseTask(payload.next_mission) : null,
     motivation: parseMotivationSummary(payload.motivation),
+  }
+}
+export async function getStudentHomeOsBrief(): Promise<StudentHomeOsBrief> {
+  const { data, error } = await rpc<Json>('student_get_home_os_brief')
+  if (error) throw new Error(error.message || 'Your learner home could not be loaded.')
+  const payload = record(data); const urgency = record(payload.urgency ?? {}); const progress = record(payload.progress ?? {}); const goal = record(progress.daily_goal ?? {}); const streak = record(progress.streak ?? {})
+  const changes = Array.isArray(payload.recent_changes) ? payload.recent_changes : []
+  return {
+    studentId: text(payload.student_id) ?? '',
+    generatedAt: text(payload.generated_at) ?? new Date().toISOString(),
+    nextAction: payload.next_action && typeof payload.next_action === 'object' ? parseTask(payload.next_action) : null,
+    urgency: { level: (text(urgency.level) ?? 'clear') as StudentHomeUrgency['level'], headline: text(urgency.headline) ?? 'You are on track', message: text(urgency.message) ?? '' },
+    taskFeed: parseTaskFeed(payload.task_feed),
+    recentChanges: changes.map(item => { const row = record(item); return { id: text(row.id) ?? '', kind: text(row.kind) ?? 'update', title: text(row.title) ?? 'Learning update', summary: text(row.summary) ?? '', occurredAt: text(row.occurred_at) ?? '', sourceType: text(row.source_type) ?? 'learning', sourceId: text(row.source_id) } }),
+    progress: {
+      dailyGoal: { date: text(goal.date), target: numberOrNull(goal.target) ?? 1, completed: numberOrNull(goal.completed) ?? 0, complete: Boolean(goal.complete) },
+      streak: { current: numberOrNull(streak.current) ?? 0, longest: numberOrNull(streak.longest) ?? 0, graceTokens: numberOrNull(streak.grace_tokens) ?? 0 },
+      totalXp: numberOrNull(progress.total_xp) ?? 0,
+      subjectProgress: parseSubjectProgress(progress.subject_progress),
+      recommendations: parseRecommendations(progress.recommendations),
+    },
   }
 }
 export async function recordVerifiedTaskCompletion(input: { sourceType: string; sourceId: string; subjectId?: string | null }): Promise<StudentMotivationSummary> {
@@ -172,14 +232,14 @@ export async function recordVerifiedTaskCompletion(input: { sourceType: string; 
 }
 function parseMotivationSummary(value: unknown): StudentMotivationSummary {
   const payload = record(value); const goal = record(payload.daily_goal ?? {}); const streak = record(payload.streak ?? {})
-  const achievements = Array.isArray(payload.achievements) ? payload.achievements : []; const subjects = Array.isArray(payload.subject_progress) ? payload.subject_progress : []
+  const achievements = Array.isArray(payload.achievements) ? payload.achievements : []
   return {
     studentId: text(payload.student_id) ?? '',
     dailyGoal: { date: text(goal.date), target: numberOrNull(goal.target) ?? 1, completed: numberOrNull(goal.completed) ?? 0, complete: Boolean(goal.complete) },
     streak: { current: numberOrNull(streak.current) ?? 0, longest: numberOrNull(streak.longest) ?? 0, graceTokens: numberOrNull(streak.grace_tokens) ?? 0 },
     totalXp: numberOrNull(payload.total_xp) ?? 0,
     achievements: achievements.map(item => { const row = record(item); return { slug: text(row.slug) ?? '', title: text(row.title) ?? 'Achievement', description: text(row.description) ?? '', icon: text(row.icon) ?? '🏅', awardedAt: text(row.awarded_at) } }),
-    subjectProgress: subjects.map(item => { const row = record(item); return { subjectId: text(row.subject_id) ?? '', subjectName: text(row.subject_name) ?? 'Subject', completedTasks: numberOrNull(row.completed_tasks) ?? 0, totalTasks: numberOrNull(row.total_tasks) ?? 0, averageScore: numberOrNull(row.average_score), masteryPercentage: numberOrNull(row.mastery_percentage) } }),
+    subjectProgress: parseSubjectProgress(payload.subject_progress),
     nextMission: payload.next_mission && typeof payload.next_mission === 'object' ? parseTask(payload.next_mission) : null,
     awarded: typeof payload.awarded === 'boolean' ? payload.awarded : undefined,
     xpAwarded: numberOrNull(payload.xp_awarded) ?? undefined,
