@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
+import { propagateReleasedAttempt } from '@/lib/assessment/integration'
 
 export interface MarkingQueueItem {
   attemptId: string
@@ -172,4 +173,8 @@ export async function finalizeAttempt(input: {
     p_release: input.release ?? false,
   })
   if (error) throw new Error(error.message || 'Attempt could not be finalized.')
+
+  if (input.release) {
+    await propagateReleasedAttempt(input.attemptId)
+  }
 }
