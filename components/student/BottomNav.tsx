@@ -32,14 +32,15 @@ function activeTab(path: string): TabId {
 
   if (
     path.startsWith("/student/marks") ||
-    path.startsWith("/student/timetable")
+    path.startsWith("/student/results")
   ) return "results"
 
   if (
     path.startsWith("/student/profile")       ||
     path.startsWith("/student/fees")          ||
     path.startsWith("/student/notifications") ||
-    path.startsWith("/student/funhub")
+    path.startsWith("/student/funhub")        ||
+    path.startsWith("/student/timetable")
   ) return "me"
 
   return "home"
