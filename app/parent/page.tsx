@@ -80,7 +80,6 @@ export default function ParentHomePage() {
         return
       }
 
-      // Null-safe classIds
       const classIds = students.map(s => s.class_id).filter(Boolean) as string[]
 
       const { data: classes } = classIds.length > 0 ? await supabase
@@ -97,13 +96,11 @@ export default function ParentHomePage() {
         .in('id', schoolIds)
         : { data: [] }
 
-      // Single attendance query for all students
       const { data: allAtt } = await supabase
         .from('attendance')
         .select('student_id, status')
         .in('student_id', studentIds)
 
-      // Pending join requests
       const { data: pendingReqs } = await supabase
         .from('class_join_requests')
         .select('student_id')
@@ -137,7 +134,7 @@ export default function ParentHomePage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [router])
 
   if (loading) return (
     <div style={{ animation: 'fadeIn 0.2s ease' }}>
@@ -151,8 +148,6 @@ export default function ParentHomePage() {
 
   return (
     <div style={{ animation: 'slideIn 0.22s ease' }}>
-
-      {/* Hero */}
       <div style={{ background: `linear-gradient(135deg, ${dark} 0%, #312e81 100%)`, borderRadius: 20, padding: '12px 14px', marginBottom: 14, color: '#fff' }}>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 1 }}>
           {new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -163,116 +158,50 @@ export default function ParentHomePage() {
         </div>
       </div>
 
-      {/* No child linked */}
       {noChild && (
         <div style={{ background: '#fff', borderRadius: 16, padding: 24, textAlign: 'center', border: '1px solid #e5e7eb', marginBottom: 12 }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>👨‍👩‍👧</div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', marginBottom: 6 }}>No child linked yet</div>
           <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Link an existing student with a claim code, or add your child to a class directly.</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <button
-              onClick={() => router.push('/parent/link-child')}
-              style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              🔗 Link with Claim Code
-            </button>
-            <button
-              onClick={() => router.push('/parent/create-child')}
-              style={{ padding: '12px 24px', borderRadius: 12, border: `1.5px solid ${dark}`, background: 'transparent', color: dark, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              + Add Child to Class
-            </button>
+            <button onClick={() => router.push('/parent/link-child')} style={{ padding: '12px 24px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>🔗 Link with Claim Code</button>
+            <button onClick={() => router.push('/parent/create-child')} style={{ padding: '12px 24px', borderRadius: 12, border: `1.5px solid ${dark}`, background: 'transparent', color: dark, fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add Child to Class</button>
           </div>
         </div>
       )}
 
-      {/* Children cards */}
       {children.map(child => (
         <div key={child.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', padding: 16, marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: dark, flexShrink: 0 }}>
-              {child.name[0].toUpperCase()}
-            </div>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: dark, flexShrink: 0 }}>{child.name[0].toUpperCase()}</div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>{child.name}</div>
               <div style={{ fontSize: 12, color: '#6b7280' }}>{child.className} · {child.school}</div>
               {child.admission_number && <div style={{ fontSize: 11, color: '#9ca3af' }}>{child.admission_number}</div>}
-              {child.pendingApproval && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 20, padding: '2px 10px' }}>
-                  <span style={{ fontSize: 10 }}>⏳</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#92400e' }}>Waiting for teacher approval</span>
-                </div>
-              )}
+              {child.pendingApproval && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 20, padding: '2px 10px' }}><span style={{ fontSize: 10 }}>⏳</span><span style={{ fontSize: 10, fontWeight: 700, color: '#92400e' }}>Waiting for teacher approval</span></div>}
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {[
               { label: 'Attendance', value: `${child.attendancePct}%`, color: child.attendancePct >= 80 ? '#d1fae5' : '#fef3c7', textColor: child.attendancePct >= 80 ? '#065f46' : '#92400e' },
-              { label: 'Marks',      value: child.recentMarks !== null ? `${child.recentMarks}%` : '—', color: '#e0f2fe', textColor: '#075985' },
-            ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: s.color, borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: s.textColor }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: s.textColor, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
-              </div>
-            ))}
+              { label: 'Marks', value: child.recentMarks !== null ? `${child.recentMarks}%` : '—', color: '#e0f2fe', textColor: '#075985' },
+            ].map(s => <div key={s.label} style={{ flex: 1, background: s.color, borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 16, fontWeight: 800, color: s.textColor }}>{s.value}</div><div style={{ fontSize: 10, color: s.textColor, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => router.push('/parent/child/' + child.id)}
-              style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: dark, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              View Details
-            </button>
-            <button
-              onClick={() => router.push('/parent/messages?studentId=' + child.id)}
-              style={{ flex: 1, padding: '10px', borderRadius: 10, border: '1.5px solid #10b981', background: 'transparent', color: '#10b981', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              Message Teacher
-            </button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
+            <button onClick={() => router.push('/parent/child/' + child.id)} style={{ padding: '10px', borderRadius: 10, border: 'none', background: dark, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>View Details</button>
+            <button onClick={() => router.push('/parent/assessments?studentId=' + child.id)} style={{ padding: '10px', borderRadius: 10, border: '1.5px solid #4338ca', background: '#eef2ff', color: '#3730a3', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Assessment Progress</button>
+            <button onClick={() => router.push('/parent/report-cards?studentId=' + child.id)} style={{ padding: '10px', borderRadius: 10, border: '1.5px solid #059669', background: '#ecfdf5', color: '#065f46', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Report Cards</button>
+            <button onClick={() => router.push('/parent/messages?studentId=' + child.id)} style={{ padding: '10px', borderRadius: 10, border: '1.5px solid #10b981', background: 'transparent', color: '#10b981', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Message Teacher</button>
           </div>
         </div>
       ))}
 
-      {/* Add another child button — shown when children exist */}
-      {children.length > 0 && (
-        <button
-          onClick={() => router.push('/parent/create-child')}
-          style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}
-        >
-          + Add Another Child
-        </button>
-      )}
+      {children.length > 0 && <button onClick={() => router.push('/parent/create-child')} style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 12 }}>+ Add Another Child</button>}
 
-      {/* ── Parent Twin ──────────────────────────────────────────────── */}
-      <button
-        onClick={() => setTwinOpen(true)}
-        style={{
-          position:       "fixed",
-          bottom:         90,
-          right:          20,
-          zIndex:         750,
-          width:          52,
-          height:         52,
-          borderRadius:   "50%",
-          background:     "linear-gradient(135deg, #1e1b4b 0%, #064e3b 100%)",
-          border:         "1.5px solid rgba(16,185,129,0.5)",
-          color:          "#10b981",
-          fontSize:       20,
-          cursor:         "pointer",
-          boxShadow:      "0 4px 24px rgba(16,185,129,0.35)",
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "center",
-        }}
-      >
-        ✦
-      </button>
-      <ParentTwinDrawer
-        open={twinOpen}
-        onClose={() => setTwinOpen(false)}
-      />
+      <button onClick={() => setTwinOpen(true)} style={{ position: 'fixed', bottom: 90, right: 20, zIndex: 750, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg, #1e1b4b 0%, #064e3b 100%)', border: '1.5px solid rgba(16,185,129,0.5)', color: '#10b981', fontSize: 20, cursor: 'pointer', boxShadow: '0 4px 24px rgba(16,185,129,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✦</button>
+      <ParentTwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
     </div>
   )
 }
