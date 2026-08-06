@@ -1,753 +1,469 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { Database } from "@/lib/database.types";
+import {
+  saveTeachingProgressRecord,
+  TeachingProgressError,
+} from "@/lib/teaching/progress";
 import { nairobiDateStr } from "@/lib/time";
-import { ensureLessonHomeworkDraft } from "@/lib/teaching/lessonHomeworkDraft";
-
-type ProgressInsert =
-  Database["public"]["Tables"]["progress_records"]["Insert"];
-type ProgressUpdate =
-  Database["public"]["Tables"]["progress_records"]["Update"];
-import { C } from "@/components/teacher/ui";
 
 interface PlanOption {
-  id:                  string;
-  title:               string;
-  topic:               string;
-  class_id:            string | null;
-  subject_id:          string | null;
-  class_name:          string;
-  subject_name:        string;
-  week_start:          string;
+  id: string;
+  title: string;
+  topic: string | null;
+  class_id: string;
+  subject_id: string;
+  taught_date: string | null;
+  class_name: string;
+  subject_name: string;
 }
 
-interface NoteRow {
-  id:                  string;
-  lesson_plan_id:      string | null;
-  taught_date:         string;
-  what_was_taught:     string;
+interface ProgressRow {
+  id: string;
+  lesson_plan_id: string | null;
+  teaching_occurrence_id: string | null;
+  taught_date: string;
+  what_was_taught: string;
   participation_score: number | null;
-  challenges:          string | null;
-  homework_set:        string | null;
-  class_id:            string | null;
-  subject_id:          string | null;
-  class_name:          string;
-  subject_name:        string;
-  plan_title:          string | null;
-  plan_topic:          string | null;
-  published:           boolean;
+  challenges: string | null;
+  homework_set: string | null;
+  teacher_remarks: string | null;
+  next_steps: string | null;
+  class_id: string | null;
+  subject_id: string | null;
+  class_name: string;
+  subject_name: string;
+  plan_title: string | null;
 }
 
-type ViewState = "list" | "new" | "view" | "edit" | "saved";
+interface FormState {
+  lessonPlanId: string;
+  taughtDate: string;
+  whatWasTaught: string;
+  participationScore: string;
+  challenges: string;
+  homeworkSet: string;
+  teacherRemarks: string;
+  nextSteps: string;
+}
 
-const PAR: Record<number, { label: string; color: string; bg: string; emoji: string }> = {
-  1: { label: "Very Low",  color: "#7f1d1d", bg: "#fee2e2", emoji: "😞" },
-  2: { label: "Low",       color: "#92400e", bg: "#fef3c7", emoji: "😐" },
-  3: { label: "Average",   color: "#1e40af", bg: "#dbeafe", emoji: "🙂" },
-  4: { label: "Good",      color: "#065f46", bg: "#d1fae5", emoji: "😊" },
-  5: { label: "Excellent", color: "#4c1d95", bg: "#ede9fe", emoji: "🌟" },
+const initialForm: FormState = {
+  lessonPlanId: "",
+  taughtDate: nairobiDateStr(),
+  whatWasTaught: "",
+  participationScore: "",
+  challenges: "",
+  homeworkSet: "",
+  teacherRemarks: "",
+  nextSteps: "",
 };
 
-function Skeleton({ h = 72, w = "100%" }: { h?: number; w?: string }) {
-  return (
-    <div style={{
-      height: h, width: w, borderRadius: 12, flexShrink: 0,
-      background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)",
-      backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite",
-    }} />
-  );
+const C = {
+  bg: "#f8fafc",
+  card: "#ffffff",
+  border: "#e5e7eb",
+  text: "#111827",
+  muted: "#6b7280",
+  accent: "#10b981",
+  blue: "#2563eb",
+  danger: "#dc2626",
+};
+
+function clean(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
-function formatDate(d: string): string {
-  return new Date(d + "T12:00:00").toLocaleDateString("en-KE", {
-    weekday: "short", day: "numeric", month: "short",
+function formatDate(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("en-KE", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontSize: 11, fontWeight: 800, color: "#6b7280",
-      letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6,
-    }}>{children}</div>
-  );
+function errorMessage(error: unknown) {
+  if (error instanceof TeachingProgressError) {
+    switch (error.code) {
+      case "occurrence_not_completed":
+        return "Complete the lesson before recording progress.";
+      case "occurrence_not_owned":
+        return "This teaching occurrence does not belong to your account.";
+      case "lesson_plan_not_found":
+        return "The exact lesson plan for this occurrence could not be found.";
+      case "what_was_taught_required":
+        return "Describe what was taught before saving.";
+      case "invalid_participation_score":
+        return "Participation must be between 1 and 5.";
+      case "not_authenticated":
+        return "Your session has expired. Sign in again.";
+      default:
+        return error.message || "The record could not be saved.";
+    }
+  }
+  return error instanceof Error ? error.message : "The record could not be saved.";
 }
 
-function InputStyle(extra: React.CSSProperties = {}): React.CSSProperties {
-  return {
-    width: "100%", boxSizing: "border-box", padding: "11px 14px",
-    borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 14,
-    fontFamily: "inherit", background: "#fff", color: "#111827",
-    outline: "none", ...extra,
-  };
-}
-
-export default function LessonNotesPage() {
+export default function ProgressPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const search = useSearchParams();
+  const occurrenceId = search.get("occurrenceId")?.trim() || null;
+  const requestedPlanId = search.get("planId")?.trim() || null;
+  const requestedClassId = search.get("classId")?.trim() || null;
+  const requestedSubjectId = search.get("subjectId")?.trim() || null;
+  const requestedDate = search.get("date")?.trim() || null;
 
-  const tidRef = useRef<string | null>(null);
-  const sidRef = useRef<string | null>(null);
+  const [teacherId, setTeacherId] = useState("");
+  const [schoolId, setSchoolId] = useState("");
+  const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [records, setRecords] = useState<ProgressRow[]>([]);
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(Boolean(occurrenceId || requestedPlanId));
 
-  const [view,          setView]          = useState<ViewState>("list");
-  const [justSaved,     setJustSaved]     = useState<{ classId: string | null; subjectId: string | null } | null>(null);
-  const [loading,       setLoading]       = useState(true);
-  const [saving,        setSaving]        = useState(false);
-  const [deleting,      setDeleting]      = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [error,         setError]         = useState<string | null>(null);
-  const [notes,         setNotes]         = useState<NoteRow[]>([]);
-  const [activeNote,    setActiveNote]    = useState<NoteRow | null>(null);
-  const [plans,         setPlans]         = useState<PlanOption[]>([]);
-  const [plansLoading,  setPlansLoading]  = useState(false);
-  const [selectedPlan,  setSelectedPlan]  = useState<string>("");
-  const [taughtDate,    setTaughtDate]    = useState<string>(nairobiDateStr());
-  const [whatTaught,    setWhatTaught]    = useState<string>("");
-  const [participation, setParticipation] = useState<number>(3);
-  const [challenges,    setChallenges]    = useState<string>("");
-  const [homework,      setHomework]      = useState<string>("");
-  const [publishing,    setPublishing]    = useState<string | null>(null);
-  const [publishError,  setPublishError]  = useState<string | null>(null);
+  const selectedPlan = useMemo(
+    () => plans.find((plan) => plan.id === form.lessonPlanId) ?? null,
+    [plans, form.lessonPlanId],
+  );
 
-  const editingNoteId = useRef<string | null>(null);
-
-  useEffect(() => { boot() }, []);
-
-  async function boot() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) { router.push("/?role=teacher"); return; }
 
-      const [memberRes, teacherRes, profileRes] = await Promise.all([
-        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("teacher_profiles").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("school_id").eq("id", user.id).single(),
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      const db = supabase as any;
+      const [memberRes, profileRes] = await Promise.all([
+        db.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
+        db.from("profiles").select("school_id").eq("id", user.id).single(),
       ]);
-      const sid = memberRes.data?.school_id
-        ?? teacherRes.data?.school_id
-        ?? profileRes.data?.school_id
+      if (memberRes.error) throw memberRes.error;
+      if (profileRes.error) throw profileRes.error;
+
+      const resolvedSchoolId = memberRes.data?.school_id ?? profileRes.data?.school_id;
+      if (!resolvedSchoolId) throw new Error("School context is missing.");
+
+      const [plansRes, recordsRes] = await Promise.all([
+        db
+          .from("lesson_plans")
+          .select("id,title,topic,class_id,subject_id,taught_date,classes(name),subjects(name)")
+          .eq("teacher_id", user.id)
+          .order("taught_date", { ascending: false, nullsFirst: false })
+          .limit(100),
+        db
+          .from("progress_records")
+          .select("id,lesson_plan_id,teaching_occurrence_id,taught_date,what_was_taught,participation_score,challenges,homework_set,teacher_remarks,next_steps,class_id,subject_id,classes(name),subjects(name),lesson_plans(title)")
+          .eq("teacher_id", user.id)
+          .order("taught_date", { ascending: false })
+          .order("updated_at", { ascending: false })
+          .limit(100),
+      ]);
+      if (plansRes.error) throw plansRes.error;
+      if (recordsRes.error) throw recordsRes.error;
+
+      const mappedPlans: PlanOption[] = (plansRes.data ?? [])
+        .filter((row: any) => row.class_id && row.subject_id)
+        .map((row: any) => ({
+          id: row.id,
+          title: row.title,
+          topic: row.topic,
+          class_id: row.class_id,
+          subject_id: row.subject_id,
+          taught_date: row.taught_date,
+          class_name: row.classes?.name ?? "Class",
+          subject_name: row.subjects?.name ?? "Subject",
+        }));
+
+      const mappedRecords: ProgressRow[] = (recordsRes.data ?? []).map((row: any) => ({
+        id: row.id,
+        lesson_plan_id: row.lesson_plan_id,
+        teaching_occurrence_id: row.teaching_occurrence_id,
+        taught_date: row.taught_date,
+        what_was_taught: row.what_was_taught,
+        participation_score: row.participation_score,
+        challenges: row.challenges,
+        homework_set: row.homework_set,
+        teacher_remarks: row.teacher_remarks,
+        next_steps: row.next_steps,
+        class_id: row.class_id,
+        subject_id: row.subject_id,
+        class_name: row.classes?.name ?? "Class",
+        subject_name: row.subjects?.name ?? "Subject",
+        plan_title: row.lesson_plans?.title ?? null,
+      }));
+
+      const preferredPlan = mappedPlans.find((plan) => plan.id === requestedPlanId)
+        ?? mappedPlans.find((plan) =>
+          (!requestedClassId || plan.class_id === requestedClassId)
+          && (!requestedSubjectId || plan.subject_id === requestedSubjectId)
+          && (!requestedDate || !plan.taught_date || plan.taught_date === requestedDate),
+        )
         ?? null;
 
-      tidRef.current = user.id;
-      sidRef.current = sid;
-
-      await loadNotes(user.id, sid);
-
-      if (searchParams.get("planId")) {
-        await openNew();
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load. Please refresh.");
+      setTeacherId(user.id);
+      setSchoolId(resolvedSchoolId);
+      setPlans(mappedPlans);
+      setRecords(mappedRecords);
+      setForm((current) => ({
+        ...current,
+        lessonPlanId: preferredPlan?.id ?? current.lessonPlanId,
+        taughtDate: requestedDate ?? preferredPlan?.taught_date ?? current.taughtDate,
+      }));
+    } catch (caught) {
+      console.error("Progress load failed", caught);
+      setError(errorMessage(caught));
     } finally {
       setLoading(false);
     }
-  }
+  }, [requestedClassId, requestedDate, requestedPlanId, requestedSubjectId, router]);
 
-  async function loadNotes(tid: string, sid: string | null) {
-    let q = supabase
-      .from("progress_records")
-      .select("id, lesson_plan_id, taught_date, what_was_taught, participation_score, challenges, homework_set, class_id, subject_id")
-      .eq("teacher_id", tid)
-      .order("taught_date", { ascending: false })
-      .limit(60);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-    if (sid) q = q.eq("school_id", sid);
-
-    const { data: rows, error: rowErr } = await q;
-    if (rowErr) { setError(rowErr.message); return; }
-
-    const noteList = rows ?? [];
-    if (noteList.length === 0) { setNotes([]); return; }
-
-    const classIds   = Array.from(new Set(noteList.map((n: any) => n.class_id).filter(Boolean)));
-    const subjectIds = Array.from(new Set(noteList.map((n: any) => n.subject_id).filter(Boolean)));
-    const planIds    = Array.from(new Set(noteList.filter((n: any) => n.lesson_plan_id).map((n: any) => n.lesson_plan_id as string)));
-
-    const [clsRes, subjRes, planRes, contentRes] = await Promise.all([
-      classIds.length   > 0 ? supabase.from("classes").select("id,name,stream").in("id", classIds)    : Promise.resolve({ data: [] }),
-      subjectIds.length > 0 ? supabase.from("subjects").select("id,name").in("id", subjectIds)         : Promise.resolve({ data: [] }),
-      planIds.length    > 0 ? supabase.from("lesson_plans").select("id,title,topic").in("id", planIds) : Promise.resolve({ data: [] }),
-      // Publish status: a lesson_content row of type 'progress_record' tied to
-      // this note's lesson_plan_id means it's already live for parents/students —
-      // "progress_record" (not "lesson_note") is what publishNote() actually writes
-      // below, and what app/student/lesson/[id]/page.tsx actually queries.
-      planIds.length    > 0 ? supabase.from("lesson_content").select("lesson_plan_id").in("lesson_plan_id", planIds).eq("content_type", "progress_record") : Promise.resolve({ data: [] }),
-    ]);
-
-    const clsMap  = Object.fromEntries(((clsRes.data  ?? []) as any[]).map(c => [c.id, c.name + (c.stream ? " " + c.stream : "")]));
-    const subjMap = Object.fromEntries(((subjRes.data ?? []) as any[]).map(s => [s.id, s.name]));
-    const planMap = Object.fromEntries(((planRes.data ?? []) as any[]).map(p => [p.id, { title: p.title, topic: p.topic }]));
-    const publishedPlanIds = new Set(((contentRes.data ?? []) as any[]).map(c => c.lesson_plan_id));
-
-    setNotes(noteList.map((n: any) => ({
-      id:                  n.id,
-      lesson_plan_id:      n.lesson_plan_id,
-      taught_date:         n.taught_date ?? nairobiDateStr(),
-      what_was_taught:     n.what_was_taught ?? "",
-      participation_score: n.participation_score,
-      challenges:          n.challenges,
-      homework_set:        n.homework_set,
-      class_id:            n.class_id,
-      subject_id:          n.subject_id,
-      class_name:          n.class_id   ? (clsMap[n.class_id]   ?? "Unknown Class")   : "",
-      subject_name:        n.subject_id ? (subjMap[n.subject_id] ?? "Unknown Subject") : "",
-      plan_title:          n.lesson_plan_id ? (planMap[n.lesson_plan_id]?.title ?? null) : null,
-      plan_topic:          n.lesson_plan_id ? (planMap[n.lesson_plan_id]?.topic ?? null) : null,
-      published:           n.lesson_plan_id ? publishedPlanIds.has(n.lesson_plan_id) : false,
-    })));
-  }
-
-  async function openNew() {
-    editingNoteId.current = null;
-    setSelectedPlan("");
-    setTaughtDate(nairobiDateStr());
-    setWhatTaught("");
-    setParticipation(3);
-    setChallenges("");
-    setHomework("");
+  async function save(event: FormEvent) {
+    event.preventDefault();
     setError(null);
-    setView("new");
+    setSuccess(null);
 
-    const tid = tidRef.current;
-    const sid = sidRef.current;
-    if (!tid) return;
-    setPlansLoading(true);
-
-    let q = supabase
-      .from("lesson_plans")
-      .select("id, title, topic, week_start, class_id, subject_id")
-      .eq("teacher_id", tid)
-      .order("week_start", { ascending: false })
-      .limit(40);
-
-    if (sid) q = q.eq("school_id", sid);
-
-    const { data: planRows } = await q;
-    const rawPlans = planRows ?? [];
-    const cids = Array.from(new Set(rawPlans.map((p: any) => p.class_id).filter(Boolean)));
-    const sids = Array.from(new Set(rawPlans.map((p: any) => p.subject_id).filter(Boolean)));
-
-    const [clsRes, subjRes] = await Promise.all([
-      cids.length > 0 ? supabase.from("classes").select("id,name,stream").in("id", cids) : Promise.resolve({ data: [] }),
-      sids.length > 0 ? supabase.from("subjects").select("id,name").in("id", sids)        : Promise.resolve({ data: [] }),
-    ]);
-    const clsMap  = Object.fromEntries(((clsRes.data  ?? []) as any[]).map(c => [c.id, c.name + (c.stream ? " " + c.stream : "")]));
-    const subjMap = Object.fromEntries(((subjRes.data ?? []) as any[]).map(s => [s.id, s.name]));
-
-    setPlans(rawPlans.map((p: any) => ({
-      id:                  p.id,
-      title:               p.title ?? "Untitled Plan",
-      topic:               p.topic ?? "",
-      class_id:            p.class_id,
-      subject_id:          p.subject_id,
-      class_name:          p.class_id   ? (clsMap[p.class_id]   ?? "") : "",
-      subject_name:        p.subject_id ? (subjMap[p.subject_id] ?? "") : "",
-      week_start:          p.week_start ?? "",
-    })));
-    setPlansLoading(false);
-
-    // Pre-select plan from URL (arrived via "Mark as Taught" from Lesson Plans)
-    const urlPlanId = searchParams.get("planId");
-    if (urlPlanId && rawPlans.some((p: any) => p.id === urlPlanId)) {
-      setSelectedPlan(urlPlanId);
+    if (!form.whatWasTaught.trim()) {
+      setError("Describe what was taught before saving.");
+      return;
     }
-  }
 
-  function openEdit(note: NoteRow) {
-    editingNoteId.current = note.id;
-    setSelectedPlan(note.lesson_plan_id ?? "");
-    setTaughtDate(note.taught_date);
-    setWhatTaught(note.what_was_taught);
-    setParticipation(note.participation_score ?? 3);
-    setChallenges(note.challenges ?? "");
-    setHomework(note.homework_set ?? "");
-    setError(null);
-    setView("edit");
-  }
-
-  // LP-002A1: lesson notes may propose homework only when this lesson has no
-  // homework yet. Once a homework row exists, the dedicated Homework workspace
-  // owns its title, instructions, due date and questions.
-  async function syncHomeworkFromNote(
-    planId: string,
-    teacherId: string,
-    schoolId: string | null,
-    linkedPlan: PlanOption | null,
-  ) {
-    if (!homework.trim() || !schoolId) return
-
-    const due = new Date()
-    due.setDate(due.getDate() + 1) // TODO LP-002A2: teacher selects due date before assignment
-
-    const result = await ensureLessonHomeworkDraft({
-      lessonPlanId: planId,
-      classId: linkedPlan?.class_id ?? null,
-      teacherId,
-      schoolId,
-      subject: linkedPlan?.subject_name || "",
-      title:
-        (linkedPlan?.topic || linkedPlan?.title || "Lesson") +
-        " — Homework",
-      instructions: homework.trim(),
-      suggestedDueDate: nairobiDateStr(due),
-    })
-
-    if (result.outcome === "preserved_existing") {
-      console.info(
-        "[progress] existing lesson homework preserved",
-        result.homeworkId,
-      )
+    if (!selectedPlan) {
+      setError("Select the lesson plan this record belongs to.");
+      return;
     }
-  }
 
-  async function saveNote() {
-    if (!whatTaught.trim()) { setError("Please describe what was taught."); return; }
-    const tid = tidRef.current;
-    const sid = sidRef.current;
-    if (!tid) return;
+    const score = form.participationScore
+      ? Number(form.participationScore)
+      : null;
+    if (score !== null && (!Number.isInteger(score) || score < 1 || score > 5)) {
+      setError("Participation must be between 1 and 5.");
+      return;
+    }
 
     setSaving(true);
-    setError(null);
-
-    const linkedPlan = plans.find(p => p.id === selectedPlan) ?? null;
-    const basePayload = {
-      teacher_id:          tid,
-      lesson_plan_id:      selectedPlan || null,
-      class_id:            linkedPlan?.class_id   ?? null,
-      subject_id:          linkedPlan?.subject_id ?? null,
-      taught_date:         taughtDate,
-      what_was_taught:     whatTaught.trim(),
-      participation_score: participation,
-      challenges:          challenges.trim() || null,
-      homework_set:        homework.trim()   || null,
-      updated_at:          new Date().toISOString(),
-      ...(sid ? { school_id: sid } : {}),
-    } satisfies ProgressUpdate;
-
     try {
-      const isEdit = editingNoteId.current !== null;
-      if (isEdit) {
-        const { error: upErr } = await supabase
-          .from("progress_records")
-          .update(basePayload)
-          .eq("id", editingNoteId.current!)
-          .eq("teacher_id", tid);
-        if (upErr) throw upErr;
-        if (selectedPlan) {
-          try { await syncHomeworkFromNote(selectedPlan, tid, sid, linkedPlan); }
-          catch (e) { console.error("[progress] homework sync", e); }
-        }
-        editingNoteId.current = null;
-        await loadNotes(tid, sid);
-        setView("list");
-      } else {
-        const insertPayload: ProgressInsert = {
-          ...basePayload,
-          teacher_id: tid,
-          what_was_taught: whatTaught.trim(),
-          created_at: new Date().toISOString(),
-        };
-
-        const { error: insErr } = await supabase
-          .from("progress_records")
-          .insert(insertPayload);
-        if (insErr) throw insErr;
-        if (selectedPlan) {
-          try { await syncHomeworkFromNote(selectedPlan, tid, sid, linkedPlan); }
-          catch (e) { console.error("[progress] homework sync", e); }
-        }
-        editingNoteId.current = null;
-        await loadNotes(tid, sid);
-        // Offer the natural next step — teacher chooses, no forced redirect (hybrid, not automatic)
-        setJustSaved({
-          classId:   (linkedPlan?.class_id   as string | null) ?? null,
-          subjectId: (linkedPlan?.subject_id as string | null) ?? null,
+      if (occurrenceId) {
+        await saveTeachingProgressRecord({
+          occurrenceId,
+          whatWasTaught: form.whatWasTaught.trim(),
+          participationScore: score,
+          challenges: clean(form.challenges),
+          homeworkSet: clean(form.homeworkSet),
+          teacherRemarks: clean(form.teacherRemarks),
+          nextSteps: clean(form.nextSteps),
         });
-        setView("saved");
+      } else {
+        const db = supabase as any;
+        const { error: insertError } = await db.from("progress_records").insert({
+          teacher_id: teacherId,
+          school_id: schoolId,
+          class_id: selectedPlan.class_id,
+          subject_id: selectedPlan.subject_id,
+          lesson_plan_id: selectedPlan.id,
+          taught_date: form.taughtDate,
+          what_was_taught: form.whatWasTaught.trim(),
+          participation_score: score,
+          challenges: clean(form.challenges),
+          homework_set: clean(form.homeworkSet),
+          teacher_remarks: clean(form.teacherRemarks),
+          next_steps: clean(form.nextSteps),
+        });
+        if (insertError) throw insertError;
       }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Save failed. Try again.");
+
+      setSuccess(occurrenceId
+        ? "The exact teaching occurrence record has been saved."
+        : "The lesson note and record of progress have been saved.");
+      setForm((current) => ({
+        ...initialForm,
+        lessonPlanId: current.lessonPlanId,
+        taughtDate: current.taughtDate,
+      }));
+      await load();
+      setShowForm(false);
+    } catch (caught) {
+      console.error("Progress save failed", caught);
+      setError(errorMessage(caught));
     } finally {
       setSaving(false);
     }
   }
 
-  async function deleteNote(noteId: string) {
-    const tid = tidRef.current;
-    const sid = sidRef.current;
-    if (!tid) return;
-    setConfirmDelete(noteId);
-  }
-
-  async function confirmDeleteNote() {
-    const noteId = confirmDelete;
-    if (!noteId) return;
-    const tid = tidRef.current;
-    const sid = sidRef.current;
-    if (!tid) return;
-    setConfirmDelete(null);
-    setDeleting(true);
-    try {
-      const { error: delErr } = await supabase
-        .from("progress_records")
-        .delete()
-        .eq("id", noteId)
-        .eq("teacher_id", tid);
-      if (delErr) throw delErr;
-      await loadNotes(tid, sid);
-      setActiveNote(null);
-      setView("list");
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Delete failed.");
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  async function publishNote(note: NoteRow) {
-    if (!note.lesson_plan_id) {
-      setPublishError("Link a lesson plan to this note (edit it) before publishing — that's how parents and students find it.");
-      return;
-    }
-    const tid = tidRef.current;
-    const sid = sidRef.current;
-    if (!tid) return;
-
-    setPublishing(note.id);
-    setPublishError(null);
-
-    try {
-      const studentCopy = [
-        "We covered: " + note.what_was_taught,
-        note.homework_set ? "Homework: " + note.homework_set : "",
-      ].filter(Boolean).join("\n\n");
-
-      const teacherCopy = [
-        "What was taught: " + note.what_was_taught,
-        "Participation: " + (PAR[note.participation_score ?? 3]?.label ?? "—"),
-        note.challenges   ? "Challenges: " + note.challenges   : "",
-        note.homework_set ? "Homework: "   + note.homework_set : "",
-      ].filter(Boolean).join("\n\n");
-
-      // Re-publishing an already-live note updates the same row instead of
-      // creating a duplicate, so later edits sync through automatically.
-      const { data: existing } = await supabase
-        .from("lesson_content")
-        .select("id")
-        .eq("lesson_plan_id", note.lesson_plan_id)
-        .eq("content_type", "progress_record")
-        .maybeSingle();
-
-      if (existing?.id) {
-        const { error: updErr } = await supabase
-          .from("lesson_content")
-          .update({ student_copy: studentCopy, teacher_copy: teacherCopy, updated_at: new Date().toISOString() })
-          .eq("id", existing.id);
-        if (updErr) throw updErr;
-      } else {
-        const { error: insErr } = await supabase
-          .from("lesson_content")
-          .insert({
-            school_id:      sid,
-            teacher_id:     tid,
-            lesson_plan_id: note.lesson_plan_id,
-            content_type:   "progress_record",
-            teacher_copy:   teacherCopy,
-            student_copy:   studentCopy,
-            generated_by:   "teacher",
-          });
-        if (insErr) throw insErr;
-      }
-
-      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, published: true } : n));
-      if (activeNote?.id === note.id) setActiveNote({ ...note, published: true });
-    } catch (e: unknown) {
-      setPublishError(e instanceof Error ? e.message : "Publish failed. Try again.");
-    } finally {
-      setPublishing(null);
-    }
-  }
-
-  const linkedPlanForForm = plans.find(p => p.id === selectedPlan) ?? null;
-  const avgParticipation  = notes.length
-    ? (notes.reduce((s, n) => s + (n.participation_score ?? 0), 0) / notes.length).toFixed(1)
-    : null;
-  const thisWeekCount = notes.filter(n => {
-    const d = new Date(n.taught_date + "T12:00:00");
-    const ago7 = new Date(); ago7.setDate(ago7.getDate() - 7);
-    return d >= ago7;
-  }).length;
-
-  function renderForm(isEdit: boolean) {
-    return (
-      <div style={{ paddingBottom: 120 }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "16px 16px 12px", borderBottom: "1px solid #e5e7eb", background: "#fff",
-        }}>
-          <button
-            onClick={() => { setView(isEdit ? "view" : "list"); setError(null); }}
-            style={{
-              width: 36, height: 36, borderRadius: 10, border: "1px solid #e5e7eb",
-              background: "#f9fafb", cursor: "pointer", fontSize: 18,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "inherit", flexShrink: 0,
-            }}
-          >←</button>
-          <div style={{ fontSize: 17, fontWeight: 800, color: "#111827" }}>
-            {isEdit ? "Edit Record" : "New Progress Record"}
-          </div>
+  return (
+    <main style={{ minHeight: "100vh", background: C.bg, padding: "20px 16px 96px" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
+        <div>
+          <div style={{ color: C.muted, fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0.7 }}>Teacher document</div>
+          <h1 style={{ margin: "4px 0 0", color: C.text, fontSize: 23 }}>Lesson Notes & Record of Progress</h1>
+          <p style={{ margin: "6px 0 0", color: C.muted, fontSize: 12, maxWidth: 620 }}>
+            Record the exact lesson delivered, participation, challenges, homework, teacher remarks and the next teaching step.
+          </p>
         </div>
-        <div style={{ padding: "16px" }}>
-          {error && (
-            <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>
-              {error}
-            </div>
-          )}
-          {!isEdit && (
-            <div style={{ marginBottom: 16 }}>
-              <FieldLabel>Link to Lesson Plan <span style={{ fontWeight: 400 }}>(optional)</span></FieldLabel>
-              {plansLoading ? <Skeleton h={44} /> : (
-                <select value={selectedPlan} onChange={e => setSelectedPlan(e.target.value)} style={InputStyle()}>
-                  <option value="">— No linked plan —</option>
-                  {plans.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {[p.topic || p.title, p.subject_name, p.class_name, p.week_start].filter(Boolean).join(" · ")}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {linkedPlanForForm && (
-                <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: "#d1fae5", fontSize: 12, fontWeight: 600, color: "#065f46" }}>
-                  📌 {linkedPlanForForm.subject_name} · {linkedPlanForForm.class_name}
-                </div>
-              )}
-            </div>
-          )}
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Date Taught</FieldLabel>
-            <input type="date" value={taughtDate} max={nairobiDateStr()} onChange={e => setTaughtDate(e.target.value)} style={InputStyle()} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel>What Was Taught <span style={{ color: "#991b1b" }}>*</span></FieldLabel>
-            <textarea value={whatTaught} onChange={e => setWhatTaught(e.target.value)} placeholder="Describe what was actually covered in the lesson…" rows={4} style={InputStyle({ resize: "vertical", lineHeight: "1.6" })} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Learner Participation</FieldLabel>
-            <div style={{ display: "flex", gap: 6 }}>
-              {[1, 2, 3, 4, 5].map(score => {
-                const meta = PAR[score]; const active = participation === score;
-                return (
-                  <button key={score} onClick={() => setParticipation(score)} style={{ flex: 1, padding: "10px 4px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800, border: active ? "2px solid " + meta.color : "1.5px solid #e5e7eb", background: active ? meta.bg : "#f9fafb", color: active ? meta.color : "#6b7280", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "all 0.12s" }}>
-                    <span style={{ fontSize: 18 }}>{meta.emoji}</span>
-                    <span>{score}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6, textAlign: "center", color: PAR[participation]?.color }}>{PAR[participation]?.label}</div>
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <FieldLabel>Challenges Observed <span style={{ fontWeight: 400 }}>(optional)</span></FieldLabel>
-            <textarea value={challenges} onChange={e => setChallenges(e.target.value)} placeholder="Difficulties learners faced, misconceptions noticed…" rows={3} style={InputStyle({ resize: "vertical", lineHeight: "1.6" })} />
-          </div>
-          <div style={{ marginBottom: 24 }}>
-            <FieldLabel>Homework Set <span style={{ fontWeight: 400 }}>(optional)</span></FieldLabel>
-            <textarea value={homework} onChange={e => setHomework(e.target.value)} placeholder="What homework or follow-up was assigned…" rows={2} style={InputStyle({ resize: "vertical", lineHeight: "1.6" })} />
-          </div>
-        </div>
-        <div style={{ position: "fixed", bottom: "calc(64px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0, padding: "12px 16px", background: "#fff", borderTop: "1px solid #e5e7eb", zIndex: 720, boxShadow: "0 -2px 8px rgba(0,0,0,0.06)" }}>
-          <button onClick={saveNote} disabled={saving || !whatTaught.trim()} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: saving || !whatTaught.trim() ? "#9ca3af" : "linear-gradient(135deg,#065f46 0%,#10b981 100%)", color: "#fff", fontSize: 15, fontWeight: 800, cursor: saving || !whatTaught.trim() ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-            {saving ? "Saving…" : isEdit ? "Update Record" : "Save Record"}
-          </button>
-        </div>
-      </div>
-    );
-  }
+        <button
+          onClick={() => setShowForm((value) => !value)}
+          style={{ border: 0, borderRadius: 11, padding: "9px 12px", background: C.text, color: "#fff", fontWeight: 900, whiteSpace: "nowrap" }}
+        >
+          {showForm ? "Close" : "Add record"}
+        </button>
+      </header>
 
-  if (view === "list") {
-    return (
-      <div style={{ paddingBottom: 100 }}>
-        <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}} @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}`}</style>
-        <div style={{ background: "linear-gradient(135deg,#065f46 0%,#10b981 100%)", padding: "20px 16px 24px" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 4 }}>Progress Records</div>
-          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 500 }}>Record what was actually delivered in class</div>
-          {!loading && notes.length > 0 && (
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              {[{ label: "Total", value: notes.length }, { label: "This Week", value: thisWeekCount }, { label: "Avg Part.", value: avgParticipation ? avgParticipation + "/5" : "—" }].map(s => (
-                <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.18)", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: "#fff" }}>{s.value}</div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
+      {occurrenceId && (
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 13, padding: 12, marginBottom: 12, color: "#1e40af", fontSize: 12 }}>
+          This form is locked to the completed teaching occurrence opened from the Teaching Desk. Saving is idempotent and ownership-checked in Supabase.
         </div>
-        {error && <div style={{ margin: "12px 16px", padding: "10px 14px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>{error}</div>}
-        {loading && <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 10 }}>{[1,2,3].map(i => <Skeleton key={i} h={90} />)}</div>}
-        {!loading && notes.length === 0 && (
-          <div style={{ padding: "60px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#111827", marginBottom: 6 }}>No lesson notes yet</div>
-            <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6, maxWidth: 280, margin: "0 auto 24px" }}>After each lesson, record what you taught, how it went, and what homework you set.</div>
-            <button onClick={openNew} style={{ padding: "14px 32px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#065f46 0%,#10b981 100%)", color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>+ Add First Record</button>
-          </div>
-        )}
-        {!loading && notes.length > 0 && (
-          <div style={{ padding: "14px 16px 0", display: "flex", flexDirection: "column", gap: 10 }}>
-            {notes.map(note => {
-              const parMeta = PAR[note.participation_score ?? 3] ?? PAR[3];
-              const context = [note.subject_name, note.class_name].filter(Boolean).join(" · ");
-              const headline = note.plan_topic || note.plan_title || note.what_was_taught.slice(0, 60);
-              return (
-                <div key={note.id} onClick={() => { setActiveNote(note); setView("view"); }} style={{ background: "#fff", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", cursor: "pointer", border: "1px solid #e5e7eb", animation: "fadeIn 0.2s ease" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 5 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#111827", flex: 1, marginRight: 8 }}>{headline}</div>
-                    <div style={{ fontSize: 11, color: "#6b7280", whiteSpace: "nowrap", flexShrink: 0 }}>{formatDate(note.taught_date)}</div>
-                  </div>
-                  {context && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{context}</div>}
-                  <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", marginBottom: 8 }}>{note.what_was_taught}</div>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: parMeta.bg, color: parMeta.color }}>{parMeta.emoji} {parMeta.label}</span>
-                    {note.homework_set && <span style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>📚 HW set</span>}
-                    {note.challenges  && <span style={{ fontSize: 11, color: "#92400e", fontWeight: 600 }}>⚠️ Challenges noted</span>}
-                    {note.published   && <span style={{ fontSize: 11, color: "#065f46", fontWeight: 700 }}>📣 Published</span>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {!loading && (
-          <button onClick={openNew} style={{ position: "fixed", bottom: 90, right: 20, width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg,#065f46 0%,#10b981 100%)", color: "#fff", border: "none", fontSize: 26, cursor: "pointer", boxShadow: "0 4px 16px rgba(16,185,129,0.45)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", zIndex: 50 }}>+</button>
-        )}
-      </div>
-    );
-  }
+      )}
 
-  if (view === "new")  return renderForm(false);
-  if (view === "edit") return renderForm(true);
+      {error && <div style={{ background: "#fef2f2", color: C.danger, border: "1px solid #fecaca", borderRadius: 12, padding: 11, marginBottom: 12, fontSize: 12 }}>{error}</div>}
+      {success && <div style={{ background: "#ecfdf5", color: "#047857", border: "1px solid #a7f3d0", borderRadius: 12, padding: 11, marginBottom: 12, fontSize: 12 }}>{success}</div>}
 
-  if (view === "saved") {
-    return (
-      <div style={{ paddingBottom: 100, padding: "16px" }}>
-        <div style={{ background: "#fff", borderRadius: 16, padding: "24px 20px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <div style={{ fontSize: 32, marginBottom: 10 }}>✓</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: "#111827", marginBottom: 6 }}>Record saved</div>
-          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 20 }}>Want to record an assessment for this lesson now?</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {justSaved?.classId && justSaved?.subjectId && (
-              <button
-                onClick={() => router.push(`/teacher/assessment?classId=${justSaved.classId}&subjectId=${justSaved.subjectId}`)}
-                style={{ padding: "12px", borderRadius: 12, border: "none", background: "#111827", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                📊 Record Assessment
-              </button>
-            )}
-            <button
-              onClick={() => { setJustSaved(null); setView("list"); }}
-              style={{ padding: "12px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#f9fafb", color: "#6b7280", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+      {showForm && (
+        <form onSubmit={save} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 15, marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 900, color: C.text, marginBottom: 12 }}>
+            {occurrenceId ? "Complete the lesson record" : "Add a lesson record"}
+          </div>
+
+          <label style={{ display: "block", marginBottom: 11 }}>
+            <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>Lesson plan</span>
+            <select
+              required
+              disabled={Boolean(occurrenceId || requestedPlanId)}
+              value={form.lessonPlanId}
+              onChange={(event) => {
+                const plan = plans.find((item) => item.id === event.target.value);
+                setForm((current) => ({
+                  ...current,
+                  lessonPlanId: event.target.value,
+                  taughtDate: plan?.taught_date ?? current.taughtDate,
+                }));
+              }}
+              style={{ width: "100%", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, background: "#fff" }}
             >
-              Not now
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+              <option value="">Select lesson plan</option>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.subject_name} · {plan.class_name} · {plan.title}
+                </option>
+              ))}
+            </select>
+          </label>
 
-  if (view === "view" && activeNote) {
-    const note = activeNote;
-    const parMeta = PAR[note.participation_score ?? 3] ?? PAR[3];
-    const context = [note.subject_name, note.class_name].filter(Boolean).join(" · ");
-    return (
-      <div style={{ paddingBottom: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 12px", borderBottom: "1px solid #e5e7eb", background: "#fff" }}>
-          <button onClick={() => { setView("list"); setActiveNote(null); }} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #e5e7eb", background: "#f9fafb", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit", flexShrink: 0 }}>←</button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#111827" }}>{note.plan_topic || note.plan_title || "Progress Record"}</div>
-            <div style={{ fontSize: 12, color: "#6b7280" }}>{[formatDate(note.taught_date), context].filter(Boolean).join(" · ")}</div>
+          <label style={{ display: "block", marginBottom: 11 }}>
+            <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>Date taught</span>
+            <input
+              type="date"
+              required
+              disabled={Boolean(occurrenceId)}
+              value={form.taughtDate}
+              onChange={(event) => setForm((current) => ({ ...current, taughtDate: event.target.value }))}
+              style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }}
+            />
+          </label>
+
+          <label style={{ display: "block", marginBottom: 11 }}>
+            <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>What was taught</span>
+            <textarea
+              required
+              rows={4}
+              value={form.whatWasTaught}
+              onChange={(event) => setForm((current) => ({ ...current, whatWasTaught: event.target.value }))}
+              placeholder="Content covered, examples used and learner activities completed."
+              style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, resize: "vertical" }}
+            />
+          </label>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+            <label>
+              <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>Participation</span>
+              <select value={form.participationScore} onChange={(event) => setForm((current) => ({ ...current, participationScore: event.target.value }))} style={{ width: "100%", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, background: "#fff" }}>
+                <option value="">Not recorded</option>
+                <option value="1">1 · Very low</option>
+                <option value="2">2 · Low</option>
+                <option value="3">3 · Average</option>
+                <option value="4">4 · Good</option>
+                <option value="5">5 · Excellent</option>
+              </select>
+            </label>
+            <label>
+              <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>Homework / exercise</span>
+              <input value={form.homeworkSet} onChange={(event) => setForm((current) => ({ ...current, homeworkSet: event.target.value }))} placeholder="Task issued or textbook exercise" style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10 }} />
+            </label>
           </div>
+
+          <label style={{ display: "block", marginTop: 11 }}>
+            <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>Challenges / gaps</span>
+            <textarea rows={3} value={form.challenges} onChange={(event) => setForm((current) => ({ ...current, challenges: event.target.value }))} placeholder="Misconceptions, absent learners, time constraints or resources needed." style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, resize: "vertical" }} />
+          </label>
+
+          <label style={{ display: "block", marginTop: 11 }}>
+            <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>Teacher remarks</span>
+            <textarea rows={3} value={form.teacherRemarks} onChange={(event) => setForm((current) => ({ ...current, teacherRemarks: event.target.value }))} placeholder="Professional remarks on lesson delivery and learner response." style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, resize: "vertical" }} />
+          </label>
+
+          <label style={{ display: "block", marginTop: 11 }}>
+            <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 900, textTransform: "uppercase", marginBottom: 5 }}>Next teaching step</span>
+            <textarea rows={3} value={form.nextSteps} onChange={(event) => setForm((current) => ({ ...current, nextSteps: event.target.value }))} placeholder="Remediate, continue, revise, assess or prepare the next scheme item." style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${C.border}`, borderRadius: 10, padding: 10, resize: "vertical" }} />
+          </label>
+
+          <button disabled={saving} type="submit" style={{ marginTop: 13, width: "100%", border: 0, borderRadius: 11, padding: 11, background: saving ? "#9ca3af" : C.accent, color: "#fff", fontWeight: 900 }}>
+            {saving ? "Saving…" : "Save record of progress"}
+          </button>
+        </form>
+      )}
+
+      <section>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 9 }}>
+          <h2 style={{ margin: 0, color: C.text, fontSize: 16 }}>Recorded lessons</h2>
+          <span style={{ color: C.muted, fontSize: 11 }}>{records.length} records</span>
         </div>
-        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {error && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>{error}</div>}
-          {(note.plan_title || note.plan_topic) && (
-            <div style={{ background: "#ede9fe", borderRadius: 12, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: "#6d28d9", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 4 }}>Linked Plan</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#4c1d95" }}>{note.plan_topic ? note.plan_topic + (note.plan_title ? " — " + note.plan_title : "") : note.plan_title}</div>
-            </div>
-          )}
-          <div style={{ background: "#fff", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: "#6b7280", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>What Was Taught</div>
-            <div style={{ fontSize: 14, color: "#111827", lineHeight: 1.7 }}>{note.what_was_taught}</div>
+
+        {loading ? (
+          <div style={{ color: C.muted, fontSize: 13 }}>Loading records…</div>
+        ) : records.length === 0 ? (
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 18, color: C.muted, fontSize: 13 }}>
+            No lesson notes or records of progress have been saved yet.
           </div>
-          <div style={{ background: parMeta.bg, borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Learner Participation</div>
-            <div style={{ fontSize: 13, fontWeight: 800, padding: "5px 12px", borderRadius: 20, color: parMeta.color, background: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", gap: 5 }}>
-              <span>{parMeta.emoji}</span><span>{note.participation_score}/5 — {parMeta.label}</span>
-            </div>
-          </div>
-          {note.challenges && (
-            <div style={{ background: "#fffbeb", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "4px solid #f59e0b" }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: "#92400e", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>⚠️ Challenges Observed</div>
-              <div style={{ fontSize: 14, color: "#78350f", lineHeight: 1.7 }}>{note.challenges}</div>
-            </div>
-          )}
-          {note.homework_set && (
-            <div style={{ background: "#eff6ff", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", borderLeft: "4px solid #3b82f6" }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: "#1d4ed8", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 8 }}>📚 Homework Set</div>
-              <div style={{ fontSize: 14, color: "#1e3a8a", lineHeight: 1.7 }}>{note.homework_set}</div>
-            </div>
-          )}
-          {publishError && <div style={{ padding: "10px 14px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>{publishError}</div>}
-          {note.lesson_plan_id ? (
-            note.published ? (
-              <div style={{ background: "#d1fae5", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#065f46" }}>✓ Published — visible to parents &amp; students</div>
-                <button onClick={() => publishNote(note)} disabled={publishing === note.id} style={{ padding: "7px 12px", borderRadius: 8, border: "1.5px solid #065f46", background: "#fff", color: "#065f46", fontSize: 12, fontWeight: 700, cursor: publishing === note.id ? "not-allowed" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-                  {publishing === note.id ? "…" : "🔄 Sync"}
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => publishNote(note)} disabled={publishing === note.id} style={{ width: "100%", padding: "13px", borderRadius: 12, border: "none", background: publishing === note.id ? "#9ca3af" : "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: publishing === note.id ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-                {publishing === note.id ? "Publishing…" : "📣 Publish to Parents & Students"}
-              </button>
-            )
-          ) : (
-            <div style={{ background: "#f3f4f6", borderRadius: 12, padding: "12px 14px", fontSize: 12, color: "#6b7280", textAlign: "center" }}>
-              Link a lesson plan to this note (✏️ Edit) to enable publishing.
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <button onClick={() => openEdit(note)} style={{ flex: 1, padding: "13px", borderRadius: 12, border: "1.5px solid #e5e7eb", background: "#fff", color: "#111827", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
-            <button onClick={() => setConfirmDelete(note.id)} disabled={deleting} style={{ flex: 1, padding: "13px", borderRadius: 12, border: "1.5px solid #fecaca", background: "#fef2f2", color: "#991b1b", fontSize: 14, fontWeight: 700, cursor: deleting ? "not-allowed" : "pointer", opacity: deleting ? 0.6 : 1, fontFamily: "inherit" }}>
-              {deleting ? "Deleting…" : "🗑 Delete"}
-            </button>
-          </div>
-        </div>
-        {confirmDelete && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <div style={{ background: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 340 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#111827', marginBottom: 8 }}>Delete Record?</div>
-              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>This cannot be undone.</div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-                <button onClick={confirmDeleteNote} disabled={deleting} style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: deleting ? '#9ca3af' : '#ef4444', color: '#fff', fontWeight: 700, fontSize: 13, cursor: deleting ? 'not-allowed' : 'pointer' }}>
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </button>
-              </div>
-            </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {records.map((record) => (
+              <article key={record.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <div>
+                    <div style={{ color: C.text, fontSize: 14, fontWeight: 900 }}>{record.subject_name} · {record.class_name}</div>
+                    <div style={{ color: C.muted, fontSize: 10, marginTop: 3 }}>{formatDate(record.taught_date)}{record.plan_title ? ` · ${record.plan_title}` : ""}</div>
+                  </div>
+                  {record.teaching_occurrence_id && <span style={{ alignSelf: "flex-start", background: "#ecfdf5", color: "#047857", borderRadius: 999, padding: "4px 7px", fontSize: 8, fontWeight: 900, textTransform: "uppercase" }}>Verified occurrence</span>}
+                </div>
+                <p style={{ color: C.text, fontSize: 12, lineHeight: 1.55, margin: "10px 0 0" }}>{record.what_was_taught}</p>
+                {(record.teacher_remarks || record.next_steps || record.challenges || record.homework_set) && (
+                  <div style={{ marginTop: 10, borderTop: `1px solid ${C.border}`, paddingTop: 9, display: "grid", gap: 6 }}>
+                    {record.teacher_remarks && <div style={{ color: C.muted, fontSize: 11 }}><strong style={{ color: C.text }}>Remarks:</strong> {record.teacher_remarks}</div>}
+                    {record.next_steps && <div style={{ color: C.muted, fontSize: 11 }}><strong style={{ color: C.text }}>Next:</strong> {record.next_steps}</div>}
+                    {record.challenges && <div style={{ color: C.muted, fontSize: 11 }}><strong style={{ color: C.text }}>Challenges:</strong> {record.challenges}</div>}
+                    {record.homework_set && <div style={{ color: C.muted, fontSize: 11 }}><strong style={{ color: C.text }}>Homework:</strong> {record.homework_set}</div>}
+                  </div>
+                )}
+              </article>
+            ))}
           </div>
         )}
-      </div>
-    );
-  }
-
-  return null;
+      </section>
+    </main>
+  );
 }
