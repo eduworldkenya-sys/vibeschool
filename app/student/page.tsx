@@ -60,6 +60,32 @@ function tone(task: StudentTask) {
   return { accent: '#4f46e5', soft: '#eef2ff', text: '#3730a3' }
 }
 
+function minutes(value: string): number {
+  const [hour, minute] = value.split(':').map(Number)
+  return hour * 60 + minute
+}
+
+function nairobiNowMinutes(): number {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Nairobi',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date())
+  const hour = Number(parts.find(part => part.type === 'hour')?.value ?? 0)
+  const minute = Number(parts.find(part => part.type === 'minute')?.value ?? 0)
+  return hour * 60 + minute
+}
+
+function slotState(slot: TodaySlot, now: number): 'now' | 'next' | 'later' | 'done' {
+  const start = minutes(slot.start)
+  const end = minutes(slot.end)
+  if (now >= start && now < end) return 'now'
+  if (start > now) return 'next'
+  if (end <= now) return 'done'
+  return 'later'
+}
+
 export default function StudentHomePage() {
   const router = useRouter()
   const { identity, loading: identityLoading } = useStudent()
@@ -147,6 +173,8 @@ export default function StudentHomePage() {
   const motivation = data?.path.motivation
   const goal = motivation?.dailyGoal
   const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
+  const nowMinutes = nairobiNowMinutes()
+  const firstUpcomingId = data?.todaySlots.find(slot => minutes(slot.start) > nowMinutes)?.id ?? null
 
   if (identityLoading || (loading && !data)) {
     return <div style={{ display: 'grid', gap: 12 }}><Skel h={220} radius={22} /><Skel h={100} radius={16} /><Skel h={220} radius={16} /><Skel h={160} radius={16} /></div>
@@ -170,7 +198,7 @@ export default function StudentHomePage() {
         <p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · ${nextTask.subject} · ${taskMeta(nextTask)}` : 'Use the time to revise, read, or explore your learning path.'}</p>
         {nextTask
           ? <button type="button" disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={{ ...heroButton, opacity: launchingTaskId === nextTask.taskId ? .7 : 1 }}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button>
-          : <button type="button" onClick={() => router.push('/student/learn')} style={heroButton}>Open Learn</button>}
+          : <button type="button" onClick={() => router.push('/student/vibelearn')} style={heroButton}>Open Learn</button>}
       </div>
 
       <div style={{ marginTop: 14 }}>
@@ -206,14 +234,14 @@ export default function StudentHomePage() {
     </section>
 
     <section style={card}>
-      <SectionHeader title="Feedback and revision" action="View results" onClick={() => router.push('/student/results')} />
+      <SectionHeader title="Feedback and revision" action="View results" onClick={() => router.push('/student/marks')} />
       {feedbackTasks.length === 0
         ? <Empty title="Nothing waiting" body="Released results, teacher feedback and revision requests will appear here." />
         : <div style={{ display: 'grid', gap: 9 }}>{feedbackTasks.map(task => <button key={task.taskId} type="button" onClick={() => void openTask(task)} style={feedbackRow}><div><strong style={{ fontSize: 12 }}>{task.title}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 3 }}>{task.feedback || taskMeta(task)}</div></div><span style={{ color: task.status === 'returned' ? '#dc2626' : '#059669', fontWeight: 900 }}>›</span></button>)}</div>}
     </section>
 
     <section style={card}>
-      <SectionHeader title="Mastery pulse" action="My progress" onClick={() => router.push('/student/results')} />
+      <SectionHeader title="Mastery pulse" action="My progress" onClick={() => router.push('/student/marks')} />
       {(motivation?.subjectProgress.length ?? 0) === 0
         ? <Empty title="Progress is building" body="Subject mastery will appear after marked and verified learning work." />
         : <div style={{ display: 'grid', gap: 12 }}>{motivation?.subjectProgress.slice(0, 4).map(subject => {
@@ -223,7 +251,7 @@ export default function StudentHomePage() {
     </section>
 
     <section style={card}>
-      <SectionHeader title="Your learning path" action="Open Learn" onClick={() => router.push('/student/learn')} />
+      <SectionHeader title="Your learning path" action="Open Learn" onClick={() => router.push('/student/vibelearn')} />
       {(data?.path.recommendations.length ?? 0) === 0
         ? <Empty title="No recommendation yet" body="Your path will adapt as teachers release feedback and your mastery evidence grows." />
         : <div style={{ display: 'grid', gap: 9 }}>{data?.path.recommendations.slice(0, 3).map(item => <div key={item.id} style={recommendation}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong style={{ fontSize: 12 }}>{item.title}</strong><span style={recommendationBadge}>{item.type.replaceAll('_', ' ')}</span></div><p style={{ margin: '5px 0 0', fontSize: 10, lineHeight: 1.5, color: 'var(--vs-muted)' }}>{item.reason}</p></div>)}</div>}
@@ -233,42 +261,45 @@ export default function StudentHomePage() {
       <SectionHeader title="Today at school" action="Full timetable" onClick={() => router.push('/student/timetable')} />
       {(data?.todaySlots.length ?? 0) === 0
         ? <Empty title="No lessons scheduled today" body="Use the time for your learning queue or revision." />
-        : <div style={{ display: 'grid', gap: 8 }}>{data?.todaySlots.map((slot, index) => <div key={slot.id} style={slotRow}><div style={slotTime}>{slot.start}</div><div><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 2 }}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></div>{index === 0 && <span style={nowBadge}>TODAY</span>}</div>)}</div>}
+        : <div style={{ display: 'grid', gap: 8 }}>{data?.todaySlots.map(slot => {
+            const state = slotState(slot, nowMinutes)
+            const badge = state === 'now' ? 'NOW' : slot.id === firstUpcomingId ? 'NEXT' : null
+            return <div key={slot.id} style={{ ...slotRow, opacity: state === 'done' ? .55 : 1 }}><div style={slotTime}>{slot.start}</div><div><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={{ fontSize: 10, color: 'var(--vs-muted)', marginTop: 2 }}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></div>{badge && <span style={badge === 'NOW' ? nowBadge : nextBadge}>{badge}</span>}</div>
+          })}</div>}
     </section>
 
     <section style={quickGrid}>
-      <Quick label="Learn" note="Books and resources" onClick={() => router.push('/student/learn')} />
-      <Quick label="Tasks" note="All assigned work" onClick={() => router.push('/student/tasks')} />
-      <Quick label="Results" note="Scores and feedback" onClick={() => router.push('/student/results')} />
-      <Quick label="School" note="Fees and records" onClick={() => router.push('/student/fees')} />
+      <Quick title="Learn" body="Books and study resources" onClick={() => router.push('/student/vibelearn')} />
+      <Quick title="Tasks" body="All assigned work" onClick={() => router.push('/student/tasks')} />
+      <Quick title="Results" body="Marks and feedback" onClick={() => router.push('/student/marks')} />
+      <Quick title="School" body="Timetable and records" onClick={() => router.push('/student/profile')} />
     </section>
   </div>
 }
 
-function SectionHeader({ title, action, onClick }: { title: string; action: string; onClick: () => void }) {
-  return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 14 }}>{title}</h2><button type="button" onClick={onClick} style={linkButton}>{action}</button></div>
-}
-function Empty({ title, body }: { title: string; body: string }) { return <div style={{ textAlign: 'center', padding: '18px 8px' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={{ margin: '5px 0 0', fontSize: 10, color: 'var(--vs-muted)', lineHeight: 1.5 }}>{body}</p></div> }
-function Pulse({ label, value, note, tone }: { label: string; value: string | number; note: string; tone: string }) { return <div style={pulse}><strong style={{ fontSize: 18, color: tone }}>{value}</strong><span style={{ fontSize: 10, fontWeight: 800 }}>{label}</span><span style={{ fontSize: 9, color: 'var(--vs-muted)' }}>{note}</span></div> }
-function Quick({ label, note, onClick }: { label: string; note: string; onClick: () => void }) { return <button type="button" onClick={onClick} style={quick}><strong style={{ fontSize: 12 }}>{label}</strong><span style={{ fontSize: 9, color: 'var(--vs-muted)', marginTop: 3 }}>{note}</span></button> }
+function SectionHeader({ title, action, onClick }: { title: string; action: string; onClick: () => void }) { return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 12 }}><h2 style={{ margin: 0, fontSize: 14 }}>{title}</h2><button type="button" onClick={onClick} style={linkButton}>{action}</button></div> }
+function Pulse({ label, value, note, tone: color }: { label: string; value: string | number; note: string; tone: string }) { return <div style={pulse}><strong style={{ fontSize: 19, color }}>{value}</strong><span style={{ fontSize: 10, fontWeight: 800 }}>{label}</span><span style={{ fontSize: 9, color: 'var(--vs-muted)' }}>{note}</span></div> }
+function Empty({ title, body }: { title: string; body: string }) { return <div style={{ textAlign: 'center', padding: '18px 8px' }}><strong style={{ fontSize: 12 }}>{title}</strong><p style={{ margin: '5px 0 0', color: 'var(--vs-muted)', fontSize: 10 }}>{body}</p></div> }
+function Quick({ title, body, onClick }: { title: string; body: string; onClick: () => void }) { return <button type="button" onClick={onClick} style={quick}><strong style={{ fontSize: 12 }}>{title}</strong><span style={{ fontSize: 9, color: 'var(--vs-muted)', marginTop: 3 }}>{body}</span></button> }
 
-const hero: React.CSSProperties = { background: 'linear-gradient(140deg,#111827,#312e81 58%,#4f46e5)', color: '#fff', borderRadius: 22, padding: 18, marginBottom: 14, boxShadow: '0 14px 30px rgba(49,46,129,.22)' }
-const heroDate: React.CSSProperties = { fontSize: 9, letterSpacing: .9, fontWeight: 800, color: 'rgba(255,255,255,.62)' }
-const heroSub: React.CSSProperties = { margin: 0, fontSize: 11, color: 'rgba(255,255,255,.72)' }
+const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#1e1b4b,#4f46e5)', color: '#fff', borderRadius: 22, padding: 18, marginBottom: 14, boxShadow: '0 14px 30px rgba(79,70,229,.22)' }
+const heroDate: React.CSSProperties = { fontSize: 9, fontWeight: 900, letterSpacing: 1, color: 'rgba(255,255,255,.65)' }
+const heroSub: React.CSSProperties = { margin: 0, fontSize: 11, color: 'rgba(255,255,255,.75)' }
 const heroButton: React.CSSProperties = { width: '100%', marginTop: 12, border: 'none', borderRadius: 11, padding: '11px 14px', background: '#fff', color: '#3730a3', fontFamily: 'inherit', fontWeight: 900, cursor: 'pointer' }
-const heroTrack: React.CSSProperties = { height: 7, borderRadius: 999, overflow: 'hidden', background: 'rgba(255,255,255,.18)' }
-const card: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 16, padding: 15, marginBottom: 14 }
+const heroTrack: React.CSSProperties = { height: 7, borderRadius: 999, background: 'rgba(255,255,255,.2)', overflow: 'hidden' }
+const card: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 16, padding: 14, marginBottom: 14 }
 const pulseGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginBottom: 14 }
-const pulse: React.CSSProperties = { minWidth: 0, background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 13, padding: '10px 5px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }
-const track: React.CSSProperties = { height: 6, marginTop: 7, borderRadius: 999, background: 'var(--vs-border)', overflow: 'hidden' }
-const taskButton: React.CSSProperties = { width: '100%', marginTop: 10, border: 'none', borderRadius: 10, padding: '9px 11px', color: '#fff', fontFamily: 'inherit', fontSize: 10, fontWeight: 900, cursor: 'pointer' }
-const feedbackRow: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)', color: 'var(--vs-text)', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }
-const recommendation: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 11, padding: 11, background: 'var(--vs-soft)' }
-const recommendationBadge: React.CSSProperties = { flex: '0 0 auto', padding: '3px 7px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }
-const slotRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '45px 1fr auto', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--vs-border)' }
-const slotTime: React.CSSProperties = { fontSize: 11, fontWeight: 900, color: 'var(--vs-accent)' }
-const nowBadge: React.CSSProperties = { padding: '3px 6px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontSize: 8, fontWeight: 900 }
-const quickGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9, marginBottom: 6 }
-const quick: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 13, borderRadius: 13, border: '1px solid var(--vs-border)', background: 'var(--vs-card)', color: 'var(--vs-text)', fontFamily: 'inherit', cursor: 'pointer' }
-const linkButton: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--vs-accent)', fontFamily: 'inherit', fontSize: 9, fontWeight: 900, cursor: 'pointer' }
-const retryButton: React.CSSProperties = { marginLeft: 10, border: 'none', borderRadius: 8, padding: '6px 9px', background: '#fee2e2', color: '#991b1b', fontFamily: 'inherit', fontSize: 10, fontWeight: 800, cursor: 'pointer' }
+const pulse: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 13, padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textAlign: 'center' }
+const track: React.CSSProperties = { height: 6, background: 'var(--vs-soft)', borderRadius: 999, overflow: 'hidden', marginTop: 8 }
+const taskButton: React.CSSProperties = { width: '100%', marginTop: 10, border: 'none', borderRadius: 9, padding: '9px 12px', color: '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 11, cursor: 'pointer' }
+const feedbackRow: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', textAlign: 'left', padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)', fontFamily: 'inherit', color: 'var(--vs-text)', cursor: 'pointer' }
+const recommendation: React.CSSProperties = { padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)' }
+const recommendationBadge: React.CSSProperties = { flex: '0 0 auto', padding: '3px 7px', borderRadius: 999, background: '#eef2ff', color: '#3730a3', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }
+const slotRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '50px minmax(0,1fr) auto', gap: 10, alignItems: 'center', padding: 10, borderRadius: 11, background: 'var(--vs-soft)' }
+const slotTime: React.CSSProperties = { fontSize: 11, fontWeight: 900, color: '#4f46e5' }
+const nowBadge: React.CSSProperties = { fontSize: 8, fontWeight: 900, color: '#065f46', background: '#d1fae5', padding: '4px 7px', borderRadius: 999 }
+const nextBadge: React.CSSProperties = { fontSize: 8, fontWeight: 900, color: '#3730a3', background: '#e0e7ff', padding: '4px 7px', borderRadius: 999 }
+const quickGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginBottom: 12 }
+const quick: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 13, border: '1px solid var(--vs-border)', borderRadius: 12, background: 'var(--vs-card)', fontFamily: 'inherit', color: 'var(--vs-text)', cursor: 'pointer', textAlign: 'left' }
+const linkButton: React.CSSProperties = { border: 'none', background: 'transparent', color: '#4f46e5', fontFamily: 'inherit', fontWeight: 800, fontSize: 10, cursor: 'pointer' }
+const retryButton: React.CSSProperties = { marginLeft: 10, border: '1px solid #fecaca', borderRadius: 8, padding: '5px 9px', background: '#fff', color: '#991b1b', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer' }
