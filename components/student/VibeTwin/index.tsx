@@ -9,9 +9,9 @@ import TwinHeader from './ui/TwinHeader'
 import TwinMessages from './ui/TwinMessages'
 import TwinInput from './ui/TwinInput'
 import { T } from './ui/TwinHeader'
-import { askLearnerTwin, getLearnerTwinState, type LearnerTwinChatMessage } from '@/lib/student/twin'
+import { askLearnerTwin, type LearnerTwinChatMessage } from '@/lib/student/twin'
 
-export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
+export default function VibeTwin({ isOpen, onClose, userName, learnerState }: VibeTwinProps) {
   const [input, setInput] = useState('')
   const [mode, setMode] = useState<TwinMode>('text')
 
@@ -33,33 +33,18 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
   useEffect(() => {
     if (!isOpen || greeted) return
     setGreeted(true)
-    let cancelled = false
+    const now = learnerState?.decision.now
+    const weakest = learnerState?.mastery.outcomes[0]
+    const greeting = now
+      ? `${userName}, ${now.title} is your best next step.${now.reason ? ` ${now.reason}` : ''}`
+      : weakest
+        ? `${userName}, you are caught up on assigned work. We can strengthen ${weakest.outcomeText} next.`
+        : `${userName}, I am ready to help with your current schoolwork. As verified evidence builds, I will adapt what we do next.`
 
-    async function greetFromState() {
-      let greeting: string
-      try {
-        const state = await getLearnerTwinState()
-        if (cancelled) return
-        const now = state.decision.now
-        if (now) {
-          greeting = `${userName}, ${now.title} is your best next step.${now.reason ? ` ${now.reason}` : ''}`
-        } else if (state.mastery.outcomes[0]) {
-          greeting = `${userName}, you are caught up on assigned work. We can strengthen ${state.mastery.outcomes[0].outcomeText} next.`
-        } else {
-          greeting = `${userName}, you are caught up. As you complete verified work, I will use that evidence to guide what comes next.`
-        }
-      } catch {
-        if (cancelled) return
-        greeting = `${userName}, I am ready to help with your current schoolwork.`
-      }
-      addMessage('twin', greeting)
-      const timer = setTimeout(() => speak(greeting), 300)
-      if (cancelled) clearTimeout(timer)
-    }
-
-    void greetFromState()
-    return () => { cancelled = true }
-  }, [isOpen, userName, greeted, setGreeted, addMessage, speak])
+    addMessage('twin', greeting)
+    const timer = setTimeout(() => speak(greeting), 300)
+    return () => clearTimeout(timer)
+  }, [isOpen, userName, greeted, setGreeted, addMessage, speak, learnerState])
 
   function finish(response: string, shouldSpeak = false) {
     addMessage('twin', response)
