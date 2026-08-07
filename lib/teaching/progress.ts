@@ -85,11 +85,11 @@ export async function saveTeachingProgressRecord(
   const { data, error } = await supabase.rpc('save_teaching_progress_record', {
     p_occurrence_id: input.occurrenceId,
     p_what_was_taught: input.whatWasTaught,
-    p_participation_score: input.participationScore ?? null,
-    p_challenges: input.challenges ?? null,
-    p_homework_set: input.homeworkSet ?? null,
-    p_teacher_remarks: input.teacherRemarks ?? null,
-    p_next_steps: input.nextSteps ?? null,
+    p_participation_score: input.participationScore ?? undefined,
+    p_challenges: input.challenges ?? undefined,
+    p_homework_set: input.homeworkSet ?? undefined,
+    p_teacher_remarks: input.teacherRemarks ?? undefined,
+    p_next_steps: input.nextSteps ?? undefined,
   })
 
   if (error) throw normalizeError(error)

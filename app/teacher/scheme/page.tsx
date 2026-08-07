@@ -44,7 +44,7 @@ interface ClassOption    { id: string; label: string; grade: string }
 interface SubjectOption  { id: string; label: string }
 interface TermRecord     { id: string; name: string; term: number; academic_year: number; start_date: string; end_date: string; status: string; school_id: string }
 interface CurriculumRow  { id: string; grade: string; subject: string; strand: string; sub_strand: string | null; topic: string; week: number; term: number }
-interface SchemeItem     { id: string; curriculum_id: string | null; curriculum_content_id: string | null; week: number; strand: string | null; sub_strand: string | null; topic: string; status: string; source: string; lesson_number: number | null; reflection: string | null; objectives: string | null; key_inquiry_question: string | null; learning_resources: string | null; assessment_methods: string | null; learning_experiences: string | null }
+interface SchemeItem     { id: string; curriculum_id: string | null; curriculum_content_id: string | null; week: number; strand: string | null; sub_strand: string | null; topic: string; status: string; source: string; lesson_number: number | null; sequence_number: number | null; reflection: string | null; objectives: string | null; key_inquiry_question: string | null; learning_resources: string | null; assessment_methods: string | null; learning_experiences: string | null }
 interface EbookSuggestion {
   classLibraryId: string
   resourceId: string
@@ -545,7 +545,7 @@ function SchemePageInner() {
 
     const { data, error } = await supabase
       .from('scheme_of_work')
-      .select('id,curriculum_id,curriculum_content_id,week,strand,sub_strand,topic,status,source,lesson_number,reflection,objectives,key_inquiry_question,learning_resources,assessment_methods,learning_experiences')
+      .select('id,curriculum_id,curriculum_content_id,week,strand,sub_strand,topic,status,source,lesson_number,sequence_number,reflection,objectives,key_inquiry_question,learning_resources,assessment_methods,learning_experiences')
       .eq('teacher_id', uid)
       .eq('class_id', selectedClass)
       .eq('subject_id', selectedSubject)
@@ -1011,7 +1011,20 @@ function SchemePageInner() {
       }))
     }
 
-    const payloads = curriculumRows.map(row => ({
+    const nextSequence =
+      schemeItems.reduce(
+        (max, item) => Math.max(max, item.sequence_number ?? 0),
+        0
+      ) + 1
+
+    const orderedCurriculumRows = [...curriculumRows].sort(
+      (a, b) =>
+        a.week - b.week ||
+        a.topic.localeCompare(b.topic) ||
+        a.id.localeCompare(b.id)
+    )
+
+    const payloads = orderedCurriculumRows.map((row, index) => ({
       school_id: schoolId,
       teacher_id: uid,
       class_id: selectedClass,
@@ -1028,7 +1041,8 @@ function SchemePageInner() {
       sub_strand: row.sub_strand,
       topic: row.topic,
       status: 'planned',
-      source: 'curriculum'
+      source: 'curriculum',
+      sequence_number: nextSequence + index
     }))
 
     const { error } = await supabase.from('scheme_of_work').insert(payloads)
@@ -1063,6 +1077,12 @@ function SchemePageInner() {
       return
     }
 
+    const nextSequence =
+      schemeItems.reduce(
+        (max, item) => Math.max(max, item.sequence_number ?? 0),
+        0
+      ) + 1
+
     const payload = {
       school_id: schoolId,
       teacher_id: uid,
@@ -1080,7 +1100,8 @@ function SchemePageInner() {
       sub_strand: null,
       topic: topic,
       status: 'planned',
-      source: 'custom'
+      source: 'custom',
+      sequence_number: nextSequence
     }
 
     const {
