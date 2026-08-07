@@ -5,6 +5,10 @@ type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
+const TWIN_CACHE_TTL_MS = 30_000
+let twinCache: { userId: string; state: LearnerTwinState; loadedAt: number } | null = null
+let twinInFlight: { userId: string; promise: Promise<LearnerTwinState> } | null = null
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
@@ -292,10 +296,7 @@ function parseMemoryClaims(value: unknown): TwinMemoryClaim[] {
   })
 }
 
-export async function getLearnerTwinState(): Promise<LearnerTwinState> {
-  const { data, error } = await rpc<Json>('student_get_twin_brain')
-  if (error) throw new Error(error.message || 'Your learning state could not be loaded.')
-
+function parseLearnerTwinState(data: Json | null): LearnerTwinState {
   const state = record(data)
   const mastery = record(state.mastery)
   const prediction = record(state.prediction)
@@ -372,10 +373,37 @@ export async function getLearnerTwinState(): Promise<LearnerTwinState> {
   }
 }
 
-export async function getLearnerTutorContext(): Promise<Json> {
-  const { data, error } = await rpc<Json>('student_get_twin_tutor_context')
-  if (error) throw new Error(error.message || 'Tutor context could not be loaded.')
-  return data ?? {}
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user.id ?? 'unauthenticated'
+}
+
+async function loadLearnerTwinState(): Promise<LearnerTwinState> {
+  const { data, error } = await rpc<Json>('student_get_twin_brain_cached')
+  if (error) throw new Error(error.message || 'Your learning state could not be loaded.')
+  return parseLearnerTwinState(data)
+}
+
+export async function getLearnerTwinState(options: { force?: boolean } = {}): Promise<LearnerTwinState> {
+  const userId = await currentUserId()
+  const fresh = twinCache && twinCache.userId === userId && Date.now() - twinCache.loadedAt < TWIN_CACHE_TTL_MS
+  if (!options.force && fresh && twinCache) return twinCache.state
+  if (!options.force && twinInFlight?.userId === userId) return twinInFlight.promise
+
+  const promise = loadLearnerTwinState()
+  twinInFlight = { userId, promise }
+  try {
+    const state = await promise
+    twinCache = { userId, state, loadedAt: Date.now() }
+    return state
+  } finally {
+    if (twinInFlight?.promise === promise) twinInFlight = null
+  }
+}
+
+export function invalidateLearnerTwinState(): void {
+  twinCache = null
+  twinInFlight = null
 }
 
 export async function askLearnerTwin(input: { messages: LearnerTwinChatMessage[]; firstName: string }): Promise<string> {
