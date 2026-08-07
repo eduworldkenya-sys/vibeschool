@@ -314,6 +314,7 @@ export default function TwinWorkspaceProvider({ children }: { children: React.Re
   const [workspaceLoading, setWorkspaceLoading] = useState(false)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
   const loadedWorkspaceForStudentRef = useRef<string | null>(null)
+  const attemptedBrainForStudentRef = useRef<string | null>(null)
 
   const refreshBrain = useCallback(async (force = false) => {
     if (!identity?.studentId) return null
@@ -321,9 +322,14 @@ export default function TwinWorkspaceProvider({ children }: { children: React.Re
     setBrainError(null)
     try {
       const nextBrain = await getLearnerTwinState({ force })
+      if (nextBrain.studentId && nextBrain.studentId !== identity.studentId) {
+        throw new Error("Your Twin state does not match the active learner profile.")
+      }
       setBrain(nextBrain)
+      attemptedBrainForStudentRef.current = identity.studentId
       return nextBrain
     } catch (cause) {
+      attemptedBrainForStudentRef.current = identity.studentId
       setBrainError(cause instanceof Error ? cause.message : "Your Twin state could not be loaded.")
       return null
     } finally {
@@ -358,10 +364,14 @@ export default function TwinWorkspaceProvider({ children }: { children: React.Re
     if (!identity?.studentId) {
       setBrain(null)
       setBrainError(null)
+      attemptedBrainForStudentRef.current = null
       loadedWorkspaceForStudentRef.current = null
       return
     }
-    if (brain?.studentId !== identity.studentId && !brainLoading) void refreshBrain(false)
+    if (brain?.studentId === identity.studentId) return
+    if (attemptedBrainForStudentRef.current === identity.studentId || brainLoading) return
+    attemptedBrainForStudentRef.current = identity.studentId
+    void refreshBrain(false)
   }, [brain?.studentId, brainLoading, identity?.studentId, refreshBrain])
 
   useEffect(() => {
@@ -369,7 +379,6 @@ export default function TwinWorkspaceProvider({ children }: { children: React.Re
     if (loadedWorkspaceForStudentRef.current !== identity.studentId && !workspaceLoading) void refreshWorkspace()
   }, [identity?.studentId, isOpen, refreshWorkspace, view, workspaceLoading])
 
-  const brainReadyForIdentity = !identity?.studentId || brain?.studentId === identity.studentId || brainError !== null
   const value = useMemo<TwinWorkspaceContextValue>(() => ({
     isOpen,
     openTwin,
@@ -382,12 +391,13 @@ export default function TwinWorkspaceProvider({ children }: { children: React.Re
 
   return (
     <TwinWorkspaceContext.Provider value={value}>
-      {brainReadyForIdentity ? children : <div style={{ minHeight: "45vh", display: "grid", placeItems: "center", color: "var(--vs-muted)", fontSize: 13 }}>Preparing your learning state…</div>}
+      {children}
       <button
         onClick={() => openTwin("home")}
-        aria-label="Open VibeTwin learning workspace"
+        aria-label={brainError ? "Open VibeTwin learning workspace (limited mode)" : "Open VibeTwin learning workspace"}
         aria-expanded={isOpen}
-        style={{ position: "fixed", right: 16, bottom: "calc(78px + env(safe-area-inset-bottom))", zIndex: 10010, width: 54, height: 54, borderRadius: 18, border: "1px solid rgba(255,255,255,.18)", background: "var(--vs-accent)", color: "white", boxShadow: "0 12px 28px rgba(91,78,232,.34)", fontSize: 22, fontWeight: 900, cursor: "pointer", display: isOpen || !brainReadyForIdentity ? "none" : "grid", placeItems: "center" }}
+        title={brainError ? "Twin is temporarily limited. The rest of Student OS remains available." : undefined}
+        style={{ position: "fixed", right: 16, bottom: "calc(78px + env(safe-area-inset-bottom))", zIndex: 10010, width: 54, height: 54, borderRadius: 18, border: brainError ? "2px solid var(--vs-warning)" : "1px solid rgba(255,255,255,.18)", background: "var(--vs-accent)", color: "white", boxShadow: "0 12px 28px rgba(91,78,232,.34)", fontSize: 22, fontWeight: 900, cursor: "pointer", display: isOpen ? "none" : "grid", placeItems: "center" }}
       >✦</button>
 
       <TwinWorkspaceDrawer
