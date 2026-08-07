@@ -166,6 +166,31 @@ export interface LearnerTwinChatMessage {
   content: string
 }
 
+export interface AdaptivePracticeQuestion {
+  id: string
+  outcomeId: string
+  outcomeCode: string | null
+  outcomeText: string
+  subjectId: string | null
+  prompt: string
+  options: string[]
+  difficulty: 'scaffolded' | 'easy' | 'medium' | 'hard' | 'challenge'
+  hints: string[]
+  masteryBefore: number | null
+  effectiveMasteryBefore: number | null
+  forgettingRisk: number
+}
+
+export interface AdaptivePracticeAnswerResult {
+  correct: boolean
+  correctIndex: number
+  explanation: string
+  masteryAfter: number | null
+  effectiveMasteryAfter: number | null
+  forgettingRiskAfter: number | null
+  nextQuestion: AdaptivePracticeQuestion | null
+}
+
 function parseDecision(value: unknown): TwinDecision | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const item = record(value)
@@ -296,6 +321,32 @@ function parseMemoryClaims(value: unknown): TwinMemoryClaim[] {
   })
 }
 
+function parseAdaptivePracticeQuestion(value: unknown): AdaptivePracticeQuestion | null {
+  const row = record(value)
+  const id = text(row.id)
+  const outcomeId = text(row.outcome_id)
+  const prompt = text(row.prompt)
+  const outcomeText = text(row.outcome_text)
+  const difficulty = text(row.difficulty)
+  const options = strings(row.options)
+  if (!id || !outcomeId || !prompt || !outcomeText || !difficulty || options.length < 2) return null
+  if (!['scaffolded','easy','medium','hard','challenge'].includes(difficulty)) return null
+  return {
+    id,
+    outcomeId,
+    outcomeCode: text(row.outcome_code),
+    outcomeText,
+    subjectId: text(row.subject_id),
+    prompt,
+    options,
+    difficulty: difficulty as AdaptivePracticeQuestion['difficulty'],
+    hints: strings(row.hints),
+    masteryBefore: numberOrNull(row.mastery_before),
+    effectiveMasteryBefore: numberOrNull(row.effective_mastery_before),
+    forgettingRisk: numberOrNull(row.forgetting_risk) ?? 0,
+  }
+}
+
 function parseLearnerTwinState(data: Json | null): LearnerTwinState {
   const state = record(data)
   const mastery = record(state.mastery)
@@ -404,6 +455,30 @@ export async function getLearnerTwinState(options: { force?: boolean } = {}): Pr
 export function invalidateLearnerTwinState(): void {
   twinCache = null
   twinInFlight = null
+}
+
+export async function generateAdaptivePracticeQuestion(outcomeId: string | null = null): Promise<AdaptivePracticeQuestion> {
+  const { data, error } = await rpc<Json>('student_generate_adaptive_practice_question', { p_outcome_id: outcomeId })
+  if (error) throw new Error(error.message || 'Adaptive practice could not be prepared.')
+  const question = parseAdaptivePracticeQuestion(data)
+  if (!question) throw new Error('Adaptive practice returned an invalid question.')
+  return question
+}
+
+export async function answerAdaptivePracticeQuestion(input: { questionId: string; selectedIndex: number; responseMs?: number | null }): Promise<AdaptivePracticeAnswerResult> {
+  const { data, error } = await rpc<Json>('student_answer_adaptive_practice_question', { p_question_id: input.questionId, p_selected_index: input.selectedIndex, p_response_ms: input.responseMs ?? null })
+  if (error) throw new Error(error.message || 'Your adaptive-practice answer could not be recorded.')
+  const row = record(data)
+  invalidateLearnerTwinState()
+  return {
+    correct: boolean(row.correct),
+    correctIndex: numberOrNull(row.correct_index) ?? 0,
+    explanation: text(row.explanation) ?? 'Review the outcome and try another question.',
+    masteryAfter: numberOrNull(row.mastery_after),
+    effectiveMasteryAfter: numberOrNull(row.effective_mastery_after),
+    forgettingRiskAfter: numberOrNull(row.forgetting_risk_after),
+    nextQuestion: parseAdaptivePracticeQuestion(row.next_question),
+  }
 }
 
 export async function askLearnerTwin(input: { messages: LearnerTwinChatMessage[]; firstName: string }): Promise<string> {
