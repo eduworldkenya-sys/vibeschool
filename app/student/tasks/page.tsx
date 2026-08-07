@@ -9,6 +9,7 @@ import {
   getPersonalizedLearningPath,
   listMyTasks,
   resolveTaskLaunch,
+  syncTaskExecutionReceipt,
   type StudentPersonalizedPath,
   type StudentTask,
   type StudentTaskFeed,
@@ -65,6 +66,7 @@ export default function TasksPage() {
     setError('')
     try {
       const launch = await resolveTaskLaunch(task.taskId)
+      await syncTaskExecutionReceipt(task.taskId)
       router.push(launch.actionUrl)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Task could not be opened.')
@@ -125,14 +127,14 @@ const card: React.CSSProperties = { background: 'var(--vs-card)', border: '1px s
 const missionButton: React.CSSProperties = { marginTop: 14, width: '100%', border: 'none', borderRadius: 11, padding: '11px 14px', background: '#fff', color: '#4338ca', fontFamily: 'inherit', fontWeight: 900, cursor: 'pointer' }
 const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 7, marginBottom: 14 }
 const stat: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 12, padding: '10px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }
-const sectionTitle: React.CSSProperties = { fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: .7, marginBottom: 10, color: 'var(--vs-muted)' }
-const achievementRow: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center', padding: 10, borderRadius: 11, background: 'var(--vs-soft)' }
-const recommendationRow: React.CSSProperties = { padding: 11, border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-soft)' }
-const recommendationBadge: React.CSSProperties = { flex: '0 0 auto', padding: '3px 7px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontSize: 9, fontWeight: 800 }
+const sectionTitle: React.CSSProperties = { fontSize: 10, fontWeight: 900, letterSpacing: .8, textTransform: 'uppercase', color: 'var(--vs-muted)', marginBottom: 10 }
+const recommendationRow: React.CSSProperties = { borderRadius: 12, padding: 11, background: 'var(--vs-surface)', border: '1px solid var(--vs-border)' }
+const recommendationBadge: React.CSSProperties = { fontSize: 8, fontWeight: 900, textTransform: 'uppercase', letterSpacing: .6, color: 'var(--vs-accent)', background: 'var(--vs-accent-soft)', padding: '3px 6px', borderRadius: 999, whiteSpace: 'nowrap' }
+const achievementRow: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center', padding: 9, borderRadius: 11, background: 'var(--vs-surface)' }
+const timelineRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '10px 1fr', gap: 8, alignItems: 'start' }
+const timelineDot: React.CSSProperties = { width: 7, height: 7, marginTop: 4, borderRadius: 999, background: 'var(--vs-accent)' }
 const track: React.CSSProperties = { height: 6, marginTop: 5, borderRadius: 999, background: 'var(--vs-border)', overflow: 'hidden' }
-const timelineRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '12px 1fr', gap: 9, alignItems: 'flex-start' }
-const timelineDot: React.CSSProperties = { width: 8, height: 8, marginTop: 4, borderRadius: 999, background: 'var(--vs-accent)' }
-const filterButton: React.CSSProperties = { flex: '0 0 auto', border: '1px solid var(--vs-border)', borderRadius: 999, padding: '7px 12px', background: 'var(--vs-card)', color: 'var(--vs-muted)', fontFamily: 'inherit', fontSize: 10, fontWeight: 800, cursor: 'pointer' }
-const activeFilter: React.CSSProperties = { borderColor: 'var(--vs-accent)', background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)' }
-const taskButton: React.CSSProperties = { marginTop: 12, width: '100%', border: 'none', borderRadius: 10, padding: '10px 12px', color: '#fff', fontFamily: 'inherit', fontSize: 11, fontWeight: 900, cursor: 'pointer' }
-const smallButton: React.CSSProperties = { border: 'none', borderRadius: 8, padding: '6px 9px', background: '#fee2e2', color: '#991b1b', fontFamily: 'inherit', fontSize: 10, fontWeight: 800, cursor: 'pointer' }
+const filterButton: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 999, background: 'var(--vs-card)', color: 'var(--vs-muted)', padding: '7px 12px', fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer' }
+const activeFilter: React.CSSProperties = { background: 'var(--vs-accent)', color: '#fff', borderColor: 'var(--vs-accent)' }
+const taskButton: React.CSSProperties = { width: '100%', marginTop: 12, border: 'none', borderRadius: 9, padding: '9px 12px', color: '#fff', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer' }
+const smallButton: React.CSSProperties = { border: 'none', borderRadius: 7, padding: '5px 8px', background: '#fee2e2', color: '#991b1b', fontWeight: 800, cursor: 'pointer' }
