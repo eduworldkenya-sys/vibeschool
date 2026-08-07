@@ -51,6 +51,22 @@ function parseResult(data: unknown): StudentHomeworkSubmissionResult {
   }
 }
 
+type RpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message?: string } | null }>
+}
+
+async function syncExecutionReceipt(client: RpcClient, homeworkId: string): Promise<void> {
+  const { error } = await client.rpc('student_sync_task_execution_receipt', {
+    p_task_id: `homework:${homeworkId}`,
+  })
+  if (error) {
+    throw new Error(error.message || 'Homework progress could not be synchronized.')
+  }
+}
+
 async function callSubmissionRpc(
   name: 'save_student_homework_draft' | 'submit_student_homework',
   input: {
@@ -59,14 +75,10 @@ async function callSubmissionRpc(
     photoUrl?: string | null
   },
 ): Promise<StudentHomeworkSubmissionResult> {
-  // The migration and generated database types land together. This narrow cast
-  // keeps the service usable before the next Supabase type regeneration.
-  const client = supabase as unknown as {
-    rpc: (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => Promise<{ data: unknown; error: { message?: string } | null }>
-  }
+  // Submission and task execution authority land in additive migrations. This
+  // narrow cast avoids coupling the client to generated RPC types between
+  // schema regeneration cycles.
+  const client = supabase as unknown as RpcClient
 
   const { data, error } = await client.rpc(name, {
     p_homework_id: input.homeworkId,
@@ -83,7 +95,9 @@ async function callSubmissionRpc(
     )
   }
 
-  return parseResult(data)
+  const result = parseResult(data)
+  await syncExecutionReceipt(client, input.homeworkId)
+  return result
 }
 
 export function saveStudentHomeworkDraft(input: {
