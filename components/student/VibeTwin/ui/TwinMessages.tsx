@@ -14,7 +14,6 @@ interface TwinMessagesProps {
 export default function TwinMessages({ messages, twinState }: TwinMessagesProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Auto scroll to latest message
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -24,7 +23,6 @@ export default function TwinMessages({ messages, twinState }: TwinMessagesProps)
   return (
     <div
       ref={scrollRef}
-      // aria-live so screen readers announce new twin responses
       aria-live="polite"
       aria-label="Conversation"
       style={{
@@ -37,54 +35,36 @@ export default function TwinMessages({ messages, twinState }: TwinMessagesProps)
         WebkitOverflowScrolling: 'touch',
       }}
     >
-      {messages.map(msg => (
-        <div
-          key={msg.id}
-          style={{
-            display:        'flex',
-            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-          }}
-        >
-          {msg.role === 'twin' && (
-            <div
-              aria-hidden="true"
-              style={{
-                width:          28,
-                height:         28,
-                borderRadius:   '50%',
-                flexShrink:     0,
-                background:     T.accentBg,
-                border:         `1px solid ${T.accentBdr}`,
-                display:        'flex',
-                alignItems:     'center',
-                justifyContent: 'center',
-                fontSize:       12,
-                marginRight:    8,
-                marginTop:      2,
-              }}
-            >
-              ✦
-            </div>
-          )}
+      {messages.length === 0 && twinState === 'idle' && (
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div aria-hidden="true" style={{
+            width: 28, height: 28, borderRadius: '50%', background: T.accentBg,
+            border: `1px solid ${T.accentBdr}`, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: 12,
+          }}>✦</div>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: '4px 16px 16px 16px', padding: '10px 14px', fontSize: 11, color: T.muted }}>
+            Opening your learning context…
+          </div>
+        </div>
+      )}
 
+      {messages.map(msg => (
+        <div key={msg.id} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+          {msg.role === 'twin' && (
+            <div aria-hidden="true" style={{
+              width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: T.accentBg,
+              border: `1px solid ${T.accentBdr}`, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 12, marginRight: 8, marginTop: 2,
+            }}>✦</div>
+          )}
           <div
             role={msg.role === 'twin' ? 'status' : undefined}
             style={{
-              maxWidth:     '78%',
-              background:   msg.role === 'twin' ? T.card : T.accentMsg,
-              border:       msg.role === 'twin'
-                ? `1px solid ${T.border}`
-                : `1px solid ${T.accentMsgBdr}`,
-              borderRadius: msg.role === 'twin'
-                ? '4px 16px 16px 16px'
-                : '16px 4px 16px 16px',
-              padding:          '10px 14px',
-              fontSize:         13,
-              color:            T.text,
-              lineHeight:       1.6,
-              // Allow student to copy answers
-              userSelect:       'text',
-              WebkitUserSelect: 'text',
+              maxWidth: '78%', background: msg.role === 'twin' ? T.card : T.accentMsg,
+              border: msg.role === 'twin' ? `1px solid ${T.border}` : `1px solid ${T.accentMsgBdr}`,
+              borderRadius: msg.role === 'twin' ? '4px 16px 16px 16px' : '16px 4px 16px 16px',
+              padding: '10px 14px', fontSize: 13, color: T.text, lineHeight: 1.6,
+              userSelect: 'text', WebkitUserSelect: 'text',
             }}
           >
             {msg.text}
@@ -92,73 +72,28 @@ export default function TwinMessages({ messages, twinState }: TwinMessagesProps)
         </div>
       ))}
 
-      {/* Listening indicator */}
       {twinState === 'listening' && (
-        <div
-          role="status"
-          aria-label="Listening"
-          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-        >
+        <div role="status" aria-label="Listening" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div aria-hidden="true" style={{
-            width:          28,
-            height:         28,
-            borderRadius:   '50%',
-            background:     T.accentBg,
-            border:         `1px solid ${T.accentBdr}`,
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            fontSize:       12,
+            width: 28, height: 28, borderRadius: '50%', background: T.accentBg,
+            border: `1px solid ${T.accentBdr}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
           }}>✦</div>
-          <div style={{
-            background:    T.card,
-            borderRadius:  '4px 16px 16px 16px',
-            padding:       '10px 14px',
-            display:       'flex',
-            gap:           4,
-            alignItems:    'center',
-          }}>
+          <div style={{ background: T.card, borderRadius: '4px 16px 16px 16px', padding: '10px 14px', display: 'flex', gap: 4, alignItems: 'center' }}>
             {[0, 0.2, 0.4].map(d => (
-              <div key={d} style={{
-                width:        6,
-                height:       6,
-                borderRadius: '50%',
-                background:   T.accent,
-                animation:    `twinDot 1.2s ${d}s ease-in-out infinite`,
-              }} />
+              <div key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: T.accent, animation: `twinDot 1.2s ${d}s ease-in-out infinite` }} />
             ))}
-            <span style={{ fontSize: 11, color: T.muted, marginLeft: 6 }}>
-              Listening...
-            </span>
+            <span style={{ fontSize: 11, color: T.muted, marginLeft: 6 }}>Listening...</span>
           </div>
         </div>
       )}
 
-      {/* Processing indicator */}
       {twinState === 'processing' && (
-        <div
-          role="status"
-          aria-label="Processing"
-          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-        >
+        <div role="status" aria-label="Processing" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div aria-hidden="true" style={{
-            width:          28,
-            height:         28,
-            borderRadius:   '50%',
-            background:     T.accentBg,
-            border:         `1px solid ${T.accentBdr}`,
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            fontSize:       12,
+            width: 28, height: 28, borderRadius: '50%', background: T.accentBg,
+            border: `1px solid ${T.accentBdr}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
           }}>✦</div>
-          <div style={{
-            background:   T.card,
-            borderRadius: '4px 16px 16px 16px',
-            padding:      '10px 14px',
-            fontSize:     11,
-            color:        T.muted,
-          }}>
+          <div style={{ background: T.card, borderRadius: '4px 16px 16px 16px', padding: '10px 14px', fontSize: 11, color: T.muted }}>
             Finding your vibe...
           </div>
         </div>

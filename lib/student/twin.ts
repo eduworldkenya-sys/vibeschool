@@ -5,6 +5,10 @@ type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
+const TWIN_CACHE_TTL_MS = 30_000
+let twinCache: { userId: string; state: LearnerTwinState; loadedAt: number } | null = null
+let twinInFlight: { userId: string; promise: Promise<LearnerTwinState> } | null = null
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
@@ -162,6 +166,45 @@ export interface LearnerTwinChatMessage {
   content: string
 }
 
+export interface AdaptivePracticeQuestion {
+  id: string
+  outcomeId: string
+  outcomeCode: string | null
+  outcomeText: string
+  subjectId: string | null
+  prompt: string
+  options: string[]
+  difficulty: 'scaffolded' | 'easy' | 'medium' | 'hard' | 'challenge'
+  hints: string[]
+  masteryBefore: number | null
+  effectiveMasteryBefore: number | null
+  forgettingRisk: number
+}
+
+export interface AdaptivePracticeAnswerResult {
+  correct: boolean
+  correctIndex: number
+  explanation: string
+  masteryAfter: number | null
+  effectiveMasteryAfter: number | null
+  forgettingRiskAfter: number | null
+  nextQuestion: AdaptivePracticeQuestion | null
+}
+
+export interface AdaptiveTeachingTurn {
+  stage: number
+  mode: 'socratic_question' | 'hint' | 'worked_example'
+  prompt: string
+  nextStage: number
+  intervention: {
+    interventionType: string | null
+    interventionKey: string | null
+    source: string | null
+    effectivenessScore: number | null
+    confidence: number | null
+  }
+}
+
 function parseDecision(value: unknown): TwinDecision | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const item = record(value)
@@ -292,10 +335,33 @@ function parseMemoryClaims(value: unknown): TwinMemoryClaim[] {
   })
 }
 
-export async function getLearnerTwinState(): Promise<LearnerTwinState> {
-  const { data, error } = await rpc<Json>('student_get_twin_brain')
-  if (error) throw new Error(error.message || 'Your learning state could not be loaded.')
+function parseAdaptivePracticeQuestion(value: unknown): AdaptivePracticeQuestion | null {
+  const row = record(value)
+  const id = text(row.id)
+  const outcomeId = text(row.outcome_id)
+  const prompt = text(row.prompt)
+  const outcomeText = text(row.outcome_text)
+  const difficulty = text(row.difficulty)
+  const options = strings(row.options)
+  if (!id || !outcomeId || !prompt || !outcomeText || !difficulty || options.length < 2) return null
+  if (!['scaffolded','easy','medium','hard','challenge'].includes(difficulty)) return null
+  return {
+    id,
+    outcomeId,
+    outcomeCode: text(row.outcome_code),
+    outcomeText,
+    subjectId: text(row.subject_id),
+    prompt,
+    options,
+    difficulty: difficulty as AdaptivePracticeQuestion['difficulty'],
+    hints: strings(row.hints),
+    masteryBefore: numberOrNull(row.mastery_before),
+    effectiveMasteryBefore: numberOrNull(row.effective_mastery_before),
+    forgettingRisk: numberOrNull(row.forgetting_risk) ?? 0,
+  }
+}
 
+function parseLearnerTwinState(data: Json | null): LearnerTwinState {
   const state = record(data)
   const mastery = record(state.mastery)
   const prediction = record(state.prediction)
@@ -372,10 +438,84 @@ export async function getLearnerTwinState(): Promise<LearnerTwinState> {
   }
 }
 
-export async function getLearnerTutorContext(): Promise<Json> {
-  const { data, error } = await rpc<Json>('student_get_twin_tutor_context')
-  if (error) throw new Error(error.message || 'Tutor context could not be loaded.')
-  return data ?? {}
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user.id ?? 'unauthenticated'
+}
+
+async function loadLearnerTwinState(): Promise<LearnerTwinState> {
+  const { data, error } = await rpc<Json>('student_get_twin_brain_cached')
+  if (error) throw new Error(error.message || 'Your learning state could not be loaded.')
+  return parseLearnerTwinState(data)
+}
+
+export async function getLearnerTwinState(options: { force?: boolean } = {}): Promise<LearnerTwinState> {
+  const userId = await currentUserId()
+  const fresh = twinCache && twinCache.userId === userId && Date.now() - twinCache.loadedAt < TWIN_CACHE_TTL_MS
+  if (!options.force && fresh && twinCache) return twinCache.state
+  if (!options.force && twinInFlight?.userId === userId) return twinInFlight.promise
+
+  const promise = loadLearnerTwinState()
+  twinInFlight = { userId, promise }
+  try {
+    const state = await promise
+    twinCache = { userId, state, loadedAt: Date.now() }
+    return state
+  } finally {
+    if (twinInFlight?.promise === promise) twinInFlight = null
+  }
+}
+
+export function invalidateLearnerTwinState(): void {
+  twinCache = null
+  twinInFlight = null
+}
+
+export async function generateAdaptivePracticeQuestion(outcomeId: string | null = null): Promise<AdaptivePracticeQuestion> {
+  const { data, error } = await rpc<Json>('student_generate_adaptive_practice_question', { p_outcome_id: outcomeId })
+  if (error) throw new Error(error.message || 'Adaptive practice could not be prepared.')
+  const question = parseAdaptivePracticeQuestion(data)
+  if (!question) throw new Error('Adaptive practice returned an invalid question.')
+  return question
+}
+
+export async function getAdaptiveTeachingTurn(outcomeId: string, stage = 0): Promise<AdaptiveTeachingTurn> {
+  const { data, error } = await rpc<Json>('student_get_adaptive_teaching_turn', { p_outcome_id: outcomeId, p_stage: stage })
+  if (error) throw new Error(error.message || 'Adaptive coaching could not be prepared.')
+  const row = record(data)
+  const intervention = record(row.intervention)
+  const mode = text(row.mode)
+  const prompt = text(row.prompt)
+  if (!prompt || !mode || !['socratic_question','hint','worked_example'].includes(mode)) throw new Error('Adaptive coaching returned an invalid turn.')
+  return {
+    stage: numberOrNull(row.stage) ?? 0,
+    mode: mode as AdaptiveTeachingTurn['mode'],
+    prompt,
+    nextStage: numberOrNull(row.next_stage) ?? Math.min(3, stage + 1),
+    intervention: {
+      interventionType: text(intervention.intervention_type),
+      interventionKey: text(intervention.intervention_key),
+      source: text(intervention.source),
+      effectivenessScore: numberOrNull(intervention.effectiveness_score),
+      confidence: numberOrNull(intervention.confidence),
+    },
+  }
+}
+
+export async function answerAdaptivePracticeQuestion(input: { questionId: string; selectedIndex: number; responseMs?: number | null }): Promise<AdaptivePracticeAnswerResult> {
+  const { data, error } = await rpc<Json>('student_answer_adaptive_practice_question', { p_question_id: input.questionId, p_selected_index: input.selectedIndex, p_response_ms: input.responseMs ?? null })
+  if (error) throw new Error(error.message || 'Your adaptive-practice answer could not be recorded.')
+  const row = record(data)
+  invalidateLearnerTwinState()
+  return {
+    correct: boolean(row.correct),
+    correctIndex: numberOrNull(row.correct_index) ?? 0,
+    explanation: text(row.explanation) ?? 'Review the outcome and try another question.',
+    masteryAfter: numberOrNull(row.mastery_after),
+    effectiveMasteryAfter: numberOrNull(row.effective_mastery_after),
+    forgettingRiskAfter: numberOrNull(row.forgetting_risk_after),
+    nextQuestion: parseAdaptivePracticeQuestion(row.next_question),
+  }
 }
 
 export async function askLearnerTwin(input: { messages: LearnerTwinChatMessage[]; firstName: string }): Promise<string> {
