@@ -129,6 +129,36 @@ export default function StudentVibeLearnPage() {
             <div style={psychologyNote}><strong>{readiness.comparisonRule}</strong><span>{readiness.predictionDisclaimer}</span></div>
           </section>}
 
+          <section style={{ ...card, borderColor:'#c4b5fd', background:'#faf5ff' }}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={eyebrowDark}>VibeTwin learning engine</div>
+                <h2 style={{ ...title, marginBottom:4 }}>What your Twin knows right now</h2>
+                <p style={{ ...muted, lineHeight:1.6 }}>{brief.twin.available ? (brief.twin.adaptation.reason ?? 'Twin is using your verified evidence and current obligations.') : 'Twin is waiting for enough verified evidence to make a learner-specific decision.'}</p>
+              </div>
+              <span style={pill}>Confidence {Math.round(brief.twin.confidence * 100)}%</span>
+            </div>
+
+            {brief.twin.now ? <div style={{ ...emptyBox, marginTop:14, borderColor:'#c4b5fd', background:'#fff' }}>
+              <div style={{ ...eyebrowDark, color:'#7c3aed' }}>NOW</div>
+              <h3 style={{ margin:'6px 0 4px', fontSize:17 }}>{brief.twin.now.title}</h3>
+              <p style={{ ...muted, lineHeight:1.6 }}>{brief.twin.now.subject ? `${brief.twin.now.subject} · ` : ''}{brief.twin.now.reason ?? 'Highest-priority verified action.'}</p>
+              {brief.twin.now.reasonChain.length > 0 && <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:10 }}>{brief.twin.now.reasonChain.map(reason => <span key={reason} style={pill}>{reason}</span>)}</div>}
+              {brief.twin.now.actionUrl && <button style={{ ...primaryButton, marginTop:12 }} onClick={() => router.push(brief.twin.now!.actionUrl!)}>{brief.twin.now.actionLabel ?? 'Open now'}</button>}
+            </div> : <div style={{ ...emptyBox, marginTop:14 }}><strong>No learner-specific NOW action yet</strong><p style={muted}>Twin will not invent mastery or recommendations when evidence is insufficient.</p></div>}
+
+            <div style={{ ...grid, marginTop:14 }}>
+              <Stat label="Mastery outcomes" value={brief.twin.mastery.outcomeCount} detail={brief.twin.mastery.averageEffectiveMastery == null ? 'Waiting for verified outcome evidence' : `${Math.round(brief.twin.mastery.averageEffectiveMastery)}% effective mastery`} />
+              <Stat label="Verified evidence" value={brief.twin.evidence.competencyEvidenceCount} detail={`${brief.twin.evidence.learningEventCount} learning events`} />
+              <Stat label="Learned strategies" value={brief.twin.learning.learnedInterventions} detail={`${brief.twin.learning.unresolvedExposures} awaiting later evidence`} />
+              <Stat label="Adaptation" value={`v${brief.twin.adaptation.policyVersion}`} detail={(brief.twin.adaptation.strategy ?? 'cold start').replaceAll('_',' ')} />
+            </div>
+
+            {brief.twin.next.length > 0 && <div style={{ marginTop:14 }}><div style={eyebrowDark}>NEXT</div><div style={{ display:'grid', gap:8, marginTop:8 }}>{brief.twin.next.slice(0,3).map((item,index) => <button key={`${item.title}-${index}`} style={rowButton} disabled={!item.actionUrl} onClick={() => item.actionUrl && router.push(item.actionUrl)}><div><strong>{item.title}</strong><div style={muted}>{item.subject ?? 'Learning task'}</div></div><span style={linkText}>{item.actionLabel ?? 'Open'} →</span></button>)}</div></div>}
+
+            <div style={{ marginTop:14, borderTop:'1px solid #ddd6fe', paddingTop:12 }}><p style={{ ...muted, lineHeight:1.6 }}>Twin learns from verified learner activity, mistakes, response patterns, later mastery gain and intervention effectiveness. Teacher authority remains first, and low-evidence predictions abstain instead of guessing.</p><div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:10 }}>{brief.tutorPolicy.allowedActions.map(action => <span key={action} style={pill}>{action.replaceAll('_',' ')}</span>)}</div><div style={{ marginTop:10, fontSize:12, color:'#6d28d9', fontWeight:700 }}>AI support target: {brief.tutorPolicy.aiShareTargetPercent}% · Twin computation remains evidence-led.</div></div>
+          </section>
+
           <section style={card}>
             <div style={sectionHeader}><div><div style={eyebrowDark}>Continue learning</div><h2 style={title}>Your study desk</h2></div><button style={secondaryButton} onClick={() => setLibraryOpen(true)}>Open library</button></div>
             {brief.continueLearning.length === 0 ? <div style={emptyBox}><strong>No book in progress yet</strong><p style={muted}>Open the library, choose a textbook or resource, and your progress will return here.</p><button style={primaryButton} onClick={() => setLibraryOpen(true)}>Browse learning resources</button></div> : <div style={grid}>
@@ -144,8 +174,6 @@ export default function StudentVibeLearnPage() {
           <section style={card}><div style={eyebrowDark}>Teacher-assigned learning</div><h2 style={title}>Your class work</h2>{brief.assignedAssessments.length === 0 ? <p style={muted}>Assigned quizzes, tests and revision activities will appear here.</p> : <div style={{ display:'grid', gap:10 }}>{brief.assignedAssessments.map(item => <button key={item.assignmentId} style={rowButton} onClick={() => router.push(item.actionUrl)}><div><strong>{item.title}</strong><div style={muted}>{item.subjectName ?? 'General'} · {item.assessmentType.replaceAll('_',' ')}</div></div><span style={linkText}>Open →</span></button>)}</div>}</section>
 
           <section style={card}><div style={eyebrowDark}>Subjects</div><h2 style={title}>Your mini learning library</h2>{brief.subjects.length === 0 ? <p style={muted}>Subjects will appear after your class and content library are linked.</p> : <div style={grid}>{brief.subjects.map(subject => <button key={subject.id} style={subjectCard} onClick={() => setLibraryOpen(true)}><strong>{subject.name}</strong><span style={muted}>{subject.resourceCount} learning resources</span></button>)}</div>}</section>
-
-          <section style={{ ...card, borderColor:'#ddd6fe', background:'#faf5ff' }}><div style={eyebrowDark}>VibeTwin tutor policy</div><h2 style={title}>AI is support, not the lesson</h2><p style={{ ...muted, lineHeight:1.6 }}>Twin stays off by default. Use it only when you explicitly need a hint, simpler explanation, worked example, translation or mistake explanation. It is blocked during timed assessments.</p><div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:12 }}>{brief.tutorPolicy.allowedActions.map(action => <span key={action} style={pill}>{action.replaceAll('_',' ')}</span>)}</div><div style={{ marginTop:12, fontSize:12, color:'#6d28d9', fontWeight:700 }}>Target AI share: {brief.tutorPolicy.aiShareTargetPercent}%</div></section>
         </>}
     </div>
   </main>
