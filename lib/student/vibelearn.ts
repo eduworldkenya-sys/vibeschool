@@ -101,12 +101,14 @@ export interface RevisionPlanItem {
 
 export interface MistakeNotebookItem {
   id: string
-  questionId: string
+  questionId: string | null
+  sourceBlockId: string | null
+  reviewUrl: string | null
   subject: string
   topic: string
   prompt: string
   selectedIndex: number | null
-  correctIndex: number
+  correctIndex: number | null
   explanation: string | null
   hint: string | null
   repeatCount: number
@@ -156,7 +158,7 @@ export interface TopicWorkspace {
   note: string | null
   resources: TopicResource[]
   questions: TopicQuestion[]
-  mistakes: Pick<MistakeNotebookItem, 'id' | 'questionId' | 'prompt' | 'repeatCount' | 'status'>[]
+  mistakes: Pick<MistakeNotebookItem, 'id' | 'questionId' | 'sourceBlockId' | 'reviewUrl' | 'prompt' | 'repeatCount' | 'status'>[]
   attempts: number
   accuracy: number | null
 }
@@ -175,6 +177,34 @@ export interface RevisionWorkspace {
   topicWorkspace: TopicWorkspace | null
 }
 
+export interface GroundedPracticeSource {
+  publicationId: string
+  publicationTitle: string
+  chapterId: string
+  chapterTitle: string
+  subject: string | null
+  grade: string | null
+  assessableBlockCount: number
+  verifiedOutcomeCount: number
+}
+
+export interface GroundedPracticeQuestion {
+  id: string
+  contentBlockId: string
+  publicationId: string
+  chapterId: string
+  outcomeId: string | null
+  prompt: string
+  difficulty: string | null
+  bloomLevel: string | null
+  reviewUrl: string
+}
+
+export interface GroundedChapterPractice {
+  source: GroundedPracticeSource
+  questions: GroundedPracticeQuestion[]
+}
+
 type WorkstationRpcClient = {
   rpc(fn: 'student_get_vibelearn_workstation', args?: Record<string, never>): Promise<{ data: unknown; error: { message: string } | null }>
 }
@@ -190,6 +220,11 @@ type RevisionRpcClient = {
   rpc(fn: 'student_record_vibelearn_practice_answer', args: { p_exam_question_id: string; p_selected_index: number; p_response_ms: number | null; p_session_id: string | null }): Promise<{ data: unknown; error: { message: string } | null }>
   rpc(fn: 'student_resolve_mistake', args: { p_mistake_id: string }): Promise<{ data: unknown; error: { message: string } | null }>
   rpc(fn: 'student_save_topic_note', args: { p_subject: string; p_topic: string; p_note_text: string }): Promise<{ data: unknown; error: { message: string } | null }>
+}
+
+type GroundedPracticeRpcClient = {
+  rpc(fn: 'student_get_grounded_chapter_practice', args: { p_publication_id: string; p_chapter_id: string; p_limit: number }): Promise<{ data: unknown; error: { message: string } | null }>
+  rpc(fn: 'student_record_grounded_practice_answer', args: { p_content_block_id: string; p_response_text: string; p_response_ms: number | null; p_session_id: string | null }): Promise<{ data: unknown; error: { message: string } | null }>
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -237,19 +272,22 @@ function parseMistakes(value: unknown): MistakeNotebookItem[] {
     const item = asRecord(entry)
     const id = asString(item.id)
     const questionId = asString(item.question_id)
+    const sourceBlockId = asString(item.source_block_id)
     const subject = asString(item.subject)
     const topic = asString(item.topic)
     const prompt = asString(item.prompt)
     const status = asString(item.status)
-    if (!id || !questionId || !subject || !topic || !prompt || !['open', 'practising', 'resolved'].includes(status ?? '')) return []
+    if (!id || (!questionId && !sourceBlockId) || !subject || !topic || !prompt || !['open', 'practising', 'resolved'].includes(status ?? '')) return []
     return [{
       id,
       questionId,
+      sourceBlockId,
+      reviewUrl: asString(item.review_url),
       subject,
       topic,
       prompt,
       selectedIndex: asNullableNumber(item.selected_index),
-      correctIndex: asNumber(item.correct_index),
+      correctIndex: asNullableNumber(item.correct_index),
       explanation: asString(item.explanation),
       hint: asString(item.hint),
       repeatCount: asNumber(item.repeat_count) || 1,
@@ -257,6 +295,22 @@ function parseMistakes(value: unknown): MistakeNotebookItem[] {
       lastMissedAt: asString(item.last_missed_at),
     }]
   })
+}
+
+function parseGroundedSource(row: Record<string, unknown>): GroundedPracticeSource | null {
+  const publicationId = asString(row.publication_id)
+  const chapterId = asString(row.chapter_id)
+  if (row.ok !== true || !publicationId || !chapterId) return null
+  return {
+    publicationId,
+    publicationTitle: asString(row.publication_title) ?? 'VibeTextbook',
+    chapterId,
+    chapterTitle: asString(row.chapter_title) ?? 'Current unit',
+    subject: asString(row.subject),
+    grade: asString(row.grade),
+    assessableBlockCount: asNumber(row.assessable_block_count),
+    verifiedOutcomeCount: asNumber(row.verified_outcome_count),
+  }
 }
 
 export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
@@ -381,10 +435,7 @@ export async function getRevisionWorkspace(subject: string | null = null, topic:
         const item = asRecord(value); const id = asString(item.id); const questionText = asString(item.question); const options = Array.isArray(item.options) ? item.options.filter((entry): entry is string => typeof entry === 'string') : []
         return id && questionText && options.length >= 2 ? [{ id, difficulty: asString(item.difficulty), question: questionText, options, hint: asString(item.hint), explanation: asString(item.explanation) }] : []
       }),
-      mistakes: (Array.isArray(topicRow.mistakes) ? topicRow.mistakes : []).flatMap(value => {
-        const item = asRecord(value); const id = asString(item.id); const questionId = asString(item.question_id); const prompt = asString(item.prompt); const status = asString(item.status)
-        return id && questionId && prompt && ['open', 'practising', 'resolved'].includes(status ?? '') ? [{ id, questionId, prompt, repeatCount: asNumber(item.repeat_count), status: status as MistakeNotebookItem['status'] }] : []
-      }),
+      mistakes: parseMistakes(topicRow.mistakes).map(item => ({ id: item.id, questionId: item.questionId, sourceBlockId: item.sourceBlockId, reviewUrl: item.reviewUrl, prompt: item.prompt, repeatCount: item.repeatCount, status: item.status })),
       attempts: asNumber(asRecord(topicRow.stats).attempts),
       accuracy: asNullableNumber(asRecord(topicRow.stats).accuracy),
     } : null,
@@ -403,6 +454,59 @@ export async function recordPracticeAnswer(input: { questionId: string; selected
   if (error) throw new Error(error.message)
   const row = asRecord(data)
   return { correct: row.correct === true, correctIndex: asNumber(row.correct_index), explanation: asString(row.explanation), hint: asString(row.hint) }
+}
+
+export async function getGroundedChapterPractice(input: { publicationId: string; chapterId: string; limit?: number }): Promise<GroundedChapterPractice> {
+  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
+  const { data, error } = await rpcClient.rpc('student_get_grounded_chapter_practice', {
+    p_publication_id: input.publicationId,
+    p_chapter_id: input.chapterId,
+    p_limit: input.limit ?? 10,
+  })
+  if (error) throw new Error(error.message)
+  const row = asRecord(data)
+  const source = parseGroundedSource(row)
+  if (!source) throw new Error('This learning source is not available for practice.')
+  const questions = (Array.isArray(row.questions) ? row.questions : []).flatMap(value => {
+    const item = asRecord(value)
+    const id = asString(item.id)
+    const contentBlockId = asString(item.content_block_id)
+    const publicationId = asString(item.publication_id)
+    const chapterId = asString(item.chapter_id)
+    const prompt = asString(item.prompt)
+    const reviewUrl = asString(item.review_url)
+    if (!id || !contentBlockId || !publicationId || !chapterId || !prompt || !reviewUrl) return []
+    return [{
+      id,
+      contentBlockId,
+      publicationId,
+      chapterId,
+      outcomeId: asString(item.outcome_id),
+      prompt,
+      difficulty: asString(item.difficulty),
+      bloomLevel: asString(item.bloom_level),
+      reviewUrl,
+    }]
+  })
+  return { source, questions }
+}
+
+export async function recordGroundedPracticeAnswer(input: { contentBlockId: string; responseText: string; responseMs?: number | null; sessionId?: string | null }): Promise<{ correct: boolean; expectedAnswer: string | null; reviewUrl: string | null; outcomeId: string | null }> {
+  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
+  const { data, error } = await rpcClient.rpc('student_record_grounded_practice_answer', {
+    p_content_block_id: input.contentBlockId,
+    p_response_text: input.responseText,
+    p_response_ms: input.responseMs ?? null,
+    p_session_id: input.sessionId ?? null,
+  })
+  if (error) throw new Error(error.message)
+  const row = asRecord(data)
+  return {
+    correct: row.correct === true,
+    expectedAnswer: asString(row.expected_answer),
+    reviewUrl: asString(row.review_url),
+    outcomeId: asString(row.outcome_id),
+  }
 }
 
 export async function resolveMistake(mistakeId: string): Promise<void> {
