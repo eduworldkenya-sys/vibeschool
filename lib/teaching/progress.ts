@@ -23,6 +23,21 @@ export interface TeachingProgressRecord {
   next_steps: string | null
 }
 
+type TeachingProgressRpcClient = {
+  rpc(
+    fn: 'save_teaching_progress_record',
+    args: {
+      p_occurrence_id: string
+      p_what_was_taught: string
+      p_participation_score: number | null
+      p_challenges: string | null
+      p_homework_set: string | null
+      p_teacher_remarks: string | null
+      p_next_steps: string | null
+    },
+  ): Promise<{ data: unknown; error: { message?: string | null } | null }>
+}
+
 export type TeachingProgressErrorCode =
   | 'not_authenticated'
   | 'occurrence_required'
@@ -82,7 +97,8 @@ function isProgressRecord(value: unknown): value is TeachingProgressRecord {
 export async function saveTeachingProgressRecord(
   input: TeachingProgressInput,
 ): Promise<TeachingProgressRecord> {
-  const { data, error } = await supabase.rpc('save_teaching_progress_record', {
+  const rpcClient = supabase as unknown as TeachingProgressRpcClient
+  const { data, error } = await rpcClient.rpc('save_teaching_progress_record', {
     p_occurrence_id: input.occurrenceId,
     p_what_was_taught: input.whatWasTaught,
     p_participation_score: input.participationScore ?? null,
