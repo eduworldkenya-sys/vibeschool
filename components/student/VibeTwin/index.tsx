@@ -9,11 +9,12 @@ import TwinHeader from './ui/TwinHeader'
 import TwinMessages from './ui/TwinMessages'
 import TwinInput from './ui/TwinInput'
 import { T } from './ui/TwinHeader'
-import { askLearnerTwin, type LearnerTwinChatMessage } from '@/lib/student/twin'
+import { askLearnerTwin, getLearnerTwinState, type LearnerTwinChatMessage, type LearnerTwinState } from '@/lib/student/twin'
 
 export default function VibeTwin({ isOpen, onClose, userName, learnerState }: VibeTwinProps) {
   const [input, setInput] = useState('')
   const [mode, setMode] = useState<TwinMode>('text')
+  const [resolvedState, setResolvedState] = useState<LearnerTwinState | null>(learnerState ?? null)
 
   const {
     messages, twinState, setTwinState,
@@ -31,10 +32,24 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
   }, [isOpen, cancelSpeech])
 
   useEffect(() => {
+    if (learnerState) setResolvedState(learnerState)
+  }, [learnerState])
+
+  useEffect(() => {
+    if (!isOpen || learnerState !== undefined || resolvedState) return
+    let cancelled = false
+    void getLearnerTwinState()
+      .then(state => { if (!cancelled) setResolvedState(state) })
+      .catch(() => { if (!cancelled) setResolvedState(null) })
+    return () => { cancelled = true }
+  }, [isOpen, learnerState, resolvedState])
+
+  useEffect(() => {
     if (!isOpen || greeted) return
+    if (learnerState === undefined && !resolvedState) return
     setGreeted(true)
-    const now = learnerState?.decision.now
-    const weakest = learnerState?.mastery.outcomes[0]
+    const now = resolvedState?.decision.now
+    const weakest = resolvedState?.mastery.outcomes[0]
     const greeting = now
       ? `${userName}, ${now.title} is your best next step.${now.reason ? ` ${now.reason}` : ''}`
       : weakest
@@ -44,7 +59,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     addMessage('twin', greeting)
     const timer = setTimeout(() => speak(greeting), 300)
     return () => clearTimeout(timer)
-  }, [isOpen, userName, greeted, setGreeted, addMessage, speak, learnerState])
+  }, [isOpen, userName, greeted, setGreeted, addMessage, speak, learnerState, resolvedState])
 
   function finish(response: string, shouldSpeak = false) {
     addMessage('twin', response)
