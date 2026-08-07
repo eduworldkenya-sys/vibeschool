@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { useTheme } from '@/app/student/layout'
+import { useTheme } from '@/components/student/StudentUiContext'
 
 const C = {
   bg: '#f0f2f5', surface: '#ffffff', border: '#e5e7eb',
@@ -201,7 +201,6 @@ export default function StudentProfilePage() {
             </>
           )}
 
-          {/* Theme toggle */}
           <h2 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: '24px 0 10px' }}>Display Theme</h2>
           <div style={{ display: 'flex', gap: 8 }}>
             {(['light', 'dark', 'auto'] as const).map(t => (
@@ -235,7 +234,6 @@ export default function StudentProfilePage() {
             📚 My Study Workspace
           </button>
 
-          {/* Sign out */}
           <button
             onClick={handleSignOut}
             style={{

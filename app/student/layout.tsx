@@ -1,24 +1,15 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import BottomNav from "@/components/student/BottomNav";
 import OfflineBar from "@/components/student/OfflineBar";
+import TwinWorkspaceProvider from "@/components/student/VibeTwin/TwinWorkspaceProvider";
+import { ToastContext, ThemeContext } from "@/components/student/StudentUiContext";
 import { StudentProvider, useStudent } from "@/lib/student-context";
 import { readTheme, writeTheme, resolveTheme, StudentTheme } from "@/lib/student-theme";
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-interface ToastCtx { showToast: (msg: string) => void }
-const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
-export const useToast = () => useContext(ToastContext);
-
-// ── Theme ─────────────────────────────────────────────────────────────────────
-interface ThemeCtx { theme: StudentTheme; setTheme: (t: StudentTheme) => void }
-const ThemeContext = createContext<ThemeCtx>({ theme: "auto", setTheme: () => {} });
-export const useTheme = () => useContext(ThemeContext);
-
-// ── TopBar ────────────────────────────────────────────────────────────────────
 function TopBar({ name, className, schoolName }: { name: string; className: string; schoolName: string }) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -70,7 +61,6 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {/* Notifications bell */}
         <div
           onClick={() => router.push("/student/notifications")}
           style={{ cursor: "pointer", display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center" }}
@@ -81,7 +71,6 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
           </svg>
         </div>
 
-        {/* Avatar */}
         <div
           onClick={() => router.push("/student/profile")}
           style={{
@@ -99,7 +88,6 @@ function TopBar({ name, className, schoolName }: { name: string; className: stri
   );
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg }: { msg: string }) {
   return (
     <div style={{
@@ -123,7 +111,6 @@ function Toast({ msg }: { msg: string }) {
   );
 }
 
-// ── Shell — rendered after identity resolves ──────────────────────────────────
 function StudentShell({ children }: { children: React.ReactNode }) {
   const { identity, loading, error } = useStudent();
   const router = useRouter();
@@ -173,26 +160,27 @@ function StudentShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Root Layout ───────────────────────────────────────────────────────────────
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  const [toast,    setToast]   = useState<string | null>(null);
-  const [theme,    setThemeState] = useState<StudentTheme>("auto");
+  const [toast, setToast] = useState<string | null>(null);
+  const [theme, setThemeState] = useState<StudentTheme>("auto");
+  const [resolved, setResolved] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    setThemeState(readTheme());
+    const storedTheme = readTheme();
+    setThemeState(storedTheme);
+    setResolved(resolveTheme(storedTheme));
   }, []);
 
   const setTheme = useCallback((t: StudentTheme) => {
     writeTheme(t);
     setThemeState(t);
+    setResolved(resolveTheme(t));
   }, []);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   }, []);
-
-  const resolved = resolveTheme(theme);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -231,9 +219,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
         <div style={{ minHeight: "100dvh", background: "var(--vs-bg)" }}>
           <StudentProvider>
-            <StudentShell>
-              {children}
-            </StudentShell>
+            <TwinWorkspaceProvider>
+              <StudentShell>
+                {children}
+              </StudentShell>
+            </TwinWorkspaceProvider>
           </StudentProvider>
           {toast && <Toast msg={toast} />}
         </div>
