@@ -101,7 +101,7 @@ export default function VibeLearnPracticePage() {
             p_publication_id: requestedPublicationId,
             p_chapter_id: requestedChapterId,
           })
-          if (sourceError) throw sourceError
+          if (sourceError) throw new Error(sourceError.message)
           source = asSourceContext(data)
           if (!source) throw new Error('This learning source is not available for practice.')
           if (!cancelled) setSourceContext(source)
@@ -185,16 +185,16 @@ export default function VibeLearnPracticePage() {
         </section>
 
         {sourceContext && <section style={{ ...card, borderColor: '#c7d2fe', background: '#f5f3ff' }}>
-          <div style={eyebrowDark}>Grounded learning source</div>
+          <div style={eyebrowDark}>Learning source</div>
           <strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong>
           <p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p>
-          <p style={{ ...muted, marginTop: 8 }}>This session is attached to this exact reader source. Question generation from these blocks is the next assessment milestone; current scoring continues to use approved stored questions.</p>
+          <p style={{ ...muted, marginTop: 8 }}>Practice opened from this exact unit. Scoring uses approved stored questions and keeps the unit available for review.</p>
         </section>}
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
 
         {loading ? <section style={card}>Loading questions…</section>
-          : questions.length === 0 ? <section style={card}><strong>No questions available</strong><p style={muted}>{sourceContext ? 'This unit is grounded successfully, but no approved stored questions currently match its subject. The source is ready for the generation milestone.' : 'Choose another subject or topic from VibeLearn.'}</p></section>
+          : questions.length === 0 ? <section style={card}><strong>No questions available</strong><p style={muted}>{sourceContext ? 'This unit is ready for practice, but there are no approved stored questions for its subject yet. Review the unit and try another practice set.' : 'Choose another subject or topic from VibeLearn.'}</p></section>
           : finished ? <section style={card}>
               <div style={eyebrowDark}>Session complete</div>
               <h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2>
