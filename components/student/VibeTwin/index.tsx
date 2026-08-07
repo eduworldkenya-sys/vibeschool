@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import type { VibeTwinProps, TwinMode } from './types'
-import { classifyIntent, extractTopic, conversationalReply } from './lib/intent'
-import { useTwinMemory } from './hooks/useTwinMemory'
 import { useTwinSession } from './hooks/useTwinSession'
 import { useTwinSpeech } from './hooks/useTwinSpeech'
 import { useTwinRecognition } from './hooks/useTwinRecognition'
@@ -17,7 +15,6 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
   const [input, setInput] = useState('')
   const [mode, setMode] = useState<TwinMode>('text')
 
-  const { saveToMemory } = useTwinMemory()
   const {
     messages, twinState, setTwinState,
     greeted, setGreeted,
@@ -88,15 +85,6 @@ export default function VibeTwin({ isOpen, onClose, userName }: VibeTwinProps) {
     addMessage('user', q)
     setInput('')
     setTwinState('processing')
-
-    const intent = classifyIntent(q)
-    const topic = extractTopic(q)
-    saveToMemory(intent.toLowerCase(), q, topic)
-
-    if (intent === 'CONVERSATIONAL') {
-      finish(conversationalReply(q, userName))
-      return
-    }
 
     try {
       const response = await askLearnerTwin({
