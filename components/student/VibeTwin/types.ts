@@ -14,10 +14,10 @@ export interface TwinMessage {
 }
 
 export interface VibeTwinProps {
-  isOpen:       boolean
-  onClose:      () => void
-  userName:     string
-  learnerState: LearnerTwinState | null
+  isOpen:        boolean
+  onClose:       () => void
+  userName:      string
+  learnerState?: LearnerTwinState | null
 }
 
 export interface SearchResult {
