@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
+import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import {
   getExamReadinessBrief,
   getVibeLearnWorkstation,
@@ -69,6 +70,7 @@ export default function StudentVibeLearnPage() {
 
   return <main style={shell}>
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <VibeLearnSubnav />
       <section style={hero}>
         <div style={eyebrow}>VibeLearn Workstation</div>
         <h1 style={{ margin: '8px 0 6px', fontSize: 28 }}>Learn. Practise. Revise. Master.</h1>
@@ -87,7 +89,8 @@ export default function StudentVibeLearnPage() {
                 <p style={{ ...muted, lineHeight: 1.6 }}>{readiness.psychologyHeadline}</p>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                <button style={primaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open Revision OS</button>
+                <button style={primaryButton} onClick={() => router.push('/student/vibelearn/exams')}>Open Exams</button>
+                <button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open Revision OS</button>
                 <button style={{ ...secondaryButton, borderColor: '#fcd34d', background: '#fef3c7', color: '#92400e' }} onClick={() => setEditingPlan(value => !value)}>{editingPlan ? 'Close' : 'Set plan'}</button>
               </div>
             </div>
@@ -134,7 +137,7 @@ export default function StudentVibeLearnPage() {
           </section>
 
           <section style={card}>
-            <div style={sectionHeader}><div><div style={eyebrowDark}>Exam engine</div><h2 style={title}>Practise by subject</h2></div><div style={{ display:'flex', gap:8, flexWrap:'wrap' }}><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Revision OS</button><button style={secondaryButton} onClick={() => router.push('/student/assessment')}>Assessment hub</button></div></div>
+            <div style={sectionHeader}><div><div style={eyebrowDark}>Exam engine</div><h2 style={title}>Practise by subject</h2></div><div style={{ display:'flex', gap:8, flexWrap:'wrap' }}><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/practice')}>Practice</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/exams')}>Exams</button><button style={secondaryButton} onClick={() => router.push('/student/vibelearn/mistakes')}>Mistakes</button></div></div>
             {brief.practiceBySubject.length === 0 ? <p style={muted}>Practice questions will appear when the exam bank is ready for your subjects.</p> : <div style={grid}>{brief.practiceBySubject.map(item => <button key={item.subject} style={actionCard} onClick={() => router.push(item.actionUrl)}><span style={cardIcon}>🧠</span><strong>{item.subject}</strong><span style={muted}>{item.questionCount} verified questions available</span><span style={linkText}>Start practice →</span></button>)}</div>}
           </section>
 
@@ -169,18 +172,18 @@ const emptyBox: React.CSSProperties = { border:'1px dashed #cbd5e1', borderRadiu
 const progressTrack: React.CSSProperties = { display:'block', height:6, borderRadius:999, background:'#e2e8f0', overflow:'hidden' }
 const progressFill: React.CSSProperties = { display:'block', height:'100%', background:'#4f46e5' }
 const linkText: React.CSSProperties = { color:'#4338ca', fontSize:12, fontWeight:800 }
-const pill: React.CSSProperties = { fontSize:11, color:'#6d28d9', background:'#ede9fe', borderRadius:999, padding:'5px 9px', fontWeight:700 }
-const statCard: React.CSSProperties = { border:'1px solid #fde68a', background:'#fff', borderRadius:14, padding:13, display:'grid', gap:4 }
-const statLabel: React.CSSProperties = { fontSize:10, textTransform:'uppercase', letterSpacing:0.8, color:'#92400e', fontWeight:800 }
-const statValue: React.CSSProperties = { fontSize:24, color:'#78350f' }
-const planEditor: React.CSSProperties = { marginTop:14, border:'1px solid #fde68a', background:'#fff', borderRadius:14, padding:14, display:'grid', gap:12 }
-const fieldLabel: React.CSSProperties = { display:'grid', gap:6, fontSize:12, fontWeight:700, color:'#334155' }
-const inputStyle: React.CSSProperties = { border:'1px solid #cbd5e1', borderRadius:10, padding:'10px 11px', font:'inherit' }
-const confidenceButton: React.CSSProperties = { width:38, height:38, borderRadius:999, border:'1px solid #cbd5e1', background:'#fff', fontWeight:800, cursor:'pointer' }
-const confidenceButtonActive: React.CSSProperties = { background:'#f59e0b', color:'#fff', borderColor:'#f59e0b' }
-const subjectSignalCard: React.CSSProperties = { border:'1px solid #e2e8f0', borderRadius:12, padding:12, display:'grid', gap:7, background:'#fff' }
-const signalPill: React.CSSProperties = { width:'fit-content', borderRadius:999, padding:'4px 8px', fontSize:10, fontWeight:800, textTransform:'uppercase' }
+const pill: React.CSSProperties = { width:'fit-content', fontSize:10, borderRadius:999, padding:'5px 8px', background:'#ede9fe', color:'#5b21b6', fontWeight:700 }
+const statCard: React.CSSProperties = { border:'1px solid #fde68a', background:'#fff', borderRadius:13, padding:13, display:'grid', gap:4 }
+const statLabel: React.CSSProperties = { fontSize:10, textTransform:'uppercase', letterSpacing:.7, color:'#92400e', fontWeight:800 }
+const statValue: React.CSSProperties = { fontSize:24 }
+const planEditor: React.CSSProperties = { display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))', gap:10, alignItems:'end', border:'1px solid #fde68a', borderRadius:14, padding:12, marginTop:14, background:'#fffbeb' }
+const fieldLabel: React.CSSProperties = { display:'grid', gap:5, fontSize:11, fontWeight:800, color:'#78350f' }
+const inputStyle: React.CSSProperties = { border:'1px solid #d1d5db', borderRadius:9, padding:'9px 10px', fontFamily:'inherit', background:'#fff', color:'#111827' }
+const confidenceButton: React.CSSProperties = { width:36, height:36, borderRadius:10, border:'1px solid #d1d5db', background:'#fff', color:'#374151', fontWeight:800, cursor:'pointer' }
+const confidenceButtonActive: React.CSSProperties = { borderColor:'#4f46e5', background:'#eef2ff', color:'#4338ca' }
+const subjectSignalCard: React.CSSProperties = { border:'1px solid #e5e7eb', borderRadius:12, padding:11, display:'grid', gap:6, background:'#fff' }
+const signalPill: React.CSSProperties = { width:'fit-content', borderRadius:999, padding:'4px 7px', fontSize:9, textTransform:'uppercase', fontWeight:900, letterSpacing:.5 }
 const signalNeedsAttention: React.CSSProperties = { background:'#fee2e2', color:'#991b1b' }
 const signalDeveloping: React.CSSProperties = { background:'#fef3c7', color:'#92400e' }
 const signalStrong: React.CSSProperties = { background:'#dcfce7', color:'#166534' }
-const psychologyNote: React.CSSProperties = { marginTop:16, borderRadius:12, padding:12, background:'#fffbeb', color:'#78350f', display:'grid', gap:5, fontSize:12 }
+const psychologyNote: React.CSSProperties = { display:'grid', gap:4, marginTop:14, padding:11, borderRadius:12, background:'#fff', border:'1px solid #fde68a', color:'#78350f', fontSize:11, lineHeight:1.5 }
