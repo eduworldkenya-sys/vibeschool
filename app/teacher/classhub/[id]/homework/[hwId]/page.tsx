@@ -126,9 +126,6 @@ function HomeworkGradePageInner() {
     }
     const sid = schoolIdRef.current;
 
-    // The live homework submission lifecycle is additive and currently ahead of
-    // the generated repository types. Keep this read boundary narrow until the
-    // next full Supabase type regeneration rather than weakening the app client.
     type LiveHomeworkSubmissionRow = Omit<Submission, "answers">;
     type LiveHomeworkSubmissionQuery = {
       data: LiveHomeworkSubmissionRow[] | null;
@@ -186,15 +183,26 @@ function HomeworkGradePageInner() {
     setView("grade");
   }
 
+  async function reviewSubmission(action: "marked" | "returned" | "feedback_released", input?: { mark?: number | null; feedback?: string | null; reason?: string | null }) {
+    if (!selectedSub) return { error: { message: "Submission is missing" } };
+    return supabase.rpc("review_homework_submission", {
+      p_submission_id: selectedSub.id,
+      p_action: action,
+      p_mark: input?.mark ?? undefined,
+      p_feedback: input?.feedback ?? undefined,
+      p_reason: input?.reason ?? undefined,
+      p_release_model_answers: false,
+    });
+  }
+
   async function markSubmission() {
     if (!selectedSub || !schoolIdRef.current) return;
     const parsed = Number(markInput);
     if (!Number.isFinite(parsed) || parsed < 0) { setSaveError("Enter a valid mark"); return; }
     setSaving(true); setSaveError(null);
-    const { error } = await supabase.rpc("mark_homework_submission", {
-      p_submission_id: selectedSub.id,
-      p_mark: parsed,
-      p_feedback: feedbackInput.trim() || null,
+    const { error } = await reviewSubmission("marked", {
+      mark: parsed,
+      feedback: feedbackInput.trim() || null,
     });
     if (error) { setSaveError(error.message || "Could not save mark"); setSaving(false); return; }
     setSaving(false); setView("list"); await load();
@@ -203,12 +211,9 @@ function HomeworkGradePageInner() {
   async function returnSubmission() {
     if (!selectedSub || !schoolIdRef.current) return;
     const reason = returnReasonInput.trim();
-    if (!reason) { setSaveError("Add a reason for revision"); return; }
+    if (reason.length < 5) { setSaveError("Add a clear reason for revision"); return; }
     setSaving(true); setSaveError(null);
-    const { error } = await supabase.rpc("return_homework_submission", {
-      p_submission_id: selectedSub.id,
-      p_reason: reason,
-    });
+    const { error } = await reviewSubmission("returned", { reason });
     if (error) { setSaveError(error.message || "Could not return homework"); setSaving(false); return; }
     setSaving(false); setView("list"); await load();
   }
@@ -216,7 +221,9 @@ function HomeworkGradePageInner() {
   async function releaseFeedback() {
     if (!selectedSub) return;
     setSaving(true); setSaveError(null);
-    const { error } = await supabase.rpc("release_homework_feedback", { p_submission_id: selectedSub.id });
+    const { error } = await reviewSubmission("feedback_released", {
+      feedback: feedbackInput.trim() || null,
+    });
     if (error) { setSaveError(error.message || "Could not release feedback"); setSaving(false); return; }
     setSaving(false); setView("list"); await load();
   }
