@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import { useTwinBrain, useTwinWorkspace } from '@/components/student/VibeTwin/TwinWorkspaceProvider'
 import {
+  answerAdaptivePracticeQuestion,
   generateAdaptivePracticeQuestion,
   getAdaptiveTeachingTurn,
   type AdaptivePracticeQuestion,
@@ -17,10 +18,24 @@ import type { Json } from '@/lib/database.types'
 
 type TutorMode = 'today' | 'explain' | 'practice' | 'exam' | 'homework' | 'revision' | 'challenge'
 type TutorServiceSummary = {
-  revisionPlan: Array<{ id: string; planDate: string; subject: string; topic: string; activityType: string; targetMinutes: number; priority: number; reason: string; actionUrl: string; status: string }>
+  revisionPlan: Array<{
+    id: string
+    planDate: string
+    subject: string
+    topic: string
+    activityType: string
+    targetMinutes: number
+    priority: number
+    reason: string
+    actionUrl: string
+    status: string
+  }>
   selectedIntervention: Record<string, unknown>
   capabilities: Record<string, boolean>
 }
+type RpcResult<T> = { data: T | null; error: { message?: string } | null }
+type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
+const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -30,15 +45,22 @@ function num(value: unknown): number { const n = Number(value); return Number.is
 function bool(value: unknown): boolean { return value === true }
 
 async function getTutorServiceSummary(): Promise<TutorServiceSummary> {
-  const { data, error } = await supabase.rpc('student_get_adaptive_tutor_service_summary') as { data: Json | null; error: { message?: string } | null }
+  const { data, error } = await rpc<Json>('student_get_adaptive_tutor_service_summary')
   if (error) throw new Error(error.message || 'Adaptive Tutor services could not be loaded.')
   const row = record(data)
   const revisionPlan = Array.isArray(row.revision_plan) ? row.revision_plan.map(value => {
     const item = record(value)
     return {
-      id: text(item.id) ?? '', planDate: text(item.plan_date) ?? '', subject: text(item.subject) ?? 'Learning',
-      topic: text(item.topic) ?? 'Revision', activityType: text(item.activity_type) ?? 'revision', targetMinutes: num(item.target_minutes),
-      priority: num(item.priority), reason: text(item.reason) ?? 'Scheduled from your learning evidence.', actionUrl: text(item.action_url) ?? '/student/vibelearn/revision', status: text(item.status) ?? 'planned',
+      id: text(item.id) ?? '',
+      planDate: text(item.plan_date) ?? '',
+      subject: text(item.subject) ?? 'Learning',
+      topic: text(item.topic) ?? 'Revision',
+      activityType: text(item.activity_type) ?? 'revision',
+      targetMinutes: num(item.target_minutes),
+      priority: num(item.priority),
+      reason: text(item.reason) ?? 'Scheduled from your learning evidence.',
+      actionUrl: text(item.action_url) ?? '/student/vibelearn/revision',
+      status: text(item.status) ?? 'planned',
     }
   }) : []
   const capabilities = Object.fromEntries(Object.entries(record(row.capabilities)).map(([key, value]) => [key, bool(value)]))
@@ -65,11 +87,14 @@ export default function AdaptiveTutorPage() {
   const [mode, setMode] = useState<TutorMode>('today')
   const [practice, setPractice] = useState<AdaptivePracticeQuestion | null>(null)
   const [coach, setCoach] = useState<AdaptiveTeachingTurn | null>(null)
+  const [feedback, setFeedback] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    void getTutorServiceSummary().then(value => { if (!cancelled) setSummary(value) }).catch(cause => { if (!cancelled) setSummaryError(cause instanceof Error ? cause.message : 'Tutor services could not be loaded.') })
+    void getTutorServiceSummary()
+      .then(value => { if (!cancelled) setSummary(value) })
+      .catch(cause => { if (!cancelled) setSummaryError(cause instanceof Error ? cause.message : 'Tutor services could not be loaded.') })
     return () => { cancelled = true }
   }, [])
 
@@ -85,26 +110,65 @@ export default function AdaptiveTutorPage() {
 
   async function startPractice() {
     if (busy) return
-    setBusy(true); setCoach(null)
-    try { setPractice(await generateAdaptivePracticeQuestion(weakest?.outcomeId ?? null)); setMode('practice') }
-    catch (cause) { setSummaryError(cause instanceof Error ? cause.message : 'Practice could not be prepared.') }
-    finally { setBusy(false) }
+    setBusy(true)
+    setCoach(null)
+    setFeedback(null)
+    try {
+      setPractice(await generateAdaptivePracticeQuestion(weakest?.outcomeId ?? null))
+      setMode('practice')
+    } catch (cause) {
+      setSummaryError(cause instanceof Error ? cause.message : 'Practice could not be prepared.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function coachMe() {
     if (!practice || busy) return
     setBusy(true)
-    try { setCoach(await getAdaptiveTeachingTurn(practice.outcomeId, coach?.nextStage ?? 0)) }
-    catch (cause) { setSummaryError(cause instanceof Error ? cause.message : 'Coaching could not be prepared.') }
-    finally { setBusy(false) }
+    try {
+      setCoach(await getAdaptiveTeachingTurn(practice.outcomeId, coach?.nextStage ?? 0))
+    } catch (cause) {
+      setSummaryError(cause instanceof Error ? cause.message : 'Coaching could not be prepared.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function answer(index: number) {
+    if (!practice || busy) return
+    setBusy(true)
+    setFeedback(null)
+    try {
+      const result = await answerAdaptivePracticeQuestion({ questionId: practice.id, selectedIndex: index })
+      const masteryText = result.effectiveMasteryAfter == null ? '' : ` Effective mastery is now ${Math.round(result.effectiveMasteryAfter)}%.`
+      setFeedback(result.correct ? `Correct. ${result.explanation}${masteryText}` : `Not yet. ${result.explanation}${masteryText}`)
+      setPractice(result.nextQuestion)
+      setCoach(null)
+      await refreshTwin()
+    } catch (cause) {
+      setSummaryError(cause instanceof Error ? cause.message : 'Your answer could not be recorded.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function selectMode(nextMode: TutorMode) {
+    setMode(nextMode)
+    if (nextMode === 'practice') void startPractice()
+    if (nextMode === 'exam') router.push('/student/vibelearn/exams')
+    if (nextMode === 'homework') router.push('/student/tasks')
+    if (nextMode === 'revision') router.push('/student/vibelearn/revision')
+    if (nextMode === 'explain') openTwin('ask')
+    if (nextMode === 'challenge') void startPractice()
   }
 
   if (brainLoading && !state) return <div style={{ display: 'grid', gap: 12 }}><div style={skeleton(220)} /><div style={skeleton(130)} /><div style={skeleton(260)} /></div>
 
   return <div style={{ display: 'grid', gap: 14, animation: 'slideIn .22s ease' }}>
     <section style={hero}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }}>
-        <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 360px' }}>
           <div style={eyebrow}>VIBETWIN · ADAPTIVE TUTOR</div>
           <h1 style={{ fontSize: 27, margin: '6px 0 5px', letterSpacing: -0.6 }}>Learn with a Tutor that learns you.</h1>
           <p style={heroText}>{identity?.firstName ? `${identity.firstName}, ` : ''}your Twin uses verified evidence, curriculum mastery, forgetting risk and what has worked for you before to choose the next teaching move.</p>
@@ -119,11 +183,11 @@ export default function AdaptiveTutorPage() {
       </div>
     </section>
 
-    {(brainError || summaryError) && <section style={{ ...card, borderColor: '#fecaca', color: '#b91c1c' }}>{brainError || summaryError}<button onClick={() => { setSummaryError(''); void refreshTwin() }} style={linkButton}>Retry</button></section>}
+    {(brainError || summaryError) && <section role="alert" style={{ ...card, borderColor: '#fecaca', color: '#b91c1c' }}>{brainError || summaryError}<button onClick={() => { setSummaryError(''); void refreshTwin() }} style={linkButton}>Retry</button></section>}
 
     <section style={card}>
       <div style={sectionTop}><div><div style={eyebrowDark}>LEARNING MODE</div><h2 style={sectionTitle}>Choose how Twin should help</h2></div><button onClick={() => openTwin('ask')} style={askButton}>Ask Twin ✦</button></div>
-      <div style={modeGrid}>{MODES.map(item => <button key={item.id} onClick={() => setMode(item.id)} style={{ ...modeButton, borderColor: mode === item.id ? 'var(--vs-accent)' : 'var(--vs-border)', background: mode === item.id ? 'var(--vs-accent-soft)' : 'var(--vs-card)' }}><strong>{item.label}</strong><span>{item.hint}</span></button>)}</div>
+      <div style={modeGrid}>{MODES.map(item => <button key={item.id} onClick={() => selectMode(item.id)} aria-pressed={mode === item.id} style={{ ...modeButton, borderColor: mode === item.id ? 'var(--vs-accent)' : 'var(--vs-border)', background: mode === item.id ? 'var(--vs-accent-soft)' : 'var(--vs-card)' }}><strong>{item.label}</strong><span>{item.hint}</span></button>)}</div>
     </section>
 
     <section style={{ ...card, background: 'linear-gradient(135deg,var(--vs-accent-soft),var(--vs-card))' }}>
@@ -154,13 +218,17 @@ export default function AdaptiveTutorPage() {
 
     <section style={card}>
       <div style={sectionTop}><div><div style={eyebrowDark}>ADAPTIVE PRACTICE</div><h2 style={sectionTitle}>Right difficulty, right intervention</h2></div><button onClick={() => void startPractice()} disabled={busy} style={primarySmall}>{busy ? 'Preparing…' : practice ? 'New question' : 'Start practice'}</button></div>
-      {!practice ? <p style={body}>Twin will select a curriculum outcome using mastery, forgetting risk and evidence confidence, then adjust difficulty as your state changes.</p> : <div style={practiceCard}>
+      {!practice ? <p style={body}>Twin selects a curriculum outcome using mastery, forgetting risk and evidence confidence, then adjusts difficulty as your verified state changes.</p> : <div style={practiceCard}>
         <div style={chips}><span style={chip}>{practice.difficulty}</span><span style={chip}>{practice.outcomeCode ?? 'Curriculum outcome'}</span><span style={chip}>{Math.round(practice.forgettingRisk * 100)}% forgetting risk</span></div>
         <h3 style={{ fontSize: 16, lineHeight: 1.5, marginTop: 10 }}>{practice.prompt}</h3>
         <p style={muted}>{practice.outcomeText}</p>
         {coach && <div style={coachBox}><div style={eyebrowDark}>{coach.mode.replaceAll('_', ' ')}</div><p style={{ ...body, marginTop: 5 }}>{coach.prompt}</p>{coach.intervention.interventionKey && <div style={muted}>Selected strategy: {coach.intervention.interventionKey.replaceAll('_', ' ')}</div>}</div>}
+        <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+          {practice.options.map((option, index) => <button key={`${practice.id}-${index}`} disabled={busy} onClick={() => void answer(index)} style={optionButton}><strong>{String.fromCharCode(65 + index)}.</strong> {option}</button>)}
+        </div>
         <div style={actions}><button onClick={() => void coachMe()} disabled={busy} style={secondaryButton}>{coach ? 'Next coaching step' : 'Coach me first'}</button><button onClick={() => openTwin('ask')} style={secondaryButton}>Ask about this skill</button></div>
       </div>}
+      {feedback && <div role="status" style={feedbackBox}>{feedback}</div>}
     </section>
 
     <section style={grid2}>
@@ -176,7 +244,7 @@ export default function AdaptiveTutorPage() {
 
     <section style={quickGrid}>
       <Quick title="Read with Twin" body="Open VibeLearn, highlight content and ask for an explanation or practice." onClick={() => router.push('/student/vibelearn')} />
-      <Quick title="Homework coach" body="Get guidance without silently replacing teacher authority or fabricating completion." onClick={() => router.push('/student/tasks')} />
+      <Quick title="Homework coach" body="Get guidance without replacing teacher authority or fabricating completion." onClick={() => router.push('/student/tasks')} />
       <Quick title="Review mistakes" body="Turn errors into misconception recovery and targeted revision." onClick={() => router.push('/student/vibelearn/revision')} />
       <Quick title="Ask anything" body="Use the bounded Tutor with your current learner model already in context." onClick={() => openTwin('ask')} />
     </section>
@@ -196,7 +264,7 @@ const confidenceBadge: React.CSSProperties = { minWidth: 96, padding: 12, border
 const heroMetrics: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginTop: 18 }
 const heroMetric: React.CSSProperties = { display: 'grid', gap: 3, padding: 11, borderRadius: 13, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.09)' }
 const card: React.CSSProperties = { background: 'var(--vs-card)', border: '1px solid var(--vs-border)', borderRadius: 18, padding: 16, boxShadow: '0 8px 26px rgba(15,15,26,.06)' }
-const sectionTop: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }
+const sectionTop: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }
 const sectionTitle: React.CSSProperties = { fontSize: 18, margin: '5px 0 10px', letterSpacing: -.2 }
 const body: React.CSSProperties = { fontSize: 12.5, lineHeight: 1.65, color: 'var(--vs-muted)' }
 const muted: React.CSSProperties = { fontSize: 11, lineHeight: 1.5, color: 'var(--vs-muted)' }
@@ -208,6 +276,7 @@ const actions: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap'
 const primaryButton: React.CSSProperties = { border: 0, borderRadius: 12, padding: '11px 14px', background: 'var(--vs-accent)', color: '#fff', fontWeight: 900, cursor: 'pointer' }
 const primarySmall: React.CSSProperties = { ...primaryButton, padding: '9px 11px', fontSize: 11 }
 const secondaryButton: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 11, padding: '10px 12px', background: 'var(--vs-card)', color: 'var(--vs-text)', fontWeight: 800, cursor: 'pointer' }
+const optionButton: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 11, padding: '11px 12px', background: 'var(--vs-card)', color: 'var(--vs-text)', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }
 const linkButton: React.CSSProperties = { marginLeft: 10, border: 0, background: 'transparent', color: 'var(--vs-accent)', fontWeight: 850, cursor: 'pointer' }
 const chips: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }
 const chip: React.CSSProperties = { fontSize: 9.5, padding: '5px 7px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontWeight: 800 }
@@ -216,7 +285,8 @@ const memoryRow: React.CSSProperties = { display: 'flex', justifyContent: 'space
 const memoryType: React.CSSProperties = { fontSize: 9, color: 'var(--vs-accent)', fontWeight: 900, textTransform: 'uppercase' }
 const practiceCard: React.CSSProperties = { padding: 14, borderRadius: 14, border: '1px solid var(--vs-border)', background: 'var(--vs-bg)' }
 const coachBox: React.CSSProperties = { marginTop: 11, padding: 11, borderRadius: 12, background: 'var(--vs-accent-soft)', border: '1px solid var(--vs-border)' }
-const bigStat: React.CSSProperties = { fontSize: 40, fontWeight: 950, letterSpacing: -1.5, color: 'var(--vs-accent)' }
+const feedbackBox: React.CSSProperties = { marginTop: 10, padding: 11, borderRadius: 11, background: 'var(--vs-accent-soft)', color: 'var(--vs-text)', fontSize: 12, lineHeight: 1.55 }
+const bigStat: React.CSSProperties = { fontSize: 40, fontWeight: 900, letterSpacing: -1.5, color: 'var(--vs-accent)' }
 const revisionRow: React.CSSProperties = { border: '1px solid var(--vs-border)', borderRadius: 11, background: 'var(--vs-card)', color: 'var(--vs-text)', padding: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left', cursor: 'pointer' }
 const capGrid: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 7 }
 const capability: React.CSSProperties = { fontSize: 10.5, padding: '6px 8px', borderRadius: 999, background: 'var(--vs-accent-soft)', color: 'var(--vs-accent)', fontWeight: 750 }
