@@ -191,6 +191,20 @@ export interface AdaptivePracticeAnswerResult {
   nextQuestion: AdaptivePracticeQuestion | null
 }
 
+export interface AdaptiveTeachingTurn {
+  stage: number
+  mode: 'socratic_question' | 'hint' | 'worked_example'
+  prompt: string
+  nextStage: number
+  intervention: {
+    interventionType: string | null
+    interventionKey: string | null
+    source: string | null
+    effectivenessScore: number | null
+    confidence: number | null
+  }
+}
+
 function parseDecision(value: unknown): TwinDecision | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const item = record(value)
@@ -463,6 +477,29 @@ export async function generateAdaptivePracticeQuestion(outcomeId: string | null 
   const question = parseAdaptivePracticeQuestion(data)
   if (!question) throw new Error('Adaptive practice returned an invalid question.')
   return question
+}
+
+export async function getAdaptiveTeachingTurn(outcomeId: string, stage = 0): Promise<AdaptiveTeachingTurn> {
+  const { data, error } = await rpc<Json>('student_get_adaptive_teaching_turn', { p_outcome_id: outcomeId, p_stage: stage })
+  if (error) throw new Error(error.message || 'Adaptive coaching could not be prepared.')
+  const row = record(data)
+  const intervention = record(row.intervention)
+  const mode = text(row.mode)
+  const prompt = text(row.prompt)
+  if (!prompt || !mode || !['socratic_question','hint','worked_example'].includes(mode)) throw new Error('Adaptive coaching returned an invalid turn.')
+  return {
+    stage: numberOrNull(row.stage) ?? 0,
+    mode: mode as AdaptiveTeachingTurn['mode'],
+    prompt,
+    nextStage: numberOrNull(row.next_stage) ?? Math.min(3, stage + 1),
+    intervention: {
+      interventionType: text(intervention.intervention_type),
+      interventionKey: text(intervention.intervention_key),
+      source: text(intervention.source),
+      effectivenessScore: numberOrNull(intervention.effectiveness_score),
+      confidence: numberOrNull(intervention.confidence),
+    },
+  }
 }
 
 export async function answerAdaptivePracticeQuestion(input: { questionId: string; selectedIndex: number; responseMs?: number | null }): Promise<AdaptivePracticeAnswerResult> {
