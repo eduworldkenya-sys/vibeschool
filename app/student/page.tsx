@@ -8,11 +8,13 @@ import { nairobiDateStr, nairobiDayOfWeek } from '@/lib/time'
 import { loadActiveClassTimetable, timetableSlotsForDay } from '@/lib/timetable/engine'
 import { useStudent } from '@/lib/student-context'
 import Skel from '@/components/student/Skel'
+import TwinStateCard from '@/components/student/TwinStateCard'
 import { acknowledgeStudentHomeChanges, getStudentHomeOsBrief, markStudentHomeOpened, resolveTaskLaunch, updateStudentHomePreferences, type PreferredStudyTime, type StudentHomeOsBrief, type StudentTask } from '@/lib/student/tasks'
+import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
 import { supabase } from '@/lib/supabase'
 
 type TodaySlot = { id: string; subject: string; start: string; end: string; room: string }
-type HomeData = { brief: StudentHomeOsBrief; todaySlots: TodaySlot[]; attendancePct: number | null }
+type HomeData = { brief: StudentHomeOsBrief; twin: LearnerTwinState; todaySlots: TodaySlot[]; attendancePct: number | null }
 const TYPE_LABEL: Record<string, string> = { homework: 'Homework', exercise: 'Exercise', quiz: 'Quiz', cat: 'CAT', exam: 'Exam', project: 'Project', remedial: 'Practice' }
 const GRADES = ['', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E']
 const STUDY_TIMES: PreferredStudyTime[] = ['morning', 'afternoon', 'evening', 'flexible']
@@ -41,7 +43,7 @@ export default function StudentHomePage() {
     if (!identity) return
     setLoading(true); setError('')
     try {
-      const brief = await getStudentHomeOsBrief()
+      const [brief, twin] = await Promise.all([getStudentHomeOsBrief(), getLearnerTwinState()])
       const day = nairobiDayOfWeek()
       const slots = identity.classId && identity.schoolId ? await loadActiveClassTimetable({ classId: identity.classId, schoolId: identity.schoolId, activeOn: nairobiDateStr() }).then(all => timetableSlotsForDay(all, day)) : []
       const subjectIds = Array.from(new Set(slots.map(slot => slot.subject_id).filter((id): id is string => Boolean(id))))
@@ -50,7 +52,7 @@ export default function StudentHomePage() {
       const todaySlots = slots.map(slot => ({ id: slot.id, subject: slot.subject_id ? subjectNames[slot.subject_id] ?? 'Lesson' : 'Lesson', start: slot.start_time.slice(0, 5), end: slot.end_time.slice(0, 5), room: slot.room ?? '' }))
       const { data: attendance } = await supabase.from('attendance').select('status').eq('student_id', identity.studentId)
       const marked = attendance ?? []; const present = marked.filter(row => row.status === 'present').length; const attendancePct = marked.length > 0 ? Math.round((present / marked.length) * 100) : null
-      setData({ brief, todaySlots, attendancePct })
+      setData({ brief, twin, todaySlots, attendancePct })
       setTargetGrade(brief.progress.targets.kcseTargetGrade ?? ''); setWeeklyMinutes(brief.progress.targets.weeklyStudyMinutes); setSessionMinutes(brief.progress.targets.preferredSessionMinutes); setStudyTime(brief.progress.targets.preferredStudyTime)
       void markStudentHomeOpened().catch(() => undefined)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Your learner home could not be loaded.') } finally { setLoading(false) }
@@ -59,12 +61,14 @@ export default function StudentHomePage() {
   useEffect(() => { if (!identityLoading && identity) void load() }, [identityLoading, identity])
 
   async function openTask(task: StudentTask) { if (launchingTaskId) return; setLaunchingTaskId(task.taskId); setError(''); try { const launch = await resolveTaskLaunch(task.taskId); router.push(launch.actionUrl) } catch (cause) { setError(cause instanceof Error ? cause.message : 'This task could not be opened.'); await load() } finally { setLaunchingTaskId(null) } }
+  async function openTwinTask(taskId: string) { const task = data?.brief.taskFeed.tasks.find(candidate => candidate.taskId === taskId); if (task) await openTask(task); else router.push('/student/tasks') }
   async function acknowledgeChanges() { setSaving(true); try { await acknowledgeStudentHomeChanges(); await load() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Updates could not be acknowledged.') } finally { setSaving(false) } }
   async function savePreferences() { setSaving(true); setError(''); try { const brief = await updateStudentHomePreferences({ kcseTargetGrade: targetGrade || null, weeklyStudyMinutes: weeklyMinutes, preferredSessionMinutes: sessionMinutes, preferredStudyTime: studyTime, subjectTargets: data?.brief.progress.targets.subjectTargets ?? {} }); setData(current => current ? { ...current, brief } : current); setSettingsOpen(false) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Your study preferences could not be saved.') } finally { setSaving(false) } }
 
   const brief = data?.brief; const feed = brief?.taskFeed; const progress = brief?.progress
   const focusTasks = useMemo(() => feed?.tasks.filter(task => ['overdue', 'returned', 'in_progress', 'ready'].includes(task.status)).slice(0, 4) ?? [], [feed])
-  const nextTask = brief?.nextAction ?? focusTasks[0] ?? null
+  const twinTaskId = data?.twin.decision.now?.decisionType === 'task' ? data.twin.decision.now.taskId : null
+  const nextTask = (twinTaskId ? feed?.tasks.find(task => task.taskId === twinTaskId) : null) ?? brief?.nextAction ?? focusTasks[0] ?? null
   const goal = progress?.dailyGoal; const goalRate = goal ? Math.min(100, Math.round((goal.completed / Math.max(1, goal.target)) * 100)) : 0
   const nowMinutes = nairobiNowMinutes(); const firstUpcomingId = data?.todaySlots.find(slot => minutes(slot.start) > nowMinutes)?.id ?? null
 
@@ -74,11 +78,12 @@ export default function StudentHomePage() {
   return <div style={{ animation: 'slideIn .22s ease' }}>
     <section style={hero}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}><div><div style={eyebrow}>{new Date().toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' })}</div><h1 style={{ margin: '4px 0 2px', fontSize: 23 }}>{greeting()}, {identity.firstName}</h1><p style={heroSub}>{identity.className}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p></div><div style={{ textAlign: 'right' }}><strong style={{ fontSize: 19 }}>{progress?.totalXp ?? 0}</strong><div style={eyebrow}>VERIFIED XP</div></div></div>
-      <div style={heroPanel}><div style={eyebrow}>WHAT SHOULD I DO NOW?</div><h2 style={{ margin: '5px 0', fontSize: 19 }}>{nextTask?.title ?? 'You are caught up'}</h2><p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · ${nextTask.subject} · ${taskMeta(nextTask)}` : 'Use this time for focused revision or VibeLearn.'}</p>{nextTask ? <button disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={heroButton}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button> : <button onClick={() => router.push('/student/vibelearn')} style={heroButton}>Open Learn</button>}</div>
+      <div style={heroPanel}><div style={eyebrow}>WHAT SHOULD I DO NOW?</div><h2 style={{ margin: '5px 0', fontSize: 19 }}>{nextTask?.title ?? data?.twin.decision.now?.title ?? 'You are caught up'}</h2><p style={{ ...heroSub, lineHeight: 1.5 }}>{nextTask ? `${TYPE_LABEL[nextTask.taskType] ?? nextTask.taskType} · ${nextTask.subject} · ${taskMeta(nextTask)}` : data?.twin.decision.now?.reason ?? 'Use this time for focused revision or VibeLearn.'}</p>{nextTask ? <button disabled={launchingTaskId === nextTask.taskId} onClick={() => void openTask(nextTask)} style={heroButton}>{launchingTaskId === nextTask.taskId ? 'Opening…' : nextTask.actionLabel}</button> : <button onClick={() => router.push(data?.twin.decision.now?.actionUrl ?? '/student/vibelearn')} style={heroButton}>Open Learn</button>}</div>
       <div style={{ marginTop: 14 }}><div style={splitSmall}><span>Daily learning goal</span><strong>{goal?.completed ?? 0}/{goal?.target ?? 1}</strong></div><div style={heroTrack}><div style={{ width: `${goalRate}%`, height: '100%', background: '#fff', borderRadius: 999 }} /></div></div>
     </section>
 
     {error && <section style={{ ...card, color: '#991b1b', borderColor: '#fecaca' }}>{error}<button onClick={() => void load()} style={linkButton}>Retry</button></section>}
+    {data?.twin && <TwinStateCard state={data.twin} launchingTaskId={launchingTaskId} onTask={taskId => void openTwinTask(taskId)} />}
     <section style={{ ...card, background: brief?.urgency.level === 'urgent' ? '#fef2f2' : brief?.urgency.level === 'attention' ? '#fffbeb' : '#ecfdf5' }}><div style={label}>{brief?.urgency.level === 'urgent' ? 'ACT NOW' : brief?.urgency.level === 'attention' ? 'PAY ATTENTION' : 'ON TRACK'}</div><h2 style={sectionTitle}>{brief?.urgency.headline}</h2><p style={body}>{brief?.urgency.message}</p></section>
 
     <section style={card}><SectionHeader title="My academic target" action={settingsOpen ? 'Close' : 'Set goals'} onClick={() => setSettingsOpen(value => !value)} /><div style={goalGrid}><Metric label="KCSE target" value={progress?.targets.kcseTargetGrade ?? 'Not set'} /><Metric label="Weekly study" value={`${progress?.targets.weeklyStudyMinutes ?? 300} min`} /><Metric label="Focus session" value={`${progress?.targets.preferredSessionMinutes ?? 25} min`} /></div>{settingsOpen && <div style={formGrid}><label style={field}>KCSE target<select value={targetGrade} onChange={event => setTargetGrade(event.target.value)} style={input}>{GRADES.map(grade => <option key={grade || 'none'} value={grade}>{grade || 'Not set'}</option>)}</select></label><label style={field}>Weekly minutes<input type="number" min={30} max={4200} value={weeklyMinutes} onChange={event => setWeeklyMinutes(Number(event.target.value))} style={input} /></label><label style={field}>Session minutes<input type="number" min={10} max={180} value={sessionMinutes} onChange={event => setSessionMinutes(Number(event.target.value))} style={input} /></label><label style={field}>Preferred time<select value={studyTime} onChange={event => setStudyTime(event.target.value as PreferredStudyTime)} style={input}>{STUDY_TIMES.map(item => <option key={item} value={item}>{item}</option>)}</select></label><button disabled={saving} onClick={() => void savePreferences()} style={primaryButton}>{saving ? 'Saving…' : 'Save my goals'}</button></div>}</section>
@@ -89,9 +94,9 @@ export default function StudentHomePage() {
 
     <section style={card}><SectionHeader title={`What changed?${brief?.unreadChangeCount ? ` · ${brief.unreadChangeCount} new` : ''}`} action={brief?.unreadChangeCount ? 'Mark seen' : 'Results'} onClick={() => brief?.unreadChangeCount ? void acknowledgeChanges() : router.push('/student/marks')} />{(brief?.recentChanges.length ?? 0) === 0 ? <Empty title="No learning changes" body="New marks, feedback and completed milestones will appear here." /> : <div style={{ display: 'grid', gap: 8 }}>{brief?.recentChanges.slice(0, 6).map(change => <div key={`${change.kind}:${change.id}:${change.occurredAt}`} style={{ ...changeRow, borderColor: change.isUnread ? '#a5b4fc' : 'var(--vs-border)' }}><div><div style={label}>{change.isUnread ? 'NEW · ' : ''}{change.kind.replaceAll('_', ' ')}</div><strong style={{ fontSize: 12 }}>{change.title}</strong>{change.summary && <div style={muted}>{change.summary}</div>}</div><span style={muted}>{relativeTime(change.occurredAt)}</span></div>)}</div>}</section>
 
-    <section style={pulseGrid}><Metric label="To do" value={feed?.counts.toDo ?? 0} /><Metric label="In progress" value={feed?.counts.inProgress ?? 0} /><Metric label="Streak" value={progress?.streak.current ?? 0} /><Metric label="Attendance" value={data?.attendancePct == null ? '—' : `${data.attendancePct}%`} /></section>
+    <section style={pulseGrid}><Metric label="To do" value={feed?.counts.toDo ?? 0} /><Metric label="In progress" value={feed?.counts.inProgress ?? 0} /><Metric label="Streak" value={data?.twin.streak.current ?? progress?.streak.current ?? 0} /><Metric label="Attendance" value={data?.attendancePct == null ? '—' : `${data.attendancePct}%`} /></section>
 
-    <section style={card}><SectionHeader title="How am I progressing?" action="Results" onClick={() => router.push('/student/marks')} />{(progress?.subjectProgress.length ?? 0) === 0 ? <Empty title="Progress is building" body="Subject mastery appears after marked and verified work." /> : <div style={{ display: 'grid', gap: 11 }}>{progress?.subjectProgress.slice(0, 5).map(subject => { const mastery = subject.masteryPercentage ?? subject.averageScore ?? 0; return <div key={subject.subjectId}><div style={splitSmall}><strong>{subject.subjectName}</strong><span>{Math.round(mastery)}%</span></div><div style={track}><div style={{ width: `${Math.min(100, Math.max(0, mastery))}%`, height: '100%', background: '#4f46e5' }} /></div></div> })}</div>}</section>
+    <section style={card}><SectionHeader title="How am I progressing?" action="Results" onClick={() => router.push('/student/marks')} />{(data?.twin.mastery.subjects.length ?? 0) === 0 ? <Empty title="Progress is building" body="Subject mastery appears after marked and verified work." /> : <div style={{ display: 'grid', gap: 11 }}>{data?.twin.mastery.subjects.slice(0, 5).map(subject => { const mastery = subject.masteryPercentage ?? subject.averageScore ?? 0; return <div key={subject.subjectId}><div style={splitSmall}><strong>{subject.subjectName}</strong><span>{Math.round(mastery)}% · {Math.round(subject.confidence * 100)}% confidence</span></div><div style={track}><div style={{ width: `${Math.min(100, Math.max(0, mastery))}%`, height: '100%', background: '#4f46e5' }} /></div></div> })}</div>}</section>
 
     <section style={card}><SectionHeader title="What is happening today?" action="Full timetable" onClick={() => router.push('/student/timetable')} />{(data?.todaySlots.length ?? 0) === 0 ? <Empty title="No lessons scheduled today" body="Use the time for your study session or learning queue." /> : <div style={{ display: 'grid', gap: 8 }}>{data?.todaySlots.map(slot => { const start = minutes(slot.start); const end = minutes(slot.end); const labelText = nowMinutes >= start && nowMinutes < end ? 'NOW' : slot.id === firstUpcomingId ? 'NEXT' : ''; return <div key={slot.id} style={{ ...slotRow, opacity: end <= nowMinutes ? .55 : 1 }}><strong>{slot.start}</strong><span><strong style={{ fontSize: 12 }}>{slot.subject}</strong><div style={muted}>{slot.end}{slot.room ? ` · ${slot.room}` : ''}</div></span>{labelText && <span style={badge}>{labelText}</span>}</div> })}</div>}</section>
 
