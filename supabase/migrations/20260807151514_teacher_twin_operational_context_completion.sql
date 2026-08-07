@@ -1,0 +1,3 @@
+-- Recovered production migration history.
+-- This production step completed Teacher Twin operational context parity: timetable, attendance, TPAD, credits, messages and homework signals.
+-- The complete replayable final contract is consolidated in 20260807152114_teacher_twin_context_integrity_fix.sql.
