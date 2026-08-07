@@ -114,19 +114,13 @@ function parseSubjects(value: unknown): TwinSubjectMastery[] {
 }
 
 export async function getLearnerTwinState(): Promise<LearnerTwinState> {
-  const [{ data: stateData, error: stateError }, { data: masteryData, error: masteryError }, { data: predictionData, error: predictionError }, { data: priorityData, error: priorityError }] = await Promise.all([
-    rpc<Json>('student_get_twin_state'),
-    rpc<Json>('student_get_twin_mastery'),
-    rpc<Json>('student_get_twin_prediction'),
-    rpc<Json>('student_get_twin_priority'),
-  ])
-  const error = stateError ?? masteryError ?? predictionError ?? priorityError
+  const { data, error } = await rpc<Json>('student_get_twin_brain')
   if (error) throw new Error(error.message || 'Your learning state could not be loaded.')
 
-  const state = record(stateData)
-  const mastery = record(masteryData)
-  const prediction = record(predictionData)
-  const priority = record(priorityData)
+  const state = record(data)
+  const mastery = record(state.mastery)
+  const prediction = record(state.prediction)
+  const priority = record(state.decision)
   const evidence = record(state.evidence)
   const exam = record(state.exam)
   const streak = record(state.streak)
