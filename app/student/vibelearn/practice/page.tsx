@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
-import { getGroundedChapterPractice, recordGroundedPracticeAnswer, recordPracticeAnswer, type GroundedPracticeQuestion, type GroundedPracticeSource } from '@/lib/student/vibelearn'
+import { getGroundedChapterPractice, recordGroundedPracticeAnswer, recordVibeLearnPracticeAnswer, type GroundedPracticeQuestion, type GroundedPracticeSource } from '@/lib/student/vibelearn'
 
 type BankQuestion = {
   kind: 'bank'
@@ -44,6 +44,10 @@ function asBankQuestion(value: unknown): BankQuestion | null {
   }
 }
 
+function asResult(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
 export default function VibeLearnPracticePage() {
   const router = useRouter()
   const params = useSearchParams()
@@ -77,10 +81,10 @@ export default function VibeLearnPracticePage() {
       setError('')
       try {
         if (hasReaderSource) {
-          const grounded = await getGroundedChapterPractice({ publicationId: requestedPublicationId, chapterId: requestedChapterId, limit: 10 })
+          const grounded = await getGroundedChapterPractice(requestedPublicationId, requestedChapterId, 10)
           if (!cancelled) {
-            setSourceContext(grounded.source)
-            setQuestions(grounded.questions.map(question => ({ ...question, kind: 'grounded' as const })))
+            setSourceContext(grounded?.source ?? null)
+            setQuestions(grounded?.questions.map(question => ({ ...question, kind: 'grounded' as const })) ?? [])
           }
           return
         }
@@ -120,11 +124,19 @@ export default function VibeLearnPracticePage() {
     setError('')
     try {
       if (question.kind === 'grounded') {
-        const result = await recordGroundedPracticeAnswer({ contentBlockId: question.contentBlockId, responseText: textAnswer, responseMs: Math.max(0, Date.now() - startedAtRef.current), sessionId: sessionIdRef.current })
-        setAnswerCorrect(result.correct); setExpectedAnswer(result.expectedAnswer); setReviewUrl(result.reviewUrl); setSubmitted(true); if (result.correct) setCorrect(value => value + 1)
+        const result = asResult(await recordGroundedPracticeAnswer({ contentBlockId: question.contentBlockId, responseText: textAnswer, responseMs: Math.max(0, Date.now() - startedAtRef.current), sessionId: sessionIdRef.current }))
+        const isCorrect = result.correct === true
+        setAnswerCorrect(isCorrect)
+        setExpectedAnswer(typeof result.expected_answer === 'string' ? result.expected_answer : null)
+        setReviewUrl(typeof result.review_url === 'string' ? result.review_url : null)
+        setSubmitted(true)
+        if (isCorrect) setCorrect(value => value + 1)
       } else {
-        const result = await recordPracticeAnswer({ questionId: question.id, selectedIndex: selected as number, responseMs: Math.max(0, Date.now() - startedAtRef.current), sessionId: sessionIdRef.current })
-        setAnswerCorrect(result.correct); setSubmitted(true); if (result.correct) setCorrect(value => value + 1)
+        const result = asResult(await recordVibeLearnPracticeAnswer({ examQuestionId: question.id, selectedIndex: selected as number, responseMs: Math.max(0, Date.now() - startedAtRef.current), sessionId: sessionIdRef.current }))
+        const isCorrect = result.correct === true
+        setAnswerCorrect(isCorrect)
+        setSubmitted(true)
+        if (isCorrect) setCorrect(value => value + 1)
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Your answer could not be saved. Try again.')
@@ -157,20 +169,20 @@ export default function VibeLearnPracticePage() {
 }
 
 const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 90px', color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }
-const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#0f172a,#1e1b4b)', color: '#fff', borderRadius: 20, padding: 20, marginBottom: 12 }
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 16, marginBottom: 12 }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, color: '#a5b4fc' }
-const eyebrowDark: React.CSSProperties = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.1, color: '#4f46e5' }
-const muted: React.CSSProperties = { fontSize: 12, color: '#64748b', margin: 0 }
-const backButton: React.CSSProperties = { border: 'none', background: 'transparent', color: '#4338ca', fontWeight: 800, marginBottom: 10, cursor: 'pointer', fontFamily: 'inherit' }
-const pill: React.CSSProperties = { width: 'fit-content', background: '#eef2ff', color: '#4338ca', borderRadius: 999, padding: '4px 8px', fontSize: 10, fontWeight: 800 }
-const progressTrack: React.CSSProperties = { height: 6, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden', margin: '12px 0 16px' }
-const progressFill: React.CSSProperties = { height: '100%', background: '#4f46e5' }
-const optionButton: React.CSSProperties = { width: '100%', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, display: 'flex', gap: 10, alignItems: 'flex-start', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }
-const optionLetter: React.CSSProperties = { width: 24, height: 24, borderRadius: 999, background: '#f1f5f9', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }
-const answerInput: React.CSSProperties = { width: '100%', border: '1px solid #cbd5e1', borderRadius: 12, padding: 12, fontFamily: 'inherit', fontSize: 14, resize: 'vertical' }
-const primaryButton: React.CSSProperties = { border: 'none', background: '#4f46e5', color: '#fff', borderRadius: 11, padding: '10px 14px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca', borderRadius: 10, padding: '8px 11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }
-const hintBox: React.CSSProperties = { marginTop: 12, padding: 12, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, color: '#78350f' }
-const correctBox: React.CSSProperties = { marginTop: 14, padding: 13, background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, color: '#065f46' }
-const incorrectBox: React.CSSProperties = { marginTop: 14, padding: 13, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, color: '#9a3412' }
+const hero: React.CSSProperties = { background: 'linear-gradient(135deg,#0f172a,#1e1b4b)', color:'#fff', borderRadius:20, padding:20, marginBottom:12 }
+const card: React.CSSProperties = { background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:16, marginBottom:12 }
+const eyebrow: React.CSSProperties = { fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'#a5b4fc' }
+const eyebrowDark: React.CSSProperties = { fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.1, color:'#4f46e5' }
+const muted: React.CSSProperties = { fontSize:12, color:'#64748b', margin:0 }
+const backButton: React.CSSProperties = { border:'none', background:'transparent', color:'#4338ca', fontWeight:800, marginBottom:10, cursor:'pointer', fontFamily:'inherit' }
+const pill: React.CSSProperties = { width:'fit-content', background:'#eef2ff', color:'#4338ca', borderRadius:999, padding:'4px 8px', fontSize:10, fontWeight:800 }
+const progressTrack: React.CSSProperties = { height:6, borderRadius:999, background:'#e2e8f0', overflow:'hidden', margin:'12px 0 16px' }
+const progressFill: React.CSSProperties = { height:'100%', background:'#4f46e5' }
+const optionButton: React.CSSProperties = { width:'100%', border:'1px solid #e2e8f0', borderRadius:12, padding:12, display:'flex', gap:10, alignItems:'flex-start', textAlign:'left', fontFamily:'inherit', cursor:'pointer' }
+const optionLetter: React.CSSProperties = { width:24, height:24, borderRadius:999, background:'#f1f5f9', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:800, flexShrink:0 }
+const answerInput: React.CSSProperties = { width:'100%', border:'1px solid #cbd5e1', borderRadius:12, padding:12, fontFamily:'inherit', fontSize:14, resize:'vertical' }
+const primaryButton: React.CSSProperties = { border:'none', background:'#4f46e5', color:'#fff', borderRadius:11, padding:'10px 14px', fontWeight:800, cursor:'pointer', fontFamily:'inherit' }
+const secondaryButton: React.CSSProperties = { border:'1px solid #c7d2fe', background:'#eef2ff', color:'#4338ca', borderRadius:10, padding:'8px 11px', fontWeight:700, cursor:'pointer', fontFamily:'inherit' }
+const hintBox: React.CSSProperties = { marginTop:12, padding:12, background:'#fffbeb', border:'1px solid #fde68a', borderRadius:12, color:'#78350f' }
+const correctBox: React.CSSProperties = { marginTop:14, padding:13, background:'#ecfdf5', border:'1px solid #a7f3d0', borderRadius:12, color:'#065f46' }
+const incorrectBox: React.CSSProperties = { marginTop:14, padding:13, background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:12, color:'#9a3412' }
