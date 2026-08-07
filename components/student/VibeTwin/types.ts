@@ -1,10 +1,11 @@
 // components/student/VibeTwin/types.ts
 
+import type { LearnerTwinState } from '@/lib/student/twin'
+
 export type TwinMode   = 'text' | 'audio'
 export type TwinState  = 'idle' | 'listening' | 'processing' | 'speaking'
 export type VibeIntent = 'NEWS' | 'QUESTION' | 'READ' | 'LESSON' | 'CONVERSATIONAL' | 'GENERAL'
 
-// Named TwinMessage to avoid collision with lib/types.ts Message interface
 export interface TwinMessage {
   id:        string
   role:      'twin' | 'user'
@@ -13,9 +14,10 @@ export interface TwinMessage {
 }
 
 export interface VibeTwinProps {
-  isOpen:   boolean
-  onClose:  () => void
-  userName: string
+  isOpen:       boolean
+  onClose:      () => void
+  userName:     string
+  learnerState: LearnerTwinState | null
 }
 
 export interface SearchResult {
@@ -28,7 +30,6 @@ export interface SearchResponse {
   results: SearchResult[]
 }
 
-// Typed interface for SpeechRecognition — avoids any, works across browsers
 export interface SpeechRecognitionInstance {
   lang:           string
   continuous:     boolean
