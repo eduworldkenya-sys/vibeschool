@@ -15,6 +15,21 @@ type SubmissionStatus =
   | "returned"
   | "marked";
 
+type HomeworkReviewAction = "marked" | "returned" | "feedback_released";
+type HomeworkReviewRpcClient = {
+  rpc(
+    fn: "review_homework_submission",
+    args: {
+      p_submission_id: string;
+      p_action: HomeworkReviewAction;
+      p_mark?: number;
+      p_feedback?: string;
+      p_reason?: string;
+      p_release_model_answers: boolean;
+    },
+  ): Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
 interface Student {
   id: string;
   name: string;
@@ -183,14 +198,15 @@ function HomeworkGradePageInner() {
     setView("grade");
   }
 
-  async function reviewSubmission(action: "marked" | "returned" | "feedback_released", input?: { mark?: number | null; feedback?: string | null; reason?: string | null }) {
+  async function reviewSubmission(action: HomeworkReviewAction, input?: { mark?: number | null; feedback?: string | null; reason?: string | null }) {
     if (!selectedSub) return { error: { message: "Submission is missing" } };
-    return supabase.rpc("review_homework_submission", {
+    const rpcClient = supabase as unknown as HomeworkReviewRpcClient;
+    return rpcClient.rpc("review_homework_submission", {
       p_submission_id: selectedSub.id,
       p_action: action,
-      p_mark: input?.mark ?? undefined,
-      p_feedback: input?.feedback ?? undefined,
-      p_reason: input?.reason ?? undefined,
+      ...(input?.mark != null ? { p_mark: input.mark } : {}),
+      ...(input?.feedback != null ? { p_feedback: input.feedback } : {}),
+      ...(input?.reason != null ? { p_reason: input.reason } : {}),
       p_release_model_answers: false,
     });
   }
@@ -276,21 +292,20 @@ function HomeworkGradePageInner() {
     </div>;
   }
 
-  return <div style={{ padding: 18, maxWidth: 920, margin: "0 auto" }}>
-    <button type="button" onClick={() => router.back()} style={{ border: "none", background: "transparent", color: C.textSecondary, cursor: "pointer", marginBottom: 10 }}>← Back</button>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 16 }}><div><div style={{ fontSize: 11, color: C.textSecondary }}>{hw.subject}</div><h1 style={{ margin: "4px 0 6px", fontSize: 23 }}>{hw.title}</h1><div style={{ color: C.textSecondary, fontSize: 12 }}>Due {new Date(hw.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</div></div><div style={{ textAlign: "right" }}><strong style={{ fontSize: 20 }}>{handedIn.length}/{students.length}</strong><div style={{ fontSize: 10, color: C.textSecondary }}>handed in</div></div></div>
-
-    {bulkMsg && <div style={{ marginBottom: 12, padding: 10, borderRadius: 9, background: "#ecfdf5", color: "#047857", fontSize: 12 }}>{bulkMsg}</div>}
-
-    <section style={{ display: "grid", gap: 9 }}>
-      {handedIn.map(student => {
+  return <div style={{ padding: 18, maxWidth: 980, margin: "0 auto" }}>
+    <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ border: "none", background: "transparent", color: C.textSecondary, cursor: "pointer", marginBottom: 12 }}>← Homework</button>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h1 style={{ margin: 0, fontSize: 22 }}>{hw.title}</h1><div style={{ marginTop: 4, color: C.textSecondary, fontSize: 12 }}>{hw.subject} · Due {new Date(hw.due_date).toLocaleDateString()}</div></div><div style={{ display: "flex", gap: 8 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "#ecfdf5", color: "#047857", fontSize: 11, fontWeight: 800 }}>{handedIn.length} handed in</span><span style={{ padding: "7px 10px", borderRadius: 999, background: "#f3f4f6", color: "#6b7280", fontSize: 11, fontWeight: 800 }}>{pending.length} pending</span></div></div>
+    {bulkMsg && <div style={{ marginTop: 12, padding: 10, borderRadius: 10, background: "#eff6ff", color: "#1d4ed8", fontSize: 12 }}>{bulkMsg}</div>}
+    <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
+      {handedIn.length === 0 ? <div style={{ padding: 20, borderRadius: 12, background: "#f8fafc", color: C.textSecondary, fontSize: 13 }}>No learner submissions yet.</div> : handedIn.map(student => {
         const sub = subMap.get(student.id)!;
         const badge = statusBadge(sub.status, sub.mark);
-        return <button key={student.id} type="button" onClick={() => openGrade(student, sub)} style={{ textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#fff", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 10 }}><div><strong style={{ fontSize: 12 }}>{student.name}</strong><div style={{ marginTop: 3, color: C.textSecondary, fontSize: 10 }}>{student.admission_number}{sub.received_at ? ` · Received ${new Date(sub.received_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : sub.submitted_at ? ` · Submitted ${new Date(sub.submitted_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}</div></div><span style={{ alignSelf: "center", borderRadius: 999, padding: "4px 8px", background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 800 }}>{badge.label}</span></button>;
+        return <button type="button" key={student.id} onClick={() => openGrade(student, sub)} style={{ padding: 13, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", textAlign: "left", cursor: "pointer" }}><div><strong>{student.name}</strong><div style={{ color: C.textSecondary, fontSize: 11, marginTop: 3 }}>{student.admission_number}</div></div><span style={{ borderRadius: 999, padding: "5px 9px", background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 800 }}>{badge.label}</span></button>;
       })}
-    </section>
-
-    {pending.length > 0 && <section style={{ marginTop: 18 }}><div style={{ fontSize: 11, fontWeight: 900, color: C.textSecondary, letterSpacing: .8, marginBottom: 8 }}>AWAITING {pending.length}</div><div style={{ display: "grid", gap: 7 }}>{pending.map(student => <div key={student.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 10, background: "#f9fafb" }}><strong style={{ fontSize: 11 }}>{student.name}</strong><div style={{ fontSize: 9, color: C.textSecondary, marginTop: 2 }}>{student.admission_number}</div></div>)}</div></section>}
+    </div>
+    <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <button type="button" onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/student/homework/${hwId}`); setBulkMsg("Learner homework link copied"); }} style={{ border: "1px solid #e5e7eb", background: "#fff", borderRadius: 9, padding: "8px 11px", cursor: "pointer", fontWeight: 700 }}>Copy learner link</button>
+    </div>
   </div>;
 }
 
