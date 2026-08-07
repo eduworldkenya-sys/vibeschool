@@ -66,6 +66,32 @@ export interface TwinCalibrationEvent {
   resolvedAt: string | null
 }
 
+export interface TwinLearnedIntervention {
+  interventionType: string
+  interventionKey: string
+  outcomeId: string | null
+  attempts: number
+  successes: number
+  meanMasteryDelta: number | null
+  meanResponseMs: number | null
+  effectivenessScore: number
+  confidence: number
+  lastObservedAt: string | null
+}
+
+export interface TwinLearningExposure {
+  id: string
+  outcomeId: string | null
+  interventionType: string
+  interventionKey: string
+  masteryBefore: number | null
+  masteryAfter: number | null
+  masteryDelta: number | null
+  successful: boolean | null
+  exposedAt: string | null
+  resolvedAt: string | null
+}
+
 export interface LearnerTwinState {
   studentId: string
   generatedAt: string
@@ -84,6 +110,19 @@ export interface LearnerTwinState {
     snapshotGeneratedAt: string | null
     stateConfidence: number
     recentCalibrations: TwinCalibrationEvent[]
+  }
+  learning: {
+    resolvedNow: number
+    unresolvedExposures: number
+    learnedInterventions: TwinLearnedIntervention[]
+    recentExposures: TwinLearningExposure[]
+    policy: string | null
+  }
+  adaptation: {
+    policyVersion: number
+    decision: Json
+    memory: Json
+    prediction: Json
   }
   exam: { examName: string; examDate: string | null; daysRemaining: number | null; dailyRevisionMinutes: number; confidenceCheck: number | null; targetGrade: string | null }
   streak: { current: number; longest: number; graceTokens: number }
@@ -164,6 +203,42 @@ function parseCalibrations(value: unknown): TwinCalibrationEvent[] {
   })
 }
 
+function parseLearnedInterventions(value: unknown): TwinLearnedIntervention[] {
+  return (Array.isArray(value) ? value : []).map(item => {
+    const row = record(item)
+    return {
+      interventionType: text(row.intervention_type) ?? 'practice',
+      interventionKey: text(row.intervention_key) ?? '',
+      outcomeId: text(row.outcome_id),
+      attempts: numberOrNull(row.attempts) ?? 0,
+      successes: numberOrNull(row.successes) ?? 0,
+      meanMasteryDelta: numberOrNull(row.mean_mastery_delta),
+      meanResponseMs: numberOrNull(row.mean_response_ms),
+      effectivenessScore: numberOrNull(row.effectiveness_score) ?? 0,
+      confidence: numberOrNull(row.confidence) ?? 0,
+      lastObservedAt: text(row.last_observed_at),
+    }
+  })
+}
+
+function parseLearningExposures(value: unknown): TwinLearningExposure[] {
+  return (Array.isArray(value) ? value : []).map(item => {
+    const row = record(item)
+    return {
+      id: text(row.id) ?? '',
+      outcomeId: text(row.outcome_id),
+      interventionType: text(row.intervention_type) ?? 'practice',
+      interventionKey: text(row.intervention_key) ?? '',
+      masteryBefore: numberOrNull(row.mastery_before),
+      masteryAfter: numberOrNull(row.mastery_after),
+      masteryDelta: numberOrNull(row.mastery_delta),
+      successful: row.successful === null || row.successful === undefined ? null : boolean(row.successful),
+      exposedAt: text(row.exposed_at),
+      resolvedAt: text(row.resolved_at),
+    }
+  })
+}
+
 export async function getLearnerTwinState(): Promise<LearnerTwinState> {
   const { data, error } = await rpc<Json>('student_get_twin_brain')
   if (error) throw new Error(error.message || 'Your learning state could not be loaded.')
@@ -173,6 +248,8 @@ export async function getLearnerTwinState(): Promise<LearnerTwinState> {
   const prediction = record(state.prediction)
   const priority = record(state.decision)
   const evidence = record(state.evidence)
+  const learning = record(state.learning)
+  const adaptation = record(state.adaptation)
   const exam = record(state.exam)
   const streak = record(state.streak)
   const studyTime = record(state.study_time)
@@ -207,6 +284,19 @@ export async function getLearnerTwinState(): Promise<LearnerTwinState> {
       snapshotGeneratedAt: text(evidence.snapshot_generated_at),
       stateConfidence: numberOrNull(evidence.state_confidence) ?? numberOrNull(state.confidence) ?? 0,
       recentCalibrations: parseCalibrations(evidence.recent_calibrations),
+    },
+    learning: {
+      resolvedNow: numberOrNull(learning.resolved_now) ?? 0,
+      unresolvedExposures: numberOrNull(learning.unresolved_exposures) ?? 0,
+      learnedInterventions: parseLearnedInterventions(learning.learned_interventions),
+      recentExposures: parseLearningExposures(learning.recent_exposures),
+      policy: text(learning.policy),
+    },
+    adaptation: {
+      policyVersion: numberOrNull(adaptation.policy_version) ?? 0,
+      decision: (adaptation.decision ?? {}) as Json,
+      memory: (adaptation.memory ?? {}) as Json,
+      prediction: (adaptation.prediction ?? {}) as Json,
     },
     exam: {
       examName: text(exam.exam_name) ?? 'KCSE',
