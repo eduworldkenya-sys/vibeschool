@@ -19,6 +19,21 @@ type Question = {
   hint: string | null
 }
 
+type SourceContext = {
+  publicationId: string
+  publicationTitle: string
+  chapterId: string
+  chapterTitle: string
+  subject: string | null
+  grade: string | null
+  assessableBlockCount: number
+  verifiedOutcomeCount: number
+}
+
+type ReaderSourceRpcClient = {
+  rpc(fn: 'student_resolve_vibelearn_assessment_source', args: { p_publication_id: string; p_chapter_id: string }): Promise<{ data: unknown; error: { message: string } | null }>
+}
+
 function asQuestion(value: unknown): Question | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const row = value as Record<string, unknown>
@@ -38,11 +53,31 @@ function asQuestion(value: unknown): Question | null {
   }
 }
 
+function asSourceContext(value: unknown): SourceContext | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  if (row.ok !== true || typeof row.publication_id !== 'string' || typeof row.chapter_id !== 'string') return null
+  return {
+    publicationId: row.publication_id,
+    publicationTitle: typeof row.publication_title === 'string' ? row.publication_title : 'VibeTextbook',
+    chapterId: row.chapter_id,
+    chapterTitle: typeof row.chapter_title === 'string' ? row.chapter_title : 'Current unit',
+    subject: typeof row.subject === 'string' ? row.subject : null,
+    grade: typeof row.grade === 'string' ? row.grade : null,
+    assessableBlockCount: typeof row.assessable_block_count === 'number' ? row.assessable_block_count : 0,
+    verifiedOutcomeCount: typeof row.verified_outcome_count === 'number' ? row.verified_outcome_count : 0,
+  }
+}
+
 export default function VibeLearnPracticePage() {
   const router = useRouter()
   const params = useSearchParams()
   const requestedSubject = params.get('subject')?.replaceAll('-', ' ') ?? ''
   const requestedTopic = params.get('topic')?.replaceAll('-', ' ') ?? ''
+  const requestedPublicationId = params.get('publication') ?? ''
+  const requestedChapterId = params.get('chapter') ?? ''
+  const hasReaderSource = Boolean(requestedPublicationId && requestedChapterId)
+  const [sourceContext, setSourceContext] = useState<SourceContext | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -59,13 +94,30 @@ export default function VibeLearnPracticePage() {
     let cancelled = false
     async function load() {
       try {
+        let source: SourceContext | null = null
+        if (hasReaderSource) {
+          const rpcClient = supabase as unknown as ReaderSourceRpcClient
+          const { data, error: sourceError } = await rpcClient.rpc('student_resolve_vibelearn_assessment_source', {
+            p_publication_id: requestedPublicationId,
+            p_chapter_id: requestedChapterId,
+          })
+          if (sourceError) throw sourceError
+          source = asSourceContext(data)
+          if (!source) throw new Error('This learning source is not available for practice.')
+          if (!cancelled) setSourceContext(source)
+        } else if (!cancelled) {
+          setSourceContext(null)
+        }
+
+        const subjectFilter = source?.subject ?? requestedSubject
+        const topicFilter = requestedTopic
         let query = supabase
           .from('exam_question_bank')
           .select('id,subject,topic,difficulty,question,options,correct_index,explanation,hint')
           .eq('status', 'published')
           .limit(20)
-        if (requestedSubject) query = query.ilike('subject', requestedSubject)
-        if (requestedTopic) query = query.ilike('topic', requestedTopic)
+        if (subjectFilter) query = query.ilike('subject', subjectFilter)
+        if (topicFilter) query = query.ilike('topic', topicFilter)
         const { data, error: loadError } = await query
         if (loadError) throw loadError
         if (!cancelled) setQuestions((data ?? []).flatMap(value => {
@@ -73,20 +125,26 @@ export default function VibeLearnPracticePage() {
           return parsed ? [parsed] : []
         }))
       } catch (reason) {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not load practice questions.')
+        if (!cancelled) {
+          setQuestions([])
+          setSourceContext(null)
+          setError(reason instanceof Error ? reason.message : 'Could not load practice questions.')
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     void load()
     return () => { cancelled = true }
-  }, [requestedSubject, requestedTopic])
+  }, [hasReaderSource, requestedPublicationId, requestedChapterId, requestedSubject, requestedTopic])
 
   const question = questions[index] ?? null
   const finished = questions.length > 0 && index >= questions.length
   const progress = questions.length === 0 ? 0 : Math.round((Math.min(index, questions.length) / questions.length) * 100)
   const answerCorrect = submitted && selected === question?.correctIndex
   const scoreLabel = useMemo(() => questions.length ? `${correct}/${questions.length}` : '0/0', [correct, questions.length])
+  const practiceTitle = sourceContext?.chapterTitle || requestedTopic || requestedSubject || 'Mixed subject'
+  const backUrl = sourceContext ? `/read/textbook/${sourceContext.publicationId}?chapter=${sourceContext.chapterId}` : '/student/vibelearn'
 
   async function checkAnswer() {
     if (selected === null || !question || submitted || saving) return
@@ -119,23 +177,31 @@ export default function VibeLearnPracticePage() {
   return (
     <main style={shell}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button style={backButton} onClick={() => router.push('/student/vibelearn')}>← VibeLearn</button>
+        <button style={backButton} onClick={() => router.push(backUrl)}>← {sourceContext ? 'Back to unit' : 'VibeLearn'}</button>
         <section style={hero}>
           <div style={eyebrow}>Practice mode</div>
-          <h1 style={{ margin: '7px 0 4px' }}>{requestedTopic || requestedSubject || 'Mixed subject'} practice</h1>
-          <p style={{ margin: 0, color: '#cbd5e1' }}>Every checked answer now strengthens your personal revision plan and mistake notebook. No AI tutor is active during scoring.</p>
+          <h1 style={{ margin: '7px 0 4px' }}>{practiceTitle} practice</h1>
+          <p style={{ margin: 0, color: '#cbd5e1' }}>Every checked answer strengthens your personal revision plan and mistake notebook. No AI tutor is active during scoring.</p>
         </section>
+
+        {sourceContext && <section style={{ ...card, borderColor: '#c7d2fe', background: '#f5f3ff' }}>
+          <div style={eyebrowDark}>Grounded learning source</div>
+          <strong style={{ display: 'block', margin: '6px 0 3px' }}>{sourceContext.publicationTitle} · {sourceContext.chapterTitle}</strong>
+          <p style={muted}>{[sourceContext.grade, sourceContext.subject].filter(Boolean).join(' · ') || 'VibeTextbook'} · {sourceContext.assessableBlockCount} assessable blocks · {sourceContext.verifiedOutcomeCount} verified outcomes</p>
+          <p style={{ ...muted, marginTop: 8 }}>This session is attached to this exact reader source. Question generation from these blocks is the next assessment milestone; current scoring continues to use approved stored questions.</p>
+        </section>}
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
 
         {loading ? <section style={card}>Loading questions…</section>
-          : questions.length === 0 ? <section style={card}><strong>No questions available</strong><p style={muted}>Choose another subject or topic from VibeLearn.</p></section>
+          : questions.length === 0 ? <section style={card}><strong>No questions available</strong><p style={muted}>{sourceContext ? 'This unit is grounded successfully, but no approved stored questions currently match its subject. The source is ready for the generation milestone.' : 'Choose another subject or topic from VibeLearn.'}</p></section>
           : finished ? <section style={card}>
               <div style={eyebrowDark}>Session complete</div>
               <h2 style={{ fontSize: 28, margin: '8px 0' }}>{scoreLabel}</h2>
               <p style={muted}>Your correct answers and mistakes are now part of your learning journey and recovery plan.</p>
               <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                 <button style={primaryButton} onClick={() => { setIndex(0); setCorrect(0); setSelected(null); setSubmitted(false); setShowHint(false); startedAtRef.current = Date.now(); sessionIdRef.current = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : null }}>Try again</button>
+                {sourceContext && <button style={secondaryButton} onClick={() => router.push(backUrl)}>Review this unit</button>}
                 <button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision plan</button>
                 <button style={secondaryButton} onClick={() => router.push('/student/assessment')}>Assessment hub</button>
               </div>
