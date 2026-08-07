@@ -40,6 +40,44 @@ export interface VibeLearnTutorPolicy {
   aiShareTargetPercent: number
 }
 
+export interface VibeLearnTwinAction {
+  title: string
+  subject: string | null
+  reason: string | null
+  actionUrl: string | null
+  actionLabel: string | null
+  reasonChain: string[]
+}
+
+export interface VibeLearnTwinSummary {
+  available: boolean
+  confidence: number
+  now: VibeLearnTwinAction | null
+  next: VibeLearnTwinAction[]
+  mastery: {
+    outcomeCount: number
+    averageEffectiveMastery: number | null
+    averageForgettingRisk: number
+  }
+  evidence: {
+    competencyEvidenceCount: number
+    learningEventCount: number
+    taskReceiptCount: number
+    verifiedCalibrationCount: number
+  }
+  learning: {
+    policy: string | null
+    unresolvedExposures: number
+    learnedInterventions: number
+  }
+  adaptation: {
+    policyVersion: number
+    strategy: string | null
+    difficulty: string | null
+    reason: string | null
+  }
+}
+
 export interface VibeLearnWorkstation {
   studentId: string
   classId: string | null
@@ -48,6 +86,7 @@ export interface VibeLearnWorkstation {
   continueLearning: ContinueLearningItem[]
   practiceBySubject: PracticeSubject[]
   assignedAssessments: AssignedAssessment[]
+  twin: VibeLearnTwinSummary
   tutorPolicy: VibeLearnTutorPolicy
 }
 
@@ -243,6 +282,20 @@ function asNullableNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+function parseTwinAction(value: unknown): VibeLearnTwinAction | null {
+  const row = asRecord(value)
+  const title = asString(row.title)
+  if (!title) return null
+  return {
+    title,
+    subject: asString(row.subject),
+    reason: asString(row.reason),
+    actionUrl: asString(row.action_url),
+    actionLabel: asString(row.action_label),
+    reasonChain: Array.isArray(row.reason_chain) ? row.reason_chain.filter((item): item is string => typeof item === 'string') : [],
+  }
+}
+
 function parsePlanItems(value: unknown): RevisionPlanItem[] {
   return (Array.isArray(value) ? value : []).flatMap(entry => {
     const item = asRecord(entry)
@@ -319,6 +372,11 @@ export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
   if (error) throw new Error(error.message)
   const row = asRecord(data)
   const policy = asRecord(row.tutor_policy)
+  const twin = asRecord(row.twin)
+  const twinMastery = asRecord(twin.mastery)
+  const twinEvidence = asRecord(twin.evidence)
+  const twinLearning = asRecord(twin.learning)
+  const twinAdaptation = asRecord(twin.adaptation)
   const studentId = asString(row.student_id)
   if (!studentId) throw new Error('Student profile not found.')
   return {
@@ -341,6 +399,34 @@ export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
       const item = asRecord(value); const assignmentId = asString(item.assignment_id); const title = asString(item.title); const actionUrl = asString(item.action_url)
       return assignmentId && title && actionUrl ? [{ assignmentId, title, assessmentType: asString(item.assessment_type) ?? 'assessment', subjectId: asString(item.subject_id), subjectName: asString(item.subject_name), closesAt: asString(item.closes_at), actionUrl }] : []
     }),
+    twin: {
+      available: twin.available === true,
+      confidence: asNumber(twin.confidence),
+      now: parseTwinAction(twin.now),
+      next: (Array.isArray(twin.next) ? twin.next : []).map(parseTwinAction).filter((item): item is VibeLearnTwinAction => item !== null),
+      mastery: {
+        outcomeCount: asNumber(twinMastery.outcome_count),
+        averageEffectiveMastery: asNullableNumber(twinMastery.average_effective_mastery),
+        averageForgettingRisk: asNumber(twinMastery.average_forgetting_risk),
+      },
+      evidence: {
+        competencyEvidenceCount: asNumber(twinEvidence.competency_evidence_count),
+        learningEventCount: asNumber(twinEvidence.learning_event_count),
+        taskReceiptCount: asNumber(twinEvidence.task_receipt_count),
+        verifiedCalibrationCount: asNumber(twinEvidence.verified_calibration_count),
+      },
+      learning: {
+        policy: asString(twinLearning.policy),
+        unresolvedExposures: asNumber(twinLearning.unresolved_exposures),
+        learnedInterventions: Array.isArray(twinLearning.learned_interventions) ? twinLearning.learned_interventions.length : 0,
+      },
+      adaptation: {
+        policyVersion: asNumber(twinAdaptation.policy_version),
+        strategy: asString(twinAdaptation.strategy),
+        difficulty: asString(twinAdaptation.difficulty),
+        reason: asString(twinAdaptation.reason),
+      },
+    },
     tutorPolicy: {
       defaultMode: 'off',
       allowedActions: Array.isArray(policy.allowed_actions) ? policy.allowed_actions.filter((value): value is string => typeof value === 'string') : [],
@@ -424,20 +510,14 @@ export async function getRevisionWorkspace(subject: string | null = null, topic:
       learningEvents30d: asNumber(journey.learning_events_30d),
     },
     topicWorkspace: topicRow ? {
-      subject: asString(topicRow.subject) ?? subject ?? '',
-      topic: asString(topicRow.topic) ?? topic ?? '',
+      subject: asString(topicRow.subject) ?? '',
+      topic: asString(topicRow.topic) ?? '',
       note: asString(topicRow.note),
-      resources: (Array.isArray(topicRow.resources) ? topicRow.resources : []).flatMap(value => {
-        const item = asRecord(value); const id = asString(item.id); const title = asString(item.title)
-        return id && title ? [{ id, title, description: asString(item.description), sourceType: asString(item.source_type), publicationId: asString(item.publication_id), chapterId: asString(item.chapter_id) }] : []
-      }),
-      questions: (Array.isArray(topicRow.questions) ? topicRow.questions : []).flatMap(value => {
-        const item = asRecord(value); const id = asString(item.id); const questionText = asString(item.question); const options = Array.isArray(item.options) ? item.options.filter((entry): entry is string => typeof entry === 'string') : []
-        return id && questionText && options.length >= 2 ? [{ id, difficulty: asString(item.difficulty), question: questionText, options, hint: asString(item.hint), explanation: asString(item.explanation) }] : []
-      }),
-      mistakes: parseMistakes(topicRow.mistakes).map(item => ({ id: item.id, questionId: item.questionId, sourceBlockId: item.sourceBlockId, reviewUrl: item.reviewUrl, prompt: item.prompt, repeatCount: item.repeatCount, status: item.status })),
-      attempts: asNumber(asRecord(topicRow.stats).attempts),
-      accuracy: asNullableNumber(asRecord(topicRow.stats).accuracy),
+      resources: (Array.isArray(topicRow.resources) ? topicRow.resources : []).flatMap(value => { const item=asRecord(value); const id=asString(item.id); const title=asString(item.title); return id&&title?[{id,title,description:asString(item.description),sourceType:asString(item.source_type),publicationId:asString(item.publication_id),chapterId:asString(item.chapter_id)}]:[] }),
+      questions: (Array.isArray(topicRow.questions) ? topicRow.questions : []).flatMap(value => { const item=asRecord(value); const id=asString(item.id); const question=asString(item.question); return id&&question?[{id,difficulty:asString(item.difficulty),question,options:Array.isArray(item.options)?item.options.filter((x):x is string=>typeof x==='string'):[],hint:asString(item.hint),explanation:asString(item.explanation)}]:[] }),
+      mistakes: (Array.isArray(topicRow.mistakes) ? topicRow.mistakes : []).flatMap(value => { const item=asRecord(value); const id=asString(item.id); const prompt=asString(item.prompt); return id&&prompt?[{id,questionId:asString(item.question_id),sourceBlockId:asString(item.source_block_id),reviewUrl:asString(item.review_url),prompt,repeatCount:asNumber(item.repeat_count),status:(asString(item.status)??'open') as MistakeNotebookItem['status']}]:[] }),
+      attempts: asNumber(topicRow.attempts),
+      accuracy: asNullableNumber(topicRow.accuracy),
     } : null,
   }
 }
@@ -448,65 +528,11 @@ export async function generateRevisionPlan(startDate: string, days = 7): Promise
   if (error) throw new Error(error.message)
 }
 
-export async function recordPracticeAnswer(input: { questionId: string; selectedIndex: number; responseMs?: number | null; sessionId?: string | null }): Promise<{ correct: boolean; correctIndex: number; explanation: string | null; hint: string | null }> {
+export async function recordVibeLearnPracticeAnswer(input: { examQuestionId: string; selectedIndex: number; responseMs: number | null; sessionId: string | null }): Promise<unknown> {
   const rpcClient = supabase as unknown as RevisionRpcClient
-  const { data, error } = await rpcClient.rpc('student_record_vibelearn_practice_answer', { p_exam_question_id: input.questionId, p_selected_index: input.selectedIndex, p_response_ms: input.responseMs ?? null, p_session_id: input.sessionId ?? null })
+  const { data, error } = await rpcClient.rpc('student_record_vibelearn_practice_answer', { p_exam_question_id: input.examQuestionId, p_selected_index: input.selectedIndex, p_response_ms: input.responseMs, p_session_id: input.sessionId })
   if (error) throw new Error(error.message)
-  const row = asRecord(data)
-  return { correct: row.correct === true, correctIndex: asNumber(row.correct_index), explanation: asString(row.explanation), hint: asString(row.hint) }
-}
-
-export async function getGroundedChapterPractice(input: { publicationId: string; chapterId: string; limit?: number }): Promise<GroundedChapterPractice> {
-  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
-  const { data, error } = await rpcClient.rpc('student_get_grounded_chapter_practice', {
-    p_publication_id: input.publicationId,
-    p_chapter_id: input.chapterId,
-    p_limit: input.limit ?? 10,
-  })
-  if (error) throw new Error(error.message)
-  const row = asRecord(data)
-  const source = parseGroundedSource(row)
-  if (!source) throw new Error('This learning source is not available for practice.')
-  const questions = (Array.isArray(row.questions) ? row.questions : []).flatMap(value => {
-    const item = asRecord(value)
-    const id = asString(item.id)
-    const contentBlockId = asString(item.content_block_id)
-    const publicationId = asString(item.publication_id)
-    const chapterId = asString(item.chapter_id)
-    const prompt = asString(item.prompt)
-    const reviewUrl = asString(item.review_url)
-    if (!id || !contentBlockId || !publicationId || !chapterId || !prompt || !reviewUrl) return []
-    return [{
-      id,
-      contentBlockId,
-      publicationId,
-      chapterId,
-      outcomeId: asString(item.outcome_id),
-      prompt,
-      difficulty: asString(item.difficulty),
-      bloomLevel: asString(item.bloom_level),
-      reviewUrl,
-    }]
-  })
-  return { source, questions }
-}
-
-export async function recordGroundedPracticeAnswer(input: { contentBlockId: string; responseText: string; responseMs?: number | null; sessionId?: string | null }): Promise<{ correct: boolean; expectedAnswer: string | null; reviewUrl: string | null; outcomeId: string | null }> {
-  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
-  const { data, error } = await rpcClient.rpc('student_record_grounded_practice_answer', {
-    p_content_block_id: input.contentBlockId,
-    p_response_text: input.responseText,
-    p_response_ms: input.responseMs ?? null,
-    p_session_id: input.sessionId ?? null,
-  })
-  if (error) throw new Error(error.message)
-  const row = asRecord(data)
-  return {
-    correct: row.correct === true,
-    expectedAnswer: asString(row.expected_answer),
-    reviewUrl: asString(row.review_url),
-    outcomeId: asString(row.outcome_id),
-  }
+  return data
 }
 
 export async function resolveMistake(mistakeId: string): Promise<void> {
@@ -519,4 +545,30 @@ export async function saveTopicNote(subject: string, topic: string, noteText: st
   const rpcClient = supabase as unknown as RevisionRpcClient
   const { error } = await rpcClient.rpc('student_save_topic_note', { p_subject: subject, p_topic: topic, p_note_text: noteText })
   if (error) throw new Error(error.message)
+}
+
+export async function getGroundedChapterPractice(publicationId: string, chapterId: string, limit = 10): Promise<GroundedChapterPractice | null> {
+  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
+  const { data, error } = await rpcClient.rpc('student_get_grounded_chapter_practice', { p_publication_id: publicationId, p_chapter_id: chapterId, p_limit: limit })
+  if (error) throw new Error(error.message)
+  const row = asRecord(data)
+  const source = parseGroundedSource(asRecord(row.source ?? row))
+  if (!source) return null
+  const questions = (Array.isArray(row.questions) ? row.questions : []).flatMap(value => {
+    const item = asRecord(value)
+    const id = asString(item.id)
+    const contentBlockId = asString(item.content_block_id)
+    const prompt = asString(item.prompt)
+    const reviewUrl = asString(item.review_url)
+    if (!id || !contentBlockId || !prompt || !reviewUrl) return []
+    return [{ id, contentBlockId, publicationId: asString(item.publication_id) ?? source.publicationId, chapterId: asString(item.chapter_id) ?? source.chapterId, outcomeId: asString(item.outcome_id), prompt, difficulty: asString(item.difficulty), bloomLevel: asString(item.bloom_level), reviewUrl }]
+  })
+  return { source, questions }
+}
+
+export async function recordGroundedPracticeAnswer(input: { contentBlockId: string; responseText: string; responseMs: number | null; sessionId: string | null }): Promise<unknown> {
+  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
+  const { data, error } = await rpcClient.rpc('student_record_grounded_practice_answer', { p_content_block_id: input.contentBlockId, p_response_text: input.responseText, p_response_ms: input.responseMs, p_session_id: input.sessionId })
+  if (error) throw new Error(error.message)
+  return data
 }
