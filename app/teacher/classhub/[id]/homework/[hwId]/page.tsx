@@ -260,10 +260,10 @@ function HomeworkGradePageInner() {
   if (view === "grade" && selectedStudent && selectedSub) {
     const badge = statusBadge(selectedSub.status, selectedSub.mark);
     return <div style={{ padding: 18, maxWidth: 760, margin: "0 auto" }}>
-      <button type="button" onClick={() => setView("list")} style={{ border: "none", background: "transparent", color: C.textSecondary, cursor: "pointer", marginBottom: 14 }}>← Back to submissions</button>
+      <button type="button" onClick={() => setView("list")} style={{ border: "none", background: "transparent", color: C.textMuted, cursor: "pointer", marginBottom: 14 }}>← Back to submissions</button>
       <div style={{ background: "#fff", borderRadius: 16, padding: 18, border: "1px solid #e5e7eb" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-          <div><div style={{ fontSize: 12, color: C.textSecondary }}>{selectedStudent.admission_number}</div><h1 style={{ margin: "4px 0 6px", fontSize: 21 }}>{selectedStudent.name}</h1><div style={{ fontSize: 12, color: C.textSecondary }}>{hw.title} · {hw.subject}</div></div>
+          <div><div style={{ fontSize: 12, color: C.textMuted }}>{selectedStudent.admission_number}</div><h1 style={{ margin: "4px 0 6px", fontSize: 21 }}>{selectedStudent.name}</h1><div style={{ fontSize: 12, color: C.textMuted }}>{hw.title} · {hw.subject}</div></div>
           <span style={{ borderRadius: 999, padding: "5px 9px", background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 800 }}>{badge.label}</span>
         </div>
 
@@ -293,14 +293,14 @@ function HomeworkGradePageInner() {
   }
 
   return <div style={{ padding: 18, maxWidth: 980, margin: "0 auto" }}>
-    <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ border: "none", background: "transparent", color: C.textSecondary, cursor: "pointer", marginBottom: 12 }}>← Homework</button>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h1 style={{ margin: 0, fontSize: 22 }}>{hw.title}</h1><div style={{ marginTop: 4, color: C.textSecondary, fontSize: 12 }}>{hw.subject} · Due {new Date(hw.due_date).toLocaleDateString()}</div></div><div style={{ display: "flex", gap: 8 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "#ecfdf5", color: "#047857", fontSize: 11, fontWeight: 800 }}>{handedIn.length} handed in</span><span style={{ padding: "7px 10px", borderRadius: 999, background: "#f3f4f6", color: "#6b7280", fontSize: 11, fontWeight: 800 }}>{pending.length} pending</span></div></div>
+    <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ border: "none", background: "transparent", color: C.textMuted, cursor: "pointer", marginBottom: 12 }}>← Homework</button>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h1 style={{ margin: 0, fontSize: 22 }}>{hw.title}</h1><div style={{ marginTop: 4, color: C.textMuted, fontSize: 12 }}>{hw.subject} · Due {new Date(hw.due_date).toLocaleDateString()}</div></div><div style={{ display: "flex", gap: 8 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "#ecfdf5", color: "#047857", fontSize: 11, fontWeight: 800 }}>{handedIn.length} handed in</span><span style={{ padding: "7px 10px", borderRadius: 999, background: "#f3f4f6", color: "#6b7280", fontSize: 11, fontWeight: 800 }}>{pending.length} pending</span></div></div>
     {bulkMsg && <div style={{ marginTop: 12, padding: 10, borderRadius: 10, background: "#eff6ff", color: "#1d4ed8", fontSize: 12 }}>{bulkMsg}</div>}
     <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
-      {handedIn.length === 0 ? <div style={{ padding: 20, borderRadius: 12, background: "#f8fafc", color: C.textSecondary, fontSize: 13 }}>No learner submissions yet.</div> : handedIn.map(student => {
+      {handedIn.length === 0 ? <div style={{ padding: 20, borderRadius: 12, background: "#f8fafc", color: C.textMuted, fontSize: 13 }}>No learner submissions yet.</div> : handedIn.map(student => {
         const sub = subMap.get(student.id)!;
         const badge = statusBadge(sub.status, sub.mark);
-        return <button type="button" key={student.id} onClick={() => openGrade(student, sub)} style={{ padding: 13, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", textAlign: "left", cursor: "pointer" }}><div><strong>{student.name}</strong><div style={{ color: C.textSecondary, fontSize: 11, marginTop: 3 }}>{student.admission_number}</div></div><span style={{ borderRadius: 999, padding: "5px 9px", background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 800 }}>{badge.label}</span></button>;
+        return <button type="button" key={student.id} onClick={() => openGrade(student, sub)} style={{ padding: 13, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", textAlign: "left", cursor: "pointer" }}><div><strong>{student.name}</strong><div style={{ color: C.textMuted, fontSize: 11, marginTop: 3 }}>{student.admission_number}</div></div><span style={{ borderRadius: 999, padding: "5px 9px", background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 800 }}>{badge.label}</span></button>;
       })}
     </div>
     <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
