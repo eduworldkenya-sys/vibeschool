@@ -92,6 +92,27 @@ export interface TwinLearningExposure {
   resolvedAt: string | null
 }
 
+export interface TwinMemoryClaim {
+  id: string
+  type: string
+  claimKey: string
+  claim: string
+  subjectId: string | null
+  outcomeId: string | null
+  confidence: number
+  evidenceCount: number
+  importance: number
+  learningImpact: number | null
+  permanence: 'historical' | 'durable' | 'adaptive' | 'ephemeral' | string
+  scope: string
+  status: string
+  lastConfirmedAt: string | null
+  expiresAt: string | null
+  source: Json
+  relationships: Json
+  provenance: Json
+}
+
 export interface LearnerTwinState {
   studentId: string
   generatedAt: string
@@ -117,6 +138,12 @@ export interface LearnerTwinState {
     learnedInterventions: TwinLearnedIntervention[]
     recentExposures: TwinLearningExposure[]
     policy: string | null
+  }
+  memory: {
+    claims: TwinMemoryClaim[]
+    interventionEffects: TwinLearnedIntervention[]
+    rule: string | null
+    refresh: Json
   }
   adaptation: {
     policyVersion: number
@@ -239,6 +266,32 @@ function parseLearningExposures(value: unknown): TwinLearningExposure[] {
   })
 }
 
+function parseMemoryClaims(value: unknown): TwinMemoryClaim[] {
+  return (Array.isArray(value) ? value : []).map(item => {
+    const row = record(item)
+    return {
+      id: text(row.id) ?? '',
+      type: text(row.type) ?? 'learning_fact',
+      claimKey: text(row.claim_key) ?? '',
+      claim: text(row.claim) ?? 'Learning memory',
+      subjectId: text(row.subject_id),
+      outcomeId: text(row.outcome_id),
+      confidence: numberOrNull(row.confidence) ?? 0,
+      evidenceCount: numberOrNull(row.evidence_count) ?? 0,
+      importance: numberOrNull(row.importance) ?? 0.5,
+      learningImpact: numberOrNull(row.learning_impact),
+      permanence: text(row.permanence) ?? 'adaptive',
+      scope: text(row.scope) ?? 'learner',
+      status: text(row.status) ?? 'active',
+      lastConfirmedAt: text(row.last_confirmed_at),
+      expiresAt: text(row.expires_at),
+      source: (row.source ?? {}) as Json,
+      relationships: (row.relationships ?? {}) as Json,
+      provenance: (row.provenance ?? {}) as Json,
+    }
+  })
+}
+
 export async function getLearnerTwinState(): Promise<LearnerTwinState> {
   const { data, error } = await rpc<Json>('student_get_twin_brain')
   if (error) throw new Error(error.message || 'Your learning state could not be loaded.')
@@ -250,6 +303,7 @@ export async function getLearnerTwinState(): Promise<LearnerTwinState> {
   const evidence = record(state.evidence)
   const learning = record(state.learning)
   const adaptation = record(state.adaptation)
+  const memory = record(adaptation.memory)
   const exam = record(state.exam)
   const streak = record(state.streak)
   const studyTime = record(state.study_time)
@@ -291,6 +345,12 @@ export async function getLearnerTwinState(): Promise<LearnerTwinState> {
       learnedInterventions: parseLearnedInterventions(learning.learned_interventions),
       recentExposures: parseLearningExposures(learning.recent_exposures),
       policy: text(learning.policy),
+    },
+    memory: {
+      claims: parseMemoryClaims(memory.claims),
+      interventionEffects: parseLearnedInterventions(memory.intervention_effects),
+      rule: text(memory.rule),
+      refresh: (memory.refresh ?? {}) as Json,
     },
     adaptation: {
       policyVersion: numberOrNull(adaptation.policy_version) ?? 0,
