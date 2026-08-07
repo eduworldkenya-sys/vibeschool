@@ -14,6 +14,8 @@ function numberOrNull(value: unknown): number | null {
   const result = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(result) ? result : null
 }
+function boolean(value: unknown): boolean { return value === true }
+function strings(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [] }
 
 export interface TwinMasteryOutcome {
   outcomeId: string
@@ -45,9 +47,23 @@ export interface TwinDecision {
   title: string
   subject: string | null
   reason: string | null
+  reasonChain: string[]
   actionUrl: string | null
   actionLabel: string | null
   raw: Json
+}
+
+export interface TwinCalibrationEvent {
+  id: string
+  predictionType: string
+  predictedValue: number | null
+  actualValue: number | null
+  confidence: number
+  absoluteError: number | null
+  authoritative: boolean
+  sourceType: string
+  predictedAt: string | null
+  resolvedAt: string | null
 }
 
 export interface LearnerTwinState {
@@ -57,11 +73,27 @@ export interface LearnerTwinState {
   mastery: { outcomes: TwinMasteryOutcome[]; subjects: TwinSubjectMastery[] }
   prediction: { averageEffectiveMastery: number | null; averageForgettingRisk: number; confidence: number; disclaimer: string | null }
   decision: { now: TwinDecision | null; next: TwinDecision[]; later: TwinDecision[]; rule: string | null }
-  evidence: { competencyEvidenceCount: number; learningEventCount: number; taskReceiptCount: number; calibrationCount: number; meanAbsoluteError: number | null; latestEvidenceAt: string | null }
+  evidence: {
+    competencyEvidenceCount: number
+    learningEventCount: number
+    taskReceiptCount: number
+    calibrationCount: number
+    verifiedCalibrationCount: number
+    meanAbsoluteError: number | null
+    latestEvidenceAt: string | null
+    snapshotGeneratedAt: string | null
+    stateConfidence: number
+    recentCalibrations: TwinCalibrationEvent[]
+  }
   exam: { examName: string; examDate: string | null; daysRemaining: number | null; dailyRevisionMinutes: number; confidenceCheck: number | null; targetGrade: string | null }
   streak: { current: number; longest: number; graceTokens: number }
   studyTime: { weeklyMinutes: number; sessionMinutes: number; preferredTime: string }
   tutor: Json
+}
+
+export interface LearnerTwinChatMessage {
+  role: 'user' | 'assistant'
+  content: string
 }
 
 function parseDecision(value: unknown): TwinDecision | null {
@@ -73,6 +105,7 @@ function parseDecision(value: unknown): TwinDecision | null {
     title: text(item.title) ?? 'Learning focus',
     subject: text(item.subject),
     reason: text(item.reason),
+    reasonChain: strings(item.reason_chain),
     actionUrl: text(item.action_url),
     actionLabel: text(item.action_label),
     raw: item as Json,
@@ -109,6 +142,24 @@ function parseSubjects(value: unknown): TwinSubjectMastery[] {
       averageScore: numberOrNull(row.average_score),
       masteryPercentage: numberOrNull(row.mastery_percentage),
       confidence: numberOrNull(row.confidence) ?? 0,
+    }
+  })
+}
+
+function parseCalibrations(value: unknown): TwinCalibrationEvent[] {
+  return (Array.isArray(value) ? value : []).map(item => {
+    const row = record(item)
+    return {
+      id: text(row.id) ?? '',
+      predictionType: text(row.prediction_type) ?? 'prediction',
+      predictedValue: numberOrNull(row.predicted_value),
+      actualValue: numberOrNull(row.actual_value),
+      confidence: numberOrNull(row.confidence) ?? 0,
+      absoluteError: numberOrNull(row.absolute_error),
+      authoritative: boolean(row.authoritative),
+      sourceType: text(row.source_type) ?? 'evidence',
+      predictedAt: text(row.predicted_at),
+      resolvedAt: text(row.resolved_at),
     }
   })
 }
@@ -150,8 +201,12 @@ export async function getLearnerTwinState(): Promise<LearnerTwinState> {
       learningEventCount: numberOrNull(evidence.learning_event_count) ?? 0,
       taskReceiptCount: numberOrNull(evidence.task_receipt_count) ?? 0,
       calibrationCount: numberOrNull(evidence.calibration_count) ?? 0,
+      verifiedCalibrationCount: numberOrNull(evidence.verified_calibration_count) ?? 0,
       meanAbsoluteError: numberOrNull(evidence.mean_absolute_error),
       latestEvidenceAt: text(evidence.latest_evidence_at),
+      snapshotGeneratedAt: text(evidence.snapshot_generated_at),
+      stateConfidence: numberOrNull(evidence.state_confidence) ?? numberOrNull(state.confidence) ?? 0,
+      recentCalibrations: parseCalibrations(evidence.recent_calibrations),
     },
     exam: {
       examName: text(exam.exam_name) ?? 'KCSE',
@@ -171,4 +226,15 @@ export async function getLearnerTutorContext(): Promise<Json> {
   const { data, error } = await rpc<Json>('student_get_twin_tutor_context')
   if (error) throw new Error(error.message || 'Tutor context could not be loaded.')
   return data ?? {}
+}
+
+export async function askLearnerTwin(input: { messages: LearnerTwinChatMessage[]; firstName: string }): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('twin-chat', {
+    body: { role: 'student', firstName: input.firstName, messages: input.messages.slice(-10) },
+  })
+  if (error) throw new Error(error.message || 'Your Twin could not respond.')
+  const payload = record(data)
+  const reply = text(payload.reply)
+  if (!reply) throw new Error(text(payload.error) || 'Your Twin could not respond.')
+  return reply
 }
