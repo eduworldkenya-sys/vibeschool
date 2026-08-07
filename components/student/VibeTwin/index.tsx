@@ -13,8 +13,10 @@ import {
   answerAdaptivePracticeQuestion,
   askLearnerTwin,
   generateAdaptivePracticeQuestion,
+  getAdaptiveTeachingTurn,
   getLearnerTwinState,
   type AdaptivePracticeQuestion,
+  type AdaptiveTeachingTurn,
   type LearnerTwinChatMessage,
   type LearnerTwinState,
 } from '@/lib/student/twin'
@@ -27,6 +29,8 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
   const [practiceLoading, setPracticeLoading] = useState(false)
   const [practiceFeedback, setPracticeFeedback] = useState<string | null>(null)
   const [hintIndex, setHintIndex] = useState(0)
+  const [coachTurn, setCoachTurn] = useState<AdaptiveTeachingTurn | null>(null)
+  const [coachStage, setCoachStage] = useState(0)
 
   const {
     messages, twinState, setTwinState,
@@ -42,6 +46,8 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       setPracticeQuestion(null)
       setPracticeFeedback(null)
       setHintIndex(0)
+      setCoachTurn(null)
+      setCoachStage(0)
       cancelSpeech()
     }
   }, [isOpen, cancelSpeech])
@@ -92,12 +98,28 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     setPracticeLoading(true)
     setPracticeFeedback(null)
     setHintIndex(0)
+    setCoachTurn(null)
+    setCoachStage(0)
     try {
       const weakest = resolvedState?.mastery.outcomes[0]
       const question = await generateAdaptivePracticeQuestion(weakest?.outcomeId ?? null)
       setPracticeQuestion(question)
     } catch (cause) {
       setPracticeFeedback(cause instanceof Error ? cause.message : 'Adaptive practice could not be prepared.')
+    } finally {
+      setPracticeLoading(false)
+    }
+  }
+
+  async function requestCoaching() {
+    if (!practiceQuestion || practiceLoading) return
+    setPracticeLoading(true)
+    try {
+      const turn = await getAdaptiveTeachingTurn(practiceQuestion.outcomeId, coachStage)
+      setCoachTurn(turn)
+      setCoachStage(turn.nextStage)
+    } catch (cause) {
+      setPracticeFeedback(cause instanceof Error ? cause.message : 'Adaptive coaching could not be prepared.')
     } finally {
       setPracticeLoading(false)
     }
@@ -115,11 +137,12 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       if (result.correct) {
         setPracticeFeedback(`Correct. ${result.explanation}${masteryText}`)
       } else {
-        const hint = practiceQuestion.hints[0] ? ` First hint: ${practiceQuestion.hints[0]}` : ''
-        setPracticeFeedback(`Not yet. ${result.explanation}${hint}${masteryText}`)
+        setPracticeFeedback(`Not yet. Twin has recorded this as learning evidence and will adjust the next step.${masteryText}`)
       }
       setPracticeQuestion(result.nextQuestion)
       setHintIndex(0)
+      setCoachTurn(null)
+      setCoachStage(0)
     } catch (cause) {
       setPracticeFeedback(cause instanceof Error ? cause.message : 'Your answer could not be recorded.')
     } finally {
@@ -210,6 +233,15 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
             </div>
             <div style={{ marginTop: 5, fontSize: 11, color: T.muted }}>{practiceQuestion.outcomeCode ?? 'Curriculum outcome'} · {practiceQuestion.outcomeText}</div>
             <div style={{ marginTop: 9, fontSize: 13, lineHeight: 1.5, color: T.text, fontWeight: 700 }}>{practiceQuestion.prompt}</div>
+
+            {coachTurn && (
+              <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: T.accentBg, border: `1px solid ${T.accentBdr}` }}>
+                <div style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', color: T.muted }}>{coachTurn.mode.replaceAll('_', ' ')}</div>
+                <div style={{ marginTop: 4, fontSize: 12, lineHeight: 1.5, color: T.text }}>{coachTurn.prompt}</div>
+                {coachTurn.intervention.interventionKey && <div style={{ marginTop: 5, fontSize: 9.5, color: T.muted }}>Strategy: {coachTurn.intervention.interventionKey.replaceAll('_', ' ')}</div>}
+              </div>
+            )}
+
             <div style={{ display: 'grid', gap: 7, marginTop: 10 }}>
               {practiceQuestion.options.map((option, index) => (
                 <button
@@ -223,16 +255,23 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
               ))}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => void requestCoaching()}
+                disabled={practiceLoading}
+                style={{ border: `1px solid ${T.border}`, background: 'transparent', color: T.text, borderRadius: 9, padding: '7px 9px', cursor: 'pointer', fontSize: 11 }}
+              >
+                {coachStage === 0 ? 'Coach me' : coachStage < 3 ? 'Next coaching hint' : 'Show worked example'}
+              </button>
               {practiceQuestion.hints.length > 0 && hintIndex < practiceQuestion.hints.length && (
                 <button
                   onClick={() => setHintIndex(value => Math.min(practiceQuestion.hints.length, value + 1))}
                   style={{ border: `1px solid ${T.border}`, background: 'transparent', color: T.text, borderRadius: 9, padding: '7px 9px', cursor: 'pointer', fontSize: 11 }}
                 >
-                  Hint {hintIndex + 1}
+                  Quick hint {hintIndex + 1}
                 </button>
               )}
               <button
-                onClick={() => { setPracticeQuestion(null); setPracticeFeedback(null); setHintIndex(0) }}
+                onClick={() => { setPracticeQuestion(null); setPracticeFeedback(null); setHintIndex(0); setCoachTurn(null); setCoachStage(0) }}
                 style={{ border: 0, background: 'transparent', color: T.muted, padding: '7px 9px', cursor: 'pointer', fontSize: 11 }}
               >
                 End practice
