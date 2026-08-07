@@ -78,20 +78,19 @@ function statusBadge(status: SubmissionStatus, mark: number | null) {
     const band = autoBand(mark);
     return { label: `${mark}pts · ${band.label}`, bg: band.bg, color: band.color };
   }
-  if (status === "marked") return { label: "Marked", bg: "#d1fae5", color: "#065f46" };
-  if (status === "under_review") return { label: "Under review", bg: "#dbeafe", color: "#1e40af" };
-  if (status === "returned") return { label: "Returned", bg: "#fef3c7", color: "#92400e" };
-  if (status === "received") return { label: "Received", bg: "#d1fae5", color: "#065f46" };
-  if (status === "submitted") return { label: "Submitted", bg: "#fef3c7", color: "#92400e" };
-  if (status === "draft") return { label: "Draft", bg: "#f3f4f6", color: "#6b7280" };
+  if (status === "returned") return { label: "Returned", bg: "#fff7ed", color: "#c2410c" };
+  if (status === "under_review") return { label: "Under review", bg: "#eff6ff", color: "#1d4ed8" };
+  if (status === "received") return { label: "Received", bg: "#ecfdf5", color: "#047857" };
+  if (status === "submitted") return { label: "Submitted", bg: "#ecfdf5", color: "#047857" };
+  if (status === "draft") return { label: "Draft", bg: "#f8fafc", color: "#64748b" };
   return { label: "Pending", bg: "#f3f4f6", color: "#6b7280" };
 }
 
-function GradingInner() {
+function HomeworkGradePageInner() {
   const router = useRouter();
-  const params = useParams();
-  const classId = params.id as string;
-  const hwId = params.hwId as string;
+  const params = useParams<{ id: string; hwId: string }>();
+  const classId = params.id;
+  const hwId = params.hwId;
 
   const [hw, setHw] = useState<HWInfo | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -100,13 +99,13 @@ function GradingInner() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [view, setView] = useState<View>("list");
-  const [active, setActive] = useState<Student | null>(null);
-  const [mark, setMark] = useState("");
-  const [feedback, setFeedback] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
+  const [markInput, setMarkInput] = useState("");
+  const [feedbackInput, setFeedbackInput] = useState("");
+  const [returnReasonInput, setReturnReasonInput] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saveOk, setSaveOk] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const schoolIdRef = useRef<string | null>(null);
 
@@ -127,19 +126,35 @@ function GradingInner() {
     }
     const sid = schoolIdRef.current;
 
+    // The live homework submission lifecycle is additive and currently ahead of
+    // the generated repository types. Keep this read boundary narrow until the
+    // next full Supabase type regeneration rather than weakening the app client.
+    type LiveHomeworkSubmissionRow = Omit<Submission, "answers">;
+    type LiveHomeworkSubmissionQuery = {
+      data: LiveHomeworkSubmissionRow[] | null;
+      error: { message?: string } | null;
+    };
+    const submissionQuery = (supabase.from("homework_submissions") as unknown as {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => PromiseLike<LiveHomeworkSubmissionQuery>;
+      };
+    })
+      .select("id,student_id,status,mark,feedback,submitted_at,received_at,photo_url,returned_reason")
+      .eq("homework_id", hwId);
+
     const [hwRes, stuRes, qRes, subRes] = await Promise.all([
       sid
         ? supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id", hwId).eq("school_id", sid).single()
         : supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id", hwId).single(),
       supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id", classId).order("name"),
       supabase.from("homework_questions").select("id,question,order_num").eq("homework_id", hwId).order("order_num"),
-      supabase.from("homework_submissions").select("id,student_id,status,mark,feedback,submitted_at,received_at,photo_url,returned_reason").eq("homework_id", hwId),
+      submissionQuery,
     ]);
 
     if (hwRes.error) { setLoadError("Could not load homework"); setLoading(false); return; }
     if (stuRes.error || qRes.error || subRes.error) { setLoadError("Could not load homework submissions"); setLoading(false); return; }
 
-    const subs = (subRes.data ?? []) as Omit<Submission, "answers">[];
+    const subs = subRes.data ?? [];
     const subIds = subs.map(sub => sub.id);
     let answers: (Answer & { submission_id: string })[] = [];
     if (subIds.length > 0) {
@@ -159,185 +174,119 @@ function GradingInner() {
     setLoading(false);
   }
 
-  const loadRef = useRef(load);
-  loadRef.current = load;
-  useEffect(() => { void loadRef.current(); }, [hwId, classId]);
+  useEffect(() => { void load(); }, [classId, hwId]);
 
-  function openGrade(student: Student) {
-    const sub = subMap.get(student.id);
-    setActive(student);
-    setMark(sub?.mark != null ? String(sub.mark) : "");
-    setFeedback(sub?.feedback ?? "");
-    setSaveOk(false);
+  function openGrade(student: Student, sub: Submission) {
+    setSelectedStudent(student);
+    setSelectedSub(sub);
+    setMarkInput(sub.mark === null ? "" : String(sub.mark));
+    setFeedbackInput(sub.feedback ?? "");
+    setReturnReasonInput(sub.returned_reason ?? "");
     setSaveError(null);
     setView("grade");
   }
 
-  async function saveGrade() {
-    if (!active) return;
-    const sub = subMap.get(active.id);
-    const markValue = mark === "" ? null : Number(mark);
-    if (markValue !== null && (!Number.isFinite(markValue) || markValue < 0)) {
-      setSaveError("Enter a valid non-negative mark.");
-      return;
-    }
-    setSaving(true);
-    setSaveOk(false);
-    setSaveError(null);
-
-    if (!sub) {
-      const { data, error } = await supabase.from("homework_submissions").insert({
-        homework_id: hwId,
-        student_id: active.id,
-        status: "marked",
-        submitted_at: new Date().toISOString(),
-        mark: markValue,
-        feedback: feedback.trim() || null,
-      }).select("id,student_id,status,mark,feedback,submitted_at,received_at,photo_url,returned_reason").single();
-      if (error || !data) {
-        setSaveError(error?.message || "Could not save grade.");
-      } else {
-        const updated = new Map(subMap);
-        updated.set(active.id, { ...(data as Omit<Submission, "answers">), answers: [] });
-        setSubMap(updated);
-        setSaveOk(true);
-      }
-      setSaving(false);
-      return;
-    }
-
-    const { data, error } = await supabase.from("homework_submissions")
-      .update({ mark: markValue, feedback: feedback.trim() || null, status: "marked", reviewed_at: new Date().toISOString() })
-      .eq("id", sub.id)
-      .select("id,student_id,status,mark,feedback,submitted_at,received_at,photo_url,returned_reason")
-      .single();
-    if (error || !data) {
-      setSaveError(error?.message || "Could not save grade.");
-    } else {
-      const updated = new Map(subMap);
-      updated.set(active.id, { ...(data as Omit<Submission, "answers">), answers: sub.answers });
-      setSubMap(updated);
-      setSaveOk(true);
-    }
-    setSaving(false);
+  async function markSubmission() {
+    if (!selectedSub || !schoolIdRef.current) return;
+    const parsed = Number(markInput);
+    if (!Number.isFinite(parsed) || parsed < 0) { setSaveError("Enter a valid mark"); return; }
+    setSaving(true); setSaveError(null);
+    const { error } = await supabase.rpc("mark_homework_submission", {
+      p_submission_id: selectedSub.id,
+      p_mark: parsed,
+      p_feedback: feedbackInput.trim() || null,
+    });
+    if (error) { setSaveError(error.message || "Could not save mark"); setSaving(false); return; }
+    setSaving(false); setView("list"); await load();
   }
 
-  const submitted = students.filter(student => {
+  async function returnSubmission() {
+    if (!selectedSub || !schoolIdRef.current) return;
+    const reason = returnReasonInput.trim();
+    if (!reason) { setSaveError("Add a reason for revision"); return; }
+    setSaving(true); setSaveError(null);
+    const { error } = await supabase.rpc("return_homework_submission", {
+      p_submission_id: selectedSub.id,
+      p_reason: reason,
+    });
+    if (error) { setSaveError(error.message || "Could not return homework"); setSaving(false); return; }
+    setSaving(false); setView("list"); await load();
+  }
+
+  async function releaseFeedback() {
+    if (!selectedSub) return;
+    setSaving(true); setSaveError(null);
+    const { error } = await supabase.rpc("release_homework_feedback", { p_submission_id: selectedSub.id });
+    if (error) { setSaveError(error.message || "Could not release feedback"); setSaving(false); return; }
+    setSaving(false); setView("list"); await load();
+  }
+
+  const handedIn = students.filter(student => {
     const sub = subMap.get(student.id);
-    return sub ? handedInStatuses.has(sub.status) : false;
+    return Boolean(sub && handedInStatuses.has(sub.status));
   });
-  const notYet = students.filter(student => {
+  const pending = students.filter(student => {
     const sub = subMap.get(student.id);
     return !sub || !handedInStatuses.has(sub.status);
   });
-  const marked = submitted.filter(student => subMap.get(student.id)?.status === "marked");
-  const markedMarks = Array.from(subMap.values()).filter(sub => sub.status === "marked" && sub.mark !== null).map(sub => sub.mark as number);
-  const avg = markedMarks.length ? Math.round(markedMarks.reduce((a, b) => a + b, 0) / markedMarks.length) : null;
-  const markNumber = mark === "" ? null : Number(mark);
-  const liveBand = markNumber !== null && Number.isFinite(markNumber) ? autoBand(markNumber) : null;
 
-  async function remindNonSubmitters() {
-    if (!notYet.length) { setBulkMsg("Everyone has submitted."); return; }
-    setBulkBusy(true);
-    setBulkMsg(null);
-    const linked = notYet.filter((student): student is Student & { profile_id: string } => Boolean(student.profile_id));
-    const dueLabel = hw?.due_date ? new Date(hw.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short" }) : "soon";
-    const { error } = linked.length ? await supabase.from("notifications").insert(linked.map(student => ({
-      user_id: student.profile_id,
-      school_id: schoolIdRef.current,
-      type: "homework",
-      title: "Homework Reminder",
-      body: `Reminder: "${hw?.title ?? "Homework"}" is due ${dueLabel}. Please submit.`,
-      is_read: false,
-    }))) : { error: null };
-    setBulkMsg(error ? "Could not send reminders." : `Reminder sent to ${linked.length} linked student(s).`);
-    setBulkBusy(false);
-  }
+  if (loading) return <div style={{ padding: 24 }}>Loading homework…</div>;
+  if (loadError) return <div style={{ padding: 24, color: "#b91c1c" }}>{loadError}</div>;
+  if (!hw) return <div style={{ padding: 24 }}>Homework not found.</div>;
 
-  if (loading) return <div style={{ padding: 20, color: C.textMuted }}>Loading…</div>;
-  if (loadError) return <div style={{ padding: 20, color: "#ef4444" }}>{loadError}</div>;
-
-  if (view === "grade" && active) {
-    const sub = subMap.get(active.id);
-    return (
-      <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", paddingBottom: 100, background: C.surface, minHeight: "100vh" }}>
-        <div style={{ background: "linear-gradient(135deg,#0f766e,#14b8a6)", padding: "20px 16px 24px" }}>
-          <button onClick={() => setView("list")} style={{ background: "rgba(255,255,255,.15)", border: 0, borderRadius: 10, width: 36, height: 36, color: "#fff" }}>←</button>
-          <div style={{ marginTop: 10, fontSize: 18, fontWeight: 900, color: "#fff" }}>{active.name}</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,.7)" }}>{active.admission_number} · {hw?.title}</div>
+  if (view === "grade" && selectedStudent && selectedSub) {
+    const badge = statusBadge(selectedSub.status, selectedSub.mark);
+    return <div style={{ padding: 18, maxWidth: 760, margin: "0 auto" }}>
+      <button type="button" onClick={() => setView("list")} style={{ border: "none", background: "transparent", color: C.textSecondary, cursor: "pointer", marginBottom: 14 }}>← Back to submissions</button>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 18, border: "1px solid #e5e7eb" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+          <div><div style={{ fontSize: 12, color: C.textSecondary }}>{selectedStudent.admission_number}</div><h1 style={{ margin: "4px 0 6px", fontSize: 21 }}>{selectedStudent.name}</h1><div style={{ fontSize: 12, color: C.textSecondary }}>{hw.title} · {hw.subject}</div></div>
+          <span style={{ borderRadius: 999, padding: "5px 9px", background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 800 }}>{badge.label}</span>
         </div>
-        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
-          {sub && <div style={{ background: "#fff", borderRadius: 14, padding: 14 }}>
-            <strong>{statusBadge(sub.status, sub.mark).label}</strong>
-            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 5 }}>
-              Received {sub.received_at ? new Date(sub.received_at).toLocaleString("en-KE") : sub.submitted_at ? new Date(sub.submitted_at).toLocaleString("en-KE") : "—"}
-            </div>
-            {sub.returned_reason && <div style={{ marginTop: 8, fontSize: 12 }}>{sub.returned_reason}</div>}
-          </div>}
-          {sub && questions.map((question, index) => {
-            const answer = sub.answers.find(item => item.question_id === question.id);
-            return <div key={question.id} style={{ background: "#fff", borderRadius: 14, padding: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>Q{index + 1}</div>
-              <div style={{ margin: "6px 0 10px", fontSize: 13, fontWeight: 600 }}>{question.question}</div>
-              <div style={{ background: "#f9fafb", borderRadius: 10, padding: 10, fontSize: 13 }}>{answer?.answer_text || <em>No answer given</em>}</div>
-            </div>;
+
+        <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
+          {questions.map((question, index) => {
+            const answer = selectedSub.answers.find(item => item.question_id === question.id)?.answer_text;
+            return <div key={question.id} style={{ padding: 12, borderRadius: 12, background: "#f8fafc" }}><strong style={{ fontSize: 12 }}>Q{index + 1}. {question.question}</strong><div style={{ marginTop: 7, fontSize: 12, whiteSpace: "pre-wrap" }}>{answer || "No answer"}</div></div>;
           })}
-          {sub?.photo_url && <img src={sub.photo_url} alt="Student submitted work" style={{ width: "100%", maxHeight: 360, objectFit: "cover", borderRadius: 14 }} />}
-          <div style={{ background: "#fff", borderRadius: 16, padding: 16 }}>
-            <label style={{ fontSize: 11, fontWeight: 700 }}>MARK</label>
-            <input type="number" min="0" value={mark} onChange={event => setMark(event.target.value)} style={{ ...inputStyle, marginTop: 6 }} />
-            {liveBand && <div style={{ marginTop: 8, color: liveBand.color, fontWeight: 800 }}>{liveBand.label}</div>}
-            <label style={{ display: "block", marginTop: 14, fontSize: 11, fontWeight: 700 }}>REMARKS / FEEDBACK</label>
-            <textarea value={feedback} onChange={event => setFeedback(event.target.value)} rows={3} style={{ ...inputStyle, marginTop: 6, resize: "vertical" }} />
-            {saveError && <div style={{ marginTop: 10, color: "#b91c1c", fontSize: 12 }}>{saveError}</div>}
-            {saveOk && <div style={{ marginTop: 10, color: "#065f46", fontSize: 12 }}>✓ Marks and remarks saved. The student can now see them.</div>}
-            <button onClick={saveGrade} disabled={saving} style={{ width: "100%", marginTop: 12, padding: 13, borderRadius: 12, border: 0, background: "#0f766e", color: "#fff", fontWeight: 800 }}>
-              {saving ? "Saving…" : saveOk ? "Update Grade" : "Save Grade"}
-            </button>
+          {selectedSub.photo_url && <a href={selectedSub.photo_url} target="_blank" rel="noreferrer" style={{ color: C.accent, fontWeight: 700, fontSize: 12 }}>Open uploaded work ↗</a>}
+        </div>
+
+        {selectedSub.status === "returned" && selectedSub.returned_reason && <div style={{ marginTop: 14, padding: 11, borderRadius: 10, background: "#fff7ed", color: "#9a3412", fontSize: 12 }}><strong>Returned for revision:</strong> {selectedSub.returned_reason}</div>}
+
+        <div style={{ marginTop: 18, display: "grid", gap: 10 }}>
+          <label style={{ fontSize: 12, fontWeight: 700 }}>Mark<input value={markInput} onChange={e => setMarkInput(e.target.value)} inputMode="decimal" style={{ ...inputStyle, marginTop: 5 }} /></label>
+          <label style={{ fontSize: 12, fontWeight: 700 }}>Feedback<textarea value={feedbackInput} onChange={e => setFeedbackInput(e.target.value)} rows={3} style={{ ...inputStyle, marginTop: 5, resize: "vertical" }} /></label>
+          <label style={{ fontSize: 12, fontWeight: 700 }}>Revision reason<textarea value={returnReasonInput} onChange={e => setReturnReasonInput(e.target.value)} rows={2} style={{ ...inputStyle, marginTop: 5, resize: "vertical" }} /></label>
+          {saveError && <div style={{ color: "#b91c1c", fontSize: 12 }}>{saveError}</div>}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <button type="button" disabled={saving} onClick={() => void markSubmission()} style={{ border: "none", borderRadius: 9, padding: "9px 12px", background: C.accent, color: "#fff", fontWeight: 800, cursor: "pointer" }}>{saving ? "Saving…" : "Save mark"}</button>
+            <button type="button" disabled={saving} onClick={() => void returnSubmission()} style={{ border: "1px solid #fdba74", borderRadius: 9, padding: "9px 12px", background: "#fff7ed", color: "#c2410c", fontWeight: 800, cursor: "pointer" }}>Return for revision</button>
+            {selectedSub.status === "marked" && <button type="button" disabled={saving} onClick={() => void releaseFeedback()} style={{ border: "1px solid #86efac", borderRadius: 9, padding: "9px 12px", background: "#f0fdf4", color: "#166534", fontWeight: 800, cursor: "pointer" }}>Release feedback</button>}
           </div>
         </div>
       </div>
-    );
+    </div>;
   }
 
-  return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", paddingBottom: 100, background: C.surface, minHeight: "100vh" }}>
-      <div style={{ background: "linear-gradient(135deg,#0f766e,#14b8a6)", padding: "20px 16px 28px", color: "#fff" }}>
-        <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,.15)", border: 0, borderRadius: 10, width: 36, height: 36, color: "#fff" }}>←</button>
-        <div style={{ marginTop: 10, fontSize: 18, fontWeight: 900 }}>{hw?.title}</div>
-        <div style={{ fontSize: 12, opacity: .7 }}>{hw?.subject}</div>
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          {[{ label: "Students", value: students.length }, { label: "Submitted", value: submitted.length }, { label: "Marked", value: marked.length }, { label: "Avg", value: avg === null ? "—" : `${avg}pts` }].map(item =>
-            <div key={item.label} style={{ flex: 1, background: "rgba(255,255,255,.15)", borderRadius: 10, padding: 8, textAlign: "center" }}>
-              <div style={{ fontWeight: 800 }}>{item.value}</div><div style={{ fontSize: 9, opacity: .7 }}>{item.label}</div>
-            </div>)}
-        </div>
-      </div>
-      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-        {notYet.length > 0 && <button onClick={remindNonSubmitters} disabled={bulkBusy} style={{ padding: 10, borderRadius: 12, border: 0, background: "#fef3c7", color: "#92400e", fontWeight: 700 }}>
-          {bulkBusy ? "Working…" : "Remind Non-Submitters"}
-        </button>}
-        {bulkMsg && <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center" }}>{bulkMsg}</div>}
-        {submitted.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted }}>SUBMITTED</div>}
-        {submitted.map(student => {
-          const sub = subMap.get(student.id)!;
-          const badge = statusBadge(sub.status, sub.mark);
-          return <button key={student.id} onClick={() => openGrade(student)} style={{ background: "#fff", borderRadius: 14, padding: 14, border: 0, borderLeft: `4px solid ${sub.status === "marked" ? "#10b981" : "#f59e0b"}`, textAlign: "left" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div><strong>{student.name}</strong><div style={{ fontSize: 11, color: C.textMuted }}>{student.admission_number}</div></div>
-              <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: badge.bg, color: badge.color }}>{badge.label}</span>
-            </div>
-          </button>;
-        })}
-        {notYet.length > 0 && <div style={{ marginTop: 8, fontSize: 11, fontWeight: 800, color: C.textMuted }}>NOT SUBMITTED</div>}
-        {notYet.map(student => <button key={student.id} onClick={() => openGrade(student)} style={{ background: "#fff", borderRadius: 14, padding: 14, border: 0, borderLeft: "4px solid #e5e7eb", textAlign: "left" }}>
-          <strong style={{ color: C.textMuted }}>{student.name}</strong><div style={{ fontSize: 11, color: C.textMuted }}>{student.admission_number}</div>
-        </button>)}
-      </div>
-    </div>
-  );
+  return <div style={{ padding: 18, maxWidth: 920, margin: "0 auto" }}>
+    <button type="button" onClick={() => router.back()} style={{ border: "none", background: "transparent", color: C.textSecondary, cursor: "pointer", marginBottom: 10 }}>← Back</button>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 16 }}><div><div style={{ fontSize: 11, color: C.textSecondary }}>{hw.subject}</div><h1 style={{ margin: "4px 0 6px", fontSize: 23 }}>{hw.title}</h1><div style={{ color: C.textSecondary, fontSize: 12 }}>Due {new Date(hw.due_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</div></div><div style={{ textAlign: "right" }}><strong style={{ fontSize: 20 }}>{handedIn.length}/{students.length}</strong><div style={{ fontSize: 10, color: C.textSecondary }}>handed in</div></div></div>
+
+    {bulkMsg && <div style={{ marginBottom: 12, padding: 10, borderRadius: 9, background: "#ecfdf5", color: "#047857", fontSize: 12 }}>{bulkMsg}</div>}
+
+    <section style={{ display: "grid", gap: 9 }}>
+      {handedIn.map(student => {
+        const sub = subMap.get(student.id)!;
+        const badge = statusBadge(sub.status, sub.mark);
+        return <button key={student.id} type="button" onClick={() => openGrade(student, sub)} style={{ textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#fff", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 10 }}><div><strong style={{ fontSize: 12 }}>{student.name}</strong><div style={{ marginTop: 3, color: C.textSecondary, fontSize: 10 }}>{student.admission_number}{sub.received_at ? ` · Received ${new Date(sub.received_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : sub.submitted_at ? ` · Submitted ${new Date(sub.submitted_at).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}</div></div><span style={{ alignSelf: "center", borderRadius: 999, padding: "4px 8px", background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 800 }}>{badge.label}</span></button>;
+      })}
+    </section>
+
+    {pending.length > 0 && <section style={{ marginTop: 18 }}><div style={{ fontSize: 11, fontWeight: 900, color: C.textSecondary, letterSpacing: .8, marginBottom: 8 }}>AWAITING {pending.length}</div><div style={{ display: "grid", gap: 7 }}>{pending.map(student => <div key={student.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 10, background: "#f9fafb" }}><strong style={{ fontSize: 11 }}>{student.name}</strong><div style={{ fontSize: 9, color: C.textSecondary, marginTop: 2 }}>{student.admission_number}</div></div>)}</div></section>}
+  </div>;
 }
 
-export default function GradingPage() {
-  return <Suspense fallback={<div style={{ padding: 20 }}>Loading…</div>}><GradingInner /></Suspense>;
+export default function HomeworkGradePage() {
+  return <Suspense fallback={<div style={{ padding: 24 }}>Loading homework…</div>}><HomeworkGradePageInner /></Suspense>;
 }
