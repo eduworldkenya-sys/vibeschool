@@ -132,13 +132,13 @@ export default function VibeTwinLearningOS() {
   }
 
   async function saveNote() {
-    const value = note.trim(); if (!value || !identity?.studentId) return
+    const value = note.trim(); if (!value) return
     setNoteStatus('Saving…')
     const subject = now?.subject ?? 'Learning'
     const topic = cleanLearningText(practice?.outcomeText ?? weakest?.outcomeText ?? now?.title ?? 'Current learning')
-    const { error: insertError } = await supabase.from('student_topic_notes').insert({ student_id: identity.studentId, subject, topic, note_text: value })
-    setNoteStatus(insertError ? 'Could not save note.' : 'Saved to your learning notebook.')
-    if (!insertError) setNote('')
+    const { error: noteError } = await rpc<Json>('student_save_topic_note', { p_subject: subject, p_topic: topic, p_note_text: value })
+    setNoteStatus(noteError ? 'Could not save note.' : 'Saved to your learning notebook.')
+    if (!noteError) setNote('')
   }
 
   function selectMode(nextMode: TutorMode) {
