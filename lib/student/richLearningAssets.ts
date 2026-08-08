@@ -15,7 +15,7 @@ function clean(value: string | undefined | null): string {
   return (value ?? '').replace(/\s+/g, ' ').trim()
 }
 
-function truncate(value: string, max = 180): string {
+function truncate(value: string | undefined | null, max = 180): string {
   const normalized = clean(value)
   return normalized.length > max ? `${normalized.slice(0, max - 1).trim()}…` : normalized
 }
