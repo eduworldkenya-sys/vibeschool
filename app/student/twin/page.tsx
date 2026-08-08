@@ -34,6 +34,26 @@ function text(value: unknown): string | null { return typeof value === 'string' 
 function num(value: unknown): number { const n = Number(value); return Number.isFinite(n) ? n : 0 }
 function bool(value: unknown): boolean { return value === true }
 function cleanLearningText(value: string | null | undefined): string { return (value ?? '').replace(/^\s*\[SYNTHETIC TWIN TEST\]\s*/i, '').replace(/^\s*TWIN-SEED-[A-Z0-9-]+\s*[:·-]?\s*/i, '').trim() }
+function learnerStrategy(value: string | null | undefined): string {
+  const normalized = (value ?? '').replaceAll('_', ' ').trim()
+  if (!normalized) return 'a teaching approach Twin is still testing'
+  if (normalized.includes('worked example')) return 'worked examples with guided practice'
+  if (normalized.includes('hint')) return 'guided hints before independent practice'
+  if (normalized.includes('retrieval')) return 'short retrieval practice'
+  if (normalized.includes('diagnostic')) return 'a short diagnostic check'
+  if (normalized.includes('task')) return 'finishing the assigned task first'
+  return normalized
+}
+function adaptationCopy(value: unknown): string {
+  const row = record(value)
+  const reason = cleanLearningText(text(row.reason))
+  const strategy = learnerStrategy(text(row.strategy))
+  if (reason) return `${reason} So Twin is using ${strategy}.`
+  return `Twin is currently using ${strategy} based on your verified learning signals.`
+}
+function calibrationLabel(type: string): string {
+  return type.replaceAll('_',' ').replace(/\b\w/g, char => char.toUpperCase())
+}
 
 async function getTutorServiceSummary(): Promise<TutorServiceSummary> {
   const { data, error } = await rpc<Json>('student_get_adaptive_tutor_service_summary')
@@ -91,6 +111,9 @@ export default function VibeTwinLearningOS() {
   const weakest = useMemo(() => [...outcomes].sort((a, b) => a.effectiveMastery - b.effectiveMastery || b.forgettingRisk - a.forgettingRisk)[0] ?? null, [outcomes])
   const strongest = useMemo(() => [...outcomes].sort((a, b) => b.effectiveMastery - a.effectiveMastery)[0] ?? null, [outcomes])
   const forgetting = useMemo(() => [...outcomes].sort((a, b) => b.forgettingRisk - a.forgettingRisk)[0] ?? null, [outcomes])
+  const bestIntervention = useMemo(() => [...(state?.learning.learnedInterventions ?? [])].sort((a,b) => b.confidence - a.confidence || b.effectivenessScore - a.effectivenessScore)[0] ?? null, [state?.learning.learnedInterventions])
+  const latestCalibration = state?.evidence.recentCalibrations?.[0] ?? null
+  const latestExposure = state?.learning.recentExposures?.[0] ?? null
   const now = state?.decision.now
   const confidence = Math.round((state?.confidence ?? 0) * 100)
   const mastery = Math.round(state?.prediction.averageEffectiveMastery ?? 0)
@@ -180,7 +203,47 @@ export default function VibeTwinLearningOS() {
 
     {layer === 'grow' && <div style={stack}>
       <section style={metrics}><Metric label="Effective mastery" value={`${mastery}%`} /><Metric label="Forgetting risk" value={`${risk}%`} /><Metric label="Evidence" value={state?.evidence.competencyEvidenceCount ?? 0} /><Metric label="Streak" value={`${state?.streak.current ?? 0}d`} /></section>
-      <section style={grid2}><div style={card}><div style={eyebrowDark}>MASTERY MAP</div><Signal label="Needs attention" value={cleanLearningText(weakest?.outcomeText) || 'Building'} meta={weakest ? `${Math.round(weakest.effectiveMastery)}% mastery · ${Math.round(weakest.confidence * 100)}% confidence` : 'More evidence needed'} /><Signal label="Strongest" value={cleanLearningText(strongest?.outcomeText) || 'Building'} meta={strongest ? `${Math.round(strongest.effectiveMastery)}% mastery` : 'More evidence needed'} /><Signal label="Review before forgetting" value={cleanLearningText(forgetting?.outcomeText) || 'No urgent review'} meta={forgetting ? `${Math.round(forgetting.forgettingRisk * 100)}% forgetting risk` : 'Twin will schedule recall as evidence ages'} /></div><div style={card}><div style={eyebrowDark}>WHAT TWIN REMEMBERS</div>{(state?.memory.claims ?? []).slice(0,4).map(claim => <div key={claim.id} style={memoryRow}><strong>{cleanLearningText(claim.claim)}</strong><span style={muted}>{claim.evidenceCount} signals · {Math.round(claim.confidence * 100)}% confidence</span></div>)}{(state?.memory.claims.length ?? 0) === 0 && <p style={body}>Twin only forms durable memory when evidence supports it.</p>}</div></section>
+
+      <section style={growthHero}>
+        <div style={eyebrow}>WHY TWIN CHANGED</div>
+        <h2 style={growthTitle}>{adaptationCopy(state?.adaptation.decision)}</h2>
+        <div style={proofMeta}>
+          <span>{confidence}% overall confidence</span>
+          <span>{state?.evidence.learningEventCount ?? 0} learning events</span>
+          <span>{state?.evidence.taskReceiptCount ?? 0} verified task receipts</span>
+        </div>
+      </section>
+
+      <section style={grid2}>
+        <div style={card}><div style={eyebrowDark}>MASTERY MAP</div><Signal label="Needs attention" value={cleanLearningText(weakest?.outcomeText) || 'Building'} meta={weakest ? `${Math.round(weakest.effectiveMastery)}% mastery · ${Math.round(weakest.confidence * 100)}% confidence · ${weakest.evidenceCount} evidence signals` : 'More evidence needed'} /><Signal label="Strongest" value={cleanLearningText(strongest?.outcomeText) || 'Building'} meta={strongest ? `${Math.round(strongest.effectiveMastery)}% mastery · ${strongest.evidenceCount} evidence signals` : 'More evidence needed'} /><Signal label="Review before forgetting" value={cleanLearningText(forgetting?.outcomeText) || 'No urgent review'} meta={forgetting ? `${Math.round(forgetting.forgettingRisk * 100)}% forgetting risk · ${forgetting.daysSinceEvidence == null ? 'evidence timing unavailable' : `${forgetting.daysSinceEvidence} days since evidence`}` : 'Twin will schedule recall as evidence ages'} /></div>
+        <div style={card}><div style={eyebrowDark}>WHAT TWIN REMEMBERS</div>{(state?.memory.claims ?? []).slice(0,4).map(claim => <div key={claim.id} style={memoryRow}><strong>{cleanLearningText(claim.claim)}</strong><span style={muted}>{claim.evidenceCount} signals · {Math.round(claim.confidence * 100)}% confidence · {claim.permanence === 'durable' || claim.permanence === 'historical' ? 'kept until stronger evidence changes it' : 'can change as new evidence arrives'}</span></div>)}{(state?.memory.claims.length ?? 0) === 0 && <p style={body}>Twin only forms durable memory when evidence supports it.</p>}</div>
+      </section>
+
+      <section style={grid2}>
+        <div style={card}>
+          <div style={eyebrowDark}>WHAT TEACHING IS WORKING</div>
+          {bestIntervention ? <>
+            <h3 style={proofTitle}>{learnerStrategy(bestIntervention.interventionType)}</h3>
+            <p style={body}>{bestIntervention.attempts} observed attempts · {bestIntervention.successes} successful · {Math.round(bestIntervention.confidence * 100)}% confidence.</p>
+            <div style={proofBar}><span style={{ ...proofFill, width: `${Math.max(4, Math.min(100, bestIntervention.effectivenessScore * 100))}%` }} /></div>
+            <small style={muted}>Twin only increases trust in an approach after repeated evidence. This changes tutoring strategy, not your marks.</small>
+          </> : <p style={body}>Twin is still testing which teaching approach helps you most. It will not invent a preference without evidence.</p>}
+        </div>
+        <div style={card}>
+          <div style={eyebrowDark}>HOW ACCURATE TWIN HAS BEEN</div>
+          <h3 style={proofTitle}>{state?.evidence.verifiedCalibrationCount ?? 0} verified calibration{(state?.evidence.verifiedCalibrationCount ?? 0) === 1 ? '' : 's'}</h3>
+          <p style={body}>{state?.evidence.meanAbsoluteError == null ? 'Not enough verified comparisons yet to report prediction error.' : `Average verified prediction error is ${Math.round(state.evidence.meanAbsoluteError * 100) / 100}.`}</p>
+          {latestCalibration && <div style={calibrationCard}><strong>{calibrationLabel(latestCalibration.predictionType)}</strong><span style={muted}>{latestCalibration.authoritative ? 'Verified against authoritative evidence' : 'Still awaiting authoritative verification'}{latestCalibration.absoluteError == null ? '' : ` · error ${Math.round(latestCalibration.absoluteError * 100) / 100}`}</span></div>}
+          <small style={muted}>{state?.prediction.disclaimer ?? 'Twin projections are evidence-based guidance, not official exam predictions.'}</small>
+        </div>
+      </section>
+
+      <section style={card}>
+        <div style={eyebrowDark}>RECENT LEARNING PROOF</div>
+        {latestExposure ? <div style={evidenceRow}><div><strong>{learnerStrategy(latestExposure.interventionType)}</strong><div style={muted}>{latestExposure.resolvedAt ? 'Outcome checked against later evidence' : 'Waiting for later evidence before judging this approach'}</div></div><strong>{latestExposure.masteryDelta == null ? 'Pending' : `${latestExposure.masteryDelta >= 0 ? '+' : ''}${Math.round(latestExposure.masteryDelta)} mastery`}</strong></div> : <p style={body}>Complete learning activities and Twin will show how later evidence confirmed—or contradicted—its teaching choices.</p>}
+        <div style={evidenceSummary}><span>{state?.evidence.competencyEvidenceCount ?? 0} competency evidence records</span><span>{state?.learning.unresolvedExposures ?? 0} learning approaches awaiting later proof</span><span>{state?.evidence.stateConfidence == null ? 0 : Math.round(state.evidence.stateConfidence * 100)}% state confidence</span></div>
+      </section>
+
       <section style={card}><div style={eyebrowDark}>REVISION TIMELINE</div>{(summary?.revisionPlan ?? []).slice(0,5).map(item => <button key={item.id} style={timelineItem} onClick={() => router.push(item.actionUrl)}><div><strong>{cleanLearningText(item.topic)}</strong><div style={muted}>{item.subject} · {item.targetMinutes} min</div></div><span>→</span></button>)}{(summary?.revisionPlan.length ?? 0) === 0 && <p style={body}>Your spaced-revision timeline will appear as Twin gathers enough evidence.</p>}</section>
     </div>}
 
@@ -204,7 +267,9 @@ const layerButtonActive: CSSProperties = { background:'var(--vs-accent)', color:
 const stack: CSSProperties = { display:'grid', gap:14 }
 const hero: CSSProperties = { borderRadius:26, padding:'24px 20px', background:'linear-gradient(140deg,#201a63,#5b4ee8 58%,#7b72ff)', color:'white', boxShadow:'0 18px 50px rgba(91,78,232,.24)' }
 const learnHero: CSSProperties = { ...hero, display:'flex', justifyContent:'space-between', gap:18, alignItems:'center', flexWrap:'wrap' }
+const growthHero: CSSProperties = { ...hero, background:'linear-gradient(140deg,#18324a,#355d82 58%,#4a75a4)' }
 const heroTitle: CSSProperties = { margin:'6px 0 8px', fontSize:'clamp(24px,5vw,38px)', lineHeight:1.06, letterSpacing:-1.1 }
+const growthTitle: CSSProperties = { margin:'8px 0 12px', fontSize:'clamp(20px,4vw,30px)', lineHeight:1.25, letterSpacing:-.5, maxWidth:850 }
 const heroBody: CSSProperties = { margin:0, lineHeight:1.6, color:'rgba(255,255,255,.82)', maxWidth:720 }
 const eyebrow: CSSProperties = { fontSize:10.5, fontWeight:900, letterSpacing:1.4, textTransform:'uppercase', opacity:.78 }
 const eyebrowDark: CSSProperties = { fontSize:10, fontWeight:900, letterSpacing:1.15, textTransform:'uppercase', color:'var(--vs-muted)' }
@@ -244,5 +309,12 @@ const grid2: CSSProperties = { display:'grid', gridTemplateColumns:'repeat(auto-
 const signal: CSSProperties = { display:'grid', gap:5, padding:'12px 0', borderBottom:'1px solid var(--vs-border)' }
 const memoryRow: CSSProperties = { display:'grid', gap:4, padding:'11px 0', borderBottom:'1px solid var(--vs-border)' }
 const timelineItem: CSSProperties = { width:'100%', border:0, borderBottom:'1px solid var(--vs-border)', background:'transparent', color:'var(--vs-text)', padding:'12px 0', display:'flex', justifyContent:'space-between', alignItems:'center', textAlign:'left', cursor:'pointer' }
+const proofMeta: CSSProperties = { display:'flex', gap:8, flexWrap:'wrap', fontSize:10.5, fontWeight:800, color:'rgba(255,255,255,.8)' }
+const proofTitle: CSSProperties = { margin:'8px 0 6px', fontSize:18, lineHeight:1.35 }
+const proofBar: CSSProperties = { height:8, borderRadius:999, background:'var(--vs-surface)', overflow:'hidden', margin:'12px 0' }
+const proofFill: CSSProperties = { display:'block', height:'100%', borderRadius:999, background:'var(--vs-accent)' }
+const calibrationCard: CSSProperties = { display:'grid', gap:4, border:'1px solid var(--vs-border)', background:'var(--vs-surface)', borderRadius:14, padding:12, margin:'12px 0' }
+const evidenceRow: CSSProperties = { display:'flex', justifyContent:'space-between', gap:14, alignItems:'center', borderBottom:'1px solid var(--vs-border)', padding:'12px 0', flexWrap:'wrap' }
+const evidenceSummary: CSSProperties = { display:'flex', gap:8, flexWrap:'wrap', marginTop:12, color:'var(--vs-muted)', fontSize:11 }
 const askDock: CSSProperties = { position:'fixed', left:'max(16px,calc((100vw - 1100px)/2 + 16px))', right:16, bottom:'calc(76px + env(safe-area-inset-bottom))', zIndex:25, border:0, borderRadius:18, padding:'14px 16px', background:'var(--vs-accent)', color:'white', fontWeight:900, boxShadow:'0 14px 36px rgba(91,78,232,.3)', cursor:'pointer' }
 const loadingCard: CSSProperties = { ...card, textAlign:'center', padding:40, color:'var(--vs-muted)' }
