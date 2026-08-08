@@ -1,0 +1,3 @@
+-- Live migration 20260808041704 established the P9 teacher synchronization authority.
+-- Repository replay authority is reconciled in 20260808041826_vibetwin_p9_school_context_brain_integration.sql
+-- so the final repo state matches the live production functions after the same-session hardening pass.
