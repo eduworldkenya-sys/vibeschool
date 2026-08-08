@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react'
@@ -6,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { VibePublication, VibeChapter, FORMAT_META } from '@/lib/publishTypes'
 import { ContentBlockEditor } from '@/components/global/publish/ContentBlockEditor'
+import { LearningTransformPanel } from '@/components/read/LearningTransformPanel'
 
 const BG     = '#090D16'
 const SURF   = '#111827'
@@ -124,8 +124,6 @@ export default function ReadPublicationPage() {
 
   return (
     <div style={{ minHeight: '100dvh', background: BG, fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-
-      {/* Hero — always shown, gradient fallback if no cover */}
       <div style={{ position: 'relative', height: 240, overflow: 'hidden' }}>
         {publication.cover_url
           ? <img
@@ -152,8 +150,6 @@ export default function ReadPublicationPage() {
       </div>
 
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px 80px', boxSizing: 'border-box' }}>
-
-        {/* Publication header */}
         <span style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 24, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: MUTED }}>
           {meta.icon} {meta.label}
         </span>
@@ -178,7 +174,6 @@ export default function ReadPublicationPage() {
 
         <div style={{ borderTop: '1px solid ' + BORDER, marginBottom: 20 }} />
 
-        {/* Chapter list */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: '0.1em', marginBottom: 10 }}>
             {meta.chapterPlural.toUpperCase()}
@@ -217,7 +212,6 @@ export default function ReadPublicationPage() {
 
         <div style={{ borderTop: '1px solid ' + BORDER, marginBottom: 20 }} />
 
-        {/* Chapter content */}
         {activeChapter && (
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: meta.accent, letterSpacing: '0.12em', marginBottom: 8 }}>
@@ -228,22 +222,28 @@ export default function ReadPublicationPage() {
             </h2>
 
             {canReadChapter() ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {activeChapter.blocks.map(block => (
-                  <ContentBlockEditor
-                    key={block.id}
-                    block={block}
-                    format={publication.format}
-                    readOnly={true}
-                    isFocused={false}
-                    onFocus={() => {}}
-                    onUpdate={() => {}}
-                    onDelete={() => {}}
-                    onMoveUp={() => {}}
-                    onMoveDown={() => {}}
-                  />
-                ))}
-              </div>
+              <>
+                <LearningTransformPanel
+                  chapterId={activeChapter.id}
+                  chapterTitle={activeChapter.title || `${meta.chapterLabel} ${activeChapter.number}`}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {activeChapter.blocks.map(block => (
+                    <ContentBlockEditor
+                      key={block.id}
+                      block={block}
+                      format={publication.format}
+                      readOnly={true}
+                      isFocused={false}
+                      onFocus={() => {}}
+                      onUpdate={() => {}}
+                      onDelete={() => {}}
+                      onMoveUp={() => {}}
+                      onMoveDown={() => {}}
+                    />
+                  ))}
+                </div>
+              </>
             ) : (
               <div style={{
                 background: SURF, border: '1px solid ' + BORDER,
@@ -275,7 +275,6 @@ export default function ReadPublicationPage() {
               </div>
             )}
 
-            {/* Chapter nav */}
             <div style={{ display: 'flex', gap: 10, marginTop: 32 }}>
               {activeIndex > 0 && (
                 <button onClick={() => setActiveIndex(p => p - 1)} style={{
