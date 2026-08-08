@@ -84,7 +84,7 @@ export type ChapterLearningOutcomeLink =
 export type ContentBlockOutcomeLink =
   PublicTables['content_block_outcome_links']['Row']
 
-export type PublicationStatus = 'draft' | 'published' | 'archived'
+export type PublicationStatus = 'draft' | 'published' | 'unpublished'
 
 export type ParentLearningSummaryStatus =
   | 'draft'
@@ -118,3 +118,267 @@ export type GeneratedQuestionType =
   | 'practical'
   | 'project'
   | 'oral'
+  | 'observation'
+
+export type AssessmentDifficulty =
+  | 'foundation'
+  | 'developing'
+  | 'proficient'
+  | 'advanced'
+
+export type AssessmentBloomLevel =
+  | 'remember'
+  | 'understand'
+  | 'apply'
+  | 'analyze'
+  | 'evaluate'
+  | 'create'
+
+export type SchemeResourceRole =
+  | 'primary'
+  | 'supplementary'
+  | 'teacher_reference'
+  | 'learner_reading'
+  | 'exercise'
+  | 'remedial'
+  | 'enrichment'
+  | 'project'
+  | 'assessment_source'
+  | 'before_class'
+  | 'in_class'
+  | 'after_class'
+  | 'homework'
+
+export type ContentAssignmentType =
+  | 'reading'
+  | 'exercise'
+  | 'homework'
+  | 'project'
+  | 'assessment'
+  | 'remedial'
+  | 'enrichment'
+  | 'revision'
+
+export type SubmissionEvidenceType =
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'document'
+  | 'link'
+  | 'reading_progress'
+
+export type OutcomeAlignmentStrength =
+  | 'introduces'
+  | 'supports'
+  | 'assesses'
+  | 'masters'
+
+export type OutcomeBlockRelationship =
+  | 'explains'
+  | 'practises'
+  | 'assesses'
+  | 'remediates'
+  | 'enriches'
+  | 'supports'
+
+export interface CurriculumOutcomeFilters {
+  curriculumId?: string
+  subStrandId?: string
+  search?: string
+  limit?: number
+}
+
+export interface ReplaceChapterOutcomeLinksInput {
+  publicationId: string
+  chapterId: string
+  outcomeIds: string[]
+  alignmentStrength?: OutcomeAlignmentStrength
+}
+
+export interface ReplaceBlockOutcomeLinksInput {
+  publicationId: string
+  chapterId: string
+  contentBlockId: string
+  outcomeIds: string[]
+  relationship?: OutcomeBlockRelationship
+}
+
+export interface PublicationFilters {
+  grade?: string
+  subject?: string
+  authorId?: string
+  limit?: number
+}
+
+export interface ResourceFilters {
+  publicationId?: string
+  chapterId?: string
+  subjectId?: string
+  grade?: string
+  sourceType?: string
+  visibility?: string
+  limit?: number
+}
+
+export interface AdoptLearningResourceInput {
+  resourceId: string
+  preferredRole?: string
+  notes?: string
+}
+
+export interface AddResourceToClassLibraryInput {
+  resourceId: string
+  classId: string
+  subjectId?: string
+  usageRole?: string
+  availableFrom?: string
+  availableUntil?: string
+  notes?: string
+}
+
+export interface SaveSchemeResourceLinkInput {
+  schemeLessonId: string
+  publicationId: string
+  chapterId: string
+  resourceId: string
+  resourceRole: SchemeResourceRole
+  sequence?: number
+  pageStart?: number
+  pageEnd?: number
+  exerciseRefs?: Database['public']['Tables']['scheme_lesson_resource_links']['Insert']['exercise_refs']
+}
+
+export interface UpdateSchemeResourceLinkInput {
+  resourceRole?: SchemeResourceRole
+  sequence?: number
+  pageStart?: number | null
+  pageEnd?: number | null
+  exerciseRefs?: Database['public']['Tables']['scheme_lesson_resource_links']['Update']['exercise_refs']
+}
+
+export interface AssignResourceToClassInput {
+  resourceId: string
+  classId: string
+  assignmentType: ContentAssignmentType
+  subjectId?: string
+  schemeResourceLinkId?: string
+  opensAt?: string
+  dueAt?: string
+  instructions?: string
+}
+
+export interface SubmitAssignmentEvidenceInput {
+  assignmentId: string
+  evidenceType: SubmissionEvidenceType
+  textResponse?: string
+  fileUrl?: string
+  metadata?: Database['public']['Functions']['ce_submit_assignment_evidence']['Args']['p_metadata']
+}
+
+export interface RubricWithCriteria {
+  rubric: AssessmentRubric
+  criteria: AssessmentRubricCriterion[]
+}
+
+export interface SaveSubmissionMarkDraftInput {
+  evidenceId: string
+  rubricId?: string
+  score: number
+  maxScore: number
+  feedback?: string
+}
+
+export interface SaveCriterionMarkInput {
+  submissionMarkId: string
+  criterionId: string
+  score: number
+  feedback?: string
+}
+
+export interface SubmissionMarkWithCriteria {
+  mark: SubmissionMark
+  criteria: SubmissionCriterionMark[]
+}
+
+export interface CreateAssessmentBlueprintInput {
+  title: string
+  assessmentType: ContentAssessmentType
+  totalMarks: number
+  classId?: string
+  subjectId?: string
+  schoolId?: string
+  durationMinutes?: number
+  difficultyDistribution?: Database['public']['Tables']['content_assessment_blueprints']['Insert']['difficulty_distribution']
+  bloomDistribution?: Database['public']['Tables']['content_assessment_blueprints']['Insert']['bloom_distribution']
+}
+
+export interface SaveAssessmentSourceInput {
+  blueprintId: string
+  resourceId: string
+  schemeResourceLinkId?: string
+  outcomeId?: string
+  weight?: number
+}
+
+export interface CreateGeneratedAssessmentInput {
+  blueprintId: string
+  version: number
+  totalMarks: number
+}
+
+export interface SaveGeneratedAssessmentItemInput {
+  assessmentId: string
+  sequence: number
+  questionType: GeneratedQuestionType
+  prompt: string
+  marks: number
+  sourceResourceId: string
+  sourceBlockId?: string
+  outcomeId?: string
+  options?: Database['public']['Tables']['generated_assessment_items']['Insert']['options']
+  answerKey?: Database['public']['Tables']['generated_assessment_items']['Insert']['answer_key']
+  difficulty?: AssessmentDifficulty
+  bloomLevel?: AssessmentBloomLevel
+}
+
+export interface AssessmentBlueprintBundle {
+  blueprint: ContentAssessmentBlueprint
+  sources: ContentAssessmentSource[]
+  assessments: GeneratedAssessment[]
+}
+
+export interface GeneratedAssessmentBundle {
+  assessment: GeneratedAssessment
+  items: GeneratedAssessmentItem[]
+}
+
+export interface ContentMetricFilters {
+  dateFrom?: string
+  dateTo?: string
+  teacherId?: string
+  classId?: string
+  subjectId?: string
+  metricKey?: string
+  limit?: number
+}
+
+export interface BuildParentLearningSummaryInput {
+  studentId: string
+  periodStart: string
+  periodEnd: string
+  classId?: string
+}
+
+export interface UpdateParentLearningSummaryInput {
+  strengths?: string[]
+  focusAreas?: string[]
+  teacherComment?: string | null
+}
+
+export interface ParentSummaryFilters {
+  studentId?: string
+  classId?: string
+  status?: ParentLearningSummaryStatus
+  limit?: number
+}
