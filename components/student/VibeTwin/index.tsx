@@ -121,7 +121,8 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     if (!practiceQuestion || practiceLoading) return
     setPracticeLoading(true)
     try {
-      const turn = await getAdaptiveTeachingTurn(practiceQuestion.outcomeId, coachStage)
+      const latestLearnerReply = [...messages].reverse().find(message => message.role === 'user')?.text ?? null
+      const turn = await getAdaptiveTeachingTurn(practiceQuestion.outcomeId, coachStage, latestLearnerReply)
       setCoachTurn(turn)
       setCoachStage(turn.nextStage)
     } catch (cause) {
@@ -173,6 +174,11 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     setTwinState('processing')
 
     try {
+      if (practiceQuestion) {
+        const turn = await getAdaptiveTeachingTurn(practiceQuestion.outcomeId, coachStage, q)
+        setCoachTurn(turn)
+        setCoachStage(turn.nextStage)
+      }
       const response = await askLearnerTwin({ firstName: userName, messages: [...history, { role: 'user', content: q }] })
       finish(response, true)
     } catch {
