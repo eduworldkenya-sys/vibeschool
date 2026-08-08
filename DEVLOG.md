@@ -682,3 +682,6 @@
 ## [2026-08-03 12:12] 1ea89b1
 **What:** CE-FE-003B2: rebuild missing outcomes.ts service, wire chapter outcome selector UI
 **Status:** ✅ pushed
+## [2026-08-08 04:17] 1113c10
+**What:** fix: set contentType and use signed URL for private homework-photos bucket
+**Status:** ✅ pushed
