@@ -1,13 +1,11 @@
 // lib/publishTypes.ts
 
 export type PublicationFormat =
+  | 'ebook'
   | 'vibepress'
-  | 'vibechronicles'
   | 'vibetextbook'
-  | 'vibescripture'
-  | 'vibevoice'
 
-export type PublicationStatus = 'draft' | 'published' | 'archived'
+export type PublicationStatus = 'draft' | 'published' | 'unpublished' | 'archived'
 export type ChapterStatus = 'draft' | 'published' | 'locked'
 
 export type BlockType =
@@ -124,6 +122,13 @@ export const FORMAT_META: Record<PublicationFormat, {
   chapterLabel:  string
   chapterPlural: string
 }> = {
+  ebook: {
+    label:         'eBook',
+    icon:          '📘',
+    accent:        '#FF6B6B',
+    chapterLabel:  'Chapter',
+    chapterPlural: 'Chapters',
+  },
   vibepress: {
     label:         'VibePress',
     icon:          '📰',
@@ -131,33 +136,12 @@ export const FORMAT_META: Record<PublicationFormat, {
     chapterLabel:  'Article',
     chapterPlural: 'Articles',
   },
-  vibechronicles: {
-    label:         'VibeChronicles',
-    icon:          '📖',
-    accent:        '#FF6B6B',
-    chapterLabel:  'Chapter',
-    chapterPlural: 'Chapters',
-  },
   vibetextbook: {
     label:         'VibeTextbook',
     icon:          '🎓',
     accent:        '#CCFF00',
     chapterLabel:  'Unit',
     chapterPlural: 'Units',
-  },
-  vibescripture: {
-    label:         'VibeScripture',
-    icon:          '📿',
-    accent:        '#DDA0DD',
-    chapterLabel:  'Chapter',
-    chapterPlural: 'Chapters',
-  },
-  vibevoice: {
-    label:         'VibeVoice',
-    icon:          '🎙️',
-    accent:        '#45B7D1',
-    chapterLabel:  'Episode',
-    chapterPlural: 'Episodes',
   },
 }
 
