@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react'
 import type { ContentBlock } from '@/lib/publishTypes'
 import { InteractiveLab } from './InteractiveLab'
+import { CrossSubjectInteractiveBlock } from './CrossSubjectInteractiveBlock'
 
 const TEXT = '#ffffff'
 const MUTED = 'rgba(255,255,255,0.58)'
@@ -126,6 +127,6 @@ export function BiologyInteractiveBlock({ block }: { block: ContentBlock }) {
     case 'variation_lab': return <VariationLab block={block} />
     case 'turgor_lab': return <TurgorLab block={block} />
     case 'reflex_arc': return <ReflexArc block={block} />
-    default: return <InteractiveShell eyebrow="INTERACTIVE" title={block.content || 'Interactive learning block'}><p style={{ color: MUTED, margin: 0, fontSize: 13 }}>This interaction is not available yet.</p></InteractiveShell>
+    default: return <CrossSubjectInteractiveBlock block={block} />
   }
 }
