@@ -1,0 +1,2 @@
+-- Live migration 20260808043700 hardened the revision workspace to stage-safe evidence.
+-- Final repository replay authority is reconciled in 20260808050244_vibetwin_p10_recent_completion_suppression_fix.sql.
