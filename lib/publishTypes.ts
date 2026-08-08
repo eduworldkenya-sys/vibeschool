@@ -37,6 +37,9 @@ export type CBCSubject =
   | 'english'
   | 'kiswahili'
   | 'science'
+  | 'biology'
+  | 'chemistry'
+  | 'physics'
   | 'social_studies'
   | 'creative_arts'
   | 'physical_education'
@@ -83,6 +86,7 @@ export interface VibePublication {
   cbc_subject:      CBCSubject | null
   cbc_grade:        CBCGrade | null
   cbc_aligned:      boolean
+  curriculum_framework: string
   series_name:      string | null
   series_number:    number | null
   publication_name: string | null
@@ -185,6 +189,7 @@ export function emptyPublication(
     cbc_subject:      null,
     cbc_grade:        null,
     cbc_aligned:      false,
+    curriculum_framework: 'CBC',
     series_name:      null,
     series_number:    null,
     publication_name: null,
