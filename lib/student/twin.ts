@@ -260,25 +260,25 @@ function parseCalibrations(value: unknown): TwinCalibrationEvent[] {
     const row = record(item)
     return {
       id: text(row.id) ?? '',
-      predictionType: text(row.prediction_type) ?? 'prediction',
+      predictionType: text(row.prediction_type) ?? 'unknown',
       predictedValue: numberOrNull(row.predicted_value),
       actualValue: numberOrNull(row.actual_value),
       confidence: numberOrNull(row.confidence) ?? 0,
       absoluteError: numberOrNull(row.absolute_error),
       authoritative: boolean(row.authoritative),
-      sourceType: text(row.source_type) ?? 'evidence',
+      sourceType: text(row.source_type) ?? 'unknown',
       predictedAt: text(row.predicted_at),
       resolvedAt: text(row.resolved_at),
     }
   })
 }
 
-function parseLearnedInterventions(value: unknown): TwinLearnedIntervention[] {
+function parseInterventions(value: unknown): TwinLearnedIntervention[] {
   return (Array.isArray(value) ? value : []).map(item => {
     const row = record(item)
     return {
-      interventionType: text(row.intervention_type) ?? 'practice',
-      interventionKey: text(row.intervention_key) ?? '',
+      interventionType: text(row.intervention_type) ?? 'unknown',
+      interventionKey: text(row.intervention_key) ?? 'unknown',
       outcomeId: text(row.outcome_id),
       attempts: numberOrNull(row.attempts) ?? 0,
       successes: numberOrNull(row.successes) ?? 0,
@@ -291,14 +291,14 @@ function parseLearnedInterventions(value: unknown): TwinLearnedIntervention[] {
   })
 }
 
-function parseLearningExposures(value: unknown): TwinLearningExposure[] {
+function parseExposures(value: unknown): TwinLearningExposure[] {
   return (Array.isArray(value) ? value : []).map(item => {
     const row = record(item)
     return {
       id: text(row.id) ?? '',
       outcomeId: text(row.outcome_id),
-      interventionType: text(row.intervention_type) ?? 'practice',
-      interventionKey: text(row.intervention_key) ?? '',
+      interventionType: text(row.intervention_type) ?? 'learning',
+      interventionKey: text(row.intervention_key) ?? 'learning',
       masteryBefore: numberOrNull(row.mastery_before),
       masteryAfter: numberOrNull(row.mastery_after),
       masteryDelta: numberOrNull(row.mastery_delta),
@@ -314,14 +314,14 @@ function parseMemoryClaims(value: unknown): TwinMemoryClaim[] {
     const row = record(item)
     return {
       id: text(row.id) ?? '',
-      type: text(row.type) ?? 'learning_fact',
+      type: text(row.type) ?? 'memory',
       claimKey: text(row.claim_key) ?? '',
-      claim: text(row.claim) ?? 'Learning memory',
+      claim: text(row.claim) ?? '',
       subjectId: text(row.subject_id),
       outcomeId: text(row.outcome_id),
       confidence: numberOrNull(row.confidence) ?? 0,
       evidenceCount: numberOrNull(row.evidence_count) ?? 0,
-      importance: numberOrNull(row.importance) ?? 0.5,
+      importance: numberOrNull(row.importance) ?? 0,
       learningImpact: numberOrNull(row.learning_impact),
       permanence: text(row.permanence) ?? 'adaptive',
       scope: text(row.scope) ?? 'learner',
@@ -336,24 +336,21 @@ function parseMemoryClaims(value: unknown): TwinMemoryClaim[] {
 }
 
 function parseAdaptivePracticeQuestion(value: unknown): AdaptivePracticeQuestion | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const row = record(value)
   const id = text(row.id)
   const outcomeId = text(row.outcome_id)
   const prompt = text(row.prompt)
-  const outcomeText = text(row.outcome_text)
-  const difficulty = text(row.difficulty)
-  const options = strings(row.options)
-  if (!id || !outcomeId || !prompt || !outcomeText || !difficulty || options.length < 2) return null
-  if (!['scaffolded','easy','medium','hard','challenge'].includes(difficulty)) return null
+  if (!id || !outcomeId || !prompt) return null
   return {
     id,
     outcomeId,
     outcomeCode: text(row.outcome_code),
-    outcomeText,
+    outcomeText: text(row.outcome_text) ?? 'Learning outcome',
     subjectId: text(row.subject_id),
     prompt,
-    options,
-    difficulty: difficulty as AdaptivePracticeQuestion['difficulty'],
+    options: strings(row.options),
+    difficulty: (text(row.difficulty) ?? 'medium') as AdaptivePracticeQuestion['difficulty'],
     hints: strings(row.hints),
     masteryBefore: numberOrNull(row.mastery_before),
     effectiveMasteryBefore: numberOrNull(row.effective_mastery_before),
@@ -361,23 +358,21 @@ function parseAdaptivePracticeQuestion(value: unknown): AdaptivePracticeQuestion
   }
 }
 
-function parseLearnerTwinState(data: Json | null): LearnerTwinState {
-  const state = record(data)
+function parseLearnerTwinState(value: unknown): LearnerTwinState {
+  const state = record(value)
   const mastery = record(state.mastery)
   const prediction = record(state.prediction)
-  const priority = record(state.decision)
+  const decision = record(state.decision)
   const evidence = record(state.evidence)
   const learning = record(state.learning)
+  const memory = record(state.memory)
   const adaptation = record(state.adaptation)
-  const memory = record(adaptation.memory)
   const exam = record(state.exam)
   const streak = record(state.streak)
   const studyTime = record(state.study_time)
-  const next = Array.isArray(priority.next) ? priority.next : []
-  const later = Array.isArray(priority.later) ? priority.later : []
-
+  const recentCalibrations = parseCalibrations(evidence.recent_calibrations)
   return {
-    studentId: text(state.student_id) ?? text(mastery.student_id) ?? '',
+    studentId: text(state.student_id) ?? '',
     generatedAt: text(state.generated_at) ?? new Date().toISOString(),
     confidence: numberOrNull(state.confidence) ?? 0,
     mastery: { outcomes: parseMasteryOutcomes(mastery.outcomes), subjects: parseSubjects(mastery.subjects) },
@@ -388,10 +383,10 @@ function parseLearnerTwinState(data: Json | null): LearnerTwinState {
       disclaimer: text(prediction.disclaimer),
     },
     decision: {
-      now: parseDecision(priority.now),
-      next: next.map(parseDecision).filter((item): item is TwinDecision => item !== null),
-      later: later.map(parseDecision).filter((item): item is TwinDecision => item !== null),
-      rule: text(priority.rule),
+      now: parseDecision(decision.now),
+      next: (Array.isArray(decision.next) ? decision.next : []).map(parseDecision).filter((item): item is TwinDecision => item !== null),
+      later: (Array.isArray(decision.later) ? decision.later : []).map(parseDecision).filter((item): item is TwinDecision => item !== null),
+      rule: text(decision.rule),
     },
     evidence: {
       competencyEvidenceCount: numberOrNull(evidence.competency_evidence_count) ?? 0,
@@ -402,19 +397,19 @@ function parseLearnerTwinState(data: Json | null): LearnerTwinState {
       meanAbsoluteError: numberOrNull(evidence.mean_absolute_error),
       latestEvidenceAt: text(evidence.latest_evidence_at),
       snapshotGeneratedAt: text(evidence.snapshot_generated_at),
-      stateConfidence: numberOrNull(evidence.state_confidence) ?? numberOrNull(state.confidence) ?? 0,
-      recentCalibrations: parseCalibrations(evidence.recent_calibrations),
+      stateConfidence: numberOrNull(evidence.state_confidence) ?? 0,
+      recentCalibrations,
     },
     learning: {
       resolvedNow: numberOrNull(learning.resolved_now) ?? 0,
       unresolvedExposures: numberOrNull(learning.unresolved_exposures) ?? 0,
-      learnedInterventions: parseLearnedInterventions(learning.learned_interventions),
-      recentExposures: parseLearningExposures(learning.recent_exposures),
+      learnedInterventions: parseInterventions(learning.learned_interventions),
+      recentExposures: parseExposures(learning.recent_exposures),
       policy: text(learning.policy),
     },
     memory: {
       claims: parseMemoryClaims(memory.claims),
-      interventionEffects: parseLearnedInterventions(memory.intervention_effects),
+      interventionEffects: parseInterventions(memory.intervention_effects),
       rule: text(memory.rule),
       refresh: (memory.refresh ?? {}) as Json,
     },
@@ -425,7 +420,7 @@ function parseLearnerTwinState(data: Json | null): LearnerTwinState {
       prediction: (adaptation.prediction ?? {}) as Json,
     },
     exam: {
-      examName: text(exam.exam_name) ?? 'KCSE',
+      examName: text(exam.exam_name) ?? 'Assessment',
       examDate: text(exam.exam_date),
       daysRemaining: numberOrNull(exam.days_remaining),
       dailyRevisionMinutes: numberOrNull(exam.daily_revision_minutes) ?? 90,
@@ -479,8 +474,10 @@ export async function generateAdaptivePracticeQuestion(outcomeId: string | null 
   return question
 }
 
-export async function getAdaptiveTeachingTurn(outcomeId: string, stage = 0): Promise<AdaptiveTeachingTurn> {
-  const { data, error } = await rpc<Json>('student_get_adaptive_teaching_turn', { p_outcome_id: outcomeId, p_stage: stage })
+export async function getAdaptiveTeachingTurn(outcomeId: string, stage = 0, learnerReply?: string | null): Promise<AdaptiveTeachingTurn> {
+  const args: Record<string, unknown> = { p_outcome_id: outcomeId, p_stage: stage }
+  if (learnerReply && learnerReply.trim()) args.p_learner_reply = learnerReply.trim()
+  const { data, error } = await rpc<Json>('student_get_adaptive_teaching_turn', args)
   if (error) throw new Error(error.message || 'Adaptive coaching could not be prepared.')
   const row = record(data)
   const intervention = record(row.intervention)
