@@ -24,6 +24,7 @@ export type BlockType =
   | 'code'
   | 'activity'
   | 'question'
+  | 'interactive'
 
 export type PricingModel =
   | { type: 'free' }
