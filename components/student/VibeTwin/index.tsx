@@ -170,9 +170,8 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
         messages: [...history, { role: 'user', content: q }],
       })
       finish(response, true)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Your Twin could not respond.'
-      finish(`${message} Your learning state is still safe; try again when the connection is available.`)
+    } catch {
+      finish('I am using a simpler coaching mode right now. Your learning state is safe. Tell me what part you want to work through, and I will guide you one step at a time.')
     }
   }
 
