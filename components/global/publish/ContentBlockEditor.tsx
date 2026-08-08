@@ -77,6 +77,96 @@ function metaString(block: ContentBlock, key: string): string {
   return typeof value === 'string' ? value : ''
 }
 
+function safeHttpUrl(value: string): string | null {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
+function isDirectVideo(url: string): boolean {
+  return /\.(mp4|webm|ogg)(?:$|[?#])/i.test(url)
+}
+
+function isDirectAudio(url: string): boolean {
+  return /\.(mp3|wav|m4a|aac|ogg|webm)(?:$|[?#])/i.test(url)
+}
+
+function mediaCaption(block: ContentBlock) {
+  const caption = metaString(block, 'caption')
+  return caption ? <div style={{ color: MUTED, fontSize: 12, marginTop: 8, lineHeight: 1.5 }}>{caption}</div> : null
+}
+
+function ReadOnlyMedia({ block, label }: { block: ContentBlock; label: 'Video' | 'Audio' | '3D model' | 'Simulation' }) {
+  const safeUrl = safeHttpUrl(block.content)
+  const [modelActive, setModelActive] = useState(false)
+
+  if (!safeUrl) {
+    return (
+      <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+        <div style={{ color: MUTED, fontSize: 12 }}>{label} unavailable.</div>
+        {mediaCaption(block)}
+      </div>
+    )
+  }
+
+  if (label === 'Video' && isDirectVideo(safeUrl)) {
+    return (
+      <figure style={{ margin: 0, background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: 'hidden' }}>
+        <video controls playsInline preload="metadata" src={safeUrl} style={{ display: 'block', width: '100%', maxHeight: '70dvh', background: '#000' }} />
+        <figcaption style={{ padding: metaString(block, 'caption') ? '0 12px 11px' : 0 }}>{mediaCaption(block)}</figcaption>
+      </figure>
+    )
+  }
+
+  if (label === 'Audio' && isDirectAudio(safeUrl)) {
+    return (
+      <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+        <audio controls preload="metadata" src={safeUrl} style={{ width: '100%' }} />
+        {mediaCaption(block)}
+      </div>
+    )
+  }
+
+  if (label === '3D model') {
+    return (
+      <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+          <div>
+            <div style={{ color: ACCENT, fontSize: 10, fontWeight: 800, letterSpacing: '0.1em' }}>3D MODEL</div>
+            <div style={{ color: MUTED, fontSize: 12, marginTop: 5 }}>Loaded only when requested to keep the book fast on mobile.</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setModelActive(true)}
+            style={{ border: 'none', borderRadius: 10, padding: '9px 12px', background: ACCENT, color: '#090D16', fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}
+          >
+            Explore
+          </button>
+        </div>
+        {modelActive && (
+          <div style={{ marginTop: 12, borderRadius: 10, border: `1px solid ${BORDER}`, padding: 14, background: SURF }}>
+            <div style={{ color: TEXT, fontSize: 13, lineHeight: 1.55 }}>Interactive 3D viewer support is reserved for validated GLB/GLTF assets. Until the dedicated renderer is installed, open the model in its trusted source.</div>
+            <a href={safeUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', color: ACCENT, marginTop: 10, fontSize: 13, fontWeight: 700 }}>Open 3D model ↗</a>
+          </div>
+        )}
+        {mediaCaption(block)}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+      <div style={{ color: ACCENT, fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', marginBottom: 8 }}>{label.toUpperCase()}</div>
+      <a href={safeUrl} target="_blank" rel="noopener noreferrer" style={{ color: ACCENT, fontSize: 13, fontWeight: 700 }}>Open {label} ↗</a>
+      {label === 'Simulation' && <div style={{ color: MUTED, fontSize: 11, marginTop: 7 }}>External simulations open separately; arbitrary third-party scripts are not embedded inside textbook pages.</div>}
+      {mediaCaption(block)}
+    </div>
+  )
+}
+
 export function ContentBlockEditor({
   block, readOnly = false, isFocused,
   onUpdate, onFocus, onDelete, onMoveUp, onMoveDown,
@@ -141,7 +231,9 @@ export function ContentBlockEditor({
     setUploading(true)
     try {
       const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-      const path = `pub_blocks/${crypto.randomUUID()}.${ext}`
+      const { data: { user } } = await sb.auth.getUser()
+      if (!user) throw new Error('Sign in before uploading publication media.')
+      const path = `${user.id}/pub_blocks/${crypto.randomUUID()}.${ext}`
       const { error } = await sb.storage.from('vibe-publication-images').upload(path, file)
       if (error) throw error
       const { data } = sb.storage.from('vibe-publication-images').getPublicUrl(path)
@@ -161,15 +253,10 @@ export function ContentBlockEditor({
   const mediaUrlEditor = (label: string, hint: string) => (
     <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
       <div style={{ color: ACCENT, fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', marginBottom: 8 }}>{label.toUpperCase()}</div>
-      {readOnly ? (
-        block.content ? <a href={block.content} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: 13 }}>Open {label}</a> : null
-      ) : (
-        <>
-          <input value={block.content} onChange={e => onUpdate({ ...block, content: e.target.value })} placeholder={hint} style={{ ...base, background: SURF, border: `1px solid ${BORDER}`, borderRadius: 9, padding: '10px 12px', fontSize: 13 }} />
-          <input value={metaString(block, 'caption')} onChange={e => onUpdate({ ...block, meta: { ...block.meta, caption: e.target.value } })} placeholder="Caption / learning purpose" style={{ ...base, marginTop: 8, fontSize: 12, color: MUTED }} />
-        </>
-      )}
-      {readOnly && metaString(block, 'caption') && <div style={{ color: MUTED, fontSize: 12, marginTop: 8 }}>{metaString(block, 'caption')}</div>}
+      <>
+        <input value={block.content} onChange={e => onUpdate({ ...block, content: e.target.value })} placeholder={hint} style={{ ...base, background: SURF, border: `1px solid ${BORDER}`, borderRadius: 9, padding: '10px 12px', fontSize: 13 }} />
+        <input value={metaString(block, 'caption')} onChange={e => onUpdate({ ...block, meta: { ...block.meta, caption: e.target.value } })} placeholder="Caption / learning purpose" style={{ ...base, marginTop: 8, fontSize: 12, color: MUTED }} />
+      </>
     </div>
   )
 
@@ -214,7 +301,7 @@ export function ContentBlockEditor({
       case 'diagram':
         return (
           <div style={{ background: CARD, borderRadius: 12, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
-            {block.content ? <img loading="lazy" src={block.content} alt={metaString(block, 'alt') || metaString(block, 'caption') || (block.type === 'diagram' ? 'Diagram' : 'Illustration')} style={{ display: 'block', width: '100%', maxHeight: 460, objectFit: 'contain', background: '#0b1020' }} /> : !readOnly ? <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: 34, background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer' }}>{uploading ? 'Uploading…' : block.type === 'diagram' ? 'Upload diagram / illustration' : 'Upload image / illustration'}</button> : null}
+            {block.content ? <img loading="lazy" decoding="async" src={block.content} alt={metaString(block, 'alt') || metaString(block, 'caption') || (block.type === 'diagram' ? 'Diagram' : 'Illustration')} style={{ display: 'block', width: '100%', maxHeight: 460, objectFit: 'contain', background: '#0b1020' }} /> : !readOnly ? <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: 34, background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer' }}>{uploading ? 'Uploading…' : block.type === 'diagram' ? 'Upload diagram / illustration' : 'Upload image / illustration'}</button> : null}
             {!readOnly && (
               <div style={{ padding: 12 }}>
                 <button onClick={() => fileRef.current?.click()} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, background: SURF, color: TEXT, padding: '7px 10px', fontSize: 12, cursor: 'pointer' }}>{block.content ? 'Replace media' : 'Choose media'}</button>
@@ -226,10 +313,10 @@ export function ContentBlockEditor({
             {readOnly && metaString(block, 'caption') && <div style={{ padding: '9px 12px', color: MUTED, fontSize: 12 }}>{metaString(block, 'caption')}</div>}
           </div>
         )
-      case 'video': return mediaUrlEditor('Video', 'https://… video URL')
-      case 'audio': return mediaUrlEditor('Audio', 'https://… audio URL')
-      case 'model3d': return mediaUrlEditor('3D model', 'https://… .glb/.gltf model URL')
-      case 'simulation': return mediaUrlEditor('Simulation', 'https://… trusted simulation URL')
+      case 'video': return readOnly ? <ReadOnlyMedia block={block} label="Video" /> : mediaUrlEditor('Video', 'https://… direct MP4/WebM video URL')
+      case 'audio': return readOnly ? <ReadOnlyMedia block={block} label="Audio" /> : mediaUrlEditor('Audio', 'https://… direct MP3/M4A/OGG audio URL')
+      case 'model3d': return readOnly ? <ReadOnlyMedia block={block} label="3D model" /> : mediaUrlEditor('3D model', 'https://… .glb/.gltf model URL')
+      case 'simulation': return readOnly ? <ReadOnlyMedia block={block} label="Simulation" /> : mediaUrlEditor('Simulation', 'https://… trusted simulation URL')
       case 'equation': return multilineBlock('Equation', '∑', block, readOnly, onUpdate, 'Enter equation or mathematical expression…', '#C084FC')
       case 'table': {
         const rows = block.content.split('\n').filter(Boolean).map(row => row.split('|').map(cell => cell.trim()))
