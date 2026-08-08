@@ -12,6 +12,16 @@ export interface LearningTransformSource {
   touchedAt: string | null
   priority: number
 }
+export interface LearningRepresentationRecommendation {
+  representation: LearningRepresentation
+  outcomeId: string | null
+  reason: string
+  policy: string
+  effectivenessScore: number | null
+  effectivenessAttempts: number | null
+  effectivenessConfidence: number | null
+  behavioralScore: number | null
+}
 export interface LearningTransformSection { heading?: string; body?: string; bullets?: string[]; check?: { question?: string; answer?: string } }
 export interface LearningTransformCard { front: string; back: string }
 export interface LearningTransformNode { label: string; children?: LearningTransformNode[] }
@@ -53,6 +63,7 @@ const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {} }
 function text(value: unknown): string { return typeof value === 'string' ? value : '' }
 function number(value: unknown): number { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0 }
+function nullableNumber(value: unknown): number | null { if (value === null || value === undefined || value === '') return null; const parsed = Number(value); return Number.isFinite(parsed) ? parsed : null }
 function strings(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [] }
 function sections(value: unknown): LearningTransformSection[] {
   return Array.isArray(value) ? value.map(item => {
@@ -94,6 +105,24 @@ export async function listLearningTransformSources(limit = 30): Promise<Learning
     const row = record(item)
     return { sourceType: text(row.source_type) as LearningSourceType, sourceId: text(row.source_id), title: text(row.title) || 'Learning material', subtitle: text(row.subtitle) || null, touchedAt: text(row.touched_at) || null, priority: number(row.priority) }
   }).filter(item => item.sourceId && ['chapter','homework','teacher_content','vibelearn_content','resource'].includes(item.sourceType))
+}
+
+export async function getRecommendedLearningRepresentation(sourceType: LearningSourceType, sourceId: string): Promise<LearningRepresentationRecommendation> {
+  const { data, error } = await rpc<Json>('student_recommend_learning_representation', { p_source_type: sourceType, p_source_id: sourceId })
+  if (error) throw new Error(error.message || 'Twin could not choose a learning format.')
+  const row = record(data)
+  const representation = text(row.representation) as LearningRepresentation
+  const allowed: LearningRepresentation[] = ['immersive','simplify','mind_map','flashcards','quiz','audio_lesson','revision_sheet','worked_examples','visual_explainer','story_mode']
+  return {
+    representation: allowed.includes(representation) ? representation : 'immersive',
+    outcomeId: text(row.outcome_id) || null,
+    reason: text(row.reason) || 'safe_default',
+    policy: text(row.policy) || 'verified_effectiveness_then_behavioral_preference_then_safe_default',
+    effectivenessScore: nullableNumber(row.effectiveness_score),
+    effectivenessAttempts: nullableNumber(row.effectiveness_attempts),
+    effectivenessConfidence: nullableNumber(row.effectiveness_confidence),
+    behavioralScore: nullableNumber(row.behavioral_score),
+  }
 }
 
 export async function getLearningTransformation(sourceType: LearningSourceType, sourceId: string, representation: LearningRepresentation): Promise<LearningTransformation> {
