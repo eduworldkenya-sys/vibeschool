@@ -10,6 +10,7 @@ import TwinHeader from './ui/TwinHeader'
 import TwinInput from './ui/TwinInput'
 import TwinLearningCanvas from './ui/TwinLearningCanvas'
 import { T } from './ui/TwinHeader'
+import { routeTwinCore, type TwinCoreRouteResult } from '@/lib/student/twinCore'
 import {
   answerAdaptivePracticeQuestion,
   askLearnerTwin,
@@ -31,6 +32,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
   const [practiceLoading, setPracticeLoading] = useState(false)
   const [practiceFeedback, setPracticeFeedback] = useState<string | null>(null)
   const [sessionSummary, setSessionSummary] = useState<string | null>(null)
+  const [coreResult, setCoreResult] = useState<TwinCoreRouteResult | null>(null)
   const [hintIndex, setHintIndex] = useState(0)
   const [coachTurn, setCoachTurn] = useState<AdaptiveTeachingTurn | null>(null)
   const [coachStage, setCoachStage] = useState(0)
@@ -49,6 +51,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       setPracticeQuestion(null)
       setPracticeFeedback(null)
       setSessionSummary(null)
+      setCoreResult(null)
       setHintIndex(0)
       setCoachTurn(null)
       setCoachStage(0)
@@ -79,7 +82,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       ? `${userName}, ${now.title} matters most right now.${now.reason ? ` ${now.reason}` : ''}`
       : weakest
         ? `${userName}, you are caught up on assigned work. We can strengthen ${weakest.outcomeText} next.`
-        : `${userName}, I am ready to learn with you. You can start a guided practice session or ask about anything you are working on.`
+        : `${userName}, I am ready to learn with you. You can start a guided practice session or ask, search, plan or save something.`
 
     addMessage('twin', greeting)
     const timer = setTimeout(() => speak(greeting), 250)
@@ -102,6 +105,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     setPracticeLoading(true)
     setPracticeFeedback(null)
     setSessionSummary(null)
+    setCoreResult(null)
     setHintIndex(0)
     setCoachTurn(null)
     setCoachStage(0)
@@ -174,6 +178,13 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     setTwinState('processing')
 
     try {
+      const core = await routeTwinCore(q)
+      setCoreResult(core.handled ? core : null)
+      if (core.handled && !core.requiresAi) {
+        finish(core.reply || 'Done.', false)
+        return
+      }
+
       if (practiceQuestion) {
         const turn = await getAdaptiveTeachingTurn(practiceQuestion.outcomeId, coachStage, q)
         setCoachTurn(turn)
@@ -182,7 +193,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       const response = await askLearnerTwin({ firstName: userName, messages: [...history, { role: 'user', content: q }] })
       finish(response, true)
     } catch {
-      finish('I am using a simpler coaching mode right now. Your learning state is safe. Tell me what part you want to work through, and I will guide you one step at a time.')
+      finish('Twin Core is still available for your tasks, revision, memory, search and saved learning space. Open-ended AI conversation is temporarily limited.')
     }
   }
 
@@ -210,6 +221,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       practiceLoading={practiceLoading}
       hintIndex={hintIndex}
       sessionSummary={sessionSummary}
+      coreResult={coreResult}
       messages={messages}
       twinState={twinState}
       onStartPractice={() => void startAdaptivePractice()}
