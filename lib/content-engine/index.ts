@@ -79,6 +79,8 @@ export {
   getPublishedPublicationById,
   listPublishedChapters,
   listPublishedPublications,
+  publishPublication,
+  unpublishPublication,
   publishTextbook,
   unpublishTextbook,
 } from './publications'
