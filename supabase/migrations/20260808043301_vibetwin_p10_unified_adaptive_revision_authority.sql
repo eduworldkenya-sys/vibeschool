@@ -1,0 +1,2 @@
+-- P10 live migration 20260808043301 established the unified adaptive revision authority.
+-- Final repository replay authority is reconciled by later P10 migrations in this same sequence.

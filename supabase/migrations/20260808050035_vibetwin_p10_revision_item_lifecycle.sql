@@ -1,0 +1,2 @@
+-- Live migration 20260808050035 added the learner revision-item lifecycle authority.
+-- Final repository replay authority is reconciled in 20260808050244_vibetwin_p10_recent_completion_suppression_fix.sql.
