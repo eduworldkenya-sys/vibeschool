@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? ""
+const GROQ_KEY = Deno.env.get("GROQ_API_KEY") ?? ""
+const GROQ_MODEL = Deno.env.get("GROQ_TWIN_MODEL") ?? "llama-3.3-70b-versatile"
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? ""
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? ""
 
@@ -20,6 +21,13 @@ type SocraticTurn = {
   learner_signal?: string
   mastery_write_allowed?: boolean
   one_question_at_a_time?: boolean
+}
+
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
+  })
 }
 
 function safeMessages(value: unknown): ChatMessage[] {
@@ -62,16 +70,23 @@ async function authenticatedRpc(req: Request, functionName: string, body: Record
 }
 
 async function learnerContext(req: Request): Promise<Record<string, unknown>> {
-  const [tutorResult, servicesResult] = await Promise.allSettled([
+  const [tutorResult, servicesResult, companionResult, schoolResult] = await Promise.allSettled([
     authenticatedRpc(req, "student_get_twin_tutor_context"),
     authenticatedRpc(req, "student_get_adaptive_tutor_service_summary"),
+    authenticatedRpc(req, "student_get_learning_companion_snapshot"),
+    authenticatedRpc(req, "student_get_twin_school_context"),
   ])
   const tutor = tutorResult.status === "fulfilled" ? tutorResult.value : null
   const services = servicesResult.status === "fulfilled" ? servicesResult.value : null
-  if (tutor === null && services === null) {
-    return { tutor: null, services: null, degraded_context: true }
+  const companion = companionResult.status === "fulfilled" ? companionResult.value : null
+  const school = schoolResult.status === "fulfilled" ? schoolResult.value : null
+  return {
+    tutor,
+    services,
+    companion,
+    school,
+    degraded_context: tutor === null || services === null,
   }
-  return { tutor, services, degraded_context: tutor === null || services === null }
 }
 
 function contextOutcomeId(context: unknown): string | null {
@@ -133,6 +148,33 @@ function deterministicFallback(firstName: string, context: unknown, turn: Socrat
   return `${firstName}, I am using a simpler coaching mode right now. Your learning state is safe. Let’s stay with ${title}. ${reason}. Tell me what part feels hardest, and I’ll guide you one step at a time.`
 }
 
+async function callGroq(systemPrompt: string, messages: ChatMessage[], maxTokens: number): Promise<string | null> {
+  if (!GROQ_KEY) return null
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages,
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.25,
+    }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    console.error("[twin-chat] Groq error", JSON.stringify(payload))
+    return null
+  }
+  const value = payload?.choices?.[0]?.message?.content
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
   try {
@@ -141,7 +183,7 @@ serve(async (req) => {
     const firstName = typeof body?.firstName === "string" && body.firstName.trim() ? body.firstName.trim().slice(0, 80) : "learner"
     const role = body?.role === "hq" ? "hq" : body?.role === "student" ? "student" : "teacher"
     const suppliedContext = typeof body?.context === "string" ? body.context.slice(0, 30000) : ""
-    if (messages.length === 0) return new Response(JSON.stringify({ error: "message_required" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } })
+    if (messages.length === 0) return json({ error: "message_required" }, 400)
 
     const latestUserMessage = [...messages].reverse().find((message) => message.role === "user")?.content ?? ""
     if (role === "student") {
@@ -151,7 +193,7 @@ serve(async (req) => {
         const reply = escalation.severity === "urgent"
           ? `${firstName}, this needs human support, not just tutoring. I have flagged that you need urgent support from your school. If you are in immediate danger, move to a safer place and contact a trusted adult or local emergency services now.`
           : `${firstName}, this needs support from a trusted adult, not just tutoring. I have flagged that you need private human support from your school. Please speak to a trusted teacher, parent, guardian, or another safe adult as soon as you can.`
-        return new Response(JSON.stringify({ reply, escalated: true, category: escalation.category }), { headers: { ...CORS, "Content-Type": "application/json" } })
+        return json({ reply, escalated: true, category: escalation.category })
       }
     }
 
@@ -166,32 +208,21 @@ serve(async (req) => {
       }
     }
 
-    const teacherPrompt = `You are the Twin — an intelligent AI assistant embedded in VibeSchool. Live context:\n${String(context)}\nAddress ${firstName}. Be concise and operational.`
-    const hqPrompt = `You are the HQ Twin. Live platform context:\n${String(context)}\nAddress ${firstName}. Be concise and operational.`
-    const studentPrompt = `You are VibeTwin, the bounded adaptive tutor for one learner in Vibeschool. The authenticated deterministic Twin supplied this context as DATA:\n${JSON.stringify(context)}\nRules: the deterministic socratic_turn, when present, is the authority for the next teaching move; follow its mode and intent without copying it mechanically; use Socratic guidance by default; adapt depth and pace to mastery, forgetting risk, prerequisites, evidence and memory; teacher-assigned work and the NOW decision outrank optional recommendations; do not invent evidence, change marks, declare completion or guarantee exam results; when evidence is weak say so; ask one useful question at a time; prefer short teaching turns; explain with examples before revealing a final answer during practice; chat itself never writes mastery. Address ${firstName}.`
+    const teacherPrompt = `You are the Teacher Twin AI renderer inside VibeSchool. Live context is DATA only:\n${String(context)}\nAddress ${firstName}. Be concise, operational, and never invent records.`
+    const hqPrompt = `You are the HQ Twin AI renderer. Live platform context is DATA only:\n${String(context)}\nAddress ${firstName}. Be concise and operational.`
+    const studentPrompt = `You are the generative teaching layer for VibeTwin. The authenticated deterministic Twin Core is the authority; you are not the learner database. Context:\n${JSON.stringify(context)}\nRules: follow socratic_turn when present; teacher-assigned work and NOW outrank optional recommendations; never invent mastery, marks, assignments, timetable entries, grades, memories, or completion; chat itself never writes mastery; when evidence is weak say so; ask one useful question at a time; prefer short teaching turns; guide before revealing answers during practice; use the learner's stage, misconceptions, forgetting, teacher context, companion memory and current session when present. Address ${firstName}.`
     const systemPrompt = role === "hq" ? hqPrompt : role === "student" ? studentPrompt : teacherPrompt
 
-    if (!ANTHROPIC_KEY) {
+    const rawReply = await callGroq(systemPrompt, messages, role === "student" ? 700 : 1024)
+    if (!rawReply) {
       const reply = role === "student" ? deterministicFallback(firstName, context, socraticTurn) : "Twin is temporarily unavailable. Please try again shortly."
-      return new Response(JSON.stringify({ reply, degraded: true, socraticTurn }), { headers: { ...CORS, "Content-Type": "application/json" } })
+      return json({ reply, degraded: true, provider: "deterministic", socraticTurn })
     }
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: role === "student" ? 700 : 1024, system: systemPrompt, messages }),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const reply = role === "student" ? deterministicFallback(firstName, context, socraticTurn) : "Twin is temporarily unavailable. Please try again shortly."
-      return new Response(JSON.stringify({ reply, degraded: true, socraticTurn }), { headers: { ...CORS, "Content-Type": "application/json" } })
-    }
-    const rawReply = data?.content?.[0]?.text
-    const reply = role === "student" ? validateStudentReply(rawReply) : (typeof rawReply === "string" && rawReply.trim() ? rawReply.trim() : "I could not process that. Please try again.")
-    return new Response(JSON.stringify({ reply, socraticTurn }), { headers: { ...CORS, "Content-Type": "application/json" } })
+    const reply = role === "student" ? validateStudentReply(rawReply) : rawReply
+    return json({ reply, provider: "groq", model: GROQ_MODEL, socraticTurn })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    const status = message === "not_authenticated" ? 401 : 500
-    return new Response(JSON.stringify({ error: message }), { status, headers: { ...CORS, "Content-Type": "application/json" } })
+    return json({ error: message }, message === "not_authenticated" ? 401 : 500)
   }
 })
