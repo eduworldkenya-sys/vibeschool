@@ -43,7 +43,8 @@ function tabIdFromPath(path: string): TabId {
     path.startsWith("/teacher/lessonplan") ||
     path.startsWith("/teacher/progress") ||
     path.startsWith("/teacher/resources") ||
-    path.startsWith("/teacher/vibelearn")
+    path.startsWith("/teacher/vibelearn") ||
+    path.startsWith("/teacher/studio")
   ) return "teach";
 
   if (
@@ -328,6 +329,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Progress", icon: <IconVibeLearn size={24} />, href: "/teacher/progress" },
     { label: "Resources", icon: <IconResources size={24} />, href: "/teacher/resources" },
     { label: "VibeLearn", icon: <IconIndexer size={24} />, href: "/teacher/vibelearn" },
+    { label: "Content Studio", icon: <IconPlans size={24} />, href: "/teacher/studio" },
   ],
   classes: [
     { label: "My Classes", icon: <IconClassHub size={24} />, href: "/teacher/classhub" },

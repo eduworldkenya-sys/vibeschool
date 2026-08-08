@@ -35,6 +35,7 @@ export function ChapterSidebar({
   onSelectChapter, onAddChapter, onDeleteChapter, onTitleChange, onStatusChange,
 }: Props) {
   const meta = FORMAT_META[format]
+  const lifecycleOwnedByPublication = format === 'vibetextbook'
 
   if (!isOpen) return null
 
@@ -64,6 +65,12 @@ export function ChapterSidebar({
           }}>✕</button>
         </div>
 
+        {lifecycleOwnedByPublication && (
+          <div style={{ margin: '12px 12px 0', padding: '10px 12px', borderRadius: 10, background: 'rgba(204,255,0,0.06)', border: '1px solid rgba(204,255,0,0.15)', color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
+            Unit access follows the textbook’s Publish/Unpublish action and pricing. Individual units cannot be put live independently.
+          </div>
+        )}
+
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
           {chapters.map(c => {
             const active = c.id === activeChapterId
@@ -91,24 +98,30 @@ export function ChapterSidebar({
                     padding: 0, boxSizing: 'border-box' as const,
                   }}
                 />
-                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                  {(['draft', 'published', 'locked'] as ChapterStatus[]).map(s => {
-                    const on = c.status === s
-                    return (
-                      <button
-                        key={s}
-                        onClick={e => { e.stopPropagation(); onStatusChange(c.id, s) }}
-                        style={{
-                          padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
-                          cursor: 'pointer',
-                          border: '1px solid ' + (on ? STATUS_META[s].color : BORDER),
-                          background: on ? STATUS_META[s].color + '1a' : 'transparent',
-                          color: on ? STATUS_META[s].color : MUTED,
-                        }}
-                      >{STATUS_META[s].label}</button>
-                    )
-                  })}
-                </div>
+                {lifecycleOwnedByPublication ? (
+                  <div style={{ display: 'inline-block', marginTop: 8, padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700, border: '1px solid ' + STATUS_META[c.status].color, color: STATUS_META[c.status].color }}>
+                    {STATUS_META[c.status].label}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    {(['draft', 'published', 'locked'] as ChapterStatus[]).map(s => {
+                      const on = c.status === s
+                      return (
+                        <button
+                          key={s}
+                          onClick={e => { e.stopPropagation(); onStatusChange(c.id, s) }}
+                          style={{
+                            padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                            cursor: 'pointer',
+                            border: '1px solid ' + (on ? STATUS_META[s].color : BORDER),
+                            background: on ? STATUS_META[s].color + '1a' : 'transparent',
+                            color: on ? STATUS_META[s].color : MUTED,
+                          }}
+                        >{STATUS_META[s].label}</button>
+                      )
+                    })}
+                  </div>
+                )}
                 {chapters.length > 1 && (
                   <button
                     onClick={e => { e.stopPropagation(); onDeleteChapter(c.id) }}

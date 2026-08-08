@@ -6,6 +6,7 @@ export type PublicationFormat =
   | 'vibetextbook'
   | 'vibescripture'
   | 'vibevoice'
+  | 'ebook'
 
 export type PublicationStatus = 'draft' | 'published' | 'archived'
 export type ChapterStatus = 'draft' | 'published' | 'locked'
@@ -19,10 +20,24 @@ export type BlockType =
   | 'bulletList'
   | 'numberedList'
   | 'image'
+  | 'diagram'
+  | 'table'
+  | 'equation'
+  | 'video'
+  | 'audio'
+  | 'model3d'
+  | 'simulation'
   | 'divider'
   | 'callout'
+  | 'definition'
+  | 'example'
+  | 'workedExample'
+  | 'summary'
+  | 'keyPoints'
   | 'code'
   | 'activity'
+  | 'experiment'
+  | 'project'
   | 'question'
 
 export type PricingModel =
@@ -37,6 +52,10 @@ export type CBCSubject =
   | 'english'
   | 'kiswahili'
   | 'science'
+  | 'biology'
+  | 'chemistry'
+  | 'physics'
+  | 'agriculture'
   | 'social_studies'
   | 'creative_arts'
   | 'physical_education'
@@ -144,6 +163,13 @@ export const FORMAT_META: Record<PublicationFormat, {
     accent:        '#CCFF00',
     chapterLabel:  'Unit',
     chapterPlural: 'Units',
+  },
+  ebook: {
+    label:         'eBook',
+    icon:          '📘',
+    accent:        '#60A5FA',
+    chapterLabel:  'Chapter',
+    chapterPlural: 'Chapters',
   },
   vibescripture: {
     label:         'VibeScripture',

@@ -124,59 +124,59 @@ function requireLifecycleResponse(
   if (!data || data.length !== 1) {
     throw toContentEngineError(
       operation,
-      new Error(
-        'Textbook lifecycle RPC returned an invalid response.',
-      ),
+      new Error('Publication lifecycle RPC returned an invalid response.'),
     )
   }
 }
 
-export async function publishTextbook(
+export async function publishPublication(
   client: ContentEngineClient,
   publicationId: string,
 ): Promise<void> {
-  const operation = 'publishTextbook'
-  const id = assertRequiredId(
-    publicationId,
-    'publicationId',
-    operation,
-  )
+  const operation = 'publishPublication'
+  const id = assertRequiredId(publicationId, 'publicationId', operation)
 
-  const { data, error } = await client.rpc(
-    'publish_textbook',
-    {
-      p_publication_id: id,
-    },
-  )
+  const { data, error } = await client.rpc('publish_publication', {
+    p_publication_id: id,
+  })
 
   if (error) {
     throw toContentEngineError(operation, error)
   }
 
   requireLifecycleResponse(data, operation)
+}
+
+export async function unpublishPublication(
+  client: ContentEngineClient,
+  publicationId: string,
+): Promise<void> {
+  const operation = 'unpublishPublication'
+  const id = assertRequiredId(publicationId, 'publicationId', operation)
+
+  const { data, error } = await client.rpc('unpublish_publication', {
+    p_publication_id: id,
+  })
+
+  if (error) {
+    throw toContentEngineError(operation, error)
+  }
+
+  requireLifecycleResponse(data, operation)
+}
+
+// Backward-compatible wrappers for existing textbook callers. The database
+// lifecycle is now format-aware and is shared with eBook in Content Studio.
+export async function publishTextbook(
+  client: ContentEngineClient,
+  publicationId: string,
+): Promise<void> {
+  await publishPublication(client, publicationId)
 }
 
 export async function unpublishTextbook(
   client: ContentEngineClient,
   publicationId: string,
 ): Promise<void> {
-  const operation = 'unpublishTextbook'
-  const id = assertRequiredId(
-    publicationId,
-    'publicationId',
-    operation,
-  )
-
-  const { data, error } = await client.rpc(
-    'unpublish_textbook',
-    {
-      p_publication_id: id,
-    },
-  )
-
-  if (error) {
-    throw toContentEngineError(operation, error)
-  }
-
-  requireLifecycleResponse(data, operation)
+  await unpublishPublication(client, publicationId)
 }
