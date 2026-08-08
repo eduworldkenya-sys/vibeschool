@@ -9,8 +9,8 @@ import {
   publicationRowToDraft,
 } from '@/lib/publicationDraftCodec'
 import {
-  publishTextbook,
-  unpublishTextbook,
+  publishPublication as publishPublicationLifecycle,
+  unpublishPublication as unpublishPublicationLifecycle,
 } from '@/lib/content-engine'
 import {
   VibePublication,
@@ -18,7 +18,6 @@ import {
   ContentBlock,
   BlockType,
   ChapterStatus,
-  PricingModel,
   PublicationFormat,
   emptyPublication,
   emptyChapter,
@@ -27,21 +26,6 @@ import {
 } from '@/lib/publishTypes'
 
 const AUTOSAVE_MS = 3000
-
-function chapterStatusForPricing(pricing: PricingModel, chapterNumber: number): ChapterStatus {
-  switch (pricing.type) {
-    case 'free':
-    case 'donation':
-      return 'published'
-    case 'paid':
-    case 'school_license':
-      return 'locked'
-    case 'freemium':
-      return chapterNumber <= pricing.freeChapters ? 'published' : 'locked'
-    default:
-      return 'published'
-  }
-}
 
 export interface UsePublicationDraftResult {
   loading:              boolean
@@ -358,58 +342,27 @@ export function usePublicationDraft(
 
     const sb = getSupabaseClient()
     const now = new Date().toISOString()
-    const isTextbook = pub.format === 'vibetextbook'
 
     try {
-      if (isTextbook) {
-        await publishTextbook(sb, pub.id)
+      await publishPublicationLifecycle(sb, pub.id)
 
-        const { data: persistedChapters, error: reloadError } = await sb
-          .from('vibe_chapters')
-          .select('*')
-          .eq('publication_id', pub.id)
-          .order('number', { ascending: true })
+      const { data: persistedChapters, error: reloadError } = await sb
+        .from('vibe_chapters')
+        .select('*')
+        .eq('publication_id', pub.id)
+        .order('number', { ascending: true })
 
-        if (reloadError) throw reloadError
+      if (reloadError) throw reloadError
 
-        const nextChapters = (persistedChapters ?? []).map(chapterRowToDraft)
-        setChapters(nextChapters)
-        chapRef.current = nextChapters
-      } else {
-        const nextChapters: VibeChapter[] = chapRef.current.map(c => {
-          if (c.status !== 'draft') return c
-          const status = chapterStatusForPricing(pub.pricing, c.number)
-          return {
-            ...c,
-            status,
-            published_at: status === 'published' ? now : c.published_at,
-          }
-        })
-
-        const { error: publicationError } = await sb
-          .from('vibe_publications')
-          .update({ status: 'published', published_at: pub.published_at ?? now })
-          .eq('id', pub.id)
-        if (publicationError) throw publicationError
-
-        if (nextChapters.length > 0) {
-          const { error: chapterError } = await sb
-            .from('vibe_chapters')
-            .upsert(nextChapters.map(chapterDraftToInsert), { onConflict: 'id' })
-          if (chapterError) throw chapterError
-        }
-
-        setChapters(nextChapters)
-        chapRef.current = nextChapters
-      }
+      const nextChapters = (persistedChapters ?? []).map(chapterRowToDraft)
+      setChapters(nextChapters)
+      chapRef.current = nextChapters
     } catch (publishError) {
-      if (isTextbook) {
-        try {
-          await unpublishTextbook(sb, pub.id)
-        } catch {
-          // Keep the original error. Server-side publish is transactional,
-          // so rollback should only be needed if a later reload fails.
-        }
+      try {
+        await unpublishPublicationLifecycle(sb, pub.id)
+      } catch {
+        // The lifecycle RPC itself is transactional. This rollback only
+        // compensates for a post-publish client reload failure.
       }
       setError(publishError instanceof Error ? publishError.message : 'Publication failed')
       return false
