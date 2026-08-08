@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import { AssessmentDeliveryPanel } from "@/components/teacher/content/AssessmentDeliveryPanel";
 
 type Assessment = {
   id: string;
@@ -220,6 +221,8 @@ export default function ContentAssessmentReviewPage() {
             <><strong>Final teacher approval</strong><p style={muted}>Review all questions and marks. Approval records you as the approving teacher and moves the blueprint and generated assessment to approved state.</p><button type="button" disabled={approving || items.length === 0} onClick={() => void approve()} style={primaryButton}>{approving ? "Approving…" : "Approve assessment"}</button></>
           )}
         </section>
+
+        <AssessmentDeliveryPanel generatedAssessmentId={assessment.id} approved={assessment.status === "approved"} />
       </div>
     </main>
   );
