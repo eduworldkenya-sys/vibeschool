@@ -3,6 +3,7 @@ import { StudyCapturePanel } from "@/components/read/StudyCapturePanel";
 import { ReaderStudyViewControls } from "@/components/read/ReaderStudyViewControls";
 import { ReadingAnalyticsTracker } from "@/components/read/ReadingAnalyticsTracker";
 import { ReaderAssessmentLauncher } from "@/components/read/ReaderAssessmentLauncher";
+import { ReaderLearningLauncher } from "@/components/read/ReaderLearningLauncher";
 
 export default function TextbookReaderLayout({
   children,
@@ -19,6 +20,7 @@ export default function TextbookReaderLayout({
         {children}
       </div>
       <StudyCapturePanel publicationId={params.publicationId} />
+      <ReaderLearningLauncher />
       <ReaderAssessmentLauncher />
     </div>
   );
