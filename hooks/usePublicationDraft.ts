@@ -87,7 +87,6 @@ export function usePublicationDraft(
   pubRef.current  = publication
   chapRef.current = chapters
 
-  // ── Load or create ───────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false
     async function load() {
@@ -121,9 +120,7 @@ export function usePublicationDraft(
             const fresh = emptyPublication(authorId, format)
             const { data: inserted, error: ie } = await sb
               .from('vibe_publications')
-              .insert(
-                publicationDraftToInsert(fresh),
-              )
+              .insert(publicationDraftToInsert(fresh))
               .select('*')
               .single()
             if (ie) throw ie
@@ -138,16 +135,13 @@ export function usePublicationDraft(
           .order('number', { ascending: true })
         if (ce) throw ce
 
-        let chaps: VibeChapter[] =
-          (rawChaps ?? []).map(chapterRowToDraft)
+        let chaps: VibeChapter[] = (rawChaps ?? []).map(chapterRowToDraft)
 
         if (chaps.length === 0) {
           const first = emptyChapter(pub.id, 1)
           const { data: ic, error: ice } = await sb
             .from('vibe_chapters')
-            .insert(
-              chapterDraftToInsert(first),
-            )
+            .insert(chapterDraftToInsert(first))
             .select('*')
             .single()
           if (ice) throw ice
@@ -171,7 +165,6 @@ export function usePublicationDraft(
     return () => { cancelled = true }
   }, [authorId, format, publicationId])
 
-  // ── Persist ──────────────────────────────────────────────────────────────
   const persist = useCallback(async (): Promise<boolean> => {
     const pub   = pubRef.current
     const chaps = chapRef.current
@@ -182,10 +175,7 @@ export function usePublicationDraft(
       const sb = getSupabaseClient()
       const { error: pe } = await sb
         .from('vibe_publications')
-        .upsert(
-          publicationDraftToInsert(pub, chaps.length),
-          { onConflict: 'id' }
-        )
+        .upsert(publicationDraftToInsert(pub, chaps.length), { onConflict: 'id' })
       if (pe) throw pe
 
       if (delIds.length > 0) {
@@ -196,10 +186,7 @@ export function usePublicationDraft(
       if (chaps.length > 0) {
         const { error: ce } = await sb
           .from('vibe_chapters')
-          .upsert(
-            chaps.map(chapterDraftToInsert),
-            { onConflict: 'id' }
-          )
+          .upsert(chaps.map(chapterDraftToInsert), { onConflict: 'id' })
         if (ce) throw ce
       }
       setLastSaved(new Date())
@@ -227,7 +214,6 @@ export function usePublicationDraft(
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [])
 
-  // ── Publication actions ───────────────────────────────────────────────────
   const updatePublication = useCallback((updates: Partial<VibePublication>) => {
     setPublication(prev => {
       if (!prev) return null
@@ -239,7 +225,6 @@ export function usePublicationDraft(
     scheduleSave()
   }, [scheduleSave])
 
-  // ── Chapter actions ───────────────────────────────────────────────────────
   const updateChapterTitle = useCallback((id: string, title: string) => {
     setChapters(prev => {
       const next = prev.map(c => c.id === id ? { ...c, title } : c)
@@ -287,10 +272,7 @@ export function usePublicationDraft(
     scheduleSave()
   }, [scheduleSave])
 
-  // ── Block actions ─────────────────────────────────────────────────────────
-  const mutateActiveChapter = useCallback((
-    fn: (blocks: ContentBlock[]) => ContentBlock[]
-  ) => {
+  const mutateActiveChapter = useCallback((fn: (blocks: ContentBlock[]) => ContentBlock[]) => {
     const targetId = activeChapterId
     setChapters(prev => {
       const next = prev.map(c => {
@@ -321,11 +303,7 @@ export function usePublicationDraft(
     })
   }, [mutateActiveChapter])
 
-  const updateBlock = useCallback((
-    blockId: string,
-    content: string,
-    meta?:   ContentBlock['meta']
-  ) => {
+  const updateBlock = useCallback((blockId: string, content: string, meta?: ContentBlock['meta']) => {
     mutateActiveChapter(blocks =>
       blocks.map(b => b.id !== blockId ? b : {
         ...b,
@@ -343,17 +321,16 @@ export function usePublicationDraft(
     mutateActiveChapter(blocks => {
       const idx = blocks.findIndex(b => b.id === blockId)
       if (idx === -1) return blocks
-      if (direction === 'up'   && idx === 0)                  return blocks
-      if (direction === 'down' && idx === blocks.length - 1)  return blocks
+      if (direction === 'up' && idx === 0) return blocks
+      if (direction === 'down' && idx === blocks.length - 1) return blocks
       const target = direction === 'up' ? idx - 1 : idx + 1
-      const next   = [...blocks]
+      const next = [...blocks]
       const [moved] = next.splice(idx, 1)
       next.splice(target, 0, moved)
       return next
     })
   }, [mutateActiveChapter])
 
-  // ── Publish ───────────────────────────────────────────────────────────────
   const publishPublication = useCallback(async (): Promise<boolean> => {
     const pub = pubRef.current
     if (!pub) {
@@ -366,23 +343,13 @@ export function usePublicationDraft(
       return false
     }
 
-    if (
-      pub.format === 'vibetextbook' &&
-      !pub.cbc_subject?.trim()
-    ) {
-      setError(
-        'Select the CBC subject before publishing this textbook.'
-      )
+    if (pub.format === 'vibetextbook' && !pub.cbc_subject?.trim()) {
+      setError('Select the CBC subject before publishing this textbook.')
       return false
     }
 
-    if (
-      pub.format === 'vibetextbook' &&
-      !pub.cbc_grade?.trim()
-    ) {
-      setError(
-        'Select the grade before publishing this textbook.'
-      )
+    if (pub.format === 'vibetextbook' && !pub.cbc_grade?.trim()) {
+      setError('Select the grade before publishing this textbook.')
       return false
     }
 
@@ -392,93 +359,64 @@ export function usePublicationDraft(
     const sb = getSupabaseClient()
     const now = new Date().toISOString()
     const isTextbook = pub.format === 'vibetextbook'
-    let lifecycleApplied = false
-
-    const nextChapters: VibeChapter[] = chapRef.current.map(c => {
-      if (c.status !== 'draft') return c
-      const status = chapterStatusForPricing(pub.pricing, c.number)
-      return {
-        ...c,
-        status,
-        published_at: status === 'published' ? now : c.published_at,
-      }
-    })
 
     try {
       if (isTextbook) {
         await publishTextbook(sb, pub.id)
+
+        const { data: persistedChapters, error: reloadError } = await sb
+          .from('vibe_chapters')
+          .select('*')
+          .eq('publication_id', pub.id)
+          .order('number', { ascending: true })
+
+        if (reloadError) throw reloadError
+
+        const nextChapters = (persistedChapters ?? []).map(chapterRowToDraft)
+        setChapters(nextChapters)
+        chapRef.current = nextChapters
       } else {
+        const nextChapters: VibeChapter[] = chapRef.current.map(c => {
+          if (c.status !== 'draft') return c
+          const status = chapterStatusForPricing(pub.pricing, c.number)
+          return {
+            ...c,
+            status,
+            published_at: status === 'published' ? now : c.published_at,
+          }
+        })
+
         const { error: publicationError } = await sb
           .from('vibe_publications')
-          .update({
-            status: 'published',
-            published_at: pub.published_at ?? now,
-          })
+          .update({ status: 'published', published_at: pub.published_at ?? now })
           .eq('id', pub.id)
+        if (publicationError) throw publicationError
 
-        if (publicationError) {
-          throw publicationError
+        if (nextChapters.length > 0) {
+          const { error: chapterError } = await sb
+            .from('vibe_chapters')
+            .upsert(nextChapters.map(chapterDraftToInsert), { onConflict: 'id' })
+          if (chapterError) throw chapterError
         }
-      }
 
-      lifecycleApplied = true
-
-      if (nextChapters.length > 0) {
-        const { error: chapterError } = await sb
-          .from('vibe_chapters')
-          .upsert(
-            nextChapters.map(chapterDraftToInsert),
-            { onConflict: 'id' },
-          )
-
-        if (chapterError) {
-          throw chapterError
-        }
+        setChapters(nextChapters)
+        chapRef.current = nextChapters
       }
     } catch (publishError) {
-      const publishMessage =
-        publishError instanceof Error
-          ? publishError.message
-          : 'Publication failed'
-
-      if (lifecycleApplied) {
+      if (isTextbook) {
         try {
-          if (isTextbook) {
-            await unpublishTextbook(sb, pub.id)
-          } else {
-            const { error: rollbackError } = await sb
-              .from('vibe_publications')
-              .update({
-                status: 'draft',
-                published_at: null,
-              })
-              .eq('id', pub.id)
-
-            if (rollbackError) {
-              throw rollbackError
-            }
-          }
-        } catch (rollbackError) {
-          const rollbackMessage =
-            rollbackError instanceof Error
-              ? rollbackError.message
-              : 'rollback failed'
-
-          setError(
-            `${publishMessage}. Publication rollback also failed: ` +
-            rollbackMessage,
-          )
-          return false
+          await unpublishTextbook(sb, pub.id)
+        } catch {
+          // Keep the original error. Server-side publish is transactional,
+          // so rollback should only be needed if a later reload fails.
         }
       }
-
-      setError(publishMessage)
+      setError(publishError instanceof Error ? publishError.message : 'Publication failed')
       return false
     }
 
-    setChapters(nextChapters)
-    chapRef.current = nextChapters
     setPublication(prev => prev ? { ...prev, status: 'published', published_at: prev.published_at ?? now } : null)
+    setError(null)
     return true
   }, [forceSave])
 
