@@ -23,7 +23,7 @@ const PUBLICATION_FORMATS: readonly PublicationFormat[] = ['vibepress','vibechro
 const PUBLICATION_STATUSES: readonly PublicationStatus[] = ['draft','published','archived']
 const CHAPTER_STATUSES: readonly ChapterStatus[] = ['draft','published','locked']
 const PUBLICATION_GENRES: readonly PublicationGenre[] = ['fiction','non_fiction','romance','thriller','biography','self_help','religion','academic','children','poetry','magazine','other']
-const CBC_SUBJECTS: readonly CBCSubject[] = ['mathematics','english','kiswahili','science','biology','chemistry','physics','social_studies','creative_arts','physical_education','religious_education','other']
+const CBC_SUBJECTS: readonly CBCSubject[] = ['mathematics','english','kiswahili','science','biology','chemistry','physics','history_government','business_studies','agriculture','social_studies','creative_arts','physical_education','religious_education','other']
 const CBC_GRADES: readonly CBCGrade[] = ['pp1','pp2','grade1','grade2','grade3','grade4','grade5','grade6','grade7','grade8','grade9','form1','form2','form3','form4']
 const BLOCK_TYPES: readonly BlockType[] = ['paragraph','heading1','heading2','heading3','quote','bulletList','numberedList','image','divider','callout','code','activity','question','interactive']
 
@@ -123,17 +123,19 @@ export function publicationDraftToInsert(publication: VibePublication, chapterCo
 }
 export function chapterRowToDraft(row: ChapterRow): VibeChapter {
   return {
-    id: row.id, publication_id: row.publication_id, title: row.title, number: row.number, blocks: parseContentBlocks(row.blocks),
-    status: requireEnumValue(row.status, CHAPTER_STATUSES, 'chapter status'), word_count: row.word_count, reading_time_min: row.reading_time_min,
-    published_at: row.published_at, created_at: row.created_at, updated_at: row.updated_at, learning_outcomes: row.learning_outcomes,
+    id: row.id, publication_id: row.publication_id, title: row.title, number: row.number,
+    blocks: parseContentBlocks(row.blocks), status: requireEnumValue(row.status, CHAPTER_STATUSES, 'chapter status'),
+    word_count: row.word_count, reading_time_min: row.reading_time_min, published_at: row.published_at,
+    created_at: row.created_at, updated_at: row.updated_at, learning_outcomes: row.learning_outcomes,
     cbc_strand: row.cbc_strand, curriculum_id: row.curriculum_id, sub_strand_id: row.sub_strand_id,
   }
 }
 export function chapterDraftToInsert(chapter: VibeChapter): ChapterInsert {
   return {
-    id: chapter.id, publication_id: chapter.publication_id, title: chapter.title, number: chapter.number, blocks: contentBlocksToJson(chapter.blocks),
-    status: chapter.status, word_count: chapter.word_count, reading_time_min: chapter.reading_time_min, published_at: chapter.published_at,
-    created_at: chapter.created_at, updated_at: new Date().toISOString(), learning_outcomes: chapter.learning_outcomes,
-    cbc_strand: chapter.cbc_strand, curriculum_id: chapter.curriculum_id, sub_strand_id: chapter.sub_strand_id,
+    id: chapter.id, publication_id: chapter.publication_id, title: chapter.title, number: chapter.number,
+    blocks: contentBlocksToJson(chapter.blocks), status: chapter.status, word_count: chapter.word_count,
+    reading_time_min: chapter.reading_time_min, published_at: chapter.published_at, created_at: chapter.created_at,
+    updated_at: new Date().toISOString(), learning_outcomes: chapter.learning_outcomes, cbc_strand: chapter.cbc_strand,
+    curriculum_id: chapter.curriculum_id, sub_strand_id: chapter.sub_strand_id,
   }
 }
