@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
+
+type Section = { heading?: unknown; body?: unknown; bullets?: unknown };
+type Body = Record<string, unknown>;
+type Derivative = {
+  id: string;
+  derivative_type: string;
+  title: string;
+  body: Body;
+  status: "draft" | "approved" | "archived";
+  source_publication_id: string;
+  source_chapter_id: string;
+  source_resource_id: string;
+  model: string | null;
+  quality: unknown;
+};
+
+const str = (value: unknown) => typeof value === "string" ? value : "";
+const strings = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+const sections = (value: unknown): Section[] => Array.isArray(value) ? value.filter((item): item is Section => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
+
+export default function ContentMaterialReviewPage() {
+  const params = useParams();
+  const router = useRouter();
+  const derivativeId = typeof params.derivativeId === "string" ? params.derivativeId : "";
+  const supabase = useMemo(() => createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!), []);
+  const [material, setMaterial] = useState<Derivative | null>(null);
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [keyPoints, setKeyPoints] = useState("");
+  const [sectionRows, setSectionRows] = useState<{ heading: string; body: string; bullets: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data, error: loadError } = await supabase
+        .from("content_derivatives")
+        .select("id,derivative_type,title,body,status,source_publication_id,source_chapter_id,source_resource_id,model,quality")
+        .eq("id", derivativeId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (loadError || !data) { setError(loadError?.message || "Material not found."); setLoading(false); return; }
+      const row = data as Derivative;
+      setMaterial(row);
+      setTitle(row.title);
+      setSummary(str(row.body.summary));
+      setKeyPoints(strings(row.body.keyPoints).join("\n"));
+      setSectionRows(sections(row.body.sections).map(item => ({ heading: str(item.heading), body: str(item.body), bullets: strings(item.bullets).join("\n") })));
+      setLoading(false);
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [derivativeId, supabase]);
+
+  async function save(status: "draft" | "approved") {
+    if (!material || !title.trim() || saving) return;
+    setSaving(true); setError(""); setMessage("");
+    const body: Body = {
+      ...material.body,
+      title: title.trim(),
+      summary: summary.trim(),
+      keyPoints: keyPoints.split("\n").map(value => value.trim()).filter(Boolean),
+      sections: sectionRows.map(row => ({ heading: row.heading.trim(), body: row.body.trim(), bullets: row.bullets.split("\n").map(value => value.trim()).filter(Boolean) })).filter(row => row.heading || row.body),
+    };
+    const { error: updateError } = await supabase.from("content_derivatives").update({ title: title.trim(), body, status, updated_at: new Date().toISOString() }).eq("id", material.id);
+    if (updateError) setError(updateError.message);
+    else { setMaterial({ ...material, title: title.trim(), body, status }); setMessage(status === "approved" ? "Material approved." : "Draft saved."); }
+    setSaving(false);
+  }
+
+  if (loading) return <main style={shell}><div style={card}>Loading material…</div></main>;
+  if (!material) return <main style={shell}><div style={card}>{error || "Material not found."}</div></main>;
+  const editable = material.status === "draft";
+
+  return (
+    <main style={shell}><div style={{ maxWidth: 820, margin: "0 auto" }}>
+      <button type="button" onClick={() => router.back()} style={back}>← Back</button>
+      <section style={hero}>
+        <div style={eyebrow}>Content Engine · grounded material</div>
+        <h1 style={{ margin: "7px 0 5px" }}>{material.title}</h1>
+        <div style={{ fontSize: 11, color: "#cbd5e1" }}>{material.derivative_type.replaceAll("_", " ")} · {material.status} · source resource retained ✓</div>
+      </section>
+      {error && <section style={{ ...card, color: "#b91c1c" }}>{error}</section>}
+      {message && <section style={{ ...card, color: "#166534" }}>{message}</section>}
+
+      <section style={card}>
+        <label style={label}>Title<input disabled={!editable} value={title} onChange={e => setTitle(e.target.value)} style={input} /></label>
+        <label style={{ ...label, marginTop: 12 }}>Summary<textarea disabled={!editable} value={summary} onChange={e => setSummary(e.target.value)} rows={4} style={textarea} /></label>
+        <label style={{ ...label, marginTop: 12 }}>Key points — one per line<textarea disabled={!editable} value={keyPoints} onChange={e => setKeyPoints(e.target.value)} rows={6} style={textarea} /></label>
+      </section>
+
+      {sectionRows.map((section, index) => <section key={index} style={card}>
+        <div style={{ fontSize: 11, fontWeight: 900, color: "#4f46e5", marginBottom: 8 }}>SECTION {index + 1}</div>
+        <input disabled={!editable} value={section.heading} onChange={e => setSectionRows(rows => rows.map((row,i) => i === index ? { ...row, heading: e.target.value } : row))} placeholder="Heading" style={input} />
+        <textarea disabled={!editable} value={section.body} onChange={e => setSectionRows(rows => rows.map((row,i) => i === index ? { ...row, body: e.target.value } : row))} placeholder="Explanation" rows={5} style={{ ...textarea, marginTop: 8 }} />
+        <textarea disabled={!editable} value={section.bullets} onChange={e => setSectionRows(rows => rows.map((row,i) => i === index ? { ...row, bullets: e.target.value } : row))} placeholder="Bullets — one per line" rows={4} style={{ ...textarea, marginTop: 8 }} />
+      </section>)}
+
+      {editable ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}><button type="button" disabled={saving} onClick={() => void save("draft")} style={secondary}>{saving ? "Saving…" : "Save draft"}</button><button type="button" disabled={saving} onClick={() => void save("approved")} style={primary}>Approve material</button></div> : <section style={{ ...card, borderColor: "#86efac", color: "#166534", fontWeight: 850 }}>✓ Approved material</section>}
+    </div></main>
+  );
+}
+
+const shell: React.CSSProperties = { minHeight: "100dvh", background: "#f8fafc", color: "#0f172a", padding: "18px 14px 90px", fontFamily: "system-ui,-apple-system,sans-serif" };
+const hero: React.CSSProperties = { background: "linear-gradient(135deg,#0f172a,#1e1b4b)", color: "white", borderRadius: 20, padding: 20, marginBottom: 12 };
+const card: React.CSSProperties = { background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, marginBottom: 12 };
+const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1.1, color: "#a5b4fc" };
+const label: React.CSSProperties = { display: "grid", gap: 6, fontSize: 11, fontWeight: 850, color: "#334155" };
+const input: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid #cbd5e1", borderRadius: 10, padding: "10px 11px", fontFamily: "inherit" };
+const textarea: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid #cbd5e1", borderRadius: 10, padding: "10px 11px", resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 };
+const primary: React.CSSProperties = { border: 0, borderRadius: 11, background: "#4f46e5", color: "white", padding: 12, fontWeight: 850, cursor: "pointer" };
+const secondary: React.CSSProperties = { border: "1px solid #cbd5e1", borderRadius: 11, background: "white", color: "#334155", padding: 12, fontWeight: 850, cursor: "pointer" };
+const back: React.CSSProperties = { border: 0, background: "transparent", color: "#4338ca", fontWeight: 850, marginBottom: 10, cursor: "pointer" };
