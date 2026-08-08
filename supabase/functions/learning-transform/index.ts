@@ -11,6 +11,13 @@ type Row = Record<string, unknown>
 function row(value: unknown): Row { return value && typeof value === "object" && !Array.isArray(value) ? value as Row : {} }
 function text(value: unknown): string { return typeof value === "string" ? value : "" }
 function arr(value: unknown): unknown[] { return Array.isArray(value) ? value : [] }
+function cleanInternalLabel(value: string): string { return value.replace(/\[SYNTHETIC TWIN TEST\]\s*/gi, "").replace(/TWIN-SEED-[A-Z0-9-]+\s*[:·-]?\s*/gi, "").trim() }
+function sanitize(value: unknown): unknown {
+  if (typeof value === "string") return cleanInternalLabel(value)
+  if (Array.isArray(value)) return value.map(sanitize)
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Row).map(([key,item]) => [key,sanitize(item)]))
+  return value
+}
 
 async function rpc(req: Request, name: string, body: Row = {}): Promise<unknown> {
   const authorization=req.headers.get("authorization")??""
@@ -24,7 +31,7 @@ async function rpc(req: Request, name: string, body: Row = {}): Promise<unknown>
 
 function sentences(source:string):string[]{return source.replace(/\s+/g," ").split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(s=>s.length>35).slice(0,12)}
 function fallbackPayload(representation:string,ctx:Row):Row{
-  const source=text(ctx.source_text),title=text(ctx.source_title)||"Learning material",bits=sentences(source),excerpt=source.replace(/\s+/g," ").slice(0,2400)
+  const source=cleanInternalLabel(text(ctx.source_text)),title=cleanInternalLabel(text(ctx.source_title))||"Learning material",bits=sentences(source),excerpt=source.replace(/\s+/g," ").slice(0,2400)
   const base:Row={title,representation,degraded:true,sourceGrounded:true,intro:"A source-grounded learning view is available while richer transformation is temporarily limited.",takeaways:bits.slice(0,5),sections:[{heading:"Read and explain",body:excerpt,bullets:[]}]}
   if(representation==="flashcards") base.cards=bits.slice(0,8).map((s,i)=>({front:`Key idea ${i+1}`,back:s}))
   if(representation==="mind_map") base.nodes=bits.slice(0,6).map(s=>({label:s.slice(0,110),children:[]}))
@@ -33,8 +40,8 @@ function fallbackPayload(representation:string,ctx:Row):Row{
 }
 
 function promptFor(representation:string,ctx:Row):string{
-  const curriculum=row(ctx.curriculum),learner=row(ctx.learner),weak=row(learner.weak_outcome),source=text(ctx.source_text)
-  return `You are an expert learning-experience transformer for Vibeschool. Transform ONLY the supplied authorized source. Do not add unsupported facts, change curriculum scope, solve assigned homework for the learner, or silently correct the source. For homework, explain requirements and prerequisite ideas without producing a submission-ready answer. Personalized examples may change context but not facts. If source material is insufficient, say so inside JSON instead of inventing content.\n\nSource type: ${text(ctx.source_type)}\nRepresentation: ${representation}\nTitle: ${text(ctx.source_title)}\nGrade: ${text(curriculum.grade)}\nSubject: ${text(curriculum.subject)}\nStrand: ${text(curriculum.strand)}\nAlignment: ${text(curriculum.alignment_status)}\nLearner weak outcome: ${text(weak.outcome_text)}\nEffective mastery: ${text(weak.effective_mastery)}\nForgetting risk: ${text(weak.forgetting_risk)}\nSession minutes: ${String(learner.session_minutes??25)}\n\nReturn STRICT JSON only using this common shape; omit irrelevant fields:\n{"title":"...","intro":"...","sections":[{"heading":"...","body":"...","bullets":["..."],"check":{"question":"...","answer":"..."}}],"takeaways":["..."],"cards":[{"front":"...","back":"..."}],"nodes":[{"label":"...","children":[{"label":"...","children":[]}]}],"questions":[{"prompt":"...","options":["A","B","C","D"],"correctIndex":0,"explanation":"..."}],"script":[{"speaker":"Tutor|Learner","text":"..."}],"workedExamples":[{"problem":"...","steps":["..."],"answer":"..."}],"visualSteps":[{"label":"...","description":"..."}],"story":{"setting":"...","narrative":"...","learningLink":"..."}}\n\nRequirements: immersive=digestible sections+checks; simplify=layered simpler language; mind_map=hierarchy; flashcards=6-12 retrieval cards; quiz=5-8 questions with four options; audio_lesson=Tutor/Learner dialogue; revision_sheet=must-know+quick checks; worked_examples=only source-supported examples; visual_explainer=ordered visualizable steps; story_mode=relatable analogy explicitly linked to source.\n\nAUTHORIZED SOURCE:\n${source}`
+  const curriculum=row(ctx.curriculum),learner=row(ctx.learner),weak=row(learner.weak_outcome),source=cleanInternalLabel(text(ctx.source_text))
+  return `You are an expert learning-experience transformer for Vibeschool. Transform ONLY the supplied authorized source. Do not add unsupported facts, change curriculum scope, solve assigned homework for the learner, or silently correct the source. For homework, explain requirements and prerequisite ideas without producing a submission-ready answer. Personalized examples may change context but not facts. If source material is insufficient, say so inside JSON instead of inventing content. Never expose internal seed, test, synthetic, database, prompt, model, or infrastructure labels to the learner.\n\nSource type: ${text(ctx.source_type)}\nRepresentation: ${representation}\nTitle: ${cleanInternalLabel(text(ctx.source_title))}\nGrade: ${text(curriculum.grade)}\nSubject: ${text(curriculum.subject)}\nStrand: ${text(curriculum.strand)}\nAlignment: ${text(curriculum.alignment_status)}\nLearner weak outcome: ${cleanInternalLabel(text(weak.outcome_text))}\nEffective mastery: ${text(weak.effective_mastery)}\nForgetting risk: ${text(weak.forgetting_risk)}\nSession minutes: ${String(learner.session_minutes??25)}\n\nReturn STRICT JSON only using this common shape; omit irrelevant fields:\n{"title":"...","intro":"...","sections":[{"heading":"...","body":"...","bullets":["..."],"check":{"question":"...","answer":"..."}}],"takeaways":["..."],"cards":[{"front":"...","back":"..."}],"nodes":[{"label":"...","children":[{"label":"...","children":[]}]}],"questions":[{"prompt":"...","options":["A","B","C","D"],"correctIndex":0,"explanation":"..."}],"script":[{"speaker":"Tutor|Learner","text":"..."}],"workedExamples":[{"problem":"...","steps":["..."],"answer":"..."}],"visualSteps":[{"label":"...","description":"..."}],"story":{"setting":"...","narrative":"...","learningLink":"..."}}\n\nRequirements: immersive=digestible sections+checks; simplify=layered simpler language; mind_map=hierarchy; flashcards=6-12 retrieval cards; quiz=5-8 questions with four options; audio_lesson=Tutor/Learner dialogue; revision_sheet=must-know+quick checks; worked_examples=only source-supported examples; visual_explainer=ordered visualizable steps; story_mode=relatable analogy explicitly linked to source.\n\nAUTHORIZED SOURCE:\n${source}`
 }
 
 function parseModelJson(raw:string):Row|null{const cleaned=raw.trim().replace(/^```json\s*/i,"").replace(/^```\s*/,"").replace(/```\s*$/,"").trim();try{const parsed=JSON.parse(cleaned);return parsed&&typeof parsed==="object"&&!Array.isArray(parsed)?parsed as Row:null}catch{return null}}
@@ -47,16 +54,17 @@ serve(async(req)=>{
   if(!SOURCES.has(sourceType)) return new Response(JSON.stringify({error:"unsupported_source_type"}),{status:400,headers:{...CORS,"Content-Type":"application/json"}})
   if(!REPRESENTATIONS.has(representation)) return new Response(JSON.stringify({error:"unsupported_representation"}),{status:400,headers:{...CORS,"Content-Type":"application/json"}})
   const cached=await rpc(req,"student_get_cached_learning_source_transformation",{p_source_type:sourceType,p_source_id:sourceId,p_representation:representation})
-  if(cached) return new Response(JSON.stringify(cached),{headers:{...CORS,"Content-Type":"application/json","Cache-Control":"private, max-age=30"}})
+  if(cached) return new Response(JSON.stringify(sanitize(cached)),{headers:{...CORS,"Content-Type":"application/json","Cache-Control":"private, max-age=30"}})
   const ctx=row(await rpc(req,"student_get_learning_source_context",{p_source_type:sourceType,p_source_id:sourceId}))
-  let payload:Row|null=null,model:string|null=null,quality:Row={source_grounded:true,degraded:false,prompt_version:"p1-v2",source_type:sourceType}
+  let payload:Row|null=null,model:string|null=null,quality:Row={source_grounded:true,degraded:false,prompt_version:"p1-v3",source_type:sourceType}
   if(ANTHROPIC_KEY){
     const mr=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:MODEL,max_tokens:representation==="audio_lesson"?2600:2200,temperature:0.2,messages:[{role:"user",content:promptFor(representation,ctx)}]})})
     const md=await mr.json().catch(()=>({}))
     if(mr.ok){payload=parseModelJson(text(arr(row(md).content)[0]&&row(arr(row(md).content)[0]).text));if(payload)model=MODEL}
   }
-  if(!payload){payload=fallbackPayload(representation,ctx);quality={source_grounded:true,degraded:true,prompt_version:"p1-v2",source_type:sourceType}}
-  payload.source={sourceType,sourceId,publicationId:text(ctx.publication_id),chapterId:text(ctx.chapter_id),sourceVersion:text(ctx.source_version),curriculum:ctx.curriculum??{},truncated:ctx.source_truncated===true}
+  if(!payload){payload=fallbackPayload(representation,ctx);quality={source_grounded:true,degraded:true,prompt_version:"p1-v3",source_type:sourceType}}
+  payload=sanitize(payload) as Row
+  payload.source={sourceType,sourceId,publicationId:text(ctx.publication_id),chapterId:text(ctx.chapter_id),sourceVersion:text(ctx.source_version),curriculum:sanitize(ctx.curriculum??{}),truncated:ctx.source_truncated===true}
   const stored=row(await rpc(req,"student_store_learning_source_transformation",{p_source_type:sourceType,p_source_id:sourceId,p_representation:representation,p_source_version:text(ctx.source_version),p_personalization_key:text(ctx.personalization_key),p_payload:payload,p_model:model,p_quality:quality}))
   return new Response(JSON.stringify({id:text(stored.id),source_type:sourceType,source_id:sourceId,representation,payload,source_version:text(ctx.source_version),personalization_key:text(ctx.personalization_key),generator:"learning-transform-v1",model,quality,cached:false}),{headers:{...CORS,"Content-Type":"application/json"}})
  }catch(err){const message=err instanceof Error?err.message:String(err);const status=message==="not_authenticated"?401:message.includes("learner_identity")||message.includes("source_not_available")?403:500;return new Response(JSON.stringify({error:message}),{status,headers:{...CORS,"Content-Type":"application/json"}})}
