@@ -30,6 +30,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
   const [practiceQuestion, setPracticeQuestion] = useState<AdaptivePracticeQuestion | null>(null)
   const [practiceLoading, setPracticeLoading] = useState(false)
   const [practiceFeedback, setPracticeFeedback] = useState<string | null>(null)
+  const [sessionSummary, setSessionSummary] = useState<string | null>(null)
   const [hintIndex, setHintIndex] = useState(0)
   const [coachTurn, setCoachTurn] = useState<AdaptiveTeachingTurn | null>(null)
   const [coachStage, setCoachStage] = useState(0)
@@ -47,6 +48,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       setInput('')
       setPracticeQuestion(null)
       setPracticeFeedback(null)
+      setSessionSummary(null)
       setHintIndex(0)
       setCoachTurn(null)
       setCoachStage(0)
@@ -99,6 +101,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     if (practiceLoading) return
     setPracticeLoading(true)
     setPracticeFeedback(null)
+    setSessionSummary(null)
     setHintIndex(0)
     setCoachTurn(null)
     setCoachStage(0)
@@ -137,14 +140,18 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       const nextState = await getLearnerTwinState({ force: true })
       setResolvedState(nextState)
       const masteryText = result.effectiveMasteryAfter == null ? '' : ` Effective mastery is now ${Math.round(result.effectiveMasteryAfter)}%.`
-      setPracticeFeedback(result.correct
-        ? `Correct. ${result.explanation}${masteryText}`
-        : `Not yet. ${result.explanation}${masteryText}`)
+      setPracticeFeedback(result.correct ? `Correct. ${result.explanation}${masteryText}` : `Not yet. ${result.explanation}${masteryText}`)
       setPracticeQuestion(result.nextQuestion)
       setHintIndex(0)
       setCoachTurn(null)
       setCoachStage(0)
-      if (!result.nextQuestion) addMessage('twin', 'That practice set is complete. I’ll use the evidence from it to decide what should come next.')
+      if (!result.nextQuestion) {
+        const summary = result.correct
+          ? 'You completed this practice set. Twin will use the recorded evidence to decide whether to revisit, advance, or leave the skill alone.'
+          : 'This practice set is complete. Twin will keep the recorded difficulty signal and can revisit it with a different teaching approach.'
+        setSessionSummary(summary)
+        addMessage('twin', summary)
+      }
     } catch (cause) {
       setPracticeFeedback(cause instanceof Error ? cause.message : 'Your answer could not be recorded.')
     } finally {
@@ -185,70 +192,43 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
 
   if (!isOpen) return null
 
-  return (
-    <div role="dialog" aria-modal="true" aria-label="Vibe Twin learning workspace" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: T.bg, display: 'flex', flexDirection: 'column', animation: 'vl-slide-up 300ms cubic-bezier(0.34,1.56,0.64,1)', WebkitUserSelect: 'none', userSelect: 'none' }}>
-      <TwinHeader
-        mode={mode}
-        onMode={(nextMode: TwinMode) => {
-          cancelSpeech()
-          recognition.abort()
-          setTwinState('idle')
-          setMode(nextMode)
-        }}
-        onClose={() => {
-          cancelSpeech()
-          recognition.abort()
-          onClose()
-        }}
-      />
+  return <div role="dialog" aria-modal="true" aria-label="Vibe Twin learning workspace" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: T.bg, display: 'flex', flexDirection: 'column', animation: 'vl-slide-up 300ms cubic-bezier(0.34,1.56,0.64,1)', WebkitUserSelect: 'none', userSelect: 'none' }}>
+    <TwinHeader mode={mode} onMode={(nextMode: TwinMode) => { cancelSpeech(); recognition.abort(); setTwinState('idle'); setMode(nextMode) }} onClose={() => { cancelSpeech(); recognition.abort(); onClose() }} />
 
-      <TwinLearningCanvas
-        userName={userName}
-        learnerState={resolvedState}
-        practiceQuestion={practiceQuestion}
-        coachTurn={coachTurn}
-        practiceFeedback={practiceFeedback}
-        practiceLoading={practiceLoading}
-        hintIndex={hintIndex}
-        messages={messages}
-        twinState={twinState}
-        onStartPractice={() => void startAdaptivePractice()}
-        onAnswer={(index) => void submitAdaptiveAnswer(index)}
-        onCoach={() => void requestCoaching()}
-        onHint={() => setHintIndex(value => practiceQuestion ? Math.min(practiceQuestion.hints.length, value + 1) : value)}
-        onExplainAnotherWay={() => void handleQuery(practiceQuestion ? `Explain ${practiceQuestion.outcomeText} another way. Do not give away the answer to the current question.` : 'Explain my current learning focus another way.')}
-        onEasier={() => void handleQuery(practiceQuestion ? `Make this easier. Teach the prerequisite or a smaller step for ${practiceQuestion.outcomeText}, then ask me one question.` : 'Make my current learning task easier and guide me one step at a time.')}
-        onHarder={() => void handleQuery(practiceQuestion ? `Challenge me with a harder transfer question about ${practiceQuestion.outcomeText}.` : 'Give me a harder challenge based on what I have already shown I can do.')}
-        onEndPractice={() => {
-          setPracticeQuestion(null)
-          setPracticeFeedback(null)
-          setHintIndex(0)
-          setCoachTurn(null)
-          setCoachStage(0)
-          addMessage('twin', 'Session paused. I’ll keep the learning evidence we already recorded and you can continue from your companion state later.')
-        }}
-        onResumeCompanion={() => {
-          onClose()
-          router.push('/student/twin/companion')
-        }}
-      />
+    <TwinLearningCanvas
+      userName={userName}
+      learnerState={resolvedState}
+      practiceQuestion={practiceQuestion}
+      coachTurn={coachTurn}
+      practiceFeedback={practiceFeedback}
+      practiceLoading={practiceLoading}
+      hintIndex={hintIndex}
+      sessionSummary={sessionSummary}
+      messages={messages}
+      twinState={twinState}
+      onStartPractice={() => void startAdaptivePractice()}
+      onContinueTask={(url) => { onClose(); router.push(url) }}
+      onAnswer={(index) => void submitAdaptiveAnswer(index)}
+      onCoach={() => void requestCoaching()}
+      onHint={() => setHintIndex(value => practiceQuestion ? Math.min(practiceQuestion.hints.length, value + 1) : value)}
+      onExplainAnotherWay={() => void handleQuery(practiceQuestion ? `Explain ${practiceQuestion.outcomeText} another way. Do not give away the answer to the current question.` : 'Explain my current learning focus another way.')}
+      onEasier={() => void handleQuery(practiceQuestion ? `Make this easier. Teach the prerequisite or a smaller step for ${practiceQuestion.outcomeText}, then ask me one question.` : 'Make my current learning task easier and guide me one step at a time.')}
+      onHarder={() => void handleQuery(practiceQuestion ? `Challenge me with a harder transfer question about ${practiceQuestion.outcomeText}.` : 'Give me a harder challenge based on what I have already shown I can do.')}
+      onEndPractice={() => {
+        const focus = practiceQuestion?.outcomeText ?? 'this learning focus'
+        const summary = `We paused ${focus}. I’ll keep only the learning evidence already recorded. You can resume later without starting from zero.`
+        setSessionSummary(summary)
+        setPracticeQuestion(null)
+        setPracticeFeedback(null)
+        setHintIndex(0)
+        setCoachTurn(null)
+        setCoachStage(0)
+        addMessage('twin', summary)
+      }}
+      onResumeCompanion={() => { onClose(); router.push('/student/twin/companion') }}
+    />
 
-      <TwinInput
-        mode={mode}
-        twinState={twinState}
-        input={input}
-        onInput={setInput}
-        onSubmit={handleQuery}
-        onStartListen={recognition.start}
-        onStopListen={recognition.stop}
-        onCancelListen={recognition.cancel}
-        onStopSpeak={() => {
-          cancelSpeech()
-          setTwinState('idle')
-        }}
-      />
-
-      <style>{`@keyframes vl-slide-up { from { transform: translateY(100vh); } to { transform: translateY(0); } }`}</style>
-    </div>
-  )
+    <TwinInput mode={mode} twinState={twinState} input={input} onInput={setInput} onSubmit={handleQuery} onStartListen={recognition.start} onStopListen={recognition.stop} onCancelListen={recognition.cancel} onStopSpeak={() => { cancelSpeech(); setTwinState('idle') }} />
+    <style>{`@keyframes vl-slide-up { from { transform: translateY(100vh); } to { transform: translateY(0); } }`}</style>
+  </div>
 }
