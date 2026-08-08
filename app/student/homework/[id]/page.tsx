@@ -145,11 +145,13 @@ export default function HomeworkDetailPage() {
     if (!photoFile || !identity) return photoPreview;
     setSaving("upload");
     const extension = photoFile.name.split(".").pop() ?? "jpg";
+    const contentType = photoFile.type && photoFile.type.startsWith("image/") ? photoFile.type : `image/${extension === "jpg" ? "jpeg" : extension}`;
     const path = `${identity.studentId}/${id}-${Date.now()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("homework-photos").upload(path, photoFile, { upsert: true });
+    const { error: uploadError } = await supabase.storage.from("homework-photos").upload(path, photoFile, { upsert: true, contentType });
     if (uploadError) throw new Error("Photo upload failed. Please try again.");
-    const { data } = supabase.storage.from("homework-photos").getPublicUrl(path);
-    return data.publicUrl;
+    const { data, error: signError } = await supabase.storage.from("homework-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (signError || !data) throw new Error("Photo upload failed. Please try again.");
+    return data.signedUrl;
   }
 
   async function saveDraft() {

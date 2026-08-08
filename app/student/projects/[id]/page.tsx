@@ -62,11 +62,13 @@ export default function ProjectDetailPage() {
 
   async function uploadPhoto(file: File, studentId: string): Promise<string | null> {
     const ext  = file.name.split(".").pop() ?? "jpg";
+    const contentType = file.type && file.type.startsWith("image/") ? file.type : `image/${ext === "jpg" ? "jpeg" : ext}`;
     const path = `${studentId}/projects/${id}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("homework-photos").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("homework-photos").upload(path, file, { upsert: true, contentType });
     if (error) return null;
-    const { data } = supabase.storage.from("homework-photos").getPublicUrl(path);
-    return data.publicUrl;
+    const { data, error: signError } = await supabase.storage.from("homework-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (signError || !data) return null;
+    return data.signedUrl;
   }
 
   async function submit() {
