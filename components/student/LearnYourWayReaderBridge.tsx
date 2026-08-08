@@ -40,15 +40,14 @@ export default function LearnYourWayReaderBridge() {
     if (!pathname.startsWith('/read/textbook/')) setChapterId(null)
   }, [pathname])
 
-  if (!learner || !chapterId || !pathname.startsWith('/read/textbook/') || pathname.startsWith('/student/twin/transform')) return null
+  if (!learner || !chapterId || !pathname.startsWith('/read/textbook/') || pathname.startsWith('/student/twin/transform') || pathname.startsWith('/student/twin/teach')) return null
 
   const open = () => {
-    const returnPath = `${window.location.pathname}${window.location.search}`
-    router.push(`/student/twin/transform/chapter/${chapterId}?return=${encodeURIComponent(returnPath)}`)
+    router.push(`/student/twin/teach/chapter/${chapterId}`)
   }
 
-  return <button type="button" onClick={open} style={button} aria-label="Learn this unit your way with VibeTwin">
-    <span style={icon}>✦</span><span><strong style={{ display:'block' }}>Learn your way</strong><small style={{ opacity:.78 }}>Explain · map · cards · audio</small></span>
+  return <button type="button" onClick={open} style={button} aria-label="Learn this unit with VibeTwin's guided multimodal teaching path">
+    <span style={icon}>✦</span><span><strong style={{ display:'block' }}>Learn with Twin</strong><small style={{ opacity:.78 }}>Best format → another way → recall</small></span>
   </button>
 }
 
