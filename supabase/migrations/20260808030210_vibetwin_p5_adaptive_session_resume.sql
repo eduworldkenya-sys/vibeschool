@@ -62,6 +62,17 @@ begin
   v_effective := coalesce(nullif(v_item->>'effective_mastery','')::numeric,nullif(v_item->>'mastery_score','')::numeric,0);
   v_forgetting := coalesce(nullif(v_item->>'forgetting_risk','')::numeric,0);
 
+  if v_outcome_id is null then
+    select m.outcome_id,coalesce(m.mastery_score,0)
+      into v_outcome_id,v_effective
+    from public.student_outcome_mastery m
+    join public.curriculum_learning_outcomes o on o.id=m.outcome_id and o.status in ('active','verified')
+    where m.student_id=v_student_id
+    order by coalesce(m.mastery_score,0) asc,m.updated_at asc
+    limit 1;
+    v_forgetting := 0;
+  end if;
+
   if v_effective < 50 or v_forgetting >= 0.60 then
     v_recommended := 'gentle';
     v_reason := 'Twin recommends a gentler session because this skill needs more support or is at higher forgetting risk.';
@@ -85,7 +96,7 @@ begin
   ) values (
     v_student_id,v_uid,v_outcome_id,p_mode,v_recommended,v_chosen,v_minutes,v_reason,
     v_effective,v_forgetting,v_evidence,
-    jsonb_build_object('brain_confidence',v_confidence,'base_minutes',v_base_minutes,'learner_override',p_pace_override is not null)
+    jsonb_build_object('brain_confidence',v_confidence,'base_minutes',v_base_minutes,'learner_override',p_pace_override is not null,'focus_authority',case when v_item is null then 'student_outcome_mastery' else 'twin_brain' end)
   ) returning id into v_id;
 
   return jsonb_build_object(
