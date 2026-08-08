@@ -66,6 +66,9 @@ const CBC_SUBJECTS: readonly CBCSubject[] = [
   'english',
   'kiswahili',
   'science',
+  'biology',
+  'chemistry',
+  'physics',
   'social_studies',
   'creative_arts',
   'physical_education',
@@ -150,7 +153,7 @@ function optionalEnumValue<T extends string>(
   options: readonly T[],
   fieldName: string,
 ): T | null {
-  if (value === null) {
+  if (value === null || value === '') {
     return null
   }
 
@@ -384,14 +387,15 @@ export function publicationRowToDraft(
     cbc_subject: optionalEnumValue(
       row.cbc_subject,
       CBC_SUBJECTS,
-      'CBC subject',
+      'subject',
     ),
     cbc_grade: optionalEnumValue(
       row.cbc_grade,
       CBC_GRADES,
-      'CBC grade',
+      'grade',
     ),
     cbc_aligned: row.cbc_aligned ?? false,
+    curriculum_framework: row.curriculum_framework ?? 'CBC',
     series_name: row.series_name,
     series_number: row.series_number,
     publication_name: row.publication_name,
@@ -426,6 +430,7 @@ export function publicationDraftToInsert(
     cbc_subject: publication.cbc_subject,
     cbc_grade: publication.cbc_grade,
     cbc_aligned: publication.cbc_aligned,
+    curriculum_framework: publication.curriculum_framework,
     series_name: publication.series_name,
     series_number: publication.series_number,
     publication_name: publication.publication_name,

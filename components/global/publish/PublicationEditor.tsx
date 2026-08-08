@@ -132,7 +132,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
   const activeChapter = chapters.find(c => c.id === activeChapterId) ?? null
 
-  if (loading || !publication) return (
+  if (loading) return (
     <div style={{
       minHeight: '100dvh', background: BG,
       display: 'flex', flexDirection: 'column',
@@ -145,6 +145,42 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       }} />
       <style dangerouslySetInnerHTML={{ __html: '@keyframes spin{to{transform:rotate(360deg)}}' }} />
       <span style={{ color: MUTED, fontSize: 13, fontWeight: 600 }}>Loading editor…</span>
+    </div>
+  )
+
+  if (!publication) return (
+    <div style={{
+      minHeight: '100dvh', background: BG, color: TEXT,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24, fontFamily: 'system-ui,-apple-system,sans-serif',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 420, background: SURF,
+        border: '1px solid ' + BORDER, borderRadius: 16,
+        padding: 24, textAlign: 'center', boxSizing: 'border-box',
+      }}>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>⚠️</div>
+        <h2 style={{ margin: '0 0 8px', fontSize: 20 }}>Editor could not open</h2>
+        <p style={{ margin: '0 0 18px', color: '#fca5a5', fontSize: 13, lineHeight: 1.5 }}>
+          {error || 'The textbook could not be loaded.'}
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: ACCENT, color: BG, border: 'none', borderRadius: 10,
+              padding: '10px 16px', fontWeight: 800, cursor: 'pointer',
+            }}
+          >Retry</button>
+          <button
+            onClick={() => router.back()}
+            style={{
+              background: 'transparent', color: TEXT, border: '1px solid ' + BORDER,
+              borderRadius: 10, padding: '10px 16px', fontWeight: 700, cursor: 'pointer',
+            }}
+          >Back</button>
+        </div>
+      </div>
     </div>
   )
 
@@ -277,7 +313,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
             cursor: publishing ? 'not-allowed' : 'pointer',
           }}>
-            {publication?.status === 'published'
+            {publication.status === 'published'
               ? (publishing ? 'Updating…' : 'Update')
               : (publishing ? 'Publishing…' : 'Publish')}
           </button>
