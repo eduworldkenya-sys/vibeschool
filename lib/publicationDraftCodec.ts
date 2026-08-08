@@ -27,16 +27,15 @@ type ChapterInsert =
   Database['public']['Tables']['vibe_chapters']['Insert']
 
 const PUBLICATION_FORMATS: readonly PublicationFormat[] = [
+  'ebook',
   'vibepress',
-  'vibechronicles',
   'vibetextbook',
-  'vibescripture',
-  'vibevoice',
 ]
 
 const PUBLICATION_STATUSES: readonly PublicationStatus[] = [
   'draft',
   'published',
+  'unpublished',
   'archived',
 ]
 
