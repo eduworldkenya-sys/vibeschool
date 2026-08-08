@@ -5,6 +5,7 @@ import { ReadingAnalyticsTracker } from "@/components/read/ReadingAnalyticsTrack
 import { ReaderAssessmentLauncher } from "@/components/read/ReaderAssessmentLauncher";
 import { ReaderLearningLauncher } from "@/components/read/ReaderLearningLauncher";
 import { TeacherContentDeriveLauncher } from "@/components/read/TeacherContentDeriveLauncher";
+import { TeacherMaterialLauncher } from "@/components/read/TeacherMaterialLauncher";
 
 export default function TextbookReaderLayout({
   children,
@@ -23,6 +24,7 @@ export default function TextbookReaderLayout({
       <StudyCapturePanel publicationId={params.publicationId} />
       <ReaderLearningLauncher />
       <ReaderAssessmentLauncher />
+      <TeacherMaterialLauncher />
       <TeacherContentDeriveLauncher />
     </div>
   );
