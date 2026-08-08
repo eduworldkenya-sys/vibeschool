@@ -124,11 +124,35 @@ function requireLifecycleResponse(
   if (!data || data.length !== 1) {
     throw toContentEngineError(
       operation,
-      new Error(
-        'Textbook lifecycle RPC returned an invalid response.',
-      ),
+      new Error('Publication lifecycle RPC returned an invalid response.'),
     )
   }
+}
+
+export async function publishPublication(
+  client: ContentEngineClient,
+  publicationId: string,
+): Promise<void> {
+  const operation = 'publishPublication'
+  const id = assertRequiredId(publicationId, 'publicationId', operation)
+  const { data, error } = await client.rpc('publish_publication', {
+    p_publication_id: id,
+  })
+  if (error) throw toContentEngineError(operation, error)
+  requireLifecycleResponse(data, operation)
+}
+
+export async function unpublishPublication(
+  client: ContentEngineClient,
+  publicationId: string,
+): Promise<void> {
+  const operation = 'unpublishPublication'
+  const id = assertRequiredId(publicationId, 'publicationId', operation)
+  const { data, error } = await client.rpc('unpublish_publication', {
+    p_publication_id: id,
+  })
+  if (error) throw toContentEngineError(operation, error)
+  requireLifecycleResponse(data, operation)
 }
 
 export async function publishTextbook(
@@ -136,23 +160,11 @@ export async function publishTextbook(
   publicationId: string,
 ): Promise<void> {
   const operation = 'publishTextbook'
-  const id = assertRequiredId(
-    publicationId,
-    'publicationId',
-    operation,
-  )
-
-  const { data, error } = await client.rpc(
-    'publish_textbook',
-    {
-      p_publication_id: id,
-    },
-  )
-
-  if (error) {
-    throw toContentEngineError(operation, error)
-  }
-
+  const id = assertRequiredId(publicationId, 'publicationId', operation)
+  const { data, error } = await client.rpc('publish_textbook', {
+    p_publication_id: id,
+  })
+  if (error) throw toContentEngineError(operation, error)
   requireLifecycleResponse(data, operation)
 }
 
@@ -161,22 +173,10 @@ export async function unpublishTextbook(
   publicationId: string,
 ): Promise<void> {
   const operation = 'unpublishTextbook'
-  const id = assertRequiredId(
-    publicationId,
-    'publicationId',
-    operation,
-  )
-
-  const { data, error } = await client.rpc(
-    'unpublish_textbook',
-    {
-      p_publication_id: id,
-    },
-  )
-
-  if (error) {
-    throw toContentEngineError(operation, error)
-  }
-
+  const id = assertRequiredId(publicationId, 'publicationId', operation)
+  const { data, error } = await client.rpc('unpublish_textbook', {
+    p_publication_id: id,
+  })
+  if (error) throw toContentEngineError(operation, error)
   requireLifecycleResponse(data, operation)
 }
