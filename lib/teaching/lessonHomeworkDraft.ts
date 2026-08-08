@@ -1,6 +1,14 @@
 import { supabase } from '@/lib/supabase'
 
-export interface EnsureLessonHomeworkDraftInput {
+export interface ContentProvenanceInput {
+  sourcePublicationId?: string | null
+  sourceChapterId?: string | null
+  sourceResourceId?: string | null
+  sourceBlockId?: string | null
+  sourceOutcomeId?: string | null
+}
+
+export interface EnsureLessonHomeworkDraftInput extends ContentProvenanceInput {
   lessonPlanId: string
   classId: string | null
   teacherId: string
@@ -37,6 +45,11 @@ function requireText(value: string, field: string): string {
   return normalized
 }
 
+function optionalId(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
 function extractSuggestedQuestions(instructions: string): string[] {
   const seen = new Set<string>()
 
@@ -60,7 +73,8 @@ function extractSuggestedQuestions(instructions: string): string[] {
  * - if homework already exists, preserve it unchanged;
  * - never update its title, instructions, due date or type;
  * - never delete or replace its questions;
- * - only create suggested questions for a newly inserted homework row.
+ * - only create suggested questions for a newly inserted homework row;
+ * - when source content is known, persist exact provenance on first creation.
  *
  * The unique index on homework(lesson_plan_id) is the database race arbiter.
  */
@@ -109,6 +123,11 @@ export async function ensureLessonHomeworkDraft(
       instructions,
       type: 'written',
       due_date: suggestedDueDate,
+      source_publication_id: optionalId(input.sourcePublicationId),
+      source_chapter_id: optionalId(input.sourceChapterId),
+      source_resource_id: optionalId(input.sourceResourceId),
+      source_block_id: optionalId(input.sourceBlockId),
+      source_outcome_id: optionalId(input.sourceOutcomeId),
     })
     .select('id')
     .single()
