@@ -43,6 +43,9 @@ const CBC_SUBJECTS: { value: CBCSubject; label: string }[] = [
   { value: 'english',            label: 'English'            },
   { value: 'kiswahili',          label: 'Kiswahili'          },
   { value: 'science',            label: 'Science & Tech'     },
+  { value: 'biology',            label: 'Biology'            },
+  { value: 'chemistry',          label: 'Chemistry'          },
+  { value: 'physics',            label: 'Physics'            },
   { value: 'social_studies',     label: 'Social Studies'     },
   { value: 'creative_arts',      label: 'Creative Arts'      },
   { value: 'physical_education', label: 'Physical Education' },
@@ -137,7 +140,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
       !publication.cbc_subject?.trim()
     ) {
       setValidErr(
-        'Select the CBC subject before publishing this textbook.'
+        'Select the subject before publishing this textbook.'
       )
       return
     }
@@ -147,7 +150,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
       !publication.cbc_grade?.trim()
     ) {
       setValidErr(
-        'Select the grade before publishing this textbook.'
+        'Select the grade or form before publishing this textbook.'
       )
       return
     }
@@ -281,11 +284,20 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 </div>
               </div>
 
-              {/* CBC fields */}
+              {/* Curriculum fields */}
               {isTextbook && (
                 <>
                   <div>
-                    <span style={lbl}>CBC SUBJECT</span>
+                    <span style={lbl}>CURRICULUM</span>
+                    <input
+                      style={inp}
+                      value={publication.curriculum_framework}
+                      placeholder="e.g. CBC or KCSE 8-4-4"
+                      onChange={e => onUpdate({ curriculum_framework: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <span style={lbl}>SUBJECT</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {CBC_SUBJECTS.map(s => (
                         <button key={s.value} onClick={() => onUpdate({ cbc_subject: s.value })} style={pill(publication.cbc_subject === s.value)}>
@@ -295,7 +307,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                     </div>
                   </div>
                   <div>
-                    <span style={lbl}>GRADE</span>
+                    <span style={lbl}>GRADE / FORM</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {CBC_GRADES.map(g => (
                         <button key={g.value} onClick={() => onUpdate({ cbc_grade: g.value })} style={pill(publication.cbc_grade === g.value)}>
