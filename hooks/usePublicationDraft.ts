@@ -9,7 +9,7 @@ import {
   publicationRowToDraft,
 } from '@/lib/publicationDraftCodec'
 import {
-  publishTextbook,
+  publishPublication,
 } from '@/lib/content-engine'
 import {
   VibePublication,
@@ -26,21 +26,6 @@ import {
 } from '@/lib/publishTypes'
 
 const AUTOSAVE_MS = 3000
-
-function chapterStatusForPricing(pricing: PricingModel, chapterNumber: number): ChapterStatus {
-  switch (pricing.type) {
-    case 'free':
-    case 'donation':
-      return 'published'
-    case 'paid':
-    case 'school_license':
-      return 'locked'
-    case 'freemium':
-      return chapterNumber <= pricing.freeChapters ? 'published' : 'locked'
-    default:
-      return 'published'
-  }
-}
 
 export interface UsePublicationDraftResult {
   loading: boolean
@@ -300,7 +285,7 @@ export function usePublicationDraft(
     })
   }, [mutateActiveChapter])
 
-  const publishPublication = useCallback(async (): Promise<boolean> => {
+  const publishPublicationAction = useCallback(async (): Promise<boolean> => {
     const pub = pubRef.current
     if (!pub) { setError('Publication is not available.'); return false }
     if (!pub.title?.trim()) { setError('Title is required before publishing.'); return false }
@@ -312,38 +297,20 @@ export function usePublicationDraft(
 
     const sb = getSupabaseClient()
     const now = new Date().toISOString()
-    const isTextbook = pub.format === 'vibetextbook'
 
     try {
-      if (isTextbook) {
-        // Server RPC owns the complete parent + chapter + normalized block + index
-        // transition and revision snapshot. Do not repeat child writes in the client.
-        await publishTextbook(sb, pub.id)
+      await publishPublication(sb, pub.id)
 
-        const { data: refreshedChapters, error: chapterReadError } = await sb
-          .from('vibe_chapters')
-          .select('*')
-          .eq('publication_id', pub.id)
-          .order('number', { ascending: true })
-        if (chapterReadError) throw chapterReadError
+      const { data: refreshedChapters, error: chapterReadError } = await sb
+        .from('vibe_chapters')
+        .select('*')
+        .eq('publication_id', pub.id)
+        .order('number', { ascending: true })
+      if (chapterReadError) throw chapterReadError
 
-        const authoritative = (refreshedChapters ?? []).map(chapterRowToDraft)
-        setChapters(authoritative)
-        chapRef.current = authoritative
-      } else {
-        const nextChapters: VibeChapter[] = chapRef.current.map(c => {
-          if (c.status !== 'draft') return c
-          const status = chapterStatusForPricing(pub.pricing, c.number)
-          return { ...c, status, published_at: status === 'published' ? now : c.published_at }
-        })
-
-        const { error: publicationError } = await sb.from('vibe_publications').update({ status: 'published', published_at: pub.published_at ?? now }).eq('id', pub.id)
-        if (publicationError) throw publicationError
-        const { error: chapterError } = await sb.from('vibe_chapters').upsert(nextChapters.map(chapterDraftToInsert), { onConflict: 'id' })
-        if (chapterError) throw chapterError
-        setChapters(nextChapters)
-        chapRef.current = nextChapters
-      }
+      const authoritative = (refreshedChapters ?? []).map(chapterRowToDraft)
+      setChapters(authoritative)
+      chapRef.current = authoritative
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : 'Publication failed')
       return false
@@ -363,6 +330,6 @@ export function usePublicationDraft(
     loading, saving, lastSaved, error, publication, chapters, activeChapterId,
     setActiveChapterId, updatePublication, updateChapterTitle, updateChapterStatus,
     addChapter, deleteChapter, addBlock, updateBlock, deleteBlock, moveBlock,
-    publishPublication, forceSave,
+    publishPublication: publishPublicationAction, forceSave,
   }
 }
