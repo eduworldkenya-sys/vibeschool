@@ -1,10 +1,9 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
-import { PublicationEditor } from '@/components/global/publish/PublicationEditor'
-import type { PublicationFormat, VibePublication } from '@/lib/publishTypes'
+import type { VibePublication } from '@/lib/publishTypes'
 
 const BG = '#090D16'
 const CARD = '#111827'
@@ -16,12 +15,7 @@ const ACCENT = '#CCFF00'
 
 type StudioFormat = 'vibetextbook' | 'ebook'
 
-const FORMAT_OPTIONS: Array<{
-  format: StudioFormat
-  title: string
-  description: string
-  icon: string
-}> = [
+const FORMAT_OPTIONS: Array<{ format: StudioFormat; title: string; description: string; icon: string }> = [
   {
     format: 'vibetextbook',
     title: 'Interactive textbook',
@@ -43,21 +37,8 @@ function dateLabel(value: string): string {
 
 export default function TeacherContentStudioPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const requestedId = searchParams.get('publication') ?? undefined
-  const requestedFormat = searchParams.get('format')
-
-  const initialFormat: StudioFormat | null =
-    requestedFormat === 'vibetextbook' || requestedFormat === 'ebook'
-      ? requestedFormat
-      : null
-
-  const [userId, setUserId] = useState<string | null>(null)
-  const [roleChecked, setRoleChecked] = useState(false)
   const [publications, setPublications] = useState<VibePublication[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingId, setEditingId] = useState<string | undefined>(requestedId)
-  const [editingFormat, setEditingFormat] = useState<StudioFormat | null>(initialFormat)
 
   useEffect(() => {
     let cancelled = false
@@ -66,16 +47,10 @@ export default function TeacherContentStudioPage() {
     async function load() {
       const { data: auth } = await sb.auth.getUser()
       const user = auth.user
-      if (!user) {
-        router.replace('/?role=teacher')
-        return
-      }
+      if (!user) { router.replace('/?role=teacher'); return }
 
       const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).maybeSingle()
-      if (!profile || !['teacher', 'admin'].includes(profile.role)) {
-        router.replace('/')
-        return
-      }
+      if (!profile || !['teacher', 'admin'].includes(profile.role)) { router.replace('/'); return }
 
       const { data, error } = await sb
         .from('vibe_publications')
@@ -85,8 +60,6 @@ export default function TeacherContentStudioPage() {
         .order('updated_at', { ascending: false })
 
       if (cancelled) return
-      setUserId(user.id)
-      setRoleChecked(true)
       if (!error) setPublications((data ?? []) as VibePublication[])
       setLoading(false)
     }
@@ -95,34 +68,8 @@ export default function TeacherContentStudioPage() {
     return () => { cancelled = true }
   }, [router])
 
-  const editingPublication = useMemo(
-    () => publications.find(item => item.id === editingId),
-    [editingId, publications],
-  )
-
-  const resolvedFormat: PublicationFormat | null = editingPublication?.format ?? editingFormat
-
-  if (!roleChecked || !userId || loading) {
-    return (
-      <div style={{ minHeight: '100dvh', background: BG, color: MUTED, display: 'grid', placeItems: 'center', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
-        Loading Content Studio…
-      </div>
-    )
-  }
-
-  if (resolvedFormat && (resolvedFormat === 'vibetextbook' || resolvedFormat === 'ebook')) {
-    return (
-      <PublicationEditor
-        authorId={userId}
-        format={resolvedFormat}
-        publicationId={editingId}
-        onExit={() => {
-          setEditingId(undefined)
-          setEditingFormat(null)
-          router.replace('/teacher/studio')
-        }}
-      />
-    )
+  if (loading) {
+    return <div style={{ minHeight: '100dvh', background: BG, color: MUTED, display: 'grid', placeItems: 'center' }}>Loading Content Studio…</div>
   }
 
   return (
@@ -142,7 +89,7 @@ export default function TeacherContentStudioPage() {
           {FORMAT_OPTIONS.map(option => (
             <button
               key={option.format}
-              onClick={() => { setEditingId(undefined); setEditingFormat(option.format) }}
+              onClick={() => router.push(`/teacher/studio/editor?format=${option.format}`)}
               style={{ textAlign: 'left', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 18, color: TEXT, cursor: 'pointer' }}
             >
               <div style={{ fontSize: 28, marginBottom: 12 }}>{option.icon}</div>
@@ -154,11 +101,9 @@ export default function TeacherContentStudioPage() {
         </div>
 
         <section>
-          <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', color: MUTED }}>YOUR CONTENT</div>
-              <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>Drafts and published resources use the same editor.</div>
-            </div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', color: MUTED }}>YOUR CONTENT</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>Drafts and published resources use the same creation system.</div>
           </div>
 
           {publications.length === 0 ? (
@@ -168,7 +113,7 @@ export default function TeacherContentStudioPage() {
               {publications.map(item => (
                 <button
                   key={item.id}
-                  onClick={() => { setEditingId(item.id); setEditingFormat(item.format === 'ebook' ? 'ebook' : 'vibetextbook') }}
+                  onClick={() => router.push(`/teacher/studio/editor?format=${item.format === 'ebook' ? 'ebook' : 'vibetextbook'}&publication=${item.id}`)}
                   style={{ width: '100%', textAlign: 'left', background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 14, padding: 15, color: TEXT, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}
                 >
                   <div style={{ minWidth: 0 }}>
