@@ -1,5 +1,4 @@
 "use client";
-'use client'
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -8,6 +7,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import Typography from '@tiptap/extension-typography'
 import { createBrowserClient } from '@supabase/ssr'
 import { ContentBlock } from '@/lib/publishTypes'
+import { BiologyInteractiveBlock } from '@/components/global/publish/BiologyInteractiveBlock'
 
 const TEXT   = '#ffffff'
 const MUTED  = 'rgba(255,255,255,0.4)'
@@ -301,6 +301,30 @@ export function ContentBlockEditor({
                   value={block.content} placeholder="Write the question…" rows={2}
                   onChange={e => onUpdate({ ...block, content: e.target.value })} />
             }
+          </div>
+        )
+
+      case 'interactive':
+        if (readOnly) return <BiologyInteractiveBlock block={block} />
+        return (
+          <div style={{ background: 'rgba(204,255,0,0.045)', border: '1px solid rgba(204,255,0,0.2)', borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: ACCENT, letterSpacing: '0.1em', marginBottom: 8 }}>⚡ INTERACTIVE</div>
+            <input
+              style={{ ...base, fontSize: 14, fontWeight: 700, marginBottom: 8 }}
+              value={block.content}
+              placeholder="Interactive title"
+              onChange={e => onUpdate({ ...block, content: e.target.value })}
+            />
+            <select
+              value={typeof block.meta?.interactiveType === 'string' ? block.meta.interactiveType : 'punnett_square'}
+              onChange={e => onUpdate({ ...block, meta: { ...(block.meta ?? {}), interactiveType: e.target.value } })}
+              style={{ width: '100%', background: '#0b1220', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 9, padding: 10 }}
+            >
+              <option value="punnett_square">Punnett square</option>
+              <option value="meiosis_sequence">Meiosis sequence</option>
+              <option value="variation_lab">Variation data lab</option>
+              <option value="reflex_arc">Reflex arc</option>
+            </select>
           </div>
         )
 

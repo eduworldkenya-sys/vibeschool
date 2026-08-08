@@ -1,5 +1,4 @@
-"use client";
-'use client'
+"use client"
 
 import React, { useState } from 'react'
 import { BlockType, PublicationFormat } from '@/lib/publishTypes'
@@ -11,19 +10,20 @@ const BORDER = 'rgba(255,255,255,0.06)'
 const TEXT   = '#ffffff'
 
 const BLOCKS: { type: BlockType; label: string; icon: string }[] = [
-  { type: 'paragraph',    label: 'Text',      icon: '¶'  },
-  { type: 'heading1',     label: 'H1',        icon: 'H1' },
-  { type: 'heading2',     label: 'H2',        icon: 'H2' },
-  { type: 'heading3',     label: 'H3',        icon: 'H3' },
-  { type: 'quote',        label: 'Quote',     icon: '"'  },
-  { type: 'bulletList',   label: 'Bullets',   icon: '•'  },
-  { type: 'numberedList', label: 'Numbers',   icon: '1.' },
-  { type: 'image',        label: 'Image',     icon: '🖼' },
-  { type: 'divider',      label: 'Divider',   icon: '—'  },
-  { type: 'callout',      label: 'Callout',   icon: '💡' },
-  { type: 'code',         label: 'Code',      icon: '<>' },
-  { type: 'activity',     label: 'Activity',  icon: '📋' },
-  { type: 'question',     label: 'Question',  icon: '❓' },
+  { type: 'paragraph',    label: 'Text',        icon: '¶'  },
+  { type: 'heading1',     label: 'H1',          icon: 'H1' },
+  { type: 'heading2',     label: 'H2',          icon: 'H2' },
+  { type: 'heading3',     label: 'H3',          icon: 'H3' },
+  { type: 'quote',        label: 'Quote',       icon: '"'  },
+  { type: 'bulletList',   label: 'Bullets',     icon: '•'  },
+  { type: 'numberedList', label: 'Numbers',     icon: '1.' },
+  { type: 'image',        label: 'Image',       icon: '🖼' },
+  { type: 'divider',      label: 'Divider',     icon: '—'  },
+  { type: 'callout',      label: 'Callout',     icon: '💡' },
+  { type: 'code',         label: 'Code',        icon: '<>' },
+  { type: 'activity',     label: 'Activity',    icon: '📋' },
+  { type: 'question',     label: 'Question',    icon: '❓' },
+  { type: 'interactive',  label: 'Interactive', icon: '⚡' },
 ]
 
 interface Props {
