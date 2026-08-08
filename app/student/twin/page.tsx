@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useStudent } from '@/lib/student-context'
 import { useTwinBrain } from '@/components/student/VibeTwin/TwinWorkspaceProvider'
 import VibeTwin from '@/components/student/VibeTwin'
+import AdaptiveSessionCard from '@/components/student/VibeTwin/AdaptiveSessionCard'
 import {
   answerAdaptivePracticeQuestion,
   generateAdaptivePracticeQuestion,
@@ -20,7 +21,6 @@ import type { Json } from '@/lib/database.types'
 
 type Layer = 'now' | 'learn' | 'grow'
 type TutorMode = 'explain' | 'practice' | 'homework' | 'revision' | 'exam' | 'challenge'
-type Pace = 'gentle' | 'steady' | 'fast'
 type TutorServiceSummary = {
   revisionPlan: Array<{ id: string; planDate: string; subject: string; topic: string; activityType: string; targetMinutes: number; priority: number; reason: string; actionUrl: string; status: string }>
   capabilities: Record<string, boolean>
@@ -75,11 +75,6 @@ const MODES: Array<{ id: TutorMode; label: string; detail: string }> = [
   { id: 'exam', label: 'Exam', detail: 'Prepare under pressure' },
   { id: 'challenge', label: 'Challenge', detail: 'Stretch what you know' },
 ]
-const PACE: Record<Pace, { label: string; multiplier: number; copy: string }> = {
-  gentle: { label: 'Gentle', multiplier: .7, copy: 'More explanation, fewer steps at once.' },
-  steady: { label: 'Steady', multiplier: 1, copy: 'Balanced explanation and practice.' },
-  fast: { label: 'Fast', multiplier: 1.3, copy: 'Skip what is already secure and move faster.' },
-}
 
 export default function VibeTwinLearningOS() {
   const router = useRouter()
@@ -91,7 +86,6 @@ export default function VibeTwinLearningOS() {
   const [sourcesError, setSourcesError] = useState('')
   const [layer, setLayer] = useState<Layer>('now')
   const [mode, setMode] = useState<TutorMode>('practice')
-  const [pace, setPace] = useState<Pace>('steady')
   const [practice, setPractice] = useState<AdaptivePracticeQuestion | null>(null)
   const [coach, setCoach] = useState<AdaptiveTeachingTurn | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -118,8 +112,6 @@ export default function VibeTwinLearningOS() {
   const confidence = Math.round((state?.confidence ?? 0) * 100)
   const mastery = Math.round(state?.prediction.averageEffectiveMastery ?? 0)
   const risk = Math.round((state?.prediction.averageForgettingRisk ?? 0) * 100)
-  const baseMinutes = state?.studyTime.sessionMinutes ?? 25
-  const sessionMinutes = Math.max(10, Math.round(baseMinutes * PACE[pace].multiplier))
 
   async function startPractice(outcomeId?: string | null) {
     if (busy) return
@@ -182,7 +174,7 @@ export default function VibeTwinLearningOS() {
 
     {layer === 'now' && <div style={stack}>
       <section style={hero}><div style={eyebrow}>YOUR NEXT BEST MOVE</div><h1 style={heroTitle}>{cleanLearningText(now?.title) || 'Let’s build your next learning signal'}</h1><p style={heroBody}>{now?.reason ?? 'I am waiting for enough verified evidence to choose a learner-specific next step.'}</p>{(now?.reasonChain.length ?? 0) > 0 && <div style={chips}>{now?.reasonChain.map(reason => <span key={reason} style={chip}>{reason}</span>)}</div>}<div style={actions}>{now?.actionUrl && <button style={primary} onClick={() => router.push(now.actionUrl!)}>{now.actionLabel ?? 'Start now'} →</button>}<button style={secondary} onClick={() => setChatOpen(true)}>Talk it through</button></div></section>
-      <section style={card}><div style={sectionHead}><div><div style={eyebrowDark}>LEARN AT YOUR PACE</div><h2 style={sectionTitle}>{sessionMinutes}-minute session</h2></div><span style={muted}>{PACE[pace].copy}</span></div><div style={paceRow}>{(Object.keys(PACE) as Pace[]).map(item => <button key={item} onClick={() => setPace(item)} style={{ ...paceButton, ...(pace === item ? paceButtonActive : {}) }}>{PACE[item].label}</button>)}</div><div style={sessionFlow}><Step n="1" label="Understand" /><Step n="2" label="Try" /><Step n="3" label="Reflect" /><Step n="4" label="Revisit" /></div></section>
+      <AdaptiveSessionCard />
       <section style={card}><div style={eyebrowDark}>CHOOSE HOW TO LEARN</div><div style={modeGrid}>{MODES.map(item => <button key={item.id} onClick={() => selectMode(item.id)} style={modeButton}><strong>{item.label}</strong><span>{item.detail}</span></button>)}</div></section>
     </div>}
 
@@ -252,7 +244,6 @@ export default function VibeTwinLearningOS() {
   </main>
 }
 
-function Step({ n, label }: { n: string; label: string }) { return <div style={step}><span>{n}</span><strong>{label}</strong></div> }
 function Metric({ label, value }: { label: string; value: string | number }) { return <div style={metric}><strong>{value}</strong><span>{label}</span></div> }
 function Signal({ label, value, meta }: { label: string; value: string; meta: string }) { return <div style={signal}><span style={eyebrowDark}>{label}</span><strong>{value}</strong><small>{meta}</small></div> }
 
@@ -286,11 +277,6 @@ const primarySmall: CSSProperties = { ...primary, padding:'9px 12px', fontSize:1
 const secondary: CSSProperties = { border:'1px solid var(--vs-border)', borderRadius:14, padding:'11px 14px', background:'var(--vs-card)', color:'var(--vs-text)', fontWeight:800, cursor:'pointer' }
 const textButton: CSSProperties = { border:0, background:'transparent', color:'inherit', textDecoration:'underline', cursor:'pointer', fontWeight:800 }
 const degraded: CSSProperties = { border:'1px solid #f59e0b', background:'#fffbeb', color:'#92400e', borderRadius:14, padding:'10px 12px', fontSize:12 }
-const paceRow: CSSProperties = { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:12 }
-const paceButton: CSSProperties = { border:'1px solid var(--vs-border)', borderRadius:12, padding:'10px', background:'var(--vs-card)', color:'var(--vs-text)', fontWeight:800, cursor:'pointer' }
-const paceButtonActive: CSSProperties = { borderColor:'var(--vs-accent)', background:'var(--vs-accent-soft)', color:'var(--vs-accent)' }
-const sessionFlow: CSSProperties = { display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginTop:14 }
-const step: CSSProperties = { display:'grid', gap:4, padding:'10px 8px', borderRadius:12, background:'var(--vs-surface)', textAlign:'center', fontSize:11 }
 const modeGrid: CSSProperties = { display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(145px,1fr))', gap:9, marginTop:12 }
 const modeButton: CSSProperties = { display:'grid', gap:3, textAlign:'left', border:'1px solid var(--vs-border)', borderRadius:15, padding:13, background:'var(--vs-card)', color:'var(--vs-text)', cursor:'pointer' }
 const sourceGrid: CSSProperties = { display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))', gap:9, marginTop:12 }
