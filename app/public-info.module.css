@@ -1,0 +1,162 @@
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: #05050f;
+  color: #fff;
+  padding: max(20px, env(safe-area-inset-top)) clamp(20px, 5vw, 64px) max(20px, env(safe-area-inset-bottom));
+}
+
+.header,
+.footer,
+.content {
+  width: min(960px, 100%);
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wordmark {
+  color: #fff;
+  font: 800 22px/1 var(--font-display), sans-serif;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.wordmark span,
+.kicker {
+  color: #c8a84b;
+}
+
+.action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255,255,255,.72);
+  font: 600 13px/1 var(--font-display), sans-serif;
+  text-decoration: none;
+}
+
+.content {
+  align-self: center;
+  padding: clamp(72px, 12vh, 128px) 0 64px;
+}
+
+.kicker {
+  margin-bottom: 18px;
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+}
+
+.content h1 {
+  max-width: 760px;
+  font: 600 clamp(44px, 8vw, 78px)/.98 var(--font-display), sans-serif;
+  letter-spacing: -.05em;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: 700px;
+  margin-top: 26px;
+  color: rgba(255,255,255,.56);
+  font: 400 clamp(17px, 2.2vw, 21px)/1.6 var(--font-display), sans-serif;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 56px;
+}
+
+.grid section,
+.contactCard {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px;
+  background: rgba(255,255,255,.03);
+  padding: 24px;
+}
+
+.grid h2 {
+  margin-bottom: 10px;
+  font: 600 20px/1.2 var(--font-display), sans-serif;
+}
+
+.grid p {
+  color: rgba(255,255,255,.48);
+  font: 400 14px/1.55 var(--font-display), sans-serif;
+}
+
+.contactCard {
+  max-width: 560px;
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 16px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.contactCard > span:first-child {
+  grid-column: 1 / -1;
+  color: rgba(255,255,255,.38);
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.contactCard strong {
+  overflow-wrap: anywhere;
+  font: 600 clamp(17px, 3vw, 22px)/1.35 var(--font-display), sans-serif;
+}
+
+.contactCard > span:last-child {
+  align-self: center;
+  color: #c8a84b;
+  font-size: 22px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.footer a {
+  color: rgba(255,255,255,.4);
+  font: 500 11px/1.4 var(--font-display), sans-serif;
+  text-decoration: none;
+}
+
+.action:hover,
+.action:focus-visible,
+.footer a:hover,
+.footer a:focus-visible {
+  color: #fff;
+}
+
+.contactCard:hover,
+.contactCard:focus-visible {
+  border-color: rgba(200,168,75,.42);
+}
+
+.wordmark:focus-visible,
+.action:focus-visible,
+.contactCard:focus-visible,
+.footer a:focus-visible {
+  outline: 2px solid #c8a84b;
+  outline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
