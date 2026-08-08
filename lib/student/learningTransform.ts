@@ -3,6 +3,7 @@ import type { Json } from '@/lib/database.types'
 
 export type LearningSourceType = 'chapter' | 'homework' | 'teacher_content' | 'vibelearn_content' | 'resource'
 export type LearningRepresentation = 'immersive' | 'simplify' | 'mind_map' | 'flashcards' | 'quiz' | 'audio_lesson' | 'revision_sheet' | 'worked_examples' | 'visual_explainer' | 'story_mode'
+export type LearningGeneratedAssetType = 'diagram' | 'audio' | 'simulation' | 'timeline' | 'formula_visual'
 
 export interface LearningTransformSource {
   sourceType: LearningSourceType
@@ -54,6 +55,18 @@ export interface LearningTransformation {
   cached: boolean
   model: string | null
   quality: Record<string, unknown>
+}
+export interface LearningGeneratedAsset {
+  id: string
+  assetType: LearningGeneratedAssetType
+  status: 'ready' | 'degraded' | 'failed'
+  payload: Record<string, unknown>
+  sourceVersion: string
+  generator: string
+  model: string | null
+  quality: Record<string, unknown>
+  createdAt: string
+  expiresAt: string
 }
 
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
@@ -138,4 +151,40 @@ export async function getLearningTransformation(sourceType: LearningSourceType, 
 export async function recordLearningTransformationEvent(transformationId: string, eventType: 'viewed' | 'completed' | 'helpful' | 'not_helpful', metadata: Json = {}): Promise<void> {
   const { error } = await rpc<Json>('student_record_learning_transformation_event', { p_transformation_id: transformationId, p_event_type: eventType, p_metadata: metadata })
   if (error) throw new Error(error.message || 'Learning feedback could not be recorded.')
+}
+
+export async function getLearningGeneratedAssets(transformationId: string): Promise<LearningGeneratedAsset[]> {
+  const { data, error } = await rpc<Json>('student_get_learning_generated_assets', { p_transformation_id: transformationId })
+  if (error) throw new Error(error.message || 'Rich learning assets could not be loaded.')
+  const payload = record(data)
+  return objectArray(payload.assets).map(item => ({
+    id: text(item.id),
+    assetType: text(item.asset_type) as LearningGeneratedAssetType,
+    status: (['ready','degraded','failed'].includes(text(item.status)) ? text(item.status) : 'failed') as LearningGeneratedAsset['status'],
+    payload: record(item.payload),
+    sourceVersion: text(item.source_version),
+    generator: text(item.generator),
+    model: text(item.model) || null,
+    quality: record(item.quality),
+    createdAt: text(item.created_at),
+    expiresAt: text(item.expires_at),
+  })).filter(item => item.id && ['diagram','audio','simulation','timeline','formula_visual'].includes(item.assetType))
+}
+
+export async function upsertLearningGeneratedAsset(
+  transformationId: string,
+  assetType: LearningGeneratedAssetType,
+  payload: Json,
+  options: { status?: LearningGeneratedAsset['status']; generator?: string; model?: string | null; quality?: Json } = {},
+): Promise<void> {
+  const { error } = await rpc<Json>('student_upsert_learning_generated_asset', {
+    p_transformation_id: transformationId,
+    p_asset_type: assetType,
+    p_payload: payload,
+    p_status: options.status ?? 'ready',
+    p_generator: options.generator ?? 'deterministic_rich_media_v1',
+    p_model: options.model ?? null,
+    p_quality: options.quality ?? {},
+  })
+  if (error) throw new Error(error.message || 'Rich learning asset could not be saved.')
 }
