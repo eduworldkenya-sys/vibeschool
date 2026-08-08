@@ -8,6 +8,8 @@ import { BlockToolbar } from '@/components/global/publish/BlockToolbar'
 import { ChapterSidebar } from '@/components/global/publish/ChapterSidebar'
 import { OutcomeSelector } from '@/components/global/publish/OutcomeSelector'
 import { PublicationSetupDrawer } from '@/components/global/publish/PublicationSetupDrawer'
+import { PublicationHistoryDrawer } from '@/components/global/publish/PublicationHistoryDrawer'
+import { CurriculumImportDrawer } from '@/components/global/publish/CurriculumImportDrawer'
 import { FORMAT_META, PublicationFormat, PublicationGenre } from '@/lib/publishTypes'
 
 const BG     = '#090D16'
@@ -51,6 +53,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
   const [outcomesOpen, setOutcomesOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [curriculumImportOpen, setCurriculumImportOpen] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [titleError, setTitleError] = useState(false)
   const [quickSetup, setQuickSetup] = useState(false)
@@ -148,15 +152,17 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         </>
       )}
 
-      <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(9,13,22,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid ' + BORDER, padding: '0 12px', minHeight: 54, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(9,13,22,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid ' + BORDER, padding: '0 10px', minHeight: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           <button onClick={() => { void forceSave(); router.push('/teacher/studio') }} aria-label="Back to Content Studio" style={{ fontSize: 22, color: TEXT, cursor: 'pointer', background: 'transparent', border: 'none', padding: '4px 7px' }}>‹</button>
-          <button onClick={() => setSidebarOpen(true)} style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 8, padding: '6px 9px', color: TEXT, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}><span>{meta.icon}</span><span>{chapters.length} {meta.chapterPlural}</span></button>
+          <button onClick={() => setSidebarOpen(true)} style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 8, padding: '6px 8px', color: TEXT, fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><span>{meta.icon}</span><span>{chapters.length}</span></button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ fontSize: 10, color: saving ? ACCENT : MUTED, fontWeight: 600 }}>{saveLabel}</span>
-          <button onClick={() => setSetupOpen(true)} style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 10px', color: TEXT, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Setup</button>
-          <button onClick={handlePublish} disabled={publishing} style={{ background: publishing ? 'rgba(204,255,0,0.5)' : ACCENT, color: '#090D16', border: 'none', borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 800, cursor: publishing ? 'not-allowed' : 'pointer' }}>{publication.status === 'published' ? (publishing ? 'Updating…' : 'Update') : (publishing ? 'Publishing…' : 'Publish')}</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, color: saving ? ACCENT : MUTED, fontWeight: 600 }}>{saveLabel}</span>
+          {format === 'vibetextbook' && <button onClick={() => setCurriculumImportOpen(true)} title="Register curriculum source" style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 8px', color: TEXT, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Curriculum</button>}
+          <button onClick={() => setHistoryOpen(true)} title="Publication history" style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 8px', color: TEXT, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>History</button>
+          <button onClick={() => setSetupOpen(true)} style={{ background: SURF, border: '1px solid ' + BORDER, borderRadius: 8, padding: '7px 8px', color: TEXT, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>Setup</button>
+          <button onClick={handlePublish} disabled={publishing} style={{ background: publishing ? 'rgba(204,255,0,0.5)' : ACCENT, color: '#090D16', border: 'none', borderRadius: 9, padding: '7px 10px', fontSize: 11, fontWeight: 800, cursor: publishing ? 'not-allowed' : 'pointer' }}>{publication.status === 'published' ? (publishing ? 'Updating…' : 'Update') : (publishing ? 'Publishing…' : 'Publish')}</button>
         </div>
       </header>
 
@@ -187,7 +193,9 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
       <BlockToolbar format={format} onAddBlock={type => addBlock(type, focusedBlockId ?? undefined)} />
       <ChapterSidebar format={format} chapters={chapters} activeChapterId={activeChapterId} onSelectChapter={setActiveChapterId} onAddChapter={addChapter} onDeleteChapter={deleteChapter} onTitleChange={updateChapterTitle} onStatusChange={updateChapterStatus} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <PublicationSetupDrawer publication={publication} isOpen={setupOpen} onClose={() => setSetupOpen(false)} onUpdate={updatePublication} onPublish={async () => publishPublication()} />
-      {activeChapter && <OutcomeSelector isOpen={outcomesOpen} onClose={() => setOutcomesOpen(false)} publicationId={publication.id} chapterId={activeChapter.id} chapterLabel={`${meta.chapterLabel} ${activeChapter.number}: ${activeChapter.title || 'Untitled'}`} curriculumId={activeChapter.curriculum_id} subStrandId={activeChapter.sub_strand_id} ensureChapterSaved={forceSave} />}
+      <PublicationHistoryDrawer publicationId={publication.id} isOpen={historyOpen} onClose={() => setHistoryOpen(false)} />
+      {format === 'vibetextbook' && <CurriculumImportDrawer authorId={authorId} initialGrade={publication.cbc_grade} initialSubject={publication.cbc_subject} isOpen={curriculumImportOpen} onClose={() => setCurriculumImportOpen(false)} />}
+      {activeChapter && <OutcomeSelector isOpen={outcomesOpen} onClose={() => setOutcomesOpen(false)} publicationId={publication.id} chapterId={activeChapter.id} chapterLabel={`${meta.chapterLabel} ${activeChapter.number}: ${activeChapter.title || 'Untitled'}`} />}
     </div>
   )
 }
