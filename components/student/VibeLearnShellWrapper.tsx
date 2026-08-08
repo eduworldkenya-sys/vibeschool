@@ -1,5 +1,4 @@
-"use client";
-'use client'
+"use client"
 
 import { useEffect, useCallback, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -10,7 +9,7 @@ import { awardPoints, updateStreak } from '@/lib/vibelearn-points'
 import VibeTwin from '@/components/student/VibeTwin'
 
 type VibeTab = 'feed' | 'indexer' | 'library'
-type ContentType = 'ebook' | 'epage'
+type ContentType = 'ebook' | 'epage' | 'textbook'
 
 interface VibeContent {
   id: string
@@ -40,7 +39,7 @@ function normalizeVibeContent(value: unknown): VibeContent | null {
   if (
     typeof row.id !== 'string' ||
     typeof row.title !== 'string' ||
-    (row.type !== 'ebook' && row.type !== 'epage')
+    (row.type !== 'ebook' && row.type !== 'epage' && row.type !== 'textbook')
   ) {
     return null
   }
@@ -102,6 +101,17 @@ const ACCENT  = '#CCFF00'
 const MUTED   = 'rgba(255,255,255,0.4)'
 const TEXT    = '#ffffff'
 const GREEN   = '#10b981'
+const BLUE    = '#60a5fa'
+
+function typeAppearance(type: ContentType) {
+  if (type === 'textbook') {
+    return { background: 'rgba(96,165,250,0.12)', color: BLUE, label: '📚 Textbook' }
+  }
+  if (type === 'ebook') {
+    return { background: 'rgba(204,255,0,0.1)', color: ACCENT, label: '📖 Ebook' }
+  }
+  return { background: 'rgba(16,185,129,0.1)', color: GREEN, label: '📄 Epage' }
+}
 
 function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
   return (
@@ -122,6 +132,8 @@ function ContentCard({
   isSaved: boolean
   onOpen: (item: VibeContent) => void
 }) {
+  const appearance = typeAppearance(item.type)
+
   return (
     <div style={{
       background: CARD, borderRadius: 16, padding: '16px',
@@ -131,13 +143,13 @@ function ContentCard({
         <div style={{ flex: 1 }}>
           <div style={{
             display: 'inline-block',
-            background: item.type === 'ebook' ? 'rgba(204,255,0,0.1)' : 'rgba(16,185,129,0.1)',
-            color: item.type === 'ebook' ? ACCENT : GREEN,
+            background: appearance.background,
+            color: appearance.color,
             fontSize: 9, fontWeight: 800,
             letterSpacing: 1.2, textTransform: 'uppercase',
             padding: '3px 8px', borderRadius: 6, marginBottom: 8,
           }}>
-            {item.type}
+            {appearance.label}
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, lineHeight: 1.4, marginBottom: 6 }}>
             {item.title}
@@ -187,9 +199,9 @@ function ContentCard({
           cursor: 'pointer',
         }}
       >
-        Open →
+        {item.type === 'textbook' ? 'Read Textbook →' : 'Open →'}
       </button>
-        </div>
+    </div>
   )
 }
 
@@ -240,7 +252,10 @@ function FeedTab({
       .channel('vl_feed')
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'vibelearn_content' },
-        payload => setItems(prev => [payload.new as VibeContent, ...prev])
+        payload => {
+          const item = normalizeVibeContent(payload.new)
+          if (item) setItems(prev => [item, ...prev])
+        }
       )
       .subscribe()
     return () => {
@@ -348,7 +363,7 @@ function IndexerTab({
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Search ebooks, epages, topics..."
+          placeholder="Search textbooks, ebooks, epages, topics..."
           aria-label="Search VibeLearn content"
           style={{
             width: '100%', boxSizing: 'border-box',
@@ -359,8 +374,8 @@ function IndexerTab({
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {(['all', 'ebook', 'epage'] as const).map(f => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        {(['all', 'textbook', 'ebook', 'epage'] as const).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -374,7 +389,7 @@ function IndexerTab({
               textTransform: 'uppercase', letterSpacing: 0.8,
             }}
           >
-            {f === 'all' ? 'All' : f === 'ebook' ? '📖 Ebook' : '📄 Epage'}
+            {f === 'all' ? 'All' : f === 'textbook' ? '📚 Textbook' : f === 'ebook' ? '📖 Ebook' : '📄 Epage'}
           </button>
         ))}
       </div>
@@ -383,7 +398,7 @@ function IndexerTab({
         <EmptyState
           icon="🔍"
           title="Search VibeLearn"
-          body="Find ebooks and epages indexed from across the platform. Type anything to begin."
+          body="Find textbooks, ebooks and epages across VibeSchool. Type anything to begin."
         />
       )}
       {query.trim() && loading && (
@@ -467,7 +482,7 @@ function LibraryTab({
     <EmptyState
       icon="📚"
       title="No Saved Vibes Yet"
-      body="Save ebooks and epages from the Feed or Indexer and they will appear here."
+      body="Save textbooks, ebooks and epages from the Feed or Vibe Check and they will appear here."
     />
   )
 
@@ -652,18 +667,23 @@ export default function VibeLearnShellWrapper({
   }, [completing, completedIds, openContent])
 
   const handleOpen = useCallback(async (item: VibeContent) => {
-    setOpenContent(item)
     try {
       const { data: { user: viewer } } = await supabase.auth.getUser()
-await supabase.rpc('increment_view_count', {
-  content_id: item.id,
-  viewer_id: viewer?.id ?? null
-})
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) await awardPoints(user.id, 'content_viewed', item.id)
+      await supabase.rpc('increment_view_count', {
+        content_id: item.id,
+        viewer_id: viewer?.id ?? null
+      })
+      if (viewer) await awardPoints(viewer.id, 'content_viewed', item.id)
     } catch {
-      // Silent
+      // Opening content should not be blocked by analytics failures.
     }
+
+    if (item.type === 'textbook') {
+      if (item.url) window.location.assign(item.url)
+      return
+    }
+
+    setOpenContent(item)
   }, [])
 
   const tabs: { id: VibeTab; label: string; icon: string }[] = [
@@ -777,7 +797,6 @@ await supabase.rpc('increment_view_count', {
           </div>
         </header>
 
-        {/* Submit overlay */}
         {submitOpen && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10,
@@ -817,7 +836,6 @@ await supabase.rpc('increment_view_count', {
           </div>
         )}
 
-        {/* Content viewer overlay */}
         {openContent && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10,
@@ -857,13 +875,13 @@ await supabase.rpc('increment_view_count', {
             <div className="vl-scroll" style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
               <div style={{
                 display: 'inline-block',
-                background: openContent.type === 'ebook' ? 'rgba(204,255,0,0.1)' : 'rgba(16,185,129,0.1)',
-                color: openContent.type === 'ebook' ? ACCENT : GREEN,
+                background: typeAppearance(openContent.type).background,
+                color: typeAppearance(openContent.type).color,
                 fontSize: 9, fontWeight: 800,
                 letterSpacing: 1.2, textTransform: 'uppercase',
                 padding: '3px 8px', borderRadius: 6, marginBottom: 12,
               }}>
-                {openContent.type}
+                {typeAppearance(openContent.type).label}
               </div>
               <div style={{ fontSize: 20, fontWeight: 800, color: TEXT, marginBottom: 8, lineHeight: 1.3 }}>
                 {openContent.title}
@@ -969,7 +987,6 @@ await supabase.rpc('increment_view_count', {
         isOpen={twinOpen}
         onClose={() => setTwinOpen(false)}
         userName={userName}
-
       />
     </>
   )
