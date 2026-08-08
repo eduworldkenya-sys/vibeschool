@@ -220,83 +220,358 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
           0%, 100% { transform: scale(1); opacity: 0.6; }
           50% { transform: scale(1.18); opacity: 0; }
         }
-        @keyframes twinLabelIn {
-          from { opacity: 0; transform: translateX(-8px) scale(0.9); }
-          to { opacity: 1; transform: translateX(0) scale(1); }
+        @keyframes twinExpand {
+          from { opacity: 0; transform: scaleX(0.7) translateX(-10px); }
+          to { opacity: 1; transform: scaleX(1) translateX(0); }
         }
-        @keyframes twinBreath {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.04); }
+        @keyframes twinDotPulse {
+          0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+          40% { transform: scale(1); opacity: 1; }
         }
       `}</style>
+      {!expanded && (
+        <div style={{
+          position: 'fixed', left: pos.x - 8, top: pos.y - 8,
+          width: SIZE + 16, height: SIZE + 16, borderRadius: '50%',
+          border: '2px solid rgba(16,185,129,0.45)',
+          animation: 'twinRingPulse 2s ease-in-out infinite',
+          zIndex: 748, pointerEvents: 'none',
+        }} />
+      )}
       <div
         ref={pillRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={() => { dragging.current = false }}
         style={{
           position: 'fixed',
-          left: pos.x,
-          top: pos.y,
-          zIndex: 9999,
+          left: expanded && pos.x + 56 > window.innerWidth / 2 ? pos.x - (180 - 56) : pos.x,
+          top: pos.y, zIndex: 750, width: expanded ? 180 : SIZE, height: SIZE,
+          borderRadius: expanded ? 32 : '50%',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #064e3b 100%)',
+          border: '1.5px solid rgba(16,185,129,0.5)',
+          animation: 'twinGlow 2.4s ease-in-out infinite',
+          cursor: 'grab', userSelect: 'none', touchAction: 'none',
+          transition: 'width 0.28s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.28s ease',
           display: 'flex', alignItems: 'center',
-          cursor: dragging.current ? 'grabbing' : 'grab',
-          touchAction: 'none',
-          userSelect: 'none',
+          justifyContent: expanded ? (pos.x + 56 > window.innerWidth / 2 ? 'flex-end' : 'flex-start') : 'center',
+          overflow: 'hidden',
+          paddingLeft: expanded && pos.x + 56 <= window.innerWidth / 2 ? 8 : 0,
+          paddingRight: expanded && pos.x + 56 > window.innerWidth / 2 ? 8 : 0,
+          gap: expanded ? 8 : 0,
         }}
-        title="VibeTwin — drag me or tap to chat"
       >
-        <div style={{ position: 'relative', width: SIZE, height: SIZE, flexShrink: 0 }}>
-          <div style={{
-            position: 'absolute', inset: -4, borderRadius: '50%',
-            border: '2px solid rgba(16,185,129,0.4)',
-            animation: 'twinRingPulse 2.4s ease-in-out infinite',
-          }} />
-          <div style={{
-            width: SIZE, height: SIZE, borderRadius: '50%',
-            background: 'linear-gradient(145deg, #10b981 0%, #059669 55%, #064e3b 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '3px solid rgba(255,255,255,0.9)',
-            animation: 'twinGlow 2.8s ease-in-out infinite, twinBreath 3s ease-in-out infinite',
-            boxSizing: 'border-box',
-          }}>
-            <span style={{ fontSize: 21, fontWeight: 900, color: '#fff', lineHeight: 1, fontFamily: 'system-ui' }}>V</span>
-          </div>
-          {unread > 0 && (
-            <div style={{
-              position: 'absolute', top: -3, right: -3,
-              minWidth: 18, height: 18, borderRadius: 9,
-              background: '#ef4444', color: '#fff', fontSize: 10,
-              fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: '2px solid #fff', padding: '0 4px', boxSizing: 'border-box',
-            }}>{unread > 9 ? '9+' : unread}</div>
-          )}
-        </div>
-
+        <div style={{
+          flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
+          background: 'radial-gradient(circle at 35% 35%, rgba(16,185,129,0.35), rgba(16,185,129,0.08))',
+          border: '1.5px solid rgba(16,185,129,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18, color: '#10b981', pointerEvents: 'none',
+        }}>✦</div>
         {expanded && (
-          <div style={{
-            marginLeft: 8,
-            background: 'linear-gradient(135deg,#064e3b,#10b981)',
-            color: '#fff', borderRadius: '16px 16px 16px 4px',
-            padding: '9px 14px', fontSize: 12, fontWeight: 700,
-            whiteSpace: 'nowrap',
-            boxShadow: '0 6px 24px rgba(6,78,59,0.35)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            animation: 'twinLabelIn 0.25s ease-out',
-            pointerEvents: 'none',
-          }}>
-            VibeTwin · Tap to ask
+          <div style={{ animation: 'twinExpand 0.22s ease', pointerEvents: 'none', minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', lineHeight: 1, whiteSpace: 'nowrap' }}>Your Twin</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 3 }}>
+              {[0, 0.2, 0.4].map(delay => (
+                <span key={delay} style={{
+                  display: 'inline-block', width: 5, height: 5, borderRadius: '50%',
+                  background: '#10b981', animation: `twinDotPulse 1.4s ease-in-out ${delay}s infinite`,
+                }} />
+              ))}
+            </div>
           </div>
+        )}
+        {unread > 0 && (
+          <div style={{
+            position: 'absolute', top: 2, right: 2, width: 18, height: 18,
+            borderRadius: '50%', background: '#ef4444', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 10, fontWeight: 800,
+          }}>{unread}</div>
         )}
       </div>
     </>
   )
 }
 
-function IconPulse({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>; }
-function IconTeach({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 19.5A2.5 2.5 0 0 1 5.5 17H20"/><path d="M5.5 2H20v20H5.5A2.5 2.5 0 0 1 3 19.5v-15A2.5 2.5 0 0 1 5.5 2z"/></svg>; }
-function IconStudents({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>; }
-function IconMe({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>; }
+function IconPulse({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg> }
+function IconTeach({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg> }
+function IconStudents({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> }
+function IconMe({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg> }
+function IconWeek({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg> }
+function IconSubjectHub({ size = 22 }: { size?: number }) { return <IconClassHub size={size} /> }
+function IconScheme({ size = 22 }: { size?: number }) { return <IconPlans size={size} /> }
+function IconResources({ size = 22 }: { size?: number }) { return <IconVibeLearn size={size} /> }
+function IconIndexer({ size = 22 }: { size?: number }) { return <IconVibeLearn size={size} /> }
+function IconAttendance({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg> }
+function IconHomework({ size = 22 }: { size?: number }) { return <IconPlans size={size} /> }
+function IconVibeConnect({ size = 22 }: { size?: number }) { return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> }
+function IconTimetable({ size = 22 }: { size?: number }) { return <IconWeek size={size} /> }
+function IconResults({ size = 22 }: { size?: number }) { return <IconAssess size={size} /> }
+function IconReportCard({ size = 22 }: { size?: number }) { return <IconPlans size={size} /> }
+function IconProfile({ size = 22 }: { size?: number }) { return <IconMe size={size} /> }
+function IconSettings({ size = 22 }: { size?: number }) { return <IconMore size={size} /> }
+function IconHelp({ size = 22 }: { size?: number }) { return <IconMore size={size} /> }
+function IconTPAD({ size = 22 }: { size?: number }) { return <IconAttendance size={size} /> }
+function IconCredits({ size = 22 }: { size?: number }) { return <IconMore size={size} /> }
+function IconSchoolHub({ size = 22 }: { size?: number }) { return <IconClassHub size={size} /> }
 
-// ... rest of the original file remains unchanged below this line
+interface TrayItem { label: string; icon: React.ReactNode; href: string }
+
+const TRAY_ITEMS: Record<string, TrayItem[]> = {
+  teach: [
+    { label: "Teach Today", icon: <IconPulse size={24} />, href: "/teacher/teach-today" },
+    { label: "Timetable", icon: <IconTimetable size={24} />, href: "/teacher/timetable" },
+    { label: "Subjects", icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub" },
+    { label: "Scheme of Work", icon: <IconScheme size={24} />, href: "/teacher/scheme" },
+    { label: "Lesson Plans", icon: <IconPlans size={24} />, href: "/teacher/lessonplan" },
+    { label: "Week", icon: <IconWeek size={24} />, href: "/teacher/week" },
+    { label: "Progress", icon: <IconVibeLearn size={24} />, href: "/teacher/progress" },
+    { label: "Resources", icon: <IconResources size={24} />, href: "/teacher/resources" },
+    { label: "VibeLearn", icon: <IconIndexer size={24} />, href: "/teacher/vibelearn" },
+    { label: "Content Studio", icon: <IconPlans size={24} />, href: "/teacher/studio" },
+  ],
+  classes: [
+    { label: "My Classes", icon: <IconClassHub size={24} />, href: "/teacher/classhub" },
+    { label: "Students", icon: <IconStudents size={24} />, href: "/teacher/students" },
+    { label: "Attendance", icon: <IconAttendance size={24} />, href: "/teacher/attendance" },
+    { label: "Homework", icon: <IconHomework size={24} />, href: "/teacher/homework" },
+    { label: "VibeConnect", icon: <IconVibeConnect size={24} />, href: "/teacher/vibeconnect" },
+  ],
+  assess: [
+    { label: "Assessments", icon: <IconAssess size={24} />, href: "/teacher/assessment" },
+    { label: "Marking", icon: <IconAttendance size={24} />, href: "/teacher/assessment/marking" },
+    { label: "Gradebook", icon: <IconResults size={24} />, href: "/teacher/assessment/gradebook" },
+    { label: "Analytics", icon: <IconAssess size={24} />, href: "/teacher/assessment/analytics" },
+    { label: "Curriculum", icon: <IconVibeLearn size={24} />, href: "/teacher/assessment/curriculum" },
+    { label: "Interventions", icon: <IconStudents size={24} />, href: "/teacher/assessment/interventions" },
+    { label: "Results", icon: <IconResults size={24} />, href: "/teacher/results" },
+    { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card" },
+  ],
+  me: [
+    { label: "Profile", icon: <IconProfile size={24} />, href: "/teacher/profile" },
+    { label: "School", icon: <IconSchoolHub size={24} />, href: "/teacher/schoolhub" },
+    { label: "TPAD", icon: <IconTPAD size={24} />, href: "/teacher/tpad" },
+    { label: "Credits", icon: <IconCredits size={24} />, href: "/teacher/credits" },
+    { label: "Settings", icon: <IconSettings size={24} />, href: "/teacher/settings" },
+    { label: "Help", icon: <IconHelp size={24} />, href: "/teacher/help" },
+  ],
+}
+
+function BottomNav({ activeId }: { activeId: string }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const [openTray, setOpenTray] = useState<string | null>(null)
+
+  useEffect(() => { setOpenTray(null) }, [pathname])
+
+  function handleTab(t: typeof NAV_TABS[number]) {
+    if (t.id === "today") {
+      setOpenTray(null)
+      router.push("/teacher/pulse")
+      return
+    }
+    setOpenTray(prev => prev === t.id ? null : t.id)
+  }
+
+  function handleTrayItem(href: string) {
+    setOpenTray(null)
+    router.push(href)
+  }
+
+  const trayItems = openTray ? TRAY_ITEMS[openTray] : null
+
+  return (
+    <>
+      {openTray && (
+        <div onClick={() => setOpenTray(null)} style={{ position: "fixed", inset: 0, zIndex: 690, background: "transparent" }} />
+      )}
+      <div style={{
+        position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 695,
+        background: "#fff", borderRadius: "20px 20px 0 0",
+        boxShadow: "0 -4px 24px rgba(0,0,0,0.10)", padding: "10px 20px 16px",
+        transform: openTray ? "translateY(0)" : "translateY(110%)",
+        transition: "transform 0.28s cubic-bezier(0.32,0.72,0,1)",
+      }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 14px" }} />
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 12px 2px" }}>
+          {{ teach: "Teaching Tools", classes: "My Classes", assess: "Assessment & Results", me: "My Account" }[openTray ?? ""] ?? openTray}
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8 }}>
+          {trayItems?.map(item => (
+            <button
+              key={item.href}
+              onClick={() => handleTrayItem(item.href)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                gap: 8, padding: "14px 6px", border: "none", borderRadius: 14,
+                background: pathname.startsWith(item.href) ? "rgba(16,185,129,0.08)" : "#f9fafb",
+                cursor: "pointer", fontFamily: "inherit",
+                color: pathname.startsWith(item.href) ? C.accent : "#374151",
+                transition: "background 0.15s",
+              }}
+            >
+              {item.icon}
+              <span style={{ fontSize: 10, fontWeight: 600, textAlign: "center", lineHeight: 1.2 }}>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700,
+        background: "#fff", borderTop: `1px solid ${C.border}`,
+        display: "flex", height: 64, boxShadow: "0 -4px 20px rgba(0,0,0,0.07)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}>
+        {NAV_TABS.map(t => {
+          const isActive = t.id === activeId || openTray === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => handleTab(t)}
+              aria-label={t.id === "today" ? "Open Today" : `Open ${t.label} tools`}
+              style={{
+                flex: 1, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 3,
+                border: "none", background: "none", cursor: "pointer",
+                padding: "8px 0", color: isActive ? C.accent : C.textMuted,
+                transition: "color 0.15s", position: "relative",
+              }}
+            >
+              {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 3, background: C.accent, borderRadius: "0 0 4px 4px" }} />}
+              <span style={{ lineHeight: 1, position: "relative", zIndex: 1 }}>{NAV_ICONS[t.id]?.(isActive)}</span>
+              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 500, letterSpacing: 0.1, marginTop: 1, position: "relative", zIndex: 1 }}>{t.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+function TopBar({ school, initials, unreadConnect, creditBalance }: { school: string; initials: string; unreadConnect: number; creditBalance: number | null }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isRoot = pathname === "/teacher" || pathname === "/teacher/" || pathname.startsWith("/teacher/pulse");
+
+  return (
+    <div style={{
+      background: C.dark, color: "#fff", padding: "0 20px", height: 56,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      position: "sticky", top: 0, zIndex: 600, boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {!isRoot && (
+          <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 22, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 400, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</div>
+        )}
+        <div onClick={() => router.push("/teacher")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+          <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>{school || "Independent"}</div>
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => router.push("/teacher/vibeconnect")}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          {unreadConnect > 0 && <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${C.dark}` }}>{unreadConnect}</span>}
+        </div>
+        <div onClick={() => router.push("/teacher/credits")} style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(16,185,129,0.15)", borderRadius: 20, padding: "4px 10px", cursor: "pointer" }}>
+          <span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>{creditBalance ?? "…"}</span>
+        </div>
+        <Avatar initials={initials || "…"} size={34} onClick={() => router.push("/teacher/profile")} style={{ cursor: "pointer" }} />
+      </div>
+    </div>
+  );
+}
+
+function Toast({ msg }: { msg: string }) { return <div style={{ position: "fixed", bottom: 140, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "11px 22px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, animation: "fadeIn 0.2s ease", boxShadow: "0 8px 24px rgba(0,0,0,0.18)", whiteSpace: "nowrap" }}>{msg}</div> }
+
+function SearchParamWatcher({ onTwin }: { onTwin: () => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => { if (searchParams?.get("twin") === "1") onTwin(); }, [searchParams, onTwin]);
+  return null;
+}
+
+export default function TeacherLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const activeId = tabIdFromPath(pathname);
+
+  const [twinOpen, setTwinOpen] = useState(false);
+  const [twinUnread, setTwinUnread] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const [school, setSchool] = useState("");
+  const [initials, setInitials] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [unreadConnect, setUnreadConnect] = useState(0);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const teacherIdRef = useRef<string | null>(null);
+
+  const refreshCredits = useCallback(() => {
+    const uid = teacherIdRef.current;
+    if (!uid) return;
+    supabase.rpc("get_credit_balance", { p_teacher_id: uid }).then(({ data: creditData }) => {
+      const result = creditData as { success?: boolean; balance?: number } | null;
+      if (result?.success) setCreditBalance(result.balance ?? null);
+    }, () => {});
+  }, []);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2800);
+  }, []);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) { router.replace("/?role=teacher"); return; }
+
+      const { data: profileData, error: profileErr } = await supabase.from("profiles").select("full_name, school_id, role").eq("id", user.id).single();
+      if (profileErr || !profileData || profileData.role !== "teacher") { router.replace("/?role=teacher"); return; }
+      localStorage.setItem(`vs_role_${user.id}`, JSON.stringify({ role: 'teacher', t: Date.now() }));
+      const name = profileData.full_name ?? "";
+      setFullName(name);
+      const parts = name.trim().split(" ").filter(Boolean);
+      setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+
+      const [memberRes, teacherRes] = await Promise.all([
+        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
+        supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
+      ]);
+      const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding")
+      const hasSchool = !!(memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id)
+      if (!teacherRes.data?.profile_id && !isOnboardingPath && hasSchool) { router.replace("/teacher/onboarding/school"); return; }
+      const schoolId = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id ?? null;
+      if (schoolId) {
+        const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle();
+        setSchool(schoolData?.name ?? "");
+      }
+      teacherIdRef.current = user.id;
+      refreshCredits();
+      setAuthReady(true);
+    }
+    fetchProfile();
+  }, [refreshCredits, router]);
+
+  if (!authReady) return <div style={{ minHeight: "100vh", background: "#f8fafc" }} />;
+
+  return (
+    <ToastContext.Provider value={{ showToast }}>
+      <UserContext.Provider value={{ fullName, initials, school }}>
+        <CreditContext.Provider value={{ creditBalance, refreshCredits }}>
+          <OfflineBar />
+          <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
+          <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
+          <main style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f8fafc" }}>{children}</main>
+          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
+          <BottomNav activeId={activeId} />
+          <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
+          {toast && <Toast msg={toast} />}
+        </CreditContext.Provider>
+      </UserContext.Provider>
+    </ToastContext.Provider>
+  );
+}
