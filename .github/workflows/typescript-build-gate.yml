@@ -4,8 +4,14 @@ on:
   push:
     branches:
       - main
-      - ce-type-001
-      - ce-fe-001
+      - 'work/**'
+      - 'ops/**'
+      - 'hq/**'
+      - 'content/**'
+      - 'audit/**'
+      - 'twin/**'
+      - 'feature/**'
+      - 'fix/**'
   pull_request:
     branches:
       - main
