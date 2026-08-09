@@ -4,7 +4,8 @@
  *
  * This script is intentionally read-only. It inspects the connected Supabase
  * database and fails closed when Company Library schema, RLS, storage, RPC
- * privilege, approval, version, or workforce-lineage invariants are missing.
+ * privilege, approval, version, workforce-lineage, or department-mapping
+ * invariants are missing.
  *
  * Required env:
  *   SUPABASE_URL
@@ -44,9 +45,10 @@ const ownerRpcs = [
   "hq_library_set_lifecycle",
 ]
 
-const workerRpcs = [
+const serviceOnlyFunctions = [
   "hq_library_worker_publish_artifact",
   "hq_library_worker_request_review",
+  "hq_library_resolve_department",
 ]
 
 const checks = []
@@ -107,17 +109,17 @@ async function main() {
     else pass(`owner RPC ${name}`, "no PUBLIC/anon execute; authenticated gated by hq_assert_owner")
   }
 
-  for (const name of workerRpcs) {
+  for (const name of serviceOnlyFunctions) {
     const rows = functionRows.filter((item) => item?.function_name === name)
     if (rows.length === 0) {
-      fail(`worker RPC ${name}`, "missing")
+      fail(`service-only function ${name}`, "missing")
       continue
     }
     const unsafe = rows.some((row) => row.public_exec === true || row.anon_exec === true || row.authenticated_exec === true)
     const service = rows.some((row) => row.service_role_exec === true)
-    if (unsafe) fail(`worker RPC ${name}`, "client role execute privilege present")
-    else if (!service) fail(`worker RPC ${name}`, "service_role execute privilege missing")
-    else pass(`worker RPC ${name}`, "service_role only")
+    if (unsafe) fail(`service-only function ${name}`, "client role execute privilege present")
+    else if (!service) fail(`service-only function ${name}`, "service_role execute privilege missing")
+    else pass(`service-only function ${name}`, "service_role only")
   }
 
   if (report?.foreign_keys?.worker_fk === true && report?.foreign_keys?.source_run_fk === true) {
@@ -130,6 +132,13 @@ async function main() {
     pass("single pending approval guard", "partial unique index present")
   } else {
     fail("single pending approval guard", "partial unique index missing")
+  }
+
+  if (report?.worker_department_state?.unmapped_active_worker_departments === 0) {
+    const mappings = Array.isArray(report?.worker_department_mappings) ? report.worker_department_mappings.length : 0
+    pass("workforce department bridge", `${mappings} active department mapping(s); none unresolved`)
+  } else {
+    fail("workforce department bridge", `${report?.worker_department_state?.unmapped_active_worker_departments ?? "unknown"} active workforce department(s) unresolved`)
   }
 
   const zeroIntegrityChecks = [
