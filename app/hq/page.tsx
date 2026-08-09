@@ -7,175 +7,28 @@ import { supabase } from "@/lib/supabase"
 import HQTwinDrawer from "@/components/hq/TwinDrawer"
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
-type Control = {
-  product_key: string
-  policy_key: string
-  desired_value: Json
-  observed_value: Json
-  state: string
-  verified_at?: string | null
-  last_error?: string | null
-}
-
+type Control = { product_key:string; policy_key:string; desired_value:Json; observed_value:Json; state:string; verified_at?:string|null; last_error?:string|null }
 type Report = Record<string, any>
 const sb = supabase as any
-
-const C = { bg:"#07111f", panel:"#0d1b2f", border:"rgba(255,255,255,.09)", text:"#f8fafc", muted:"rgba(255,255,255,.48)", green:"#34d399", blue:"#60a5fa", amber:"#f59e0b", red:"#fb7185", violet:"#a78bfa" }
-const labelize = (s:string) => s.replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())
-const fmt = (n:unknown) => typeof n === "number" ? new Intl.NumberFormat("en-KE").format(n) : String(n ?? "—")
-
-function Card({title,value,note,tone=C.green}:{title:string;value:unknown;note?:string;tone?:string}) {
-  return <div style={{border:`1px solid ${C.border}`,borderRadius:15,padding:14,background:"rgba(255,255,255,.025)"}}>
-    <div style={{fontSize:24,fontWeight:950,color:tone}}>{fmt(value)}</div>
-    <div style={{fontSize:11.5,fontWeight:800,marginTop:6}}>{title}</div>
-    {note && <div style={{fontSize:10.5,color:C.muted,marginTop:4}}>{note}</div>}
-  </div>
-}
-
-function JsonList({value,empty="Nothing requires attention."}:{value:unknown;empty?:string}) {
-  if (!value || (Array.isArray(value) && value.length===0) || (typeof value === "object" && !Array.isArray(value) && Object.keys(value as object).length===0)) {
-    return <div style={{padding:14,color:C.muted,fontSize:12}}>{empty}</div>
-  }
-  if (Array.isArray(value)) return <div>{value.map((item,i)=><div key={i} style={{padding:"11px 14px",borderTop:i?`1px solid ${C.border}`:0,fontSize:11.5,lineHeight:1.45}}>{typeof item === "object" ? JSON.stringify(item) : String(item)}</div>)}</div>
-  if (typeof value === "object") return <div>{Object.entries(value as Record<string,unknown>).map(([k,v],i)=><div key={k} style={{display:"grid",gridTemplateColumns:"minmax(130px,.7fr) 1fr",gap:12,padding:"10px 14px",borderTop:i?`1px solid ${C.border}`:0,fontSize:11.5}}><strong>{labelize(k)}</strong><span style={{color:C.muted,overflowWrap:"anywhere"}}>{typeof v === "object" ? JSON.stringify(v) : String(v ?? "—")}</span></div>)}</div>
-  return <div style={{padding:14,fontSize:12}}>{String(value)}</div>
-}
-
-export default function HQCommandCenter() {
-  const router = useRouter()
-  const [report,setReport] = useState<Report|null>(null)
-  const [controls,setControls] = useState<Control[]>([])
-  const [health,setHealth] = useState<Report|null>(null)
-  const [loading,setLoading] = useState(true)
-  const [error,setError] = useState("")
-  const [busy,setBusy] = useState("")
-  const [twinOpen,setTwinOpen] = useState(false)
-
-  const refresh = useCallback(async () => {
-    setError("")
-    try {
-      const [r,c,h] = await Promise.all([
-        sb.rpc("hq_get_seven_day_owner_report"),
-        sb.rpc("hq_get_product_controls"),
-        sb.rpc("hq_get_control_health_v2"),
-      ])
-      for (const result of [r,c,h]) if (result.error) throw result.error
-      setReport(r.data as Report)
-      setControls((c.data ?? []) as Control[])
-      setHealth(h.data as Report)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "HQ operating state could not be loaded.")
-    } finally { setLoading(false) }
-  },[])
-
-  useEffect(()=>{ void refresh() },[refresh])
-
-  const q = report?.executive_questions ?? {}
-  const headline = report?.executive_dashboard?.headline ?? report?.executive_dashboard?.headline_metrics ?? {}
-  const finance = report?.finance ?? {}
-  const certs = (health?.runtime_certifications ?? []) as Report[]
-  const passing = certs.filter(c=>c.result === "pass").length
-  const controlsByProduct = useMemo(()=>controls.sort((a,b)=>a.product_key.localeCompare(b.product_key)),[controls])
-
-  async function setPolicy(control:Control) {
-    const current = control.desired_value === true
-    const next = !current
-    const reason = window.prompt(`${next ? "ENABLE" : "DISABLE"} ${control.product_key}?\nReason is mandatory:`)
-    if (!reason?.trim()) return
-    setBusy(`${control.product_key}:${control.policy_key}`)
-    try {
-      const { error } = await sb.rpc("hq_set_product_policy", {
-        p_product_key: control.product_key,
-        p_policy_key: control.policy_key,
-        p_value: next,
-        p_reason: reason.trim(),
-      })
-      if (error) throw error
-      await refresh()
-    } catch(e) { setError(e instanceof Error ? e.message : "Policy change failed.") }
-    finally { setBusy("") }
-  }
-
-  async function runCycle() {
-    setBusy("cycle")
-    try {
-      const { error } = await sb.rpc("hq_run_operating_cycle")
-      if (error) throw error
-      await refresh()
-    } catch(e) { setError(e instanceof Error ? e.message : "Operating cycle failed.") }
-    finally { setBusy("") }
-  }
-
-  async function signOut(){ await supabase.auth.signOut(); router.replace("/hq/login") }
-
-  if (loading && !report) return <main style={{minHeight:"100dvh",display:"grid",placeItems:"center",background:C.bg,color:C.text}}>Loading live HQ…</main>
-
-  return <main style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,sans-serif"}}>
-    <div style={{maxWidth:1220,margin:"0 auto",padding:"0 18px 80px"}}>
-      <header style={{position:"sticky",top:0,zIndex:20,margin:"0 -18px",padding:"13px 18px",background:"rgba(7,17,31,.95)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.border}`}}>
-        <div style={{maxWidth:1220,margin:"0 auto",display:"flex",alignItems:"center",gap:9}}>
-          <div style={{flex:1}}><div style={{fontSize:18,fontWeight:950}}>VibeSchool HQ</div><div style={{fontSize:10.5,color:C.muted}}>Owner command center · live company state</div></div>
-          <button onClick={()=>void runCycle()} disabled={busy==="cycle"} style={buttonStyle}>{busy==="cycle"?"Running…":"Run cycle"}</button>
-          <button onClick={()=>setTwinOpen(true)} style={buttonStyle}>HQ Twin</button>
-          <button onClick={()=>void signOut()} style={{...buttonStyle,color:C.red}}>Sign out</button>
-        </div>
-      </header>
-
-      {error && <div style={{marginTop:14,padding:12,borderRadius:11,border:"1px solid rgba(251,113,133,.3)",background:"rgba(251,113,133,.08)",color:"#fecdd3",fontSize:12}}>{error}</div>}
-
-      <section style={{marginTop:18}}>
-        <div style={sectionTitle}>Company now</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:9}}>
-          <Card title="DAU" value={headline.dau ?? report?.company_period?.daily?.at?.(-1)?.metrics?.dau ?? 0} tone={C.green}/>
-          <Card title="WAU" value={headline.wau ?? 0} tone={C.blue}/>
-          <Card title="MAU" value={headline.mau ?? 0} tone={C.violet}/>
-          <Card title="Open incidents" value={headline.open_incidents ?? 0} tone={(headline.open_incidents??0)>0?C.red:C.green}/>
-          <Card title="Open findings" value={headline.open_findings ?? 0} tone={(headline.open_findings??0)>0?C.amber:C.green}/>
-          <Card title="Outstanding work" value={headline.open_work ?? 0} tone={(headline.open_work??0)>0?C.amber:C.green}/>
-        </div>
-      </section>
-
-      <section style={{marginTop:22}}>
-        <div style={sectionTitle}>Owner questions</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:10}}>
-          {[
-            ["What happened?",q.what_happened],["What grew?",q.what_grew],["What declined?",q.what_declined],
-            ["What broke?",q.what_broke],["Why?",q.why],["Who owns it?",q.who_owns_it],
-            ["What decision is required?",q.what_decision_is_required],["What was automatically done?",q.what_was_automatically_done],["Did it work?",q.did_it_work],
-          ].map(([title,value])=><article key={String(title)} style={panelStyle}><div style={{padding:"12px 14px",fontSize:12,fontWeight:900,borderBottom:`1px solid ${C.border}`}}>{String(title)}</div><JsonList value={value}/></article>)}
-        </div>
-      </section>
-
-      <section style={{marginTop:22}}>
-        <div style={sectionTitle}>Product authority</div>
-        <div style={panelStyle}>
-          {controlsByProduct.map((c,i)=>{
-            const enabled = c.desired_value === true
-            const id = `${c.product_key}:${c.policy_key}`
-            return <div key={id} style={{display:"grid",gridTemplateColumns:"minmax(150px,1fr) minmax(120px,.8fr) 90px 110px",gap:10,alignItems:"center",padding:"11px 14px",borderTop:i?`1px solid ${C.border}`:0}}>
-              <div><div style={{fontSize:12,fontWeight:900}}>{labelize(c.product_key)}</div><div style={{fontSize:10,color:C.muted}}>{c.policy_key}</div></div>
-              <div style={{fontSize:10.5,color:c.state==="verified"?C.green:c.state==="drift"?C.red:C.amber}}>{labelize(c.state)}{c.verified_at?` · ${new Date(c.verified_at).toLocaleString("en-KE")}`:""}</div>
-              <strong style={{fontSize:11,color:enabled?C.green:C.red}}>{enabled?"ENABLED":"DISABLED"}</strong>
-              <button onClick={()=>void setPolicy(c)} disabled={busy===id} style={{...buttonStyle,borderColor:enabled?"rgba(251,113,133,.25)":"rgba(52,211,153,.25)",color:enabled?C.red:C.green}}>{busy===id?"Publishing…":enabled?"Disable":"Enable"}</button>
-            </div>
-          })}
-        </div>
-      </section>
-
-      <section style={{marginTop:22,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10}}>
-        <article style={panelStyle}><div style={panelTitle}>Control health</div><JsonList value={{verified:health?.verified_states??0,pending:health?.pending_states??0,drifted:health?.drifted_states??0,failed:health?.failed_states??0,policy_failures_24h:health?.policy_failures_24h??0,runtime_certifications_pass:passing}}/></article>
-        <article style={panelStyle}><div style={panelTitle}>Finance truth</div><JsonList value={finance}/></article>
-        <article style={panelStyle}><div style={panelTitle}>Product engagement</div><JsonList value={report?.product_engagement}/></article>
-      </section>
-
-      <section style={{marginTop:22}}><div style={sectionTitle}>Runtime certification evidence</div><article style={panelStyle}><JsonList value={certs.slice(0,15)} empty="No runtime certifications recorded."/></article></section>
-      <footer style={{marginTop:22,textAlign:"center",fontSize:10,color:"rgba(255,255,255,.28)"}}>Generated {report?.generated_at ? new Date(report.generated_at).toLocaleString("en-KE") : "—"} · Source-backed HQ</footer>
-    </div>
-    <HQTwinDrawer open={twinOpen} onClose={()=>setTwinOpen(false)}/>
-  </main>
-}
-
-const sectionTitle:React.CSSProperties={fontSize:10.5,fontWeight:950,color:"rgba(255,255,255,.38)",letterSpacing:".09em",textTransform:"uppercase",marginBottom:9}
-const panelStyle:React.CSSProperties={border:`1px solid ${C.border}`,borderRadius:15,background:"rgba(255,255,255,.02)",overflow:"hidden"}
-const panelTitle:React.CSSProperties={padding:"12px 14px",fontSize:12,fontWeight:900,borderBottom:`1px solid ${C.border}`}
-const buttonStyle:React.CSSProperties={height:38,padding:"0 11px",borderRadius:10,border:`1px solid ${C.border}`,background:"rgba(255,255,255,.04)",color:C.text,fontSize:10.5,fontWeight:850,cursor:"pointer"}
+const C={bg:"#07111f",border:"rgba(255,255,255,.09)",text:"#f8fafc",muted:"rgba(255,255,255,.48)",green:"#34d399",blue:"#60a5fa",amber:"#f59e0b",red:"#fb7185",violet:"#a78bfa"}
+const labelize=(s:string)=>s.replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())
+const fmt=(n:unknown)=>typeof n==="number"?new Intl.NumberFormat("en-KE").format(n):String(n??"—")
+function Card({title,value,note,tone=C.green}:{title:string;value:unknown;note?:string;tone?:string}){return <div style={{border:`1px solid ${C.border}`,borderRadius:15,padding:14,background:"rgba(255,255,255,.025)"}}><div style={{fontSize:24,fontWeight:950,color:tone}}>{fmt(value)}</div><div style={{fontSize:11.5,fontWeight:800,marginTop:6}}>{title}</div>{note&&<div style={{fontSize:10.5,color:C.muted,marginTop:4}}>{note}</div>}</div>}
+function JsonList({value,empty="Nothing requires attention."}:{value:unknown;empty?:string}){if(!value||(Array.isArray(value)&&value.length===0)||(typeof value==="object"&&!Array.isArray(value)&&Object.keys(value as object).length===0))return <div style={{padding:14,color:C.muted,fontSize:12}}>{empty}</div>;if(Array.isArray(value))return <div>{value.map((item,i)=><div key={i} style={{padding:"11px 14px",borderTop:i?`1px solid ${C.border}`:0,fontSize:11.5,lineHeight:1.45}}>{typeof item==="object"?JSON.stringify(item):String(item)}</div>)}</div>;if(typeof value==="object")return <div>{Object.entries(value as Record<string,unknown>).map(([k,v],i)=><div key={k} style={{display:"grid",gridTemplateColumns:"minmax(130px,.7fr) 1fr",gap:12,padding:"10px 14px",borderTop:i?`1px solid ${C.border}`:0,fontSize:11.5}}><strong>{labelize(k)}</strong><span style={{color:C.muted,overflowWrap:"anywhere"}}>{typeof v==="object"?JSON.stringify(v):String(v??"—")}</span></div>)}</div>;return <div style={{padding:14,fontSize:12}}>{String(value)}</div>}
+export default function HQCommandCenter(){
+ const router=useRouter();const[report,setReport]=useState<Report|null>(null);const[controls,setControls]=useState<Control[]>([]);const[health,setHealth]=useState<Report|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[busy,setBusy]=useState("");const[twinOpen,setTwinOpen]=useState(false)
+ const refresh=useCallback(async()=>{setError("");try{const[r,c,h]=await Promise.all([sb.rpc("hq_get_seven_day_owner_report"),sb.rpc("hq_get_product_controls"),sb.rpc("hq_get_control_health_v2")]);for(const result of[r,c,h])if(result.error)throw result.error;setReport(r.data as Report);setControls((c.data??[])as Control[]);setHealth(h.data as Report)}catch(e){setError(e instanceof Error?e.message:"HQ operating state could not be loaded.")}finally{setLoading(false)}},[])
+ useEffect(()=>{void refresh()},[refresh]);const q=report?.executive_questions??{};const headline=report?.executive_dashboard?.headline??report?.executive_dashboard?.headline_metrics??{};const finance=report?.finance??{};const certs=(health?.runtime_certifications??[])as Report[];const passing=certs.filter(c=>c.result==="pass").length;const controlsByProduct=useMemo(()=>controls.sort((a,b)=>a.product_key.localeCompare(b.product_key)),[controls])
+ async function setPolicy(control:Control){const next=control.desired_value!==true;const reason=window.prompt(`${next?"ENABLE":"DISABLE"} ${control.product_key}?\nReason is mandatory:`);if(!reason?.trim())return;setBusy(`${control.product_key}:${control.policy_key}`);try{const{error}=await sb.rpc("hq_set_product_policy",{p_product_key:control.product_key,p_policy_key:control.policy_key,p_value:next,p_reason:reason.trim()});if(error)throw error;await refresh()}catch(e){setError(e instanceof Error?e.message:"Policy change failed.")}finally{setBusy("")}}
+ async function runCycle(){setBusy("cycle");try{const{error}=await sb.rpc("hq_run_operating_cycle");if(error)throw error;await refresh()}catch(e){setError(e instanceof Error?e.message:"Operating cycle failed.")}finally{setBusy("")}}
+ async function signOut(){await supabase.auth.signOut();router.replace("/hq/login")}
+ if(loading&&!report)return <main style={{minHeight:"100dvh",display:"grid",placeItems:"center",background:C.bg,color:C.text}}>Loading live HQ…</main>
+ return <main style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,sans-serif"}}><div style={{maxWidth:1220,margin:"0 auto",padding:"0 18px 80px"}}>
+ <header style={{position:"sticky",top:0,zIndex:20,margin:"0 -18px",padding:"13px 18px",background:"rgba(7,17,31,.95)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.border}`}}><div style={{maxWidth:1220,margin:"0 auto",display:"flex",alignItems:"center",gap:9}}><div style={{flex:1}}><div style={{fontSize:18,fontWeight:950}}>VibeSchool HQ</div><div style={{fontSize:10.5,color:C.muted}}>Owner command center · live company state</div></div><button onClick={()=>router.push("/hq/content")} style={{...buttonStyle,color:C.blue}}>Publishing</button><button onClick={()=>void runCycle()} disabled={busy==="cycle"} style={buttonStyle}>{busy==="cycle"?"Running…":"Run cycle"}</button><button onClick={()=>setTwinOpen(true)} style={buttonStyle}>HQ Twin</button><button onClick={()=>void signOut()} style={{...buttonStyle,color:C.red}}>Sign out</button></div></header>
+ {error&&<div style={{marginTop:14,padding:12,borderRadius:11,border:"1px solid rgba(251,113,133,.3)",background:"rgba(251,113,133,.08)",color:"#fecdd3",fontSize:12}}>{error}</div>}
+ <section style={{marginTop:18}}><div style={sectionTitle}>Company now</div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:9}}><Card title="DAU" value={headline.dau??report?.company_period?.daily?.at?.(-1)?.metrics?.dau??0}/><Card title="WAU" value={headline.wau??0} tone={C.blue}/><Card title="MAU" value={headline.mau??0} tone={C.violet}/><Card title="Open incidents" value={headline.open_incidents??0} tone={(headline.open_incidents??0)>0?C.red:C.green}/><Card title="Open findings" value={headline.open_findings??0} tone={(headline.open_findings??0)>0?C.amber:C.green}/><Card title="Outstanding work" value={headline.open_work??0} tone={(headline.open_work??0)>0?C.amber:C.green}/></div></section>
+ <section style={{marginTop:22}}><div style={sectionTitle}>Owner questions</div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:10}}>{[["What happened?",q.what_happened],["What grew?",q.what_grew],["What declined?",q.what_declined],["What broke?",q.what_broke],["Why?",q.why],["Who owns it?",q.who_owns_it],["What decision is required?",q.what_decision_is_required],["What was automatically done?",q.what_was_automatically_done],["Did it work?",q.did_it_work]].map(([title,value])=><article key={String(title)} style={panelStyle}><div style={panelTitle}>{String(title)}</div><JsonList value={value}/></article>)}</div></section>
+ <section style={{marginTop:22}}><div style={sectionTitle}>Product authority</div><div style={panelStyle}>{controlsByProduct.map((c,i)=>{const enabled=c.desired_value===true;const id=`${c.product_key}:${c.policy_key}`;return <div key={id} style={{display:"grid",gridTemplateColumns:"minmax(150px,1fr) minmax(120px,.8fr) 90px 110px",gap:10,alignItems:"center",padding:"11px 14px",borderTop:i?`1px solid ${C.border}`:0}}><div><div style={{fontSize:12,fontWeight:900}}>{labelize(c.product_key)}</div><div style={{fontSize:10,color:C.muted}}>{c.policy_key}</div></div><div style={{fontSize:10.5,color:c.state==="verified"?C.green:c.state==="drift"?C.red:C.amber}}>{labelize(c.state)}{c.verified_at?` · ${new Date(c.verified_at).toLocaleString("en-KE")}`:""}</div><strong style={{fontSize:11,color:enabled?C.green:C.red}}>{enabled?"ENABLED":"DISABLED"}</strong><button onClick={()=>void setPolicy(c)} disabled={busy===id} style={{...buttonStyle,color:enabled?C.red:C.green}}>{busy===id?"Publishing…":enabled?"Disable":"Enable"}</button></div>})}</div></section>
+ <section style={{marginTop:22,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10}}><article style={panelStyle}><div style={panelTitle}>Control health</div><JsonList value={{verified:health?.verified_states??0,pending:health?.pending_states??0,drifted:health?.drifted_states??0,failed:health?.failed_states??0,policy_failures_24h:health?.policy_failures_24h??0,runtime_certifications_pass:passing}}/></article><article style={panelStyle}><div style={panelTitle}>Finance truth</div><JsonList value={finance}/></article><article style={panelStyle}><div style={panelTitle}>Product engagement</div><JsonList value={report?.product_engagement}/></article></section>
+ <section style={{marginTop:22}}><div style={sectionTitle}>Runtime certification evidence</div><article style={panelStyle}><JsonList value={certs.slice(0,15)} empty="No runtime certifications recorded."/></article></section><footer style={{marginTop:22,textAlign:"center",fontSize:10,color:"rgba(255,255,255,.28)"}}>Generated {report?.generated_at?new Date(report.generated_at).toLocaleString("en-KE"):"—"} · Source-backed HQ</footer></div><HQTwinDrawer open={twinOpen} onClose={()=>setTwinOpen(false)}/></main>}
+const sectionTitle:React.CSSProperties={fontSize:10.5,fontWeight:950,color:"rgba(255,255,255,.38)",letterSpacing:".09em",textTransform:"uppercase",marginBottom:9};const panelStyle:React.CSSProperties={border:`1px solid ${C.border}`,borderRadius:15,background:"rgba(255,255,255,.02)",overflow:"hidden"};const panelTitle:React.CSSProperties={padding:"12px 14px",fontSize:12,fontWeight:900,borderBottom:`1px solid ${C.border}`};const buttonStyle:React.CSSProperties={height:38,padding:"0 11px",borderRadius:10,border:`1px solid ${C.border}`,background:"rgba(255,255,255,.04)",color:C.text,fontSize:10.5,fontWeight:850,cursor:"pointer"}
