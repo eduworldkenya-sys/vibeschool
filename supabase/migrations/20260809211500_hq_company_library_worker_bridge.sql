@@ -26,8 +26,10 @@ declare
   v_version_id uuid;
   v_version_number integer;
   v_assignment_ok boolean;
+  v_lane_status text;
+  v_lane_violation text;
 begin
-  if auth.role() not in ('service_role') then
+  if auth.role() <> 'service_role' then
     raise exception 'Trusted workforce caller required';
   end if;
 
@@ -36,6 +38,9 @@ begin
   if p_title is null or btrim(p_title) = '' then raise exception 'title is required'; end if;
   if p_artifact_type is null or btrim(p_artifact_type) = '' then raise exception 'artifact_type is required'; end if;
   if p_structured_content is null then raise exception 'structured_content is required'; end if;
+  if coalesce(p_confidentiality,'internal') not in ('internal','restricted','public') then
+    raise exception 'Invalid confidentiality';
+  end if;
 
   select * into v_run
   from public.hq_workforce_runs
@@ -55,8 +60,8 @@ begin
   where id = v_run.worker_id;
 
   if not found then raise exception 'Worker not found'; end if;
-  if v_worker.status not in ('active','probation') then
-    raise exception 'Worker status % cannot publish artifacts', v_worker.status;
+  if v_worker.status <> 'active' then
+    raise exception 'Worker status % cannot publish artifacts autonomously', v_worker.status;
   end if;
 
   select exists(
@@ -71,9 +76,13 @@ begin
     raise exception 'Worker has no active department assignment';
   end if;
 
-  -- Reuse the canonical workforce lane authorization policy.
-  if not public.hq_workforce_authorize_worker_lane(v_worker.worker_key, v_run.lane_key) then
-    raise exception 'Worker is not authorized for run lane %', v_run.lane_key;
+  select authz.status, authz.violation_code
+    into v_lane_status, v_lane_violation
+  from public.hq_workforce_authorize_worker_lane(v_worker.worker_key, v_run.lane_key) authz
+  limit 1;
+
+  if coalesce(v_lane_status,'deny') <> 'allow' then
+    raise exception 'Worker lane authorization denied: %', coalesce(v_lane_violation,'UNKNOWN');
   end if;
 
   insert into public.hq_artifacts(
@@ -118,7 +127,13 @@ begin
         confidentiality = excluded.confidentiality,
         metadata = public.hq_artifacts.metadata || excluded.metadata,
         updated_at = now()
+  where public.hq_artifacts.worker_id is null
+     or public.hq_artifacts.worker_id = v_worker.id
   returning id into v_artifact_id;
+
+  if v_artifact_id is null then
+    raise exception 'Artifact key is owned by another worker';
+  end if;
 
   perform 1 from public.hq_artifacts where id = v_artifact_id for update;
 
@@ -200,10 +215,13 @@ set search_path = public
 as $$
 declare
   v_run public.hq_workforce_runs%rowtype;
+  v_worker public.hq_workforce_workers%rowtype;
   v_artifact public.hq_artifacts%rowtype;
   v_approval_id uuid;
+  v_lane_status text;
+  v_lane_violation text;
 begin
-  if auth.role() not in ('service_role') then
+  if auth.role() <> 'service_role' then
     raise exception 'Trusted workforce caller required';
   end if;
 
@@ -213,6 +231,19 @@ begin
     raise exception 'Run is not authorized to request review';
   end if;
 
+  select * into v_worker from public.hq_workforce_workers where id=v_run.worker_id;
+  if not found or v_worker.status <> 'active' then
+    raise exception 'Active worker required';
+  end if;
+
+  select authz.status, authz.violation_code
+    into v_lane_status, v_lane_violation
+  from public.hq_workforce_authorize_worker_lane(v_worker.worker_key, v_run.lane_key) authz
+  limit 1;
+  if coalesce(v_lane_status,'deny') <> 'allow' then
+    raise exception 'Worker lane authorization denied: %', coalesce(v_lane_violation,'UNKNOWN');
+  end if;
+
   select * into v_artifact from public.hq_artifacts where id=p_artifact_id for update;
   if not found then raise exception 'Artifact not found'; end if;
   if v_artifact.worker_id is distinct from v_run.worker_id then
@@ -220,6 +251,14 @@ begin
   end if;
   if v_artifact.current_version_id is null then
     raise exception 'Artifact has no version to review';
+  end if;
+  if exists(
+    select 1 from public.hq_artifact_approvals ap
+    where ap.artifact_id=v_artifact.id
+      and ap.version_id=v_artifact.current_version_id
+      and ap.status='pending'
+  ) then
+    raise exception 'Current version already has a pending approval';
   end if;
 
   insert into public.hq_artifact_approvals(
