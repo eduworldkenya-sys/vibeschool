@@ -6,7 +6,7 @@ This policy is mandatory for all engineering work.
 
 Every new task begins on a fresh branch created from the current `main` HEAD.
 
-Approved non-deploying branch families:
+Approved branch families:
 
 - `work/<task>` — default for normal product work
 - `hq/<task>` — HQ/control-plane work
@@ -19,13 +19,13 @@ Approved non-deploying branch families:
 
 Do not implement new work directly on `main`.
 
-## 2. Work branches must not deploy to Vercel
+## 2. Git must not automatically deploy to Vercel
 
-`vercel.json` disables Git-triggered Vercel deployments for every approved work-branch family above.
+`vercel.json` sets `git.deploymentEnabled` to `false` globally.
 
-This means work can be committed and pushed to GitHub for backup, collaboration, CI, and review without creating a Vercel deployment.
+Therefore commits and pushes on work branches — and merges/pushes to `main` — must not create automatic Vercel deployments. GitHub is the source-control and validation plane; Vercel deployment is a separate release action.
 
-Do not use Vercel CLI, Deploy Hooks, the Vercel API deployment endpoint, or manual Vercel deployment actions from a protected work branch.
+Do not use Vercel CLI, Deploy Hooks, the Vercel API deployment endpoint, or manual Vercel deployment actions while a task is still under development or verification.
 
 ## 3. Validate the complete change set before release
 
@@ -40,23 +40,23 @@ Before a branch may be promoted to `main`, the complete task must be finished an
 7. Review of the full branch diff against `main`
 8. No known release-blocking defects
 
-The GitHub workflow `.github/workflows/typescript-build-gate.yml` runs the TypeScript, lint, and production-build gates on protected work branches and pull requests targeting `main`.
+The GitHub workflow `.github/workflows/typescript-build-gate.yml` runs the TypeScript, lint, and production-build gates on approved work branches and pull requests targeting `main`.
 
-## 4. Release deliberately
+## 4. Merge and deployment are separate decisions
 
 Only after all gates pass should the completed branch be promoted to `main`.
 
-`main` is the intentional release branch. It is not covered by the protected work-branch Vercel deny patterns, so a merge/push to `main` may create the intentional production deployment.
+Merging to `main` does not authorize a Vercel deployment by itself. Production deployment must be an explicit, intentional release step after the merged `main` commit is identified and all final gates remain green.
 
 Do not merge partial work merely to preview it.
 
 ## 5. Preview unfinished work without Vercel
 
-Use a local/dev-server or GitHub-hosted development environment for unfinished UI review. A preview must not require merging partial work into `main`.
+Use a local/dev-server or GitHub-hosted development environment for unfinished UI review. A preview must not require merging partial work into `main` or creating a Vercel deployment.
 
 ## 6. One task, one release unit
 
-Prefer a coherent completed change set over repeated small production releases. Intermediate commits are allowed on the protected branch because they do not deploy to Vercel; production promotion happens only when the whole task is ready.
+Prefer a coherent completed change set over repeated small production releases. Intermediate commits are allowed on the protected branch because Git-triggered Vercel deployment is disabled; production deployment happens only after the whole task is ready and deliberately released.
 
 ## Release decision
 
@@ -71,6 +71,7 @@ A task is releasable only when the answer to all of these is YES:
 - Have Supabase/schema/RLS effects been verified where relevant?
 - Has the full branch diff been reviewed?
 - Is there no known blocker?
+- Has the completed branch been promoted to `main`?
 - Is this an intentional production release?
 
-If any answer is NO, keep the work on the protected branch and do not promote it to `main`.
+If any answer is NO, do not deploy to Vercel.
