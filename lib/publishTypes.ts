@@ -41,6 +41,7 @@ export type CBCSubject =
   | 'biology'
   | 'chemistry'
   | 'physics'
+  | 'history_citizenship'
   | 'history_government'
   | 'business_studies'
   | 'agriculture'
@@ -54,6 +55,7 @@ export type CBCGrade =
   | 'pp1' | 'pp2'
   | 'grade1' | 'grade2' | 'grade3' | 'grade4'
   | 'grade5' | 'grade6' | 'grade7' | 'grade8' | 'grade9'
+  | 'grade10' | 'grade11' | 'grade12'
   | 'form1' | 'form2' | 'form3' | 'form4'
 
 export type PublicationGenre =
@@ -104,7 +106,7 @@ export interface VibeChapter {
   id:               string
   publication_id:   string
   title:            string | null
-  number:           number
+  number:            number
   blocks:           ContentBlock[]
   status:           ChapterStatus
   word_count:       number
@@ -144,7 +146,7 @@ export function emptyPublication(authorId: string, format: PublicationFormat): V
     id: crypto.randomUUID(), author_id: authorId, format, title: null, subtitle: null, cover_url: null, description: null,
     genre: 'other', tags: [], language: 'en', status: 'draft', pricing: { type: 'free' }, chapter_count: 0,
     total_reads: 0, total_vibes: 0, earnings_ksh: 0, cbc_subject: null, cbc_grade: null, cbc_aligned: false,
-    curriculum_framework: 'CBC', series_name: null, series_number: null, publication_name: null, issue_number: null,
+    curriculum_framework: 'CBE', series_name: null, series_number: null, publication_name: null, issue_number: null,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), published_at: null,
   }
 }
