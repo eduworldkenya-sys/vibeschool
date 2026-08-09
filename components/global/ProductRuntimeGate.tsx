@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 export type HQProductKey = "student" | "teacher" | "parent" | "school_admin" | "vibelearn" | "vibebooks" | "vibelabs" | "twin" | "billing";
 
-type RuntimeState = "checking" | "enabled" | "disabled" | "degraded";
+type RuntimeState = "checking" | "enabled" | "disabled" | "unverified";
 
 export default function ProductRuntimeGate({ product, children }: { product: HQProductKey; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,7 +14,9 @@ export default function ProductRuntimeGate({ product, children }: { product: HQP
 
   useEffect(() => {
     let alive = true;
+
     async function handshake() {
+      setState("checking");
       try {
         const { data, error } = await (supabase as any).rpc("hq_product_runtime_handshake", {
           p_product_key: product,
@@ -22,22 +24,22 @@ export default function ProductRuntimeGate({ product, children }: { product: HQP
         });
         if (error) throw error;
         if (!alive) return;
-        setState(data?.enabled === false ? "disabled" : "enabled");
+        setState(data?.enabled === true ? "enabled" : "disabled");
       } catch {
-        if (alive) setState("degraded");
+        if (alive) setState("unverified");
       }
     }
+
     void handshake();
     return () => { alive = false; };
   }, [pathname, product]);
+
+  if (state === "enabled") return <>{children}</>;
 
   if (state === "checking") {
     return <div style={{ minHeight: "100dvh", display: "grid", placeItems: "center", background: "var(--vs-bg, #0f172a)", color: "var(--vs-text, #fff)", fontFamily: "system-ui, sans-serif" }}><div style={{ fontSize: 13, opacity: .7 }}>Checking VibeSchool service status…</div></div>;
   }
 
-  if (state === "disabled") {
-    return <div role="status" style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 24, background: "var(--vs-bg, #0f172a)", color: "var(--vs-text, #fff)", fontFamily: "system-ui, sans-serif" }}><div style={{ width: "min(100%, 460px)", textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 850 }}>Service temporarily unavailable</div><p style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.6, opacity: .7 }}>This VibeSchool product has been paused by HQ. Your account and learning data remain intact. Refresh later to re-check service status.</p><button onClick={() => location.reload()} style={{ marginTop: 18, border: "1px solid currentColor", borderRadius: 10, padding: "9px 14px", background: "transparent", color: "inherit", fontWeight: 750, cursor: "pointer" }}>Check again</button></div></div>;
-  }
-
-  return <>{children}</>;
+  const unverified = state === "unverified";
+  return <div role="status" style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 24, background: "var(--vs-bg, #0f172a)", color: "var(--vs-text, #fff)", fontFamily: "system-ui, sans-serif" }}><div style={{ width: "min(100%, 460px)", textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 850 }}>{unverified ? "Service status cannot be verified" : "Service temporarily unavailable"}</div><p style={{ margin: "10px 0 0", fontSize: 13, lineHeight: 1.6, opacity: .7 }}>{unverified ? "VibeSchool could not verify this product with HQ, so access is paused rather than bypassing HQ controls. Your account and learning data remain intact. Check again when connectivity is restored." : "This VibeSchool product has been paused by HQ. Your account and learning data remain intact. Refresh later to re-check service status."}</p><button onClick={() => location.reload()} style={{ marginTop: 18, border: "1px solid currentColor", borderRadius: 10, padding: "9px 14px", background: "transparent", color: "inherit", fontWeight: 750, cursor: "pointer" }}>Check again</button></div></div>;
 }
