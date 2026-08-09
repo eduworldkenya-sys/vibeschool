@@ -3,9 +3,42 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student', '/hq']
 const HQ_LOGIN_PATH = '/hq/login'
+const SERVICE_UNAVAILABLE_PATH = '/service-unavailable'
+
+type ProductGuard = { productKey: string; policyKey: string; label: string }
 
 function isWithin(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
+function productGuardsFor(pathname: string): ProductGuard[] {
+  const guards: ProductGuard[] = []
+
+  if (isWithin(pathname, '/student')) guards.push({ productKey: 'student', policyKey: 'student.enabled', label: 'Student' })
+  if (isWithin(pathname, '/teacher')) guards.push({ productKey: 'teacher', policyKey: 'teacher.enabled', label: 'Teacher' })
+  if (isWithin(pathname, '/parent')) guards.push({ productKey: 'parent', policyKey: 'parent.enabled', label: 'Parent' })
+  if (isWithin(pathname, '/admin') && !isWithin(pathname, '/admin/login') && !isWithin(pathname, '/admin/reset-password') && !isWithin(pathname, '/admin/signup')) {
+    guards.push({ productKey: 'school_admin', policyKey: 'school_admin.enabled', label: 'School Admin' })
+  }
+
+  if (
+    isWithin(pathname, '/learn') ||
+    isWithin(pathname, '/teacher/vibelearn') ||
+    isWithin(pathname, '/parent/vibe-learn') ||
+    isWithin(pathname, '/student/vibelearn')
+  ) guards.push({ productKey: 'vibelearn', policyKey: 'vibelearn.enabled', label: 'VibeLearn' })
+
+  if (isWithin(pathname, '/read/textbook') || isWithin(pathname, '/vibebooks')) {
+    guards.push({ productKey: 'vibebooks', policyKey: 'vibebooks.enabled', label: 'VibeBooks' })
+  }
+
+  if (
+    pathname.includes('/vibelab') ||
+    pathname.includes('/vibe-lab') ||
+    isWithin(pathname, '/labs')
+  ) guards.push({ productKey: 'vibelabs', policyKey: 'vibelabs.enabled', label: 'VibeLabs' })
+
+  return guards
 }
 
 export async function middleware(request: NextRequest) {
@@ -43,8 +76,6 @@ export async function middleware(request: NextRequest) {
   const isHQLogin = pathname === HQ_LOGIN_PATH
   const isProtected = PROTECTED_PREFIXES.some(prefix => isWithin(pathname, prefix))
 
-  // The dedicated HQ login page must be reachable without an existing session.
-  // All other protected application surfaces still require authentication.
   if (isProtected && !user && !isHQLogin) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/'
@@ -52,13 +83,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // Enforce HQ product availability at the server routing boundary. UI gates are
+  // presentation only; this prevents direct URL navigation from bypassing policy.
+  if (user && pathname !== SERVICE_UNAVAILABLE_PATH && !isHQ) {
+    for (const guard of productGuardsFor(pathname)) {
+      const { error: guardError } = await supabase.rpc('hq_assert_product_enabled', {
+        p_product_key: guard.productKey,
+        p_policy_key: guard.policyKey,
+      })
+      if (guardError) {
+        const unavailableUrl = request.nextUrl.clone()
+        unavailableUrl.pathname = SERVICE_UNAVAILABLE_PATH
+        unavailableUrl.search = ''
+        unavailableUrl.searchParams.set('product', guard.label)
+        return NextResponse.redirect(unavailableUrl)
+      }
+    }
+  }
+
   // HQ authorization is independent from profile.role. Only the server-backed
   // platform_owners allowlist is an authorization boundary.
   if (isHQ && user) {
     const { data: isOwner, error: ownerError } = await supabase.rpc('is_platform_owner')
 
-    // Fail closed on lookup errors. A database/auth outage must never turn HQ
-    // into an authenticated-user surface.
     if (ownerError || !isOwner) {
       if (!ownerError) {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
@@ -76,7 +123,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(homeUrl)
     }
 
-    // An already-authenticated owner does not need to see the credential form.
     if (isHQLogin) {
       const hqUrl = request.nextUrl.clone()
       hqUrl.pathname = '/hq'
