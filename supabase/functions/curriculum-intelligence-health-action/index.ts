@@ -1,86 +1,43 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Content-Type":"application/json"}
-const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
-const GROQ_KEY=Deno.env.get("GROQ_API_KEY")??""
-const TAVILY_KEY=Deno.env.get("TAVILY_API_KEY")??""
-const MODEL=Deno.env.get("CURRICULUM_EDITORIAL_MODEL")??"llama-3.3-70b-versatile"
+const H={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Content-Type":"application/json"}
+const R=(b:unknown,s=200)=>new Response(JSON.stringify(b),{status:s,headers:H})
+const GROQ=Deno.env.get("GROQ_API_KEY")??"", TAVILY=Deno.env.get("TAVILY_API_KEY")??"", MODEL=Deno.env.get("CURRICULUM_EDITORIAL_MODEL")??"llama-3.3-70b-versatile"
+type J=Record<string,any>
+const enums={decision:["proposal","no_change"],proposal_type:["correction","enrichment","new_content","assessment_update","teacher_guidance","review_candidate"],curriculum_relevance:["C1","C2","C3","C4"],verification_status:["verified","insufficient_evidence","unverified"],volatility:["low","medium","high"]}
+function parse(raw:string){const m=raw.match(/<editorial_json>([\s\S]*?)<\/editorial_json>/i)?.[1]||raw;try{return JSON.parse(m.trim().replace(/^```json\s*/i,"").replace(/```$/,""))}catch{return null}}
+function valid(o:J,blockCount:number){if(!o||!enums.decision.includes(o.decision))return false;if(o.decision==="no_change")return typeof o.diagnosis==="string";return enums.proposal_type.includes(o.proposal_type)&&enums.curriculum_relevance.includes(o.curriculum_relevance)&&enums.verification_status.includes(o.verification_status)&&enums.volatility.includes(o.volatility)&&Number.isFinite(Number(o.confidence))&&Number(o.confidence)>=0&&Number(o.confidence)<=1&&Number.isInteger(Number(o.target_sequence))&&Number(o.target_sequence)>=1&&Number(o.target_sequence)<=blockCount&&typeof o.proposed_content==="string"&&o.proposed_content.trim().length>=40&&typeof o.rationale==="string"&&Array.isArray(o.followup_actions||[])}
+function words(s:string){return s.toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(Boolean)}
+function ngrams(s:string,n=8){const w=words(s),set=new Set<string>();for(let i=0;i<=w.length-n;i++)set.add(w.slice(i,i+n).join(" "));return set}
+function overlap(a:string,b:string){const A=ngrams(a),B=ngrams(b);if(!A.size||!B.size)return 0;let hit=0;for(const x of A)if(B.has(x))hit++;return hit/Math.min(A.size,B.size)}
 
-type AnyRow=Record<string,any>
-const parseJson=(raw:string)=>{const m=raw.match(/<editorial_json>([\s\S]*?)<\/editorial_json>/i)?.[1]||raw; try{return JSON.parse(m.trim().replace(/^```json\s*/i,"").replace(/```$/,""))}catch{return null}}
-
-Deno.serve(async(req:Request)=>{
- if(req.method==="OPTIONS") return new Response("ok",{headers:cors})
- if(req.method!=="POST") return respond({error:"method_not_allowed"},405)
+Deno.serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:H});if(req.method!=="POST")return R({error:"method_not_allowed"},405)
+ const auth=req.headers.get("Authorization"); if(!auth)return R({error:"Unauthorized"},401)
+ const url=Deno.env.get("SUPABASE_URL")!,anon=Deno.env.get("SUPABASE_ANON_KEY")!,service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+ const userDb=createClient(url,anon,{global:{headers:{Authorization:auth}}}),admin=createClient(url,service)
+ let action:J|null=null
  try{
-  const auth=req.headers.get("Authorization")
-  if(!auth) return respond({error:"Unauthorized"},401)
-  const url=Deno.env.get("SUPABASE_URL")!, anon=Deno.env.get("SUPABASE_ANON_KEY")!, service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  const userDb=createClient(url,anon,{global:{headers:{Authorization:auth}}})
-  const {data:{user},error:userErr}=await userDb.auth.getUser(); if(userErr||!user) return respond({error:"Unauthorized"},401)
-  const {data:isOwner,error:ownerErr}=await userDb.rpc("is_platform_owner"); if(ownerErr||!isOwner) return respond({error:"HQ platform owner required"},403)
-  const admin=createClient(url,service)
-  const body=await req.json().catch(()=>({})) as AnyRow
-  let action:AnyRow|null=null
-  if(body.action_id){const {data,error}=await admin.from("curriculum_editorial_actions").select("*").eq("id",body.action_id).maybeSingle(); if(error)throw error; action=data}
-  else {const {data,error}=await admin.from("curriculum_editorial_actions").select("*").eq("status","queued").order("priority",{ascending:false}).order("created_at").limit(1).maybeSingle(); if(error)throw error; action=data}
-  if(!action) return respond({status:"no_work"})
-  const {data:signal,error:sErr}=await admin.from("curriculum_content_health_signals").select("*").eq("id",action.health_signal_id).single(); if(sErr)throw sErr
-  const {data:chapter,error:cErr}=await admin.from("vibe_chapters").select("id,publication_id,title,number,blocks,learning_outcomes,cbc_strand,curriculum_id").eq("id",action.chapter_id).single(); if(cErr)throw cErr
-  const {data:blocks,error:bErr}=await admin.from("content_blocks").select("id,legacy_block_id,sequence,block_type,title,plain_text,is_assessable").eq("chapter_id",chapter.id).order("sequence"); if(bErr)throw bErr
-  await admin.from("curriculum_editorial_actions").update({status:"in_progress",updated_at:new Date().toISOString()}).eq("id",action.id)
-
-  let webContext=""; const researchNeeded=["fact_check","investigate","rights_review"].includes(action.action_type)
-  if(researchNeeded&&TAVILY_KEY){
-   const q=`${chapter.title} ${chapter.cbc_strand||""} ${action.rationale} Kenya curriculum authoritative source`
-   const t=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:TAVILY_KEY,query:q,max_results:5,include_answer:true})})
-   if(t.ok){const td=await t.json(); webContext=(td.results||[]).map((r:AnyRow)=>`${r.url}\n${r.title}: ${r.content}`).join("\n\n").slice(0,12000)}
-  }
-  if(!GROQ_KEY) throw new Error("GROQ_API_KEY missing")
-  const blockText=(blocks||[]).map((b:AnyRow)=>`BLOCK ${b.sequence} (${b.legacy_block_id||b.id}) [${b.block_type}]\n${b.plain_text||""}`).join("\n\n").slice(0,26000)
-  const prompt=`You are the Vibeschool Senior Editorial Board for Kenyan curriculum publishing. You are reviewing a content-health signal, not blindly generating prose. Act like an experienced subject editor, classroom teacher, fact-checker and educational writer.
-
-EDITORIAL ACTION: ${action.action_type}
-PRIORITY: ${action.priority}
-RATIONALE: ${action.rationale}
-HEALTH SIGNAL: ${signal.signal_type}; severity=${signal.severity}; score=${signal.score}; evidence_count=${signal.evidence_count}
-EVIDENCE: ${JSON.stringify(signal.evidence)}
-CHAPTER: ${chapter.title}
-CURRICULUM STRAND: ${chapter.cbc_strand||""}
-LEARNING OUTCOMES: ${JSON.stringify(chapter.learning_outcomes||[])}
-
-CURRENT CANONICAL BLOCKS:
-${blockText}
-${webContext?`\nCURRENT WEB EVIDENCE:\n${webContext}`:""}
-
-Editorial constitution:
-- Diagnose before editing. A weak learner signal can mean wording, sequencing, examples, assessment, prerequisites, or context; do not assume the chapter is wrong.
-- Prefer the smallest change that materially improves learning.
-- Preserve correct existing content.
-- Use natural, precise, warm, intellectually serious prose. No generic chatbot tone, marketing language, filler, decorative Kenyan examples, or fake certainty.
-- Kenyan context must be authentic and educationally useful.
-- Distinguish established fact from emerging evidence.
-- Never copy source wording; synthesize original learner-facing prose.
-- If evidence does not justify a content change, return no_change.
-- Select one exact existing block sequence when recommending replacement. If the action is better handled as an added example/activity or teacher/assessment derivative, say so and do not pretend it is a replacement.
-
-Return ONLY:
-<editorial_json>{"decision":"proposal|no_change","title":"...","diagnosis":"...","proposal_type":"correction|enrichment|new_content|assessment_update|teacher_guidance|review_candidate","curriculum_relevance":"C1|C2|C3|C4","target_sequence":1,"current_content":"exact current block text if replacing, otherwise empty","proposed_content":"finished original learner-facing draft or derivative brief","rationale":"...","confidence":0.0,"verification_status":"verified|insufficient_evidence|unverified","volatility":"low|medium|high"}</editorial_json>`
-  const g=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${GROQ_KEY}`},body:JSON.stringify({model:MODEL,messages:[{role:"user",content:prompt}],max_tokens:4200,temperature:0.2})})
-  const gd=await g.json(); if(!g.ok) throw new Error(`groq_failed:${g.status}`)
-  const out=parseJson(gd.choices?.[0]?.message?.content||"")
-  if(!out) throw new Error("invalid_editorial_output")
-  if(out.decision!=="proposal"){
-   await admin.from("curriculum_editorial_actions").update({status:"completed",updated_at:new Date().toISOString()}).eq("id",action.id)
-   await admin.from("curriculum_content_health_signals").update({status:"resolved",updated_at:new Date().toISOString()}).eq("id",signal.id)
-   return respond({status:"no_change",action_id:action.id,diagnosis:out.diagnosis||out.rationale})
-  }
-  const seq=Number(out.target_sequence); const target=(blocks||[]).find((b:AnyRow)=>b.sequence===seq)
-  const patch=target?{operation:"research_draft",auto_apply:false,sequence:seq,legacy_block_id:target.legacy_block_id||null,health_action_id:action.id}:{operation:"research_draft",auto_apply:false,health_action_id:action.id}
-  const {data:proposal,error:pErr}=await admin.from("curriculum_intelligence_proposals").insert({publication_id:chapter.publication_id,chapter_id:chapter.id,proposal_type:out.proposal_type||"review_candidate",title:out.title||`Editorial review: ${chapter.title}`,claim:out.diagnosis||signal.signal_type,current_content:out.current_content||target?.plain_text||null,proposed_content:out.proposed_content||"",patch,rationale:out.rationale||action.rationale,curriculum_relevance:out.curriculum_relevance||"C4",confidence:Math.max(0,Math.min(1,Number(out.confidence)||0)),verification_status:out.verification_status||"unverified",volatility:out.volatility||"low",status:"pending_review",generated_by:`content_health_editorial:${MODEL}`}).select("id").single(); if(pErr)throw pErr
-  await admin.from("curriculum_editorial_actions").update({status:"proposal_created",proposal_id:proposal.id,updated_at:new Date().toISOString()}).eq("id",action.id)
-  await admin.from("curriculum_content_health_signals").update({status:"proposal_created",updated_at:new Date().toISOString()}).eq("id",signal.id)
-  return respond({status:"proposal_created",action_id:action.id,proposal_id:proposal.id,diagnosis:out.diagnosis,target_sequence:target?.sequence||null})
- }catch(e){console.error(e);return respond({error:e instanceof Error?e.message:String(e)},500)}
+  const {data:{user}}=await userDb.auth.getUser();if(!user)return R({error:"Unauthorized"},401)
+  const {data:isOwner}=await userDb.rpc("is_platform_owner");if(!isOwner)return R({error:"HQ platform owner required"},403)
+  const body=await req.json().catch(()=>({})) as J
+  const {data:claimed,error:claimErr}=await userDb.rpc("hq_claim_next_editorial_action",{p_action_id:body.action_id||null});if(claimErr)throw claimErr;action=claimed as J|null;if(!action)return R({status:"no_work"})
+  const [{data:signal,error:sErr},{data:chapter,error:cErr}]=await Promise.all([admin.from("curriculum_content_health_signals").select("*").eq("id",action.health_signal_id).single(),admin.from("vibe_chapters").select("id,publication_id,title,number,learning_outcomes,cbc_strand,curriculum_id").eq("id",action.chapter_id).single()]);if(sErr)throw sErr;if(cErr)throw cErr
+  const {data:blocks,error:bErr}=await admin.from("content_blocks").select("id,legacy_block_id,sequence,block_type,title,plain_text,is_assessable").eq("chapter_id",chapter.id).order("sequence");if(bErr)throw bErr
+  const sources:J[]=[];const researchNeeded=["fact_check","investigate","rights_review"].includes(action.action_type)
+  if(researchNeeded&&TAVILY){const q=`${chapter.title} ${chapter.cbc_strand||""} ${action.rationale} Kenya curriculum authoritative source`;const t=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:TAVILY,query:q,max_results:6,include_answer:false})});if(t.ok){const td=await t.json();for(const r of td.results||[])sources.push({url:r.url,title:r.title,content:String(r.content||"").slice(0,3500),score:Number(r.score||0)})}}
+  if(!GROQ)throw new Error("GROQ_API_KEY missing")
+  const blockText=(blocks||[]).map((b:J)=>`BLOCK ${b.sequence} (${b.legacy_block_id||b.id}) [${b.block_type}]\n${b.plain_text||""}`).join("\n\n")
+  const evidence=sources.map((s,i)=>`SOURCE ${i+1}\nURL: ${s.url}\nTITLE: ${s.title}\nEVIDENCE: ${s.content}`).join("\n\n")
+  const prompt=`You are Vibeschool's senior editorial board. Diagnose before editing. Preserve correct material. Use natural, precise, warm, intellectually serious Kenyan educational prose. Never copy source wording. Distinguish established facts from emerging evidence. Prefer the smallest useful change. Return no_change when evidence does not justify editing.\n\nACTION ${action.action_type}; PRIORITY ${action.priority}; RATIONALE ${action.rationale}\nSIGNAL ${signal.signal_type}; severity=${signal.severity}; score=${signal.score}; evidence_count=${signal.evidence_count}\nSIGNAL EVIDENCE ${JSON.stringify(signal.evidence)}\nCHAPTER ${chapter.title}; STRAND ${chapter.cbc_strand||""}; OUTCOMES ${JSON.stringify(chapter.learning_outcomes||[])}\n\nCANONICAL BLOCKS\n${blockText}\n\nSTRUCTURED WEB EVIDENCE\n${evidence||"none"}\n\nReturn ONLY <editorial_json>{"decision":"proposal|no_change","title":"...","diagnosis":"...","proposal_type":"correction|enrichment|new_content|assessment_update|teacher_guidance|review_candidate","curriculum_relevance":"C1|C2|C3|C4","target_sequence":1,"current_content":"...","proposed_content":"...","rationale":"...","confidence":0.0,"verification_status":"verified|insufficient_evidence|unverified","volatility":"low|medium|high","followup_actions":["rewrite_explanation|add_example|add_activity|add_vibelab|expand_assessment|refresh_teacher_guide|fact_check|rights_review"]}</editorial_json>`
+  const g=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${GROQ}`},body:JSON.stringify({model:MODEL,messages:[{role:"user",content:prompt}],max_tokens:4200,temperature:0.15,response_format:{type:"json_object"}})});const gd=await g.json();if(!g.ok)throw new Error(`groq_failed:${g.status}`);const out=parse(gd.choices?.[0]?.message?.content||"");if(!valid(out,(blocks||[]).length))throw new Error("invalid_editorial_output")
+  if(out.decision==="no_change"){await admin.from("curriculum_editorial_actions").update({status:"completed",completed_at:new Date().toISOString(),locked_at:null,locked_by:null,output:{decision:"no_change",diagnosis:out.diagnosis}}).eq("id",action.id);await admin.from("curriculum_content_health_signals").update({status:"resolved",updated_at:new Date().toISOString()}).eq("id",signal.id);return R({status:"no_change",action_id:action.id,diagnosis:out.diagnosis})}
+  const target=(blocks||[]).find((b:J)=>b.sequence===Number(out.target_sequence));if(!target)throw new Error("target_sequence_not_found")
+  const maxOverlap=sources.reduce((m,s)=>Math.max(m,overlap(out.proposed_content,s.content)),0);if(maxOverlap>0.22)throw new Error(`source_similarity_too_high:${maxOverlap.toFixed(3)}`);if(out.verification_status==="verified"&&sources.length<2)out.verification_status="insufficient_evidence"
+  const patch={operation:"research_draft",auto_apply:false,sequence:target.sequence,legacy_block_id:target.legacy_block_id||null,health_action_id:action.id,evidence:sources.map(s=>({url:s.url,title:s.title,score:s.score})),followup_actions:out.followup_actions,max_source_similarity:maxOverlap}
+  const {data:proposal,error:pErr}=await admin.from("curriculum_intelligence_proposals").insert({publication_id:chapter.publication_id,chapter_id:chapter.id,proposal_type:out.proposal_type,title:out.title||`Editorial review: ${chapter.title}`,claim:out.diagnosis,current_content:target.plain_text||null,proposed_content:out.proposed_content,patch,rationale:out.rationale,curriculum_relevance:out.curriculum_relevance,confidence:Number(out.confidence),verification_status:out.verification_status,volatility:out.volatility,status:"pending_review",generated_by:`content_health_editorial:${MODEL}`}).select("id").single();if(pErr)throw pErr
+  if(sources.length)await admin.from("curriculum_intelligence_sources").insert(sources.map(s=>({proposal_id:proposal.id,url:s.url,title:s.title,publisher:new URL(s.url).hostname,source_type:"web",authority_score:Math.max(0,Math.min(1,s.score||0)),supports_claim:true,evidence_summary:s.content.slice(0,800)})))
+  await admin.from("curriculum_editorial_actions").update({status:"proposal_created",proposal_id:proposal.id,completed_at:new Date().toISOString(),locked_at:null,locked_by:null,output:{diagnosis:out.diagnosis,followup_actions:out.followup_actions,max_source_similarity:maxOverlap},updated_at:new Date().toISOString()}).eq("id",action.id);await admin.from("curriculum_content_health_signals").update({status:"proposal_created",updated_at:new Date().toISOString()}).eq("id",signal.id)
+  return R({status:"proposal_created",action_id:action.id,proposal_id:proposal.id,target_sequence:target.sequence,followup_actions:out.followup_actions,max_source_similarity:maxOverlap})
+ }catch(e){const msg=e instanceof Error?e.message:String(e);console.error(msg);if(action?.id){const {error}=await userDb.rpc("hq_fail_editorial_action",{p_action_id:action.id,p_error:msg});if(error)console.error("fail_state_update",error.message)}return R({error:msg},500)}
 })
