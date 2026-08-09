@@ -122,6 +122,22 @@ create table if not exists public.timetable_slots (
   updated_at timestamptz not null default clock_timestamp()
 );
 
+create table if not exists public.lesson_plans (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id) on delete cascade,
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  class_id uuid not null,
+  subject_id uuid not null references public.subjects(id) on delete restrict,
+  week_start date not null,
+  day_of_week integer not null check (day_of_week between 1 and 7),
+  title text,
+  body text,
+  generated_by text not null default 'manual' check (generated_by in ('manual','twin')),
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
+  constraint chk_lesson_plan_content check (title is not null or body is not null)
+);
+
 -- RLS is enabled here so later policy-recovery migrations operate against the
 -- same security posture as the live core tables. Policies themselves are
 -- restored by later canonical migrations.
@@ -132,3 +148,4 @@ alter table public.students enable row level security;
 alter table public.subjects enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
+alter table public.lesson_plans enable row level security;
