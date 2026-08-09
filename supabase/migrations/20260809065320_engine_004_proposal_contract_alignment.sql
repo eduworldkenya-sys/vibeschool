@@ -1,0 +1,1 @@
+do $$ declare d text; begin select pg_get_functiondef('public.run_content_intelligence_cycle(text)'::regprocedure) into d; d:=replace(d,'current_content,rationale','current_content,proposed_content,rationale'); d:=replace(d,'b.plain_text,\n         concat','coalesce(b.plain_text,'''') , '''',\n         concat'); execute d; end $$;
