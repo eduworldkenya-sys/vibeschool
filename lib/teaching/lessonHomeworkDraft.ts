@@ -64,24 +64,26 @@ export async function ensureLessonHomeworkDraft(input: EnsureLessonHomeworkDraft
   const existing = existingResult.data as HomeworkIdRow | null
   if (existing?.id) return { outcome: 'preserved_existing', homeworkId: existing.id, questionsCreated: 0 }
 
-  const insertResult = await supabase
-    .from('homework')
-    .insert({
-      class_id: input.classId,
-      teacher_id: teacherId,
-      school_id: schoolId,
-      lesson_plan_id: lessonPlanId,
-      title,
-      subject: input.subject.trim(),
-      instructions,
-      type: 'written',
-      due_date: suggestedDueDate,
-      source_publication_id: optionalId(input.sourcePublicationId),
-      source_chapter_id: optionalId(input.sourceChapterId),
-      source_resource_id: optionalId(input.sourceResourceId),
-      source_block_id: optionalId(input.sourceBlockId),
-      source_outcome_id: optionalId(input.sourceOutcomeId),
-    })
+  const homeworkPayload = {
+    class_id: input.classId,
+    teacher_id: teacherId,
+    school_id: schoolId,
+    lesson_plan_id: lessonPlanId,
+    title,
+    subject: input.subject.trim(),
+    instructions,
+    type: 'written',
+    due_date: suggestedDueDate,
+    source_publication_id: optionalId(input.sourcePublicationId),
+    source_chapter_id: optionalId(input.sourceChapterId),
+    source_resource_id: optionalId(input.sourceResourceId),
+    source_block_id: optionalId(input.sourceBlockId),
+    source_outcome_id: optionalId(input.sourceOutcomeId),
+  }
+
+  // Provenance columns are live in production but may temporarily lead generated database.types.ts.
+  const insertResult = await (supabase.from('homework') as any)
+    .insert(homeworkPayload)
     .select('id')
     .single()
 
