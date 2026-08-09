@@ -2,13 +2,12 @@
 /**
  * HQ Company Library certification verifier.
  *
- * This script is intentionally read-only. It inspects the connected Supabase
- * database and fails closed when Company Library schema, RLS, storage, RPC
- * privilege, approval, version, workforce-lineage, department-mapping, or
- * relational write-authority invariants are missing.
+ * Read-only. Fails closed when Company Library schema, RLS, storage, RPC
+ * privileges, approval/version integrity, workforce lineage, department mapping,
+ * relational write authority, or database<->Storage integrity drift is detected.
  *
  * Required env:
- *   SUPABASE_URL
+ *   SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL)
  *   SUPABASE_SERVICE_ROLE_KEY
  */
 
@@ -43,6 +42,7 @@ const ownerRpcs = [
   "hq_library_request_approval",
   "hq_library_decide_approval",
   "hq_library_set_lifecycle",
+  "hq_library_register_upload",
 ]
 
 const serviceOnlyFunctions = [
@@ -104,6 +104,18 @@ async function main() {
     const count = Number(storagePolicies[`${operation}_policies`] ?? 0)
     if (count > 0) pass(`storage ${operation.toUpperCase()} policy`, `${count} scoped policy/policies`)
     else fail(`storage ${operation.toUpperCase()} policy`, "missing Company Library storage policy")
+  }
+
+  const storageIntegrity = report?.storage_integrity ?? {}
+  const storageZeroChecks = [
+    ["orphan storage objects", "orphan_storage_objects"],
+    ["missing storage objects", "missing_storage_objects"],
+    ["file versions without provenance", "file_versions_without_provenance"],
+  ]
+  for (const [label, key] of storageZeroChecks) {
+    const value = storageIntegrity[key]
+    if (value === 0) pass(label, "none detected")
+    else fail(label, `${value ?? "unknown"} detected`)
   }
 
   const functionRows = Array.isArray(report?.functions) ? report.functions : []
