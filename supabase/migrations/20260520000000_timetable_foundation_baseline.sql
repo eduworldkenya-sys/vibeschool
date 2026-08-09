@@ -185,6 +185,40 @@ create table if not exists public.tpad_appraisals (
   unique (teacher_id,term_id)
 );
 
+create table if not exists public.vc_threads (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id),
+  type text not null check (type in ('direct','circular')),
+  subject text,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  last_message_at timestamptz,
+  last_message_preview text,
+  context_tag text default 'general'
+);
+
+create table if not exists public.vc_participants (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid references public.vc_threads(id) on delete cascade,
+  profile_id uuid references public.profiles(id),
+  school_id uuid references public.schools(id),
+  joined_at timestamptz default now(),
+  left_at timestamptz,
+  last_read_at timestamptz,
+  unique (thread_id,profile_id)
+);
+
+create table if not exists public.vc_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid references public.vc_threads(id) on delete cascade,
+  school_id uuid references public.schools(id),
+  sender_id uuid references public.profiles(id),
+  body text not null,
+  created_at timestamptz default now(),
+  deleted_at timestamptz
+);
+
 -- RLS is enabled here so later policy-recovery migrations operate against the
 -- same security posture as the live core tables. Policies themselves are
 -- restored by later canonical migrations.
@@ -199,3 +233,6 @@ alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.lesson_plans enable row level security;
 alter table public.tpad_appraisals enable row level security;
+alter table public.vc_threads enable row level security;
+alter table public.vc_participants enable row level security;
+alter table public.vc_messages enable row level security;
