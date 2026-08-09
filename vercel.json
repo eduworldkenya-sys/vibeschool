@@ -7,8 +7,9 @@
   "installCommand": "npm install",
   "git": {
     "deploymentEnabled": {
+      "main": true,
       "*": false,
-      "main": true
+      "**": false
     }
   },
   "crons": [
