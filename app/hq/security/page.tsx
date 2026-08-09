@@ -141,6 +141,7 @@ export default function HQSecurityPage() {
       <div>
         {loading ? <div style={{padding:20,color:C.muted,fontSize:12}}>Loading authoritative Auth accounts…</div> : users.length===0 ? <div style={{padding:20,color:C.muted,fontSize:12}}>No matching accounts.</div> : users.map((user,index)=>{
           const locked=isLocked(user)
+          const ownerProtectedOpacity = user.is_platform_owner ? .45 : 1
           return <div key={user.id} className="hq-mobile-stack" style={{padding:14,borderTop:index?`1px solid ${C.border}`:0,alignItems:"start"}}>
             <div style={{minWidth:0}}>
               <div style={{display:"flex",gap:7,alignItems:"center",flexWrap:"wrap"}}>
@@ -154,9 +155,9 @@ export default function HQSecurityPage() {
               <div style={{fontSize:9.5,color:C.muted,marginTop:4}}>Last sign-in {user.last_sign_in_at?new Date(user.last_sign_in_at).toLocaleString("en-KE"):"Never"}</div>
             </div>
             <div className="hq-action-row" style={{justifyContent:"flex-end"}}>
-              <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"send_recovery")} style={{...hqButtonStyle,opacity:user.is_platform_owner?.45:1}}>Send reset</button>
-              <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"revoke_sessions")} style={{...hqButtonStyle,opacity:user.is_platform_owner?.45:1}}>Revoke sessions</button>
-              {locked ? <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"unlock")} style={{...hqButtonStyle,color:C.green,opacity:user.is_platform_owner?.45:1}}>Unlock</button> : <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"lock")} style={{...hqButtonStyle,color:C.red,opacity:user.is_platform_owner?.45:1}}>Lock</button>}
+              <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"send_recovery")} style={{...hqButtonStyle,opacity:ownerProtectedOpacity}}>Send reset</button>
+              <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"revoke_sessions")} style={{...hqButtonStyle,opacity:ownerProtectedOpacity}}>Revoke sessions</button>
+              {locked ? <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"unlock")} style={{...hqButtonStyle,color:C.green,opacity:ownerProtectedOpacity}}>Unlock</button> : <button disabled={Boolean(acting)||user.is_platform_owner} onClick={()=>void act(user,"lock")} style={{...hqButtonStyle,color:C.red,opacity:ownerProtectedOpacity}}>Lock</button>}
             </div>
           </div>
         })}
