@@ -1,57 +1,47 @@
-"use client"
+import Link from 'next/link'
+import { createServerClient } from '@supabase/ssr'
+import { cookies, headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 
-import { useEffect, useState } from "react"
-import { usePathname, useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+const HQ_PATH_HEADER = 'x-vibeschool-hq-path'
 
-export default function HQLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [state, setState] = useState<"checking" | "allowed" | "denied">("checking")
-  const isLogin = pathname === "/hq/login"
-
-  useEffect(() => {
-    if (isLogin) {
-      setState("allowed")
-      return
+function createHQServerClient() {
+  const cookieStore = cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll() {
+          // Server Components cannot persist refreshed cookies. Middleware owns refresh.
+        },
+      },
     }
+  )
+}
 
-    let active = true
-    async function verify() {
-      const { data: auth } = await supabase.auth.getUser()
-      if (!active) return
-      if (!auth.user) {
-        router.replace("/hq/login")
-        return
-      }
+export default async function HQLayout({ children }: { children: React.ReactNode }) {
+  const pathname = headers().get(HQ_PATH_HEADER) ?? '/hq'
 
-      const { data, error } = await supabase.rpc("is_platform_owner")
-      if (!active) return
-      if (error || data !== true) {
-        setState("denied")
-        return
-      }
-      setState("allowed")
-    }
-    void verify()
-    return () => { active = false }
-  }, [isLogin, router])
+  // The login surface must remain reachable so an unauthorized existing session
+  // can be replaced with the platform-owner account.
+  if (pathname === '/hq/login') return <>{children}</>
 
-  if (state === "checking") {
-    return <div style={{ minHeight: "100dvh", background: "#0a1628", color: "rgba(255,255,255,.65)", display: "grid", placeItems: "center", fontFamily: "Inter,system-ui,sans-serif" }}>Verifying HQ authority…</div>
-  }
+  const supabase = createHQServerClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) redirect(`/hq/login?redirect=${encodeURIComponent(pathname)}`)
 
-  if (state === "denied") {
-    return (
-      <div style={{ minHeight: "100dvh", background: "#0a1628", color: "white", display: "grid", placeItems: "center", padding: 24, fontFamily: "Inter,system-ui,sans-serif" }}>
-        <div style={{ maxWidth: 440 }}>
-          <h1 style={{ marginBottom: 8 }}>HQ access required</h1>
-          <p style={{ color: "rgba(255,255,255,.55)", lineHeight: 1.6 }}>This control plane is restricted to registered Vibeschool platform owners. School-admin access does not grant HQ publishing authority.</p>
-          <button onClick={async () => { await supabase.auth.signOut(); router.replace("/hq/login") }} style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "12px 16px", fontWeight: 800, cursor: "pointer" }}>Return to HQ login</button>
-        </div>
-      </div>
-    )
-  }
+  const { data: access, error: accessError } = await supabase.rpc('hq_check_owner_access', {
+    p_surface: `${pathname}:server-layout`,
+  })
+  const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
+  if (!allowed) redirect('/?hq=denied')
 
-  return <>{children}</>
+  return <>
+    <nav aria-label="HQ owner navigation" style={{position:'sticky',top:0,zIndex:80,display:'flex',gap:6,overflowX:'auto',padding:'7px 10px',background:'#07111f',borderBottom:'1px solid rgba(255,255,255,.08)',fontFamily:'Inter,system-ui,sans-serif'}}>
+      {[['HQ','/hq'],['Departments','/hq/departments'],['Decisions','/hq/decisions'],['Publishing','/hq/content'],['Analytics','/hq/analytics']].map(([label,href])=><Link key={href} href={href} style={{whiteSpace:'nowrap',padding:'7px 10px',borderRadius:9,border:'1px solid rgba(255,255,255,.08)',color:'#e2e8f0',background:'rgba(255,255,255,.03)',fontSize:11,fontWeight:800,textDecoration:'none'}}>{label}</Link>)}
+    </nav>
+    {children}
+  </>
 }
