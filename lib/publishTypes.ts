@@ -41,6 +41,10 @@ export type CBCSubject =
   | 'biology'
   | 'chemistry'
   | 'physics'
+  | 'history_citizenship'
+  | 'history_government'
+  | 'business_studies'
+  | 'agriculture'
   | 'social_studies'
   | 'creative_arts'
   | 'physical_education'
@@ -51,6 +55,7 @@ export type CBCGrade =
   | 'pp1' | 'pp2'
   | 'grade1' | 'grade2' | 'grade3' | 'grade4'
   | 'grade5' | 'grade6' | 'grade7' | 'grade8' | 'grade9'
+  | 'grade10' | 'grade11' | 'grade12'
   | 'form1' | 'form2' | 'form3' | 'form4'
 
 export type PublicationGenre =
@@ -101,7 +106,7 @@ export interface VibeChapter {
   id:               string
   publication_id:   string
   title:            string | null
-  number:           number
+  number:            number
   blocks:           ContentBlock[]
   status:           ChapterStatus
   word_count:       number
@@ -129,98 +134,29 @@ export const FORMAT_META: Record<PublicationFormat, {
   chapterLabel:  string
   chapterPlural: string
 }> = {
-  vibepress: {
-    label:         'VibePress',
-    icon:          '📰',
-    accent:        '#4ECDC4',
-    chapterLabel:  'Article',
-    chapterPlural: 'Articles',
-  },
-  vibechronicles: {
-    label:         'VibeChronicles',
-    icon:          '📖',
-    accent:        '#FF6B6B',
-    chapterLabel:  'Chapter',
-    chapterPlural: 'Chapters',
-  },
-  vibetextbook: {
-    label:         'VibeTextbook',
-    icon:          '🎓',
-    accent:        '#CCFF00',
-    chapterLabel:  'Unit',
-    chapterPlural: 'Units',
-  },
-  vibescripture: {
-    label:         'VibeScripture',
-    icon:          '📿',
-    accent:        '#DDA0DD',
-    chapterLabel:  'Chapter',
-    chapterPlural: 'Chapters',
-  },
-  vibevoice: {
-    label:         'VibeVoice',
-    icon:          '🎙️',
-    accent:        '#45B7D1',
-    chapterLabel:  'Episode',
-    chapterPlural: 'Episodes',
-  },
+  vibepress: { label: 'VibePress', icon: '📰', accent: '#4ECDC4', chapterLabel: 'Article', chapterPlural: 'Articles' },
+  vibechronicles: { label: 'VibeChronicles', icon: '📖', accent: '#FF6B6B', chapterLabel: 'Chapter', chapterPlural: 'Chapters' },
+  vibetextbook: { label: 'VibeTextbook', icon: '🎓', accent: '#CCFF00', chapterLabel: 'Unit', chapterPlural: 'Units' },
+  vibescripture: { label: 'VibeScripture', icon: '📿', accent: '#DDA0DD', chapterLabel: 'Chapter', chapterPlural: 'Chapters' },
+  vibevoice: { label: 'VibeVoice', icon: '🎙️', accent: '#45B7D1', chapterLabel: 'Episode', chapterPlural: 'Episodes' },
 }
 
-export function emptyPublication(
-  authorId: string,
-  format:   PublicationFormat
-): VibePublication {
+export function emptyPublication(authorId: string, format: PublicationFormat): VibePublication {
   return {
-    id:               crypto.randomUUID(),
-    author_id:        authorId,
-    format,
-    title:            null,
-    subtitle:         null,
-    cover_url:        null,
-    description:      null,
-    genre:            'other',
-    tags:             [],
-    language:         'en',
-    status:           'draft',
-    pricing:          { type: 'free' },
-    chapter_count:    0,
-    total_reads:      0,
-    total_vibes:      0,
-    earnings_ksh:     0,
-    cbc_subject:      null,
-    cbc_grade:        null,
-    cbc_aligned:      false,
-    curriculum_framework: 'CBC',
-    series_name:      null,
-    series_number:    null,
-    publication_name: null,
-    issue_number:     null,
-    created_at:       new Date().toISOString(),
-    updated_at:       new Date().toISOString(),
-    published_at:     null,
+    id: crypto.randomUUID(), author_id: authorId, format, title: null, subtitle: null, cover_url: null, description: null,
+    genre: 'other', tags: [], language: 'en', status: 'draft', pricing: { type: 'free' }, chapter_count: 0,
+    total_reads: 0, total_vibes: 0, earnings_ksh: 0, cbc_subject: null, cbc_grade: null, cbc_aligned: false,
+    curriculum_framework: 'CBE', series_name: null, series_number: null, publication_name: null, issue_number: null,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(), published_at: null,
   }
 }
 
-export function emptyChapter(
-  publicationId: string,
-  number:        number
-): VibeChapter {
+export function emptyChapter(publicationId: string, number: number): VibeChapter {
   return {
-    id:               crypto.randomUUID(),
-    publication_id:   publicationId,
-    title:            null,
-    number,
-    blocks:           [{ id: crypto.randomUUID(), type: 'paragraph', content: '' }],
-    status:           'draft',
-    word_count:       0,
-    reading_time_min: 1,
-    published_at:     null,
-    created_at:       new Date().toISOString(),
-    updated_at:       new Date().toISOString(),
-    learning_outcomes: [],
-    cbc_strand:       null,
-    curriculum_id:    null,
-    sub_strand_id:    null,
+    id: crypto.randomUUID(), publication_id: publicationId, title: null, number,
+    blocks: [{ id: crypto.randomUUID(), type: 'paragraph', content: '' }], status: 'draft', word_count: 0,
+    reading_time_min: 1, published_at: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    learning_outcomes: [], cbc_strand: null, curriculum_id: null, sub_strand_id: null,
   }
 }
 
