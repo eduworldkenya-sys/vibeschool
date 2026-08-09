@@ -4,8 +4,8 @@
  *
  * This script is intentionally read-only. It inspects the connected Supabase
  * database and fails closed when Company Library schema, RLS, storage, RPC
- * privilege, approval, version, workforce-lineage, or department-mapping
- * invariants are missing.
+ * privilege, approval, version, workforce-lineage, department-mapping, or
+ * relational write-authority invariants are missing.
  *
  * Required env:
  *   SUPABASE_URL
@@ -80,6 +80,17 @@ async function main() {
     else if (row.rls_enabled !== true) fail(`RLS ${table}`, "disabled")
     else if (!(Number(row.policy_count) > 0)) fail(`policies ${table}`, "no RLS policy")
     else pass(`table ${table}`, `RLS enabled; ${row.policy_count} policy/policies`)
+  }
+
+  const tablePrivileges = report?.table_privileges ?? {}
+  if (
+    Number(tablePrivileges.client_write_grants) === 0 &&
+    Number(tablePrivileges.anon_any_grants) === 0 &&
+    Number(tablePrivileges.authenticated_select_grants) === requiredTables.length
+  ) {
+    pass("relational write authority", "client writes revoked; authenticated retains read-only access")
+  } else {
+    fail("relational write authority", JSON.stringify(tablePrivileges))
   }
 
   if (report?.storage?.bucket_name === "hq-company-library" && report?.storage?.public === false) {
