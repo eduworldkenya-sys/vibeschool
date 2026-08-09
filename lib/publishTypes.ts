@@ -159,3 +159,15 @@ export function emptyChapter(publicationId: string, number: number): VibeChapter
     learning_outcomes: [], cbc_strand: null, curriculum_id: null, sub_strand_id: null,
   }
 }
+
+export function calcWordCount(blocks: ContentBlock[]): number {
+  return blocks.reduce((acc, b) => {
+    if (!b.content) return acc
+    const text = b.content.replace(/<[^>]*>/g, '')
+    return acc + text.trim().split(/\s+/).filter(Boolean).length
+  }, 0)
+}
+
+export function calcReadingTime(blocks: ContentBlock[]): number {
+  return Math.max(1, Math.ceil(calcWordCount(blocks) / 200))
+}
