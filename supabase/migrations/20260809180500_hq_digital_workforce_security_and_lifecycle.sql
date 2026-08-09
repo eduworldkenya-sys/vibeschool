@@ -49,7 +49,7 @@ begin
 end;
 $$;
 
-create or replace function public.hq_activate_worker(p_worker_id uuid, p_approved_by uuid)
+create or replace function public.hq_activate_worker(p_worker_id uuid)
 returns public.hq_workers
 language plpgsql
 security definer
@@ -60,7 +60,7 @@ declare
   v_cert_count integer;
   v_failed_count integer;
 begin
-  if not public.is_platform_owner(p_approved_by) then
+  if not public.is_platform_owner() then
     raise exception 'HQ owner authorization required';
   end if;
 
@@ -87,9 +87,9 @@ end;
 $$;
 
 revoke execute on function public.hq_claim_worker_message(uuid) from public, anon, authenticated;
-revoke execute on function public.hq_activate_worker(uuid, uuid) from public, anon, authenticated;
+revoke execute on function public.hq_activate_worker(uuid) from public, anon, authenticated;
 grant execute on function public.hq_claim_worker_message(uuid) to service_role;
-grant execute on function public.hq_activate_worker(uuid, uuid) to service_role;
+grant execute on function public.hq_activate_worker(uuid) to service_role;
 
 comment on function public.hq_claim_worker_message(uuid) is 'Internal deterministic work-bus claim using SKIP LOCKED. service_role only.';
-comment on function public.hq_activate_worker(uuid, uuid) is 'Activates only certified probation workers after explicit platform-owner approval. service_role only.';
+comment on function public.hq_activate_worker(uuid) is 'Activates only certified probation workers after explicit platform-owner approval. service_role only.';
