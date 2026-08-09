@@ -88,6 +88,16 @@ create table if not exists public.students (
   created_by uuid references auth.users(id)
 );
 
+create table if not exists public.student_claim_codes (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid not null references public.students(id),
+  code text not null unique,
+  claimed boolean not null default false,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '30 days'),
+  claimed_by uuid references auth.users(id)
+);
+
 create table if not exists public.subjects (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -145,6 +155,7 @@ alter table public.schools enable row level security;
 alter table public.profiles enable row level security;
 alter table public.classes enable row level security;
 alter table public.students enable row level security;
+alter table public.student_claim_codes enable row level security;
 alter table public.subjects enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
