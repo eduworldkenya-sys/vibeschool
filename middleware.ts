@@ -42,16 +42,18 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   const isHQLogin = pathname === '/hq/login'
+  const isHQRecovery = pathname === '/hq/reset-password'
+  const isHQPublicAuthRoute = isHQLogin || isHQRecovery
   const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
 
-  if (isProtected && !user && !isHQLogin) {
+  if (isProtected && !user && !isHQPublicAuthRoute) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = pathname.startsWith('/hq') ? '/hq/login' : '/'
     loginUrl.searchParams.set('redirect', pathname)
     return redirectWithAuth(loginUrl)
   }
 
-  if (user && pathname.startsWith('/hq') && !isHQLogin) {
+  if (user && pathname.startsWith('/hq') && !isHQPublicAuthRoute) {
     const { data: access, error } = await supabase.rpc('hq_check_owner_access', { p_surface: pathname })
     const allowed = !error && Boolean((access as { allowed?: boolean } | null)?.allowed)
     if (!allowed) {
