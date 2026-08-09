@@ -19,13 +19,13 @@ type PublicationInsert = Database['public']['Tables']['vibe_publications']['Inse
 type ChapterRow = Database['public']['Tables']['vibe_chapters']['Row']
 type ChapterInsert = Database['public']['Tables']['vibe_chapters']['Insert']
 
-const PUBLICATION_FORMATS: readonly PublicationFormat[] = ['vibepress','vibechronicles','vibetextbook','vibescripture','vibevoice']
-const PUBLICATION_STATUSES: readonly PublicationStatus[] = ['draft','published','archived']
+const PUBLICATION_FORMATS: readonly PublicationFormat[] = ['vibepress','vibechronicles','vibetextbook','vibescripture','vibevoice','ebook']
+const PUBLICATION_STATUSES: readonly PublicationStatus[] = ['draft','published','unpublished','archived']
 const CHAPTER_STATUSES: readonly ChapterStatus[] = ['draft','published','locked']
 const PUBLICATION_GENRES: readonly PublicationGenre[] = ['fiction','non_fiction','romance','thriller','biography','self_help','religion','academic','children','poetry','magazine','other']
-const CBC_SUBJECTS: readonly CBCSubject[] = ['mathematics','english','kiswahili','science','biology','chemistry','physics','social_studies','creative_arts','physical_education','religious_education','other']
-const CBC_GRADES: readonly CBCGrade[] = ['pp1','pp2','grade1','grade2','grade3','grade4','grade5','grade6','grade7','grade8','grade9','form1','form2','form3','form4']
-const BLOCK_TYPES: readonly BlockType[] = ['paragraph','heading1','heading2','heading3','quote','bulletList','numberedList','image','divider','callout','code','activity','question','interactive']
+const CBC_SUBJECTS: readonly CBCSubject[] = ['mathematics','english','kiswahili','science','biology','chemistry','physics','agriculture','business_studies','history_citizenship','social_studies','creative_arts','physical_education','religious_education','other']
+const CBC_GRADES: readonly CBCGrade[] = ['pp1','pp2','grade1','grade2','grade3','grade4','grade5','grade6','grade7','grade8','grade9','grade10','grade11','grade12','form1','form2','form3','form4']
+const BLOCK_TYPES: readonly BlockType[] = ['paragraph','heading1','heading2','heading3','quote','bulletList','numberedList','image','diagram','table','equation','video','audio','model3d','simulation','divider','callout','definition','example','workedExample','summary','keyPoints','code','activity','experiment','project','question','interactive']
 
 function isRecord(value: unknown): value is Record<string, Json | undefined> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
