@@ -63,6 +63,20 @@ alter table public.schools
   add constraint schools_created_by_fkey foreign key (created_by)
   references public.profiles(id) on delete set null;
 
+create table if not exists public.academic_terms (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id),
+  name text not null,
+  term integer not null check (term in (1,2,3)),
+  academic_year integer not null,
+  start_date date not null,
+  end_date date not null,
+  status text not null default 'upcoming' check (status in ('active','upcoming','completed')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  constraint academic_terms_school_id_term_academic_year_key unique (school_id,term,academic_year)
+);
+
 create table if not exists public.classes (
   id uuid primary key default gen_random_uuid(),
   teacher_id uuid references public.profiles(id) on delete set null,
@@ -148,11 +162,35 @@ create table if not exists public.lesson_plans (
   constraint chk_lesson_plan_content check (title is not null or body is not null)
 );
 
+create table if not exists public.tpad_appraisals (
+  id uuid primary key default gen_random_uuid(),
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
+  term_id uuid references public.academic_terms(id) on delete set null,
+  status text not null default 'draft' check (status in ('draft','submitted','countersigned')),
+  standard_1_self numeric check (standard_1_self between 1 and 5),
+  standard_1_head numeric check (standard_1_head between 1 and 5),
+  standard_2_self numeric check (standard_2_self between 1 and 5),
+  standard_2_head numeric check (standard_2_head between 1 and 5),
+  standard_3_self numeric check (standard_3_self between 1 and 5),
+  standard_3_head numeric check (standard_3_head between 1 and 5),
+  standard_4_self numeric check (standard_4_self between 1 and 5),
+  standard_4_head numeric check (standard_4_head between 1 and 5),
+  final_score numeric,
+  head_notes text,
+  submitted_at timestamptz,
+  countersigned_at timestamptz,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (teacher_id,term_id)
+);
+
 -- RLS is enabled here so later policy-recovery migrations operate against the
 -- same security posture as the live core tables. Policies themselves are
 -- restored by later canonical migrations.
 alter table public.schools enable row level security;
 alter table public.profiles enable row level security;
+alter table public.academic_terms enable row level security;
 alter table public.classes enable row level security;
 alter table public.students enable row level security;
 alter table public.student_claim_codes enable row level security;
@@ -160,3 +198,4 @@ alter table public.subjects enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.lesson_plans enable row level security;
+alter table public.tpad_appraisals enable row level security;
