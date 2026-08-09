@@ -6,7 +6,16 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "work/**": false,
+      "ops/**": false,
+      "hq/**": false,
+      "content/**": false,
+      "audit/**": false,
+      "twin/**": false,
+      "feature/**": false,
+      "fix/**": false
+    }
   },
   "crons": [
     {
