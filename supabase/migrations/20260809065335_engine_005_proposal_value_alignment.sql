@@ -1,0 +1,1 @@
+do $$ declare d text; begin select pg_get_functiondef('public.run_content_intelligence_cycle(text)'::regprocedure) into d; d:=replace(d,'         b.plain_text,','         coalesce(b.plain_text,'''') , '''','); execute d; end $$;
