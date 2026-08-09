@@ -21,8 +21,8 @@ const FORMAT_OPTIONS: Array<{ format: StudioFormat; title: string; description: 
 ]
 
 function dateLabel(value: string): string {
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export default function TeacherContentStudioPage() {
@@ -51,7 +51,10 @@ export default function TeacherContentStudioPage() {
   if (loading) return <div style={{ minHeight: '100dvh', background: BG, color: MUTED, display: 'grid', placeItems: 'center' }}>Loading Content Studio…</div>
 
   return <div style={{ minHeight: '100dvh', background: BG, color: TEXT, padding: '24px 16px 110px', fontFamily: 'system-ui,-apple-system,sans-serif' }}><div style={{ maxWidth: 760, margin: '0 auto' }}>
-    <button onClick={() => router.push('/teacher/vibelearn')} style={{ background: 'transparent', border: 'none', color: MUTED, fontSize: 14, cursor: 'pointer', padding: '4px 0 18px' }}>‹ VibeLearn</button>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+      <button onClick={() => router.push('/teacher/vibelearn')} style={{ background: 'transparent', border: 'none', color: MUTED, fontSize: 14, cursor: 'pointer', padding: '4px 0' }}>‹ VibeLearn</button>
+      <button onClick={() => router.push('/teacher/studio/governance')} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10, color: TEXT, fontSize: 11, fontWeight: 800, cursor: 'pointer', padding: '8px 11px' }}>Sources & history</button>
+    </div>
     <div style={{ marginBottom: 24 }}><div style={{ color: ACCENT, fontSize: 10, fontWeight: 850, letterSpacing: '.12em', marginBottom: 7 }}>VIBESCHOOL CONTENT STUDIO</div><h1 style={{ margin: 0, fontSize: 30, lineHeight: 1.15, letterSpacing: '-.04em' }}>Create once. Teach, study and generate from it.</h1><p style={{ color: MUTED, fontSize: 14, lineHeight: 1.7, maxWidth: 640, margin: '10px 0 0' }}>Build structured educational content with curriculum outcomes, illustrations, diagrams, activities, assessments and rich media. Published textbooks keep revision history and become available to VibeLearn.</p></div>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 12, marginBottom: 30 }}>{FORMAT_OPTIONS.map(option => <button key={option.format} onClick={() => router.push(`/teacher/studio/editor?format=${option.format}`)} style={{ textAlign: 'left', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 18, color: TEXT, cursor: 'pointer' }}><div style={{ fontSize: 28, marginBottom: 12 }}>{option.icon}</div><div style={{ fontSize: 16, fontWeight: 850, marginBottom: 6 }}>{option.title}</div><div style={{ color: MUTED, fontSize: 12, lineHeight: 1.6 }}>{option.description}</div><div style={{ color: ACCENT, fontWeight: 800, fontSize: 12, marginTop: 14 }}>Create →</div></button>)}</div>
     <section><div style={{ marginBottom: 12 }}><div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', color: MUTED }}>YOUR CONTENT</div><div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>Drafts and published resources use the same creation system.</div></div>
