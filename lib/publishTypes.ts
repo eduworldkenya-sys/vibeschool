@@ -6,8 +6,9 @@ export type PublicationFormat =
   | 'vibetextbook'
   | 'vibescripture'
   | 'vibevoice'
+  | 'ebook'
 
-export type PublicationStatus = 'draft' | 'published' | 'archived'
+export type PublicationStatus = 'draft' | 'published' | 'unpublished' | 'archived'
 export type ChapterStatus = 'draft' | 'published' | 'locked'
 
 export type BlockType =
@@ -19,10 +20,24 @@ export type BlockType =
   | 'bulletList'
   | 'numberedList'
   | 'image'
+  | 'diagram'
+  | 'table'
+  | 'equation'
+  | 'video'
+  | 'audio'
+  | 'model3d'
+  | 'simulation'
   | 'divider'
   | 'callout'
+  | 'definition'
+  | 'example'
+  | 'workedExample'
+  | 'summary'
+  | 'keyPoints'
   | 'code'
   | 'activity'
+  | 'experiment'
+  | 'project'
   | 'question'
   | 'interactive'
 
@@ -41,6 +56,9 @@ export type CBCSubject =
   | 'biology'
   | 'chemistry'
   | 'physics'
+  | 'agriculture'
+  | 'business_studies'
+  | 'history_citizenship'
   | 'social_studies'
   | 'creative_arts'
   | 'physical_education'
@@ -51,6 +69,7 @@ export type CBCGrade =
   | 'pp1' | 'pp2'
   | 'grade1' | 'grade2' | 'grade3' | 'grade4'
   | 'grade5' | 'grade6' | 'grade7' | 'grade8' | 'grade9'
+  | 'grade10' | 'grade11' | 'grade12'
   | 'form1' | 'form2' | 'form3' | 'form4'
 
 export type PublicationGenre =
@@ -61,166 +80,100 @@ export type PublicationGenre =
 export type BlockMeta = Record<string, string | number | boolean | string[]>
 
 export interface ContentBlock {
-  id:      string
-  type:    BlockType
+  id: string
+  type: BlockType
   content: string
-  meta?:   BlockMeta
+  meta?: BlockMeta
 }
 
 export interface VibePublication {
-  id:               string
-  author_id:        string
-  format:           PublicationFormat
-  title:            string | null
-  subtitle:         string | null
-  cover_url:        string | null
-  description:      string | null
-  genre:            PublicationGenre
-  tags:             string[]
-  language:         'en' | 'sw' | 'mixed'
-  status:           PublicationStatus
-  pricing:          PricingModel
-  chapter_count:    number
-  total_reads:      number
-  total_vibes:      number
-  earnings_ksh:     number
-  cbc_subject:      CBCSubject | null
-  cbc_grade:        CBCGrade | null
-  cbc_aligned:      boolean
+  id: string
+  author_id: string
+  format: PublicationFormat
+  title: string | null
+  subtitle: string | null
+  cover_url: string | null
+  description: string | null
+  genre: PublicationGenre
+  tags: string[]
+  language: 'en' | 'sw' | 'mixed'
+  status: PublicationStatus
+  pricing: PricingModel
+  chapter_count: number
+  total_reads: number
+  total_vibes: number
+  earnings_ksh: number
+  cbc_subject: CBCSubject | null
+  cbc_grade: CBCGrade | null
+  cbc_aligned: boolean
   curriculum_framework: string
-  series_name:      string | null
-  series_number:    number | null
+  series_name: string | null
+  series_number: number | null
   publication_name: string | null
-  issue_number:     string | null
-  created_at:       string
-  updated_at:       string
-  published_at:     string | null
+  issue_number: string | null
+  created_at: string
+  updated_at: string
+  published_at: string | null
 }
 
 export interface VibeChapter {
-  id:               string
-  publication_id:   string
-  title:            string | null
-  number:           number
-  blocks:           ContentBlock[]
-  status:           ChapterStatus
-  word_count:       number
+  id: string
+  publication_id: string
+  title: string | null
+  number: number
+  blocks: ContentBlock[]
+  status: ChapterStatus
+  word_count: number
   reading_time_min: number
-  published_at:     string | null
-  created_at:       string
-  updated_at:       string
+  published_at: string | null
+  created_at: string
+  updated_at: string
   learning_outcomes: string[]
-  cbc_strand:       string | null
-  curriculum_id:    string | null
-  sub_strand_id:    string | null
+  cbc_strand: string | null
+  curriculum_id: string | null
+  sub_strand_id: string | null
 }
 
 export interface ProfileData {
-  id:         string
-  full_name:  string | null
+  id: string
+  full_name: string | null
   avatar_url: string | null
-  bio:        string | null
+  bio: string | null
 }
 
 export const FORMAT_META: Record<PublicationFormat, {
-  label:         string
-  icon:          string
-  accent:        string
-  chapterLabel:  string
+  label: string
+  icon: string
+  accent: string
+  chapterLabel: string
   chapterPlural: string
 }> = {
-  vibepress: {
-    label:         'VibePress',
-    icon:          '📰',
-    accent:        '#4ECDC4',
-    chapterLabel:  'Article',
-    chapterPlural: 'Articles',
-  },
-  vibechronicles: {
-    label:         'VibeChronicles',
-    icon:          '📖',
-    accent:        '#FF6B6B',
-    chapterLabel:  'Chapter',
-    chapterPlural: 'Chapters',
-  },
-  vibetextbook: {
-    label:         'VibeTextbook',
-    icon:          '🎓',
-    accent:        '#CCFF00',
-    chapterLabel:  'Unit',
-    chapterPlural: 'Units',
-  },
-  vibescripture: {
-    label:         'VibeScripture',
-    icon:          '📿',
-    accent:        '#DDA0DD',
-    chapterLabel:  'Chapter',
-    chapterPlural: 'Chapters',
-  },
-  vibevoice: {
-    label:         'VibeVoice',
-    icon:          '🎙️',
-    accent:        '#45B7D1',
-    chapterLabel:  'Episode',
-    chapterPlural: 'Episodes',
-  },
+  vibepress: { label: 'VibePress', icon: '📰', accent: '#4ECDC4', chapterLabel: 'Article', chapterPlural: 'Articles' },
+  vibechronicles: { label: 'VibeChronicles', icon: '📖', accent: '#FF6B6B', chapterLabel: 'Chapter', chapterPlural: 'Chapters' },
+  vibetextbook: { label: 'VibeTextbook', icon: '🎓', accent: '#CCFF00', chapterLabel: 'Unit', chapterPlural: 'Units' },
+  ebook: { label: 'eBook', icon: '📘', accent: '#60A5FA', chapterLabel: 'Chapter', chapterPlural: 'Chapters' },
+  vibescripture: { label: 'VibeScripture', icon: '📿', accent: '#DDA0DD', chapterLabel: 'Chapter', chapterPlural: 'Chapters' },
+  vibevoice: { label: 'VibeVoice', icon: '🎙️', accent: '#45B7D1', chapterLabel: 'Episode', chapterPlural: 'Episodes' },
 }
 
-export function emptyPublication(
-  authorId: string,
-  format:   PublicationFormat
-): VibePublication {
+export function emptyPublication(authorId: string, format: PublicationFormat): VibePublication {
   return {
-    id:               crypto.randomUUID(),
-    author_id:        authorId,
-    format,
-    title:            null,
-    subtitle:         null,
-    cover_url:        null,
-    description:      null,
-    genre:            'other',
-    tags:             [],
-    language:         'en',
-    status:           'draft',
-    pricing:          { type: 'free' },
-    chapter_count:    0,
-    total_reads:      0,
-    total_vibes:      0,
-    earnings_ksh:     0,
-    cbc_subject:      null,
-    cbc_grade:        null,
-    cbc_aligned:      false,
-    curriculum_framework: 'CBC',
-    series_name:      null,
-    series_number:    null,
-    publication_name: null,
-    issue_number:     null,
-    created_at:       new Date().toISOString(),
-    updated_at:       new Date().toISOString(),
-    published_at:     null,
+    id: crypto.randomUUID(), author_id: authorId, format, title: null, subtitle: null,
+    cover_url: null, description: null, genre: 'other', tags: [], language: 'en', status: 'draft',
+    pricing: { type: 'free' }, chapter_count: 0, total_reads: 0, total_vibes: 0, earnings_ksh: 0,
+    cbc_subject: null, cbc_grade: null, cbc_aligned: false, curriculum_framework: 'CBC',
+    series_name: null, series_number: null, publication_name: null, issue_number: null,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(), published_at: null,
   }
 }
 
-export function emptyChapter(
-  publicationId: string,
-  number:        number
-): VibeChapter {
+export function emptyChapter(publicationId: string, number: number): VibeChapter {
   return {
-    id:               crypto.randomUUID(),
-    publication_id:   publicationId,
-    title:            null,
-    number,
-    blocks:           [{ id: crypto.randomUUID(), type: 'paragraph', content: '' }],
-    status:           'draft',
-    word_count:       0,
-    reading_time_min: 1,
-    published_at:     null,
-    created_at:       new Date().toISOString(),
-    updated_at:       new Date().toISOString(),
-    learning_outcomes: [],
-    cbc_strand:       null,
-    curriculum_id:    null,
-    sub_strand_id:    null,
+    id: crypto.randomUUID(), publication_id: publicationId, title: null, number,
+    blocks: [{ id: crypto.randomUUID(), type: 'paragraph', content: '' }], status: 'draft',
+    word_count: 0, reading_time_min: 1, published_at: null,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    learning_outcomes: [], cbc_strand: null, curriculum_id: null, sub_strand_id: null,
   }
 }
 
