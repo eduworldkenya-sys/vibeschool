@@ -1,0 +1,3 @@
+-- HQ emergency override fix v1
+-- Applied to production Supabase on 2026-08-09.
+-- Fixes ambiguous id handling, requires a non-empty reason, and preserves immutable audited emergency decisions.

@@ -1,0 +1,5 @@
+-- HQ policy session + rollback semantics v1
+-- Applied to production Supabase on 2026-08-09.
+-- Counts stable Twin sessions once, makes rollback publish pending desired state,
+-- and requires observed-state verification before a rollback target becomes applied.
+-- Full authoritative DDL is recorded in Supabase migration ledger: hq_policy_session_and_rollback_v1.

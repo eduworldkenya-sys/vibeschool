@@ -1,0 +1,4 @@
+-- HQ policy registry API v1
+-- Applied to production Supabase on 2026-08-09.
+-- Adds owner-only policy registry listing and observed Twin runtime verification RPC.
+-- Full authoritative DDL is recorded in Supabase migration ledger: hq_policy_registry_api_v1.

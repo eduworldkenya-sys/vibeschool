@@ -1,0 +1,11 @@
+-- HQ enterprise organisation v2
+-- 12 top-level technology/education company departments, specialist functions,
+-- deterministic routing and executive brief. Applied to production Supabase on 2026-08-09.
+
+-- Canonical active departments:
+-- executive, product, engineering, data, trust_safety, learning, content,
+-- growth, partnerships, customer, finance, corporate.
+-- Specialist functions are stored in public.hq_functions and protected by RLS.
+-- RPCs: hq_get_org_snapshot(), hq_get_company_brief(), hq_route_department(text,text).
+-- Full DDL is recorded in the Supabase migration ledger under:
+-- hq_enterprise_org_v2 and hq_enterprise_routing_v2.

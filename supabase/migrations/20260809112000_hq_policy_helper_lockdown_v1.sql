@@ -1,0 +1,3 @@
+-- HQ helper lockdown v1
+-- Applied to production Supabase on 2026-08-09.
+-- Removes direct authenticated execution from internal helper hq_current_profile_role().
