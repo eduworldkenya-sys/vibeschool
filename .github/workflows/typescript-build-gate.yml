@@ -11,6 +11,7 @@ on:
       - 'audit/**'
       - 'twin/**'
       - 'feature/**'
+      - 'feat/**'
       - 'fix/**'
   pull_request:
     branches:

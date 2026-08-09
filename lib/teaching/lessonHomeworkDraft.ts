@@ -1,6 +1,14 @@
 import { supabase } from '@/lib/supabase'
 
-export interface EnsureLessonHomeworkDraftInput {
+export interface ContentProvenanceInput {
+  sourcePublicationId?: string | null
+  sourceChapterId?: string | null
+  sourceResourceId?: string | null
+  sourceBlockId?: string | null
+  sourceOutcomeId?: string | null
+}
+
+export interface EnsureLessonHomeworkDraftInput extends ContentProvenanceInput {
   lessonPlanId: string
   classId: string | null
   teacherId: string
@@ -12,34 +20,24 @@ export interface EnsureLessonHomeworkDraftInput {
 }
 
 export type EnsureLessonHomeworkDraftResult =
-  | {
-      outcome: 'created'
-      homeworkId: string
-      questionsCreated: number
-    }
-  | {
-      outcome: 'preserved_existing'
-      homeworkId: string
-      questionsCreated: 0
-    }
+  | { outcome: 'created'; homeworkId: string; questionsCreated: number }
+  | { outcome: 'preserved_existing'; homeworkId: string; questionsCreated: 0 }
 
-interface HomeworkIdRow {
-  id: string
-}
+interface HomeworkIdRow { id: string }
 
 function requireText(value: string, field: string): string {
   const normalized = value.trim()
-
-  if (!normalized) {
-    throw new Error(`ensureLessonHomeworkDraft: ${field} is required.`)
-  }
-
+  if (!normalized) throw new Error(`ensureLessonHomeworkDraft: ${field} is required.`)
   return normalized
+}
+
+function optionalId(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
 }
 
 function extractSuggestedQuestions(instructions: string): string[] {
   const seen = new Set<string>()
-
   return instructions
     .split('\n')
     .map(line => line.trim())
@@ -53,114 +51,57 @@ function extractSuggestedQuestions(instructions: string): string[] {
     .slice(0, 5)
 }
 
-/**
- * Creates the first draft homework linked to a lesson plan.
- *
- * Authority rule:
- * - if homework already exists, preserve it unchanged;
- * - never update its title, instructions, due date or type;
- * - never delete or replace its questions;
- * - only create suggested questions for a newly inserted homework row.
- *
- * The unique index on homework(lesson_plan_id) is the database race arbiter.
- */
-export async function ensureLessonHomeworkDraft(
-  input: EnsureLessonHomeworkDraftInput,
-): Promise<EnsureLessonHomeworkDraftResult> {
+export async function ensureLessonHomeworkDraft(input: EnsureLessonHomeworkDraftInput): Promise<EnsureLessonHomeworkDraftResult> {
   const lessonPlanId = requireText(input.lessonPlanId, 'lessonPlanId')
   const teacherId = requireText(input.teacherId, 'teacherId')
   const schoolId = requireText(input.schoolId, 'schoolId')
   const title = requireText(input.title, 'title')
   const instructions = requireText(input.instructions, 'instructions')
-  const suggestedDueDate = requireText(
-    input.suggestedDueDate,
-    'suggestedDueDate',
-  )
+  const suggestedDueDate = requireText(input.suggestedDueDate, 'suggestedDueDate')
 
-  const existingResult = await supabase
-    .from('homework')
-    .select('id')
-    .eq('lesson_plan_id', lessonPlanId)
-    .maybeSingle()
-
-  if (existingResult.error) {
-    throw existingResult.error
-  }
-
+  const existingResult = await supabase.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).maybeSingle()
+  if (existingResult.error) throw existingResult.error
   const existing = existingResult.data as HomeworkIdRow | null
+  if (existing?.id) return { outcome: 'preserved_existing', homeworkId: existing.id, questionsCreated: 0 }
 
-  if (existing?.id) {
-    return {
-      outcome: 'preserved_existing',
-      homeworkId: existing.id,
-      questionsCreated: 0,
-    }
+  const homeworkPayload = {
+    class_id: input.classId,
+    teacher_id: teacherId,
+    school_id: schoolId,
+    lesson_plan_id: lessonPlanId,
+    title,
+    subject: input.subject.trim(),
+    instructions,
+    type: 'written',
+    due_date: suggestedDueDate,
+    source_publication_id: optionalId(input.sourcePublicationId),
+    source_chapter_id: optionalId(input.sourceChapterId),
+    source_resource_id: optionalId(input.sourceResourceId),
+    source_block_id: optionalId(input.sourceBlockId),
+    source_outcome_id: optionalId(input.sourceOutcomeId),
   }
 
-  const insertResult = await supabase
-    .from('homework')
-    .insert({
-      class_id: input.classId,
-      teacher_id: teacherId,
-      school_id: schoolId,
-      lesson_plan_id: lessonPlanId,
-      title,
-      subject: input.subject.trim(),
-      instructions,
-      type: 'written',
-      due_date: suggestedDueDate,
-    })
+  // Provenance columns are live in production but may temporarily lead generated database.types.ts.
+  const insertResult = await (supabase.from('homework') as any)
+    .insert(homeworkPayload)
     .select('id')
     .single()
 
   if (insertResult.error) {
-    // Another request may have created the unique lesson homework after our
-    // initial read. Re-read and preserve that winning row rather than updating it.
     if (insertResult.error.code === '23505') {
-      const racedResult = await supabase
-        .from('homework')
-        .select('id')
-        .eq('lesson_plan_id', lessonPlanId)
-        .single()
-
+      const racedResult = await supabase.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).single()
       if (racedResult.error) throw racedResult.error
-
       const raced = racedResult.data as HomeworkIdRow
-
-      return {
-        outcome: 'preserved_existing',
-        homeworkId: raced.id,
-        questionsCreated: 0,
-      }
+      return { outcome: 'preserved_existing', homeworkId: raced.id, questionsCreated: 0 }
     }
-
     throw insertResult.error
   }
 
   const created = insertResult.data as HomeworkIdRow
   const suggestedQuestions = extractSuggestedQuestions(instructions)
-
   if (suggestedQuestions.length > 0) {
-    const questionsResult = await supabase
-      .from('homework_questions')
-      .insert(
-        suggestedQuestions.map((question, index) => ({
-          homework_id: created.id,
-          question,
-          order_num: index + 1,
-        })),
-      )
-
-    if (questionsResult.error) {
-      // Do not delete the newly-created homework. It remains a valid draft whose
-      // questions can be completed safely in the Homework workspace.
-      throw questionsResult.error
-    }
+    const questionsResult = await supabase.from('homework_questions').insert(suggestedQuestions.map((question, index) => ({ homework_id: created.id, question, order_num: index + 1 })))
+    if (questionsResult.error) throw questionsResult.error
   }
-
-  return {
-    outcome: 'created',
-    homeworkId: created.id,
-    questionsCreated: suggestedQuestions.length,
-  }
+  return { outcome: 'created', homeworkId: created.id, questionsCreated: suggestedQuestions.length }
 }

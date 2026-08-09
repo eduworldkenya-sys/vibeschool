@@ -1,0 +1,4 @@
+-- HQ product policy enforcement v1
+-- Applied to production Supabase on 2026-08-09.
+-- Adds caller authorization, student Twin policy state, per-day usage accounting and emergency override.
+-- Full authoritative DDL is recorded in Supabase migration ledger: hq_product_policy_enforcement_v1.
