@@ -1,16 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student', '/hq']
-const HQ_PATH_HEADER = 'x-vibeschool-hq-path'
+const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student']
+const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const requestHeaders = new Headers(request.headers)
-  if (pathname.startsWith('/hq')) requestHeaders.set(HQ_PATH_HEADER, pathname)
 
-  const nextResponse = () => NextResponse.next({ request: { headers: requestHeaders } })
-  let supabaseResponse = nextResponse()
+  // HQ authentication is intentionally isolated in its own browser client/storage
+  // and must not consume or mutate the normal Student/Teacher/Parent/Admin session.
+  // HQ authorization is re-checked inside the HQ surface using hq_check_owner_access.
+  if (pathname.startsWith('/hq')) {
+    const response = NextResponse.next()
+    response.headers.set('Cache-Control', 'private, no-store')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+
+    if (HQ_PUBLIC_AUTH_ROUTES.has(pathname)) return response
+    return response
+  }
+
+  let supabaseResponse = NextResponse.next()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +30,7 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet, cacheHeaders) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = nextResponse()
+          supabaseResponse = NextResponse.next()
           cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
           Object.entries(cacheHeaders ?? {}).forEach(([name, value]) => {
             if (value) supabaseResponse.headers.set(name, String(value))
@@ -41,38 +51,13 @@ export async function middleware(request: NextRequest) {
   }
 
   const { data: { user } } = await supabase.auth.getUser()
-  const isHQLogin = pathname === '/hq/login'
-  const isHQRecovery = pathname === '/hq/reset-password'
-  const isHQPublicAuthRoute = isHQLogin || isHQRecovery
   const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
 
-  if (isProtected && !user && !isHQPublicAuthRoute) {
+  if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = pathname.startsWith('/hq') ? '/hq/login' : '/'
+    loginUrl.pathname = '/'
     loginUrl.searchParams.set('redirect', pathname)
     return redirectWithAuth(loginUrl)
-  }
-
-  if (user && pathname.startsWith('/hq') && !isHQPublicAuthRoute) {
-    const { data: access, error } = await supabase.rpc('hq_check_owner_access', { p_surface: pathname })
-    const allowed = !error && Boolean((access as { allowed?: boolean } | null)?.allowed)
-    if (!allowed) {
-      const deniedUrl = request.nextUrl.clone()
-      deniedUrl.pathname = '/'
-      deniedUrl.search = ''
-      deniedUrl.searchParams.set('hq', 'denied')
-      return redirectWithAuth(deniedUrl)
-    }
-  }
-
-  if (user && isHQLogin) {
-    const { data: access } = await supabase.rpc('hq_check_owner_access', { p_surface: '/hq/login' })
-    if (Boolean((access as { allowed?: boolean } | null)?.allowed)) {
-      const hqUrl = request.nextUrl.clone()
-      hqUrl.pathname = '/hq'
-      hqUrl.search = ''
-      return redirectWithAuth(hqUrl)
-    }
   }
 
   return supabaseResponse

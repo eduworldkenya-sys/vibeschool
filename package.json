@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --pretty false",
-    "validate": "npm run typecheck && npm run lint && npm run build"
+    "test:security-identity": "node --test tests/security-identity.test.mjs",
+    "validate": "npm run typecheck && npm run lint && npm run test:security-identity && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",

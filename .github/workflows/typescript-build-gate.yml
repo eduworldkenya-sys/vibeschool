@@ -56,5 +56,8 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: Security & Identity regression invariants
+        run: npm run test:security-identity
+
       - name: Next.js production build
         run: npm run build
