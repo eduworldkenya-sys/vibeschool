@@ -1,9 +1,13 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "devCommand": "next dev",
   "installCommand": "npm install",
+  "git": {
+    "deploymentEnabled": false
+  },
   "crons": [
     {
       "path": "/api/cron/homework-reminders",
@@ -19,4 +23,3 @@
     }
   ]
 }
-
