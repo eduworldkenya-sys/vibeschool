@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { HQNavigation, HQStyles } from '@/components/hq/HQShell'
+import HQOfflineStatus from '@/components/hq/HQOfflineStatus'
 
 const HQ_PATH_HEADER = 'x-vibeschool-hq-path'
 
@@ -29,6 +30,7 @@ export default async function HQLayout({ children }: { children: React.ReactNode
   return <>
     <HQStyles />
     <HQNavigation />
+    <HQOfflineStatus />
     {children}
   </>
 }
