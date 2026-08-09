@@ -1,0 +1,1 @@
+do $$ declare d text; begin select pg_get_functiondef('public.run_content_intelligence_cycle(text)'::regprocedure) into d; d:=replace(d,'''learning_effectiveness''','''assessment_failure'''); execute d; select pg_get_functiondef('public.refresh_reading_health_signals()'::regprocedure) into d; d:=replace(d,'''reading_completion''','''learner_confusion'''); execute d; end $$;
