@@ -18,14 +18,27 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         getAll() { return request.cookies.getAll() },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, cacheHeaders) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = nextResponse()
           cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+          Object.entries(cacheHeaders ?? {}).forEach(([name, value]) => {
+            if (value) supabaseResponse.headers.set(name, String(value))
+          })
         },
       },
     }
   )
+
+  function redirectWithAuth(url: URL) {
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
+    for (const header of ['cache-control', 'expires', 'pragma']) {
+      const value = supabaseResponse.headers.get(header)
+      if (value) response.headers.set(header, value)
+    }
+    return response
+  }
 
   const { data: { user } } = await supabase.auth.getUser()
   const isHQLogin = pathname === '/hq/login'
@@ -35,7 +48,7 @@ export async function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = pathname.startsWith('/hq') ? '/hq/login' : '/'
     loginUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(loginUrl)
+    return redirectWithAuth(loginUrl)
   }
 
   if (user && pathname.startsWith('/hq') && !isHQLogin) {
@@ -46,7 +59,7 @@ export async function middleware(request: NextRequest) {
       deniedUrl.pathname = '/'
       deniedUrl.search = ''
       deniedUrl.searchParams.set('hq', 'denied')
-      return NextResponse.redirect(deniedUrl)
+      return redirectWithAuth(deniedUrl)
     }
   }
 
@@ -56,7 +69,7 @@ export async function middleware(request: NextRequest) {
       const hqUrl = request.nextUrl.clone()
       hqUrl.pathname = '/hq'
       hqUrl.search = ''
-      return NextResponse.redirect(hqUrl)
+      return redirectWithAuth(hqUrl)
     }
   }
 
