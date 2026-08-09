@@ -2,9 +2,15 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student', '/hq']
+const HQ_PATH_HEADER = 'x-vibeschool-hq-path'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  const { pathname } = request.nextUrl
+  const requestHeaders = new Headers(request.headers)
+  if (pathname.startsWith('/hq')) requestHeaders.set(HQ_PATH_HEADER, pathname)
+
+  const nextResponse = () => NextResponse.next({ request: { headers: requestHeaders } })
+  let supabaseResponse = nextResponse()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +20,7 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = nextResponse()
           cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
         },
       },
@@ -22,7 +28,6 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-  const { pathname } = request.nextUrl
   const isHQLogin = pathname === '/hq/login'
   const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
 
