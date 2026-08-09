@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { hqSupabase } from "@/lib/hq/supabase"
 
 const inputStyle: React.CSSProperties = {
@@ -20,7 +20,6 @@ const inputStyle: React.CSSProperties = {
 
 export default function HQResetPasswordPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -46,14 +45,14 @@ export default function HQResetPasswordPage() {
       setError("")
 
       try {
-        const code = searchParams.get("code")
+        const currentUrl = new URL(window.location.href)
+        const code = currentUrl.searchParams.get("code")
         if (code) {
           const { error: exchangeError } = await hqSupabase.auth.exchangeCodeForSession(code)
           if (exchangeError) throw exchangeError
-          const cleanUrl = new URL(window.location.href)
-          cleanUrl.searchParams.delete("code")
-          cleanUrl.searchParams.delete("sb_flow_id")
-          window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}`)
+          currentUrl.searchParams.delete("code")
+          currentUrl.searchParams.delete("sb_flow_id")
+          window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}`)
         } else if (window.location.hash) {
           const hash = new URLSearchParams(window.location.hash.slice(1))
           const accessToken = hash.get("access_token")
@@ -65,8 +64,7 @@ export default function HQResetPasswordPage() {
               refresh_token: refreshToken,
             })
             if (sessionError) throw sessionError
-            const cleanUrl = new URL(window.location.href)
-            window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}`)
+            window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}`)
           }
         }
 
@@ -110,7 +108,7 @@ export default function HQResetPasswordPage() {
       mounted = false
       listener.subscription.unsubscribe()
     }
-  }, [searchParams])
+  }, [])
 
   async function handleReset() {
     setError("")
