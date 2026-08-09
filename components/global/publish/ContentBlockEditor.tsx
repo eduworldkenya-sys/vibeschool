@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -9,353 +9,49 @@ import { createBrowserClient } from '@supabase/ssr'
 import { ContentBlock } from '@/lib/publishTypes'
 import { BiologyInteractiveBlock } from '@/components/global/publish/BiologyInteractiveBlock'
 
-const TEXT   = '#ffffff'
-const MUTED  = 'rgba(255,255,255,0.4)'
-const ACCENT = '#CCFF00'
-const SURF   = '#111827'
-const BORDER = 'rgba(255,255,255,0.06)'
+const TEXT='#fff', MUTED='rgba(255,255,255,.48)', ACCENT='#CCFF00', SURF='#111827', CARD='#1a2235', BORDER='rgba(255,255,255,.08)'
+type Speech={continuous:boolean;interimResults:boolean;lang:string;start:()=>void;stop:()=>void;onresult:((e:any)=>void)|null;onend:(()=>void)|null;onerror:(()=>void)|null}
+type SpeechWindow=Window&{webkitSpeechRecognition?:new()=>Speech;SpeechRecognition?:new()=>Speech}
+interface Props{block:ContentBlock;format:string;readOnly?:boolean;isFocused:boolean;onUpdate:(updated:ContentBlock)=>void;onFocus:()=>void;onDelete:()=>void;onMoveUp:()=>void;onMoveDown:()=>void}
+const meta=(b:ContentBlock,k:string)=>typeof b.meta?.[k]==='string'?String(b.meta?.[k]):''
+function safeUrl(v:string){try{const u=new URL(v);return ['http:','https:'].includes(u.protocol)?u.toString():null}catch{return null}}
+function TextCard({label,icon,block,readOnly,onUpdate,accent=ACCENT}:{label:string;icon:string;block:ContentBlock;readOnly:boolean;onUpdate:(b:ContentBlock)=>void;accent?:string}){return <div style={{background:`${accent}0D`,border:`1px solid ${accent}33`,borderRadius:12,padding:14}}><div style={{color:accent,fontSize:10,fontWeight:850,letterSpacing:'.09em',marginBottom:8}}>{icon} {label.toUpperCase()}</div>{readOnly?<div style={{whiteSpace:'pre-wrap',lineHeight:1.7}}>{block.content}</div>:<textarea value={block.content} rows={4} onChange={e=>onUpdate({...block,content:e.target.value})} style={{width:'100%',border:0,outline:0,resize:'vertical',background:'transparent',color:TEXT,font:'14px/1.65 inherit'}}/>}</div>}
+function Media({block,label,readOnly,onUpdate}:{block:ContentBlock;label:string;readOnly:boolean;onUpdate:(b:ContentBlock)=>void}){const url=safeUrl(block.content);if(!readOnly)return <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:12,padding:14}}><div style={{fontSize:10,color:ACCENT,fontWeight:850,marginBottom:8}}>{label.toUpperCase()}</div><input value={block.content} onChange={e=>onUpdate({...block,content:e.target.value})} placeholder="https://…" style={{width:'100%',boxSizing:'border-box',background:SURF,border:`1px solid ${BORDER}`,borderRadius:9,padding:10,color:TEXT}}/><input value={meta(block,'caption')} onChange={e=>onUpdate({...block,meta:{...block.meta,caption:e.target.value}})} placeholder="Caption / learning purpose" style={{width:'100%',boxSizing:'border-box',marginTop:8,background:'transparent',border:0,color:MUTED,padding:6}}/></div>;if(!url)return <div style={{color:MUTED}}>Media unavailable.</div>;if(label==='Video'&&/\.(mp4|webm|ogg)(?:$|[?#])/i.test(url))return <video controls playsInline preload="metadata" src={url} style={{width:'100%',maxHeight:'70dvh'}}/>;if(label==='Audio'&&/\.(mp3|wav|m4a|aac|ogg|webm)(?:$|[?#])/i.test(url))return <audio controls preload="metadata" src={url} style={{width:'100%'}}/>;return <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:12,padding:14}}><a href={url} target="_blank" rel="noopener noreferrer" style={{color:ACCENT,fontWeight:800}}>Open {label} ↗</a>{label==='Simulation'&&<div style={{fontSize:11,color:MUTED,marginTop:7}}>External simulations open separately; arbitrary third-party scripts are not embedded.</div>}</div>}
 
-type AnySpeechRecognition = {
-  continuous:     boolean
-  interimResults: boolean
-  lang:           string
-  start:          () => void
-  stop:           () => void
-  onresult:       ((e: { results: { [k: number]: { [k: number]: { transcript: string } } } }) => void) | null
-  onend:          (() => void) | null
-  onerror:        (() => void) | null
-}
-
-type WindowWithSpeech = Window & {
-  webkitSpeechRecognition?: new () => AnySpeechRecognition
-  SpeechRecognition?:       new () => AnySpeechRecognition
-}
-
-interface Props {
-  block:      ContentBlock
-  format:     string
-  readOnly?:  boolean
-  isFocused:  boolean
-  onUpdate:   (updated: ContentBlock) => void
-  onFocus:    () => void
-  onDelete:   () => void
-  onMoveUp:   () => void
-  onMoveDown: () => void
-}
-
-export function ContentBlockEditor({
-  block, format, readOnly = false, isFocused,
-  onUpdate, onFocus, onDelete, onMoveUp, onMoveDown,
-}: Props) {
-  const [isListening, setIsListening] = useState(false)
-  const [uploading,   setUploading]   = useState(false)
-  const fileRef        = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<AnySpeechRecognition | null>(null)
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: 'Write here…' }),
-      Typography,
-    ],
-    content:  block.type === 'paragraph' ? block.content : '',
-    editable: !readOnly,
-    editorProps: {
-      attributes: {
-        style: [
-          'outline:none',
-          'color:#ffffff',
-          'font-size:16px',
-          'line-height:1.8',
-          'min-height:56px',
-          'font-family:system-ui,-apple-system,sans-serif',
-          'padding-right:40px',
-        ].join(';'),
-      },
-    },
-    onUpdate: ({ editor: ed }) => {
-      if (block.type !== 'paragraph') return
-      onUpdate({ ...block, content: ed.getHTML() })
-    },
-  })
-
-  const getSR = (): (new () => AnySpeechRecognition) | undefined => {
-    const w = window as WindowWithSpeech
-    return w.webkitSpeechRecognition ?? w.SpeechRecognition
-  }
-
-  const startSpeech = useCallback(() => {
-    if (typeof window === 'undefined') return
-    const SR = getSR()
-    if (!SR) return
-    const rec = new SR()
-    rec.continuous     = false
-    rec.interimResults = false
-    rec.lang           = 'en-KE'
-    rec.onresult = (e) => {
-      const transcript = e.results[0][0].transcript
-      if (editor) editor.commands.insertContent(' ' + transcript)
-      setIsListening(false)
-    }
-    rec.onend   = () => setIsListening(false)
-    rec.onerror = () => setIsListening(false)
-    recognitionRef.current = rec
-    rec.start()
-    setIsListening(true)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor])
-
-  const stopSpeech = useCallback(() => {
-    recognitionRef.current?.stop()
-    setIsListening(false)
-  }, [])
-
-  useEffect(() => {
-    return () => { recognitionRef.current?.stop() }
-  }, [])
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const rawExt = file.name.includes('.') ? file.name.split('.').pop() : undefined
-    const ext    = rawExt ? rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') : 'png'
-    if (!['jpg','jpeg','png','gif','webp'].includes(ext)) return
-    setUploading(true)
-    try {
-      const sb = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const path = `pub_blocks/${crypto.randomUUID()}.${ext}`
-      const { error: ue } = await sb.storage.from('vibe-publication-images').upload(path, file)
-      if (ue) return
-      const { data } = sb.storage.from('vibe-publication-images').getPublicUrl(path)
-      onUpdate({ ...block, content: data.publicUrl })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const base: React.CSSProperties = {
-    width: '100%', background: 'transparent', border: 'none',
-    color: TEXT, outline: 'none',
-    fontFamily: 'system-ui,-apple-system,sans-serif',
-    fontSize: '16px', lineHeight: '1.8', resize: 'none',
-    padding: 0, boxSizing: 'border-box',
-  }
-
-  const hasSpeech = typeof window !== 'undefined' && !!getSR()
-
-  const renderBlock = () => {
-    switch (block.type) {
-      case 'paragraph':
-        return (
-          <div style={{ position: 'relative' }}>
-            {readOnly
-              ? <div style={{ ...base, minHeight: 24 }} dangerouslySetInnerHTML={{ __html: block.content }} />
-              : <EditorContent editor={editor} />
-            }
-            {!readOnly && isFocused && hasSpeech && (
-              <button
-                onClick={isListening ? stopSpeech : startSpeech}
-                style={{
-                  position: 'absolute', right: 0, top: 4,
-                  background: isListening ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: isListening ? '1px solid rgba(239,68,68,0.6)' : '1px solid ' + BORDER,
-                  borderRadius: '50%', width: 30, height: 30,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', fontSize: 14,
-                  animation: isListening ? 'micPulse 1.5s infinite' : 'none',
-                }}
-              >🎤</button>
-            )}
-          </div>
-        )
-
-      case 'heading1':
-        return readOnly
-          ? <h1 style={{ fontSize: 28, fontWeight: 800, color: TEXT, margin: 0, lineHeight: 1.3 }}>{block.content}</h1>
-          : <input style={{ ...base, fontSize: 26, fontWeight: 800 }} value={block.content}
-              placeholder="Heading 1" onChange={e => onUpdate({ ...block, content: e.target.value })} />
-
-      case 'heading2':
-        return readOnly
-          ? <h2 style={{ fontSize: 22, fontWeight: 700, color: TEXT, margin: 0 }}>{block.content}</h2>
-          : <input style={{ ...base, fontSize: 20, fontWeight: 700 }} value={block.content}
-              placeholder="Heading 2" onChange={e => onUpdate({ ...block, content: e.target.value })} />
-
-      case 'heading3':
-        return readOnly
-          ? <h3 style={{ fontSize: 18, fontWeight: 700, color: TEXT, margin: 0 }}>{block.content}</h3>
-          : <input style={{ ...base, fontSize: 17, fontWeight: 700 }} value={block.content}
-              placeholder="Heading 3" onChange={e => onUpdate({ ...block, content: e.target.value })} />
-
-      case 'quote':
-        return (
-          <div style={{ borderLeft: '3px solid ' + ACCENT, paddingLeft: 14 }}>
-            {readOnly
-              ? <p style={{ ...base, fontStyle: 'italic', color: MUTED, margin: 0 }}>{block.content}</p>
-              : <textarea style={{ ...base, fontStyle: 'italic', color: MUTED, minHeight: 48 }}
-                  value={block.content} placeholder="Quote…" rows={2}
-                  onChange={e => onUpdate({ ...block, content: e.target.value })} />
-            }
-          </div>
-        )
-
-      case 'bulletList':
-        return readOnly
-          ? <ul style={{ paddingLeft: 20, margin: 0 }}>
-              {block.content.split('\n').filter(Boolean).map((l, i) =>
-                <li key={i} style={{ fontSize: 15, lineHeight: 1.8, color: TEXT }}>{l}</li>
-              )}
-            </ul>
-          : <textarea style={{ ...base, fontSize: 15, minHeight: 56 }}
-              value={block.content} placeholder="One item per line" rows={3}
-              onChange={e => onUpdate({ ...block, content: e.target.value })} />
-
-      case 'numberedList':
-        return readOnly
-          ? <ol style={{ paddingLeft: 20, margin: 0 }}>
-              {block.content.split('\n').filter(Boolean).map((l, i) =>
-                <li key={i} style={{ fontSize: 15, lineHeight: 1.8, color: TEXT }}>{l}</li>
-              )}
-            </ol>
-          : <textarea style={{ ...base, fontSize: 15, minHeight: 56 }}
-              value={block.content} placeholder="One item per line" rows={3}
-              onChange={e => onUpdate({ ...block, content: e.target.value })} />
-
-      case 'image':
-        return (
-          <div>
-            {block.content
-              ? <img src={block.content} alt="Block image"
-                  style={{ width: '100%', borderRadius: 10, maxHeight: 300, objectFit: 'cover' }} />
-              : !readOnly
-              ? <div onClick={() => fileRef.current?.click()} style={{
-                  border: '2px dashed ' + BORDER, borderRadius: 10,
-                  padding: '28px 16px', textAlign: 'center',
-                  cursor: 'pointer', color: MUTED, fontSize: 13,
-                }}>
-                  {uploading ? 'Uploading…' : '📷 Tap to upload image'}
-                  <input ref={fileRef} type="file" accept="image/*"
-                    style={{ display: 'none' }} onChange={handleImageUpload} />
-                </div>
-              : null
-            }
-          </div>
-        )
-
-      case 'divider':
-        return <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '12px 0' }} />
-
-      case 'callout':
-        return (
-          <div style={{ background: SURF, borderLeft: '3px solid ' + ACCENT, borderRadius: 10, padding: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 18 }}>💡</span>
-            {readOnly
-              ? <p style={{ fontSize: 14, color: TEXT, margin: 0, lineHeight: 1.6 }}>{block.content}</p>
-              : <textarea style={{ ...base, fontSize: 14, minHeight: 40 }}
-                  value={block.content} placeholder="Callout text…" rows={2}
-                  onChange={e => onUpdate({ ...block, content: e.target.value })} />
-            }
-          </div>
-        )
-
-      case 'code':
-        return (
-          <div style={{ background: SURF, borderRadius: 10, border: '1px solid ' + BORDER, overflow: 'hidden' }}>
-            <div style={{ padding: '3px 12px', borderBottom: '1px solid ' + BORDER }}>
-              <span style={{ fontSize: 10, color: MUTED, fontWeight: 700, textTransform: 'uppercase' }}>code</span>
-            </div>
-            {readOnly
-              ? <pre style={{ margin: 0, padding: '10px 12px', fontSize: 13, color: TEXT, fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                  <code>{block.content}</code>
-                </pre>
-              : <textarea style={{ ...base, fontSize: 13, fontFamily: 'monospace', padding: '10px 12px', minHeight: 80, display: 'block' }}
-                  value={block.content} placeholder="// code here…" rows={4}
-                  onChange={e => onUpdate({ ...block, content: e.target.value })} />
-            }
-          </div>
-        )
-
-      case 'activity':
-        return (
-          <div style={{ background: 'rgba(204,255,0,0.05)', border: '1px solid rgba(204,255,0,0.15)', borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: ACCENT, letterSpacing: '0.1em', marginBottom: 8 }}>📋 ACTIVITY</div>
-            {readOnly
-              ? <p style={{ fontSize: 14, color: TEXT, margin: 0, lineHeight: 1.6 }}>{block.content}</p>
-              : <textarea style={{ ...base, fontSize: 14, minHeight: 60 }}
-                  value={block.content} placeholder="Describe the activity…" rows={3}
-                  onChange={e => onUpdate({ ...block, content: e.target.value })} />
-            }
-          </div>
-        )
-
-      case 'question':
-        return (
-          <div style={{ background: 'rgba(69,183,209,0.05)', border: '1px solid rgba(69,183,209,0.2)', borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#45B7D1', letterSpacing: '0.1em', marginBottom: 8 }}>❓ QUESTION</div>
-            {readOnly
-              ? <p style={{ fontSize: 14, color: TEXT, margin: 0 }}>{block.content}</p>
-              : <textarea style={{ ...base, fontSize: 14, minHeight: 40 }}
-                  value={block.content} placeholder="Write the question…" rows={2}
-                  onChange={e => onUpdate({ ...block, content: e.target.value })} />
-            }
-          </div>
-        )
-
-      case 'interactive':
-        if (readOnly) return <BiologyInteractiveBlock block={block} />
-        return (
-          <div style={{ background: 'rgba(204,255,0,0.045)', border: '1px solid rgba(204,255,0,0.2)', borderRadius: 12, padding: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: ACCENT, letterSpacing: '0.1em', marginBottom: 8 }}>⚡ INTERACTIVE</div>
-            <input
-              style={{ ...base, fontSize: 14, fontWeight: 700, marginBottom: 8 }}
-              value={block.content}
-              placeholder="Interactive title"
-              onChange={e => onUpdate({ ...block, content: e.target.value })}
-            />
-            <select
-              value={typeof block.meta?.interactiveType === 'string' ? block.meta.interactiveType : 'punnett_square'}
-              onChange={e => onUpdate({ ...block, meta: { ...(block.meta ?? {}), interactiveType: e.target.value } })}
-              style={{ width: '100%', background: '#0b1220', color: TEXT, border: '1px solid ' + BORDER, borderRadius: 9, padding: 10 }}
-            >
-              <option value="punnett_square">Punnett square</option>
-              <option value="meiosis_sequence">Meiosis sequence</option>
-              <option value="variation_lab">Variation data lab</option>
-              <option value="reflex_arc">Reflex arc</option>
-            </select>
-          </div>
-        )
-
-      default:
-        return null
-    }
-  }
-
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: '@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}' }} />
-      <div
-        onFocus={onFocus}
-        style={{
-          position: 'relative', borderRadius: 10, padding: '8px 10px',
-          border: '1px solid ' + (isFocused ? 'rgba(204,255,0,0.2)' : BORDER),
-          background: isFocused ? 'rgba(204,255,0,0.02)' : 'transparent',
-          transition: 'border-color 0.15s', marginBottom: 4,
-        }}
-      >
-        {!readOnly && isFocused && (
-          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4, zIndex: 10 }}>
-            <button onClick={onMoveUp} style={{ background: SURF, border: '1px solid ' + BORDER, color: MUTED, borderRadius: 5, padding: '2px 6px', fontSize: 10, cursor: 'pointer' }}>↑</button>
-            <button onClick={onMoveDown} style={{ background: SURF, border: '1px solid ' + BORDER, color: MUTED, borderRadius: 5, padding: '2px 6px', fontSize: 10, cursor: 'pointer' }}>↓</button>
-            <button onClick={onDelete} style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: 5, padding: '2px 6px', fontSize: 10, cursor: 'pointer' }}>✕</button>
-          </div>
-        )}
-        <div style={{ paddingRight: isFocused && !readOnly ? 76 : 0 }}>
-          {renderBlock()}
-        </div>
-      </div>
-    </>
-  )
+export function ContentBlockEditor({block,readOnly=false,isFocused,onUpdate,onFocus,onDelete,onMoveUp,onMoveDown}:Props){
+ const[isListening,setIsListening]=useState(false),[uploading,setUploading]=useState(false);const fileRef=useRef<HTMLInputElement>(null),speechRef=useRef<Speech|null>(null)
+ const editor=useEditor({extensions:[StarterKit,Placeholder.configure({placeholder:'Write here…'}),Typography],content:block.type==='paragraph'?block.content:'',editable:!readOnly,editorProps:{attributes:{style:'outline:none;color:#fff;font-size:16px;line-height:1.8;min-height:56px;padding-right:40px'}},onUpdate:({editor:ed})=>{if(block.type==='paragraph')onUpdate({...block,content:ed.getHTML()})}})
+ const getSR=()=>{if(typeof window==='undefined')return undefined;const w=window as SpeechWindow;return w.webkitSpeechRecognition??w.SpeechRecognition}
+ const startSpeech=useCallback(()=>{const SR=getSR();if(!SR)return;const r=new SR();r.continuous=false;r.interimResults=false;r.lang='en-KE';r.onresult=e=>{const t=e.results?.[0]?.[0]?.transcript??'';if(editor&&t)editor.commands.insertContent(' '+t);setIsListening(false)};r.onend=()=>setIsListening(false);r.onerror=()=>setIsListening(false);speechRef.current=r;r.start();setIsListening(true)},[editor])
+ useEffect(()=>()=>speechRef.current?.stop(),[])
+ const upload=async(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'');if(!['jpg','jpeg','png','gif','webp','svg'].includes(ext))return;setUploading(true);try{const sb=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);const{data:{user}}=await sb.auth.getUser();if(!user)throw new Error('Sign in before uploading media');const path=`${user.id}/pub_blocks/${crypto.randomUUID()}.${ext}`;const{error}=await sb.storage.from('vibe-publication-images').upload(path,file);if(error)throw error;const{data}=sb.storage.from('vibe-publication-images').getPublicUrl(path);onUpdate({...block,content:data.publicUrl})}finally{setUploading(false);if(fileRef.current)fileRef.current.value=''}}
+ const base:React.CSSProperties={width:'100%',boxSizing:'border-box',background:'transparent',border:0,outline:0,color:TEXT,fontFamily:'inherit',fontSize:15,lineHeight:1.7,resize:'vertical'}
+ const render=()=>{switch(block.type){
+  case'paragraph':return <div style={{position:'relative'}}>{readOnly?<div dangerouslySetInnerHTML={{__html:block.content}}/>:<EditorContent editor={editor}/>} {!readOnly&&isFocused&&getSR()&&<button onClick={()=>isListening?(speechRef.current?.stop(),setIsListening(false)):startSpeech()} style={{position:'absolute',right:0,top:2,border:`1px solid ${BORDER}`,background:SURF,borderRadius:999,width:31,height:31,cursor:'pointer'}}>🎤</button>}</div>
+  case'heading1':case'heading2':case'heading3':{const size=block.type==='heading1'?28:block.type==='heading2'?22:18;return readOnly?<div style={{fontSize:size,fontWeight:850,lineHeight:1.3}}>{block.content}</div>:<input value={block.content} onChange={e=>onUpdate({...block,content:e.target.value})} style={{...base,fontSize:size,fontWeight:850}}/>}
+  case'definition':return <TextCard label="Definition" icon="D" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#60A5FA"/>
+  case'example':return <TextCard label="Example" icon="Ex" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#34D399"/>
+  case'workedExample':return <TextCard label="Worked example" icon="✓" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#34D399"/>
+  case'summary':return <TextCard label="Summary" icon="Σ" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#FBBF24"/>
+  case'keyPoints':return <TextCard label="Key points" icon="★" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#FBBF24"/>
+  case'activity':return <TextCard label="Activity" icon="📋" block={block} readOnly={readOnly} onUpdate={onUpdate}/>
+  case'experiment':return <TextCard label="Experiment" icon="⚗" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#F59E0B"/>
+  case'project':return <TextCard label="Project" icon="🛠" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#F59E0B"/>
+  case'question':return <TextCard label="Question" icon="❓" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#45B7D1"/>
+  case'callout':return <TextCard label="Note" icon="💡" block={block} readOnly={readOnly} onUpdate={onUpdate}/>
+  case'quote':return <TextCard label="Quote" icon="“" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#A78BFA"/>
+  case'bulletList':case'numberedList':{const items=block.content.split('\n').filter(Boolean);if(readOnly){const Tag=block.type==='bulletList'?'ul':'ol';return <Tag>{items.map((x,i)=><li key={i}>{x}</li>)}</Tag>}return <textarea value={block.content} rows={4} placeholder="One item per line" onChange={e=>onUpdate({...block,content:e.target.value})} style={base}/>}
+  case'image':case'diagram':return <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:12,overflow:'hidden'}}>{block.content&&<img loading="lazy" src={block.content} alt={meta(block,'alt')||meta(block,'caption')||(block.type==='diagram'?'Diagram':'Illustration')} style={{display:'block',width:'100%',maxHeight:460,objectFit:'contain'}}/>}{!readOnly&&<div style={{padding:12}}><button onClick={()=>fileRef.current?.click()} style={{border:`1px solid ${BORDER}`,background:SURF,color:TEXT,borderRadius:8,padding:'8px 10px'}}>{uploading?'Uploading…':block.content?'Replace media':'Choose media'}</button><input ref={fileRef} type="file" accept="image/*,.svg" hidden onChange={upload}/><input value={meta(block,'caption')} onChange={e=>onUpdate({...block,meta:{...block.meta,caption:e.target.value}})} placeholder="Caption" style={{...base,marginTop:8}}/><input value={meta(block,'alt')} onChange={e=>onUpdate({...block,meta:{...block.meta,alt:e.target.value}})} placeholder="Alt text / what learners should notice" style={{...base,marginTop:5,color:MUTED}}/></div>}</div>
+  case'video':return <Media block={block} label="Video" readOnly={readOnly} onUpdate={onUpdate}/>
+  case'audio':return <Media block={block} label="Audio" readOnly={readOnly} onUpdate={onUpdate}/>
+  case'model3d':return <Media block={block} label="3D model" readOnly={readOnly} onUpdate={onUpdate}/>
+  case'simulation':return <Media block={block} label="Simulation" readOnly={readOnly} onUpdate={onUpdate}/>
+  case'equation':return <TextCard label="Equation" icon="∑" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#C084FC"/>
+  case'table':{const rows=block.content.split('\n').filter(Boolean).map(r=>r.split('|').map(c=>c.trim()));return readOnly?<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><tbody>{rows.map((r,ri)=><tr key={ri}>{r.map((c,ci)=><td key={ci} style={{border:`1px solid ${BORDER}`,padding:8}}>{c}</td>)}</tr>)}</tbody></table></div>:<textarea value={block.content} rows={5} placeholder={'Heading | Heading\nValue | Value'} onChange={e=>onUpdate({...block,content:e.target.value})} style={{...base,fontFamily:'monospace'}}/>}
+  case'code':return readOnly?<pre style={{background:SURF,padding:12,borderRadius:10,overflowX:'auto'}}><code>{block.content}</code></pre>:<textarea value={block.content} rows={5} onChange={e=>onUpdate({...block,content:e.target.value})} style={{...base,fontFamily:'monospace',background:SURF,padding:12,borderRadius:10}}/>
+  case'divider':return <hr style={{border:0,borderTop:`1px solid ${BORDER}`}}/>
+  case'interactive':if(readOnly)return <BiologyInteractiveBlock block={block}/>;return <div style={{background:'rgba(204,255,0,.045)',border:'1px solid rgba(204,255,0,.2)',borderRadius:12,padding:12}}><div style={{fontSize:10,fontWeight:850,color:ACCENT,marginBottom:8}}>⚡ VIBELAB INTERACTIVE</div><input value={block.content} placeholder="Interactive title" onChange={e=>onUpdate({...block,content:e.target.value})} style={{...base,fontWeight:750,marginBottom:8}}/><select value={meta(block,'interactiveType')||'punnett_square'} onChange={e=>onUpdate({...block,meta:{...block.meta,interactiveType:e.target.value}})} style={{width:'100%',background:'#0b1220',color:TEXT,border:`1px solid ${BORDER}`,borderRadius:9,padding:10}}><option value="punnett_square">Punnett square</option><option value="meiosis_sequence">Meiosis sequence</option><option value="variation_lab">Variation data lab</option><option value="reflex_arc">Reflex arc</option><option value="chemistry_acid_base_lab">Chemistry acid/base lab</option><option value="chemistry_periodicity_lab">Chemistry periodicity lab</option><option value="chemistry_bonding_properties_lab">Chemistry bonding properties lab</option></select></div>
+  default:return null
+ }}
+ return <div onFocus={onFocus} style={{position:'relative',borderRadius:12,padding:'9px 10px',border:`1px solid ${isFocused?'rgba(204,255,0,.28)':BORDER}`,background:isFocused?'rgba(204,255,0,.02)':'transparent',marginBottom:4}}>{!readOnly&&isFocused&&<div style={{position:'absolute',top:6,right:6,display:'flex',gap:4,zIndex:10}}><button aria-label="Move block up" onClick={onMoveUp}>↑</button><button aria-label="Move block down" onClick={onMoveDown}>↓</button><button aria-label="Delete block" onClick={onDelete}>✕</button></div>}<div style={{paddingRight:!readOnly&&isFocused?92:0}}>{render()}</div></div>
 }
