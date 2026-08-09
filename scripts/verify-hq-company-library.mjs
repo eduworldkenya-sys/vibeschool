@@ -3,8 +3,8 @@
  * HQ Company Library certification verifier.
  *
  * This script is intentionally read-only. It inspects the connected Supabase
- * database and fails closed when Company Library schema, RLS, storage, or RPC
- * privilege invariants are missing.
+ * database and fails closed when Company Library schema, RLS, storage, RPC
+ * privilege, approval, version, or workforce-lineage invariants are missing.
  *
  * Required env:
  *   SUPABASE_URL
@@ -60,8 +60,6 @@ async function rpc(name, args = {}) {
 }
 
 async function main() {
-  // The verifier uses a dedicated read-only certification RPC when available.
-  // This avoids embedding raw SQL execution in application code.
   let report
   try {
     report = await rpc("hq_library_certification_report")
@@ -86,6 +84,13 @@ async function main() {
     pass("private storage bucket", "hq-company-library is private")
   } else {
     fail("private storage bucket", JSON.stringify(report?.storage ?? null))
+  }
+
+  const storagePolicies = report?.storage_policies ?? {}
+  for (const operation of ["select", "insert", "update", "delete"]) {
+    const count = Number(storagePolicies[`${operation}_policies`] ?? 0)
+    if (count > 0) pass(`storage ${operation.toUpperCase()} policy`, `${count} scoped policy/policies`)
+    else fail(`storage ${operation.toUpperCase()} policy`, "missing Company Library storage policy")
   }
 
   const functionRows = Array.isArray(report?.functions) ? report.functions : []
@@ -121,14 +126,26 @@ async function main() {
     fail("workforce lineage foreign keys", JSON.stringify(report?.foreign_keys ?? null))
   }
 
-  if (report?.integrity?.orphan_current_versions === 0) pass("current-version integrity", "no orphan current_version_id")
-  else fail("current-version integrity", `${report?.integrity?.orphan_current_versions ?? "unknown"} orphan(s)`)
+  if (report?.approval_guard?.one_pending_index === true) {
+    pass("single pending approval guard", "partial unique index present")
+  } else {
+    fail("single pending approval guard", "partial unique index missing")
+  }
 
-  if (report?.integrity?.cross_artifact_approvals === 0) pass("approval version integrity", "no cross-artifact approval/version links")
-  else fail("approval version integrity", `${report?.integrity?.cross_artifact_approvals ?? "unknown"} invalid link(s)`)
+  const zeroIntegrityChecks = [
+    ["current-version integrity", "orphan_current_versions", "orphan current_version_id"],
+    ["approval version integrity", "cross_artifact_approvals", "cross-artifact approval/version link"],
+    ["provenance version integrity", "cross_artifact_provenance", "cross-artifact provenance/version link"],
+    ["stale approval integrity", "stale_pending_approvals", "pending approval for a non-current version"],
+    ["duplicate approval integrity", "duplicate_pending_approvals", "duplicate pending approval"],
+    ["publication approval integrity", "published_without_approved_current", "published artifact without approved current version"],
+  ]
 
-  if (report?.integrity?.cross_artifact_provenance === 0) pass("provenance version integrity", "no cross-artifact provenance/version links")
-  else fail("provenance version integrity", `${report?.integrity?.cross_artifact_provenance ?? "unknown"} invalid link(s)`)
+  for (const [name, key, description] of zeroIntegrityChecks) {
+    const value = report?.integrity?.[key]
+    if (value === 0) pass(name, `no ${description}s`)
+    else fail(name, `${value ?? "unknown"} ${description}(s)`)
+  }
 
   printAndExit()
 }
