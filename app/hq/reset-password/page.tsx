@@ -52,22 +52,46 @@ export default function HQResetPasswordPage() {
           if (exchangeError) throw exchangeError
           const cleanUrl = new URL(window.location.href)
           cleanUrl.searchParams.delete("code")
-          window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`)
+          cleanUrl.searchParams.delete("sb_flow_id")
+          window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}`)
+        } else if (window.location.hash) {
+          const hash = new URLSearchParams(window.location.hash.slice(1))
+          const accessToken = hash.get("access_token")
+          const refreshToken = hash.get("refresh_token")
+          const type = hash.get("type")
+          if (type === "recovery" && accessToken && refreshToken) {
+            const { error: sessionError } = await hqSupabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            })
+            if (sessionError) throw sessionError
+            const cleanUrl = new URL(window.location.href)
+            window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}`)
+          }
         }
 
         const { data, error: userError } = await hqSupabase.auth.getUser()
         if (!mounted) return
         if (userError || !data.user) {
           setReady(false)
-          setError("This recovery link is invalid, expired, already used, or was opened in a different browser. Request a new recovery link from HQ login.")
+          setError("This recovery link is invalid, expired, or already used. Request a new recovery link from HQ login.")
+          return
+        }
+
+        const { data: access, error: accessError } = await hqSupabase.rpc("hq_check_owner_access", { p_surface: "/hq/reset-password:recovery-session" })
+        const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
+        if (!allowed) {
+          await hqSupabase.auth.signOut({ scope: "local" })
+          setReady(false)
+          setError("This recovery session does not belong to an authorized VibeSchool HQ owner.")
           return
         }
 
         setReady(true)
-      } catch (e) {
+      } catch {
         if (!mounted) return
         setReady(false)
-        setError(e instanceof Error ? e.message : "The recovery link could not be verified.")
+        setError("The recovery link could not be verified. Request a new recovery email from HQ login.")
       } finally {
         if (mounted) setChecking(false)
       }
@@ -76,9 +100,7 @@ export default function HQResetPasswordPage() {
     const { data: listener } = hqSupabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return
       if (event === "PASSWORD_RECOVERY" && session?.user) {
-        setReady(true)
-        setChecking(false)
-        setError("")
+        void establishRecoverySession()
       }
     })
 
@@ -93,24 +115,21 @@ export default function HQResetPasswordPage() {
   async function handleReset() {
     setError("")
     setSuccess("")
-    if (!ready) return setError("A valid recovery session is required.")
+    if (!ready) return setError("A valid owner recovery session is required.")
     if (!checks.length) return setError("Use at least 12 characters for the new password.")
     if (!checks.letter || !checks.number) return setError("Use a password containing both letters and numbers.")
     if (!checks.match) return setError("Passwords do not match.")
 
     setLoading(true)
     try {
+      const { data: access, error: accessError } = await hqSupabase.rpc("hq_check_owner_access", { p_surface: "/hq/reset-password:before-password-change" })
+      const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
+      if (!allowed) throw new Error("HQ owner authority could not be verified.")
+
       const { error: updateError } = await hqSupabase.auth.updateUser({ password })
       if (updateError) throw updateError
 
-      const { data: access, error: accessError } = await hqSupabase.rpc("hq_check_owner_access", { p_surface: "/hq/reset-password" })
-      const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
-
       await hqSupabase.auth.signOut({ scope: "local" })
-
-      if (!allowed) {
-        throw new Error("Password changed, but this account is not authorized for VibeSchool HQ.")
-      }
 
       setReady(false)
       setPassword("")
@@ -133,7 +152,7 @@ export default function HQResetPasswordPage() {
       </div>
 
       <h1 style={{fontSize:"clamp(27px,7vw,34px)",letterSpacing:"-.03em",margin:"0 0 7px"}}>Create a new password</h1>
-      <p style={{fontSize:13,lineHeight:1.6,color:"rgba(255,255,255,.52)",margin:"0 0 23px"}}>This page completes the recovery link first, then enables password reset. Your normal Vibeschool Student, Teacher, Parent or Admin session remains separate.</p>
+      <p style={{fontSize:13,lineHeight:1.6,color:"rgba(255,255,255,.52)",margin:"0 0 23px"}}>The recovery link establishes a temporary HQ-only recovery session. Platform-owner authority is independently verified before the password can change.</p>
 
       {checking && <div role="status" style={{padding:12,borderRadius:11,marginBottom:16,background:"rgba(96,165,250,.08)",border:"1px solid rgba(96,165,250,.22)",color:"#bfdbfe",fontSize:12}}>Verifying secure recovery link…</div>}
       {error && <div role="alert" aria-live="assertive" style={{padding:12,borderRadius:11,marginBottom:16,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",color:"#fecaca",fontSize:12,lineHeight:1.55}}>{error}</div>}
@@ -148,10 +167,10 @@ export default function HQResetPasswordPage() {
       <div aria-label="Password requirements" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8,marginBottom:21}}>
         {[ [checks.length,"12+ characters"], [checks.letter,"Contains letters"], [checks.number,"Contains a number"], [checks.match,"Passwords match"] ].map(([ok,label])=><div key={String(label)} style={{padding:"8px 9px",borderRadius:9,border:`1px solid ${ok?"rgba(52,211,153,.22)":"rgba(255,255,255,.08)"}`,background:ok?"rgba(52,211,153,.07)":"rgba(255,255,255,.025)",color:ok?"#a7f3d0":"rgba(255,255,255,.4)",fontSize:10.5,fontWeight:750}}>{ok?"✓":"○"} {String(label)}</div>)}</div>
 
-      <button disabled={disabled || !validPassword} onClick={()=>void handleReset()} style={{width:"100%",padding:14,border:"1px solid rgba(16,185,129,.35)",borderRadius:12,background:disabled||!validPassword?"rgba(16,185,129,.32)":"#10b981",color:disabled||!validPassword?"rgba(3,18,12,.55)":"#03120c",fontWeight:950,fontSize:13.5,cursor:loading?"wait":disabled||!validPassword?"not-allowed":"pointer",boxShadow:disabled||!validPassword?"none":"0 12px 30px rgba(16,185,129,.13)"}}>{loading?"Updating password and verifying HQ…":"Set new password"}</button>
+      <button disabled={disabled || !validPassword} onClick={()=>void handleReset()} style={{width:"100%",padding:14,border:"1px solid rgba(16,185,129,.35)",borderRadius:12,background:disabled||!validPassword?"rgba(16,185,129,.32)":"#10b981",color:disabled||!validPassword?"rgba(3,18,12,.55)":"#03120c",fontWeight:950,fontSize:13.5,cursor:loading?"wait":disabled||!validPassword?"not-allowed":"pointer",boxShadow:disabled||!validPassword?"none":"0 12px 30px rgba(16,185,129,.13)"}}>{loading?"Updating password…":"Set new password"}</button>
 
       <button type="button" onClick={()=>router.replace("/hq/login")} style={{width:"100%",marginTop:10,padding:11,border:0,background:"transparent",color:"rgba(255,255,255,.52)",fontWeight:800,cursor:"pointer"}}>{ready?"Cancel and return to HQ login":"Request a new recovery link"}</button>
-      <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid rgba(255,255,255,.07)",fontSize:10.5,lineHeight:1.55,color:"rgba(255,255,255,.35)"}}>Use the newest recovery email and open it in the same browser where you requested it. Recovery links are short-lived and single-use.</div>
+      <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid rgba(255,255,255,.07)",fontSize:10.5,lineHeight:1.55,color:"rgba(255,255,255,.35)"}}>Use the newest recovery email. Recovery links are short-lived and single-use.</div>
     </section>
   </main>
 }
