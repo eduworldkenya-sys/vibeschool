@@ -41,6 +41,57 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Enforce protected workflow policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f AGENTS.md
+          test -f docs/engineering/PROTECTED_WORKFLOW.md
+          test -f vercel.json
+
+          node <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          const enabled = config?.git?.deploymentEnabled;
+          const failures = [];
+
+          if (!enabled || typeof enabled !== 'object' || Array.isArray(enabled)) {
+            failures.push('vercel.json git.deploymentEnabled must be an object');
+          } else {
+            if (enabled.main !== true) failures.push('main must be explicitly deploymentEnabled=true');
+            if (enabled['*'] !== false) failures.push('"*" must be explicitly deploymentEnabled=false');
+            if (enabled['**'] !== false) failures.push('"**" must be explicitly deploymentEnabled=false');
+
+            for (const [pattern, value] of Object.entries(enabled)) {
+              if (pattern !== 'main' && value === true) {
+                failures.push(`non-main deployment pattern ${pattern} must not be enabled`);
+              }
+            }
+          }
+
+          const agents = fs.readFileSync('AGENTS.md', 'utf8');
+          const policy = fs.readFileSync('docs/engineering/PROTECTED_WORKFLOW.md', 'utf8');
+          const required = [
+            ['AGENTS.md', agents, 'Never start implementation on `main`'],
+            ['AGENTS.md', agents, 'Non-main branches must not deploy to Vercel'],
+            ['PROTECTED_WORKFLOW.md', policy, 'Only main may deploy to Vercel through Git'],
+            ['PROTECTED_WORKFLOW.md', policy, 'Merge to main is an intentional production action'],
+          ];
+
+          for (const [file, text, phrase] of required) {
+            if (!text.includes(phrase)) failures.push(`${file} is missing required policy phrase: ${phrase}`);
+          }
+
+          if (failures.length) {
+            console.error('Protected workflow policy violation:');
+            for (const failure of failures) console.error(`- ${failure}`);
+            process.exit(1);
+          }
+
+          console.log('Protected workflow policy verified.');
+          NODE
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
