@@ -5,6 +5,10 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
+const hqSupabase = supabase as unknown as {
+  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message?: string } | null }>
+}
+
 export default function HQLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
@@ -20,7 +24,7 @@ export default function HQLoginPage() {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
       if (authError || !data.user) throw new Error("Invalid email or password.")
 
-      const { data: access, error: accessError } = await supabase.rpc("hq_check_owner_access", { p_surface: "/hq/login" })
+      const { data: access, error: accessError } = await hqSupabase.rpc("hq_check_owner_access", { p_surface: "/hq/login" })
       const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
       if (!allowed) {
         await supabase.auth.signOut()
