@@ -73,6 +73,21 @@ create table if not exists public.classes (
   school_id uuid references public.schools(id) on delete cascade
 );
 
+create table if not exists public.students (
+  id uuid primary key default gen_random_uuid(),
+  class_id uuid references public.classes(id) on delete cascade,
+  name text not null,
+  admission_number text default '',
+  created_at timestamptz default now(),
+  profile_id uuid references public.profiles(id),
+  date_of_birth date,
+  gender text,
+  autonomy_level integer default 1,
+  deleted_at timestamptz,
+  parent_linked_at timestamptz,
+  created_by uuid references auth.users(id)
+);
+
 create table if not exists public.subjects (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -113,6 +128,7 @@ create table if not exists public.timetable_slots (
 alter table public.schools enable row level security;
 alter table public.profiles enable row level security;
 alter table public.classes enable row level security;
+alter table public.students enable row level security;
 alter table public.subjects enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
