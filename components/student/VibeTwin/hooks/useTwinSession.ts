@@ -9,16 +9,13 @@ function loadStoredMessages(): TwinMessage[] {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '[]')
     if (!Array.isArray(parsed)) return []
-    return parsed.filter((item): item is TwinMessage =>
-      Boolean(item) &&
-      typeof item.id === 'string' &&
-      (item.role === 'twin' || item.role === 'user') &&
-      typeof item.text === 'string' &&
-      typeof item.timestamp === 'number'
-    ).slice(-MAX_MESSAGES)
-  } catch {
-    return []
-  }
+    return parsed.filter((item): item is TwinMessage => Boolean(item) && typeof item.id === 'string' && (item.role === 'twin' || item.role === 'user') && typeof item.text === 'string' && typeof item.timestamp === 'number').slice(-MAX_MESSAGES)
+  } catch { return [] }
+}
+
+function newSessionId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return `twin-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
 }
 
 export function useTwinSession(isOpen: boolean) {
@@ -27,58 +24,23 @@ export function useTwinSession(isOpen: boolean) {
   const [greeted, setGreeted] = useState(false)
   const hydratedRef = useRef(false)
   const processingRef = useRef(false)
+  const sessionIdRef = useRef(newSessionId())
+  const wasOpenRef = useRef(false)
 
+  useEffect(() => { if (hydratedRef.current || typeof window === 'undefined') return; hydratedRef.current = true; setMessages(loadStoredMessages()) }, [])
+  useEffect(() => { if (!hydratedRef.current || typeof window === 'undefined') return; try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES))) } catch {} }, [messages])
   useEffect(() => {
-    if (hydratedRef.current || typeof window === 'undefined') return
-    hydratedRef.current = true
-    setMessages(loadStoredMessages())
-  }, [])
-
-  useEffect(() => {
-    if (!hydratedRef.current || typeof window === 'undefined') return
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_MESSAGES)))
-    } catch {
-      // Local persistence is a convenience only; Twin remains usable without it.
-    }
-  }, [messages])
-
-  useEffect(() => {
-    if (!isOpen) {
-      setTwinState('idle')
-      processingRef.current = false
-    }
+    if (isOpen && !wasOpenRef.current) sessionIdRef.current = newSessionId()
+    wasOpenRef.current = isOpen
+    if (!isOpen) { setTwinState('idle'); processingRef.current = false }
   }, [isOpen])
 
   const addMessage = useCallback((role: 'twin' | 'user', text: string): TwinMessage => {
-    const msg: TwinMessage = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      role,
-      text,
-      timestamp: Date.now(),
-    }
-    setMessages(prev => [...prev, msg].slice(-MAX_MESSAGES))
-    return msg
+    const msg: TwinMessage = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, role, text, timestamp: Date.now() }
+    setMessages(prev => [...prev, msg].slice(-MAX_MESSAGES)); return msg
   }, [])
+  const acquireProcessing = useCallback(() => { if (processingRef.current) return false; processingRef.current = true; return true }, [])
+  const releaseProcessing = useCallback(() => { processingRef.current = false }, [])
 
-  const acquireProcessing = useCallback((): boolean => {
-    if (processingRef.current) return false
-    processingRef.current = true
-    return true
-  }, [])
-
-  const releaseProcessing = useCallback(() => {
-    processingRef.current = false
-  }, [])
-
-  return {
-    messages,
-    twinState,
-    setTwinState,
-    greeted,
-    setGreeted,
-    addMessage,
-    acquireProcessing,
-    releaseProcessing,
-  }
+  return { messages, twinState, setTwinState, greeted, setGreeted, addMessage, acquireProcessing, releaseProcessing, sessionId: sessionIdRef.current }
 }

@@ -1,0 +1,4 @@
+-- HQ publication release enforcement v1
+-- Applied to production Supabase on 2026-08-09.
+-- Enforces publication.release_enabled inside publish_publication() and publish_textbook()
+-- before publication mutations. Full DDL is recorded in the Supabase migration ledger.
