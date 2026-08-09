@@ -1,31 +1,64 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies, headers } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { HQNavigation, HQStyles } from '@/components/hq/HQShell'
-import HQOfflineStatus from '@/components/hq/HQOfflineStatus'
+"use client"
 
-const HQ_PATH_HEADER = 'x-vibeschool-hq-path'
+import { useEffect, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { HQNavigation, HQStyles } from "@/components/hq/HQShell"
+import HQOfflineStatus from "@/components/hq/HQOfflineStatus"
+import { hqSupabase } from "@/lib/hq/supabase"
 
-function createHQServerClient() {
-  const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } },
-  )
-}
+const PUBLIC_HQ_ROUTES = new Set(["/hq/login", "/hq/reset-password"])
 
-export default async function HQLayout({ children }: { children: React.ReactNode }) {
-  const pathname = headers().get(HQ_PATH_HEADER) ?? '/hq'
-  if (pathname === '/hq/login') return <>{children}</>
+export default function HQLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [allowed, setAllowed] = useState(PUBLIC_HQ_ROUTES.has(pathname))
+  const [checking, setChecking] = useState(!PUBLIC_HQ_ROUTES.has(pathname))
 
-  const supabase = createHQServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) redirect(`/hq/login?redirect=${encodeURIComponent(pathname)}`)
+  useEffect(() => {
+    let mounted = true
 
-  const { data: access, error: accessError } = await supabase.rpc('hq_check_owner_access', { p_surface: `${pathname}:server-layout` })
-  const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
-  if (!allowed) redirect('/?hq=denied')
+    if (PUBLIC_HQ_ROUTES.has(pathname)) {
+      setAllowed(true)
+      setChecking(false)
+      return () => { mounted = false }
+    }
+
+    async function verifyHQAccess() {
+      setChecking(true)
+      setAllowed(false)
+
+      const { data: { user }, error: authError } = await hqSupabase.auth.getUser()
+      if (!mounted) return
+      if (authError || !user) {
+        router.replace(`/hq/login?redirect=${encodeURIComponent(pathname)}`)
+        return
+      }
+
+      const { data: access, error: accessError } = await hqSupabase.rpc("hq_check_owner_access", { p_surface: `${pathname}:client-layout` })
+      if (!mounted) return
+      const authorized = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
+
+      if (!authorized) {
+        await hqSupabase.auth.signOut({ scope: "local" })
+        router.replace("/hq/login?denied=1")
+        return
+      }
+
+      setAllowed(true)
+      setChecking(false)
+    }
+
+    void verifyHQAccess()
+    return () => { mounted = false }
+  }, [pathname, router])
+
+  if (PUBLIC_HQ_ROUTES.has(pathname)) return <>{children}</>
+
+  if (checking || !allowed) {
+    return <main style={{minHeight:"100dvh",display:"grid",placeItems:"center",background:"#07111f",color:"#f8fafc",fontFamily:"Inter,system-ui,sans-serif"}}>
+      <div role="status" style={{fontSize:13,color:"rgba(255,255,255,.62)"}}>Verifying HQ owner authority…</div>
+    </main>
+  }
 
   return <>
     <HQStyles />
