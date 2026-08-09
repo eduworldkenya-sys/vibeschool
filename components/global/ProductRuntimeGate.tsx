@@ -16,7 +16,6 @@ export default function ProductRuntimeGate({ product, children }: { product: HQP
     let alive = true;
 
     async function handshake() {
-      setState("checking");
       try {
         const { data, error } = await (supabase as any).rpc("hq_product_runtime_handshake", {
           p_product_key: product,
@@ -30,8 +29,19 @@ export default function ProductRuntimeGate({ product, children }: { product: HQP
       }
     }
 
+    setState("checking");
     void handshake();
-    return () => { alive = false; };
+    const intervalId = window.setInterval(() => void handshake(), 60_000);
+    const recheck = () => void handshake();
+    window.addEventListener("online", recheck);
+    window.addEventListener("focus", recheck);
+
+    return () => {
+      alive = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener("online", recheck);
+      window.removeEventListener("focus", recheck);
+    };
   }, [pathname, product]);
 
   if (state === "enabled") return <>{children}</>;
