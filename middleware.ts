@@ -11,32 +11,48 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
         },
       },
     }
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
-  const isProtected = PROTECTED_PREFIXES.some(p => pathname.startsWith(p))
+  const isHQLogin = pathname === '/hq/login'
+  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
 
-  if (isProtected && !user) {
+  if (isProtected && !user && !isHQLogin) {
     const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/'
+    loginUrl.pathname = pathname.startsWith('/hq') ? '/hq/login' : '/'
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
+  }
+
+  if (user && pathname.startsWith('/hq') && !isHQLogin) {
+    const { data: access, error } = await supabase.rpc('hq_check_owner_access', { p_surface: pathname })
+    const allowed = !error && Boolean((access as { allowed?: boolean } | null)?.allowed)
+    if (!allowed) {
+      const deniedUrl = request.nextUrl.clone()
+      deniedUrl.pathname = '/'
+      deniedUrl.search = ''
+      deniedUrl.searchParams.set('hq', 'denied')
+      return NextResponse.redirect(deniedUrl)
+    }
+  }
+
+  if (user && isHQLogin) {
+    const { data: access } = await supabase.rpc('hq_check_owner_access', { p_surface: '/hq/login' })
+    if (Boolean((access as { allowed?: boolean } | null)?.allowed)) {
+      const hqUrl = request.nextUrl.clone()
+      hqUrl.pathname = '/hq'
+      hqUrl.search = ''
+      return NextResponse.redirect(hqUrl)
+    }
   }
 
   return supabaseResponse
