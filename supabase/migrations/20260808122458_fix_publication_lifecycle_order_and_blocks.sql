@@ -1,5 +1,5 @@
-create or replace function public.publish_textbook(p_publication_id uuid)
-returns table(content_id uuid, operation text)
+create or replace function public.publish_publication(p_publication_id uuid)
+returns table(publication_id uuid, operation text)
 language plpgsql
 security definer
 set search_path = 'public', 'pg_temp'
@@ -20,11 +20,11 @@ begin
   for update;
 
   if not found then raise exception 'Publication % not found', p_publication_id; end if;
-  if v_format <> 'vibetextbook' then raise exception 'Publication % is format %, not vibetextbook', p_publication_id, v_format; end if;
+  if v_format not in ('vibetextbook','ebook') then raise exception 'Publication format % is not supported by Content Studio lifecycle', v_format; end if;
   if (select auth.uid()) is distinct from v_author_id then raise exception 'Not authorized to publish publication %', p_publication_id; end if;
   if nullif(btrim(v_title), '') is null then raise exception 'Title is required before publishing'; end if;
-  if nullif(btrim(v_subject), '') is null then raise exception 'CBC subject is required before publishing'; end if;
-  if nullif(btrim(v_grade), '') is null then raise exception 'CBC grade is required before publishing'; end if;
+  if v_format = 'vibetextbook' and nullif(btrim(v_subject), '') is null then raise exception 'CBC subject is required before publishing'; end if;
+  if v_format = 'vibetextbook' and nullif(btrim(v_grade), '') is null then raise exception 'CBC grade is required before publishing'; end if;
   if not exists (select 1 from public.vibe_chapters where publication_id = p_publication_id) then raise exception 'At least one chapter is required before publishing'; end if;
 
   update public.vibe_publications
@@ -56,6 +56,53 @@ begin
     and cb.status is distinct from case when vc.status = 'published' then 'published' else 'draft' end;
 
   perform public.ce_capture_publication_revision(p_publication_id, 'publish');
-  return query select * from public.sync_vibelearn_textbook_index(p_publication_id);
+
+  if v_format = 'vibetextbook' then
+    perform public.sync_vibelearn_textbook_index(p_publication_id);
+  end if;
+
+  return query select p_publication_id, 'published'::text;
+end;
+$function$;
+
+create or replace function public.unpublish_publication(p_publication_id uuid)
+returns table(publication_id uuid, operation text)
+language plpgsql
+security definer
+set search_path = 'public', 'pg_temp'
+as $function$
+declare
+  v_author_id uuid;
+  v_format text;
+  v_now timestamptz := now();
+begin
+  select author_id, format into v_author_id, v_format
+  from public.vibe_publications
+  where id = p_publication_id
+  for update;
+
+  if not found then raise exception 'Publication % not found', p_publication_id; end if;
+  if v_format not in ('vibetextbook','ebook') then raise exception 'Publication format % is not supported by Content Studio lifecycle', v_format; end if;
+  if (select auth.uid()) is distinct from v_author_id then raise exception 'Not authorized to unpublish publication %', p_publication_id; end if;
+
+  perform public.ce_capture_publication_revision(p_publication_id, 'before_unpublish');
+
+  update public.vibe_chapters
+  set status='draft', updated_at=v_now
+  where publication_id=p_publication_id and status in ('published','locked');
+
+  update public.content_blocks
+  set status='draft', updated_at=v_now
+  where publication_id=p_publication_id and status <> 'draft';
+
+  update public.vibe_publications
+  set status='unpublished', updated_at=v_now
+  where id=p_publication_id;
+
+  if v_format='vibetextbook' then
+    perform public.sync_vibelearn_textbook_index(p_publication_id);
+  end if;
+
+  return query select p_publication_id, 'unpublished'::text;
 end;
 $function$;
