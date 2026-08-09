@@ -1,0 +1,52 @@
+-- ENGINE-001: operational evidence -> health -> editorial proposal loop.
+create table if not exists public.content_learning_events (
+ id uuid primary key default gen_random_uuid(), student_id uuid not null references auth.users(id) on delete cascade,
+ publication_id uuid not null references public.vibe_publications(id) on delete cascade,
+ chapter_id uuid references public.vibe_chapters(id) on delete cascade, content_block_id uuid references public.content_blocks(id) on delete cascade,
+ outcome_id uuid references public.curriculum_learning_outcomes(id) on delete set null,
+ event_type text not null check(event_type in ('view','complete','reread','struggle','hint','question_attempt','question_correct','question_incorrect','remediation_started','remediation_completed')),
+ duration_ms integer check(duration_ms is null or duration_ms>=0), metadata jsonb not null default '{}'::jsonb,
+ occurred_at timestamptz not null default now(), created_at timestamptz not null default now());
+create index if not exists content_learning_events_block_time_idx on public.content_learning_events(content_block_id,occurred_at desc);
+create index if not exists content_learning_events_outcome_time_idx on public.content_learning_events(outcome_id,occurred_at desc);
+create index if not exists content_learning_events_student_time_idx on public.content_learning_events(student_id,occurred_at desc);
+alter table public.content_learning_events enable row level security;
+drop policy if exists content_learning_events_student_insert on public.content_learning_events;
+create policy content_learning_events_student_insert on public.content_learning_events for insert to authenticated with check((select auth.uid())=student_id);
+drop policy if exists content_learning_events_student_read on public.content_learning_events;
+create policy content_learning_events_student_read on public.content_learning_events for select to authenticated using((select auth.uid())=student_id);
+revoke all on public.content_learning_events from anon; grant select,insert on public.content_learning_events to authenticated; grant all on public.content_learning_events to service_role;
+
+create table if not exists public.content_engine_cycle_metrics(id uuid primary key default gen_random_uuid(),run_id uuid references public.curriculum_intelligence_runs(id) on delete cascade,metric_key text not null,metric_value numeric not null default 0,dimensions jsonb not null default '{}'::jsonb,created_at timestamptz not null default now());
+alter table public.content_engine_cycle_metrics enable row level security; revoke all on public.content_engine_cycle_metrics from anon,authenticated; grant all on public.content_engine_cycle_metrics to service_role;
+
+create or replace function public.record_content_learning_event(p_publication_id uuid,p_chapter_id uuid,p_content_block_id uuid,p_outcome_id uuid,p_event_type text,p_duration_ms integer default null,p_metadata jsonb default '{}'::jsonb) returns uuid language plpgsql security invoker set search_path=public as $$
+declare v_id uuid; v_user uuid:=auth.uid(); begin
+ if v_user is null then raise exception 'authentication required'; end if;
+ if p_event_type not in ('view','complete','reread','struggle','hint','question_attempt','question_correct','question_incorrect','remediation_started','remediation_completed') then raise exception 'invalid event type'; end if;
+ if p_content_block_id is not null and not exists(select 1 from content_blocks b where b.id=p_content_block_id and b.publication_id=p_publication_id and (p_chapter_id is null or b.chapter_id=p_chapter_id)) then raise exception 'content lineage mismatch'; end if;
+ insert into content_learning_events(student_id,publication_id,chapter_id,content_block_id,outcome_id,event_type,duration_ms,metadata) values(v_user,p_publication_id,p_chapter_id,p_content_block_id,p_outcome_id,p_event_type,p_duration_ms,coalesce(p_metadata,'{}'::jsonb)) returning id into v_id; return v_id; end $$;
+grant execute on function public.record_content_learning_event(uuid,uuid,uuid,uuid,text,integer,jsonb) to authenticated; revoke execute on function public.record_content_learning_event(uuid,uuid,uuid,uuid,text,integer,jsonb) from anon;
+
+create or replace function public.run_content_intelligence_cycle(p_trigger text default 'scheduled') returns uuid language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_run uuid; v_signals integer:=0; v_proposals integer:=0; begin
+ insert into curriculum_intelligence_runs(status,trigger_type,started_at,model,metadata) values('running',p_trigger,now(),'deterministic-health-v1',jsonb_build_object('engine','ENGINE-001')) returning id into v_run;
+ with assessment_health as (
+  select b.publication_id,b.chapter_id,b.id block_id,count(r.id)::int evidence_count,avg(case when coalesce(r.max_score,0)>0 then coalesce(r.final_score,r.teacher_score,r.auto_score,0)/r.max_score else null end) avg_ratio
+  from content_blocks b join assessment_items i on i.source_block_id=b.id join assessment_responses r on r.assessment_item_id=i.id and r.submitted_at is not null where r.created_at>=now()-interval '90 days' group by b.publication_id,b.chapter_id,b.id having count(r.id)>=5),
+ event_health as (select e.publication_id,e.chapter_id,e.content_block_id block_id,count(*) filter(where event_type in ('struggle','question_incorrect','reread','hint'))::int weak_events,count(*)::int total_events from content_learning_events e where e.content_block_id is not null and e.occurred_at>=now()-interval '90 days' group by e.publication_id,e.chapter_id,e.content_block_id having count(*)>=5),
+ candidates as (select coalesce(a.publication_id,e.publication_id) publication_id,coalesce(a.chapter_id,e.chapter_id) chapter_id,coalesce(a.block_id,e.block_id) block_id,coalesce(a.evidence_count,0)+coalesce(e.total_events,0) evidence_count,a.avg_ratio,case when coalesce(e.total_events,0)>0 then e.weak_events::numeric/e.total_events else null end weak_ratio from assessment_health a full join event_health e on e.block_id=a.block_id),
+ upserted as (insert into curriculum_content_health_signals(publication_id,chapter_id,content_block_id,signal_type,severity,score,evidence_count,evidence,status,first_detected_at,last_detected_at)
+  select publication_id,chapter_id,block_id,'learning_effectiveness',case when coalesce(avg_ratio,1)<0.4 or coalesce(weak_ratio,0)>=0.6 then 'high' else 'medium' end,greatest(coalesce(1-avg_ratio,0),coalesce(weak_ratio,0)),evidence_count,jsonb_build_object('assessment_success_ratio',avg_ratio,'weak_event_ratio',weak_ratio,'window_days',90),'open',now(),now() from candidates where coalesce(avg_ratio,1)<0.65 or coalesce(weak_ratio,0)>=0.35 on conflict do nothing returning id)
+ select count(*) into v_signals from upserted;
+ insert into curriculum_intelligence_proposals(publication_id,chapter_id,outcome_id,proposal_type,title,claim,current_content,rationale,curriculum_relevance,confidence,verification_status,volatility,status,generated_by,generated_at,engine_run_id,editorial_status)
+ select s.publication_id,s.chapter_id,s.outcome_id,'content_improvement','Investigate weak learning effectiveness','Evidence indicates this content may not be producing sufficient learner understanding.',b.plain_text,concat('Health signal ',s.signal_type,' score=',coalesce(s.score,0),' evidence=',s.evidence_count,'. Research and editorial review required before any publication change.'),case when s.outcome_id is null then 'outcome mapping required' else 'linked curriculum outcome' end,least(0.95,0.5+least(coalesce(s.evidence_count,0),45)::numeric/100),'needs_research','medium','proposed','content-intelligence-engine',now(),v_run,'needs_research'
+ from curriculum_content_health_signals s left join content_blocks b on b.id=s.content_block_id where s.status='open' and s.severity in ('medium','high','critical') and not exists(select 1 from curriculum_intelligence_proposals p where p.publication_id=s.publication_id and p.chapter_id is not distinct from s.chapter_id and p.status in ('proposed','approved','applying'));
+ get diagnostics v_proposals=row_count; insert into content_engine_cycle_metrics(run_id,metric_key,metric_value) values(v_run,'health_signals_created',v_signals),(v_run,'proposals_created',v_proposals);
+ update curriculum_intelligence_runs set status='completed',completed_at=now(),proposals_created=v_proposals,summary=concat('ENGINE-001 completed: ',v_signals,' health signals, ',v_proposals,' proposals.') where id=v_run; return v_run;
+exception when others then if v_run is not null then update curriculum_intelligence_runs set status='failed',completed_at=now(),error=sqlerrm where id=v_run; end if; raise; end $$;
+revoke all on function public.run_content_intelligence_cycle(text) from public,anon,authenticated; grant execute on function public.run_content_intelligence_cycle(text) to service_role;
+create unique index if not exists curriculum_health_open_block_type_uq on public.curriculum_content_health_signals(content_block_id,signal_type) where status='open' and content_block_id is not null;
+create or replace view public.content_engine_operational_health with(security_invoker=true) as select (select count(*) from curriculum_intelligence_watch_targets where enabled) enabled_watch_targets,(select count(*) from curriculum_intelligence_runs where status='completed') completed_runs,(select count(*) from curriculum_content_health_signals where status='open') open_health_signals,(select count(*) from curriculum_intelligence_proposals where status='proposed') open_proposals,(select count(*) from curriculum_editorial_actions where status in ('queued','pending','running')) pending_actions,(select count(*) from curriculum_editorial_effectiveness where evaluated_at is null) pending_effectiveness_reviews,(select count(*) from content_learning_events) learning_events,(select max(completed_at) from curriculum_intelligence_runs where status='completed') last_completed_run;
+revoke all on public.content_engine_operational_health from anon,authenticated; grant select on public.content_engine_operational_health to service_role;
+do $$ begin if exists(select 1 from pg_extension where extname='pg_cron') then perform cron.unschedule(jobid) from cron.job where jobname='vibeschool-content-intelligence-cycle'; perform cron.schedule('vibeschool-content-intelligence-cycle','17 * * * *',$cron$select public.run_content_intelligence_cycle('scheduled');$cron$); end if; end $$;
