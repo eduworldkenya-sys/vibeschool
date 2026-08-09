@@ -1,7 +1,7 @@
 "use client"
 export const dynamic = "force-dynamic"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -9,32 +9,68 @@ const hqSupabase = supabase as unknown as {
   rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message?: string } | null }>
 }
 
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  marginTop: 7,
+  padding: "13px 14px",
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,.12)",
+  background: "rgba(255,255,255,.05)",
+  color: "white",
+  fontSize: 15,
+  outline: "none",
+}
+
 export default function HQResetPasswordPage() {
   const router = useRouter()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [ready, setReady] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const checks = useMemo(() => ({
+    length: password.length >= 12,
+    letter: /[A-Za-z]/.test(password),
+    number: /\d/.test(password),
+    match: password.length > 0 && password === confirmPassword,
+  }), [password, confirmPassword])
+  const validPassword = checks.length && checks.letter && checks.number && checks.match
+
   useEffect(() => {
     let mounted = true
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return
+      if (event === "PASSWORD_RECOVERY" && session?.user) {
+        setReady(true)
+        setChecking(false)
+        setError("")
+      }
+    })
     void supabase.auth.getUser().then(({ data, error: userError }) => {
       if (!mounted) return
+      setChecking(false)
       if (userError || !data.user) {
-        setError("This recovery link is invalid or has expired. Request a new link from HQ login.")
+        setError("This recovery link is invalid, expired, or already used. Request a new link from HQ login.")
         return
       }
       setReady(true)
     })
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   async function handleReset() {
     setError("")
     if (!ready) return setError("A valid recovery session is required.")
-    if (password.length < 12) return setError("Use at least 12 characters for the new password.")
-    if (password !== confirmPassword) return setError("Passwords do not match.")
+    if (!checks.length) return setError("Use at least 12 characters for the new password.")
+    if (!checks.letter || !checks.number) return setError("Use a password containing both letters and numbers.")
+    if (!checks.match) return setError("Passwords do not match.")
     setLoading(true)
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password })
@@ -55,18 +91,34 @@ export default function HQResetPasswordPage() {
     }
   }
 
-  return <main style={{minHeight:"100dvh",display:"grid",placeItems:"center",background:"#07111f",color:"#f8fafc",padding:24,fontFamily:"Inter,system-ui,sans-serif"}}>
-    <section style={{width:"100%",maxWidth:420,border:"1px solid rgba(255,255,255,.1)",borderRadius:22,padding:32,background:"rgba(255,255,255,.035)"}}>
-      <div style={{fontSize:11,fontWeight:900,letterSpacing:".12em",color:"#34d399",textTransform:"uppercase"}}>Secure recovery</div>
-      <h1 style={{fontSize:28,margin:"8px 0 4px"}}>Set a new HQ password</h1>
-      <p style={{fontSize:13,color:"rgba(255,255,255,.5)",margin:"0 0 26px"}}>The recovery session proves email access. HQ owner authority is verified separately before entry.</p>
-      {error && <div role="alert" style={{padding:12,borderRadius:10,marginBottom:16,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",color:"#fca5a5",fontSize:12,lineHeight:1.5}}>{error}</div>}
-      <label htmlFor="new-password" style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>New password</label>
-      <input id="new-password" value={password} onChange={e=>setPassword(e.target.value)} type="password" autoComplete="new-password" minLength={12} disabled={!ready||loading} style={{width:"100%",boxSizing:"border-box",margin:"7px 0 16px",padding:13,borderRadius:10,border:"1px solid rgba(255,255,255,.12)",background:"rgba(255,255,255,.05)",color:"white"}} />
-      <label htmlFor="confirm-password" style={{fontSize:11,color:"rgba(255,255,255,.55)"}}>Confirm new password</label>
-      <input id="confirm-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") void handleReset()}} type="password" autoComplete="new-password" minLength={12} disabled={!ready||loading} style={{width:"100%",boxSizing:"border-box",margin:"7px 0 22px",padding:13,borderRadius:10,border:"1px solid rgba(255,255,255,.12)",background:"rgba(255,255,255,.05)",color:"white"}} />
-      <button disabled={!ready||loading} onClick={()=>void handleReset()} style={{width:"100%",padding:14,border:0,borderRadius:10,background:"#10b981",color:"#04110c",fontWeight:900,cursor:loading?"wait":"pointer",opacity:ready?1:.55}}>{loading?"Updating and verifying authority…":"Set password and enter HQ"}</button>
-      <button type="button" onClick={()=>router.replace("/hq/login")} style={{width:"100%",marginTop:12,padding:10,border:0,background:"transparent",color:"rgba(255,255,255,.55)",fontWeight:800,cursor:"pointer"}}>Back to HQ login</button>
+  const disabled = checking || !ready || loading
+
+  return <main style={{minHeight:"100dvh",display:"grid",placeItems:"center",background:"radial-gradient(circle at top,#10233d 0,#07111f 46%,#040a12 100%)",color:"#f8fafc",padding:"24px 16px",fontFamily:"Inter,system-ui,sans-serif"}}>
+    <section style={{width:"100%",maxWidth:440,border:"1px solid rgba(255,255,255,.1)",borderRadius:24,padding:"clamp(22px,6vw,34px)",background:"rgba(7,17,31,.88)",boxShadow:"0 24px 80px rgba(0,0,0,.28)",backdropFilter:"blur(18px)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:22}}>
+        <div aria-hidden="true" style={{width:38,height:38,borderRadius:12,display:"grid",placeItems:"center",background:"rgba(16,185,129,.12)",border:"1px solid rgba(52,211,153,.22)",color:"#6ee7b7",fontWeight:950}}>↺</div>
+        <div><div style={{fontSize:10.5,fontWeight:950,letterSpacing:".13em",color:"#34d399",textTransform:"uppercase"}}>Secure recovery</div><div style={{fontSize:12,color:"rgba(255,255,255,.42)",marginTop:2}}>Owner authentication reset</div></div>
+      </div>
+
+      <h1 style={{fontSize:"clamp(27px,7vw,34px)",letterSpacing:"-.03em",margin:"0 0 7px"}}>Create a new password</h1>
+      <p style={{fontSize:13,lineHeight:1.6,color:"rgba(255,255,255,.52)",margin:"0 0 23px"}}>Your recovery link verifies access to the email account. HQ owner authority is checked independently after the password changes.</p>
+
+      {checking && <div role="status" style={{padding:12,borderRadius:11,marginBottom:16,background:"rgba(96,165,250,.08)",border:"1px solid rgba(96,165,250,.22)",color:"#bfdbfe",fontSize:12}}>Verifying recovery session…</div>}
+      {error && <div role="alert" aria-live="assertive" style={{padding:12,borderRadius:11,marginBottom:16,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",color:"#fecaca",fontSize:12,lineHeight:1.55}}>{error}</div>}
+
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}><label htmlFor="new-password" style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,.62)"}}>New password</label><button type="button" onClick={()=>setShowPassword(v=>!v)} disabled={disabled} style={{border:0,background:"transparent",padding:0,color:"#93c5fd",fontSize:10.5,fontWeight:800,cursor:disabled?"default":"pointer"}}>{showPassword?"Hide":"Show"}</button></div>
+      <input id="new-password" value={password} onChange={e=>setPassword(e.target.value)} type={showPassword?"text":"password"} autoComplete="new-password" minLength={12} disabled={disabled} style={{...inputStyle,marginBottom:14,opacity:disabled?.58:1}} />
+
+      <label htmlFor="confirm-password" style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,.62)"}}>Confirm new password</label>
+      <input id="confirm-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!disabled) void handleReset()}} type={showPassword?"text":"password"} autoComplete="new-password" minLength={12} disabled={disabled} style={{...inputStyle,marginBottom:14,opacity:disabled?.58:1}} />
+
+      <div aria-label="Password requirements" style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:8,marginBottom:21}}>
+        {[ [checks.length,"12+ characters"], [checks.letter,"Contains letters"], [checks.number,"Contains a number"], [checks.match,"Passwords match"] ].map(([ok,label])=><div key={String(label)} style={{padding:"8px 9px",borderRadius:9,border:`1px solid ${ok?"rgba(52,211,153,.22)":"rgba(255,255,255,.08)"}`,background:ok?"rgba(52,211,153,.07)":"rgba(255,255,255,.025)",color:ok?"#a7f3d0":"rgba(255,255,255,.4)",fontSize:10.5,fontWeight:750}}>{ok?"✓":"○"} {String(label)}</div>)}</div>
+
+      <button disabled={disabled || !validPassword} onClick={()=>void handleReset()} style={{width:"100%",padding:14,border:"1px solid rgba(16,185,129,.35)",borderRadius:12,background:disabled||!validPassword?"rgba(16,185,129,.32)":"#10b981",color:disabled||!validPassword?"rgba(3,18,12,.55)":"#03120c",fontWeight:950,fontSize:13.5,cursor:loading?"wait":disabled||!validPassword?"not-allowed":"pointer",boxShadow:disabled||!validPassword?"none":"0 12px 30px rgba(16,185,129,.13)"}}>{loading?"Updating password and verifying HQ…":"Set password and enter HQ"}</button>
+
+      <button type="button" onClick={()=>router.replace("/hq/login")} style={{width:"100%",marginTop:10,padding:11,border:0,background:"transparent",color:"rgba(255,255,255,.52)",fontWeight:800,cursor:"pointer"}}>{ready?"Cancel and return to HQ login":"Request a new recovery link"}</button>
+      <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid rgba(255,255,255,.07)",fontSize:10.5,lineHeight:1.55,color:"rgba(255,255,255,.35)"}}>For security, use the newest recovery email. Older or already-used links may be rejected.</div>
     </section>
   </main>
 }
