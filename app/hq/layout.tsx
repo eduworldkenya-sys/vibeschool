@@ -1,7 +1,7 @@
-import Link from 'next/link'
 import { createServerClient } from '@supabase/ssr'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { HQNavigation, HQStyles } from '@/components/hq/HQShell'
 
 const HQ_PATH_HEADER = 'x-vibeschool-hq-path'
 
@@ -26,20 +26,9 @@ export default async function HQLayout({ children }: { children: React.ReactNode
   const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
   if (!allowed) redirect('/?hq=denied')
 
-  const links = [
-    ['HQ','/hq'],
-    ['Departments','/hq/departments'],
-    ['Decisions','/hq/decisions'],
-    ['Studio','/hq/studio'],
-    ['Publishing','/hq/content'],
-    ['Content Engine','/hq/curriculum-intelligence/engine'],
-    ['Analytics','/hq/analytics'],
-  ]
-
   return <>
-    <nav aria-label="HQ owner navigation" style={{position:'sticky',top:0,zIndex:80,display:'flex',gap:6,overflowX:'auto',padding:'7px 10px',background:'#07111f',borderBottom:'1px solid rgba(255,255,255,.08)',fontFamily:'Inter,system-ui,sans-serif'}}>
-      {links.map(([label,href])=><Link key={href} href={href} style={{whiteSpace:'nowrap',padding:'7px 10px',borderRadius:9,border:'1px solid rgba(255,255,255,.08)',color:'#e2e8f0',background:'rgba(255,255,255,.03)',fontSize:11,fontWeight:800,textDecoration:'none'}}>{label}</Link>)}
-    </nav>
+    <HQStyles />
+    <HQNavigation />
     {children}
   </>
 }
