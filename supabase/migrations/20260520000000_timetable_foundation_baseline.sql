@@ -503,3 +503,15 @@ create policy "strands_read"
   for select
   to authenticated
   using (true);
+
+create policy "subjects_member_read"
+  on public.subjects
+  for select
+  to authenticated
+  using (
+    school_id in (
+      select sm.school_id
+      from public.school_members sm
+      where sm.profile_id = auth.uid()
+    )
+  );
