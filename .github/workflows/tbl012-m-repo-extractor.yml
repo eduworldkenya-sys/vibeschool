@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - fix/tbl012-m-repo-extractor
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/l0/extract-m-repo.js'
+      - 'package.json'
   workflow_dispatch:
 
 jobs:
@@ -17,7 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install parser
         run: npm install --ignore-scripts
@@ -47,7 +51,10 @@ jobs:
             ['timetable_slots.period_id ADD_COLUMN', has(m => m.type === 'ADD_COLUMN' && m.table === 'public.timetable_slots' && m.column === 'period_id' && m.migration.startsWith('20260719104519'))],
           ];
           let failed = false;
-          for (const [name, ok] of checks) console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`), failed ||= !ok;
+          for (const [name, ok] of checks) {
+            console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`);
+            failed ||= !ok;
+          }
           if (failed) process.exit(1);
           console.log(`PASS calibration: ${mutations.length} mutations extracted`);
           NODE
