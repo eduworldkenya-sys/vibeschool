@@ -130,6 +130,21 @@ create table if not exists public.student_claim_codes (
   claimed_by uuid references auth.users(id)
 );
 
+create table if not exists public.parent_student_links (
+  id uuid primary key default gen_random_uuid(),
+  parent_id uuid not null references public.profiles(id) on delete cascade,
+  student_id uuid not null references public.students(id),
+  school_id uuid references public.schools(id) on delete cascade,
+  relationship text not null default 'guardian',
+  is_primary boolean not null default false,
+  can_pickup boolean not null default true,
+  receives_alerts boolean not null default true,
+  updated_at timestamptz not null default clock_timestamp(),
+  created_at timestamptz not null default clock_timestamp(),
+  constraint chk_not_self check (parent_id <> student_id),
+  constraint uq_parent_student_school unique (parent_id,student_id,school_id)
+);
+
 create table if not exists public.subjects (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -393,6 +408,7 @@ alter table public.academic_terms enable row level security;
 alter table public.classes enable row level security;
 alter table public.students enable row level security;
 alter table public.student_claim_codes enable row level security;
+alter table public.parent_student_links enable row level security;
 alter table public.subjects enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
