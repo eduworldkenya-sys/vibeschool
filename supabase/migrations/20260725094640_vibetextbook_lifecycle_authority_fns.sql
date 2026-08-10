@@ -108,6 +108,35 @@ $function$;
 
 grant execute on function public.remove_textbook_from_vibelearn(uuid) to authenticated;
 
+-- Historical owner-authorized reconciliation entry point. CE-006 replaces
+-- this implementation with the canonical internal/public split.
+create or replace function public.reconcile_textbook_index(p_publication_id uuid)
+returns table(content_id uuid, operation text)
+language plpgsql
+security definer
+set search_path = public
+as $function$
+declare
+  v_author_id uuid;
+begin
+  select author_id into v_author_id
+  from public.vibe_publications
+  where id = p_publication_id;
+
+  if not found then
+    raise exception 'Publication % not found', p_publication_id;
+  end if;
+  if auth.uid() is distinct from v_author_id then
+    raise exception 'Not authorized to reconcile publication %', p_publication_id;
+  end if;
+
+  return query
+  select * from public.sync_vibelearn_textbook_index(p_publication_id);
+end;
+$function$;
+
+grant execute on function public.reconcile_textbook_index(uuid) to authenticated;
+
 comment on function public.publish_textbook(uuid) is
 'Sets vibe_publications.status = published and reconciles the vibelearn_content index. The only sanctioned way to publish a bridged textbook.';
 comment on function public.unpublish_textbook(uuid) is
