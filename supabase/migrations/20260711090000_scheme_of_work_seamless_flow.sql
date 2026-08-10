@@ -53,6 +53,9 @@ alter table scheme_of_work add column if not exists reflection text;
 alter table scheme_of_work add column if not exists curriculum_content_id uuid references curriculum_content(id) on delete set null;
 
 -- A4: lesson_plans.curriculum_id becomes derived from scheme_id
+alter table lesson_plans add column if not exists scheme_id uuid
+  references scheme_of_work(id) on delete set null;
+
 create or replace function sync_lesson_plan_curriculum_from_scheme()
 returns trigger language plpgsql as $$
 begin
