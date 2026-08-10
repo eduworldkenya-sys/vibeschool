@@ -41,6 +41,17 @@ BEGIN
         RETURN;
     END IF;
 
+    -- A clean database has no production-specific target row to repair.
+    -- If the UUID exists in any shape, continue into the strict assertions.
+    IF NOT EXISTS (
+        SELECT 1
+        FROM public.scheme_of_work
+        WHERE id = v_target_id
+    ) THEN
+        RAISE NOTICE 'tbl010f: production target row absent; nothing to repair';
+        RETURN;
+    END IF;
+
     --------------------------------------------------------------------------
     -- Target must still exist exactly once in the expected orphan state.
     --------------------------------------------------------------------------
