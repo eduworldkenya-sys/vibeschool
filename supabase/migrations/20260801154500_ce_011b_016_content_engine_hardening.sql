@@ -28,6 +28,7 @@ create table if not exists public.curriculum_learning_outcomes (
     curriculum_id is not null or sub_strand_id is not null
     or (source_type = 'creator_claimed' and source_ref like 'chapter:%')
   )
+);
 -- CE-010: learner assignment membership and evidence
 create table if not exists public.content_assignment_learners(
  id uuid primary key default gen_random_uuid(), assignment_id uuid not null references public.vibe_chapter_assignments(id) on delete cascade,
