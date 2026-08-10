@@ -246,7 +246,10 @@ create table if not exists public.timetable_slots (
   effective_from date not null default current_date,
   effective_until date,
   created_at timestamptz not null default clock_timestamp(),
-  updated_at timestamptz not null default clock_timestamp()
+  updated_at timestamptz not null default clock_timestamp(),
+  constraint chk_effective_range check (
+    effective_until is null or effective_until > effective_from
+  )
 );
 
 create table if not exists public.curriculum (
