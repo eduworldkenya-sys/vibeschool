@@ -8,7 +8,7 @@ interface ParentChildBrief {
   name: string
   class_name: string
   school_name: string
-  attendance: { marked: number; present: number; absent: number; late: number; percentage: number | null }
+  attendance: { marked: number; present: number; absent: number; excused: number; percentage: number | null }
   homework: { assigned: number; submitted: number; marked: number; overdue: number; feedback_released: number }
   latest_summary: {
     teacher_comment?: string | null
