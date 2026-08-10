@@ -152,6 +152,36 @@ create table if not exists public.students (
   created_by uuid references auth.users(id)
 );
 
+-- Verified against the production target schema snapshot. This junction
+-- predates tracked migrations; TBL-007G is a data backfill, not table creation.
+create table if not exists public.student_classes (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  student_id uuid not null references public.students(id),
+  class_id uuid not null references public.classes(id),
+  joined_at timestamptz not null default clock_timestamp(),
+  left_at timestamptz,
+  is_current boolean not null default true,
+  constraint student_classes_student_class_unique unique (student_id, class_id),
+  constraint uq_student_class_enrollment unique (student_id, class_id, joined_at),
+  constraint student_classes_dates_check check (left_at is null or left_at > joined_at),
+  constraint student_classes_current_state_check check (
+    (is_current = true and left_at is null)
+    or (is_current = false and left_at is not null)
+  )
+);
+
+create index if not exists idx_student_classes_class on public.student_classes(class_id);
+create index if not exists idx_student_classes_current
+  on public.student_classes(student_id, school_id) where is_current = true;
+create index if not exists idx_student_classes_school on public.student_classes(school_id);
+create index if not exists idx_student_classes_student on public.student_classes(student_id);
+create unique index if not exists uq_student_current_class
+  on public.student_classes(student_id, school_id) where is_current = true;
+create index if not exists idx_student_classes_active_class_student
+  on public.student_classes(class_id, student_id)
+  where is_current = true and left_at is null;
+
 create table if not exists public.student_claim_codes (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students(id),
@@ -575,6 +605,7 @@ alter table public.academic_terms enable row level security;
 alter table public.classes enable row level security;
 alter table public.students enable row level security;
 alter table public.student_claim_codes enable row level security;
+alter table public.student_classes enable row level security;
 alter table public.parent_student_links enable row level security;
 alter table public.subjects enable row level security;
 alter table public.cbc_strands enable row level security;
