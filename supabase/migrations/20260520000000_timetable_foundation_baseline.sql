@@ -20,6 +20,9 @@ begin
   if not exists (select 1 from pg_type where typname = 'school_status' and typnamespace = 'public'::regnamespace) then
     create type public.school_status as enum ('pending','active','suspended','closed');
   end if;
+  if not exists (select 1 from pg_type where typname = 'member_role' and typnamespace = 'public'::regnamespace) then
+    create type public.member_role as enum ('owner','admin','teacher','student','parent');
+  end if;
 end
 $$;
 
@@ -62,6 +65,15 @@ alter table public.schools
 alter table public.schools
   add constraint schools_created_by_fkey foreign key (created_by)
   references public.profiles(id) on delete set null;
+
+create table if not exists public.school_members (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  role public.member_role not null,
+  joined_at timestamptz not null default clock_timestamp(),
+  constraint uq_school_member unique (school_id,profile_id)
+);
 
 create table if not exists public.academic_terms (
   id uuid primary key default gen_random_uuid(),
@@ -284,6 +296,7 @@ create table if not exists public.lesson_interventions (
 -- restored by later canonical migrations.
 alter table public.schools enable row level security;
 alter table public.profiles enable row level security;
+alter table public.school_members enable row level security;
 alter table public.academic_terms enable row level security;
 alter table public.classes enable row level security;
 alter table public.students enable row level security;
