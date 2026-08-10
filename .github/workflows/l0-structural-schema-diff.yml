@@ -42,10 +42,21 @@ jobs:
             echo "mode=READ_ONLY_PRODUCTION"
           } > .l0-schema-diff/context.txt
 
-      - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
+      - name: Install Supabase CLI
+        shell: bash
+        run: |
+          set +e
+          npm install --global supabase@latest > .l0-schema-diff/logs/cli-install.log 2>&1
+          status=$?
+          echo "CLI_INSTALL_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          if command -v supabase >/dev/null 2>&1; then
+            supabase --version > .l0-schema-diff/logs/cli-version.log 2>&1
+            version_status=$?
+            echo "CLI_VERSION_EXIT=$version_status" >> .l0-schema-diff/exit_codes.env
+          else
+            echo "supabase CLI unavailable after installation" > .l0-schema-diff/logs/cli-version.log
+          fi
+          exit 0
 
       - name: Link exact production project
         env:
