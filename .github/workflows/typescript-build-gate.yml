@@ -3,16 +3,7 @@ name: TypeScript and Production Build Gate
 on:
   push:
     branches:
-      - main
-      - 'work/**'
-      - 'ops/**'
-      - 'hq/**'
-      - 'content/**'
-      - 'audit/**'
-      - 'twin/**'
-      - 'feature/**'
-      - 'feat/**'
-      - 'fix/**'
+      - '**'
   pull_request:
     branches:
       - main
@@ -49,9 +40,12 @@ jobs:
           test -f AGENTS.md
           test -f docs/engineering/PROTECTED_WORKFLOW.md
           test -f vercel.json
+          test -f .github/CODEOWNERS
+          test -f .github/pull_request_template.md
 
           node <<'NODE'
           const fs = require('fs');
+          const path = require('path');
           const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
           const enabled = config?.git?.deploymentEnabled;
           const failures = [];
@@ -62,7 +56,6 @@ jobs:
             if (enabled.main !== true) failures.push('main must be explicitly deploymentEnabled=true');
             if (enabled['*'] !== false) failures.push('"*" must be explicitly deploymentEnabled=false');
             if (enabled['**'] !== false) failures.push('"**" must be explicitly deploymentEnabled=false');
-
             for (const [pattern, value] of Object.entries(enabled)) {
               if (pattern !== 'main' && value === true) {
                 failures.push(`non-main deployment pattern ${pattern} must not be enabled`);
@@ -72,15 +65,42 @@ jobs:
 
           const agents = fs.readFileSync('AGENTS.md', 'utf8');
           const policy = fs.readFileSync('docs/engineering/PROTECTED_WORKFLOW.md', 'utf8');
+          const owners = fs.readFileSync('.github/CODEOWNERS', 'utf8');
           const required = [
             ['AGENTS.md', agents, 'Never start implementation on `main`'],
-            ['AGENTS.md', agents, 'Non-main branches must not deploy to Vercel'],
-            ['PROTECTED_WORKFLOW.md', policy, 'Only main may deploy to Vercel through Git'],
+            ['AGENTS.md', agents, 'Non-main branches must not deploy to any hosted environment'],
+            ['PROTECTED_WORKFLOW.md', policy, 'Only main may deploy to a hosted environment'],
             ['PROTECTED_WORKFLOW.md', policy, 'Merge to main is an intentional production action'],
+            ['CODEOWNERS', owners, '/AGENTS.md'],
+            ['CODEOWNERS', owners, '/vercel.json'],
+            ['CODEOWNERS', owners, '/.github/workflows/'],
           ];
-
           for (const [file, text, phrase] of required) {
             if (!text.includes(phrase)) failures.push(`${file} is missing required policy phrase: ${phrase}`);
+          }
+
+          const forbidden = [
+            /\bvercel\s+(?:deploy|--prod)\b/i,
+            /\bnetlify\s+deploy\b/i,
+            /api\.vercel\.com\/v\d+\/deployments/i,
+            /hooks\.vercel\.com/i,
+            /api\.netlify\.com\/api\/v\d+\/sites/i,
+          ];
+          const candidates = [];
+          if (fs.existsSync('package.json')) candidates.push('package.json');
+          if (fs.existsSync('.github/workflows')) {
+            for (const name of fs.readdirSync('.github/workflows')) {
+              const candidate = path.join('.github/workflows', name);
+              if (candidate !== '.github/workflows/typescript-build-gate.yml' && fs.statSync(candidate).isFile()) {
+                candidates.push(candidate);
+              }
+            }
+          }
+          for (const candidate of candidates) {
+            const text = fs.readFileSync(candidate, 'utf8');
+            if (forbidden.some((pattern) => pattern.test(text))) {
+              failures.push(`${candidate} contains a repository-controlled deployment bypass`);
+            }
           }
 
           if (failures.length) {
@@ -88,7 +108,6 @@ jobs:
             for (const failure of failures) console.error(`- ${failure}`);
             process.exit(1);
           }
-
           console.log('Protected workflow policy verified.');
           NODE
 
