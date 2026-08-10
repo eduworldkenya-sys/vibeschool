@@ -51,42 +51,114 @@ Do not infer success from missing telemetry. Every recoverable command must reco
 - Production migration ledger: **untouched**.
 - Purpose: telemetry/recovery process only.
 
-## Current Run Result
+## 2026-08-10 — Reverse-Engineering Loop: Production Catalog Interrogation
 
-The workflow run associated with commit `9ad107dd72c9337d4d4b147c10578d13741bf59a` completed **FAILURE** and still produced **no GitHub Actions artifact**. Because the artifact is absent, **G1 is FAIL** and the structural diff is not admissible evidence.
+### Problem observed
 
-This does **not** prove that the database foundation changed or that the Migra result is empty. It proves only that the current telemetry path still has an unobserved failure before artifact publication.
+The CI telemetry path remains non-admissible, but the production database itself is directly queryable through a read-only channel. Continuing to wait for CI would add latency without increasing the quality of the underlying evidence.
 
-### Current gate state
+### Controlled action
+
+Executed read-only PostgreSQL catalog queries against production project `yauqsxggtuxuykcbrtzf`.
+
+### Evidence obtained
+
+Production returned the known structural counts exactly:
+
+- public tables / partitioned tables: **413**
+- public views / materialized views: **19**
+- public functions: **871**
+- public RLS policies: **636**
+
+The following known foundation candidates were confirmed present in production and RLS-enabled:
+
+- `public.schools`
+- `public.profiles`
+- `public.classes`
+- `public.subjects`
+- `public.teacher_classes`
+- `public.timetable_slots`
+- `public.report_schedules`
+
+The repository migration `20260521083057_report_schedules.sql` independently confirms that `report_schedules` requires `schools(id)` and `profiles(id)`, and its RLS policies query `profiles`. Therefore `schools` and `profiles` are proven prerequisites for that migration.
+
+A production `pg_depend` interrogation also confirms substantial downstream dependency on these objects, including foreign keys, policies, triggers, and indexes. This is evidence for dependency ordering, not evidence that all dependents belong in the foundation.
+
+### Interpretation
+
+The production catalog is now a trusted witness for the existence of candidate foundation objects. The catalog count gate is green for the production side.
+
+The six-object foundation set remains a **candidate**, not a conclusion. Foundation membership must still be derived from repository references and production intersection, then closed over actual prerequisites.
+
+### Why this worked
+
+The database catalog is a stronger source of structural truth than a serialized migration ledger. It lets the recovery loop distinguish:
+
+1. object exists in production;
+2. object is referenced by the repository replay;
+3. object is created by the repository replay;
+4. object is merely a downstream production dependent.
+
+That distinction prevents symptom-driven DDL copying.
+
+### Evidence committed
+
+- `docs/L0_EVIDENCE/2026-08-10-production-catalog-seed-snapshot.md`
+- `scripts/l0/catalog-foundation.sql`
+
+### Safety assessment
+
+- Production writes: **none**.
+- DDL: **none**.
+- DML: **none**.
+- Migration ledger: **untouched**.
+- Worker Engine: **untouched**.
+- Baseline SQL: **not generated**.
+
+## 2026-08-10 — Derivation Loop Started
+
+The recovery model is now formally:
+
+`F0 = ((R ∩ P) − C) − PLATFORM`
+
+followed by production dependency closure.
+
+Where:
+
+- `R` = objects required/referenced by repository migrations;
+- `P` = objects proven present in production catalog;
+- `C` = objects created by repository migrations;
+- `PLATFORM` = objects supplied by the Supabase/Postgres platform and therefore already present in the blank target.
+
+### Next controlled action
+
+Build the repository-side `R/C` inventory using a parser-based migration analysis, calibrate it against `20260521083057_report_schedules.sql`, then compute the first foundation candidate set. No production DDL and no hand-authored foundation migration are permitted.
+
+### Oracle rule
+
+If replay later fails on an object `Y`:
+
+- require the exact failure line;
+- require `Y ∈ P` from production catalog evidence;
+- add only the proven missing prerequisite/dependency;
+- regenerate the derived foundation;
+- replay again.
+
+If more than five oracle iterations are required, stop adding objects and improve the reference extractor. That indicates instrument under-matching, not permission to guess.
+
+## Current Gate State
 
 | Gate / item | State | Meaning |
 |---|---|---|
-| G1 Migra artifact | **FAIL** | No artifact; diff cannot be interpreted |
-| G2 Exit codes | **FAIL** | No uploaded evidence ledger |
-| G3 Inventories | **FAIL** | No uploaded inventories for this run |
-| G4 Expected crash | **UNPROVEN** | Rebuild log is inaccessible through the current GitHub log endpoint |
+| Production catalog counts | **PASS** | 413 tables / 19 views / 871 functions / 636 policies observed directly |
+| Repository R/C extraction | **PENDING** | Parser-based derivation not yet executed |
+| Foundation F | **PENDING** | Cannot be finalized before R/C |
+| Derived foundation DDL | **BLOCKED** | No hand-authored or copied DDL permitted |
+| Local clean rebuild | **RED** | Existing known failure remains |
+| Structural diff | **BLOCKED** | Requires a trustworthy green local rebuild or admissible comparison evidence |
 | Four-bucket classification | **BLOCKED** | Trust gate not passed |
-| Outcome A/B | **BLOCKED** | No structural evidence |
+| Outcome A/B | **BLOCKED** | Structural evidence incomplete |
 | Worker Engine coding | **BLOCKED** | L0 remains RED |
-
-## Reverse-Engineering Loop Now Open
-
-The next action is **not schema repair**. The instrument itself is now the system under investigation.
-
-The next telemetry revision must make the earliest failure boundary observable before another interpretation attempt. Required evidence sequence:
-
-1. repository checkout;
-2. evidence-directory initialization;
-3. CLI availability/version;
-4. production link status;
-5. local Docker/Supabase start status;
-6. local rebuild status;
-7. local dump status;
-8. production dump status;
-9. Migra status;
-10. artifact publication status.
-
-The first missing sequence element becomes the next defect to solve.
 
 ## Absolute Rule
 
