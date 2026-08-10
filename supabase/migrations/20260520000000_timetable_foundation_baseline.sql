@@ -166,6 +166,20 @@ create table if not exists public.subjects (
   created_at timestamptz not null default clock_timestamp()
 );
 
+create table if not exists public.cbc_strands (
+  id uuid primary key default gen_random_uuid(),
+  subject_id uuid not null references public.subjects(id) on delete cascade,
+  grade text not null,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create policy "strands_read"
+  on public.cbc_strands
+  for select
+  to authenticated
+  using (true);
+
 create table if not exists public.teacher_classes (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -476,6 +490,7 @@ alter table public.students enable row level security;
 alter table public.student_claim_codes enable row level security;
 alter table public.parent_student_links enable row level security;
 alter table public.subjects enable row level security;
+alter table public.cbc_strands enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.curriculum enable row level security;
