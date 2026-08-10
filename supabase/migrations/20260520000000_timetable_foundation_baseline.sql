@@ -153,6 +153,27 @@ create table if not exists public.subjects (
   created_at timestamptz not null default clock_timestamp()
 );
 
+create table if not exists public.cbc_strands (
+  id uuid primary key default gen_random_uuid(),
+  subject_id uuid not null references public.subjects(id) on delete cascade,
+  grade text not null,
+  name text not null,
+  sub_strand text,
+  created_at timestamptz not null default now(),
+  strand_order integer,
+  sub_strand_order integer,
+  learning_outcomes text[] default '{}'::text[],
+  key_inquiry_questions text[] default '{}'::text[],
+  suggested_experiences text[] default '{}'::text[],
+  core_competencies text[] default '{}'::text[],
+  core_values text[] default '{}'::text[],
+  term integer,
+  week integer,
+  source_ref text,
+  values text[] default '{}'::text[],
+  unique (subject_id, grade, name, sub_strand)
+);
+
 create table if not exists public.teacher_classes (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -458,6 +479,7 @@ alter table public.students enable row level security;
 alter table public.student_claim_codes enable row level security;
 alter table public.parent_student_links enable row level security;
 alter table public.subjects enable row level security;
+alter table public.cbc_strands enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.curriculum enable row level security;
@@ -475,3 +497,9 @@ alter table public.tpad_appraisals enable row level security;
 alter table public.vc_threads enable row level security;
 alter table public.vc_participants enable row level security;
 alter table public.vc_messages enable row level security;
+
+create policy "strands_read"
+  on public.cbc_strands
+  for select
+  to authenticated
+  using (true);
