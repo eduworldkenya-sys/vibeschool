@@ -704,12 +704,41 @@ export default function ReadTextbookPage() {
     async function loadReader() {
       setState("loading");
 
-      const { data, error } = await supabase.rpc(
-        "get_vibetextbook_reader",
-        {
-          publication_id_input: publicationId,
-        }
-      );
+      // Issue #41: anonymous visitors use the RLS-bound SECURITY INVOKER
+      // contract. Signed-in viewers use the privileged reader for caller-scoped
+      // entitlements, progress, bookmarks and author draft preview.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const readerRpc = session
+        ? "get_vibetextbook_reader"
+        : "get_public_vibetextbook_reader";
+
+      let { data, error } = await supabase.rpc(readerRpc, {
+        publication_id_input: publicationId,
+      });
+
+      // Backward-compatible release sequencing: the frontend may be promoted
+      // before the migration creates the public RPC. Only a missing-function
+      // response may fall back to the legacy reader; all other errors fail
+      // closed. Once the migration is applied, anon can no longer execute the
+      // legacy RPC and this path becomes unreachable.
+      if (
+        !session &&
+        error &&
+        (error.code === "PGRST202" || error.code === "42883")
+      ) {
+        const legacyReader = await supabase.rpc(
+          "get_vibetextbook_reader",
+          {
+            publication_id_input: publicationId,
+          }
+        );
+
+        data = legacyReader.data;
+        error = legacyReader.error;
+      }
 
       if (cancelled) return;
 
