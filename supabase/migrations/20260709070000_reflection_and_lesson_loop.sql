@@ -1,5 +1,6 @@
 create table if not exists lesson_reflections (
   id              uuid primary key default gen_random_uuid(),
+  lesson_id       uuid not null references lesson_plans(id) on delete cascade,
   lesson_plan_id  uuid not null references lesson_plans(id) on delete cascade,
   teacher_id      uuid references profiles(id) on delete set null,
   class_id        uuid references classes(id) on delete set null,
