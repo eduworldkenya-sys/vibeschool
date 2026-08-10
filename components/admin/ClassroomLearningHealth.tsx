@@ -17,21 +17,27 @@ interface Health {
   released_feedback: number
 }
 
-export default function ClassroomLearningHealth({ schoolId }: { schoolId: string }) {
+export default function ClassroomLearningHealth() {
   const [health, setHealth] = useState<Health | null>(null)
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (!schoolId) return
     let active = true
     ;(async () => {
-      const { data, error: rpcError } = await (supabase as any).rpc("admin_get_classroom_learning_health", { p_school_id: schoolId })
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: profile } = await supabase.from("profiles").select("school_id").eq("id", user.id).maybeSingle()
+      if (!profile?.school_id) {
+        if (active) setError(true)
+        return
+      }
+      const { data, error: rpcError } = await (supabase as any).rpc("admin_get_classroom_learning_health", { p_school_id: profile.school_id })
       if (!active) return
       if (rpcError) setError(true)
       else setHealth(data as Health)
     })()
     return () => { active = false }
-  }, [schoolId])
+  }, [])
 
   if (error) return <section style={warning}>Classroom learning health is temporarily unavailable.</section>
   if (!health) return null
