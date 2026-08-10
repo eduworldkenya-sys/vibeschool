@@ -94,6 +94,25 @@ create table if not exists public.school_members (
   constraint uq_school_member unique (school_id,profile_id)
 );
 
+create or replace function public.is_school_admin(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, extensions, pg_temp
+as $function$
+  select exists (
+    select 1
+    from public.school_members
+    where school_id = p_school_id
+      and profile_id = auth.uid()
+      and role in ('admin','owner')
+  );
+$function$;
+
+revoke all on function public.is_school_admin(uuid) from public;
+grant execute on function public.is_school_admin(uuid) to authenticated, service_role;
+
 create table if not exists public.academic_terms (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id),
