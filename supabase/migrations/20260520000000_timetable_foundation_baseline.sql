@@ -194,6 +194,22 @@ create table if not exists public.curriculum (
   created_at timestamptz default now()
 );
 
+create table if not exists public.curriculum_content (
+  id uuid primary key default gen_random_uuid(),
+  curriculum_id uuid not null unique references public.curriculum(id),
+  lesson_context jsonb,
+  parent_brief jsonb,
+  source text not null default 'vibeschool',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create policy "curriculum_content_read"
+  on public.curriculum_content
+  for select
+  to authenticated
+  using (true);
+
 create table if not exists public.scheme_of_work (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id),
@@ -445,6 +461,7 @@ alter table public.subjects enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.curriculum enable row level security;
+alter table public.curriculum_content enable row level security;
 alter table public.scheme_of_work enable row level security;
 alter table public.lesson_plans enable row level security;
 alter table public.attendance enable row level security;
