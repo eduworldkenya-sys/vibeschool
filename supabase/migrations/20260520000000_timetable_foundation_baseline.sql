@@ -223,6 +223,28 @@ create table if not exists public.subject_weekly_allocations (
   unique (grade, subject_label)
 );
 
+create table if not exists public.vibelearn_content (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  subject_id uuid references public.subjects(id) on delete set null,
+  type text not null check (type in ('epage', 'ebook')),
+  url text not null,
+  thumbnail_url text,
+  tags text[] default '{}'::text[],
+  source text,
+  submitted_by uuid references public.profiles(id) on delete set null,
+  view_count integer default 0,
+  search_vector tsvector,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  earnings_ksh numeric(10,2) not null default 0,
+  school_id uuid references public.schools(id) on delete set null,
+  status text not null default 'live' check (status in ('draft', 'live')),
+  vibe_count integer default 0,
+  body text
+);
+
 create table if not exists public.teacher_classes (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -548,6 +570,7 @@ alter table public.parent_student_links enable row level security;
 alter table public.subjects enable row level security;
 alter table public.cbc_strands enable row level security;
 alter table public.subject_weekly_allocations enable row level security;
+alter table public.vibelearn_content enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.curriculum enable row level security;
