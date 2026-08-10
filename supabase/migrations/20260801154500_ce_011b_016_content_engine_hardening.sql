@@ -1,4 +1,33 @@
 begin;
+-- CE-004 is timestamped later, but CE-011 through CE-013 reference this
+-- authoritative outcome identity in foreign keys.
+create table if not exists public.curriculum_learning_outcomes (
+  id uuid primary key default gen_random_uuid(),
+  curriculum_id uuid references public.curriculum(id) on delete cascade,
+  sub_strand_id uuid references public.cbc_strands(id) on delete set null,
+  outcome_text text not null,
+  outcome_code text,
+  source_type text not null default 'creator_claimed',
+  source_ref text,
+  bloom_level text,
+  difficulty text,
+  competency_tags text[] not null default '{}',
+  status text not null default 'draft',
+  verified_by uuid references auth.users(id) on delete set null,
+  verified_at timestamptz,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint curriculum_learning_outcomes_text_nonempty check (btrim(outcome_text) <> ''),
+  constraint curriculum_learning_outcomes_source_check check (source_type in ('official','publisher','creator_claimed','school','generated')),
+  constraint curriculum_learning_outcomes_status_check check (status in ('draft','verified','rejected','archived')),
+  constraint curriculum_learning_outcomes_bloom_check check (bloom_level is null or bloom_level in ('remember','understand','apply','analyze','evaluate','create')),
+  constraint curriculum_learning_outcomes_difficulty_check check (difficulty is null or difficulty in ('foundation','developing','proficient','advanced')),
+  constraint curriculum_learning_outcomes_verified_check check (status <> 'verified' or (verified_by is not null and verified_at is not null)),
+  constraint curriculum_learning_outcomes_authority_check check (
+    curriculum_id is not null or sub_strand_id is not null
+    or (source_type = 'creator_claimed' and source_ref like 'chapter:%')
+  )
 -- CE-010: learner assignment membership and evidence
 create table if not exists public.content_assignment_learners(
  id uuid primary key default gen_random_uuid(), assignment_id uuid not null references public.vibe_chapter_assignments(id) on delete cascade,
