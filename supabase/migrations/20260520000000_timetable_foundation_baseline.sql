@@ -548,6 +548,23 @@ create policy "teachers manage own lesson notes"
   using (teacher_id = auth.uid())
   with check (teacher_id = auth.uid());
 
+-- Historical signature anchor required by the pre-tracking grant migration.
+-- A later canonical migration replaces this fail-closed implementation with the
+-- complete attendance upsert contract after teaching-occurrence columns exist.
+create or replace function public.upsert_attendance_batch(p_rows jsonb)
+returns setof public.attendance
+language plpgsql
+security invoker
+set search_path = ''
+as $function$
+begin
+  raise exception 'attendance_batch_not_available_before_occurrence_migration';
+end;
+$function$;
+
+revoke all on function public.upsert_attendance_batch(jsonb) from public;
+grant execute on function public.upsert_attendance_batch(jsonb) to authenticated, service_role;
+
 -- RLS is enabled here so later policy-recovery migrations operate against the
 -- same security posture as the live core tables. Policies themselves are
 -- restored by later canonical migrations.
