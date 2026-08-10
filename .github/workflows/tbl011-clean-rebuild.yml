@@ -63,7 +63,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker info > .tbl011-artifacts/docker-info.txt
+          docker info \
+            > .tbl011-artifacts/docker-info.txt
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v1
@@ -74,53 +75,75 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           if [ -f supabase/seed.sql ]; then
-            mv supabase/seed.sql .tbl011-artifacts/seed.sql.disabled
+            mv supabase/seed.sql \
+              .tbl011-artifacts/seed.sql.disabled
           fi
 
       - name: Start isolated local Supabase
         shell: bash
         run: |
           set -o pipefail
+
           supabase start \
             -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor \
-            2>&1 | tee .tbl011-artifacts/supabase-start.log
+            2>&1 \
+            | tee .tbl011-artifacts/supabase-start.log
 
       - name: Rebuild blank local database
         shell: bash
         run: |
           set -o pipefail
+
           supabase db reset --local --no-seed \
-            2>&1 | tee .tbl011-artifacts/db-reset.log
+            2>&1 \
+            | tee .tbl011-artifacts/db-reset.log
 
       - name: Verify migration ledger count
         shell: bash
         run: |
           set -euo pipefail
-          EXPECTED="$(wc -l < .tbl011-artifacts/migration-files.txt)"
-          ACTUAL="$(PGPASSWORD=postgres psql \
-            "postgresql://postgres@127.0.0.1:54322/postgres" \
-            -Atqc "select count(*) from supabase_migrations.schema_migrations")"
+
+          EXPECTED="$(
+            wc -l \
+              < .tbl011-artifacts/migration-files.txt
+          )"
+
+          ACTUAL="$(
+            PGPASSWORD=postgres \
+              psql \
+              "postgresql://postgres@127.0.0.1:54322/postgres" \
+              -Atqc \
+              "select count(*) from supabase_migrations.schema_migrations"
+          )"
+
           {
             echo "expected=$EXPECTED"
             echo "actual=$ACTUAL"
           } | tee .tbl011-artifacts/ledger-count.txt
+
           test "$ACTUAL" = "$EXPECTED"
 
       - name: Verify final timetable schema and RLS
         shell: bash
         run: |
           set -o pipefail
-          PGPASSWORD=postgres psql \
+
+          PGPASSWORD=postgres \
+            psql \
             "postgresql://postgres@127.0.0.1:54322/postgres" \
             -f scripts/sql/tbl011_clean_rebuild_verify.sql \
-            2>&1 | tee .tbl011-artifacts/final-schema-verification.log
+            2>&1 \
+            | tee .tbl011-artifacts/final-schema-verification.log
 
       - name: Capture rebuilt timetable schema
         shell: bash
         run: |
           set -euo pipefail
-          PGPASSWORD=postgres psql \
+
+          PGPASSWORD=postgres \
+            psql \
             "postgresql://postgres@127.0.0.1:54322/postgres" \
             -f scripts/sql/tbl012_core_schema_snapshot.sql \
             > .tbl011-artifacts/rebuilt-core-schema.json
@@ -129,29 +152,43 @@ jobs:
           import json
           from pathlib import Path
 
-          path = Path(".tbl011-artifacts/rebuilt-core-schema.json")
+          path = Path(
+              ".tbl011-artifacts/rebuilt-core-schema.json"
+          )
+
           data = json.loads(path.read_text(encoding="utf-8"))
+
           expected = {
               "timetable_slots",
               "teacher_classes",
               "teaching_occurrences",
               "school_periods",
           }
+
           if data.get("schema_version") != 1:
-              raise SystemExit("rebuilt schema snapshot has wrong schema_version")
+              raise SystemExit(
+                  "rebuilt schema snapshot has wrong schema_version"
+              )
+
           if set(data.get("tables", {})) != expected:
-              raise SystemExit("rebuilt schema snapshot has wrong table set")
+              raise SystemExit(
+                  "rebuilt schema snapshot has wrong table set"
+              )
+
           print("Rebuilt timetable schema snapshot validated")
           PYVERIFY
 
-          sha256sum .tbl011-artifacts/rebuilt-core-schema.json \
+          sha256sum \
+            .tbl011-artifacts/rebuilt-core-schema.json \
             > .tbl011-artifacts/rebuilt-core-schema.sha256
 
       - name: Compare rebuilt structure with production target
         shell: bash
         run: |
           set -euo pipefail
-          PGPASSWORD=postgres psql \
+
+          PGPASSWORD=postgres \
+            psql \
             "postgresql://postgres@127.0.0.1:54322/postgres" \
             -f scripts/sql/tbl012_core_schema_hashes.sql \
             > .tbl011-artifacts/rebuilt-core-schema-hashes.json
@@ -170,10 +207,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PGPASSWORD=postgres psql \
+
+          PGPASSWORD=postgres \
+            psql \
             "postgresql://postgres@127.0.0.1:54322/postgres" \
             -P pager=off \
-            -c "select version, name from supabase_migrations.schema_migrations order by version" \
+            -c "
+              select version, name
+              from supabase_migrations.schema_migrations
+              order by version
+            " \
             > .tbl011-artifacts/final-migration-ledger.txt
 
           sha256sum \
@@ -188,11 +231,11 @@ jobs:
           name: tbl011-clean-rebuild-${{ github.run_id }}
           path: .tbl011-artifacts/
           if-no-files-found: error
-          include-hidden-files: true
           retention-days: 30
 
       - name: Destroy isolated local database
         if: always()
         shell: bash
         run: |
-          supabase stop --no-backup > /dev/null 2>&1 || true
+          supabase stop --no-backup \
+            > /dev/null 2>&1 || true
