@@ -132,6 +132,21 @@ create table if not exists public.academic_terms (
   constraint academic_terms_school_id_term_academic_year_key unique (school_id,term,academic_year)
 );
 
+create table if not exists public.exams (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  name text not null,
+  term integer not null check (term in (1, 2, 3)),
+  academic_year integer not null,
+  exam_type text not null default 'summative'
+    check (exam_type in ('summative', 'cat', 'midterm', 'opener')),
+  pass_mark integer not null default 50,
+  is_locked boolean not null default false,
+  created_by uuid not null references public.profiles(id),
+  created_at timestamptz not null default now(),
+  unique (school_id, name, term, academic_year)
+);
+
 create table if not exists public.classes (
   id uuid primary key default gen_random_uuid(),
   teacher_id uuid references public.profiles(id) on delete set null,
@@ -578,6 +593,7 @@ alter table public.schools enable row level security;
 alter table public.profiles enable row level security;
 alter table public.school_members enable row level security;
 alter table public.academic_terms enable row level security;
+alter table public.exams enable row level security;
 alter table public.classes enable row level security;
 alter table public.students enable row level security;
 alter table public.student_claim_codes enable row level security;
