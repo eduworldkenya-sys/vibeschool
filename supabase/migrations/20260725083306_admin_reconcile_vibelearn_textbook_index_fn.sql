@@ -89,7 +89,18 @@ begin
 end;
 $$;
 
-select * from public.admin_reconcile_vibelearn_textbook_index('c9c55e3b-3e18-4a4d-b317-5212b3961d54');
-select * from public.admin_reconcile_vibelearn_textbook_index('b90d240a-de1f-47e3-93ba-85eb9b66a199');
-select * from public.admin_reconcile_vibelearn_textbook_index('9ab48ffd-4dbe-43ff-8be0-4da88065bd17');
-select * from public.admin_reconcile_vibelearn_textbook_index('a59794d8-45dd-4038-a20a-d76d162e24ec');
+-- Reconcile the known production rows when present. A clean database has no
+-- publication data, so the migration must remain a no-op there.
+select reconciled.*
+from (
+  values
+    ('c9c55e3b-3e18-4a4d-b317-5212b3961d54'::uuid),
+    ('b90d240a-de1f-47e3-93ba-85eb9b66a199'::uuid),
+    ('9ab48ffd-4dbe-43ff-8be0-4da88065bd17'::uuid),
+    ('a59794d8-45dd-4038-a20a-d76d162e24ec'::uuid)
+) target(publication_id)
+join public.vibe_publications publication
+  on publication.id = target.publication_id
+cross join lateral public.admin_reconcile_vibelearn_textbook_index(
+  target.publication_id
+) reconciled;
