@@ -53,55 +53,52 @@ function walk(node, context) {
     if (tag === 'AlterTableStmt') {
       const table = tableName(body);
       for (const cmd of body.cmds ?? []) {
-        const subtype = cmd?.AlterTableCmd?.subtype ?? cmd?.subtype;
         const payload = cmd?.AlterTableCmd ?? cmd;
+        const subtype = payload?.subtype;
         const def = payload?.def ?? {};
         const column = scalarName(payload?.name) || scalarName(def?.colname);
         const constraint = scalarName(payload?.name) || scalarName(def?.conname);
 
         switch (subtype) {
           case 'AT_AddColumn':
-            pushMutation('ADD_COLUMN', table, { column, migration: context.migration }, context.migration);
+            pushMutation('ADD_COLUMN', table, { column }, context.migration);
             break;
           case 'AT_AddConstraint':
-            pushMutation('ADD_CONSTRAINT', table, { constraint, migration: context.migration }, context.migration);
+            pushMutation('ADD_CONSTRAINT', table, { constraint }, context.migration);
             break;
           case 'AT_DropColumn':
-            pushMutation('DROP_COLUMN', table, { column, migration: context.migration }, context.migration);
+            pushMutation('DROP_COLUMN', table, { column }, context.migration);
             break;
           case 'AT_DropConstraint':
-            pushMutation('DROP_CONSTRAINT', table, { constraint, migration: context.migration }, context.migration);
+            pushMutation('DROP_CONSTRAINT', table, { constraint }, context.migration);
             break;
           case 'AT_AlterColumnType':
-            pushMutation('ALTER_COLUMN_TYPE', table, { column, migration: context.migration }, context.migration);
+            pushMutation('ALTER_COLUMN_TYPE', table, { column }, context.migration);
             break;
           case 'AT_SetNotNull':
-            pushMutation('SET_NOT_NULL', table, { column, migration: context.migration }, context.migration);
+            pushMutation('SET_NOT_NULL', table, { column }, context.migration);
             break;
           case 'AT_DropNotNull':
-            pushMutation('DROP_NOT_NULL', table, { column, migration: context.migration }, context.migration);
+            pushMutation('DROP_NOT_NULL', table, { column }, context.migration);
             break;
           case 'AT_ColumnDefault':
           case 'AT_SetDefault':
-            pushMutation('SET_DEFAULT', table, { column, migration: context.migration }, context.migration);
-            break;
-          case 'AT_DropNotNull':
-            pushMutation('DROP_NOT_NULL', table, { column, migration: context.migration }, context.migration);
+            pushMutation('SET_DEFAULT', table, { column }, context.migration);
             break;
           case 'AT_ValidateConstraint':
-            pushMutation('VALIDATE_CONSTRAINT', table, { constraint, migration: context.migration }, context.migration);
+            pushMutation('VALIDATE_CONSTRAINT', table, { constraint }, context.migration);
             break;
           case 'AT_EnableRowSecurity':
-            pushMutation('ENABLE_RLS', table, { migration: context.migration }, context.migration);
+            pushMutation('ENABLE_RLS', table, {}, context.migration);
             break;
           case 'AT_DisableRowSecurity':
-            pushMutation('DISABLE_RLS', table, { migration: context.migration }, context.migration);
+            pushMutation('DISABLE_RLS', table, {}, context.migration);
             break;
           case 'AT_ForceRowSecurity':
-            pushMutation('FORCE_RLS', table, { migration: context.migration }, context.migration);
+            pushMutation('FORCE_RLS', table, {}, context.migration);
             break;
           case 'AT_NoForceRowSecurity':
-            pushMutation('NO_FORCE_RLS', table, { migration: context.migration }, context.migration);
+            pushMutation('NO_FORCE_RLS', table, {}, context.migration);
             break;
         }
       }
@@ -112,25 +109,25 @@ function walk(node, context) {
     if (tag === 'IndexStmt') {
       const table = tableName(body);
       const index = scalarName(body?.idxname) || scalarName(body?.indexname);
-      pushMutation('CREATE_INDEX', table, { index, migration: context.migration }, context.migration);
+      pushMutation('CREATE_INDEX', table, { index }, context.migration);
     }
 
     if (tag === 'CreateStmt') {
       const table = tableName(body);
       const index = scalarName(body?.idxname);
-      if (index) pushMutation('CREATE_INDEX', table, { index, migration: context.migration }, context.migration);
+      if (index) pushMutation('CREATE_INDEX', table, { index }, context.migration);
     }
 
     if (tag === 'CreatePolicyStmt') {
       const table = tableName(body);
       const policy = scalarName(body?.policyname) || scalarName(body?.PolicyName);
-      pushMutation('CREATE_POLICY', table, { policy, migration: context.migration }, context.migration);
+      pushMutation('CREATE_POLICY', table, { policy }, context.migration);
     }
 
     if (tag === 'CreateTrigStmt') {
       const table = tableName(body);
       const trigger = scalarName(body?.trigname) || scalarName(body?.TriggerName);
-      pushMutation('CREATE_TRIGGER', table, { trigger, migration: context.migration }, context.migration);
+      pushMutation('CREATE_TRIGGER', table, { trigger }, context.migration);
     }
 
     walk(body, context);
