@@ -23,6 +23,9 @@ begin
   if not exists (select 1 from pg_type where typname = 'member_role' and typnamespace = 'public'::regnamespace) then
     create type public.member_role as enum ('owner','admin','teacher','student','parent');
   end if;
+  if not exists (select 1 from pg_type where typname = 'attendance_status' and typnamespace = 'public'::regnamespace) then
+    create type public.attendance_status as enum ('present','excused','absent');
+  end if;
 end
 $$;
 
@@ -278,8 +281,30 @@ create table if not exists public.vc_messages (
 -- These represent the original shapes before later migrations add lineage,
 -- lifecycle, review and occurrence columns.
 
+create table if not exists public.attendance (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id) on delete cascade,
+  timetable_slot_id uuid references public.timetable_slots(id) on delete restrict,
+  class_id uuid not null references public.classes(id) on delete cascade,
+  student_id uuid not null references public.students(id) on delete cascade,
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  date date not null check (date <= current_date),
+  status public.attendance_status not null,
+  is_late boolean not null default false,
+  arrived_at time,
+  marked_at timestamptz not null default clock_timestamp(),
+  notes text
+);
+
+create index if not exists idx_attendance_class on public.attendance(class_id);
+create index if not exists idx_attendance_date on public.attendance(date);
+create index if not exists idx_attendance_slot on public.attendance(timetable_slot_id);
+create index if not exists idx_attendance_student on public.attendance(student_id);
+create index if not exists idx_attendance_teacher on public.attendance(teacher_id);
+
 create table if not exists public.homework (
   id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id) on delete cascade,
   class_id uuid references public.classes(id) on delete cascade,
   teacher_id uuid references public.profiles(id),
   title text not null,
@@ -350,6 +375,7 @@ alter table public.timetable_slots enable row level security;
 alter table public.curriculum enable row level security;
 alter table public.scheme_of_work enable row level security;
 alter table public.lesson_plans enable row level security;
+alter table public.attendance enable row level security;
 alter table public.homework enable row level security;
 alter table public.homework_submissions enable row level security;
 alter table public.lesson_evidence enable row level security;
