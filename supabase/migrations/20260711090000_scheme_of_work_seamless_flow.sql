@@ -25,8 +25,26 @@ alter table content_preferences enable row level security;
 create policy "teacher manages own override" on content_preferences
   for all using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
 create policy "admin manages school default" on content_preferences
-  for all using (teacher_id is null and get_my_role() in ('admin','head_teacher'))
-  with check (teacher_id is null and get_my_role() in ('admin','head_teacher'));
+  for all using (
+    teacher_id is null
+    and exists (
+      select 1
+      from public.profiles p
+      where p.id = auth.uid()
+        and p.school_id = content_preferences.school_id
+        and p.role in ('admin', 'head_teacher')
+    )
+  )
+  with check (
+    teacher_id is null
+    and exists (
+      select 1
+      from public.profiles p
+      where p.id = auth.uid()
+        and p.school_id = content_preferences.school_id
+        and p.role in ('admin', 'head_teacher')
+    )
+  );
 
 -- A3: scheme_of_work un-deprecated, TSC-mandated columns added
 comment on table scheme_of_work is null;
