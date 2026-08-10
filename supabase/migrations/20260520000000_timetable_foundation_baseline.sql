@@ -304,6 +304,7 @@ create table if not exists public.lesson_plans (
   day_of_week integer not null check (day_of_week between 1 and 7),
   title text,
   body text,
+  taught_date date,
   generated_by text not null default 'manual' check (generated_by in ('manual','twin')),
   created_at timestamptz not null default clock_timestamp(),
   updated_at timestamptz not null default clock_timestamp(),
