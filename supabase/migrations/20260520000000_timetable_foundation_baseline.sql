@@ -26,6 +26,9 @@ begin
   if not exists (select 1 from pg_type where typname = 'attendance_status' and typnamespace = 'public'::regnamespace) then
     create type public.attendance_status as enum ('present','excused','absent');
   end if;
+  if not exists (select 1 from pg_type where typname = 'cbc_performance_level' and typnamespace = 'public'::regnamespace) then
+    create type public.cbc_performance_level as enum ('exceeds_expectation','meets_expectation','approaches_expectation','below_expectation');
+  end if;
 end
 $$;
 
@@ -327,6 +330,27 @@ create table if not exists public.homework_submissions (
   created_at timestamptz default now()
 );
 
+create table if not exists public.cbc_assessments (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id) on delete cascade,
+  student_id uuid not null references public.students(id) on delete cascade,
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  class_id uuid not null references public.classes(id) on delete cascade,
+  subject_id uuid not null references public.subjects(id) on delete restrict,
+  strand_id uuid,
+  sub_strand text,
+  assessment_type text not null check (assessment_type in ('formative','summative','project')),
+  performance public.cbc_performance_level not null,
+  term integer not null check (term between 1 and 3),
+  academic_year integer not null check (academic_year between 2000 and 2100),
+  notes text,
+  created_at timestamptz not null default clock_timestamp(),
+  updated_at timestamptz not null default clock_timestamp(),
+  constraint uq_cbc_assessment unique (
+    student_id,class_id,subject_id,strand_id,sub_strand,assessment_type,term,academic_year
+  )
+);
+
 create table if not exists public.lesson_evidence (
   id uuid primary key default gen_random_uuid(),
   lesson_id uuid not null references public.lesson_plans(id) on delete cascade,
@@ -378,6 +402,7 @@ alter table public.lesson_plans enable row level security;
 alter table public.attendance enable row level security;
 alter table public.homework enable row level security;
 alter table public.homework_submissions enable row level security;
+alter table public.cbc_assessments enable row level security;
 alter table public.lesson_evidence enable row level security;
 alter table public.lesson_interventions enable row level security;
 alter table public.tpad_appraisals enable row level security;
