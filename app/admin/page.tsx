@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import AdminTwinDrawer from "@/components/admin/TwinDrawer"
+import ClassroomLearningHealth from "@/components/admin/ClassroomLearningHealth"
 
 const C = {
   hero:      "#0a1628",
@@ -411,6 +412,7 @@ function VitalCard({ vital, router, balHidden }: { vital: VitalSign; router: any
   return (
     <button onClick={() => router.push(vital.href)} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "18px", padding: "16px 18px", width: "100%", textAlign: "left", cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+      <ClassroomLearningHealth />
         <div style={{ flex: 1, minWidth: 0, paddingRight: "12px" }}>
           <p style={{ color: "#64748b", fontSize: "11px", fontWeight: "600", margin: "0 0 3px", letterSpacing: "0.5px" }}>{vital.label}</p>
           <p style={{ color: "#0f172a", fontSize: "15px", fontWeight: "700", margin: 0 }}>{displayValue}</p>
