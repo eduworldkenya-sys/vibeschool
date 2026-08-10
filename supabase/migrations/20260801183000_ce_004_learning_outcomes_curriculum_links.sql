@@ -1,6 +1,6 @@
 begin;
 
-create table public.curriculum_learning_outcomes (
+create table if not exists public.curriculum_learning_outcomes (
   id uuid primary key default gen_random_uuid(),
   curriculum_id uuid references public.curriculum(id) on delete cascade,
   sub_strand_id uuid references public.cbc_strands(id) on delete set null,
@@ -29,17 +29,17 @@ create table public.curriculum_learning_outcomes (
   )
 );
 
-create unique index curriculum_learning_outcomes_identity_uidx
+create unique index if not exists curriculum_learning_outcomes_identity_uidx
   on public.curriculum_learning_outcomes(
     coalesce(curriculum_id, '00000000-0000-0000-0000-000000000000'::uuid),
     coalesce(sub_strand_id, '00000000-0000-0000-0000-000000000000'::uuid),
     lower(btrim(outcome_text)),
     source_type
   );
-create index curriculum_learning_outcomes_curriculum_idx on public.curriculum_learning_outcomes(curriculum_id);
-create index curriculum_learning_outcomes_substrand_idx on public.curriculum_learning_outcomes(sub_strand_id);
-create index curriculum_learning_outcomes_status_idx on public.curriculum_learning_outcomes(status);
-create index curriculum_learning_outcomes_tags_gin_idx on public.curriculum_learning_outcomes using gin(competency_tags);
+create index if not exists curriculum_learning_outcomes_curriculum_idx on public.curriculum_learning_outcomes(curriculum_id);
+create index if not exists curriculum_learning_outcomes_substrand_idx on public.curriculum_learning_outcomes(sub_strand_id);
+create index if not exists curriculum_learning_outcomes_status_idx on public.curriculum_learning_outcomes(status);
+create index if not exists curriculum_learning_outcomes_tags_gin_idx on public.curriculum_learning_outcomes using gin(competency_tags);
 
 create table public.chapter_learning_outcome_links (
   id uuid primary key default gen_random_uuid(),
