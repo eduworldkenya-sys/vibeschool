@@ -134,17 +134,57 @@ school_status  = {pending, active, suspended, closed}
 
 Their presence is evidence of current production dependencies, but their historical introduction date must still be established before they are admitted to the pre-ledger baseline.
 
-## 7. What is proven versus not yet proven
+## 7. Current catalog column evidence captured 2026-08-11
+
+A fresh read-only `information_schema.columns` query against production verified the current definitions of the candidate foundation objects. Important examples:
+
+- `schools` currently has 27 columns, including `requires_dual_approval`, `logo_url`, `motto`, `vision`, KNEC/NEMIS/location fields, and `name_normalized`.
+- `profiles` currently has 21 columns, including `account_status`, anonymization/consent fields, notification preferences, `school_id`, `vc_id`, and onboarding state.
+- `classes` currently has 7 columns, including `school_id`.
+- `subjects` currently has 6 columns, including `global_subject_id`.
+- `teacher_classes` currently has 7 columns and requires `school_id`, `teacher_id`, `class_id`, and `subject_id`.
+- `timetable_slots` currently has 14 columns, including `effective_from`, `effective_until`, `updated_at`, and `period_id`.
+- `school_periods` currently exists and contains `period_id`-style timetable configuration; it is therefore **not admitted to the historical baseline merely because it is currently present**.
+
+This evidence strengthens the subtraction requirement: current production contains later mutations that must be attributed to their repository migrations before the historical baseline is emitted.
+
+## 8. Provenance sweep — 2026-08-11
+
+A repository-index search for the exact historical baseline marker and name did **not** expose the missing SQL body through the GitHub indexed source tree. The repository does contain reconciliation evidence identifying `20260520000000` as a live-only synthetic baseline, but no baseline SQL body was found in the current indexed tree.
+
+This is **not proof that the file never existed**. It only means the current GitHub-indexed repository evidence did not expose the body. The new read-only instrument:
+
+```text
+scripts/l0/provenance-sweep-preledger.sh
+```
+
+performs the stronger local provenance sweep across all reachable refs, deleted/renamed migration paths, keyword commits, historical content hits, and unreachable git objects. Its output is intended to be committed under `docs/L0_EVIDENCE/provenance-sweep/` before any derived baseline is generated.
+
+No production write is required for this sweep.
+
+## 9. Repository mutation evidence already available
+
+The TBL-006 collision register establishes that post-baseline migrations mutate baseline-owned timetable objects. In particular:
+
+- `timetable_slots` is treated as baseline-owned;
+- `teacher_classes` is treated as baseline-owned;
+- `schools`, `classes`, and `subjects` are known to be absent from repository `CREATE TABLE` statements but are cross-cutting core tables and therefore require a separate core-schema reconstruction analysis;
+- later migrations add timetable constraints, columns, functions, and policies.
+
+Therefore the recovery artifact must subtract later mutations rather than dumping current production tables unchanged.
+
+## 10. What is proven versus not yet proven
 
 ### Proven
 
 - Production migration ledger currently contains 552 rows.
-- The first live migration is `20260520000000_timetable_foundation_baseline`.
+- The first live migration is `20260520000000 timetable_foundation_baseline`.
 - The first repository replay migration fails because `public.schools` is absent.
 - `report_schedules` also references `profiles`, so `schools` alone is insufficient.
 - Production contains the documented core foundation candidates.
 - Current production definitions contain later schema evolution that must not automatically be back-projected into the historical baseline.
 - No production schema/data/ledger writes have been performed during this recovery work.
+- The current GitHub-indexed repository does not expose the missing baseline body directly.
 
 ### Not yet proven
 
@@ -155,7 +195,7 @@ Their presence is evidence of current production dependencies, but their histori
 - Full clean replay after foundation reconstruction.
 - A vs B outcome.
 
-## 8. Recovery loop state
+## 11. Recovery loop state
 
 ### Loop 0 — Instrument integrity
 
@@ -175,7 +215,10 @@ Blank replay
   -> issue #65 identifies missing 20260520000000 timetable_foundation_baseline
   -> production proves candidate objects exist
   -> current production is NOT automatically the historical baseline
-  -> recover historical definition, then replay
+  -> indexed provenance search found no body
+  -> local exhaustive provenance sweep is now the next evidence operation
+  -> only if provenance fails: derive historical foundation by catalog + mutation subtraction
+  -> replay
 ```
 
 ### Current stopping rule
@@ -188,19 +231,38 @@ Do **not** modify the production migration ledger.
 
 Do **not** begin Worker Engine implementation.
 
-## 9. Next authorized action
+## 12. Next authorized action
 
-Recover the historical baseline body through provenance in this order:
+Run the committed provenance instrument locally:
 
-1. Search git history for deleted/renamed `20260520000000` baseline content.
-2. Inspect the issue/reconciliation evidence for the baseline's original object inventory.
-3. Compare each candidate object's current definition against later repository migrations to remove post-baseline mutations.
-4. Add only authoritative pre-ledger definitions and their proven dependencies to the recovery artifact.
-5. Run the isolated blank replay.
-6. Capture the next failure, if any, as the next oracle input.
-7. Repeat until the full repository replay is green.
+```bash
+bash scripts/l0/provenance-sweep-preledger.sh
+```
 
-The first recovery artifact must remain data-free and explicitly marked as **DERIVED FROM EVIDENCE**.
+Then inspect:
+
+```text
+docs/L0_EVIDENCE/provenance-sweep/verdict.env
+docs/L0_EVIDENCE/provenance-sweep/exact-path.log
+docs/L0_EVIDENCE/provenance-sweep/content-hits.log
+docs/L0_EVIDENCE/provenance-sweep/unreachable-objects.log
+```
+
+If the exact historical body is found, recover it and verify it in isolation before replay.
+
+If it is not found, proceed to a **derived** pre-ledger foundation using:
+
+```text
+F0 = proven baseline candidates
+     + dependency closure
+     - post-20260520000000 repository mutations
+     - platform-owned objects
+     - production data
+```
+
+Then unit-test the derived artifact and run the blank replay. Every failure becomes an oracle event and is recorded before the next reconstruction iteration.
+
+The first recovery artifact must remain data-free and explicitly marked **DERIVED FROM EVIDENCE** unless an exact historical source is recovered.
 
 **Worker Engine coding remains BLOCKED.**
 
