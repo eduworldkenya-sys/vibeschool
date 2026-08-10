@@ -387,6 +387,18 @@ create table if not exists public.attendance (
   notes text
 );
 
+-- Historical predecessor required by the July grant-hardening migration.
+-- The occurrence-aware implementation replaces this function in REL-005.
+create or replace function public.upsert_attendance_batch(p_rows jsonb)
+returns setof public.attendance
+language plpgsql
+set search_path = public, pg_temp
+as $$
+begin
+  raise exception 'attendance_batch_requires_rel005';
+end;
+$$;
+
 create index if not exists idx_attendance_class on public.attendance(class_id);
 create index if not exists idx_attendance_date on public.attendance(date);
 create index if not exists idx_attendance_slot on public.attendance(timetable_slot_id);
