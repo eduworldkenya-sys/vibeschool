@@ -115,6 +115,54 @@ That distinction prevents symptom-driven DDL copying.
 - Worker Engine: **untouched**.
 - Baseline SQL: **not generated**.
 
+## 2026-08-10 — Dependency Closure Discovery
+
+### New evidence
+
+A direct production foreign-key catalog query proved that the candidate foundation is not simply `schools`.
+
+Observed prerequisite relationships include:
+
+- `profiles.country_code` → `country_majority_ages.country_code`
+- `profiles.id` → `auth.users.id` **(platform dependency)**
+- `profiles.parental_consent_by` → `profiles.id`
+- `profiles.school_id` → `schools.id`
+- `schools.country_code` → `country_majority_ages.country_code`
+- `schools.created_by` → `profiles.id`
+- `classes.school_id` → `schools.id`
+- `classes.teacher_id` → `auth.users.id` **(platform dependency)**
+- `subjects.global_subject_id` → `subjects.id`
+- `subjects.school_id` → `schools.id`
+- `teacher_classes.class_id` → `classes.id`
+- `teacher_classes.school_id` → `schools.id`
+- `teacher_classes.subject_id` → `subjects.id`
+- `teacher_classes.teacher_id` → `profiles.id`
+- `timetable_slots.class_id` → `classes.id`
+- `timetable_slots.period_id` → `school_periods.id`
+- `timetable_slots.school_id` → `schools.id`
+- `timetable_slots.subject_id` → `subjects.id`
+- `timetable_slots.teacher_id` → `profiles.id`
+
+### Critical finding
+
+There is a production cycle:
+
+`schools → profiles → schools`
+
+This is not a defect by itself. It is evidence that foundation emission must be dependency-aware and may need PostgreSQL's normal table/constraint separation rather than naive topological ordering of tables.
+
+### Rejected repair
+
+The previously proposed one-table `schools` repair is now conclusively rejected as insufficient. It would not satisfy production-derived dependency closure.
+
+### Platform boundary
+
+`auth.users` is a Supabase platform object. It exists in the blank Supabase target and therefore must be excluded from the reconstructed public foundation. This validates the `− PLATFORM` term in the derivation formula.
+
+### Evidence committed
+
+- `docs/L0_EVIDENCE/2026-08-10-foundation-dependency-closure.md`
+
 ## 2026-08-10 — Derivation Loop Started
 
 The recovery model is now formally:
@@ -151,6 +199,7 @@ If more than five oracle iterations are required, stop adding objects and improv
 | Gate / item | State | Meaning |
 |---|---|---|
 | Production catalog counts | **PASS** | 413 tables / 19 views / 871 functions / 636 policies observed directly |
+| Production seed/dependency evidence | **PASS** | Candidate closure dependencies captured; platform boundary identified |
 | Repository R/C extraction | **PENDING** | Parser-based derivation not yet executed |
 | Foundation F | **PENDING** | Cannot be finalized before R/C |
 | Derived foundation DDL | **BLOCKED** | No hand-authored or copied DDL permitted |
