@@ -331,6 +331,28 @@ create table if not exists public.lesson_plans (
   constraint chk_lesson_plan_content check (title is not null or body is not null)
 );
 
+create table if not exists public.lesson_reflections (
+  id uuid primary key default gen_random_uuid(),
+  lesson_id uuid not null references public.lesson_plans(id) on delete cascade,
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  what_worked text,
+  challenges text,
+  next_steps text,
+  created_at timestamptz not null default now(),
+  cbc_assessment_id uuid references public.cbc_assessments(id) on delete set null,
+  lesson_plan_id uuid references public.lesson_plans(id) on delete set null,
+  class_id uuid references public.classes(id) on delete set null,
+  school_id uuid references public.schools(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_lesson_reflections_lesson_id
+  on public.lesson_reflections(lesson_id);
+create index if not exists idx_lesson_reflections_lesson_plan_id
+  on public.lesson_reflections(lesson_plan_id);
+create index if not exists idx_lesson_reflections_assessment_id
+  on public.lesson_reflections(cbc_assessment_id);
+
 create index if not exists idx_lesson_plans_curriculum_id
   on public.lesson_plans(curriculum_id);
 
@@ -552,6 +574,7 @@ alter table public.homework_submissions enable row level security;
 alter table public.cbc_assessments enable row level security;
 alter table public.lesson_evidence enable row level security;
 alter table public.lesson_interventions enable row level security;
+alter table public.lesson_reflections enable row level security;
 alter table public.lesson_notes enable row level security;
 alter table public.tpad_appraisals enable row level security;
 alter table public.vc_threads enable row level security;
