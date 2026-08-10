@@ -317,6 +317,45 @@ create policy "curriculum_content_read"
   to authenticated
   using (true);
 
+-- Pre-tracking VibeLearn catalogue shape. Publication linkage is introduced
+-- by the canonical 20260723191034 migration.
+create table if not exists public.vibelearn_content (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  subject_id uuid references public.subjects(id) on delete set null,
+  type text not null,
+  url text not null,
+  thumbnail_url text,
+  tags text[] default '{}',
+  source text,
+  submitted_by uuid references public.profiles(id) on delete set null,
+  view_count integer default 0,
+  search_vector tsvector,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  earnings_ksh numeric not null default 0,
+  school_id uuid references public.schools(id) on delete set null,
+  status text not null default 'live',
+  vibe_count integer default 0,
+  body text,
+  constraint vibelearn_content_type_check check (type in ('epage','ebook')),
+  constraint vibelearn_content_status_check check (status in ('draft','live'))
+);
+
+create index if not exists idx_vibelearn_content_created
+  on public.vibelearn_content(created_at desc);
+create index if not exists idx_vibelearn_content_subject
+  on public.vibelearn_content(subject_id);
+create index if not exists idx_vibelearn_content_tags
+  on public.vibelearn_content using gin(tags);
+create index if not exists idx_vibelearn_content_type
+  on public.vibelearn_content(type);
+create index if not exists idx_vibelearn_content_views
+  on public.vibelearn_content(view_count desc);
+create index if not exists idx_vibelearn_search_vector
+  on public.vibelearn_content using gin(search_vector);
+
 create table if not exists public.scheme_of_work (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id),
@@ -618,6 +657,7 @@ alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.curriculum enable row level security;
 alter table public.curriculum_content enable row level security;
+alter table public.vibelearn_content enable row level security;
 alter table public.scheme_of_work enable row level security;
 alter table public.lesson_plans enable row level security;
 alter table public.attendance enable row level security;
