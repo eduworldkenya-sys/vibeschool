@@ -3,11 +3,7 @@ export const dynamic = "force-dynamic"
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-
-const hqSupabase = supabase as unknown as {
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message?: string } | null }>
-}
+import { hqSupabase } from "@/lib/hq/supabase"
 
 const fieldStyle: React.CSSProperties = {
   width: "100%",
@@ -38,12 +34,12 @@ export default function HQLoginPage() {
     if (!normalizedEmail || !password) return setError("Email and password are required.")
     setLoading(true)
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+      const { data, error: authError } = await hqSupabase.auth.signInWithPassword({ email: normalizedEmail, password })
       if (authError || !data.user) throw new Error("Invalid email or password.")
       const { data: access, error: accessError } = await hqSupabase.rpc("hq_check_owner_access", { p_surface: "/hq/login" })
       const allowed = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
       if (!allowed) {
-        await supabase.auth.signOut()
+        await hqSupabase.auth.signOut({ scope: "local" })
         throw new Error("This account is not authorized for VibeSchool HQ.")
       }
       router.replace("/hq")
@@ -60,9 +56,9 @@ export default function HQLoginPage() {
     setRecovering(true)
     try {
       const redirectTo = `${window.location.origin}/hq/reset-password`
-      const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo })
+      const { error: recoveryError } = await hqSupabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo })
       if (recoveryError) throw recoveryError
-      setMessage("If this address is registered, a secure reset email has been sent. Open the newest message and follow its link.")
+      setMessage("If this address is registered, a secure reset email has been sent. Open the newest message in the same browser and follow its link.")
     } catch (e) {
       setError(e instanceof Error ? e.message : "Password recovery could not be started.")
     } finally {
@@ -79,7 +75,7 @@ export default function HQLoginPage() {
         <div><div style={{fontSize:10.5,fontWeight:950,letterSpacing:".13em",color:"#34d399",textTransform:"uppercase"}}>Owner authority</div><div style={{fontSize:12,color:"rgba(255,255,255,.42)",marginTop:2}}>Protected administrative surface</div></div>
       </div>
       <h1 style={{fontSize:"clamp(27px,7vw,34px)",letterSpacing:"-.03em",margin:"0 0 7px"}}>Enter VibeSchool HQ</h1>
-      <p style={{fontSize:13,lineHeight:1.6,color:"rgba(255,255,255,.52)",margin:"0 0 25px"}}>Sign-in identity and platform-owner authority are verified separately before HQ opens.</p>
+      <p style={{fontSize:13,lineHeight:1.6,color:"rgba(255,255,255,.52)",margin:"0 0 25px"}}>HQ uses its own isolated sign-in session. Student, Teacher, Parent and Admin sessions in this browser are not replaced by an HQ login attempt.</p>
 
       {error && <div role="alert" aria-live="assertive" style={{padding:12,borderRadius:11,marginBottom:16,background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.25)",color:"#fecaca",fontSize:12,lineHeight:1.5}}>{error}</div>}
       {message && <div role="status" aria-live="polite" style={{padding:12,borderRadius:11,marginBottom:16,background:"rgba(52,211,153,.08)",border:"1px solid rgba(52,211,153,.25)",color:"#bbf7d0",fontSize:12,lineHeight:1.55}}>{message}</div>}
@@ -93,7 +89,7 @@ export default function HQLoginPage() {
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:20}}><button type="button" disabled={busy} onClick={()=>void handleRecovery()} style={{border:0,background:"transparent",color:busy?"rgba(147,197,253,.45)":"#93c5fd",fontSize:11,fontWeight:850,cursor:busy?"default":"pointer",padding:"5px 0"}}>{recovering?"Sending secure link…":"Forgot password?"}</button></div>
 
       <button disabled={busy} onClick={()=>void handleLogin()} style={{width:"100%",padding:14,border:"1px solid rgba(16,185,129,.35)",borderRadius:12,background:busy?"rgba(16,185,129,.55)":"#10b981",color:"#03120c",fontWeight:950,fontSize:13.5,cursor:busy?"wait":"pointer",boxShadow:"0 12px 30px rgba(16,185,129,.13)"}}>{loading?"Verifying owner authority…":"Enter HQ"}</button>
-      <div style={{display:"flex",gap:8,alignItems:"flex-start",marginTop:18,paddingTop:17,borderTop:"1px solid rgba(255,255,255,.07)",fontSize:10.5,lineHeight:1.5,color:"rgba(255,255,255,.36)"}}><span aria-hidden="true">●</span><span>Password recovery only restores authentication. It never grants HQ owner access.</span></div>
+      <div style={{display:"flex",gap:8,alignItems:"flex-start",marginTop:18,paddingTop:17,borderTop:"1px solid rgba(255,255,255,.07)",fontSize:10.5,lineHeight:1.5,color:"rgba(255,255,255,.36)"}}><span aria-hidden="true">●</span><span>Password recovery restores authentication only. HQ owner authority is still checked independently before access is allowed.</span></div>
     </section>
   </main>
 }
