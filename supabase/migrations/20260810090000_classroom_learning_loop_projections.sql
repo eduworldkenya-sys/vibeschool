@@ -64,7 +64,7 @@ begin
           'marked', coalesce(att.marked, 0),
           'present', coalesce(att.present, 0),
           'absent', coalesce(att.absent, 0),
-          'late', coalesce(att.late, 0),
+          'excused', coalesce(att.excused, 0),
           'percentage', case when coalesce(att.marked, 0) > 0
             then round((coalesce(att.present, 0)::numeric / att.marked::numeric) * 100)
             else null end
@@ -89,7 +89,7 @@ begin
       select count(*)::integer marked,
         count(*) filter (where a.status = 'present')::integer present,
         count(*) filter (where a.status = 'absent')::integer absent,
-        count(*) filter (where a.status = 'late')::integer late
+        count(*) filter (where a.status = 'excused')::integer excused
       from public.attendance a
       where a.student_id = s.id and a.school_id = psl.school_id
         and a.date >= current_date - 30
