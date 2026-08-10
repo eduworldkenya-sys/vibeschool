@@ -15,6 +15,25 @@ create unique index vibe_chapter_assignments_active_identity_uidx
 on public.vibe_chapter_assignments(class_id,chapter_id,assignment_type)
 where status in ('assigned','active','open');
 
+-- These CE-010 tables are consumed by the CE-009 delivery RPCs below.  They
+-- are repeated with IF NOT EXISTS in the later consolidated parity migration.
+create table if not exists public.content_assignment_learners(
+ id uuid primary key default gen_random_uuid(), assignment_id uuid not null references public.vibe_chapter_assignments(id) on delete cascade,
+ student_id uuid not null references public.students(id) on delete cascade, assigned_at timestamptz not null default now(), status text not null default 'assigned',
+ opened_at timestamptz, submitted_at timestamptz, completed_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+ check(status in('assigned','opened','in_progress','submitted','completed','excused','overdue')), unique(assignment_id,student_id)
+);
+create table if not exists public.content_submission_evidence(
+ id uuid primary key default gen_random_uuid(), assignment_learner_id uuid not null references public.content_assignment_learners(id) on delete cascade,
+ evidence_type text not null, text_response text, file_url text, metadata jsonb not null default '{}'::jsonb,
+ submitted_by uuid references auth.users(id) on delete set null, submitted_at timestamptz not null default now(), status text not null default 'submitted', created_at timestamptz not null default now(),
+ check(evidence_type in('text','image','audio','video','document','link','reading_progress','observation')), check(status in('draft','submitted','withdrawn','accepted','rejected')),
+ check(text_response is not null or file_url is not null or metadata<>'{}'::jsonb)
+);
+alter table public.content_assignment_learners enable row level security;
+alter table public.content_submission_evidence enable row level security;
+grant select,insert,update,delete on public.content_assignment_learners,public.content_submission_evidence to authenticated,service_role;
+
 create or replace function public.ce_validate_classroom_assignment()
 returns trigger language plpgsql set search_path=public,pg_temp as $$
 declare rp uuid; rc uuid; rs text; link_scheme uuid; link_resource uuid; class_school uuid;
