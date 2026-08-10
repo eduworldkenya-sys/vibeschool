@@ -166,6 +166,17 @@ create table if not exists public.subjects (
   created_at timestamptz not null default clock_timestamp()
 );
 
+create policy "subjects_member_read"
+  on public.subjects
+  for select
+  using (
+    school_id in (
+      select sm.school_id
+      from public.school_members sm
+      where sm.profile_id = auth.uid()
+    )
+  );
+
 create table if not exists public.cbc_strands (
   id uuid primary key default gen_random_uuid(),
   subject_id uuid not null references public.subjects(id) on delete cascade,
