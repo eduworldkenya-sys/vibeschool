@@ -341,6 +341,7 @@ create table if not exists public.scheme_of_work (
   rollcall text,
   remarks text,
   status text default 'pending',
+  source text not null default 'curriculum',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
