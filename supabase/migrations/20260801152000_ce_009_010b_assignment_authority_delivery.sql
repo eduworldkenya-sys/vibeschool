@@ -1,5 +1,22 @@
 begin;
 
+-- The assignment authority registration at the end of this migration
+-- precedes the consolidated CE-001 parity file in timestamp order.
+create table if not exists public.content_engine_authorities (
+  domain text primary key,
+  authoritative_table text not null,
+  authority_role text not null,
+  derived_tables text[] not null default '{}',
+  notes text,
+  updated_at timestamptz not null default now(),
+  constraint content_engine_authorities_domain_nonempty check (btrim(domain) <> ''),
+  constraint content_engine_authorities_table_nonempty check (btrim(authoritative_table) <> ''),
+  constraint content_engine_authorities_role_nonempty check (btrim(authority_role) <> '')
+);
+alter table public.content_engine_authorities enable row level security;
+revoke all on table public.content_engine_authorities from public, anon, authenticated;
+grant select, insert, update, delete on table public.content_engine_authorities to service_role;
+
 alter table public.vibe_chapter_assignments
   add column resource_id uuid references public.learning_resources(id) on delete restrict,
   add column assignment_type text not null default 'reading',
