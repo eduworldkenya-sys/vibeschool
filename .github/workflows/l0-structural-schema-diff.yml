@@ -1,0 +1,150 @@
+name: L0 Production vs Rebuild Structural Schema Diff
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - ".github/workflows/l0-structural-schema-diff.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: l0-structural-schema-diff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  structural-diff:
+    name: Object-level production vs local rebuild diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production-migration-repair
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .l0-schema-diff
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "sha=${{ github.sha }}"
+            echo "ref=${{ github.ref }}"
+            echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo "mode=READ_ONLY_PRODUCTION"
+          } > .l0-schema-diff/context.txt
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link exact production project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+
+      - name: Start isolated local Supabase
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start \
+            -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor \
+            2>&1 | tee .l0-schema-diff/supabase-start.log
+
+      - name: Rebuild local database from repository migrations
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db reset --local --no-seed \
+            2>&1 | tee .l0-schema-diff/local-rebuild.log
+
+      - name: Capture local object inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db dump --local --schema public \
+            -f .l0-schema-diff/local-public-schema.sql
+          wc -l .l0-schema-diff/local-public-schema.sql \
+            | tee .l0-schema-diff/local-schema-lines.txt
+
+      - name: Capture production object inventory
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db dump --linked --schema public \
+            -f .l0-schema-diff/production-public-schema.sql
+          wc -l .l0-schema-diff/production-public-schema.sql \
+            | tee .l0-schema-diff/production-schema-lines.txt
+
+      - name: Run migra object-level structural diff
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db diff \
+            --linked \
+            --use-migra \
+            --schema public \
+            --output .l0-schema-diff/production-vs-rebuild-migra.sql \
+            2>&1 | tee .l0-schema-diff/migra-run.log
+
+      - name: Produce explicit object inventory counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          for label in ("local", "production"):
+              text = Path(f".l0-schema-diff/{label}-public-schema.sql").read_text(encoding="utf-8", errors="replace")
+              counts = {
+                  "tables": len(re.findall(r'^CREATE TABLE ', text, re.M)),
+                  "functions": len(re.findall(r'^CREATE FUNCTION ', text, re.M)),
+                  "policies": len(re.findall(r'^CREATE POLICY ', text, re.M)),
+                  "indexes": len(re.findall(r'^CREATE (?:UNIQUE )?INDEX ', text, re.M)),
+                  "triggers": len(re.findall(r'^CREATE TRIGGER ', text, re.M)),
+                  "views": len(re.findall(r'^CREATE VIEW ', text, re.M)),
+              }
+              print(label, counts)
+              Path(f".l0-schema-diff/{label}-object-counts.txt").write_text(
+                  "\n".join(f"{k}={v}" for k, v in counts.items()) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
+      - name: Hash immutable evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum .l0-schema-diff/* > .l0-schema-diff/evidence.sha256 || true
+
+      - name: Upload immutable structural diff evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l0-structural-schema-diff-${{ github.run_id }}
+          path: .l0-schema-diff/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Destroy isolated local database
+        if: always()
+        shell: bash
+        run: |
+          supabase stop --no-backup > /dev/null 2>&1 || true
