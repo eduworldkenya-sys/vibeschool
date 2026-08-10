@@ -257,6 +257,8 @@ create table if not exists public.lesson_plans (
   teacher_id uuid not null references public.profiles(id) on delete cascade,
   class_id uuid not null,
   subject_id uuid not null references public.subjects(id) on delete restrict,
+  curriculum_id uuid references public.curriculum(id) on delete set null,
+  scheme_id uuid references public.scheme_of_work(id),
   week_start date not null,
   day_of_week integer not null check (day_of_week between 1 and 7),
   title text,
@@ -266,6 +268,9 @@ create table if not exists public.lesson_plans (
   updated_at timestamptz not null default clock_timestamp(),
   constraint chk_lesson_plan_content check (title is not null or body is not null)
 );
+
+create index if not exists idx_lesson_plans_curriculum_id
+  on public.lesson_plans(curriculum_id);
 
 create table if not exists public.tpad_appraisals (
   id uuid primary key default gen_random_uuid(),
