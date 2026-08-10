@@ -704,12 +704,20 @@ export default function ReadTextbookPage() {
     async function loadReader() {
       setState("loading");
 
-      const { data, error } = await supabase.rpc(
-        "get_vibetextbook_reader",
-        {
-          publication_id_input: publicationId,
-        }
-      );
+      // Issue #41: anonymous visitors use the RLS-bound SECURITY INVOKER
+      // contract. Signed-in viewers use the privileged reader for caller-scoped
+      // entitlements, progress, bookmarks and author draft preview.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const readerRpc = session
+        ? "get_vibetextbook_reader"
+        : "get_public_vibetextbook_reader";
+
+      const { data, error } = await supabase.rpc(readerRpc, {
+        publication_id_input: publicationId,
+      });
 
       if (cancelled) return;
 
