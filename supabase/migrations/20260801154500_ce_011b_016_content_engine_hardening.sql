@@ -30,6 +30,29 @@ create table if not exists public.curriculum_learning_outcomes (
   )
 );
 -- CE-010: learner assignment membership and evidence
+-- CE-003 is also timestamped later, while generated assessment items preserve
+-- an optional source-block foreign key.
+create table if not exists public.content_blocks (
+  id uuid primary key default gen_random_uuid(),
+  publication_id uuid not null references public.vibe_publications(id) on delete cascade,
+  chapter_id uuid not null references public.vibe_chapters(id) on delete cascade,
+  legacy_block_id text,
+  block_type text not null,
+  sequence integer not null,
+  payload jsonb not null default '{}'::jsonb,
+  title text,
+  plain_text text,
+  status text not null default 'draft',
+  is_teacher_only boolean not null default false,
+  is_assessable boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint content_blocks_type_nonempty check (btrim(block_type) <> ''),
+  constraint content_blocks_sequence_positive check (sequence > 0),
+  constraint content_blocks_payload_object check (jsonb_typeof(payload) = 'object'),
+  constraint content_blocks_status_check check (status in ('draft','published','unpublished','archived'))
+);
+
 create table if not exists public.content_assignment_learners(
  id uuid primary key default gen_random_uuid(), assignment_id uuid not null references public.vibe_chapter_assignments(id) on delete cascade,
  student_id uuid not null references public.students(id) on delete cascade, assigned_at timestamptz not null default now(), status text not null default 'assigned',
