@@ -398,6 +398,38 @@ create table if not exists public.lesson_interventions (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.lesson_notes (
+  id uuid primary key default gen_random_uuid(),
+  class_id uuid references public.classes(id) on delete set null,
+  lesson_plan_id uuid references public.lesson_plans(id) on delete set null,
+  homework_id uuid references public.homework(id) on delete set null,
+  school_id uuid references public.schools(id) on delete set null,
+  subject_id uuid references public.subjects(id) on delete set null,
+  teacher_id uuid references public.profiles(id) on delete set null,
+  taught_date date not null default current_date,
+  what_was_taught text,
+  challenges text,
+  homework_set text,
+  participation_score numeric,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists idx_lesson_notes_class_id
+  on public.lesson_notes(class_id);
+create index if not exists idx_lesson_notes_homework_id
+  on public.lesson_notes(homework_id);
+create index if not exists idx_lesson_notes_lesson_plan_id
+  on public.lesson_notes(lesson_plan_id);
+create index if not exists idx_lesson_notes_teacher_id
+  on public.lesson_notes(teacher_id);
+
+create policy "teachers manage own lesson notes"
+  on public.lesson_notes
+  for all
+  using (teacher_id = auth.uid())
+  with check (teacher_id = auth.uid());
+
 -- RLS is enabled here so later policy-recovery migrations operate against the
 -- same security posture as the live core tables. Policies themselves are
 -- restored by later canonical migrations.
@@ -421,6 +453,7 @@ alter table public.homework_submissions enable row level security;
 alter table public.cbc_assessments enable row level security;
 alter table public.lesson_evidence enable row level security;
 alter table public.lesson_interventions enable row level security;
+alter table public.lesson_notes enable row level security;
 alter table public.tpad_appraisals enable row level security;
 alter table public.vc_threads enable row level security;
 alter table public.vc_participants enable row level security;
