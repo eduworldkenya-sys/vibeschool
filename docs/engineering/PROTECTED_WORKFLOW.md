@@ -1,77 +1,79 @@
 # Vibeschool Protected Work and Release Policy
 
-This policy is mandatory for all engineering work.
+This policy is mandatory for all engineering work. The root `AGENTS.md` is the entry point for humans, AI agents, automations, and chats.
 
-## 1. Start from main, never work directly on main
+## 1. Start from current main
 
-Every new task begins on a fresh branch created from the current `main` HEAD.
+Every task begins on a fresh branch created from current `main`. Do not implement directly on `main`.
 
-Approved branch families:
+Approved families include `work/`, `hq/`, `content/`, `audit/`, `twin/`, `feature/`, `feat/`, `fix/`, and `ops/`. CI must still validate branches outside these families so an arbitrary branch name cannot bypass the gate.
 
-- `work/<task>` — default for normal product work
-- `hq/<task>` — HQ/control-plane work
-- `content/<task>` — publishing/content-engine work
-- `audit/<task>` — audit and repair work
-- `twin/<task>` — learner/teacher Twin work
-- `feature/<task>` — isolated features
-- `fix/<task>` — isolated fixes
-- `ops/<task>` — engineering/operations work
+## 2. Only main may deploy to a hosted environment
 
-Do not implement new work directly on `main`.
+`main` is the production release boundary. Every non-main branch and pull request must remain non-deploying on Vercel, Netlify, and every other hosting provider.
 
-## 2. Git must not automatically deploy to Vercel
+The required Vercel protection is:
 
-`vercel.json` sets `git.deploymentEnabled` to `false` globally.
+```json
+"deploymentEnabled": {
+  "main": true,
+  "*": false,
+  "**": false
+}
+```
 
-Therefore commits and pushes on work branches — and merges/pushes to `main` — must not create automatic Vercel deployments. GitHub is the source-control and validation plane; Vercel deployment is a separate release action.
+Both deny patterns are mandatory because branch names may contain `/`. Repository code must not contain alternative deployment commands, APIs, or hooks that bypass this rule.
 
-Do not use Vercel CLI, Deploy Hooks, the Vercel API deployment endpoint, or manual Vercel deployment actions while a task is still under development or verification.
+Provider settings are part of the control boundary. Disable Netlify Deploy Previews and branch deploys, Vercel preview deployments, secondary hosting projects, and equivalent Git integrations for non-main refs.
 
-## 3. Validate the complete change set before release
+Disable automatic Supabase Preview Branching for pull requests. Non-main CI may run `supabase start` and `supabase db reset --local --no-seed`, but must not link to a hosted project, push migrations, deploy functions, repair the hosted ledger, or mutate hosted secrets. Production Supabase stays read-only until the verified change is merged through the main release boundary.
 
-Before a branch may be promoted to `main`, the complete task must be finished and reviewed. Required gates are:
+A non-main deployment is a policy incident even if the build succeeds. Stop promotion, preserve the provider log and commit SHA, disable the trigger, and verify with a later non-main commit.
+
+An exception is valid only when a written approval records the exact commit SHA, provider, environment, reason, approver, and expiry. It does not authorize later commits or another provider.
+
+## 3. Validate before release
+
+A branch is releasable only after:
 
 1. `npm ci`
 2. `npm run typecheck`
 3. `npm run lint`
 4. `npm run build`
-5. Functional verification of the affected workflow
-6. Database/security verification when Supabase behavior changes
-7. Review of the full branch diff against `main`
-8. No known release-blocking defects
+5. functional verification
+6. database/schema/RLS/security verification when relevant
+7. full diff review against current `main`
+8. no known release blocker
 
-The GitHub workflow `.github/workflows/typescript-build-gate.yml` runs the TypeScript, lint, and production-build gates on approved work branches and pull requests targeting `main`.
+The `Full Linux validation` job performs repository-policy, TypeScript, lint, and build checks on every pushed branch and on pull requests targeting `main`. Human evidence requirements must be recorded in the PR template. A partial pass does not authorize a merge.
 
-## 4. Merge and deployment are separate decisions
+## 4. Merge to main is an intentional production action
 
-Only after all gates pass should the completed branch be promoted to `main`.
+Do not merge partial work, merge to save progress, merge to preview UI, combine unrelated unfinished branches, or merge while required checks or evidence are incomplete.
 
-Merging to `main` does not authorize a Vercel deployment by itself. Production deployment must be an explicit, intentional release step after the merged `main` commit is identified and all final gates remain green.
+GitHub must protect `main` with a ruleset requiring pull requests, the `Full Linux validation` check, current-base validation, conversation resolution, code-owner review for release-sensitive files, and blocking force pushes and deletion. Bypass access should be empty or restricted to audited emergency use.
 
-Do not merge partial work merely to preview it.
+## 5. Preview unfinished work locally
 
-## 5. Preview unfinished work without Vercel
+Use a local development server or GitHub-hosted development environment. Do not create a public hosted preview for unfinished branch work.
 
-Use a local/dev-server or GitHub-hosted development environment for unfinished UI review. A preview must not require merging partial work into `main` or creating a Vercel deployment.
+## 6. Sensitive controls
 
-## 6. One task, one release unit
+The following require code-owner review:
 
-Prefer a coherent completed change set over repeated small production releases. Intermediate commits are allowed on the protected branch because Git-triggered Vercel deployment is disabled; production deployment happens only after the whole task is ready and deliberately released.
+- `AGENTS.md`
+- `docs/engineering/PROTECTED_WORKFLOW.md`
+- `vercel.json`
+- `.github/CODEOWNERS`
+- `.github/workflows/`
+- pull-request templates
+- hosting and deployment configuration
+- Supabase integration, migration, and release controls
 
-## Release decision
+CODEOWNERS routes review; the GitHub ruleset must require code-owner approval for it to block merging.
 
-A task is releasable only when the answer to all of these is YES:
+## 7. Required loop
 
-- Is the task complete?
-- Is the branch based on the intended `main` baseline?
-- Is TypeScript clean?
-- Does lint pass?
-- Does the production build pass?
-- Has the affected workflow been functionally verified?
-- Have Supabase/schema/RLS effects been verified where relevant?
-- Has the full branch diff been reviewed?
-- Is there no known blocker?
-- Has the completed branch been promoted to `main`?
-- Is this an intentional production release?
+`current main` → `fresh task branch` → implement → validate → evidence → full diff review → approved PR → merge complete work to `main` → verify intentional production deployment.
 
-If any answer is NO, do not deploy to Vercel.
+If any release answer is NO, do not merge to `main` and do not deploy.

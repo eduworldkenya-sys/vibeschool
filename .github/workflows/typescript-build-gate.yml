@@ -3,16 +3,7 @@ name: TypeScript and Production Build Gate
 on:
   push:
     branches:
-      - main
-      - 'work/**'
-      - 'ops/**'
-      - 'hq/**'
-      - 'content/**'
-      - 'audit/**'
-      - 'twin/**'
-      - 'feature/**'
-      - 'feat/**'
-      - 'fix/**'
+      - '**'
   pull_request:
     branches:
       - main
@@ -40,6 +31,132 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Enforce protected workflow policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f AGENTS.md
+          test -f docs/engineering/PROTECTED_WORKFLOW.md
+          test -f vercel.json
+          test -f .github/CODEOWNERS
+          test -f .github/pull_request_template.md
+
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          const enabled = config?.git?.deploymentEnabled;
+          const failures = [];
+
+          if (!enabled || typeof enabled !== 'object' || Array.isArray(enabled)) {
+            failures.push('vercel.json git.deploymentEnabled must be an object');
+          } else {
+            if (enabled.main !== true) failures.push('main must be explicitly deploymentEnabled=true');
+            if (enabled['*'] !== false) failures.push('"*" must be explicitly deploymentEnabled=false');
+            if (enabled['**'] !== false) failures.push('"**" must be explicitly deploymentEnabled=false');
+            for (const [pattern, value] of Object.entries(enabled)) {
+              if (pattern !== 'main' && value === true) {
+                failures.push(`non-main deployment pattern ${pattern} must not be enabled`);
+              }
+            }
+          }
+
+          const agents = fs.readFileSync('AGENTS.md', 'utf8');
+          const policy = fs.readFileSync('docs/engineering/PROTECTED_WORKFLOW.md', 'utf8');
+          const owners = fs.readFileSync('.github/CODEOWNERS', 'utf8');
+          const required = [
+            ['AGENTS.md', agents, 'Never start implementation on `main`'],
+            ['AGENTS.md', agents, 'Non-main branches must not deploy to any hosted environment'],
+            ['PROTECTED_WORKFLOW.md', policy, 'Only main may deploy to a hosted environment'],
+            ['PROTECTED_WORKFLOW.md', policy, 'Merge to main is an intentional production action'],
+            ['CODEOWNERS', owners, '/AGENTS.md'],
+            ['CODEOWNERS', owners, '/vercel.json'],
+            ['CODEOWNERS', owners, '/.github/workflows/'],
+          ];
+          for (const [file, text, phrase] of required) {
+            if (!text.includes(phrase)) failures.push(`${file} is missing required policy phrase: ${phrase}`);
+          }
+
+          const forbidden = [
+            ['vercel-cli', /\b(?:npx\s+|pnpm\s+dlx\s+|bunx\s+)?vercel\s+(?:deploy|--prod)\b/i],
+            ['netlify-cli', /\b(?:npx\s+|pnpm\s+dlx\s+|bunx\s+)?netlify\s+deploy\b/i],
+            ['hosting-action', /(?:vercel|netlify)[-_]action@/i],
+            ['vercel-api', /api\.vercel\.com\/v\d+\/deployments/i],
+            ['vercel-hook', /hooks\.vercel\.com/i],
+            ['netlify-api', /api\.netlify\.com\/api\/v\d+\/sites/i],
+            ['netlify-hook', /api\.netlify\.com\/build_hooks/i],
+            ['supabase-link', /\bsupabase\s+link\b/i],
+            ['supabase-db-push', /\bsupabase\s+db\s+push\b/i],
+            ['supabase-repair', /\bsupabase\s+migration\s+repair\b/i],
+            ['supabase-functions-deploy', /\bsupabase\s+functions\s+deploy\b/i],
+            ['supabase-secrets', /\bsupabase\s+secrets\s+set\b/i],
+            ['supabase-management-api', /api\.supabase\.com\/v1\/projects\/[^/]+\/(?:database|functions)/i],
+          ];
+          const candidates = ['package.json'];
+          if (fs.existsSync('.github/workflows')) {
+            for (const name of fs.readdirSync('.github/workflows')) {
+              const candidate = path.join('.github/workflows', name);
+              if (candidate !== '.github/workflows/typescript-build-gate.yml' && fs.statSync(candidate).isFile()) {
+                candidates.push(candidate);
+              }
+            }
+          }
+          const approvedProductionWorkflows = new Map([
+            ['.github/workflows/deploy-functions.yml', [
+              "branches:\n      - main",
+              "if: github.ref == 'refs/heads/main' && github.event_name == 'push'",
+              'environment: production-supabase',
+            ]],
+            ['.github/workflows/tbl007-production-migration-repair.yml', [
+              'environment: production-migration-repair',
+              'Repair is allowed only against the current origin/main HEAD',
+              'Checkout exact approved main commit',
+            ]],
+            ['.github/workflows/tbl013-live-ledger-audit.yml', [
+              'environment: production-migration-repair',
+              'ref: main',
+              'Read-only production ledger reconciliation',
+            ]],
+          ]);
+          const approvedOperations = new Map([
+            ['.github/workflows/deploy-functions.yml', new Set([
+              'supabase-functions-deploy',
+            ])],
+            ['.github/workflows/tbl007-production-migration-repair.yml', new Set([
+              'supabase-link',
+              'supabase-repair',
+            ])],
+            ['.github/workflows/tbl013-live-ledger-audit.yml', new Set([
+              'supabase-link',
+            ])],
+          ]);
+          for (const candidate of candidates) {
+            const text = fs.readFileSync(candidate, 'utf8');
+            const safeguards = approvedProductionWorkflows.get(candidate);
+            if (safeguards) {
+              for (const safeguard of safeguards) {
+                if (!text.includes(safeguard)) {
+                  failures.push(`${candidate} is missing production safeguard: ${safeguard}`);
+                }
+              }
+            }
+            const exceptions = approvedOperations.get(candidate) ?? new Set();
+            for (const [operation, pattern] of forbidden) {
+              if (pattern.test(text) && !exceptions.has(operation)) {
+                failures.push(`${candidate} contains forbidden operation: ${operation}`);
+              }
+            }
+          }
+
+          if (failures.length) {
+            console.error('Protected workflow policy violation:');
+            for (const failure of failures) console.error(`- ${failure}`);
+            process.exit(1);
+          }
+          console.log('Protected workflow policy verified.');
+          NODE
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
