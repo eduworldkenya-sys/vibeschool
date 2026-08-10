@@ -87,7 +87,7 @@ jobs:
           set -o pipefail
 
           supabase start \
-            -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor \
+            -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor \
             2>&1 \
             | tee .tbl011-artifacts/supabase-start.log
 
@@ -231,6 +231,7 @@ jobs:
           name: tbl011-clean-rebuild-${{ github.run_id }}
           path: .tbl011-artifacts/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 30
 
       - name: Destroy isolated local database
