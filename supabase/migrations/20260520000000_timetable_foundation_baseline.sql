@@ -217,6 +217,23 @@ create table if not exists public.timetable_slots (
   updated_at timestamptz not null default clock_timestamp()
 );
 
+create table if not exists public.subject_weekly_allocations (
+  id uuid primary key default gen_random_uuid(),
+  band text not null check (band in ('lower_primary','upper_primary','junior_school')),
+  grade text not null,
+  subject_label text not null,
+  lessons_per_week integer not null check (lessons_per_week > 0),
+  source text not null default 'MoE/KICD rationalized CBC allocation (Dec 2023 circular)',
+  created_at timestamptz not null default now(),
+  unique (grade,subject_label)
+);
+
+create policy "subject_weekly_allocations_read"
+  on public.subject_weekly_allocations
+  for select
+  to authenticated
+  using (true);
+
 create table if not exists public.curriculum (
   id uuid primary key default gen_random_uuid(),
   curriculum text not null,
@@ -502,6 +519,7 @@ alter table public.student_claim_codes enable row level security;
 alter table public.parent_student_links enable row level security;
 alter table public.subjects enable row level security;
 alter table public.cbc_strands enable row level security;
+alter table public.subject_weekly_allocations enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
 alter table public.curriculum enable row level security;
