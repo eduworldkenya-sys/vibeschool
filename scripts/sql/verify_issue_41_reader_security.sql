@@ -118,8 +118,7 @@ select
       and r.payload->'publication'->>'status' = 'published'
       and not (r.payload->'publication' ? 'author_id')
       and not (r.payload->'publication' ? 'earnings_ksh')
-      and not (r.payload ? 'resume')
-        is false -- resume key is allowed but must be null
+      and (r.payload ? 'resume')
       and r.payload->'resume' = 'null'::jsonb
     then 'PASS'
     else 'FAIL'
