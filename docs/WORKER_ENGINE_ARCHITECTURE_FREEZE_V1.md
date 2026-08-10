@@ -113,12 +113,19 @@ Only one loop is open at a time. A loop closes only when its specified acceptanc
 
 Worker Engine implementation is currently blocked because the repository cannot yet reproduce the production foundation from a blank database.
 
-Known evidence:
+The current evidence is recorded in `docs/L0_RECOVERY_EVIDENCE_2026-08-10.md`.
 
-- Production migration ledger contains a historical foundation boundary that is not represented by an equivalent repository migration source.
-- The first repository migrations depend on existing core relations such as `schools` and `profiles`.
-- The isolated blank rebuild therefore fails before reaching the Worker Engine or later governance migrations.
-- Existing repository issue **#65** is the authoritative implementation tracker for this migration-foundation blocker.
+Key findings now verified against production:
+
+- Production migration ledger currently contains **552** rows.
+- The last known clean-rebuild run captured **339 repository migration files** and failed before applying the first migration because `public.schools` was absent from the blank database.
+- Main subsequently received security/grant migration changes; the repository/live version reconciliation must therefore be recomputed rather than relying on the earlier 546/339 snapshot.
+- Production currently contains **413 public tables, 19 public views, 871 public functions, 636 public policies, and 210 non-internal triggers**.
+- Every public table currently has RLS enabled; one table additionally has FORCE RLS.
+- The production database contains **541 SECURITY DEFINER public functions**. Nine SECURITY DEFINER functions are executable by `anon`; these are an explicit review set, not automatically declared vulnerabilities because some are intentional public request gates/read counters.
+- All SECURITY DEFINER public functions currently have an explicit `search_path` configuration in `pg_proc.proconfig`; no unset-search-path SECURITY DEFINER functions were found in the sampled production query.
+- The HQ/workforce surface is materially larger than a single worker table. It includes worker, skill, certification, run, handoff, context, routing, verification, memory, security, and governance tables.
+- Most HQ/workforce tables do **not** currently contain `school_id`. This does not authorize blindly adding the column: L0/L1 must first classify each object as platform-global control-plane state or school-scoped operational state. School-scoped objects must then satisfy the frozen security contract.
 
 ### L0 exit criteria
 
@@ -132,14 +139,30 @@ L0 cannot close until all are true:
 6. RPC inventory is reconciled and hardened; no anonymous bypass remains.
 7. `service_role` is absent from runtime application paths.
 8. Security advisors and relevant TypeScript/build checks are green.
+9. The HQ/workforce contract mapping is complete enough to identify every canonical contract's existing production source and every security gap.
 
-## 9. Existing workforce implementation: consolidation decision required before L1
+## 9. Existing workforce implementation: consolidation decision
 
-The repository already contains substantial HQ/workforce-related schema and application components. Before creating a parallel `worker_*` subsystem, L0/L1 must include a contract-to-existing-schema mapping.
+The repository already contains substantial HQ/workforce-related schema and application components. The architectural ruling is **absolute consolidation**: the existing `hq_*` workforce implementation is the proto-Worker Engine, and the frozen Worker Engine is its Governance, Lifecycle, and Enforcement Layer.
 
-The default architectural position is **consolidate rather than duplicate**, unless an explicit architecture amendment proves that an additional subsystem is necessary.
+We will not create a parallel `worker_*` workforce subsystem merely because the existing tables do not yet match the frozen contracts.
 
-This is a sequencing constraint, not permission to modify the existing workforce implementation during L0.
+The mapping must distinguish at least these existing concepts:
+
+| Existing area | Frozen contract target | Current evidence |
+|---|---|---|
+| `hq_workforce_workers` | WorkerRecord | Worker identity, department/job, status, permissions, approval boundaries, KPIs exist; no `school_id` currently present |
+| `hq_workforce_skills` | Skill / Blueprint skill component | Versioned skills, lane, context, procedure, verification and recovery exist |
+| `hq_workforce_worker_skills` | Worker capability/skill binding | Worker-to-skill binding exists; no `school_id` currently present |
+| `hq_workforce_worker_certifications` / `hq_workforce_certification_results` | Certification | Certification version/checks/evidence exist; no `school_id` currently present |
+| `hq_workforce_runs` | Task/run execution evidence | Worker, skill, trigger, status, authority result and execution evidence exist |
+| `hq_workforce_handoffs` | Routing/context transfer | Lane-to-lane worker handoff and materialized context exist |
+| `hq_context_scopes` / `hq_context_sources` / `hq_context_facts_cache` | Context envelope/source layer | Scope, source, freshness, confidence and evidence concepts exist |
+| `hq_workforce_outcome_verifications` | Verification | Outcome verification exists as a first-class production object |
+| `hq_workforce_memory_entries` and related learning tables | Operational memory | Existing workforce learning/memory structures exist |
+| HQ policy/decision/audit tables | Governance/authority/audit layer | Existing HQ control-plane tables already implement parts of the frozen governance boundary |
+
+This mapping is evidence that the new Worker Engine should be implemented as **convergence and hardening of the existing workforce**, not as a greenfield parallel system.
 
 ## 10. Production safety rules
 
@@ -148,6 +171,7 @@ This is a sequencing constraint, not permission to modify the existing workforce
 - Never use production data in a baseline migration.
 - Never add guessed tables solely to make CI green.
 - Never introduce Worker Engine tables while L0 is red.
+- Never add `school_id` to every HQ table indiscriminately; first classify platform-global versus school-scoped contracts.
 - Every production write requires a named target, preflight evidence, expected impact, and recovery plan.
 - Any newly discovered architectural decision pauses coding until the freeze is amended.
 
