@@ -10,7 +10,7 @@ export const HQ_THEME = {
 } as const
 
 const links = [
-  ["HQ", "/hq"], ["Departments", "/hq/departments"], ["Decisions", "/hq/decisions"], ["Studio", "/hq/studio"],
+  ["HQ", "/hq"], ["Workroom", "/hq/workroom"], ["Departments", "/hq/departments"], ["Decisions", "/hq/decisions"], ["Studio", "/hq/studio"],
   ["Publishing", "/hq/content"], ["Content Engine", "/hq/curriculum-intelligence/engine"], ["Analytics", "/hq/analytics"],
 ] as const
 
