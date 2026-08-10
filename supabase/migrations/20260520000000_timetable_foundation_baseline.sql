@@ -262,6 +262,9 @@ create table if not exists public.timetable_slots (
   room text,
   effective_from date not null default current_date,
   effective_until date,
+  constraint chk_effective_range check (
+    effective_until is null or effective_until > effective_from
+  ),
   created_at timestamptz not null default clock_timestamp(),
   updated_at timestamptz not null default clock_timestamp()
 );
