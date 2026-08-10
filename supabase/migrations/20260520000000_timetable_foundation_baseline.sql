@@ -72,9 +72,9 @@ language sql
 stable
 security definer
 set search_path = public, pg_temp
-as $
+as $function$
   select role from public.profiles where id = auth.uid() limit 1;
-$;
+$function$;
 
 revoke all on function public.get_my_role() from public;
 grant execute on function public.get_my_role() to authenticated, service_role;
