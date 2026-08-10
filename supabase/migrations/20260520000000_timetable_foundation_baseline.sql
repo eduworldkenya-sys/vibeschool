@@ -322,6 +322,7 @@ create table if not exists public.lesson_plans (
   scheme_id uuid references public.scheme_of_work(id),
   week_start date not null,
   day_of_week integer not null check (day_of_week between 1 and 7),
+  taught_date date,
   title text,
   body text,
   generated_by text not null default 'manual' check (generated_by in ('manual','twin')),
