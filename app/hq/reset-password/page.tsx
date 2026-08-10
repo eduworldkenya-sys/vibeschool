@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { hqSupabase } from "@/lib/hq/supabase"
 
 const inputStyle: React.CSSProperties = {
@@ -20,7 +20,6 @@ const inputStyle: React.CSSProperties = {
 
 export default function HQResetPasswordPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -46,7 +45,7 @@ export default function HQResetPasswordPage() {
       setError("")
 
       try {
-        const code = searchParams.get("code")
+        const code = new URL(window.location.href).searchParams.get("code")
         if (code) {
           const { error: exchangeError } = await hqSupabase.auth.exchangeCodeForSession(code)
           if (exchangeError) throw exchangeError
@@ -88,7 +87,7 @@ export default function HQResetPasswordPage() {
       mounted = false
       listener.subscription.unsubscribe()
     }
-  }, [searchParams])
+  }, [router])
 
   async function handleReset() {
     setError("")
