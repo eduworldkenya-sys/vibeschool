@@ -89,7 +89,8 @@ begin
 end;
 $$;
 
-select * from public.admin_reconcile_vibelearn_textbook_index('c9c55e3b-3e18-4a4d-b317-5212b3961d54');
-select * from public.admin_reconcile_vibelearn_textbook_index('b90d240a-de1f-47e3-93ba-85eb9b66a199');
-select * from public.admin_reconcile_vibelearn_textbook_index('9ab48ffd-4dbe-43ff-8be0-4da88065bd17');
-select * from public.admin_reconcile_vibelearn_textbook_index('a59794d8-45dd-4038-a20a-d76d162e24ec');
+-- Historical production reconciliation was previously invoked here with
+-- hard-coded publication UUIDs. Those calls depend on production data and make
+-- a schema-only replay fail on a blank database. Keep the migration replayable;
+-- reconciliation belongs in an explicit operational/data backfill, not in the
+-- function-definition migration.
