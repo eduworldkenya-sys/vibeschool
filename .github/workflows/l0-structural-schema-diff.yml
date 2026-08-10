@@ -95,41 +95,25 @@ jobs:
           wc -l .l0-schema-diff/production-public-schema.sql \
             | tee .l0-schema-diff/production-schema-lines.txt
 
-      - name: Install migra
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m pip install --disable-pip-version-check migra
-          migra --version | tee .l0-schema-diff/migra-version.txt
-
-      - name: Run direct object-level migra diff
-        shell: bash
-        run: |
-          set +e
-          # local -> production: SQL describes what the local rebuild is missing
-          # relative to production. This is inspection only; it does not execute SQL.
-          migra \
-            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            > .l0-schema-diff/production-vs-rebuild-migra.sql 2> .l0-schema-diff/migra-run.log
-          status=$?
-          echo "$status" > .l0-schema-diff/migra.exit-code
-          echo "Migra exit code: $status"
-          exit 0
-
-      - name: Generate Supabase structural diff evidence
+      - name: Generate object-level structural diff with Migra
         if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         shell: bash
         run: |
           set +e
+          # Supabase db diff --linked --use-migra is the supported CLI path
+          # for comparing the local database state with the linked production
+          # schema. It is read-only with respect to production.
           supabase db diff \
             --linked \
             --use-migra \
             --schema public \
-            --output .l0-schema-diff/supabase-db-diff.sql \
-            2>&1 | tee .l0-schema-diff/supabase-db-diff.log
+            --output .l0-schema-diff/production-vs-rebuild-migra.sql \
+            2>&1 | tee .l0-schema-diff/migra-run.log
           status=${PIPESTATUS[0]}
-          echo "$status" > .l0-schema-diff/supabase-db-diff.exit-code
+          echo "$status" > .l0-schema-diff/migra.exit-code
+          echo "Migra diff exit code: $status"
           exit 0
 
       - name: Produce explicit object inventory counts
