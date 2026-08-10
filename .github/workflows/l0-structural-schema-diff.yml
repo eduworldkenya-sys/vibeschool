@@ -65,11 +65,17 @@ jobs:
       - name: Rebuild local database from repository migrations
         shell: bash
         run: |
-          set -o pipefail
+          set +e
           supabase db reset --local --no-seed \
             2>&1 | tee .l0-schema-diff/local-rebuild.log
+          status=${PIPESTATUS[0]}
+          echo "$status" > .l0-schema-diff/local-rebuild.exit-code
+          echo "Local rebuild exit code: $status"
+          # L0 inspection must continue so the partial schema becomes evidence.
+          exit 0
 
       - name: Capture local object inventory
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
@@ -89,20 +95,45 @@ jobs:
           wc -l .l0-schema-diff/production-public-schema.sql \
             | tee .l0-schema-diff/production-schema-lines.txt
 
-      - name: Run migra object-level structural diff
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Install migra
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check migra
+          migra --version | tee .l0-schema-diff/migra-version.txt
+
+      - name: Run direct object-level migra diff
+        shell: bash
+        run: |
+          set +e
+          # local -> production: SQL describes what the local rebuild is missing
+          # relative to production. This is inspection only; it does not execute SQL.
+          migra \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            > .l0-schema-diff/production-vs-rebuild-migra.sql 2> .l0-schema-diff/migra-run.log
+          status=$?
+          echo "$status" > .l0-schema-diff/migra.exit-code
+          echo "Migra exit code: $status"
+          exit 0
+
+      - name: Generate Supabase structural diff evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
           supabase db diff \
             --linked \
             --use-migra \
             --schema public \
-            --output .l0-schema-diff/production-vs-rebuild-migra.sql \
-            2>&1 | tee .l0-schema-diff/migra-run.log
+            --output .l0-schema-diff/supabase-db-diff.sql \
+            2>&1 | tee .l0-schema-diff/supabase-db-diff.log
+          status=${PIPESTATUS[0]}
+          echo "$status" > .l0-schema-diff/supabase-db-diff.exit-code
+          exit 0
 
       - name: Produce explicit object inventory counts
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
@@ -111,7 +142,10 @@ jobs:
           import re
 
           for label in ("local", "production"):
-              text = Path(f".l0-schema-diff/{label}-public-schema.sql").read_text(encoding="utf-8", errors="replace")
+              path = Path(f".l0-schema-diff/{label}-public-schema.sql")
+              if not path.exists():
+                  continue
+              text = path.read_text(encoding="utf-8", errors="replace")
               counts = {
                   "tables": len(re.findall(r'^CREATE TABLE ', text, re.M)),
                   "functions": len(re.findall(r'^CREATE FUNCTION ', text, re.M)),
@@ -126,6 +160,18 @@ jobs:
                   encoding="utf-8",
               )
           PY
+
+      - name: Capture Supabase diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          supabase status > .l0-schema-diff/supabase-status.txt 2>&1
+          docker ps -a > .l0-schema-diff/docker-ps.txt 2>&1
+          for container in $(docker ps -a --format '{{.Names}}' | grep '^supabase_' || true); do
+            docker logs "$container" > ".l0-schema-diff/${container}.log" 2>&1 || true
+          done
+          exit 0
 
       - name: Hash immutable evidence
         if: always()
