@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import AdminTwinDrawer from "@/components/admin/TwinDrawer"
+import ClassroomLearningHealth from "@/components/admin/ClassroomLearningHealth"
 
 const C = {
   hero:      "#0a1628",
@@ -270,6 +271,8 @@ export default function AdminHub() {
           </div>
         )}
       </div>
+
+      <ClassroomLearningHealth />
 
       {/* COMMAND CENTRE */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import ClassroomLearningBrief from "@/components/parent/ClassroomLearningBrief"
 import ParentTwinDrawer from '@/components/parent/TwinDrawer'
 import { useRouter } from 'next/navigation'
 
@@ -169,6 +170,8 @@ export default function ParentHomePage() {
           </div>
         </div>
       )}
+
+      <ClassroomLearningBrief />
 
       {children.map(child => (
         <div key={child.id} style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', padding: 16, marginBottom: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
