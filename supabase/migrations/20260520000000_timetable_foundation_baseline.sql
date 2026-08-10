@@ -158,6 +158,49 @@ create table if not exists public.timetable_slots (
   updated_at timestamptz not null default clock_timestamp()
 );
 
+create table if not exists public.curriculum (
+  id uuid primary key default gen_random_uuid(),
+  curriculum text not null,
+  grade text not null,
+  subject text not null,
+  term integer not null,
+  week integer not null,
+  strand text not null,
+  sub_strand text not null,
+  topic text not null,
+  periods integer default 3,
+  reference text,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.scheme_of_work (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id),
+  teacher_id uuid references public.profiles(id),
+  class_id uuid references public.classes(id),
+  subject_id uuid not null references public.subjects(id),
+  curriculum_id uuid references public.curriculum(id),
+  curriculum_type text not null,
+  grade text not null,
+  subject text not null,
+  term integer not null,
+  week integer not null,
+  date date,
+  day_of_week text,
+  period integer,
+  strand text,
+  sub_strand text,
+  topic text not null,
+  objectives text,
+  resources text,
+  reference text,
+  rollcall text,
+  remarks text,
+  status text default 'pending',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 create table if not exists public.lesson_plans (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -304,6 +347,8 @@ alter table public.student_claim_codes enable row level security;
 alter table public.subjects enable row level security;
 alter table public.teacher_classes enable row level security;
 alter table public.timetable_slots enable row level security;
+alter table public.curriculum enable row level security;
+alter table public.scheme_of_work enable row level security;
 alter table public.lesson_plans enable row level security;
 alter table public.homework enable row level security;
 alter table public.homework_submissions enable row level security;
