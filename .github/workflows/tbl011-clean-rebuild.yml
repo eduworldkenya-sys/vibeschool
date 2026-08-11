@@ -64,7 +64,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Discovery and proof are deliberately separate. Persist every static
+          # finding, but do not let the scanner mask the first real PostgreSQL
+          # runtime failure from the same CI run.
           python3 scripts/scan-l0-migration-dependencies.py \
+            --allow-findings \
             --report .tbl011-artifacts/l0-migration-dependency-report.json
 
       - name: Verify Docker
