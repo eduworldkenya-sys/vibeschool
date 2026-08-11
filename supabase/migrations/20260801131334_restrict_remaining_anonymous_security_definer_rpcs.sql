@@ -25,7 +25,16 @@ begin
 end
 $block$;
 
-revoke execute on function public.increment_available_copies(uuid) from public, anon, authenticated;
-grant execute on function public.increment_available_copies(uuid) to service_role;
+-- This inventory helper predates the tracked migration baseline in some
+-- environments. Preserve the backend-only hardening when it exists without
+-- making a blank historical rebuild depend on an untracked function.
+do $inventory$
+begin
+  if to_regprocedure('public.increment_available_copies(uuid)') is not null then
+    revoke execute on function public.increment_available_copies(uuid) from public, anon, authenticated;
+    grant execute on function public.increment_available_copies(uuid) to service_role;
+  end if;
+end
+$inventory$;
 
 commit;
