@@ -145,10 +145,11 @@ function walk(node, context) {
 
     if (tag === 'CreatePolicyStmt') {
       const table = tableName(body);
-      const policy = scalarName(body?.PolicyName)
-        || scalarName(body?.policyname)
-        || nestedName(body?.PolicyName, ['String'])
-        || nestedName(body?.policyname, ['String']);
+      const policyValue = body?.PolicyName
+        ?? body?.policyName
+        ?? body?.policy_name
+        ?? body?.policyname;
+      const policy = scalarName(policyValue) || nestedName(policyValue, ['String']);
       pushMutation('CREATE_POLICY', table, { policy }, context.migration);
     }
 
