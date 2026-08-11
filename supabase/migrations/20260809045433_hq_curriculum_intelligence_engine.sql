@@ -1,7 +1,29 @@
--- L0 recovery: reconstruct the pre-tracked curriculum-intelligence tables
--- that this migration extends. Definitions are derived read-only from the
--- production catalog; engine-run/editorial columns and vocabulary constraints
--- remain owned by their original later migrations.
+-- L0 recovery: reconstruct the pre-tracked HQ authority and
+-- curriculum-intelligence objects that this migration extends. Definitions are
+-- derived read-only from the production catalog; engine-run/editorial columns
+-- and vocabulary constraints remain owned by their original later migrations.
+
+create table if not exists public.platform_owners (
+  profile_id uuid primary key references public.profiles(id) on delete cascade,
+  added_by text not null default 'migration',
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.is_platform_owner()
+returns boolean
+language sql
+stable
+security definer
+set search_path to 'public'
+as $function$
+  select auth.uid() is not null
+    and exists (
+      select 1
+      from public.platform_owners
+      where profile_id = auth.uid()
+    );
+$function$;
 
 create table if not exists public.curriculum_intelligence_watch_targets (
   id uuid primary key default gen_random_uuid(),
