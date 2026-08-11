@@ -28,11 +28,38 @@ const parseErrors = [];
 function scalarName(value) {
   if (typeof value === 'string') return value;
   if (!value || typeof value !== 'object') return undefined;
-  return value.relname || value.relName || value.relname?.value || value.str || value.name || value.Name;
+  return value.relname || value.relName || value.str || value.name || value.Name || value.sval;
+}
+
+function nestedName(value, keys) {
+  const direct = scalarName(value);
+  if (direct) return direct;
+  if (!value || typeof value !== 'object') return undefined;
+  for (const key of keys) {
+    const nested = value[key];
+    const name = scalarName(nested);
+    if (name) return name;
+  }
+  return undefined;
 }
 
 function tableName(node) {
-  return scalarName(node?.relation) || scalarName(node?.table) || scalarName(node?.RangeVar);
+  return nestedName(node?.relation, ['RangeVar'])
+    || nestedName(node?.table, ['RangeVar'])
+    || nestedName(node?.RangeVar, ['RangeVar']);
+}
+
+function columnName(payload) {
+  return nestedName(payload?.name, ['String'])
+    || nestedName(payload?.def, ['ColumnDef'])
+    || scalarName(payload?.def?.ColumnDef?.colname)
+    || scalarName(payload?.def?.colname);
+}
+
+function constraintName(payload) {
+  return nestedName(payload?.name, ['String'])
+    || scalarName(payload?.def?.Constraint?.conname)
+    || scalarName(payload?.def?.conname);
 }
 
 function pushMutation(type, table, extra, migration) {
@@ -52,12 +79,11 @@ function walk(node, context) {
 
     if (tag === 'AlterTableStmt') {
       const table = tableName(body);
-      for (const cmd of body.cmds ?? []) {
-        const payload = cmd?.AlterTableCmd ?? cmd;
+      for (const wrappedCmd of body.cmds ?? []) {
+        const payload = wrappedCmd?.AlterTableCmd ?? wrappedCmd;
         const subtype = payload?.subtype;
-        const def = payload?.def ?? {};
-        const column = scalarName(payload?.name) || scalarName(def?.colname);
-        const constraint = scalarName(payload?.name) || scalarName(def?.conname);
+        const column = columnName(payload);
+        const constraint = constraintName(payload);
 
         switch (subtype) {
           case 'AT_AddColumn':
@@ -108,7 +134,7 @@ function walk(node, context) {
     // not CreateStmt. Keep both forms for parser-version compatibility.
     if (tag === 'IndexStmt') {
       const table = tableName(body);
-      const index = scalarName(body?.idxname) || scalarName(body?.indexname);
+      const index = scalarName(body?.idxname) || nestedName(body?.idxname, ['String']);
       pushMutation('CREATE_INDEX', table, { index }, context.migration);
     }
 
@@ -120,13 +146,13 @@ function walk(node, context) {
 
     if (tag === 'CreatePolicyStmt') {
       const table = tableName(body);
-      const policy = scalarName(body?.policyname) || scalarName(body?.PolicyName);
+      const policy = scalarName(body?.policyname) || nestedName(body?.policyname, ['String']);
       pushMutation('CREATE_POLICY', table, { policy }, context.migration);
     }
 
     if (tag === 'CreateTrigStmt') {
       const table = tableName(body);
-      const trigger = scalarName(body?.trigname) || scalarName(body?.TriggerName);
+      const trigger = scalarName(body?.trigname) || nestedName(body?.trigname, ['String']);
       pushMutation('CREATE_TRIGGER', table, { trigger }, context.migration);
     }
 
