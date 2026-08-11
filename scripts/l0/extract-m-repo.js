@@ -2,8 +2,8 @@
 // Contract: migration-dir + foundation tables -> { mutations: [] }
 //
 // Example:
-//   node scripts/l0/extract-m-repo.js schools profiles classes subjects teacher_classes timetable_slots
-//   node scripts/l0/extract-m-repo.js supabase/migrations schools profiles classes subjects teacher_classes timetable_slots
+//   node scripts/l0/extract-m-repo.js schools profiles classes subjects teacher_classes timetable_slots country_majority_ages school_members school_periods
+//   node scripts/l0/extract-m-repo.js supabase/migrations schools profiles classes subjects teacher_classes timetable_slots country_majority_ages school_members school_periods
 //
 // Uses pgsql-parser (libpg_query-backed) so mutation detection is AST-based rather than regex-based.
 
@@ -129,18 +129,17 @@ function walk(node, context) {
       }
     }
 
-    // CREATE INDEX is represented by IndexStmt in libpg_query/pgsql-parser,
-    // not CreateStmt. Keep both forms for parser-version compatibility.
     if (tag === 'IndexStmt') {
       const table = tableName(body);
       const index = scalarName(body?.idxname) || nestedName(body?.idxname, ['String']);
       pushMutation('CREATE_INDEX', table, { index }, context.migration);
     }
 
+    // CREATE TABLE is also represented by CreateStmt. Detect the table itself;
+    // a post-baseline table must be excluded wholesale from a reconstructed baseline.
     if (tag === 'CreateStmt') {
       const table = tableName(body);
-      const index = scalarName(body?.idxname);
-      if (index) pushMutation('CREATE_INDEX', table, { index }, context.migration);
+      if (table) pushMutation('CREATE_TABLE', table, {}, context.migration);
     }
 
     if (tag === 'CreatePolicyStmt') {
@@ -190,7 +189,7 @@ const uniqueMutations = mutations.filter((mutation) => {
 });
 
 console.log(JSON.stringify({
-  contract: 'm-repo-v1',
+  contract: 'm-repo-v2',
   cutoff: '20260520000000',
   migration_dir: resolve(migrationDir),
   foundation_tables: [...foundationTables],
