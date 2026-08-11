@@ -8,6 +8,7 @@ on:
       - "supabase/config.toml"
       - "scripts/sql/tbl011_clean_rebuild_verify.sql"
       - "scripts/validate-tbl011-clean-rebuild.py"
+      - "scripts/scan-l0-migration-dependencies.py"
       - ".github/workflows/tbl011-clean-rebuild.yml"
 
 concurrency:
@@ -58,6 +59,13 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/validate-tbl011-clean-rebuild.py
+
+      - name: Scan full migration dependency chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/scan-l0-migration-dependencies.py \
+            --report .tbl011-artifacts/l0-migration-dependency-report.json
 
       - name: Verify Docker
         shell: bash
