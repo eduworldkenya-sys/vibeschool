@@ -8,7 +8,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'scripts/l0/extract-m-repo.js'
-      - 'package.json'
+      - '.github/workflows/tbl012-m-repo-extractor.yml'
   workflow_dispatch:
 
 jobs:
@@ -23,14 +23,18 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install parser
-        run: npm install --ignore-scripts
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install isolated SQL parser
+        run: npm install --no-save --ignore-scripts pgsql-parser@18.1.1
 
       - name: Extract M(repo)
         run: |
           node scripts/l0/extract-m-repo.js \
             supabase/migrations \
             schools profiles classes subjects teacher_classes timetable_slots \
+            country_majority_ages school_members school_periods \
             > m-repo.json
 
       - name: Calibrate known mutations
@@ -48,6 +52,7 @@ jobs:
             ['teacher_classes.class_id SET_NOT_NULL', has(m => m.type === 'SET_NOT_NULL' && m.table === 'public.teacher_classes' && m.column === 'class_id' && m.migration.startsWith('20260717214543'))],
             ['timetable overlap constraint #1', has(m => m.type === 'ADD_CONSTRAINT' && m.table === 'public.timetable_slots' && m.migration.startsWith('20260717162232'))],
             ['timetable overlap constraint #2', has(m => m.type === 'ADD_CONSTRAINT' && m.table === 'public.timetable_slots' && m.migration.startsWith('20260717215951'))],
+            ['school_periods CREATE_TABLE', has(m => m.type === 'CREATE_TABLE' && m.table === 'public.school_periods' && m.migration.startsWith('20260719104519'))],
             ['timetable_slots.period_id ADD_COLUMN', has(m => m.type === 'ADD_COLUMN' && m.table === 'public.timetable_slots' && m.column === 'period_id' && m.migration.startsWith('20260719104519'))],
           ];
           let failed = false;
@@ -56,7 +61,7 @@ jobs:
             failed ||= !ok;
           }
           if (failed) process.exit(1);
-          console.log(`PASS calibration: ${mutations.length} mutations extracted`);
+          console.log(`PASS calibration: ${mutations.length} mutations extracted across ${data.foundation_tables.length} foundation tables`);
           NODE
 
       - name: Upload extractor output
