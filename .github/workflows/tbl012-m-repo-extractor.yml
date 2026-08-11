@@ -34,7 +34,7 @@ jobs:
           node scripts/l0/extract-m-repo.js \
             supabase/migrations \
             schools profiles classes subjects teacher_classes timetable_slots \
-            country_majority_ages school_members school_periods \
+            country_majority_ages school_members school_periods exams \
             > m-repo.json
 
       - name: Calibrate known mutations
