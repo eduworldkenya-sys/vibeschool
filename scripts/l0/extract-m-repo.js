@@ -51,7 +51,6 @@ function tableName(node) {
 
 function columnName(payload) {
   return nestedName(payload?.name, ['String'])
-    || nestedName(payload?.def, ['ColumnDef'])
     || scalarName(payload?.def?.ColumnDef?.colname)
     || scalarName(payload?.def?.colname);
 }
@@ -146,7 +145,10 @@ function walk(node, context) {
 
     if (tag === 'CreatePolicyStmt') {
       const table = tableName(body);
-      const policy = scalarName(body?.policyname) || nestedName(body?.policyname, ['String']);
+      const policy = scalarName(body?.PolicyName)
+        || scalarName(body?.policyname)
+        || nestedName(body?.PolicyName, ['String'])
+        || nestedName(body?.policyname, ['String']);
       pushMutation('CREATE_POLICY', table, { policy }, context.migration);
     }
 
