@@ -13,7 +13,11 @@ Prove one governed engine can detect sustained workforce demand from real Vibesc
 
 **FUNCTIONAL MISSION: PASS in isolated Supabase validation project.**
 
-Promotion remains separate: exact-head repository replay/security gates must be green before merge consideration.
+**EXACT PR HEAD DATABASE REPLAY: PASS.**
+
+Current PR head at audit: `bda6d045fccb31c728ecd7d85f7a23a47fe137f0`.
+Runtime-hardening head: `5d59e724f4a3f0d3c12e893802e420e488f05dd1`.
+The only commit between them is documentation-only (`docs(worker-engine): record autonomous factory convergence audit`), so runtime evidence remains attributable to the hardened runtime head while TBL-011/TBL-012 also pass on the exact PR head.
 
 ## Canonical autonomous trace proven
 
@@ -49,7 +53,7 @@ real HQ Operations backlog
 
 ## WE-L7 — Governed Worker Factory V2
 
-Implemented:
+Implemented and verified:
 - sealed `hq_workforce_demand_evidence` with pgcrypto hash;
 - immutable `hq_workforce_factory_runs`;
 - deterministic quantified HR diagnosis reuse;
@@ -67,7 +71,7 @@ Defect found and repaired during validation: `digest()` was unavailable under th
 
 ## WE-L8 — Telemetry-driven Factory
 
-Implemented:
+Implemented and verified:
 - approved immutable `FactoryTemplate` registry;
 - authoritative demand metrics derive worker availability/certified capability from runtime state;
 - factory heartbeat scans candidate/accepted gaps;
@@ -78,7 +82,7 @@ Implemented:
 
 ## WE-L9 — Autonomous Qualification + Generic Dispatch
 
-Implemented:
+Implemented and verified:
 - immutable approved qualification cases;
 - deterministic no-side-effect shadow tool executor;
 - separate governance qualification heartbeat;
@@ -102,7 +106,7 @@ Retest: PASS — second gap created zero new workers and recorded `rebalance_lan
 
 ## WE-L11 — Sustained Demand Sensor
 
-Implemented deterministic sensor policy:
+Implemented and verified deterministic sensor policy:
 - source: real `hq_work_items` Operations backlog;
 - ignores approval-required/already-acted work;
 - default threshold: at least 5 eligible open items;
@@ -121,18 +125,7 @@ External `service_role` positive-authority orchestration is reduced to one entry
 
 `hq_workforce_scheduled_heartbeat()`
 
-Low-level factory functions are no longer directly executable by service_role:
-- demand sealing;
-- factory diagnosis;
-- factory create-shadow-worker;
-- caller-supplied factory cycle;
-- authoritative metric builder;
-- autonomous factory primitive;
-- shadow tool executor;
-- qualification primitive;
-- Operations detector;
-- demand sensor primitive;
-- runtime heartbeat primitive.
+Low-level factory functions are no longer directly executable by service_role, including demand sealing, factory diagnosis, caller-supplied worker creation, authoritative metric building, shadow execution, qualification, Operations detection and demand sensing.
 
 This prevents a service client from bypassing telemetry/evidence and injecting an invented diagnosis path.
 
@@ -140,26 +133,19 @@ This prevents a service client from bypassing telemetry/evidence and injecting a
 
 Audit found a real legacy alternate path: `service_role` could execute `hq_workforce_certify_probation_workers()`, which directly changed legacy probation workers to `active` outside the canonical lifecycle.
 
-Repaired:
-- revoked service-role execution of legacy probation certifier;
-- revoked service-role direct reference-worker bootstrap;
-- revoked direct lifecycle transition, shadow evidence insertion and certification issuance;
-- canonical transition to CERTIFIED/ACTIVE now mechanically requires a valid active certification;
-- emergency negative-authority controls (revocation/suspension/remediation) remain available where already granted.
-
-Post-hardening grant proof:
-- scheduled heartbeat: service_role EXECUTE = true;
-- lifecycle transition = false;
-- shadow record = false;
-- certification issue = false;
-- legacy probation certifier = false;
-- reference bootstrap = false.
+Repaired and reverified:
+- legacy probation certifier: service_role EXECUTE = false;
+- direct reference-worker bootstrap: false;
+- direct lifecycle transition: false;
+- direct shadow evidence insertion: false;
+- direct certification issuance: false;
+- governed scheduled heartbeat: true.
 
 The full sensor -> factory -> qualification -> activation -> verified-job loop still passed after these revocations because internal SECURITY DEFINER functions execute through the governed orchestration boundary.
 
-## Security evidence
+## Final access/exposure audit
 
-New autonomous-factory tables inspected in preview are RLS enabled with zero direct policies:
+New autonomous-factory tables inspected in the isolated validation project are all RLS enabled with zero direct policies:
 - `hq_workforce_demand_evidence`
 - `hq_workforce_factory_runs`
 - `hq_workforce_factory_templates`
@@ -167,7 +153,22 @@ New autonomous-factory tables inspected in preview are RLS enabled with zero dir
 - `hq_workforce_demand_sensor_policies`
 - `hq_workforce_demand_observations`
 
-No anon/authenticated access is intentionally granted. Approved templates/policies and evidence histories have tamper guards in repository migrations.
+No anon/authenticated access is intentionally granted to the autonomous creation/qualification/runtime authority path.
+
+A broad `hq_workforce_%` execute scan found three externally callable non-runtime-authority functions:
+- `hq_workforce_decide(...)` — authenticated, but immediately enforces `hq_assert_owner()` before mutation;
+- `hq_workforce_list_decisions(...)` — authenticated, but immediately enforces `hq_assert_owner()` before reading HQ decisions;
+- `hq_workforce_test_context_health(...)` — immutable pure calculation only, with no database reads or side effects.
+
+These do not provide worker creation, lifecycle, certification, capability, budget or execution authority and therefore do not violate the single positive-authority runtime-entrypoint invariant.
+
+## Repository proof
+
+Exact PR head `bda6d045fccb31c728ecd7d85f7a23a47fe137f0`:
+- TBL-011 Isolated Clean Rebuild — PASS, run 394 (`31624268245`).
+- TBL-012 M(repo) extractor — PASS, run 69 (`31624268165`).
+
+The prior TBL-011 infrastructure failure on runtime head `5d59e724...` was caused by GitHub runner/Supabase CLI download `socket hang up`; rerun succeeded. It was not a migration defect.
 
 ## Acceptance suites committed
 
@@ -175,7 +176,7 @@ No anon/authenticated access is intentionally granted. Approved templates/polici
 - `supabase/tests/worker_engine_we_l8_l10_autonomous_factory.sql`
 - `supabase/tests/worker_engine_we_l11_demand_sensor.sql`
 
-They prove positive and negative paths including create justification, eliminate, train existing worker, SHADOW-only creation, independent certification, first verified real job, existing-worker reuse, sustained-demand requirement and transient-spike rejection.
+They cover positive and negative paths including create justification, eliminate, train existing worker, SHADOW-only creation, independent certification, first verified real job, existing-worker reuse, sustained-demand requirement and transient-spike rejection.
 
 ## Deliberate boundaries
 
@@ -186,9 +187,10 @@ AI is not used to decide workforce authority. Worker creation/qualification/rout
 ## Promotion state
 
 - PR #92 remains draft and stacked on PR #91.
-- main untouched.
-- production Supabase untouched.
+- main untouched by this mission.
+- production Supabase untouched by this mission.
 - Vercel untouched.
 - scheduler/factory defaults remain OFF.
 - isolated validation functional target: PASS.
-- exact latest repository clean-replay gates: pending at time of this log; do not mark promotion-ready until they pass.
+- exact-head TBL-011/TBL-012: PASS.
+- promotion/merge remains a separate protected-workflow decision; this log does not authorize production activation.
