@@ -78,7 +78,39 @@ The changed-body cases remain `SAME_NAME_CHANGED_BODY_REQUIRES_FINAL_STATE_PROOF
 
 A changed body is not automatically a defect. It may be a replay-safe reconstruction, a corrected repository representation, or genuine divergence. These cases require dependency/final-state mutation-equivalence evidence before classification.
 
-After this first proven-body batch, at most **523** of the original 575 one-sided records remain unresolved by this evidence layer. Further batches may reduce that number without any production mutation.
+After this first proven-body batch, at most **523** of the original 575 one-sided records remain unresolved by this evidence layer.
+
+## Provenance batch 2 — HQ / Engine timestamp remaps
+
+Sixty repository migrations in the `hq_` and `engine_` families were fingerprinted against production. Twenty-seven had the same migration name under a different production version.
+
+- Same-name/different-version pairs tested: 27
+- Exact canonical SQL-body matches: **12**
+- Same-name changed-body pairs: **15**
+- Additional one-sided records resolved by exact-body timestamp equivalence: **24**
+- Automatic production repairs authorized: **0**
+
+The 12 exact-body pairs are classified `PROVEN_TIMESTAMP_REMAP_EXACT_BODY`.
+
+The 15 changed-body cases remain blocked for final-state proof:
+
+- `hq_authority_contract_v1`
+- `hq_billing_authority_enforcement_v1`
+- `hq_company_authority_phase2`
+- `hq_decision_authority_integration`
+- `hq_defense_in_depth_privilege_hardening`
+- `hq_emergency_override_fix_v1`
+- `hq_enterprise_org_v2`
+- `hq_operating_system_v1`
+- `hq_operational_hardening_10of10`
+- `hq_policy_helper_lockdown_v1`
+- `hq_policy_registry_api_v1`
+- `hq_policy_session_and_rollback_v1`
+- `hq_product_authority_guard_v1`
+- `hq_product_policy_enforcement_v1`
+- `hq_proof_of_control_v1`
+
+After batches 1 and 2, **76** one-sided records are resolved by exact-body timestamp equivalence, reducing the unresolved ceiling from 575 to **499**. Changed-body cases are not counted as resolved.
 
 ## Confirmed recovery provenance already established
 
