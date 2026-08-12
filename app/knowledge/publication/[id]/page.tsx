@@ -71,8 +71,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const result = await getPublicPublication(params.id)
   if (!result) return { robots: { index: false, follow: true } }
   const { publication } = result
+  const meta = FORMAT_META[publication.format] ?? { label: 'Learning resource', chapterPlural: 'Chapters', chapterLabel: 'Chapter' }
   const title = publication.title || 'Published learning resource'
-  const description = publication.description?.trim() || `Published ${FORMAT_META[publication.format].label} on VibeSchool.`
+  const description = publication.description?.trim() || `Published ${meta.label} on VibeSchool.`
   const url = canonicalUrl(`/knowledge/publication/${publication.id}`)
   return {
     title,
@@ -88,7 +89,7 @@ export default async function PublicPublicationKnowledgePage({ params }: { param
   if (!result) notFound()
 
   const { publication, chapters } = result
-  const meta = FORMAT_META[publication.format]
+  const meta = FORMAT_META[publication.format] ?? { label: 'Learning resource', chapterPlural: 'Chapters', chapterLabel: 'Chapter' }
   const url = canonicalUrl(`/knowledge/publication/${publication.id}`)
   const jsonLd = {
     '@context': 'https://schema.org',
