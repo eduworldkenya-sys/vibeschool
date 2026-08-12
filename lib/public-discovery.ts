@@ -2,7 +2,7 @@ const SITE_URL = 'https://www.vibeschool.co.ke'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export type PublicCourse = { id: string; slug: string; title: string; institution?: string | null; level?: string | null; duration_label?: string | null; status?: string | null }
+export type PublicCourse = { id: string; slug: string; title: string; institution?: string | null; level?: string | null; duration_label?: string | null; description?: string | null; status?: string | null }
 export type PublicModule = { id: string; slug: string; title: string; course_id: string; sequence_number?: number | null; weeks_label?: string | null }
 export type ContentBlock = { title?: string | null; text?: string | null }
 export type PublicTopic = { id: string; module_id: string; slug: string; title: string; subtitle?: string | null; content_status?: string | null; sequence_number?: number | null; week_number?: number | null; concept_tab?: ContentBlock[] | null; kenya_context_tab?: ContentBlock[] | null; common_errors_tab?: ContentBlock[] | null; clinical_tip_tab?: ContentBlock[] | null }
@@ -16,12 +16,14 @@ async function select<T>(table: string, query: string): Promise<T[]> {
   } catch { return [] }
 }
 
+const COURSE_FIELDS = 'id,slug,title,institution,level,duration_label,description,status'
+
 export async function getPublicCourses() {
-  return select<PublicCourse>('courses', 'select=id,slug,title,institution,level,duration_label,status&status=eq.live&order=title.asc')
+  return select<PublicCourse>('courses', `select=${COURSE_FIELDS}&status=eq.live&order=title.asc`)
 }
 
 export async function getPublicCourse(slug: string) {
-  const rows = await select<PublicCourse>('courses', `select=id,slug,title,institution,level,duration_label,status&slug=eq.${encodeURIComponent(slug)}&status=eq.live&limit=1`)
+  const rows = await select<PublicCourse>('courses', `select=${COURSE_FIELDS}&slug=eq.${encodeURIComponent(slug)}&status=eq.live&limit=1`)
   return rows[0] ?? null
 }
 
