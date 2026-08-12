@@ -8,6 +8,7 @@ import Typography from '@tiptap/extension-typography'
 import { createBrowserClient } from '@supabase/ssr'
 import { ContentBlock } from '@/lib/publishTypes'
 import { BiologyInteractiveBlock } from '@/components/global/publish/BiologyInteractiveBlock'
+import { QuestionBlock } from '@/components/global/publish/QuestionBlock'
 
 const TEXT='#fff', MUTED='rgba(255,255,255,.48)', ACCENT='#CCFF00', SURF='#111827', CARD='#1a2235', BORDER='rgba(255,255,255,.08)'
 type Speech={continuous:boolean;interimResults:boolean;lang:string;start:()=>void;stop:()=>void;onresult:((e:any)=>void)|null;onend:(()=>void)|null;onerror:(()=>void)|null}
@@ -37,7 +38,7 @@ export function ContentBlockEditor({block,readOnly=false,isFocused,onUpdate,onFo
   case'activity':return <TextCard label="Activity" icon="📋" block={block} readOnly={readOnly} onUpdate={onUpdate}/>
   case'experiment':return <TextCard label="Experiment" icon="⚗" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#F59E0B"/>
   case'project':return <TextCard label="Project" icon="🛠" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#F59E0B"/>
-  case'question':return <TextCard label="Question" icon="❓" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#45B7D1"/>
+  case'question':return <QuestionBlock block={block} readOnly={readOnly} onUpdate={onUpdate}/>
   case'callout':return <TextCard label="Note" icon="💡" block={block} readOnly={readOnly} onUpdate={onUpdate}/>
   case'quote':return <TextCard label="Quote" icon="“" block={block} readOnly={readOnly} onUpdate={onUpdate} accent="#A78BFA"/>
   case'bulletList':case'numberedList':{const items=block.content.split('\n').filter(Boolean);if(readOnly){const Tag=block.type==='bulletList'?'ul':'ol';return <Tag>{items.map((x,i)=><li key={i}>{x}</li>)}</Tag>}return <textarea value={block.content} rows={4} placeholder="One item per line" onChange={e=>onUpdate({...block,content:e.target.value})} style={base}/>}

@@ -8,6 +8,10 @@ import { supabase } from '@/lib/supabase'
 const dark   = '#1e1b4b'
 const accent = '#6366f1'
 
+type StudentClaimResult = {
+  status?: string
+}
+
 export default function StudentClaimPage() {
   const router = useRouter()
 
@@ -38,30 +42,32 @@ export default function StudentClaimPage() {
       setLoading(false)
 
       if (rpcErr) {
-        setError('Something went wrong. Please try again.')
+        setError(rpcErr.message || 'Something went wrong. Please try again.')
         return
       }
 
-    switch (result) {
-      case 'success':
-        setSuccess('Account linked! Taking you to your dashboard…')
-        setTimeout(() => router.push('/student'), 1500)
-        break
-      case 'not_found':
-        setError('Claim code not found. Check with your teacher.')
-        break
-      case 'already_claimed':
-        setError('This claim code has already been used.')
-        break
-      case 'expired':
-        setError('This claim code has expired. Ask your teacher to regenerate it.')
-        break
-      case 'student_not_found':
-        setError('Student record not found. Contact your teacher.')
-        break
-      default:
-        setError('Something went wrong. Please try again.')
-    }
+      const claimResult = result as StudentClaimResult | null
+      const status = claimResult?.status
+      switch (status) {
+        case 'success':
+          setSuccess('Account linked! Taking you to your dashboard…')
+          setTimeout(() => router.push('/student'), 1500)
+          break
+        case 'not_found':
+          setError('Claim code not found. Check with your teacher.')
+          break
+        case 'already_claimed':
+          setError('This claim code has already been used.')
+          break
+        case 'expired':
+          setError('This claim code has expired. Ask your teacher to regenerate it.')
+          break
+        case 'student_not_found':
+          setError('Student record not found. Contact your teacher.')
+          break
+        default:
+          setError('Something went wrong. Please try again.')
+      }
     } catch {
       setLoading(false)
       setError('Network error. Please check your connection and try again.')
