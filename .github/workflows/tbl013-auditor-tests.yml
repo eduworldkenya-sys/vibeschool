@@ -1,0 +1,32 @@
+name: TBL-013 Auditor Regression Gate
+
+on:
+  pull_request:
+    paths:
+      - scripts/tbl013-live-ledger-audit.py
+      - scripts/test-tbl013-live-ledger-audit.py
+      - .github/workflows/tbl013-live-ledger-audit.yml
+      - .github/workflows/tbl013-auditor-tests.yml
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - scripts/tbl013-live-ledger-audit.py
+      - scripts/test-tbl013-live-ledger-audit.py
+      - .github/workflows/tbl013-live-ledger-audit.yml
+      - .github/workflows/tbl013-auditor-tests.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: TBL-013 read-only auditor tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run auditor regression suite
+        run: python3 scripts/test-tbl013-live-ledger-audit.py
