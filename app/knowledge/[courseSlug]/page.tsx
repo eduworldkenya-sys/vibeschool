@@ -10,12 +10,13 @@ export async function generateMetadata({ params }: { params: { courseSlug: strin
   if (!result) return { robots: { index: false, follow: true } }
   const { course } = result
   const url = canonicalUrl(`/knowledge/${course.slug}`)
-  const description = [course.level, course.institution, course.duration_label].filter(Boolean).join(' · ')
+  const description = course.description?.trim() || [course.level, course.institution, course.duration_label].filter(Boolean).join(' · ')
+  const fallback = `Explore the published learning structure for ${course.title} on VibeSchool.`
   return {
     title: course.title,
-    description: description || `Explore the published learning structure for ${course.title} on VibeSchool.`,
+    description: description || fallback,
     alternates: { canonical: url },
-    openGraph: { type: 'website', title: course.title, description: description || `Explore ${course.title} on VibeSchool.`, url, siteName: 'VibeSchool' },
+    openGraph: { type: 'website', title: course.title, description: description || fallback, url, siteName: 'VibeSchool' },
     robots: { index: true, follow: true },
   }
 }
@@ -25,11 +26,13 @@ export default async function PublicCoursePage({ params }: { params: { courseSlu
   if (!result) notFound()
   const { course, modules } = result
   const url = canonicalUrl(`/knowledge/${course.slug}`)
+  const description = course.description?.trim() || [course.institution, course.level, course.duration_label].filter(Boolean).join(' · ')
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Course',
     name: course.title,
     url,
+    ...(description ? { description } : {}),
     provider: { '@type': 'EducationalOrganization', name: 'VibeSchool', url: 'https://www.vibeschool.co.ke' },
     ...(course.level ? { educationalLevel: course.level } : {}),
     hasCourseInstance: modules.flatMap(module => module.topics.map(topic => ({
@@ -43,7 +46,7 @@ export default async function PublicCoursePage({ params }: { params: { courseSlu
   return (
     <main style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 80px', fontFamily: 'var(--font-jakarta, system-ui)' }}>
       <nav aria-label="Breadcrumb" style={{ fontSize: 13, marginBottom: 24 }}>
-        <Link href="/">VibeSchool</Link> / <Link href="/learn">Learn</Link> / <span>{course.title}</span>
+        <Link href="/">VibeSchool</Link> / <Link href={`/knowledge`}>Knowledge</Link> / <span>{course.title}</span>
       </nav>
       <header>
         <p style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '.08em', opacity: .65 }}>Published learning resource</p>
@@ -51,6 +54,7 @@ export default async function PublicCoursePage({ params }: { params: { courseSlu
         <p style={{ fontSize: 17, lineHeight: 1.65, opacity: .75 }}>
           {[course.institution, course.level, course.duration_label].filter(Boolean).join(' · ') || 'VibeSchool learning resource'}
         </p>
+        {course.description && <p style={{ maxWidth: 760, fontSize: 18, lineHeight: 1.75, marginTop: 16 }}>{course.description}</p>}
       </header>
 
       <section aria-labelledby="course-content" style={{ marginTop: 40 }}>
