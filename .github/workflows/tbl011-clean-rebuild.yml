@@ -25,8 +25,10 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout repository
+      - name: Checkout isolated recovery head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Initialize evidence
         shell: bash
@@ -38,7 +40,8 @@ jobs:
             echo "run_id=${{ github.run_id }}"
             echo "actor=${{ github.actor }}"
             echo "repository=${{ github.repository }}"
-            echo "sha=${{ github.sha }}"
+            echo "event_sha=${{ github.sha }}"
+            echo "checkout_sha=$(git rev-parse HEAD)"
             echo "ref=${{ github.ref }}"
             echo "production_project_linked=false"
           } > .tbl011-artifacts/context.txt
