@@ -2,6 +2,7 @@
 
 **Status:** Binding repository authority
 **Effective:** 2026-08-11
+**Operational state log:** `docs/WORKER_ENGINE_STATE_AND_GAP_LOG.md`
 
 ## One-engine rule
 
@@ -39,6 +40,31 @@ The canonical engine owns one control plane for:
 12. human decisions and escalation;
 13. institutional memory and certified learning.
 
+## Autonomous workforce objective
+
+The canonical Worker Engine is intended to operate as an autonomous workforce operating system inside constitutional limits:
+
+```text
+observe company signals
+-> detect work/capacity/skill/policy/tool gaps early
+-> diagnose root cause
+-> prefer process repair / automation / training / rebalancing
+-> generate a worker only when justified
+-> provision in shadow/probation
+-> certify
+-> activate with bounded, revocable authority and budgets
+-> execute certified work through governed gateways
+-> capture evidence
+-> independently verify outcomes
+-> recover/escalate/suspend on failure
+-> learn only from verified outcomes
+-> promote/rollback skills
+-> rebalance/remediate/retire workers
+-> repeat
+```
+
+Worker creation never creates new authority. Novel or high-risk authority remains subject to the governance/owner boundary.
+
 ## Historical branches
 
 Historical, temporary, architecture-freeze, L0 and preservation branches are **evidence and lineage only**. Their existence does not define additional engines. They must not be treated as independent production Worker Engines.
@@ -51,9 +77,19 @@ All future Worker Engine changes must extend or harden the canonical HQ workforc
 
 Where old and frozen designs overlap, consolidate rather than duplicate. Where they conflict, the stricter governance/security invariant wins unless an explicit architecture decision supersedes it.
 
+## State-log rule
+
+Before starting Worker Engine implementation or re-investigating the subsystem, read `docs/WORKER_ENGINE_STATE_AND_GAP_LOG.md`.
+
+That log records audited production semantics, implemented capabilities, known gaps, safety invariants and the ordered completion sequence. Update it whenever runtime evidence materially changes the understanding of what is implemented or what remains.
+
+The log is a handoff/control artifact; it does not override this canonical one-engine authority.
+
 ## L0 relationship
 
-L0 database reproducibility is a prerequisite/safety gate for further schema evolution. L0 is **not another Worker Engine**. PR #68 and TBL-012 are recovery/evidence work supporting the same canonical engine and the wider Vibeschool database.
+L0 database reproducibility is a prerequisite/safety gate for schema evolution, not another Worker Engine. Recovery/evidence work such as PR #68/TBL-011/TBL-012/TBL-013 supports the same canonical engine and the wider Vibeschool database.
+
+A historical statement that L0 was red must not be reused as a current runtime conclusion without checking the latest recovery evidence. Worker Engine schema evolution remains subject to the current repository/database safety gates.
 
 ## Discovery rule for humans and AI agents
 
@@ -65,6 +101,8 @@ The `hq_workforce_*` implementation is its existing runtime foundation. The froz
 
 Any document that describes these as two engines is historical context and is superseded by this canonical authority for current architecture decisions.
 
+When asked what remains, do not infer completion from worker counts, `active` status, run counts, or table counts alone. Consult the operational state/gap log and verify runtime semantics.
+
 ## Promotion boundary
 
-This authority document can be promoted independently of new Worker Engine DDL because it resolves architecture identity without changing production behavior. Actual schema/security implementation remains subject to L0, protected-workflow, TypeScript/build, migration and security verification gates.
+This authority document and its state/gap log can evolve independently of new Worker Engine DDL because documentation can record architecture identity and verified runtime findings without changing production behavior. Actual schema/security/runtime implementation remains subject to the protected-workflow, TypeScript/build, migration, security and production verification gates.
