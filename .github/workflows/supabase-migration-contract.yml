@@ -36,7 +36,7 @@ jobs:
 
       - name: Validate new migrations
         if: github.event_name == 'pull_request'
-        run: python3 scripts/validate-supabase-migration-contract.py --changed-from "${{ github.event.pull_request.base.sha }}"
+        run: python3 scripts/validate-supabase-migration-contract.py --changed-from "origin/${{ github.event.pull_request.base.ref }}"
 
       - name: Validate post-baseline migrations
         if: github.event_name != 'pull_request'
