@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -27,7 +29,12 @@ def validate(path: Path) -> list[str]:
     sql = normalized(raw)
     errors: list[str] = []
 
-    if re.search(r"grant\s+all(?:\s+privileges)?\b.*?\bto\s+(?:anon|authenticated)\b", sql):
+    # Keep privilege matching inside one SQL statement. A service_role-only
+    # GRANT ALL followed by a later authenticated grant must not be conflated.
+    if re.search(
+        r"grant\s+all(?:\s+privileges)?\b[^;]*\bto\s+(?:anon|authenticated)\b",
+        sql,
+    ):
         errors.append("blanket GRANT ALL to anon/authenticated is forbidden")
 
     if re.search(r"grant\s+[^;]*\btruncate\b[^;]*\bto\s+(?:anon|authenticated)\b", sql):
@@ -70,9 +77,48 @@ def validate(path: Path) -> list[str]:
     return errors
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--changed-from",
+        default=None,
+        help="Validate only migration files changed by this branch since the supplied git ref.",
+    )
+    return parser.parse_args()
+
+
+def migration_paths(changed_from: str | None) -> list[Path]:
+    if not changed_from:
+        return sorted(MIGRATIONS.glob("*.sql"))
+
+    result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "--diff-filter=ACMR",
+            f"{changed_from}...HEAD",
+            "--",
+            "supabase/migrations/*.sql",
+        ],
+        cwd=ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    paths: list[Path] = []
+    for line in result.stdout.splitlines():
+        candidate = ROOT / line.strip()
+        if candidate.is_file() and candidate.parent == MIGRATIONS:
+            paths.append(candidate)
+    return sorted(set(paths))
+
+
 def main() -> int:
+    args = parse_args()
     failures: list[str] = []
-    for path in sorted(MIGRATIONS.glob("*.sql")):
+    paths = migration_paths(args.changed_from)
+    for path in paths:
         version = path.name.split("_", 1)[0]
         if version < BASELINE:
             continue
@@ -85,7 +131,8 @@ def main() -> int:
             print(f"- {failure}")
         return 1
 
-    print("Supabase migration contract passed.")
+    scope = f"branch changes since {args.changed_from}" if args.changed_from else "all post-baseline migrations"
+    print(f"Supabase migration contract passed ({scope}).")
     return 0
 
 

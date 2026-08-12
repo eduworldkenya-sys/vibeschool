@@ -2,6 +2,21 @@
 -- Extends the existing immutable FunHub XP ledger with verified task events,
 -- daily goals, learning streaks, achievements, subject progress and mission ranking.
 
+-- Restore the production learner-identity helper required by this migration's RLS policies.
+create or replace function public.funhub_get_student_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+  select id from public.students
+  where profile_id = auth.uid() and deleted_at is null
+  limit 1;
+$function$;
+revoke all on function public.funhub_get_student_id() from public,anon;
+grant execute on function public.funhub_get_student_id() to authenticated,service_role;
+
 create table if not exists public.student_learning_events (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students(id) on delete cascade,

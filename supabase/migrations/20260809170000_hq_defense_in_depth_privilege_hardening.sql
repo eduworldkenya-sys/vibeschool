@@ -20,12 +20,17 @@ end $$;
 -- Membership in platform_owners is authority, not ordinary application data.
 -- Authenticated clients may only observe it through its owner-only RLS policy.
 revoke insert, update, delete, truncate, references, trigger on table public.platform_owners from authenticated;
-
--- HQ access logs are append-only through SECURITY DEFINER authority functions.
-revoke insert, update, delete, truncate, references, trigger on table public.hq_access_log from authenticated;
-
 grant select on table public.platform_owners to authenticated;
-grant select on table public.hq_access_log to authenticated;
-
 alter table public.platform_owners enable row level security;
-alter table public.hq_access_log enable row level security;
+
+-- hq_access_log was pretracked in production and is not created by the repository
+-- before this historical hardening migration. Preserve the hardening when the
+-- table exists without making blank replay depend on undocumented production DDL.
+do $$
+begin
+  if to_regclass('public.hq_access_log') is not null then
+    execute 'revoke insert, update, delete, truncate, references, trigger on table public.hq_access_log from authenticated';
+    execute 'grant select on table public.hq_access_log to authenticated';
+    execute 'alter table public.hq_access_log enable row level security';
+  end if;
+end $$;

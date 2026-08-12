@@ -25,6 +25,17 @@ DECLARE
     v_assignment_count integer;
 BEGIN
     --------------------------------------------------------------------------
+    -- Blank/replay safety: this is a targeted production-data repair. A clean
+    -- database legitimately has no target row, so there is nothing to repair.
+    --------------------------------------------------------------------------
+    IF NOT EXISTS (
+        SELECT 1 FROM public.scheme_of_work WHERE id = v_target_id
+    ) THEN
+        RAISE NOTICE 'tbl010f: target row absent; no repair required';
+        RETURN;
+    END IF;
+
+    --------------------------------------------------------------------------
     -- Idempotency:
     -- If the exact repair is already present, exit successfully.
     --------------------------------------------------------------------------

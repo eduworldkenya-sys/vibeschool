@@ -2,6 +2,20 @@
 -- Links scheme_of_work lesson rows to vibe_publications/vibe_chapters
 -- for curriculum-aware textbook integration (planning layer).
 
+-- Production already had this shared updated_at trigger helper before this
+-- migration entered the tracked chain. Define it here when absent so a blank
+-- rebuild has the same prerequisite without changing populated production.
+create or replace function public.fn_set_updated_at()
+returns trigger
+language plpgsql
+set search_path to 'public'
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
 create table if not exists public.scheme_lesson_resource_links (
   id uuid primary key default gen_random_uuid(),
   scheme_lesson_id uuid not null references public.scheme_of_work(id) on delete cascade,

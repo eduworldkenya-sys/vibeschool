@@ -1,3 +1,8 @@
+-- Preserved provenance copy of stale repository migration version 20260801125800.
+-- Production Supabase migration ledger records the canonical applied version as
+-- 20260801125952_restrict_p0_security_definer_rpc_execution.
+-- This file is evidence only and must not be replayed as a migration.
+
 begin;
 
 -- P0: privileged mutation RPCs must never inherit PostgreSQL's default

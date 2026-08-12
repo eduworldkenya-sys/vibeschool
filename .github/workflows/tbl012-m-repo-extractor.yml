@@ -1,0 +1,72 @@
+name: TBL-012 M(repo) extractor
+
+on:
+  push:
+    branches:
+      - fix/tbl012-m-repo-extractor
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/l0/extract-m-repo.js'
+      - '.github/workflows/tbl012-m-repo-extractor.yml'
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install isolated SQL parser
+        run: npm install --no-save --ignore-scripts pgsql-parser@18.1.1
+
+      - name: Extract M(repo)
+        run: |
+          node scripts/l0/extract-m-repo.js \
+            supabase/migrations \
+            schools profiles classes subjects teacher_classes timetable_slots \
+            country_majority_ages school_members school_periods exams \
+            > m-repo.json
+
+      - name: Calibrate known mutations
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const data = JSON.parse(fs.readFileSync('m-repo.json', 'utf8'));
+          if (data.parse_errors.length) {
+            console.error(JSON.stringify(data.parse_errors, null, 2));
+            process.exit(1);
+          }
+          const mutations = data.mutations;
+          const has = (predicate) => mutations.some(predicate);
+          const checks = [
+            ['teacher_classes.class_id SET_NOT_NULL', has(m => m.type === 'SET_NOT_NULL' && m.table === 'public.teacher_classes' && m.column === 'class_id' && m.migration.startsWith('20260717214543'))],
+            ['timetable overlap constraint #1', has(m => m.type === 'ADD_CONSTRAINT' && m.table === 'public.timetable_slots' && m.migration.startsWith('20260717162232'))],
+            ['timetable overlap constraint #2', has(m => m.type === 'ADD_CONSTRAINT' && m.table === 'public.timetable_slots' && m.migration.startsWith('20260717215951'))],
+            ['school_periods CREATE_TABLE', has(m => m.type === 'CREATE_TABLE' && m.table === 'public.school_periods' && m.migration.startsWith('20260719104519'))],
+            ['timetable_slots.period_id ADD_COLUMN', has(m => m.type === 'ADD_COLUMN' && m.table === 'public.timetable_slots' && m.column === 'period_id' && m.migration.startsWith('20260719104519'))],
+          ];
+          let failed = false;
+          for (const [name, ok] of checks) {
+            console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`);
+            failed ||= !ok;
+          }
+          if (failed) process.exit(1);
+          console.log(`PASS calibration: ${mutations.length} mutations extracted across ${data.foundation_tables.length} foundation tables`);
+          NODE
+
+      - name: Upload extractor output
+        uses: actions/upload-artifact@v4
+        with:
+          name: tbl012-m-repo
+          path: m-repo.json
+          if-no-files-found: error

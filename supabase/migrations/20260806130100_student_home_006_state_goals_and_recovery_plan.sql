@@ -49,9 +49,85 @@ with check (exists (
     and s.deleted_at is null
 ));
 
--- Production function bodies are applied under migration
--- student_home_006_state_goals_and_recovery_plan.
--- Keep this file aligned with the live definitions when modifying the contract.
+-- Restore the production RPCs owned by this migration before applying execution grants.
+create or replace function public.student_mark_home_opened()
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+declare caller uuid:=auth.uid(); learner_id uuid; stamp timestamptz:=now();
+begin
+  if caller is null then raise exception 'not_authenticated'; end if;
+  select id into learner_id from public.students where profile_id=caller and deleted_at is null limit 1;
+  if learner_id is null then raise exception 'learner_identity_not_found'; end if;
+  insert into public.student_home_state(student_id,last_opened_at)
+  values(learner_id,stamp)
+  on conflict(student_id) do update set last_opened_at=excluded.last_opened_at,updated_at=now();
+  return jsonb_build_object('ok',true,'last_opened_at',stamp);
+end;
+$function$;
+
+create or replace function public.student_acknowledge_home_changes()
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+declare caller uuid:=auth.uid(); learner_id uuid; stamp timestamptz:=now();
+begin
+  if caller is null then raise exception 'not_authenticated'; end if;
+  select id into learner_id from public.students where profile_id=caller and deleted_at is null limit 1;
+  if learner_id is null then raise exception 'learner_identity_not_found'; end if;
+  insert into public.student_home_state(student_id,changes_seen_through,last_opened_at)
+  values(learner_id,stamp,stamp)
+  on conflict(student_id) do update set changes_seen_through=excluded.changes_seen_through,last_opened_at=excluded.last_opened_at,updated_at=now();
+  return jsonb_build_object('ok',true,'changes_seen_through',stamp);
+end;
+$function$;
+
+create or replace function public.student_update_home_preferences(
+  p_kcse_target_grade text default null,
+  p_weekly_study_minutes integer default null,
+  p_preferred_session_minutes integer default null,
+  p_preferred_study_time text default null,
+  p_subject_targets jsonb default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+declare caller uuid:=auth.uid(); learner_id uuid; current_state public.student_home_state%rowtype;
+begin
+  if caller is null then raise exception 'not_authenticated'; end if;
+  select id into learner_id from public.students where profile_id=caller and deleted_at is null limit 1;
+  if learner_id is null then raise exception 'learner_identity_not_found'; end if;
+  if p_weekly_study_minutes is not null and (p_weekly_study_minutes<30 or p_weekly_study_minutes>4200) then raise exception 'invalid_weekly_study_minutes'; end if;
+  if p_preferred_session_minutes is not null and (p_preferred_session_minutes<10 or p_preferred_session_minutes>180) then raise exception 'invalid_session_minutes'; end if;
+  if p_preferred_study_time is not null and p_preferred_study_time not in ('morning','afternoon','evening','flexible') then raise exception 'invalid_preferred_study_time'; end if;
+  if p_subject_targets is not null and jsonb_typeof(p_subject_targets)<>'object' then raise exception 'invalid_subject_targets'; end if;
+
+  insert into public.student_home_state(student_id) values(learner_id) on conflict(student_id) do nothing;
+  update public.student_home_state set
+    kcse_target_grade=coalesce(p_kcse_target_grade,kcse_target_grade),
+    weekly_study_minutes=coalesce(p_weekly_study_minutes,weekly_study_minutes),
+    preferred_session_minutes=coalesce(p_preferred_session_minutes,preferred_session_minutes),
+    preferred_study_time=coalesce(p_preferred_study_time,preferred_study_time),
+    subject_targets=coalesce(p_subject_targets,subject_targets),
+    updated_at=now()
+  where student_id=learner_id
+  returning * into current_state;
+
+  return jsonb_build_object('ok',true,'targets',jsonb_build_object(
+    'kcse_target_grade',current_state.kcse_target_grade,
+    'subject_targets',current_state.subject_targets,
+    'weekly_study_minutes',current_state.weekly_study_minutes,
+    'preferred_session_minutes',current_state.preferred_session_minutes,
+    'preferred_study_time',current_state.preferred_study_time
+  ));
+end;
+$function$;
 
 revoke all on function public.student_get_home_os_brief() from public, anon;
 revoke all on function public.student_mark_home_opened() from public, anon;

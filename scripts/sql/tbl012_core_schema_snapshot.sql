@@ -1,6 +1,8 @@
 \set ON_ERROR_STOP on
+\set QUIET 1
 \pset tuples_only on
 \pset format unaligned
+\set QUIET 0
 
 with core_tables as (
   select unnest(array[

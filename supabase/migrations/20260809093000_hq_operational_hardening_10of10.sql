@@ -4,12 +4,19 @@
 
 begin;
 
--- Least privilege: the two legacy HQ functions that inherited PUBLIC execute
--- are authenticated-only. Other HQ functions already carry stricter grants.
+-- Least privilege: harden legacy HQ functions only when the pretracked
+-- production RPC exists in this replay. The repository's enterprise-org
+-- migration documents hq_route_department but does not contain its production
+-- DDL, so blank-database replay must not fail merely while revoking it.
 revoke execute on function public.hq_mark_curriculum_watch_checked(uuid,timestamptz) from public,anon;
 grant execute on function public.hq_mark_curriculum_watch_checked(uuid,timestamptz) to authenticated;
-revoke execute on function public.hq_route_department(text,text) from public,anon;
-grant execute on function public.hq_route_department(text,text) to authenticated;
+do $$
+begin
+  if to_regprocedure('public.hq_route_department(text,text)') is not null then
+    execute 'revoke execute on function public.hq_route_department(text,text) from public,anon';
+    execute 'grant execute on function public.hq_route_department(text,text) to authenticated';
+  end if;
+end $$;
 
 -- Canonical event idempotency.
 alter table public.platform_events add column if not exists idempotency_key text;
@@ -92,7 +99,7 @@ alter table public.hq_incidents add column if not exists fingerprint text;
 update public.hq_incidents set fingerprint=md5(incident_type||':'||coalesce(route,'')||':'||coalesce(evidence::text,'')) where fingerprint is null;
 create index if not exists hq_incidents_fingerprint_idx on public.hq_incidents(fingerprint,status);
 create or replace function public.hq_open_incident(p_incident_type text,p_severity text,p_title text,p_summary text,p_evidence jsonb default '{}'::jsonb,p_route text default null) returns uuid language plpgsql security definer set search_path=public as $$
-declare v_fp text;v_id uuid;begin v_fp:=md5(p_incident_type||':'||coalesce(p_route,'')||':'||coalesce(p_evidence,'{}'::jsonb)::text);select id into v_id from public.hq_incidents where fingerprint=v_fp and status<>'resolved' order by detected_at desc limit 1;if v_id is not null then return v_id;end if;insert into public.hq_incidents(incident_type,severity,status,title,summary,evidence,route,fingerprint) values(p_incident_type,p_severity,'open',p_title,coalesce(p_summary,''),coalesce(p_evidence,'{}'::jsonb),p_route,v_fp) returning id into v_id;return v_id;end $$;
+declare v_fp text;v_id uuid;begin v_fp:=md5(p_incident_type||':'||coalesce(p_route,'')||':'||coalesce(p_evidence,'{}'::jsonb)::text);select id into v_id from public.hq_incidents where fingerprint=v_fp and status<>'resolved' order by detected_at desc limit 1;if v_id is not null then return v_id;end if;insert into public.hq_incidents(incident_type,severity,status,title,summary,evidence,route,fingerprint) values(p_incident_type,p_severity,'open',p_title,coalesce(p_summary,''),coalesce(p_evidence,'{}'::jsonb),p_route,v_fp)returning id into v_id;return v_id;end $$;
 revoke all on function public.hq_open_incident(text,text,text,text,jsonb,text) from public,anon,authenticated;
 
 -- Metric lineage for founder-facing traceability.

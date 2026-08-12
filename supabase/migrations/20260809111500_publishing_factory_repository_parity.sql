@@ -30,13 +30,6 @@ begin
   return n;
 end $$;
 
-create or replace function public.hq_run_publication_release_check(p_publication_id uuid)
-returns table(check_code text,status text,score numeric,details jsonb)
-language sql
-security definer
-set search_path=public,pg_temp
-as $$ select * from public.ce_run_publication_release_check(p_publication_id); $$;
-
 create or replace function public.ce_run_publication_release_check(p_publication_id uuid)
 returns table(check_code text,status text,score numeric,details jsonb)
 language plpgsql
@@ -97,6 +90,13 @@ begin
  end loop;
  return query select prc.check_code,prc.status,prc.score,prc.details from public.publication_release_checks prc where prc.publication_id=p_publication_id order by prc.chapter_id nulls first,prc.check_code;
 end $$;
+
+create or replace function public.hq_run_publication_release_check(p_publication_id uuid)
+returns table(check_code text,status text,score numeric,details jsonb)
+language sql
+security definer
+set search_path=public,pg_temp
+as $$ select * from public.ce_run_publication_release_check(p_publication_id); $$;
 
 create or replace function public.hq_sync_content_engine_work(p_publication_id uuid default null)
 returns jsonb

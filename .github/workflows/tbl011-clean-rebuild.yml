@@ -7,7 +7,11 @@ on:
       - "supabase/migrations/**"
       - "supabase/config.toml"
       - "scripts/sql/tbl011_clean_rebuild_verify.sql"
+      - "scripts/sql/tbl012_core_schema_snapshot.sql"
+      - "scripts/sql/tbl012_core_schema_hashes.sql"
+      - "scripts/tbl012-compare-schema-hashes.py"
       - "scripts/validate-tbl011-clean-rebuild.py"
+      - "scripts/scan-l0-migration-dependencies.py"
       - ".github/workflows/tbl011-clean-rebuild.yml"
 
 concurrency:
@@ -24,8 +28,10 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout repository
+      - name: Checkout isolated recovery head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Initialize evidence
         shell: bash
@@ -37,7 +43,8 @@ jobs:
             echo "run_id=${{ github.run_id }}"
             echo "actor=${{ github.actor }}"
             echo "repository=${{ github.repository }}"
-            echo "sha=${{ github.sha }}"
+            echo "event_sha=${{ github.sha }}"
+            echo "checkout_sha=$(git rev-parse HEAD)"
             echo "ref=${{ github.ref }}"
             echo "production_project_linked=false"
           } > .tbl011-artifacts/context.txt
@@ -58,6 +65,17 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/validate-tbl011-clean-rebuild.py
+
+      - name: Scan full migration dependency chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Discovery and proof are deliberately separate. Persist every static
+          # finding, but do not let the scanner mask the first real PostgreSQL
+          # runtime failure from the same CI run.
+          python3 scripts/scan-l0-migration-dependencies.py \
+            --allow-findings \
+            --report .tbl011-artifacts/l0-migration-dependency-report.json
 
       - name: Verify Docker
         shell: bash
@@ -87,7 +105,7 @@ jobs:
           set -o pipefail
 
           supabase start \
-            -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor \
+            -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor \
             2>&1 \
             | tee .tbl011-artifacts/supabase-start.log
 
@@ -231,6 +249,7 @@ jobs:
           name: tbl011-clean-rebuild-${{ github.run_id }}
           path: .tbl011-artifacts/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 30
 
       - name: Destroy isolated local database

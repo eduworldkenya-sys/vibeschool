@@ -35,6 +35,14 @@ alter table public.content_blocks enable row level security;
 revoke all on table public.content_blocks from public, anon, authenticated;
 grant select, insert, update, delete on table public.content_blocks to authenticated, service_role;
 
+-- Historical CE-003 exists twice in the production ledger. The later copy must
+-- replace the same policy contract rather than fail on duplicate policy names.
+drop policy if exists content_blocks_public_read on public.content_blocks;
+drop policy if exists content_blocks_author_read on public.content_blocks;
+drop policy if exists content_blocks_author_insert on public.content_blocks;
+drop policy if exists content_blocks_author_update on public.content_blocks;
+drop policy if exists content_blocks_author_delete on public.content_blocks;
+
 create policy content_blocks_public_read on public.content_blocks for select to anon, authenticated
 using (status = 'published' and exists (
   select 1 from public.vibe_publications p

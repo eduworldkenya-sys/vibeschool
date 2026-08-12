@@ -9,7 +9,18 @@
 revoke all on function public.publish_textbook(uuid) from anon;
 revoke all on function public.unpublish_textbook(uuid) from anon;
 revoke all on function public.remove_textbook_from_vibelearn(uuid) from anon;
-revoke all on function public.reconcile_textbook_index(uuid) from anon;
+
+-- The historical production ledger may contain reconcile_textbook_index(uuid),
+-- while a data-free blank rebuild can legitimately omit it. Mirror the prior
+-- public-role hardening migration: revoke anon only when the helper exists.
+do $$
+begin
+  if to_regprocedure('public.reconcile_textbook_index(uuid)') is not null then
+    revoke all on function public.reconcile_textbook_index(uuid) from anon;
+  end if;
+end
+$$;
+
 revoke all on function public.sync_vibelearn_textbook_index(uuid) from anon, public;
 
 -- admin_reconcile_vibelearn_textbook_index: real, live gap. No internal

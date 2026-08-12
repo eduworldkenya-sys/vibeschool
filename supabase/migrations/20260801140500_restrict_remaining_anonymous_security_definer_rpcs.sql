@@ -28,8 +28,15 @@ begin
 end
 $block$;
 
--- Inventory mutations must be backend-only.
-revoke execute on function public.increment_available_copies(uuid) from public, anon, authenticated;
-grant execute on function public.increment_available_copies(uuid) to service_role;
+-- Inventory mutations must be backend-only when the legacy inventory helper
+-- exists. Clean rebuilds may legitimately predate that untracked helper.
+do $block$
+begin
+  if to_regprocedure('public.increment_available_copies(uuid)') is not null then
+    revoke execute on function public.increment_available_copies(uuid) from public, anon, authenticated;
+    grant execute on function public.increment_available_copies(uuid) to service_role;
+  end if;
+end
+$block$;
 
 commit;
