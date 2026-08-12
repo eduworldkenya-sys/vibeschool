@@ -68,8 +68,25 @@ The current production grant inspection found:
 - `anon` execution is absent for the authenticated application RPC catalog except the intentionally public VibeTextbook reader boundary.
 - `authenticated` execution is present for the application RPC catalog and therefore requires function-level authorization review.
 - tables with RLS enabled and zero policies are not directly readable/writable by `anon` or `authenticated` through the Data API; such tables must be accessed only through explicitly authorized RPC/service paths.
+- sampled high-risk functions enforce caller identity/ownership or a dedicated HQ owner/policy boundary; this evidence does not replace a complete function-by-function review.
 
-## 7. Non-negotiable invariants
+## 7. Current advisory findings
+
+Supabase security advisors currently report three classes of findings relevant to this mission:
+
+### Intentional public reader warning
+
+`get_public_vibetextbook_reader(uuid)` is a `SECURITY DEFINER` function executable by `anon`. This is intentional because it is the public reader boundary. The raw helper and sanitizer are not executable by `anon` or `authenticated`.
+
+### Authenticated SECURITY DEFINER warnings
+
+The advisor reports many authenticated-callable `SECURITY DEFINER` functions. These warnings are treated as a review queue, not as automatic defects. The system deliberately uses RPCs as role-aware authorization boundaries, so each function must be tested against its intended caller and data scope before changing execution grants.
+
+### Authentication hardening
+
+The Supabase advisor reports **leaked-password protection is disabled**. This is a genuine production-hardening item. It requires an Auth configuration change rather than a repository-only migration and therefore remains a release-gate item until the setting is enabled and verified.
+
+## 8. Non-negotiable invariants
 
 1. No private learner/school/HQ record enters public discovery metadata.
 2. No unpublished educational content enters the sitemap.
@@ -77,8 +94,9 @@ The current production grant inspection found:
 4. No `SECURITY DEFINER` function is considered safe merely because it is callable only by `authenticated`.
 5. Public reader functions return only intentionally public/sanitized content.
 6. A production verification claim requires runtime evidence; source inspection alone is insufficient.
+7. Security advisor warnings are classified and resolved according to intended authority; they are never mass-suppressed.
 
-## 8. Release gate
+## 9. Release gate
 
 Before production release, verify the same authority chain in source, migration history, live database catalog, generated routes, and actual production HTTP responses.
 
