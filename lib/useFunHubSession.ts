@@ -26,19 +26,9 @@ export interface FunHubSessionResult {
   idempotent_replay?: boolean
 }
 
-function isFunHubSessionResult(
-  value: unknown
-): value is FunHubSessionResult {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    Array.isArray(value)
-  ) {
-    return false
-  }
-
+function isFunHubSessionResult(value: unknown): value is FunHubSessionResult {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
-
   return (
     typeof row.session_id === 'string' &&
     typeof row.xp_earned === 'number' &&
@@ -59,15 +49,34 @@ function newIdempotencyKey(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
+function pendingKeyStorageKey(gameSlug: string): string {
+  return `vibeschool:funhub:pending-session:${gameSlug}`
+}
+
+function getOrCreatePendingKey(gameSlug: string): string {
+  if (typeof window === 'undefined') return newIdempotencyKey()
+  const storageKey = pendingKeyStorageKey(gameSlug)
+  const existing = window.sessionStorage.getItem(storageKey)
+  if (existing) return existing
+  const created = newIdempotencyKey()
+  window.sessionStorage.setItem(storageKey, created)
+  return created
+}
+
+function clearPendingKey(gameSlug: string, key: string): void {
+  if (typeof window === 'undefined') return
+  const storageKey = pendingKeyStorageKey(gameSlug)
+  if (window.sessionStorage.getItem(storageKey) === key) {
+    window.sessionStorage.removeItem(storageKey)
+  }
+}
+
 function isRetryableRpcError(error: { status?: number | null }): boolean {
   const status = error?.status
   return status == null || status === 408 || status === 429 || status >= 500
 }
 
-async function callSaveSession(
-  params: FunHubSessionParams,
-  idempotencyKey: string
-) {
+async function callSaveSession(params: FunHubSessionParams, idempotencyKey: string) {
   return supabase.rpc('funhub_save_session', {
     p_game_slug: params.game_slug,
     p_subject: params.subject,
@@ -85,7 +94,8 @@ async function callSaveSession(
 export async function saveFunHubSession(
   params: FunHubSessionParams
 ): Promise<FunHubSessionResult | null> {
-  const idempotencyKey = params.idempotency_key?.trim() || newIdempotencyKey()
+  const explicitKey = params.idempotency_key?.trim()
+  const idempotencyKey = explicitKey || getOrCreatePendingKey(params.game_slug)
 
   try {
     let { data, error } = await callSaveSession(params, idempotencyKey)
@@ -108,6 +118,11 @@ export async function saveFunHubSession(
       console.error('[FunHub] Invalid save_session response:', data)
       return null
     }
+
+    // Only clear the pending key after the server has confirmed the logical
+    // completion. If the browser dies before this point, the next attempt
+    // reuses the same key and is therefore safely idempotent.
+    if (!explicitKey) clearPendingKey(params.game_slug, idempotencyKey)
 
     return data
   } catch (e) {
