@@ -10,10 +10,12 @@ export default function ContactPage() {
   const [message, setMessage] = useState("")
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<string | null>(null)
+  const [ticketId, setTicketId] = useState<string | null>(null)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setResult(null)
+    setTicketId(null)
     setBusy(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -25,19 +27,20 @@ export default function ContactPage() {
         setResult("Please provide a clear subject and at least 10 characters describing the problem.")
         return
       }
-      const { error } = await supabase.from("contact_requests").insert({
+      const { data, error } = await supabase.from("contact_requests").insert({
         requester_id: user.id,
         category,
         subject: subject.trim(),
         message: message.trim(),
-      })
+      }).select("id").single()
       if (error) {
         setResult("We could not submit your request. Please try again.")
         return
       }
       setSubject("")
       setMessage("")
-      setResult("Your support request has been received. Our support team can now track it.")
+      setTicketId(data.id)
+      setResult("Your support request has been received.")
     } finally {
       setBusy(false)
     }
@@ -71,7 +74,7 @@ export default function ContactPage() {
             <label style={{ color: "#374151", fontWeight: 700 }}>Describe the problem
               <textarea value={message} onChange={e => setMessage(e.target.value)} maxLength={5000} required rows={7} placeholder="Tell us what you expected, what happened, and any error message you saw." style={{ ...inputStyle, resize: "vertical" }} />
             </label>
-            {result && <div role="status" style={{ padding: 12, borderRadius: 10, background: "#f3f4f6", color: "#374151" }}>{result}</div>}
+            {result && <div role="status" style={{ padding: 12, borderRadius: 10, background: "#f3f4f6", color: "#374151" }}>{result}{ticketId && <div style={{ marginTop: 6, fontWeight: 700 }}>Reference: {ticketId}</div>}</div>}
             <button type="submit" disabled={busy} style={{ padding: "13px 18px", border: 0, borderRadius: 10, background: "#111827", color: "white", fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
               {busy ? "Submitting…" : "Submit support request"}
             </button>
