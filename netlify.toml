@@ -1,0 +1,10 @@
+# Vibeschool deployment safety boundary.
+#
+# Repository work branches must never execute a Netlify build. Only the
+# production context for main is allowed to continue past Netlify's ignore
+# preflight. Netlify account settings should also keep Deploy Previews disabled
+# and Branch deploys set to None; this file is a repository-level fail-closed
+# backstop, not a replacement for those external controls.
+
+[build]
+  ignore = "node -e \"process.exit(process.env.CONTEXT === 'production' && process.env.BRANCH === 'main' ? 1 : 0)\""
