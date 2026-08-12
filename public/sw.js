@@ -1,13 +1,9 @@
-const CACHE_NAME = 'vibeschool-v2'
+const CACHE_NAME = 'vibeschool-v3'
 
+// Only precache a route that is guaranteed to exist and is needed for
+// offline navigation. Do not precache historical/auth routes: requesting
+// removed routes during service-worker installation creates misleading 404s.
 const STATIC_ROUTES = [
-  '/',
-  '/select',
-  '/academy/select-role',
-  '/academy/signin',
-  '/academy/signup',
-  '/global/signin',
-  '/global/signup',
   '/offline.html',
 ]
 
