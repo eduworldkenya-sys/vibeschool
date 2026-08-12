@@ -1,8 +1,57 @@
--- Recovery prerequisite for production functions that existed before the
--- 2026-08-12 explicit EXECUTE hardening migrations but were absent from the
--- repository replay chain. Definitions and effective grants are reconstructed
--- from the production catalog; this migration does not weaken the following
--- security revocations.
+-- Recovery prerequisites for production invitation/security objects that existed
+-- before the 2026-08-12 explicit EXECUTE hardening migrations but were absent
+-- from the repository replay chain. Shape, constraints, RLS, config values,
+-- function definitions, and effective grants are reconstructed from production.
+-- The following security migrations still perform their intended revocations.
+
+create table if not exists public.system_config (
+  key text primary key,
+  value text not null,
+  description text not null,
+  updated_at timestamptz not null default clock_timestamp()
+);
+
+alter table public.system_config enable row level security;
+
+drop policy if exists system_config_read on public.system_config;
+create policy system_config_read on public.system_config
+  for select
+  using (auth.uid() is not null);
+
+insert into public.system_config(key, value, description)
+values
+  ('invitation_lock_attempts', '5', 'Failed attempts before invitation is locked'),
+  ('invitation_lock_minutes', '30', 'Duration in minutes of invitation lock')
+on conflict (key) do update
+set value = excluded.value,
+    description = excluded.description;
+
+create table if not exists public.invitations (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  code char(8) not null unique check (code ~ '^[A-Z0-9]{8}$'),
+  max_uses integer not null check (max_uses >= 1),
+  use_count integer not null default 0 check (use_count >= 0),
+  failed_attempts integer not null default 0 check (failed_attempts >= 0),
+  locked_until timestamptz,
+  expires_at timestamptz not null,
+  created_by uuid not null references public.profiles(id) on delete restrict,
+  created_at timestamptz not null default clock_timestamp(),
+  constraint chk_use_limit check (use_count <= max_uses)
+);
+
+alter table public.invitations enable row level security;
+
+drop policy if exists invitations_admin on public.invitations;
+create policy invitations_admin on public.invitations
+  for all
+  using (public.is_school_admin(school_id))
+  with check (public.is_school_admin(school_id));
+
+drop policy if exists invitations_read_by_code on public.invitations;
+create policy invitations_read_by_code on public.invitations
+  for select
+  using (auth.uid() is not null);
 
 create or replace function public.fn_invitation_attempt(p_code text, p_success boolean)
 returns jsonb
