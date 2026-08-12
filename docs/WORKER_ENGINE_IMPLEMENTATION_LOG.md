@@ -1,124 +1,127 @@
 # Worker Engine Implementation Log
 
 Updated: 2026-08-12
-Active branch: `feat/worker-engine-we-l7-worker-factory-v2-20260812`
-Stacked PRs: #92 -> #91 -> #90
+Canonical repository state: `main`
+Merged implementation PRs: #90 -> #91 -> #92
 
 ## Current mission
 
-Build one governed autonomous Worker Engine that can detect sustained workforce need from Vibeschool telemetry, diagnose whether a new worker is actually justified, create a bounded digital worker only when earlier remedies are insufficient, qualify/certify it safely, activate it, route real work through the existing execution kernel, independently verify the outcome, and prefer reuse/rebalancing before creating duplicates.
+Build one governed autonomous Worker Engine that can detect sustained workforce need from Vibeschool telemetry, diagnose whether a new worker is justified, create a bounded digital worker only when earlier remedies are insufficient, qualify/certify it safely, activate it, route real work through the existing execution kernel, independently verify outcomes, and prefer reuse/rebalancing before duplicate creation.
 
-**Mission status: ✅ FUNCTIONALLY ACHIEVED ON WORK BRANCH / ISOLATED VALIDATION DATABASE**
+**Mission status: ✅ MERGED TO `main` AND VERIFIED THROUGH WE-L13.**
 
-This does not mean unrestricted worker generation is enabled. The engine is intentionally template-governed and defaults OFF for autonomous scheduling/factory activation.
+This does not authorize unrestricted worker generation or production autonomy. The engine remains template-governed and autonomous scheduler/factory activation remains default OFF.
 
 ## WE-L1 — Authority & Lifecycle Convergence
-Status: ✅ VERIFIED COMPLETE ON WORK BRANCH
+Status: ✅ VERIFIED AND MERGED
 
-Implemented: canonical contracts, Blueprint + WorkerCreationContract authority ceilings, canonical lifecycle ledger, expiring/revocable WorkerIdentity, enforceable capabilities, transactional budgets, immutable authority contracts, negative transition/identity/capability/budget tests.
+Canonical contracts, Blueprint + WorkerCreationContract authority ceilings, lifecycle ledger, expiring/revocable WorkerIdentity, enforceable capabilities, transactional budgets, immutable authority contracts, and negative authority tests.
 
 ## WE-L2 — Governed Execution Foundation
-Status: ✅ VERIFIED FOR REFERENCE-WORKER SCOPE
+Status: ✅ VERIFIED AND MERGED
 
-Implemented: TaskContract, ToolContract, idempotency, lease timeout, bounded retry/backoff, dead-letter handling, transactional budget reserve/consume/release, Tool Gateway, real deterministic `work_item.triage_and_own` side effect, independent verification requirement.
+TaskContract, ToolContract, idempotency, lease timeout, bounded retry/backoff, dead-letter handling, transactional budget reserve/consume/release, Tool Gateway, deterministic `work_item.triage_and_own` side effect, and independent verification.
 
 ## WE-L3 — Shadow, Certification & Remediation
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Implemented: no-side-effect SHADOW evidence, 3 independently verified outcomes, no self-verification, certification/expiry/revocation, suspension/remediation, fresh-evidence recertification, wall-clock ordering, UUID-backed certification keys.
+No-side-effect SHADOW evidence, independent verification, no self-verification, certification/expiry/revocation, suspension/remediation, fresh-evidence recertification, wall-clock ordering, and collision-proof certification keys.
 
 ## WE-L4 — Autonomous Heartbeat
-Status: ✅ VERIFIED FOR BOUNDED OPERATIONS LOOP
+Status: ✅ VERIFIED AND MERGED FOR BOUNDED OPERATIONS LOOP
 
-Implemented: deterministic eligible-work detection, idempotent task issuance, detect -> execute -> verify cycle, approval/non-Operations exclusion, scheduler entrypoint, default-OFF contract.
+Deterministic eligible-work detection, idempotent task issuance, detect -> execute -> verify cycle, approval/non-Operations exclusion, governed scheduler entrypoint, and default-OFF activation contract.
 
 ## WE-L5 — Deterministic-First Model Gateway
-Status: ✅ VERIFIED FOR AUTHORIZATION/ACCOUNTING
+Status: ✅ VERIFIED AND MERGED
 
-Implemented: model use only after deterministic insufficiency evidence, active identity/certification checks, allowlisted reasons, token-budget reserve/release/consume, immutable model invocation state.
+Model use only after deterministic insufficiency evidence, active identity/certification checks, allowlisted reasons, token-budget reserve/release/consume, and immutable invocation accounting.
 
 ## WE-L6 — Reference Operations Worker
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Proved full lifecycle and adversarial recovery: bootstrap -> SHADOW -> certify -> ACTIVE -> real work -> independent verification; revocation/suspension/remediation/recertification; wrong scope/budget/self-verification/approval-required failures all fail closed.
+Full lifecycle and adversarial recovery proven: bootstrap -> SHADOW -> certify -> ACTIVE -> real work -> independent verification; revocation/suspension/remediation/recertification; wrong scope/budget/self-verification/approval-required paths fail closed.
 
 ## WE-L7 — Governed Worker Factory V2
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Implemented sealed DemandEvidence, deterministic quantified diagnosis, creation allowed only for `create_digital_worker_probation`, bounded Blueprint/creation contract, paid-AI-off generation, allowlisted tool adapter, SHADOW-only creation, no live authority before certification, eliminate/train-existing paths create no worker.
+Sealed DemandEvidence, deterministic quantified diagnosis, bounded Blueprint/creation contract, paid-AI-off generation, allowlisted tool adapter, SHADOW-only creation, and no live authority before certification.
 
 ## WE-L8 — Telemetry-Driven Factory
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Implemented immutable approved FactoryTemplate registry, authoritative demand metrics from runtime state, deterministic worker keys, factory default OFF, fail-closed behavior when no approved template exists.
+Immutable approved FactoryTemplate registry, authoritative demand metrics from runtime state, deterministic worker keys, factory default OFF, and fail-closed behavior for unknown/unapproved worker types.
 
 ## WE-L9 — Autonomous Qualification + Generic Dispatch
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Implemented immutable qualification cases, deterministic shadow executor, governance qualification heartbeat, independent certification, identity/capability/budget provisioning, generic capability-based Operations dispatch, independent verification of completed work.
+Immutable qualification cases, deterministic shadow executor, independent certification, identity/capability/budget provisioning, generic capability-based Operations dispatch, and independent verification of completed work.
 
 ## WE-L10 — Reuse Before Create
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Adversarial test exposed duplicate creation despite existing capable worker. Repaired by making active certified capacity authoritative evidence for `rebalance_capacity` and enforcing FactoryTemplate `max_live_workers`. Retest produced `rebalance_lanes` and zero new worker creation.
+Active certified capacity is authoritative evidence for reuse/rebalancing; FactoryTemplate `max_live_workers` prevents duplicate creation when existing capacity can absorb the demand.
 
 ## WE-L11 — Sustained Demand Sensor
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Implemented deterministic backlog sensor from real `hq_work_items`: 5+ eligible items, oldest >=15 minutes, 3 observations within 15 minutes, 60-minute emission cooldown, one-off spike rejection, sustained backlog -> capacity gap with provenance.
+Deterministic backlog sensor from real `hq_work_items`: 5+ eligible items, oldest >=15 minutes, 3 observations within 15 minutes, 60-minute emission cooldown, one-off spike rejection, and sustained backlog -> capacity gap with provenance.
 
-Full autonomous chain proven: real backlog -> sensor -> gap -> diagnosis -> worker -> SHADOW -> qualification -> certification -> ACTIVE -> real work -> independent verification -> resolved.
+Canonical proven chain: real backlog -> sensor -> gap -> diagnosis -> worker -> SHADOW -> qualification -> certification -> ACTIVE -> real work -> independent verification -> resolved.
 
 ## WE-L12 — Single Runtime Entrypoint
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Positive service-role orchestration is reduced to `hq_workforce_scheduled_heartbeat()`. Low-level factory/diagnosis/qualification/dispatch/sensor/lifecycle functions are not directly executable by service_role.
+Positive service-role orchestration is reduced to `hq_workforce_scheduled_heartbeat()`. Low-level factory/diagnosis/qualification/dispatch/sensor/lifecycle functions are not direct service-role runtime entrypoints.
 
 ## WE-L13 — Legacy Lifecycle Bypass Closure
-Status: ✅ VERIFIED
+Status: ✅ VERIFIED AND MERGED
 
-Legacy `hq_workforce_certify_probation_workers()` service-role bypass closed. Direct lifecycle transition, shadow evidence insertion, certification issuance and reference bootstrap are also denied to service_role. Canonical CERTIFIED/ACTIVE transition requires valid certification.
+Legacy probation activation bypasses are closed. Direct lifecycle transition, shadow evidence insertion, certification issuance, legacy probation certification, and reference bootstrap are denied as service-role runtime entrypoints. CERTIFIED/ACTIVE transition requires valid certification.
 
-## Final access/security audit
+## Promotion evidence
 
-In isolated validation state:
-- `hq_workforce_scheduled_heartbeat()` service_role EXECUTE: true
-- direct lifecycle transition: false
-- direct shadow record: false
-- direct certification issue: false
-- legacy probation certifier: false
-- reference bootstrap: false
+PR #90 merged WE-L1/WE-L2 after exact-head TBL-011, TBL-012, Supabase migration-security, TypeScript, ESLint, production build, and review-thread gates passed.
 
-All six autonomous-factory tables audited are RLS-on with zero direct policies.
+PR #91 merged the reference-worker autonomy loop after the same promotion-gate class was rerun against merged PR #90.
 
-Three externally callable non-runtime-authority helpers were reviewed:
-- `hq_workforce_decide(...)`: authenticated but calls `hq_assert_owner()` before mutation;
-- `hq_workforce_list_decisions(...)`: authenticated but calls `hq_assert_owner()` before reading decisions;
-- `hq_workforce_test_context_health(...)`: immutable pure calculation, no DB reads/side effects.
+PR #92 merged WE-L7 through WE-L13 after exact-head validation against merged PRs #90 and #91:
+- TBL-011 isolated clean rebuild — PASS
+- TBL-012 M(repo) extractor — PASS
+- Supabase Migration Security Contract — PASS
+- TypeScript — PASS
+- ESLint — PASS
+- Next.js production build — PASS
+- unresolved review threads — none
 
-They do not grant worker creation/lifecycle/certification/execution authority.
+Canonical merge on `main`: `f83c6df4bccd6edbfb1b951d9fa38ec77a43091e` (`feat(worker-engine): autonomous governed Worker Factory through WE-L13 (#92)`).
 
-## Repository evidence
+## Runtime security boundary
 
-Runtime hardening head: `5d59e724f4a3f0d3c12e893802e420e488f05dd1`.
-Exact PR head before this log update: `bda6d045fccb31c728ecd7d85f7a23a47fe137f0`.
-
-On exact PR head `bda6d045...`:
-- TBL-011 Isolated Clean Rebuild: ✅ PASS, run 394 (`31624268245`).
-- TBL-012 M(repo) extractor: ✅ PASS, run 69 (`31624268165`).
-
-The earlier TBL-011 failure on `5d59e724...` was GitHub/Supabase CLI download infrastructure (`socket hang up`), not PostgreSQL. Its rerun passed.
+The merged design preserves these boundaries:
+- `hq_workforce_scheduled_heartbeat()` is the governed positive orchestration entrypoint;
+- direct lower-level creation/lifecycle/certification execution is not a service-role runtime path;
+- Worker Engine factory/runtime tables are RLS protected and privileged surfaces fail closed;
+- HQ decision RPCs remain owner-gated;
+- unknown worker types fail closed without an approved FactoryTemplate, deterministic tool adapter, and qualification suite.
 
 ## Production status
 
-**NOT MERGED / NOT DEPLOYED.**
+**MERGED TO REPOSITORY `main`; PRODUCTION AUTONOMY NOT ACTIVATED.**
 
-- PR #92 remains draft.
-- main untouched by this Worker Engine mission.
-- production Supabase untouched by this Worker Engine mission.
-- Vercel untouched.
-- autonomous scheduler/factory remain default OFF.
+- Worker Engine implementation is now present on `main`.
+- No separate production Supabase mutation was performed as part of PRs #90-#92.
+- Autonomous scheduler/factory remain default OFF.
+- Production autonomy activation remains a separate protected decision and validation step.
+- No Vercel action is required for this database-governance convergence record.
 
 ## Boundary after WE-L13
 
-The engine now satisfies the original bounded autonomy target for the approved Operations FactoryTemplate. The next distinct expansion is not more kernel architecture; it is controlled scale-out: additional approved worker templates/certified tool adapters/qualification suites, workforce forecasting/retirement/capacity policy, and eventual protected promotion. Unknown worker types continue to fail closed.
+The bounded autonomy kernel mission is complete. The next distinct phase is controlled scale-out rather than more kernel invention:
+
+1. add additional approved worker templates only with certified deterministic tool adapters and qualification suites;
+2. add workforce forecasting, capacity/rebalancing and retirement policy;
+3. add production-readiness evidence for scheduler/factory activation without enabling it;
+4. require a separate protected promotion decision before any production autonomy is switched on.
+
+Until those controls are proven, unknown worker types and production autonomy remain fail closed.
