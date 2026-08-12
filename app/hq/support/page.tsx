@@ -1,0 +1,26 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
+
+interface Case { id:string; case_no:number; category:string; severity:string; status:string; title:string; description:string; owner_id:string|null; sla_due_at:string|null; created_at:string; first_response_at:string|null; resolved_at:string|null }
+interface Note { id:string; case_id:string; author_id:string; body:string; created_at:string }
+
+export default function HQSupportPage(){
+ const [cases,setCases]=useState<Case[]>([]),[selected,setSelected]=useState<Case|null>(null),[notes,setNotes]=useState<Note[]>([]),[body,setBody]=useState(""),[error,setError]=useState(""),[loading,setLoading]=useState(true)
+ async function load(){setError("");const{data,error}=await supabase.from("hq_support_cases").select("id,case_no,category,severity,status,title,description,owner_id,sla_due_at,created_at,first_response_at,resolved_at").order("created_at",{ascending:false});if(error)setError(error.message);else setCases((data||[]) as Case[]);setLoading(false)}
+ async function loadNotes(id:string){const{data,error}=await supabase.from("hq_support_messages").select("id,case_id,author_id,body,created_at").eq("case_id",id).order("created_at",{ascending:true});if(error)setError(error.message);else setNotes((data||[]) as Note[])}
+ useEffect(()=>{void load()},[])
+ useEffect(()=>{if(selected)void loadNotes(selected.id)},[selected])
+ async function patch(patch:Record<string,unknown>){if(!selected)return;const{error}=await supabase.from("hq_support_cases").update({...patch,updated_at:new Date().toISOString()}).eq("id",selected.id);if(error){setError(error.message);return}const next={...selected,...patch} as Case;setSelected(next);await load()}
+ async function addNote(){if(!selected||!body.trim())return;const{data:{user}}=await supabase.auth.getUser();if(!user){setError("Sign in required.");return}const{error}=await supabase.from("hq_support_messages").insert({case_id:selected.id,author_id:user.id,body:body.trim()});if(error){setError(error.message);return}setBody("");if(selected.status==="open")await patch({status:"in_progress",first_response_at:new Date().toISOString()});await loadNotes(selected.id)}
+ return <main style={{minHeight:"100vh",background:"#07111f",color:"#e5e7eb",padding:24}}><div style={{maxWidth:1200,margin:"0 auto"}}>
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}><div><h1 style={{margin:0}}>HQ Support Operations</h1><p style={{color:"#94a3b8"}}>Authorized platform-owner queue · SLA-aware case handling</p></div><button onClick={()=>void load()} style={btn}>Refresh</button></div>
+  {error&&<div style={{margin:"12px 0",padding:12,borderRadius:9,background:"#3f172a",color:"#fecdd3"}}>{error}</div>}
+  {loading?<p>Loading…</p>:<div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(340px,1fr)",gap:16}}>
+   <section style={panel}><h2>Queue · {cases.length}</h2>{cases.map(c=><button key={c.id} onClick={()=>setSelected(c)} style={{display:"block",width:"100%",textAlign:"left",padding:14,marginBottom:8,border:selected?.id===c.id?"2px solid #818cf8":"1px solid #243244",borderRadius:10,background:"#0b1727",color:"#e5e7eb"}}><strong>#{c.case_no} · {c.title}</strong><div style={{fontSize:12,color:"#94a3b8",marginTop:5}}>{c.category} · {c.severity} · {c.status}</div><div style={{fontSize:11,color:"#64748b",marginTop:4}}>SLA: {c.sla_due_at?new Date(c.sla_due_at).toLocaleString("en-KE"):"—"}</div></button>)}{cases.length===0&&<p style={{color:"#94a3b8"}}>No support cases.</p>}</section>
+   <section style={panel}>{!selected?<p style={{color:"#94a3b8"}}>Select a case to investigate.</p>:<><h2>#{selected.case_no} · {selected.title}</h2><div style={{color:"#94a3b8",lineHeight:1.6}}>{selected.description}</div><div style={{display:"flex",gap:7,flexWrap:"wrap",margin:"16px 0"}>{["open","in_progress","resolved","closed"].map(s=><button key={s} onClick={()=>void patch({status:s,...(s==="resolved"?{resolved_at:new Date().toISOString()}:{})})} style={btn}>{s}</button>)}</div><label style={label}>Owner UUID<input defaultValue={selected.owner_id||""} onBlur={e=>void patch({owner_id:e.target.value||null})} style={input}/></label><h3>Case notes</h3>{notes.map(n=><div key={n.id} style={{padding:10,borderTop:"1px solid #243244",fontSize:12}}><div style={{color:"#64748b",marginBottom:4}}>{new Date(n.created_at).toLocaleString("en-KE")}</div>{n.body}</div>)}<textarea value={body} onChange={e=>setBody(e.target.value)} rows={5} placeholder="Internal support note / investigation result" style={{...input,resize:"vertical"}}/><button onClick={()=>void addNote()} style={{...btn,background:"#4f46e5",borderColor:"#6366f1"}}>Add note</button></>}</section>
+  </div>}
+ </div></main>
+}
+const panel={background:"#0b1727",border:"1px solid #243244",borderRadius:14,padding:18};const btn={padding:"9px 12px",border:"1px solid #334155",borderRadius:8,background:"#101d2d",color:"#e5e7eb",fontWeight:700};const label={display:"block",fontSize:12,color:"#94a3b8"};const input={display:"block",width:"100%",boxSizing:"border-box" as const,marginTop:6,padding:10,border:"1px solid #334155",borderRadius:8,background:"#07111f",color:"#e5e7eb"};
