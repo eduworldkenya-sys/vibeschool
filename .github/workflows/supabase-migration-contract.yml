@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - 'feat/worker-engine-*'
     paths:
       - 'supabase/migrations/**'
       - 'scripts/validate-supabase-migration-contract.py'
