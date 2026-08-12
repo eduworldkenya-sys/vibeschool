@@ -8,6 +8,10 @@ import { supabase } from '@/lib/supabase'
 const dark   = '#1e1b4b'
 const accent = '#6366f1'
 
+type StudentClaimResult = {
+  status?: string
+}
+
 export default function StudentClaimPage() {
   const router = useRouter()
 
@@ -42,7 +46,8 @@ export default function StudentClaimPage() {
         return
       }
 
-      const status = result?.status
+      const claimResult = result as StudentClaimResult | null
+      const status = claimResult?.status
       switch (status) {
         case 'success':
           setSuccess('Account linked! Taking you to your dashboard…')
