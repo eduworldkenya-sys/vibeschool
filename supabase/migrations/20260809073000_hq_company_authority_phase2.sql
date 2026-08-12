@@ -1,5 +1,62 @@
 -- HQ company authority phase 2
 -- Restored from hq-hardening-10of10 for repository/production parity.
+--
+-- L0 recovery: production already had the HQ control-plane foundations when
+-- this phase was applied. Reconstruct the minimum pre-tracked objects here so
+-- a blank database can replay the historical phase in the same dependency
+-- state. Later canonical migrations remain responsible for expanding these
+-- objects and their APIs.
+
+create table if not exists public.hq_departments(
+  key text primary key,
+  name text not null,
+  mandate text not null,
+  icon text,
+  sort_order integer not null default 100,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+insert into public.hq_departments(key,name,mandate,icon,sort_order) values
+('executive','Executive','Decisions, priorities, approvals and company direction','boardroom',10),
+('finance','Finance','Revenue, expenses, receivables, reconciliations and controls','finance',20),
+('technology','Technology & Security','Platform health, incidents, releases, security and reliability','technology',30),
+('operations','Operations','School operations, teaching throughput, service levels and bottlenecks','operations',40),
+('product','Product','Feature adoption, funnels, retention, quality and user friction','product',50),
+('growth','Growth & Sales','Acquisition, activation, leads, partnerships and conversion','growth',60),
+('customer','Customer Success & Support','Onboarding, support, communication, retention and escalations','support',70),
+('content','Content & Curriculum','Curriculum coverage, publishing, VibeLabs, editorial and moderation','content',80),
+('people','People Operations','Staff access, responsibilities, onboarding, leave and performance workflows','people',90),
+('trust','Legal, Risk & Compliance','Privacy, consent, contracts, safeguarding, audit and risk','trust',100),
+('marketing','Marketing & Communications','Campaigns, brand, announcements, PR and communication calendar','marketing',110),
+('procurement','Procurement & Vendors','Vendors, purchases, renewals, contracts and service costs','procurement',120),
+('programs','Programs & Projects','Initiatives, milestones, dependencies, blocked work and delivery','programs',130),
+('data','Data & BI','Metric definitions, analytics, cohorts, forecasts and reporting','data',140),
+('quality','Quality & Release','Regression, release readiness, defects and content quality','quality',150),
+('knowledge','Knowledge & SOP','Policies, SOPs, company memory and operating documentation','knowledge',160),
+('engineering','Engineering','Software engineering ownership for HQ policy and platform delivery','technology',170),
+('learning','Learning','Learning and assessment authority','content',180),
+('publishing','Publishing','Publication governance and release authority','content',190)
+on conflict(key) do nothing;
+
+create table if not exists public.hq_policy_registry(
+  id uuid primary key default gen_random_uuid(),
+  policy_key text not null unique,
+  domain text not null,
+  owner_department text not null references public.hq_departments(key),
+  value_type text not null check(value_type in('boolean','integer','number','string','json')),
+  default_value jsonb not null,
+  allowed_products text[] not null default '{}',
+  risk_level text not null default 'normal' check(risk_level in('low','normal','high','critical')),
+  failure_mode text not null default 'last_known_good' check(failure_mode in('fail_open','fail_closed','last_known_good')),
+  min_number numeric,
+  max_number numeric,
+  allowed_values jsonb,
+  description text not null,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
 insert into public.hq_policy_registry(policy_key,domain,owner_department,value_type,default_value,allowed_products,risk_level,failure_mode,description,active)
 values
