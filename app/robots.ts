@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [{
       userAgent: '*',
-      allow: ['/', '/about', '/contact', '/knowledge', '/knowledge/', '/global', '/global/chronicles', '/global/vibes', '/legal/'],
+      allow: ['/', '/about', '/contact', '/knowledge', '/knowledge/', '/legal/'],
       disallow: [
         '/admin/',
         '/teacher/',
@@ -15,11 +15,7 @@ export default function robots(): MetadataRoute.Robots {
         '/auth/',
         '/select',
         '/learn/',
-        '/global/create/',
-        '/global/dashboard',
-        '/global/profile',
-        '/global/signup',
-        '/global/read/',
+        '/global/',
       ],
     }],
     sitemap: 'https://www.vibeschool.co.ke/sitemap.xml',
