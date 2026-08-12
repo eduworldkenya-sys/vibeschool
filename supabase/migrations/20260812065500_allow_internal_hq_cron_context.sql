@@ -1,8 +1,6 @@
 begin;
 
 -- HQ scheduled jobs run as the database postgres role without a Supabase JWT.
--- The previous owner guard interpreted auth.uid() = NULL as an unauthorized
--- human request, causing every scheduled HQ cycle to emit "HQ access denied".
 -- Permit only an internal postgres session with no authenticated identity.
 create or replace function public.hq_assert_owner()
 returns void
@@ -21,7 +19,8 @@ begin
       select 1
       from public.hq_access_log l
       where l.profile_id is null
-        and l.outcome = 'granted_system'
+        and l.outcome = 'granted'
+        and l.attempted_email = 'system:postgres'
         and l.created_at > now() - interval '5 minutes'
     ) then
       begin
@@ -33,7 +32,7 @@ begin
       insert into public.hq_access_log(
         attempted_email, profile_id, outcome, user_agent, created_at
       ) values (
-        'system:postgres', null, 'granted_system', v_ua, now()
+        'system:postgres', null, 'granted', v_ua, now()
       );
     end if;
     return;
