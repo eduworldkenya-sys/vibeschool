@@ -1,0 +1,21 @@
+-- Recovered verbatim from the production Supabase migration ledger for L0 replay parity.
+create table if not exists public.hq_workforce_hr_diagnoses (
+ id uuid primary key default gen_random_uuid(), gap_id uuid references public.hq_workforce_gap_signals(id) on delete cascade, diagnosis_version integer not null default 1, work_necessary boolean not null, downstream_dependency_count integer not null default 0, verified_impact numeric not null default 0, rework_rate numeric not null default 0, policy_violations integer not null default 0, deterministic_automation_sufficient boolean not null default false, existing_worker_available boolean not null default false, existing_worker_has_skill boolean not null default false, existing_worker_utilization numeric, rebalance_capacity boolean not null default false, demand_temporary boolean not null default false, human_judgment_required boolean not null default false, decision text not null, reason text not null, evidence jsonb not null default '{}'::jsonb, diagnosed_at timestamptz not null default now()
+);
+alter table public.hq_workforce_hr_diagnoses enable row level security;
+create or replace function public.hq_workforce_quantified_diagnosis(p_gap_id uuid,p_metrics jsonb) returns uuid language plpgsql security invoker set search_path=public as $$
+declare dep int:=coalesce((p_metrics->>'downstream_dependency_count')::int,0); impact numeric:=coalesce((p_metrics->>'verified_impact')::numeric,0); rework numeric:=coalesce((p_metrics->>'rework_rate')::numeric,0); violations int:=coalesce((p_metrics->>'policy_violations')::int,0); automatable boolean:=coalesce((p_metrics->>'deterministic_automation_sufficient')::boolean,false); worker boolean:=coalesce((p_metrics->>'existing_worker_available')::boolean,false); has_skill boolean:=coalesce((p_metrics->>'existing_worker_has_skill')::boolean,false); util numeric:=nullif(p_metrics->>'existing_worker_utilization','')::numeric; rebalance boolean:=coalesce((p_metrics->>'rebalance_capacity')::boolean,false); temporary boolean:=coalesce((p_metrics->>'demand_temporary')::boolean,false); human boolean:=coalesce((p_metrics->>'human_judgment_required')::boolean,false); necessary boolean; decision text; reason text; rid uuid; begin
+ if not exists(select 1 from public.hq_workforce_gap_signals where id=p_gap_id) then raise exception 'Gap not found'; end if;
+ if rework<0 or rework>1 then raise exception 'rework_rate must be 0..1'; end if; if util is not null and (util<0 or util>1) then raise exception 'utilization must be 0..1'; end if;
+ necessary := not(dep=0 and impact=0);
+ if not necessary then decision:='eliminate_task'; reason:='No downstream dependencies and zero verified impact.';
+ elsif rework>0.15 or violations>0 then decision:='redesign_process'; reason:='Rework exceeds 15% or policy violations exist.';
+ elsif automatable then decision:='build_deterministic_automation'; reason:='Certified facts support deterministic execution.';
+ elsif worker and not has_skill and coalesce(util,1)<0.80 then decision:='train_existing_worker'; reason:='Existing worker has capacity but lacks required certified skill.';
+ elsif rebalance then decision:='rebalance_lanes'; reason:='Existing organizational capacity can absorb the work.';
+ elsif temporary then decision:='provision_temporary_capacity'; reason:='Demand is classified as temporary.';
+ elsif human then decision:='recommend_human_hire'; reason:='Work requires human judgment or authority.';
+ else decision:='create_digital_worker_probation'; reason:='Necessary sustained governed work remains after all earlier tests.'; end if;
+ insert into public.hq_workforce_hr_diagnoses(gap_id,work_necessary,downstream_dependency_count,verified_impact,rework_rate,policy_violations,deterministic_automation_sufficient,existing_worker_available,existing_worker_has_skill,existing_worker_utilization,rebalance_capacity,demand_temporary,human_judgment_required,decision,reason,evidence) values(p_gap_id,necessary,dep,impact,rework,violations,automatable,worker,has_skill,util,rebalance,temporary,human,decision,reason,p_metrics) returning id into rid; return rid; end $$;
+revoke all on table public.hq_workforce_hr_diagnoses from anon,authenticated;
+revoke all on function public.hq_workforce_quantified_diagnosis(uuid,jsonb) from public,anon,authenticated;
