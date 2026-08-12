@@ -1,5 +1,7 @@
 # VibeTwin Mission
 
+**Product-level mission.** VibeTwin is a major intelligence layer within VibeSchool; it does not replace or redefine the company-level VibeSchool mission and vision. See `docs/VIBESCHOOL_MISSION_VISION.md` for the canonical company purpose.
+
 VibeTwin exists to become a persistent, evidence-grounded learning companion that grows with each learner throughout their education.
 
 ## Permanent mission
@@ -26,3 +28,7 @@ VibeTwin exists to become a persistent, evidence-grounded learning companion tha
 `Authorized learning source → learner state → best representation/intervention → learner interaction → validated evidence → updated learner state → better next decision`
 
 The LLM is replaceable infrastructure. The durable product is the learner model, evidence ledger, teacher/school context, trusted content graph, adaptation policy, and the learning experience built on top of them.
+
+## Relationship to VibeSchool
+
+VibeTwin's intelligence must always serve the VibeSchool mission: better learning decisions with trusted context. Its recommendations are bounded by curriculum, evidence, teacher and school authority, privacy and explicit product policy. Intelligence is a means of improving the learning system, not the purpose of the system itself.
