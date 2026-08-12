@@ -1,50 +1,95 @@
-import Link from "next/link"
+"use client"
 
-export const dynamic = "force-dynamic"
+import Link from "next/link"
+import { FormEvent, useState } from "react"
+import { supabase } from "@/lib/supabase"
 
 export default function ContactPage() {
+  const [category, setCategory] = useState("account")
+  const [subject, setSubject] = useState("")
+  const [message, setMessage] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setResult(null)
+    setBusy(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setResult("Please sign in before submitting a support request.")
+        return
+      }
+      if (subject.trim().length < 3 || message.trim().length < 10) {
+        setResult("Please provide a clear subject and at least 10 characters describing the problem.")
+        return
+      }
+      const { error } = await supabase.from("contact_requests").insert({
+        requester_id: user.id,
+        category,
+        subject: subject.trim(),
+        message: message.trim(),
+      })
+      if (error) {
+        setResult("We could not submit your request. Please try again.")
+        return
+      }
+      setSubject("")
+      setMessage("")
+      setResult("Your support request has been received. Our support team can now track it.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <main style={{ minHeight: "100vh", background: "#f8fafc", padding: "48px 20px" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <Link href="/" style={{ color: "#4f46e5", fontWeight: 700, textDecoration: "none" }}>
-          ← Back to VibeSchool
-        </Link>
-
+        <Link href="/" style={{ color: "#4f46e5", fontWeight: 700, textDecoration: "none" }}>← Back to VibeSchool</Link>
         <section style={{ background: "white", marginTop: 24, padding: 32, borderRadius: 20, boxShadow: "0 8px 30px rgba(15,23,42,.08)" }}>
           <h1 style={{ margin: 0, fontSize: 32, color: "#111827" }}>Contact VibeSchool</h1>
           <p style={{ color: "#4b5563", lineHeight: 1.7 }}>
-            Need help with your account, school setup, teaching tools, student access, or another VibeSchool issue?
-            Use the support channels provided by your school or platform administrator and include the affected
-            account role, page, and a short description of what happened.
+            Tell us what is wrong. Your request is attached to your authenticated VibeSchool account so support can investigate it without exposing your request to other users.
           </p>
 
-          <div style={{ display: "grid", gap: 14, marginTop: 24 }}>
-            <div style={{ padding: 18, border: "1px solid #e5e7eb", borderRadius: 14 }}>
-              <strong>Account or login problem</strong>
-              <p style={{ margin: "6px 0 0", color: "#6b7280" }}>
-                Tell support whether you are a teacher, parent, student, or administrator and the exact page where the problem occurs.
-              </p>
-            </div>
-            <div style={{ padding: 18, border: "1px solid #e5e7eb", borderRadius: 14 }}>
-              <strong>School or student access</strong>
-              <p style={{ margin: "6px 0 0", color: "#6b7280" }}>
-                Include the school, class, admission/claim workflow involved, and any error message shown.
-              </p>
-            </div>
-            <div style={{ padding: 18, border: "1px solid #e5e7eb", borderRadius: 14 }}>
-              <strong>Privacy or legal request</strong>
-              <p style={{ margin: "6px 0 0", color: "#6b7280" }}>
-                Review the applicable policies before submitting a privacy or legal request.
-              </p>
-              <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
-                <Link href="/legal/privacy">Privacy Policy</Link>
-                <Link href="/legal/terms">Terms</Link>
-                <Link href="/legal/aup">Acceptable Use Policy</Link>
-              </div>
-            </div>
+          <form onSubmit={submit} style={{ display: "grid", gap: 16, marginTop: 24 }}>
+            <label style={{ color: "#374151", fontWeight: 700 }}>Issue category
+              <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+                <option value="account">Account / login</option>
+                <option value="school_access">School access</option>
+                <option value="student_access">Student access</option>
+                <option value="technical">Technical problem</option>
+                <option value="privacy">Privacy</option>
+                <option value="legal">Legal</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label style={{ color: "#374151", fontWeight: 700 }}>Subject
+              <input value={subject} onChange={e => setSubject(e.target.value)} maxLength={160} required placeholder="e.g. I cannot access my teacher dashboard" style={inputStyle} />
+            </label>
+            <label style={{ color: "#374151", fontWeight: 700 }}>Describe the problem
+              <textarea value={message} onChange={e => setMessage(e.target.value)} maxLength={5000} required rows={7} placeholder="Tell us what you expected, what happened, and any error message you saw." style={{ ...inputStyle, resize: "vertical" }} />
+            </label>
+            {result && <div role="status" style={{ padding: 12, borderRadius: 10, background: "#f3f4f6", color: "#374151" }}>{result}</div>}
+            <button type="submit" disabled={busy} style={{ padding: "13px 18px", border: 0, borderRadius: 10, background: "#111827", color: "white", fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
+              {busy ? "Submitting…" : "Submit support request"}
+            </button>
+          </form>
+
+          <div style={{ display: "flex", gap: 16, marginTop: 28, flexWrap: "wrap" }}>
+            <Link href="/legal/privacy">Privacy Policy</Link>
+            <Link href="/legal/terms">Terms</Link>
+            <Link href="/legal/aup">Acceptable Use Policy</Link>
           </div>
         </section>
       </div>
     </main>
   )
+}
+
+const inputStyle: React.CSSProperties = {
+  display: "block", width: "100%", boxSizing: "border-box", marginTop: 7,
+  padding: "12px 14px", border: "1px solid #d1d5db", borderRadius: 9,
+  background: "white", color: "#111827", font: "inherit"
 }
