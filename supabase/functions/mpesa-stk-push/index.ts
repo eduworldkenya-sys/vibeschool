@@ -1,15 +1,15 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
 
-const CONSUMER_KEY    = Deno.env.get("MPESA_CONSUMER_KEY") ?? ""
-const CONSUMER_SECRET = Deno.env.get("MPESA_CONSUMER_SECRET") ?? ""
-const SHORTCODE       = Deno.env.get("MPESA_SHORTCODE") ?? ""
-const PASSKEY         = Deno.env.get("MPESA_PASSKEY") ?? ""
-const MPESA_ENV       = Deno.env.get("MPESA_ENV") ?? "sandbox"
-const SUPABASE_URL    = Deno.env.get("SUPABASE_URL") ?? ""
+const CONSUMER_KEY     = Deno.env.get("MPESA_CONSUMER_KEY") ?? ""
+const CONSUMER_SECRET  = Deno.env.get("MPESA_CONSUMER_SECRET") ?? ""
+const SHORTCODE        = Deno.env.get("MPESA_SHORTCODE") ?? ""
+const PASSKEY          = Deno.env.get("MPESA_PASSKEY") ?? ""
+const MPESA_ENV        = Deno.env.get("MPESA_ENV") ?? "sandbox"
+const SUPABASE_URL     = Deno.env.get("SUPABASE_URL") ?? ""
 const SUPABASE_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-const APP_ORIGIN      = Deno.env.get("APP_ORIGIN") ?? "https://vibeschool.vercel.app"
-const CALLBACK_SECRET   = Deno.env.get("MPESA_CALLBACK_SECRET") ?? ""
+const APP_ORIGIN       = Deno.env.get("APP_ORIGIN") ?? "https://vibeschool.vercel.app"
+const CALLBACK_SECRET  = Deno.env.get("MPESA_CALLBACK_SECRET") ?? ""
 
 if (!SHORTCODE || !PASSKEY) {
   console.error("[mpesa-stk-push] CRITICAL: MPESA_SHORTCODE or MPESA_PASSKEY env vars not set")
@@ -36,7 +36,6 @@ function timestamp() {
 
 function formatPhone(raw: string): string | null {
   const cleaned = raw.replace(/\s/g, "")
-  // Only accept Safaricom Kenya numbers: 07XXXXXXXX or +2547XXXXXXXX or 2547XXXXXXXX
   if (/^\+2547\d{8}$/.test(cleaned)) return cleaned.slice(1)
   if (/^07\d{8}$/.test(cleaned))     return "254" + cleaned.slice(1)
   if (/^2547\d{8}$/.test(cleaned))   return cleaned
@@ -56,11 +55,10 @@ async function getToken(): Promise<string> {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
-  if (!SHORTCODE || !PASSKEY) {
+  if (!SHORTCODE || !PASSKEY || !CALLBACK_SECRET) {
     return json({ error: "Payment service misconfigured. Contact support." }, 503)
   }
 
-  // Auth
   const authHeader = req.headers.get("authorization") ?? ""
   const token = authHeader.replace("Bearer ", "").trim()
   if (!token) return json({ error: "Missing auth token" }, 401)
@@ -78,7 +76,6 @@ serve(async (req) => {
       return json({ error: "Invalid phone number. Please enter a Safaricom number (07XXXXXXXX)." }, 400)
     }
 
-    // Get package details
     const { data: pkg, error: pkgErr } = await adminClient
       .from("vibe_credit_packages")
       .select("id, name, price_kes, credits")
@@ -89,10 +86,7 @@ serve(async (req) => {
 
     const ts       = timestamp()
     const password = btoa(SHORTCODE + PASSKEY + ts)
-
-    // Callback URL — Supabase Edge Function (secret prevents spoofed callbacks)
-    const callbackUrl = SUPABASE_URL + "/functions/v1/mpesa-callback?secret=" + CALLBACK_SECRET
-
+    const callbackUrl = SUPABASE_URL + "/functions/v1/mpesa-callback?secret=" + encodeURIComponent(CALLBACK_SECRET)
     const mpesaToken = await getToken()
 
     const stkRes = await fetch(BASE_URL + "/mpesa/stkpush/v1/processrequest", {
@@ -117,29 +111,32 @@ serve(async (req) => {
     })
 
     const stkData = await stkRes.json()
-
     if (!stkRes.ok || stkData.ResponseCode !== "0") {
       console.error("[mpesa-stk-push] STK error:", JSON.stringify(stkData))
       return json({ error: stkData.errorMessage ?? stkData.ResponseDescription ?? "STK push failed" }, 502)
     }
 
-    // Store pending transaction
-    await adminClient.from("vibe_credit_transactions").insert({
-      teacher_id:    user.id,
-      type:          "purchase",
-      feature:       "mpesa",
-      amount:        pkg.credits,
-      balance_after: 0,
-      notes:         "PENDING — " + pkg.name,
-      mpesa_ref:     stkData.CheckoutRequestID,
+    const { error: pendingErr } = await adminClient.from("vibe_credit_transactions").insert({
+      teacher_id:       user.id,
+      type:             "purchase",
+      feature:          "mpesa",
+      amount:           pkg.credits,
+      balance_after:    0,
+      mpesa_amount_kes: pkg.price_kes,
+      notes:            "PENDING — " + pkg.name,
+      mpesa_ref:        stkData.CheckoutRequestID,
     })
+
+    if (pendingErr) {
+      console.error("[mpesa-stk-push] Failed to persist pending transaction:", pendingErr)
+      return json({ error: "Payment could not be initialized. Please try again." }, 500)
+    }
 
     return json({
       success:             true,
       checkout_request_id: stkData.CheckoutRequestID,
       message:             "STK push sent. Enter your M-Pesa PIN.",
     })
-
   } catch (err) {
     console.error("[mpesa-stk-push] Error:", err)
     return json({ error: String(err) }, 500)
