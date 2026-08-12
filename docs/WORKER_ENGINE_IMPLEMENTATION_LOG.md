@@ -1,211 +1,124 @@
 # Worker Engine Implementation Log
 
 Updated: 2026-08-12
-Active branch: `feat/worker-engine-reference-loop-20260812`
-Stacked PR: #91 on top of Worker Engine PR #90
+Active branch: `feat/worker-engine-we-l7-worker-factory-v2-20260812`
+Stacked PRs: #92 -> #91 -> #90
 
 ## Current mission
 
-Prove one bounded Operations reference worker can traverse the governed lifecycle and autonomously perform real Vibeschool work through deterministic authority, execution, verification, recovery and recertification controls.
+Build one governed autonomous Worker Engine that can detect sustained workforce need from Vibeschool telemetry, diagnose whether a new worker is actually justified, create a bounded digital worker only when earlier remedies are insufficient, qualify/certify it safely, activate it, route real work through the existing execution kernel, independently verify the outcome, and prefer reuse/rebalancing before creating duplicates.
 
-**Mission status: ✅ TARGET ACHIEVED ON WORK BRANCH / ISOLATED PREVIEW DATABASE**
+**Mission status: ✅ FUNCTIONALLY ACHIEVED ON WORK BRANCH / ISOLATED VALIDATION DATABASE**
 
-This does not mean broad autonomous worker generation is enabled. It means the reference-worker architecture is mechanically demonstrated and ready for protected promotion review.
+This does not mean unrestricted worker generation is enabled. The engine is intentionally template-governed and defaults OFF for autonomous scheduling/factory activation.
 
 ## WE-L1 — Authority & Lifecycle Convergence
-
 Status: ✅ VERIFIED COMPLETE ON WORK BRANCH
 
-Implemented and verified:
-- canonical contract registry primitive;
-- Blueprint + WorkerCreationContract authority ceilings;
-- canonical lifecycle event ledger and single transition writer;
-- compatibility mapping for legacy worker states without rewriting production rows;
-- expiring/revocable WorkerIdentity;
-- enforceable capability grants;
-- transactional worker execution budgets;
-- immutable issued contracts and lifecycle history;
-- approved-blueprint immutability;
-- capability/creation authority-ceiling enforcement;
-- negative tests for illegal lifecycle transitions, contract/blueprint/lifecycle tampering, missing identity/capability, budget exhaustion and immediate revocation.
-
-Original WE-L1 validation included migration-security, TBL-011, TBL-012, TypeScript/build and isolated SQL acceptance passes.
+Implemented: canonical contracts, Blueprint + WorkerCreationContract authority ceilings, canonical lifecycle ledger, expiring/revocable WorkerIdentity, enforceable capabilities, transactional budgets, immutable authority contracts, negative transition/identity/capability/budget tests.
 
 ## WE-L2 — Governed Execution Foundation
-
 Status: ✅ VERIFIED FOR REFERENCE-WORKER SCOPE
 
-Implemented and verified:
-- canonical TaskContract runtime;
-- allowlisted ToolContract registry;
-- idempotency keys;
-- lease/visibility timeout;
-- bounded retry/backoff and dead-letter handling;
-- transactional budget reservation/consume/release;
-- Tool Gateway checks active lifecycle, WorkerIdentity, certification, capability, exact semantic scope and budget before effects;
-- first real deterministic side-effect adapter: `work_item.triage_and_own`;
-- immutable TaskContract fields;
-- failed execution releases reserved budget;
-- duplicate idempotency is denied;
-- wrong-scope execution fails closed/dead-letters;
-- exhausted budget caps real execution.
-
-Semantic rule: a task reaching `completed` is execution evidence only. Business success is represented by independent verification.
+Implemented: TaskContract, ToolContract, idempotency, lease timeout, bounded retry/backoff, dead-letter handling, transactional budget reserve/consume/release, Tool Gateway, real deterministic `work_item.triage_and_own` side effect, independent verification requirement.
 
 ## WE-L3 — Shadow, Certification & Remediation
+Status: ✅ VERIFIED
 
-Status: ✅ VERIFIED FOR REFERENCE-WORKER SCOPE
-
-Implemented and verified:
-- production-effect-free SHADOW evidence records (`side_effects_applied=false` enforced);
-- minimum three independently verified shadow outcomes before certification;
-- worker cannot act as its own verifier;
-- certification issuance, expiry assertion and revocation;
-- certification records are immutable except allowed active -> revoked/expired transitions;
-- ACTIVE -> SUSPENDED -> REMEDIATION transition revokes certification, identity, capabilities and budgets;
-- remediation accepts fresh shadow-equivalent evidence;
-- recertification requires fresh evidence newer than the previous certification;
-- wall-clock timestamps are used for evidence/certification ordering to avoid PostgreSQL transaction-stable `now()` errors;
-- collision-proof UUID-backed certification keys;
-- recertified worker can be re-provisioned and successfully execute verified work again.
+Implemented: no-side-effect SHADOW evidence, 3 independently verified outcomes, no self-verification, certification/expiry/revocation, suspension/remediation, fresh-evidence recertification, wall-clock ordering, UUID-backed certification keys.
 
 ## WE-L4 — Autonomous Heartbeat
+Status: ✅ VERIFIED FOR BOUNDED OPERATIONS LOOP
 
-Status: ✅ VERIFIED FOR BOUNDED OPERATIONS REFERENCE LOOP
-
-Implemented and verified:
-- deterministic detector finds only eligible Operations work items;
-- approval-required work is not autonomously assigned;
-- non-Operations work is not autonomously assigned;
-- detector creates idempotent TaskContracts;
-- heartbeat performs detect -> execute -> verify in one bounded cycle;
-- verified work is marked `resolved` only after independent outcome verification passes;
-- revoked/non-certified worker cannot receive newly detected work;
-- heartbeat run history is guarded against deletion/tampering after completion;
-- governed scheduler entry point `hq_workforce_scheduled_heartbeat()` exists;
-- engine contract contains `heartbeat_enabled` and `heartbeat_limit`;
-- scheduler is **disabled by default**;
-- migration conditionally registers the heartbeat with `pg_cron` only when that extension exists.
-
-Preview limitation/evidence: the isolated preview project does not expose `pg_cron`, so cron registration itself was not executed there. The scheduled entry point was tested and correctly returned disabled state. The migration is fail-safe when `pg_cron` is absent.
+Implemented: deterministic eligible-work detection, idempotent task issuance, detect -> execute -> verify cycle, approval/non-Operations exclusion, scheduler entrypoint, default-OFF contract.
 
 ## WE-L5 — Deterministic-First Model Gateway
+Status: ✅ VERIFIED FOR AUTHORIZATION/ACCOUNTING
 
-Status: ✅ VERIFIED FOR BOUNDED AUTHORIZATION/ACCOUNTING
+Implemented: model use only after deterministic insufficiency evidence, active identity/certification checks, allowlisted reasons, token-budget reserve/release/consume, immutable model invocation state.
 
-Implemented and verified:
-- model use requires ACTIVE lifecycle, valid identity and valid certification;
-- reason code is allowlisted;
-- deterministic-failure evidence is mandatory before a model invocation can be authorized;
-- token budget is reserved transactionally;
-- failed model invocation releases reserved tokens;
-- successful invocation consumes reserved tokens;
-- model invocation core contract is immutable;
-- only authorized -> completed/failed is allowed;
-- Model Gateway cannot create worker authority or bypass Tool Gateway.
+## WE-L6 — Reference Operations Worker
+Status: ✅ VERIFIED
 
-No external model call is required to prove this governance layer; this phase verifies authorization and accounting boundaries, not model quality.
+Proved full lifecycle and adversarial recovery: bootstrap -> SHADOW -> certify -> ACTIVE -> real work -> independent verification; revocation/suspension/remediation/recertification; wrong scope/budget/self-verification/approval-required failures all fail closed.
 
-## WE-L6 — Operations Reference Worker
+## WE-L7 — Governed Worker Factory V2
+Status: ✅ VERIFIED
 
-Status: ✅ MISSION TARGET ACHIEVED
+Implemented sealed DemandEvidence, deterministic quantified diagnosis, creation allowed only for `create_digital_worker_probation`, bounded Blueprint/creation contract, paid-AI-off generation, allowlisted tool adapter, SHADOW-only creation, no live authority before certification, eliminate/train-existing paths create no worker.
 
-Reference trace proven in isolated preview:
+## WE-L8 — Telemetry-Driven Factory
+Status: ✅ VERIFIED
 
-```text
-bootstrap worker
--> approved Blueprint + WorkerCreationContract
--> REQUESTED
--> INSTANTIATED
--> PROVISIONED
--> SHADOW
--> 3 independently verified shadow outcomes
--> CERTIFICATION_PENDING
--> CERTIFIED
--> ACTIVE
--> provision identity/capability/budgets
--> heartbeat detects eligible Operations work
--> canonical TaskContract issued
--> Tool Gateway rechecks lifecycle/identity/certification/capability/scope/budget
--> real `hq_work_items` mutation
--> execution completes
--> independent deterministic verification
--> task verification = verified
--> work item = resolved + verified
-```
+Implemented immutable approved FactoryTemplate registry, authoritative demand metrics from runtime state, deterministic worker keys, factory default OFF, fail-closed behavior when no approved template exists.
 
-Adversarial/recovery trace proven:
+## WE-L9 — Autonomous Qualification + Generic Dispatch
+Status: ✅ VERIFIED
 
-```text
-self-verification -> denied
-approval-required work -> not assigned
-wrong department -> not assigned
-TaskContract tamper -> denied
-wrong scope -> denied/dead-lettered
-budget exhausted -> further real execution denied
-AI without deterministic-failure evidence -> denied
-failed model call -> budget released
-successful bounded model authorization -> budget consumed
-suspend worker -> certification/identity/capabilities/budgets revoked
-new work while revoked -> not assigned
-REMEDIATION -> 3 fresh verified remediation outcomes
--> recertification
--> new identity/capability/budget
--> ACTIVE
--> post-remediation autonomous work -> executed + independently verified + resolved
-verification evidence deletion -> denied
-completed heartbeat tamper -> denied
-```
+Implemented immutable qualification cases, deterministic shadow executor, governance qualification heartbeat, independent certification, identity/capability/budget provisioning, generic capability-based Operations dispatch, independent verification of completed work.
 
-## Repository and runtime audit evidence
+## WE-L10 — Reuse Before Create
+Status: ✅ VERIFIED
 
-Runtime/database-tested hardened head: `a79e61de1591a0d3f96f9ed3c05aba58f2afe0c8`.
+Adversarial test exposed duplicate creation despite existing capable worker. Repaired by making active certified capacity authoritative evidence for `rebalance_capacity` and enforcing FactoryTemplate `max_live_workers`. Retest produced `rebalance_lanes` and zero new worker creation.
 
-- TBL-011 Isolated Clean Rebuild: ✅ PASS on runtime head `a79e61de...` (run 374).
-- TBL-012 M(repo) extractor: ✅ PASS on runtime head `a79e61de...` (run 49).
-- All WE-L3..WE-L6 migrations applied successfully in the isolated Supabase preview project.
-- Full reference-worker mission acceptance: ✅ PASS.
-- Budget/scope attack fixture: ✅ PASS.
-- Post-hardening heartbeat/model/tamper fixture: ✅ PASS.
-- New runtime evidence tables inspected: RLS enabled, zero direct RLS policies.
-- Key new privileged Worker Engine routines expose no `PUBLIC`, `anon` or `authenticated` execute grants.
-- New runtime tables expose service-role access only in the inspected preview state.
+## WE-L11 — Sustained Demand Sensor
+Status: ✅ VERIFIED
 
-Documentation-only commits after `a79e61de...` record this evidence and do not alter the validated runtime migrations/tests. PR #91 remains open, draft and mergeable; final promotion remains separate from mission proof.
+Implemented deterministic backlog sensor from real `hq_work_items`: 5+ eligible items, oldest >=15 minutes, 3 observations within 15 minutes, 60-minute emission cooldown, one-off spike rejection, sustained backlog -> capacity gap with provenance.
 
-TypeScript/build is not used as the stopping criterion for this database-first reference mission. It remains a promotion gate before eventual merge to `main`.
+Full autonomous chain proven: real backlog -> sensor -> gap -> diagnosis -> worker -> SHADOW -> qualification -> certification -> ACTIVE -> real work -> independent verification -> resolved.
 
-## Security invariants demonstrated
+## WE-L12 — Single Runtime Entrypoint
+Status: ✅ VERIFIED
 
-1. Execution cannot occur without identity.
-2. Execution cannot occur without valid certification.
-3. Execution cannot occur outside ACTIVE lifecycle.
-4. Execution cannot occur without capability.
-5. Execution cannot exceed exact task/capability scope.
-6. Execution cannot exceed transactional budget.
-7. Tool execution is allowlisted rather than arbitrary SQL/function execution.
-8. Shadow work cannot claim production effects.
-9. Worker cannot certify/verify itself.
-10. Business success requires independent outcome verification.
-11. Revocation removes live authority immediately.
-12. Remediation requires fresh evidence before recertification.
-13. AI authorization requires proof that deterministic handling was insufficient plus token budget.
-14. Core contracts/evidence are mechanically protected from mutation.
-15. Autonomous heartbeat is bounded and independently switchable, default OFF.
+Positive service-role orchestration is reduced to `hq_workforce_scheduled_heartbeat()`. Low-level factory/diagnosis/qualification/dispatch/sensor/lifecycle functions are not directly executable by service_role.
+
+## WE-L13 — Legacy Lifecycle Bypass Closure
+Status: ✅ VERIFIED
+
+Legacy `hq_workforce_certify_probation_workers()` service-role bypass closed. Direct lifecycle transition, shadow evidence insertion, certification issuance and reference bootstrap are also denied to service_role. Canonical CERTIFIED/ACTIVE transition requires valid certification.
+
+## Final access/security audit
+
+In isolated validation state:
+- `hq_workforce_scheduled_heartbeat()` service_role EXECUTE: true
+- direct lifecycle transition: false
+- direct shadow record: false
+- direct certification issue: false
+- legacy probation certifier: false
+- reference bootstrap: false
+
+All six autonomous-factory tables audited are RLS-on with zero direct policies.
+
+Three externally callable non-runtime-authority helpers were reviewed:
+- `hq_workforce_decide(...)`: authenticated but calls `hq_assert_owner()` before mutation;
+- `hq_workforce_list_decisions(...)`: authenticated but calls `hq_assert_owner()` before reading decisions;
+- `hq_workforce_test_context_health(...)`: immutable pure calculation, no DB reads/side effects.
+
+They do not grant worker creation/lifecycle/certification/execution authority.
+
+## Repository evidence
+
+Runtime hardening head: `5d59e724f4a3f0d3c12e893802e420e488f05dd1`.
+Exact PR head before this log update: `bda6d045fccb31c728ecd7d85f7a23a47fe137f0`.
+
+On exact PR head `bda6d045...`:
+- TBL-011 Isolated Clean Rebuild: ✅ PASS, run 394 (`31624268245`).
+- TBL-012 M(repo) extractor: ✅ PASS, run 69 (`31624268165`).
+
+The earlier TBL-011 failure on `5d59e724...` was GitHub/Supabase CLI download infrastructure (`socket hang up`), not PostgreSQL. Its rerun passed.
 
 ## Production status
 
 **NOT MERGED / NOT DEPLOYED.**
 
-- `main` remains untouched by this mission branch.
-- production Supabase remains untouched by WE-L1..WE-L6 migrations.
-- Vercel remains untouched.
-- autonomous heartbeat remains disabled by default even when the migrations are eventually applied.
+- PR #92 remains draft.
+- main untouched by this Worker Engine mission.
+- production Supabase untouched by this Worker Engine mission.
+- Vercel untouched.
+- autonomous scheduler/factory remain default OFF.
 
-## Current boundary / next mission
+## Boundary after WE-L13
 
-The current reference-worker mission is complete. The next distinct mission is **WE-L7 Worker Factory V2 / autonomous workforce generation**, which must build on this proven kernel:
-
-DemandEvidence -> diagnose eliminate/redesign/automate/train/rebalance/temp/human/new-worker -> approved creation contract -> generate -> provision -> SHADOW -> verify -> certify -> ACTIVE.
-
-WE-L7 is deliberately **not** marked complete here and should not be enabled until PR #90/#91 are reviewed/promoted through the protected workflow.
+The engine now satisfies the original bounded autonomy target for the approved Operations FactoryTemplate. The next distinct expansion is not more kernel architecture; it is controlled scale-out: additional approved worker templates/certified tool adapters/qualification suites, workforce forecasting/retirement/capacity policy, and eventual protected promotion. Unknown worker types continue to fail closed.
