@@ -38,21 +38,21 @@ export async function getPublicCourseOutline(slug: string) {
   if (!course) return null
   const modules = await select<PublicModule>('modules', `select=id,slug,title,course_id,sequence_number,weeks_label&course_id=eq.${encodeURIComponent(course.id)}&order=sequence_number.asc`)
   if (modules.length === 0) return { course, modules: [] as Array<PublicModule & { topics: PublicTopic[] }> }
-  const moduleIds = modules.map(module => module.id)
+  const moduleIds = modules.map(publicModule => publicModule.id)
   const topics = await select<PublicTopic>('topics', `select=id,module_id,slug,title,subtitle,content_status,sequence_number,week_number&module_id=in.(${moduleIds.join(',')})&content_status=eq.published&order=sequence_number.asc`)
-  return { course, modules: modules.map(module => ({ ...module, topics: topics.filter(topic => topic.module_id === module.id) })) }
+  return { course, modules: modules.map(publicModule => ({ ...publicModule, topics: topics.filter(topic => topic.module_id === publicModule.id) })) }
 }
 
 export async function getPublicTopic(courseSlug: string, moduleSlug: string, topicSlug: string) {
   const course = await getPublicCourse(courseSlug)
   if (!course) return null
   const modules = await select<PublicModule>('modules', `select=id,slug,title,course_id,sequence_number,weeks_label&course_id=eq.${encodeURIComponent(course.id)}&slug=eq.${encodeURIComponent(moduleSlug)}&limit=1`)
-  const module = modules[0]
-  if (!module) return null
-  const topics = await select<PublicTopic>('topics', `select=id,module_id,slug,title,subtitle,content_status,sequence_number,week_number,concept_tab,kenya_context_tab,common_errors_tab,clinical_tip_tab&module_id=eq.${encodeURIComponent(module.id)}&slug=eq.${encodeURIComponent(topicSlug)}&content_status=eq.published&limit=1`)
+  const publicModule = modules[0]
+  if (!publicModule) return null
+  const topics = await select<PublicTopic>('topics', `select=id,module_id,slug,title,subtitle,content_status,sequence_number,week_number,concept_tab,kenya_context_tab,common_errors_tab,clinical_tip_tab&module_id=eq.${encodeURIComponent(publicModule.id)}&slug=eq.${encodeURIComponent(topicSlug)}&content_status=eq.published&limit=1`)
   const topic = topics[0]
   if (!topic) return null
-  return { course, module, topic }
+  return { course, module: publicModule, topic }
 }
 
 export function canonicalUrl(path: string) { return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}` }
