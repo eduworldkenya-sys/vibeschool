@@ -92,4 +92,13 @@ grant select, insert, update, delete on table public.internal_jobs to service_ro
 """
 require(errors_for(service_only) == [], "declared service-only table must pass")
 
+statement_boundary = """
+grant all privileges on table public.internal_jobs to service_role;
+grant select on table public.secure_items to authenticated;
+"""
+require(
+    not any("blanket GRANT ALL" in error for error in errors_for(statement_boundary)),
+    "GRANT ALL to service_role must not bleed into a later authenticated grant",
+)
+
 print("PASS: Supabase migration contract guard rejects unsafe table migrations")
