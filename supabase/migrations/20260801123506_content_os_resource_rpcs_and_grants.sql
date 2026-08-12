@@ -185,13 +185,6 @@ grant execute on function public.link_learning_resource(uuid,text,uuid,text,inte
 grant execute on function public.list_teaching_resources(text,uuid) to authenticated, service_role;
 grant execute on function public.unlink_learning_resource(uuid) to authenticated, service_role;
 
-revoke execute on function public.list_scheme_lesson_resources(uuid) from public, anon;
-revoke execute on function public.upsert_scheme_lesson_resource(uuid,uuid,uuid,text,integer,integer,integer,jsonb) from public, anon;
-revoke execute on function public.remove_scheme_lesson_resource(uuid) from public, anon;
-revoke execute on function public.recommend_textbook_chapters_for_scheme_lesson(uuid,integer) from public, anon;
-revoke execute on function public.assign_scheme_resource_to_class(uuid,uuid,timestamptz) from public, anon;
-grant execute on function public.list_scheme_lesson_resources(uuid) to authenticated, service_role;
-grant execute on function public.upsert_scheme_lesson_resource(uuid,uuid,uuid,text,integer,integer,integer,jsonb) to authenticated, service_role;
-grant execute on function public.remove_scheme_lesson_resource(uuid) to authenticated, service_role;
-grant execute on function public.recommend_textbook_chapters_for_scheme_lesson(uuid,integer) to authenticated, service_role;
-grant execute on function public.assign_scheme_resource_to_class(uuid,uuid,timestamptz) to authenticated, service_role;
+-- Scheme-resource RPC privileges are applied by CE-008 after the concrete
+-- functions are created. Three legacy names previously listed here never had
+-- definitions in repository history and are intentionally not fabricated.

@@ -61,6 +61,9 @@ required_workflow = {
     "verification SQL execution": (
         "-f scripts/sql/tbl011_clean_rebuild_verify.sql"
     ),
+    "internal privilege verification": (
+        "-f scripts/sql/verify_internal_function_privileges.sql"
+    ),
     "TBL-012 rebuilt snapshot execution": (
         "-f scripts/sql/tbl012_core_schema_snapshot.sql"
     ),
@@ -89,6 +92,7 @@ for forbidden in (
     "SUPABASE_ACCESS_TOKEN",
     "SUPABASE_DB_PASSWORD",
     "SUPABASE_PROJECT_ID",
+    "supabase functions deploy",
     "environment: production",
     "environment: production-migration-repair",
 ):

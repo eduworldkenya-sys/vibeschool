@@ -1,0 +1,10 @@
+# Release-sensitive controls require repository-owner review.
+/AGENTS.md @eduworldkenya-sys
+/docs/engineering/PROTECTED_WORKFLOW.md @eduworldkenya-sys
+/vercel.json @eduworldkenya-sys
+/.github/CODEOWNERS @eduworldkenya-sys
+/.github/pull_request_template.md @eduworldkenya-sys
+/.github/workflows/ @eduworldkenya-sys
+/netlify.toml @eduworldkenya-sys
+/supabase/config.toml @eduworldkenya-sys
+/supabase/migrations/ @eduworldkenya-sys

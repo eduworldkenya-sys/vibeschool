@@ -227,6 +227,17 @@ begin
 end;
 $$;
 
+revoke execute on function public.list_scheme_lesson_resources(uuid)
+  from public, anon;
+revoke execute on function public.upsert_scheme_lesson_resource(
+  uuid,uuid,uuid,text,integer,integer,integer,jsonb
+) from public, anon;
+grant execute on function public.list_scheme_lesson_resources(uuid)
+  to authenticated, service_role;
+grant execute on function public.upsert_scheme_lesson_resource(
+  uuid,uuid,uuid,text,integer,integer,integer,jsonb
+) to authenticated, service_role;
+
 insert into public.content_engine_authorities(domain,authoritative_table,authority_role,derived_tables,notes)
 values(
   'scheme_resource',

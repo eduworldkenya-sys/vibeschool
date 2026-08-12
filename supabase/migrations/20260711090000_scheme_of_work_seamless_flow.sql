@@ -25,8 +25,26 @@ alter table content_preferences enable row level security;
 create policy "teacher manages own override" on content_preferences
   for all using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
 create policy "admin manages school default" on content_preferences
-  for all using (teacher_id is null and get_my_role() in ('admin','head_teacher'))
-  with check (teacher_id is null and get_my_role() in ('admin','head_teacher'));
+  for all using (
+    teacher_id is null
+    and exists (
+      select 1
+      from public.profiles p
+      where p.id = auth.uid()
+        and p.school_id = content_preferences.school_id
+        and p.role in ('admin', 'head_teacher')
+    )
+  )
+  with check (
+    teacher_id is null
+    and exists (
+      select 1
+      from public.profiles p
+      where p.id = auth.uid()
+        and p.school_id = content_preferences.school_id
+        and p.role in ('admin', 'head_teacher')
+    )
+  );
 
 -- A3: scheme_of_work un-deprecated, TSC-mandated columns added
 comment on table scheme_of_work is null;
@@ -35,6 +53,9 @@ alter table scheme_of_work add column if not exists reflection text;
 alter table scheme_of_work add column if not exists curriculum_content_id uuid references curriculum_content(id) on delete set null;
 
 -- A4: lesson_plans.curriculum_id becomes derived from scheme_id
+alter table lesson_plans add column if not exists scheme_id uuid
+  references scheme_of_work(id) on delete set null;
+
 create or replace function sync_lesson_plan_curriculum_from_scheme()
 returns trigger language plpgsql as $$
 begin
