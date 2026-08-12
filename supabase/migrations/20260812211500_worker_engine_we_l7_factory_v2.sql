@@ -7,166 +7,53 @@
 -- authorization-test: public.hq_workforce_factory_runs anon/authenticated denied; service_role only.
 
 create table public.hq_workforce_demand_evidence (
- id uuid primary key default gen_random_uuid(),
- evidence_key text not null unique,
+ id uuid primary key default gen_random_uuid(), evidence_key text not null unique,
  gap_id uuid not null references public.hq_workforce_gap_signals(id) on delete restrict,
- lane_key text not null,
- source_type text not null,
- source_ref text not null,
- metrics jsonb not null,
- evidence_hash text generated always as (encode(digest(metrics::text,'sha256'),'hex')) stored,
+ lane_key text not null, source_type text not null, source_ref text not null, metrics jsonb not null,
+ evidence_hash text generated always as (encode(extensions.digest(metrics::text,'sha256'),'hex')) stored,
  status text not null default 'sealed' check(status in ('sealed','consumed','rejected')),
- sealed_at timestamptz not null default clock_timestamp(),
- consumed_at timestamptz
+ sealed_at timestamptz not null default clock_timestamp(), consumed_at timestamptz
 );
-
 create table public.hq_workforce_factory_runs (
- id uuid primary key default gen_random_uuid(),
- run_key text not null unique,
+ id uuid primary key default gen_random_uuid(), run_key text not null unique,
  demand_evidence_id uuid not null references public.hq_workforce_demand_evidence(id) on delete restrict,
  diagnosis_id uuid not null references public.hq_workforce_hr_diagnoses(id) on delete restrict,
- decision text not null,
- worker_key text,
+ decision text not null, worker_key text,
  blueprint_id uuid references public.hq_workforce_blueprints(id) on delete restrict,
  creation_contract_id uuid references public.hq_workforce_creation_contracts(id) on delete restrict,
  tool_contract_id uuid references public.hq_workforce_tool_contracts(id) on delete restrict,
- result jsonb not null default '{}'::jsonb,
- created_at timestamptz not null default clock_timestamp(),
- completed_at timestamptz
+ result jsonb not null default '{}'::jsonb, created_at timestamptz not null default clock_timestamp(), completed_at timestamptz
 );
+create unique index hq_workforce_factory_one_creation_per_evidence_idx on public.hq_workforce_factory_runs(demand_evidence_id) where decision='create_digital_worker_probation';
 
-create unique index hq_workforce_factory_one_creation_per_evidence_idx
- on public.hq_workforce_factory_runs(demand_evidence_id)
- where decision='create_digital_worker_probation';
-
-create or replace function public.hq_workforce_seal_demand_evidence(
- p_gap_id uuid,
- p_metrics jsonb
-) returns uuid
-language plpgsql security definer set search_path=public,pg_temp as $$
+create or replace function public.hq_workforce_seal_demand_evidence(p_gap_id uuid,p_metrics jsonb) returns uuid language plpgsql security definer set search_path=public,pg_temp as $$
 declare g public.hq_workforce_gap_signals%rowtype; v_id uuid; v_key text;
 begin
- select * into g from public.hq_workforce_gap_signals where id=p_gap_id for update;
- if not found then raise exception 'gap_not_found'; end if;
- if g.lane_key is null then raise exception 'gap_lane_required'; end if;
- if g.status not in ('candidate','accepted') then raise exception 'gap_not_open_for_diagnosis'; end if;
+ select * into g from public.hq_workforce_gap_signals where id=p_gap_id for update; if not found then raise exception 'gap_not_found'; end if;
+ if g.lane_key is null then raise exception 'gap_lane_required'; end if; if g.status not in ('candidate','accepted') then raise exception 'gap_not_open_for_diagnosis'; end if;
  if jsonb_typeof(coalesce(p_metrics,'{}'::jsonb))<>'object' then raise exception 'demand_metrics_object_required'; end if;
  if coalesce((p_metrics->>'downstream_dependency_count')::int,0)<0 then raise exception 'invalid_dependency_count'; end if;
  if coalesce((p_metrics->>'verified_impact')::numeric,0)<0 then raise exception 'invalid_verified_impact'; end if;
- v_key:='demand:'||p_gap_id::text||':'||encode(digest(coalesce(p_metrics,'{}'::jsonb)::text,'sha256'),'hex');
- insert into public.hq_workforce_demand_evidence(evidence_key,gap_id,lane_key,source_type,source_ref,metrics)
- values(v_key,g.id,g.lane_key,g.source_type,g.source_ref,coalesce(p_metrics,'{}'::jsonb))
- on conflict(evidence_key) do update set evidence_key=excluded.evidence_key
- returning id into v_id;
- return v_id;
+ v_key:='demand:'||p_gap_id::text||':'||encode(extensions.digest(coalesce(p_metrics,'{}'::jsonb)::text,'sha256'),'hex');
+ insert into public.hq_workforce_demand_evidence(evidence_key,gap_id,lane_key,source_type,source_ref,metrics) values(v_key,g.id,g.lane_key,g.source_type,g.source_ref,coalesce(p_metrics,'{}'::jsonb)) on conflict(evidence_key) do update set evidence_key=excluded.evidence_key returning id into v_id; return v_id;
 end $$;
-
-create or replace function public.hq_workforce_factory_diagnose(p_demand_evidence_id uuid)
-returns uuid language plpgsql security definer set search_path=public,pg_temp as $$
-declare d public.hq_workforce_demand_evidence%rowtype; v_diag uuid;
-begin
- select * into d from public.hq_workforce_demand_evidence where id=p_demand_evidence_id for update;
- if not found then raise exception 'demand_evidence_not_found'; end if;
- if d.status<>'sealed' then raise exception 'demand_evidence_not_sealed'; end if;
- v_diag:=public.hq_workforce_quantified_diagnosis(d.gap_id,d.metrics);
- return v_diag;
-end $$;
-
-create or replace function public.hq_workforce_factory_create_shadow_worker(
- p_demand_evidence_id uuid,
- p_diagnosis_id uuid,
- p_worker_key text,
- p_title text,
- p_mission text,
- p_capability_key text,
- p_operation text,
- p_resource_type text,
- p_scope_type text default 'platform_internal',
- p_scope_ref jsonb default '{}'::jsonb
-) returns jsonb
-language plpgsql security definer set search_path=public,pg_temp as $$
+create or replace function public.hq_workforce_factory_diagnose(p_demand_evidence_id uuid) returns uuid language plpgsql security definer set search_path=public,pg_temp as $$ declare d public.hq_workforce_demand_evidence%rowtype; v_diag uuid; begin select * into d from public.hq_workforce_demand_evidence where id=p_demand_evidence_id for update; if not found then raise exception 'demand_evidence_not_found'; end if; if d.status<>'sealed' then raise exception 'demand_evidence_not_sealed'; end if; v_diag:=public.hq_workforce_quantified_diagnosis(d.gap_id,d.metrics); return v_diag; end $$;
+create or replace function public.hq_workforce_factory_create_shadow_worker(p_demand_evidence_id uuid,p_diagnosis_id uuid,p_worker_key text,p_title text,p_mission text,p_capability_key text,p_operation text,p_resource_type text,p_scope_type text default 'platform_internal',p_scope_ref jsonb default '{}'::jsonb) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare d public.hq_workforce_demand_evidence%rowtype; dx public.hq_workforce_hr_diagnoses%rowtype; v_bp uuid; v_cc uuid; v_tool uuid; v_run uuid;
 begin
- if coalesce(trim(p_worker_key),'')='' or coalesce(trim(p_title),'')='' or coalesce(trim(p_mission),'')='' then raise exception 'worker_identity_fields_required'; end if;
- if p_scope_type not in ('platform_internal','global','school','multi_school') then raise exception 'invalid_scope_type'; end if;
- select * into d from public.hq_workforce_demand_evidence where id=p_demand_evidence_id for update;
- if not found or d.status<>'sealed' then raise exception 'sealed_demand_evidence_required'; end if;
- select * into dx from public.hq_workforce_hr_diagnoses where id=p_diagnosis_id and gap_id=d.gap_id;
- if not found then raise exception 'diagnosis_demand_mismatch'; end if;
- if dx.decision<>'create_digital_worker_probation' then raise exception 'new_worker_not_justified:%',dx.decision; end if;
- if exists(select 1 from public.hq_workforce_factory_runs where demand_evidence_id=d.id and decision='create_digital_worker_probation') then raise exception 'demand_already_created_worker'; end if;
- if exists(select 1 from public.hq_workforce_workers where worker_key=p_worker_key) then raise exception 'worker_key_already_exists'; end if;
- if exists(select 1 from public.hq_workforce_workers w where w.department_key=d.lane_key and w.status in ('probation','active') and w.permissions @> jsonb_build_array(p_capability_key)) then raise exception 'equivalent_worker_already_available'; end if;
-
- insert into public.hq_workforce_workers(worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,paid_ai_allowed,permissions)
- values(p_worker_key,'digital',p_title,d.lane_key,p_mission,'draft','deterministic',false,jsonb_build_array(p_capability_key));
- insert into public.hq_workforce_blueprints(blueprint_key,version,title,mission,authority_ceiling,required_capabilities,scope_type,scope_ref,status,approved_at)
- values(p_worker_key||'_bp',1,p_title||' Blueprint',p_mission,jsonb_build_array(p_capability_key),jsonb_build_array(p_capability_key),p_scope_type,coalesce(p_scope_ref,'{}'::jsonb),'approved',clock_timestamp()) returning id into v_bp;
- insert into public.hq_workforce_creation_contracts(contract_key,worker_key,blueprint_id,authority_ceiling,scope_type,scope_ref,expires_at)
- values(p_worker_key||'_creation',p_worker_key,v_bp,jsonb_build_array(p_capability_key),p_scope_type,coalesce(p_scope_ref,'{}'::jsonb),clock_timestamp()+interval '30 days') returning id into v_cc;
- perform public.hq_workforce_transition_worker(p_worker_key,'requested','WE-L7 demand evidence accepted',null);
- perform public.hq_workforce_transition_worker(p_worker_key,'instantiated','WE-L7 creation contract issued',v_cc);
- perform public.hq_workforce_transition_worker(p_worker_key,'provisioned','WE-L7 bounded provisioning',v_cc);
- perform public.hq_workforce_transition_worker(p_worker_key,'shadow','WE-L7 mandatory shadow entry',v_cc);
-
- if p_capability_key='work_item.triage' and p_operation='update' and p_resource_type='hq_work_items' then
-   insert into public.hq_workforce_tool_contracts(tool_key,version,title,handler_key,required_capability_key,operation,resource_type,side_effect_class,status,approved_at)
-   values(p_worker_key||'_triage',1,p_title||' triage tool','work_item.triage_and_own',p_capability_key,p_operation,p_resource_type,'internal_write','approved',clock_timestamp()) returning id into v_tool;
- else
-   raise exception 'no_certified_tool_adapter_for_requested_capability';
- end if;
-
- insert into public.hq_workforce_factory_runs(run_key,demand_evidence_id,diagnosis_id,decision,worker_key,blueprint_id,creation_contract_id,tool_contract_id,result,completed_at)
- values('factory:'||d.id::text,d.id,dx.id,dx.decision,p_worker_key,v_bp,v_cc,v_tool,jsonb_build_object('state','shadow','paid_ai_allowed',false,'creation_reason',dx.reason),clock_timestamp()) returning id into v_run;
- update public.hq_workforce_demand_evidence set status='consumed',consumed_at=clock_timestamp() where id=d.id;
- return jsonb_build_object('factory_run_id',v_run,'worker_key',p_worker_key,'blueprint_id',v_bp,'creation_contract_id',v_cc,'tool_contract_id',v_tool,'state','shadow');
+ if coalesce(trim(p_worker_key),'')='' or coalesce(trim(p_title),'')='' or coalesce(trim(p_mission),'')='' then raise exception 'worker_identity_fields_required'; end if; if p_scope_type not in ('platform_internal','global','school','multi_school') then raise exception 'invalid_scope_type'; end if;
+ select * into d from public.hq_workforce_demand_evidence where id=p_demand_evidence_id for update; if not found or d.status<>'sealed' then raise exception 'sealed_demand_evidence_required'; end if;
+ select * into dx from public.hq_workforce_hr_diagnoses where id=p_diagnosis_id and gap_id=d.gap_id; if not found then raise exception 'diagnosis_demand_mismatch'; end if; if dx.decision<>'create_digital_worker_probation' then raise exception 'new_worker_not_justified:%',dx.decision; end if;
+ if exists(select 1 from public.hq_workforce_factory_runs where demand_evidence_id=d.id and decision='create_digital_worker_probation') then raise exception 'demand_already_created_worker'; end if; if exists(select 1 from public.hq_workforce_workers where worker_key=p_worker_key) then raise exception 'worker_key_already_exists'; end if;
+ insert into public.hq_workforce_workers(worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,paid_ai_allowed,permissions) values(p_worker_key,'digital',p_title,d.lane_key,p_mission,'draft','deterministic',false,jsonb_build_array(p_capability_key));
+ insert into public.hq_workforce_blueprints(blueprint_key,version,title,mission,authority_ceiling,required_capabilities,scope_type,scope_ref,status,approved_at) values(p_worker_key||'_bp',1,p_title||' Blueprint',p_mission,jsonb_build_array(p_capability_key),jsonb_build_array(p_capability_key),p_scope_type,coalesce(p_scope_ref,'{}'::jsonb),'approved',clock_timestamp()) returning id into v_bp;
+ insert into public.hq_workforce_creation_contracts(contract_key,worker_key,blueprint_id,authority_ceiling,scope_type,scope_ref,expires_at) values(p_worker_key||'_creation',p_worker_key,v_bp,jsonb_build_array(p_capability_key),p_scope_type,coalesce(p_scope_ref,'{}'::jsonb),clock_timestamp()+interval '30 days') returning id into v_cc;
+ perform public.hq_workforce_transition_worker(p_worker_key,'requested','WE-L7 demand evidence accepted',null); perform public.hq_workforce_transition_worker(p_worker_key,'instantiated','WE-L7 creation contract issued',v_cc); perform public.hq_workforce_transition_worker(p_worker_key,'provisioned','WE-L7 bounded provisioning',v_cc); perform public.hq_workforce_transition_worker(p_worker_key,'shadow','WE-L7 mandatory shadow entry',v_cc);
+ if p_capability_key='work_item.triage' and p_operation='update' and p_resource_type='hq_work_items' then insert into public.hq_workforce_tool_contracts(tool_key,version,title,handler_key,required_capability_key,operation,resource_type,side_effect_class,status,approved_at) values(p_worker_key||'_triage',1,p_title||' triage tool','work_item.triage_and_own',p_capability_key,p_operation,p_resource_type,'internal_write','approved',clock_timestamp()) returning id into v_tool; else raise exception 'no_certified_tool_adapter_for_requested_capability'; end if;
+ insert into public.hq_workforce_factory_runs(run_key,demand_evidence_id,diagnosis_id,decision,worker_key,blueprint_id,creation_contract_id,tool_contract_id,result,completed_at) values('factory:'||d.id::text,d.id,dx.id,dx.decision,p_worker_key,v_bp,v_cc,v_tool,jsonb_build_object('state','shadow','paid_ai_allowed',false,'creation_reason',dx.reason),clock_timestamp()) returning id into v_run; update public.hq_workforce_demand_evidence set status='consumed',consumed_at=clock_timestamp() where id=d.id; return jsonb_build_object('factory_run_id',v_run,'worker_key',p_worker_key,'blueprint_id',v_bp,'creation_contract_id',v_cc,'tool_contract_id',v_tool,'state','shadow');
 end $$;
-
-create or replace function public.hq_workforce_factory_cycle(
- p_gap_id uuid,
- p_metrics jsonb,
- p_worker_key text,
- p_title text,
- p_mission text,
- p_capability_key text default 'work_item.triage',
- p_operation text default 'update',
- p_resource_type text default 'hq_work_items'
-) returns jsonb
-language plpgsql security definer set search_path=public,pg_temp as $$
-declare v_demand uuid; v_diag uuid; v_decision text;
-begin
- v_demand:=public.hq_workforce_seal_demand_evidence(p_gap_id,p_metrics);
- v_diag:=public.hq_workforce_factory_diagnose(v_demand);
- select decision into v_decision from public.hq_workforce_hr_diagnoses where id=v_diag;
- if v_decision<>'create_digital_worker_probation' then
-   update public.hq_workforce_demand_evidence set status='rejected',consumed_at=clock_timestamp() where id=v_demand;
-   insert into public.hq_workforce_factory_runs(run_key,demand_evidence_id,diagnosis_id,decision,result,completed_at)
-   values('factory:'||v_demand::text,v_demand,v_diag,v_decision,jsonb_build_object('worker_created',false,'decision',v_decision),clock_timestamp());
-   return jsonb_build_object('worker_created',false,'decision',v_decision,'demand_evidence_id',v_demand,'diagnosis_id',v_diag);
- end if;
- return public.hq_workforce_factory_create_shadow_worker(v_demand,v_diag,p_worker_key,p_title,p_mission,p_capability_key,p_operation,p_resource_type,'platform_internal','{}'::jsonb)
-   || jsonb_build_object('worker_created',true,'decision',v_decision,'demand_evidence_id',v_demand,'diagnosis_id',v_diag);
-end $$;
-
-create or replace function public.hq_workforce_guard_demand_evidence_mutation()
-returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
-begin
- if tg_op='DELETE' then raise exception 'demand_evidence_delete_forbidden'; end if;
- if (new.evidence_key,new.gap_id,new.lane_key,new.source_type,new.source_ref,new.metrics,new.sealed_at)
-    is distinct from (old.evidence_key,old.gap_id,old.lane_key,old.source_type,old.source_ref,old.metrics,old.sealed_at) then raise exception 'sealed_demand_evidence_immutable'; end if;
- if old.status<>new.status and not (old.status='sealed' and new.status in ('consumed','rejected')) then raise exception 'illegal_demand_evidence_status_transition'; end if;
- return new;
-end $$;
+create or replace function public.hq_workforce_factory_cycle(p_gap_id uuid,p_metrics jsonb,p_worker_key text,p_title text,p_mission text,p_capability_key text default 'work_item.triage',p_operation text default 'update',p_resource_type text default 'hq_work_items') returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$ declare v_demand uuid; v_diag uuid; v_decision text; begin v_demand:=public.hq_workforce_seal_demand_evidence(p_gap_id,p_metrics); v_diag:=public.hq_workforce_factory_diagnose(v_demand); select decision into v_decision from public.hq_workforce_hr_diagnoses where id=v_diag; if v_decision<>'create_digital_worker_probation' then update public.hq_workforce_demand_evidence set status='rejected',consumed_at=clock_timestamp() where id=v_demand; insert into public.hq_workforce_factory_runs(run_key,demand_evidence_id,diagnosis_id,decision,result,completed_at) values('factory:'||v_demand::text,v_demand,v_diag,v_decision,jsonb_build_object('worker_created',false,'decision',v_decision),clock_timestamp()); return jsonb_build_object('worker_created',false,'decision',v_decision,'demand_evidence_id',v_demand,'diagnosis_id',v_diag); end if; return public.hq_workforce_factory_create_shadow_worker(v_demand,v_diag,p_worker_key,p_title,p_mission,p_capability_key,p_operation,p_resource_type,'platform_internal','{}'::jsonb)||jsonb_build_object('worker_created',true,'decision',v_decision,'demand_evidence_id',v_demand,'diagnosis_id',v_diag); end $$;
+create or replace function public.hq_workforce_guard_demand_evidence_mutation() returns trigger language plpgsql security definer set search_path=public,pg_temp as $$ begin if tg_op='DELETE' then raise exception 'demand_evidence_delete_forbidden'; end if; if (new.evidence_key,new.gap_id,new.lane_key,new.source_type,new.source_ref,new.metrics,new.sealed_at) is distinct from (old.evidence_key,old.gap_id,old.lane_key,old.source_type,old.source_ref,old.metrics,old.sealed_at) then raise exception 'sealed_demand_evidence_immutable'; end if; if old.status<>new.status and not(old.status='sealed' and new.status in ('consumed','rejected')) then raise exception 'illegal_demand_evidence_status_transition'; end if; return new; end $$;
 create trigger trg_hq_workforce_guard_demand_evidence_mutation before update or delete on public.hq_workforce_demand_evidence for each row execute function public.hq_workforce_guard_demand_evidence_mutation();
-
-create or replace function public.hq_workforce_guard_factory_run_mutation()
-returns trigger language plpgsql security definer set search_path=public,pg_temp as $$ begin raise exception 'worker_factory_run_immutable'; end $$;
-create trigger trg_hq_workforce_guard_factory_run_mutation before update or delete on public.hq_workforce_factory_runs for each row execute function public.hq_workforce_guard_factory_run_mutation();
-
-alter table public.hq_workforce_demand_evidence enable row level security;
-alter table public.hq_workforce_factory_runs enable row level security;
-revoke all on table public.hq_workforce_demand_evidence,public.hq_workforce_factory_runs from public,anon,authenticated,service_role;
-grant select,insert,update on table public.hq_workforce_demand_evidence to service_role;
-grant select,insert on table public.hq_workforce_factory_runs to service_role;
-revoke all on function public.hq_workforce_seal_demand_evidence(uuid,jsonb),public.hq_workforce_factory_diagnose(uuid),public.hq_workforce_factory_create_shadow_worker(uuid,uuid,text,text,text,text,text,text,text,jsonb),public.hq_workforce_factory_cycle(uuid,jsonb,text,text,text,text,text,text),public.hq_workforce_guard_demand_evidence_mutation(),public.hq_workforce_guard_factory_run_mutation() from public,anon,authenticated;
-grant execute on function public.hq_workforce_seal_demand_evidence(uuid,jsonb),public.hq_workforce_factory_diagnose(uuid),public.hq_workforce_factory_create_shadow_worker(uuid,uuid,text,text,text,text,text,text,text,jsonb),public.hq_workforce_factory_cycle(uuid,jsonb,text,text,text,text,text,text),public.hq_workforce_guard_demand_evidence_mutation(),public.hq_workforce_guard_factory_run_mutation() to service_role;
+create or replace function public.hq_workforce_guard_factory_run_mutation() returns trigger language plpgsql security definer set search_path=public,pg_temp as $$ begin raise exception 'worker_factory_run_immutable'; end $$; create trigger trg_hq_workforce_guard_factory_run_mutation before update or delete on public.hq_workforce_factory_runs for each row execute function public.hq_workforce_guard_factory_run_mutation();
+alter table public.hq_workforce_demand_evidence enable row level security; alter table public.hq_workforce_factory_runs enable row level security; revoke all on table public.hq_workforce_demand_evidence,public.hq_workforce_factory_runs from public,anon,authenticated,service_role; grant select,insert,update on table public.hq_workforce_demand_evidence to service_role; grant select,insert on table public.hq_workforce_factory_runs to service_role; revoke all on function public.hq_workforce_seal_demand_evidence(uuid,jsonb),public.hq_workforce_factory_diagnose(uuid),public.hq_workforce_factory_create_shadow_worker(uuid,uuid,text,text,text,text,text,text,text,jsonb),public.hq_workforce_factory_cycle(uuid,jsonb,text,text,text,text,text,text),public.hq_workforce_guard_demand_evidence_mutation(),public.hq_workforce_guard_factory_run_mutation() from public,anon,authenticated; grant execute on function public.hq_workforce_seal_demand_evidence(uuid,jsonb),public.hq_workforce_factory_diagnose(uuid),public.hq_workforce_factory_create_shadow_worker(uuid,uuid,text,text,text,text,text,text,text,jsonb),public.hq_workforce_factory_cycle(uuid,jsonb,text,text,text,text,text,text),public.hq_workforce_guard_demand_evidence_mutation(),public.hq_workforce_guard_factory_run_mutation() to service_role;
