@@ -1,11 +1,11 @@
 -- Worker Engine WE-L2: governed execution foundation
 -- Depends on WE-L1 authority/lifecycle primitives.
 -- access: service-only public.hq_workforce_task_contracts
--- authorization-test: anon/authenticated denied; service_role only.
+-- authorization-test: public.hq_workforce_task_contracts anon/authenticated denied; service_role only.
 -- access: service-only public.hq_workforce_tool_contracts
--- authorization-test: anon/authenticated denied; service_role only.
+-- authorization-test: public.hq_workforce_tool_contracts anon/authenticated denied; service_role only.
 -- access: service-only public.hq_workforce_dead_letters
--- authorization-test: anon/authenticated denied; service_role only.
+-- authorization-test: public.hq_workforce_dead_letters anon/authenticated denied; service_role only.
 
 create table if not exists public.hq_workforce_tool_contracts (
   id uuid primary key default gen_random_uuid(),
