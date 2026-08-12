@@ -57,6 +57,14 @@ The production promotion unit is the complete Worker Engine migration sequence i
 20. `20260812222000_worker_engine_we_l12_single_entrypoint_hardening.sql`
 21. `20260812223000_worker_engine_we_l13_lifecycle_bypass_closure.sql`
 
+## Promotion-separation blocker discovered
+
+`20260812202600_worker_engine_scheduler_audit_hardening.sql` registers an active pg_cron job named `vibeschool-worker-engine-heartbeat` whenever `pg_cron` exists. The scheduled function itself remains fail-closed because `heartbeat_enabled` defaults to `false`, and later WE-L11 also requires `factory_enabled` or `heartbeat_enabled` before doing work.
+
+That protects against autonomous execution, but it does **not** satisfy the stricter production policy that runtime promotion and scheduler activation must be mechanically separate. A runtime-only promotion should leave the final database with no active Worker Engine cron trigger.
+
+Therefore production promotion is blocked until a **forward migration** (do not rewrite historical migrations) is generated through the normal Supabase migration workflow and verified to leave `vibeschool-worker-engine-heartbeat` unscheduled by default. A later protected activation change may register the cron job only after explicit approval.
+
 ## Required acceptance suites
 
 The migration promotion is not ready until the exact promotion head passes:
@@ -81,28 +89,32 @@ Before any production migration is applied, isolated verification must prove:
 
 1. `heartbeat_enabled` defaults to `false` and remains `false` after migration replay.
 2. `factory_enabled` defaults to `false` and remains `false` after migration replay.
-3. `hq_workforce_scheduled_heartbeat()` returns disabled state while heartbeat is off.
-4. unknown/unapproved FactoryTemplates fail closed.
-5. generated workers stop at SHADOW before independent qualification/certification.
-6. direct service-role lifecycle/certification/factory bypasses remain revoked.
-7. `hq_workforce_scheduled_heartbeat()` is the only positive service-role runtime orchestration entrypoint.
-8. no migration statement sets the production activation flags to true.
+3. `hq_workforce_scheduled_heartbeat()` returns disabled state while both switches are off.
+4. final replay state has **zero active `vibeschool-worker-engine-heartbeat` cron jobs** until a separate activation change.
+5. unknown/unapproved FactoryTemplates fail closed.
+6. generated workers stop at SHADOW before independent qualification/certification.
+7. direct service-role lifecycle/certification/factory bypasses remain revoked.
+8. `hq_workforce_scheduled_heartbeat()` is the only positive service-role runtime orchestration entrypoint.
+9. no migration statement sets the production activation flags to true.
 
 ## Production promotion sequence
 
-1. Verify exact migration set and defaults in isolated clean replay.
-2. Generate production preflight object/grant/job diff.
-3. Pass all repository and Worker Engine acceptance gates.
-4. Apply the complete runtime promotion under a protected production change window with activation flags kept OFF.
-5. Immediately verify production objects, grants, RLS, cron registration and both OFF switches.
-6. Stop. Do not activate autonomy as part of runtime promotion.
-7. Open a separate protected activation decision only after production runtime verification evidence is accepted.
+1. Generate and review the forward scheduler-separation migration through the normal Supabase migration workflow.
+2. Verify the exact migration set and OFF defaults in isolated clean replay.
+3. Generate production preflight object/grant/job diff.
+4. Pass all repository and Worker Engine acceptance gates.
+5. Apply the complete runtime promotion under a protected production change window with activation flags kept OFF and the Worker Engine cron job absent.
+6. Immediately verify production objects, grants, RLS, zero Worker Engine cron jobs, and both OFF switches.
+7. Stop. Do not activate autonomy as part of runtime promotion.
+8. Open a separate protected activation decision only after production runtime verification evidence is accepted.
 
 ## Explicitly prohibited in this audit
 
 - setting `heartbeat_enabled=true`;
 - setting `factory_enabled=true`;
+- registering/activating the Worker Engine production cron job;
 - invoking autonomous production work;
 - changing production Vercel behavior;
 - bypassing external deployment safeguards tracked in issue #95;
+- rewriting already-merged historical Worker Engine migrations;
 - treating repository merge as evidence that production runtime is already promoted.
