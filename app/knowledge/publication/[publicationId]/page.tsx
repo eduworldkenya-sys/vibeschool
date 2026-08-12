@@ -68,7 +68,7 @@ export async function generateMetadata({ params }: { params: { publicationId: st
     title,
     description: description || `Explore the published educational content ${title} on VibeSchool.`,
     alternates: { canonical: url },
-    openGraph: { type: 'book', title, description: description || title, url, siteName: 'VibeSchool' },
+    openGraph: { type: 'website', title, description: description || title, url, siteName: 'VibeSchool' },
     robots: { index: true, follow: true },
   }
 }
