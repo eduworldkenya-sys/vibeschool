@@ -6,6 +6,7 @@ export type PublicCourse = { id: string; slug: string; title: string; institutio
 export type PublicModule = { id: string; slug: string; title: string; course_id: string; sequence_number?: number | null; weeks_label?: string | null }
 export type ContentBlock = { title?: string | null; text?: string | null }
 export type PublicTopic = { id: string; module_id: string; slug: string; title: string; subtitle?: string | null; content_status?: string | null; sequence_number?: number | null; week_number?: number | null; concept_tab?: ContentBlock[] | null; kenya_context_tab?: ContentBlock[] | null; common_errors_tab?: ContentBlock[] | null; clinical_tip_tab?: ContentBlock[] | null }
+export type PublicPublication = { id: string; title: string; subtitle?: string | null; description?: string | null; format?: string | null; cbc_grade?: string | null; cbc_subject?: string | null; status?: string | null; published_at?: string | null }
 
 async function select<T>(table: string, query: string): Promise<T[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return []
@@ -17,9 +18,14 @@ async function select<T>(table: string, query: string): Promise<T[]> {
 }
 
 const COURSE_FIELDS = 'id,slug,title,institution,level,duration_label,description,status'
+const PUBLICATION_FIELDS = 'id,title,subtitle,description,format,cbc_grade,cbc_subject,status,published_at'
 
 export async function getPublicCourses() {
   return select<PublicCourse>('courses', `select=${COURSE_FIELDS}&status=eq.live&order=title.asc`)
+}
+
+export async function getPublicPublications() {
+  return select<PublicPublication>('vibe_publications', `select=${PUBLICATION_FIELDS}&status=eq.published&order=published_at.desc`)
 }
 
 export async function getPublicCourse(slug: string) {
