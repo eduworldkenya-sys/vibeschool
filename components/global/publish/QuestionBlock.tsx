@@ -1,9 +1,11 @@
 "use client"
 
 import React, { useMemo, useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 import type { ContentBlock } from '@/lib/publishTypes'
 
 type QuestionType = 'multiple_choice' | 'true_false' | 'short_answer'
+type Feedback = 'idle' | 'correct' | 'incorrect' | 'error'
 
 type Props = {
   block: ContentBlock
@@ -31,12 +33,24 @@ function updateMeta(block: ContentBlock, key: string, value: string | string[]):
   return { ...block, meta: { ...block.meta, [key]: value } }
 }
 
+function promptWithoutAnswer(content: string): string {
+  const marker = content.indexOf('Answer:')
+  return marker >= 0 ? content.slice(0, marker).trim() : content.trim()
+}
+
+function contentWithAnswer(content: string, answer: string): string {
+  return `${promptWithoutAnswer(content)}\n\nAnswer: ${answer.trim()}`.trim()
+}
+
 export function QuestionBlock({ block, readOnly, onUpdate }: Props) {
   const questionType = stringMeta(block, 'questionType', 'multiple_choice') as QuestionType
   const options = useMemo(() => optionsMeta(block), [block])
   const correctAnswer = stringMeta(block, 'correctAnswer')
   const [selected, setSelected] = useState('')
-  const [feedback, setFeedback] = useState<'idle' | 'correct' | 'incorrect'>('idle')
+  const [feedback, setFeedback] = useState<Feedback>('idle')
+  const [message, setMessage] = useState('')
+  const [checking, setChecking] = useState(false)
+  const [startedAt] = useState(() => Date.now())
 
   if (!readOnly) {
     const normalizedOptions = options.length ? options : ['', '', '', '']
@@ -44,9 +58,9 @@ export function QuestionBlock({ block, readOnly, onUpdate }: Props) {
       <div style={{ background: `${ACCENT}0D`, border: `1px solid ${ACCENT}33`, borderRadius: 12, padding: 14 }}>
         <div style={{ color: ACCENT, fontSize: 10, fontWeight: 850, letterSpacing: '.09em', marginBottom: 10 }}>❓ QUESTION</div>
         <textarea
-          value={block.content}
+          value={promptWithoutAnswer(block.content)}
           rows={3}
-          onChange={e => onUpdate({ ...block, content: e.target.value })}
+          onChange={e => onUpdate({ ...block, content: contentWithAnswer(e.target.value, correctAnswer) })}
           placeholder="Write the question learners should answer…"
           style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 9, color: TEXT, padding: 10, resize: 'vertical', lineHeight: 1.6 }}
         />
@@ -82,8 +96,11 @@ export function QuestionBlock({ block, readOnly, onUpdate }: Props) {
         )}
         <input
           value={correctAnswer}
-          onChange={e => onUpdate(updateMeta(block, 'correctAnswer', e.target.value))}
-          placeholder={questionType === 'short_answer' ? 'Correct answer (case-insensitive)' : 'Correct option text'}
+          onChange={e => {
+            const value = e.target.value
+            onUpdate({ ...updateMeta(block, 'correctAnswer', value), content: contentWithAnswer(block.content, value) })
+          }}
+          placeholder={questionType === 'short_answer' ? 'Correct answer' : 'Correct option text'}
           style={{ width: '100%', boxSizing: 'border-box', marginTop: 9, background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 9, padding: 9 }}
         />
         <input
@@ -103,41 +120,63 @@ export function QuestionBlock({ block, readOnly, onUpdate }: Props) {
     )
   }
 
-  const hasAnswerKey = correctAnswer.trim().length > 0
-  const canSubmit = selected.trim().length > 0 && hasAnswerKey
-  const check = () => {
-    const expected = correctAnswer.trim().toLocaleLowerCase()
-    const actual = selected.trim().toLocaleLowerCase()
-    setFeedback(actual === expected ? 'correct' : 'incorrect')
+  const hasAnswerKey = correctAnswer.trim().length > 0 || block.content.includes('Answer:')
+  const canSubmit = selected.trim().length > 0 && hasAnswerKey && !checking
+
+  async function check() {
+    if (!canSubmit) return
+    setChecking(true)
+    setFeedback('idle')
+    setMessage('')
+    const responseMs = Math.max(0, Date.now() - startedAt)
+    const sb = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const { data, error } = await sb.rpc('student_record_grounded_practice_answer', {
+      p_content_block_id: block.id,
+      p_response_text: selected,
+      p_response_ms: responseMs,
+      p_session_id: null,
+    })
+    const result = data as { ok?: boolean; correct?: boolean } | null
+    if (error || !result?.ok) {
+      setFeedback('error')
+      setMessage(error?.message || 'Your answer could not be recorded. Please try again.')
+      setChecking(false)
+      return
+    }
+    setFeedback(result.correct ? 'correct' : 'incorrect')
+    setChecking(false)
   }
 
   return (
     <section aria-label="Learning question" style={{ background: `${ACCENT}0D`, border: `1px solid ${ACCENT}33`, borderRadius: 14, padding: 16 }}>
       <div style={{ color: ACCENT, fontSize: 10, fontWeight: 850, letterSpacing: '.09em', marginBottom: 8 }}>❓ CHECK YOUR UNDERSTANDING</div>
-      <div style={{ color: TEXT, fontSize: 16, fontWeight: 750, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{block.content}</div>
+      <div style={{ color: TEXT, fontSize: 16, fontWeight: 750, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{promptWithoutAnswer(block.content)}</div>
       {!hasAnswerKey ? (
         <div style={{ marginTop: 12, color: MUTED, fontSize: 12 }}>This question is for reflection. No automatic marking is configured.</div>
       ) : questionType === 'short_answer' ? (
         <input
           value={selected}
           onChange={e => { setSelected(e.target.value); setFeedback('idle') }}
-          onKeyDown={e => { if (e.key === 'Enter' && canSubmit) check() }}
+          onKeyDown={e => { if (e.key === 'Enter' && canSubmit) void check() }}
           aria-label="Your answer"
           placeholder="Type your answer…"
+          disabled={checking}
           style={{ width: '100%', boxSizing: 'border-box', marginTop: 14, background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 10, padding: 12 }}
         />
       ) : (
         <div role="radiogroup" aria-label="Answer choices" style={{ display: 'grid', gap: 8, marginTop: 14 }}>
           {options.filter(Boolean).map((option, index) => (
-            <label key={`${option}-${index}`} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${selected === option ? ACCENT : BORDER}`, background: selected === option ? `${ACCENT}12` : SURFACE, borderRadius: 10, padding: 11, cursor: 'pointer', color: TEXT }}>
-              <input type="radio" name={`question-${block.id}`} checked={selected === option} onChange={() => { setSelected(option); setFeedback('idle') }} />
+            <label key={`${option}-${index}`} style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${selected === option ? ACCENT : BORDER}`, background: selected === option ? `${ACCENT}12` : SURFACE, borderRadius: 10, padding: 11, cursor: checking ? 'default' : 'pointer', color: TEXT }}>
+              <input type="radio" name={`question-${block.id}`} checked={selected === option} disabled={checking} onChange={() => { setSelected(option); setFeedback('idle') }} />
               <span><strong>{String.fromCharCode(65 + index)}.</strong> {option}</span>
             </label>
           ))}
         </div>
       )}
-      {canSubmit && <button type="button" onClick={check} style={{ marginTop: 12, width: '100%', border: 0, borderRadius: 10, background: ACCENT, color: '#07100a', padding: '11px 14px', fontWeight: 850, cursor: 'pointer' }}>Check answer</button>}
-      {feedback !== 'idle' && (
+      {canSubmit && <button type="button" onClick={() => void check()} style={{ marginTop: 12, width: '100%', border: 0, borderRadius: 10, background: ACCENT, color: '#07100a', padding: '11px 14px', fontWeight: 850, cursor: 'pointer' }}>Check answer</button>}
+      {checking && <div role="status" aria-live="polite" style={{ marginTop: 12, color: MUTED, fontSize: 12 }}>Checking your answer…</div>}
+      {feedback === 'error' && <div role="alert" style={{ marginTop: 12, borderRadius: 10, padding: 12, background: 'rgba(245,158,11,.12)', color: TEXT }}>{message}</div>}
+      {(feedback === 'correct' || feedback === 'incorrect') && (
         <div role="status" aria-live="polite" style={{ marginTop: 12, borderRadius: 10, padding: 12, background: feedback === 'correct' ? 'rgba(52,211,153,.12)' : 'rgba(245,158,11,.12)', color: TEXT }}>
           <strong>{feedback === 'correct' ? 'Excellent — correct.' : 'Not quite. Try again.'}</strong>
           {stringMeta(block, 'explanation') && <div style={{ marginTop: 5, color: MUTED, lineHeight: 1.6 }}>{stringMeta(block, 'explanation')}</div>}
