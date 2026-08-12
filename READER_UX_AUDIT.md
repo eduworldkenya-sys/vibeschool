@@ -12,6 +12,44 @@ Permanent UX/product audit for the learner-facing VibeTextbook reader. This comp
 - Study Workspace capabilities include bookmarks, highlights, notes, saved definitions/vocabulary/formulas and Continue Reading.
 - Reader appearance controls already support dark/light/paper themes, four font sizes, three line-spacing levels, three reading-width levels, reduced motion, persistence in localStorage, a skip link and keyboard shortcut.
 - Teacher assignment and learner-progress integration are already documented as verified.
+- Live Supabase verification confirms the reader functions `get_vibetextbook_reader`, `record_reading_progress`, `get_continue_reading`, and `assign_chapter_to_class` exist as `SECURITY DEFINER` functions. The live reader/publication/chapter tables have RLS enabled.
+
+## Live content evidence
+
+The live Supabase project currently contains published VibeTextbook publications, including `VibeSchool Grade 4 Mathematics` and `Vibe Biology Form 4`.
+
+The published `VibeSchool Grade 4 Mathematics` sample currently has 36 blocks in one published chapter. Its block types are:
+
+- `heading1`
+- `heading2`
+- `heading3`
+- `paragraph`
+- `bulletList`
+- `numberedList`
+- `divider`
+- `question`
+
+Two live `question` blocks were inspected. Their data contains question text but no `meta` payload containing options, correct answer, hints, explanation, attempt policy, or interaction identity.
+
+**Product consequence:** the current published question blocks are structurally questions, but the inspected live records do not contain enough information by themselves to implement a reliable self-marking learner interaction. The reader must not pretend a question is interactive if it has no answer/feedback contract.
+
+### New priority finding: UX-P0-006 — Question blocks need a learning contract
+
+For interactive learner questions, the content model needs a structured contract such as:
+
+- stable interaction id
+- prompt
+- question type
+- options or response schema
+- correct-answer authority, where appropriate
+- explanation/feedback
+- hint or retry behavior
+- completion/scoring policy
+- optional linked learning outcome
+
+If a published block is only a prompt, render it honestly as `Think about it` or `Practice question` rather than displaying an answer UI that cannot be graded truthfully.
+
+The existing assessment/question-bank infrastructure should be reused where appropriate instead of creating a second incompatible question system inside the textbook reader.
 
 ## Product principle
 
@@ -130,6 +168,7 @@ The GitHub `TypeScript and Production Build Gate` must pass `npm run typecheck`,
 - Clear reader location/progress
 - Pedagogical content rhythm
 - Complete interaction/feedback loop
+- Structured question/interaction contract
 - Mobile-first usability
 - Repository TypeScript/lint/build green
 
