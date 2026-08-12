@@ -38,6 +38,48 @@ Status: `REQUIRES_PROVENANCE_CLASSIFICATION`
 
 A one-sided version is historical evidence, not a migration-repair instruction. Production-only versions may be legitimate historical, baseline, preview-to-production, or out-of-band entries. Repository-only versions may be recovery/reconstruction representations. No `applied` or `reverted` status may be inferred from set membership alone.
 
+## Canonical SQL fingerprint calibration
+
+Repository migration SQL was canonicalized by removing block comments, line comments and insignificant whitespace, lower-casing the remaining SQL, and hashing the resulting byte sequence with SHA-256. Production ledger statement bodies were canonicalized by the same algorithm.
+
+Three exact-version controls reproduced the repository fingerprint exactly, including `20260723191034_vibelearn_publication_sync`, `20260805084242_exq_004b1_lesson_assessment_authority`, and `20260806164150_vibelearn_011_fix_exam_readiness_assessment_authority`. This proves the production ledger retains sufficient statement-body fidelity for conservative body-equivalence classification.
+
+Repository SQL fingerprint artifact:
+
+- GitHub Actions run: `31588146876`
+- Artifact: `tbl013-sql-fingerprints-31588146876`
+- Artifact digest: `sha256:21b5d57b2d011c34cc701f38710e70f989d08f13f96abb115dc4efc5c19a1a2a`
+- Fingerprinted migrations: 418
+
+## Provenance batch 1 — EXQ / Student Task / Homework / VibeLearn timestamp remaps
+
+Thirty-seven same-name repository/production pairs with different versions were compared at canonical SQL-body level.
+
+- Timestamp-remap pairs tested: 37
+- Exact canonical SQL-body matches: **26**
+- Same-name changed-body pairs: **11**
+- One-sided records resolved by exact-body timestamp equivalence: **52**
+- Automatic production repairs authorized: **0**
+
+The 26 exact-body pairs are classified `PROVEN_TIMESTAMP_REMAP_EXACT_BODY`. Their different ledger versions do not represent different mutations and must not trigger migration repair merely to equalize timestamps.
+
+The changed-body cases remain `SAME_NAME_CHANGED_BODY_REQUIRES_FINAL_STATE_PROOF`:
+
+- `exq_003b_teacher_assessment_analytics`
+- `exq_006c_marking_moderation_audit`
+- `exq_007a_outcome_question_intelligence`
+- `exq_007b_learner_intervention_intelligence`
+- `exq_008b_evidence_snapshot_generation` (two repository representations map to the historical production name)
+- `exq_008d_report_validation_and_audit`
+- `exq_008e_parent_learner_longitudinal_delivery`
+- `student_task_002_healthy_motivation_progress`
+- `student_task_004a_universal_task_launch_authority`
+- `vibelearn_009_form4_revision_workspace`
+
+A changed body is not automatically a defect. It may be a replay-safe reconstruction, a corrected repository representation, or genuine divergence. These cases require dependency/final-state mutation-equivalence evidence before classification.
+
+After this first proven-body batch, at most **523** of the original 575 one-sided records remain unresolved by this evidence layer. Further batches may reduce that number without any production mutation.
+
 ## Confirmed recovery provenance already established
 
 The PR #68 recovery work established several deliberate historical representations. For example:
@@ -48,6 +90,6 @@ The PR #68 recovery work established several deliberate historical representatio
 
 ## Safety conclusion
 
-TBL-013 has proven that the problem is not duplicate production migration versions. The remaining work is provenance and mutation-equivalence classification of the 575 one-sided version records (183 repository-only + 392 production-only).
+TBL-013 has proven that the problem is not duplicate production migration versions. The remaining work is provenance and mutation-equivalence classification of the still-unresolved one-sided history.
 
 Production migration history remains untouched. Any future production ledger repair requires explicit evidence for the individual version and separate authorization. Numerical parity is not itself a valid reason to mutate production history.
