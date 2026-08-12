@@ -240,34 +240,146 @@ create policy "strands_read"
   to authenticated
   using (true);
 
+-- These two tables are reconstructed from the authoritative production shape,
+-- including pre-tracking constraints/indexes/triggers that are not represented
+-- by any later repository migration. This closes the TBL-011 structural gap.
 create table if not exists public.teacher_classes (
   id uuid primary key default gen_random_uuid(),
-  school_id uuid references public.schools(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
   teacher_id uuid not null references public.profiles(id) on delete cascade,
-  class_id uuid references public.classes(id) on delete cascade,
-  subject_id uuid references public.subjects(id) on delete cascade,
+  class_id uuid not null references public.classes(id) on delete restrict,
+  subject_id uuid not null references public.subjects(id) on delete restrict,
   is_class_teacher boolean not null default false,
-  created_at timestamptz not null default clock_timestamp()
+  created_at timestamptz not null default clock_timestamp(),
+  constraint uq_teacher_class_subject unique (teacher_id, class_id, subject_id)
 );
+
+create index if not exists idx_teacher_classes_class on public.teacher_classes(class_id);
+create index if not exists idx_teacher_classes_school on public.teacher_classes(school_id);
+create index if not exists idx_teacher_classes_subject on public.teacher_classes(subject_id);
+create index if not exists idx_teacher_classes_teacher on public.teacher_classes(teacher_id);
+create index if not exists idx_teacher_classes_teacher_class_subject
+  on public.teacher_classes(teacher_id, class_id, subject_id);
 
 create table if not exists public.timetable_slots (
   id uuid primary key default gen_random_uuid(),
-  school_id uuid references public.schools(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
   teacher_id uuid not null references public.profiles(id) on delete cascade,
-  class_id uuid references public.classes(id) on delete cascade,
-  subject_id uuid references public.subjects(id) on delete cascade,
-  day_of_week integer not null,
+  class_id uuid not null references public.classes(id) on delete restrict,
+  subject_id uuid not null references public.subjects(id) on delete restrict,
+  day_of_week integer not null check (day_of_week between 1 and 7),
   start_time time not null,
   end_time time not null,
   room text,
   effective_from date not null default current_date,
   effective_until date,
   constraint chk_effective_range check (
-    effective_until is null or effective_until > effective_from
+    effective_until is null or effective_until >= effective_from
+  ),
+  constraint chk_slot_times check (end_time > start_time),
+  constraint uq_timetable_slot_exact unique (
+    teacher_id, class_id, subject_id, day_of_week, start_time, end_time, effective_from
   ),
   created_at timestamptz not null default clock_timestamp(),
   updated_at timestamptz not null default clock_timestamp()
 );
+
+create index if not exists idx_timetable_class on public.timetable_slots(class_id);
+create index if not exists idx_timetable_day on public.timetable_slots(day_of_week);
+create index if not exists idx_timetable_subject on public.timetable_slots(subject_id);
+create index if not exists idx_timetable_teacher on public.timetable_slots(teacher_id);
+
+create or replace function public.fn_set_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $function$
+begin
+  new.updated_at := clock_timestamp();
+  return new;
+end;
+$function$;
+
+create or replace function public.fn_verify_school_consistency()
+returns trigger
+language plpgsql
+set search_path = public, extensions, pg_temp
+as $function$
+declare
+  class_school_id uuid;
+begin
+  if new.school_id is null then return new; end if;
+  if new.class_id is null then return new; end if;
+  select school_id into class_school_id from public.classes where id = new.class_id;
+  if class_school_id is null then return new; end if;
+  if new.school_id != class_school_id then
+    raise exception 'school_id % on % does not match class school_id %',
+      new.school_id, tg_table_name, class_school_id;
+  end if;
+  return new;
+end;
+$function$;
+
+create or replace function public.fn_audit_log()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $function$
+declare
+  v_actor_id uuid;
+  v_actor_role text;
+  v_snapshot jsonb;
+  v_profile jsonb;
+  v_ip inet;
+  v_record_id text;
+begin
+  v_actor_id := auth.uid();
+  v_actor_role := auth.role();
+  begin
+    v_ip := nullif(current_setting('request.headers', true)::jsonb ->> 'x-forwarded-for', '')::inet;
+  exception when others then
+    v_ip := null;
+  end;
+  if v_actor_id is not null then
+    select fn_sanitise_row(to_jsonb(p)) into v_profile
+    from profiles p where p.id = v_actor_id;
+    v_snapshot := coalesce(v_profile, '{}'::jsonb);
+  elsif v_actor_role = 'service_role' then
+    v_snapshot := '{"actor":"service_role"}'::jsonb;
+  else
+    v_snapshot := '{"actor":"system"}'::jsonb;
+  end if;
+  v_record_id := case
+    when tg_op = 'DELETE' then coalesce((to_jsonb(old)->>'id'),(to_jsonb(old)->>'country_code'),(to_jsonb(old)->>'code'),(to_jsonb(old)->>'key'),(to_jsonb(old)->>'version'),'unknown')
+    else coalesce((to_jsonb(new)->>'id'),(to_jsonb(new)->>'country_code'),(to_jsonb(new)->>'code'),(to_jsonb(new)->>'key'),(to_jsonb(new)->>'version'),'unknown')
+  end;
+  insert into audit_logs(actor_id,actor_role,actor_snapshot,table_name,table_record_id,operation,old_data,new_data,ip_address)
+  values (
+    v_actor_id,v_actor_role,v_snapshot,tg_table_name,v_record_id,tg_op,
+    case when tg_op in ('UPDATE','DELETE') then fn_sanitise_row(to_jsonb(old)) else null end,
+    case when tg_op in ('INSERT','UPDATE') then fn_sanitise_row(to_jsonb(new)) else null end,
+    v_ip
+  );
+  return null;
+end;
+$function$;
+
+create trigger trg_audit_teacher_classes
+  after insert or delete or update on public.teacher_classes
+  for each row execute function public.fn_audit_log();
+create trigger trg_verify_teacher_class_school
+  before insert or update on public.teacher_classes
+  for each row execute function public.fn_verify_school_consistency();
+create trigger trg_audit_timetable_slots
+  after insert or delete or update on public.timetable_slots
+  for each row execute function public.fn_audit_log();
+create trigger trg_timetable_slots_updated_at
+  before update on public.timetable_slots
+  for each row execute function public.fn_set_updated_at();
+create trigger trg_verify_timetable_school
+  before insert or update on public.timetable_slots
+  for each row execute function public.fn_verify_school_consistency();
 
 create table if not exists public.subject_weekly_allocations (
   id uuid primary key default gen_random_uuid(),
