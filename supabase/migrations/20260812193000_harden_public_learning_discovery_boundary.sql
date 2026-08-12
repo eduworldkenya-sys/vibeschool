@@ -6,8 +6,6 @@
 -- is the indexable authority; database read policies must enforce the same
 -- publication boundary for direct Data API access.
 
-begin;
-
 -- Courses are public only after explicit publication.
 drop policy if exists "public read courses" on public.courses;
 create policy "public read live courses"
@@ -31,8 +29,7 @@ using (
   )
 );
 
--- Topic bodies are already restricted to published topics. Keep that
--- publication boundary explicit and ensure the parent course is live as well.
+-- Topic bodies are public only when published and attached to a live course.
 drop policy if exists "public read published topics" on public.topics;
 create policy "public read published topics of live courses"
 on public.topics
@@ -52,5 +49,3 @@ using (
 -- quiz_questions contains assessment material and answer-bearing fields.
 -- It must never be a generic anonymous/authenticated table-read surface.
 drop policy if exists "public read quiz questions" on public.quiz_questions;
-
-commit;
