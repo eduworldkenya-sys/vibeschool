@@ -7,6 +7,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 type PublicCourse = { id: string; slug: string }
 type PublicModule = { id: string; slug: string; course_id: string }
 type PublicTopic = { slug: string; module_id: string }
+type PublicPublication = { id: string; updated_at: string | null; published_at: string | null }
 
 async function supabaseSelect<T>(table: string, query: string): Promise<T[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return []
@@ -23,10 +24,11 @@ async function supabaseSelect<T>(table: string, query: string): Promise<T[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [courses, modules, topics] = await Promise.all([
+  const [courses, modules, topics, publications] = await Promise.all([
     supabaseSelect<PublicCourse>('courses', 'select=id,slug&status=eq.live&order=slug.asc'),
     supabaseSelect<PublicModule>('modules', 'select=id,slug,course_id&order=sequence_number.asc'),
     supabaseSelect<PublicTopic>('topics', 'select=slug,module_id&content_status=eq.published&order=sequence_number.asc'),
+    supabaseSelect<PublicPublication>('vibe_publications', 'select=id,updated_at,published_at&status=eq.published&order=published_at.desc'),
   ])
 
   const courseById = new Map(courses.map(course => [course.id, course]))
@@ -55,6 +57,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push({
       url: `${SITE_URL}/knowledge/${encodeURIComponent(course.slug)}/${encodeURIComponent(module.slug)}/${encodeURIComponent(topic.slug)}`,
       changeFrequency: 'monthly',
+      priority: 0.8,
+    })
+  }
+
+  for (const publication of publications) {
+    entries.push({
+      url: `${SITE_URL}/knowledge/publication/${encodeURIComponent(publication.id)}`,
+      lastModified: publication.updated_at || publication.published_at || undefined,
+      changeFrequency: 'weekly',
       priority: 0.8,
     })
   }
