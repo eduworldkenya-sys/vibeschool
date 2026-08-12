@@ -71,8 +71,15 @@ function clearPendingKey(gameSlug: string, key: string): void {
   }
 }
 
-function isRetryableRpcError(error: { status?: number | null }): boolean {
-  const status = error?.status
+function isRetryableRpcError(error: unknown): boolean {
+  const status =
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    typeof (error as { status?: unknown }).status === 'number'
+      ? (error as { status: number }).status
+      : null
+
   return status == null || status === 408 || status === 429 || status >= 500
 }
 
