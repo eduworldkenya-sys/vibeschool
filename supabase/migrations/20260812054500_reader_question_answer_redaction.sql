@@ -37,6 +37,9 @@ as $function$
   ) with ordinality as x(block, ord);
 $function$;
 
+revoke all on function public.reader_sanitize_blocks(jsonb) from public, anon, authenticated;
+grant execute on function public.reader_sanitize_blocks(jsonb) to service_role;
+
 alter function public.get_vibetextbook_reader(uuid) rename to get_vibetextbook_reader_raw;
 alter function public.get_public_vibetextbook_reader(uuid) rename to get_public_vibetextbook_reader_raw;
 
