@@ -10,7 +10,7 @@ Prove one bounded Operations reference worker can traverse the governed lifecycl
 
 **Mission status: ✅ TARGET ACHIEVED ON WORK BRANCH / ISOLATED PREVIEW DATABASE**
 
-This does not mean broad autonomous worker generation is enabled. It means the reference-worker architecture is now mechanically demonstrated and ready for final repository review before any promotion.
+This does not mean broad autonomous worker generation is enabled. It means the reference-worker architecture is mechanically demonstrated and ready for protected promotion review.
 
 ## WE-L1 — Authority & Lifecycle Convergence
 
@@ -157,12 +157,12 @@ verification evidence deletion -> denied
 completed heartbeat tamper -> denied
 ```
 
-## Exact-head repository evidence
+## Repository and runtime audit evidence
 
-Reference-loop hardened head tested: `a79e61de1591a0d3f96f9ed3c05aba58f2afe0c8`.
+Reference-loop implementation was database-tested on hardened head `a79e61de1591a0d3f96f9ed3c05aba58f2afe0c8`. The final documentation-only evidence update moved PR #91 to head `e7d05d419a2d4aa2448ce267d2b5b02f90862097`; no runtime code changed after the green database head.
 
-- TBL-011 Isolated Clean Rebuild: ✅ PASS (run 374).
-- TBL-012 M(repo) extractor: ✅ PASS (run 49).
+- TBL-011 Isolated Clean Rebuild: ✅ PASS on runtime head `a79e61de...` (run 374).
+- TBL-012 M(repo) extractor: ✅ PASS on runtime head `a79e61de...` (run 49).
 - All WE-L3..WE-L6 migrations applied successfully in the isolated Supabase preview project.
 - Full reference-worker mission acceptance: ✅ PASS.
 - Budget/scope attack fixture: ✅ PASS.
@@ -170,10 +170,11 @@ Reference-loop hardened head tested: `a79e61de1591a0d3f96f9ed3c05aba58f2afe0c8`.
 - New runtime evidence tables inspected: RLS enabled, zero direct RLS policies.
 - Key new privileged Worker Engine routines expose no `PUBLIC`, `anon` or `authenticated` execute grants.
 - New runtime tables expose service-role access only in the inspected preview state.
+- PR #91 is open, draft and mergeable; final review/promotion remains separate from mission proof.
 
 TypeScript/build is not used as the stopping criterion for this database-first reference mission. It remains a promotion gate before eventual merge to `main`.
 
-## Security invariants now demonstrated
+## Security invariants demonstrated
 
 1. Execution cannot occur without identity.
 2. Execution cannot occur without valid certification.
