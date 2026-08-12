@@ -1,4 +1,4 @@
-name: TBL-013 One-Shot Read-Only Ledger Capture
+name: TBL-013 One-Shot Repository Inventory
 
 on:
   push:
@@ -10,107 +10,63 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: tbl013-one-shot-readonly-capture
-  cancel-in-progress: false
-
 jobs:
-  capture:
-    name: Capture immutable production ledger evidence
+  inventory:
+    name: Capture exact repository migration inventory
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: production-migration-repair
-
+    timeout-minutes: 10
     env:
-      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
       TARGET_REPO_SHA: 929d49f73c9148e149c5c9bf0a5b201710a2e900
-
     steps:
       - name: Checkout exact certified TBL-013 head
         uses: actions/checkout@v4
         with:
           ref: ${{ env.TARGET_REPO_SHA }}
 
-      - name: Initialize immutable evidence context
+      - name: Capture repository migration inventory
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .tbl013-artifacts
-          {
-            echo "run_id=${{ github.run_id }}"
-            echo "actor=${{ github.actor }}"
-            echo "trigger_sha=${{ github.sha }}"
-            echo "target_repo_sha=$TARGET_REPO_SHA"
-            echo "checked_out_sha=$(git rev-parse HEAD)"
-            echo "project_ref=$EXPECTED_PROJECT_REF"
-            echo "mode=READ_ONLY"
-            echo "production_mutation=DISABLED"
-            echo "migration_repair=DISABLED"
-          } > .tbl013-artifacts/context.txt
-
           test "$(git rev-parse HEAD)" = "$TARGET_REPO_SHA"
 
-      - name: Run TBL-013 auditor regression suite
-        run: python3 scripts/test-tbl013-live-ledger-audit.py
-
-      - name: Set up pinned Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: 2.76.8
-
-      - name: Link exact production project read-only
-        shell: bash
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          set -euo pipefail
-          supabase link --project-ref "$EXPECTED_PROJECT_REF"
-
-      - name: Capture live production migration ledger
-        shell: bash
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          set -o pipefail
-          supabase migration list --linked 2>&1 \
-            | tee .tbl013-artifacts/live-migration-ledger.txt
-
-      - name: Reconcile exact repository head against captured production ledger
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 scripts/tbl013-live-ledger-audit.py \
-            --migrations-dir supabase/migrations \
-            --ledger .tbl013-artifacts/live-migration-ledger.txt \
-            --report .tbl013-artifacts/tbl013-ledger-audit.json \
-            --plan .tbl013-artifacts/tbl013-reconciliation-plan.md \
-            --project-ref "$EXPECTED_PROJECT_REF"
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sort > .tbl013-artifacts/repository-migrations.txt
 
           python3 - <<'PYEOF'
-          import json
+          import hashlib, json, re
           from pathlib import Path
 
-          report = json.loads(Path('.tbl013-artifacts/tbl013-ledger-audit.json').read_text())
-          if report['counts']['authorized_repairs'] != 0 or report['authorized_repairs']:
-              raise SystemExit('unsafe: auditor authorized a production repair')
-          if report['counts']['duplicate_remote_versions'] != 0:
-              raise SystemExit('unsafe: duplicate production migration versions detected')
-          print(json.dumps(report['counts'], indent=2))
-          print('reconciliation_status:', report['reconciliation_status'])
+          rows = Path('.tbl013-artifacts/repository-migrations.txt').read_text().splitlines()
+          pattern = re.compile(r'^(\d{8,14})_(.+)\.sql$')
+          versions = []
+          invalid = []
+          for row in rows:
+              m = pattern.fullmatch(row)
+              if m:
+                  versions.append(m.group(1))
+              else:
+                  invalid.append(row)
+          dup = sorted({v for v in versions if versions.count(v) > 1})
+          payload = {
+              'target_repo_sha': '929d49f73c9148e149c5c9bf0a5b201710a2e900',
+              'migration_files': len(rows),
+              'distinct_versions': len(set(versions)),
+              'duplicate_versions': dup,
+              'invalid_filenames': invalid,
+              'filename_inventory_sha256': hashlib.sha256(('\n'.join(rows)+'\n').encode()).hexdigest(),
+              'versions': sorted(set(versions)),
+          }
+          Path('.tbl013-artifacts/repository-inventory.json').write_text(json.dumps(payload, indent=2)+'\n')
+          print(json.dumps({k:v for k,v in payload.items() if k != 'versions'}, indent=2))
           PYEOF
 
-          sha256sum \
-            .tbl013-artifacts/context.txt \
-            .tbl013-artifacts/live-migration-ledger.txt \
-            .tbl013-artifacts/tbl013-ledger-audit.json \
-            .tbl013-artifacts/tbl013-reconciliation-plan.md \
-            > .tbl013-artifacts/evidence.sha256
+          sha256sum .tbl013-artifacts/* > .tbl013-artifacts/evidence.sha256
 
-      - name: Upload immutable TBL-013 evidence
-        if: always()
+      - name: Upload repository inventory evidence
         uses: actions/upload-artifact@v4
         with:
-          name: tbl013-one-shot-evidence-${{ github.run_id }}
+          name: tbl013-repository-inventory-${{ github.run_id }}
           path: .tbl013-artifacts/
           if-no-files-found: error
           retention-days: 30
