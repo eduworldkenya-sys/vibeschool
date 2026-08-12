@@ -18,10 +18,17 @@ Read-only production inspection on 2026-08-12 shows the production workforce run
 - `hq_workforce_engine_contract` currently has only `singleton`, `mission`, `responsibilities`, `exclusions`, `routine_paid_ai_required`, and `updated_at`.
 - `heartbeat_enabled` and `heartbeat_limit` are absent.
 - `hq_workforce_scheduled_heartbeat()` is absent.
-- legacy `hq_workforce_certify_probation_workers()` is still present in the production function catalog.
 - `vibeschool-worker-engine-heartbeat` cron jobs: `0`.
 
-This is fail-safe with respect to autonomous execution: the governed scheduler/factory runtime has not been promoted and therefore cannot be active in production.
+Production also still exposes the legacy probation lifecycle to `service_role`:
+
+- `hq_workforce_create_probation_worker(...)` — service-role EXECUTE = true;
+- `hq_workforce_certify_probation_worker(...)` — service-role EXECUTE = true;
+- `hq_workforce_certify_probation_workers()` — service-role EXECUTE = true.
+
+Anon/authenticated do not have EXECUTE on these three functions. This is therefore not a public-client exposure, but it is a production governance drift: the legacy functions can create probation workers and directly promote qualifying workers to legacy `active` state outside the merged WE-L12/WE-L13 single-entrypoint lifecycle.
+
+Production autonomy through the new governed Worker Engine is not active, but production does not yet satisfy the repository's final authority model.
 
 ## Canonical Worker Engine migration set
 
@@ -93,7 +100,7 @@ Before any production migration is applied, isolated verification must prove:
 4. final replay state has **zero active `vibeschool-worker-engine-heartbeat` cron jobs** until a separate activation change.
 5. unknown/unapproved FactoryTemplates fail closed.
 6. generated workers stop at SHADOW before independent qualification/certification.
-7. direct service-role lifecycle/certification/factory bypasses remain revoked.
+7. service-role cannot execute legacy probation creation/certification or direct lifecycle/certification bypasses after promotion.
 8. `hq_workforce_scheduled_heartbeat()` is the only positive service-role runtime orchestration entrypoint.
 9. no migration statement sets the production activation flags to true.
 
@@ -101,10 +108,10 @@ Before any production migration is applied, isolated verification must prove:
 
 1. Generate and review the forward scheduler-separation migration through the normal Supabase migration workflow.
 2. Verify the exact migration set and OFF defaults in isolated clean replay.
-3. Generate production preflight object/grant/job diff.
+3. Generate production preflight object/grant/job diff, including removal of legacy service-role worker activation paths.
 4. Pass all repository and Worker Engine acceptance gates.
 5. Apply the complete runtime promotion under a protected production change window with activation flags kept OFF and the Worker Engine cron job absent.
-6. Immediately verify production objects, grants, RLS, zero Worker Engine cron jobs, and both OFF switches.
+6. Immediately verify production objects, grants, RLS, zero Worker Engine cron jobs, both OFF switches, and legacy bypass revocations.
 7. Stop. Do not activate autonomy as part of runtime promotion.
 8. Open a separate protected activation decision only after production runtime verification evidence is accepted.
 
