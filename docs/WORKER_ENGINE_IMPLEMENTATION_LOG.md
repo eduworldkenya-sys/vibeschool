@@ -159,7 +159,7 @@ completed heartbeat tamper -> denied
 
 ## Repository and runtime audit evidence
 
-Reference-loop implementation was database-tested on hardened head `a79e61de1591a0d3f96f9ed3c05aba58f2afe0c8`. The final documentation-only evidence update moved PR #91 to head `e7d05d419a2d4aa2448ce267d2b5b02f90862097`; no runtime code changed after the green database head.
+Runtime/database-tested hardened head: `a79e61de1591a0d3f96f9ed3c05aba58f2afe0c8`.
 
 - TBL-011 Isolated Clean Rebuild: ✅ PASS on runtime head `a79e61de...` (run 374).
 - TBL-012 M(repo) extractor: ✅ PASS on runtime head `a79e61de...` (run 49).
@@ -170,7 +170,8 @@ Reference-loop implementation was database-tested on hardened head `a79e61de1591
 - New runtime evidence tables inspected: RLS enabled, zero direct RLS policies.
 - Key new privileged Worker Engine routines expose no `PUBLIC`, `anon` or `authenticated` execute grants.
 - New runtime tables expose service-role access only in the inspected preview state.
-- PR #91 is open, draft and mergeable; final review/promotion remains separate from mission proof.
+
+Documentation-only commits after `a79e61de...` record this evidence and do not alter the validated runtime migrations/tests. PR #91 remains open, draft and mergeable; final promotion remains separate from mission proof.
 
 TypeScript/build is not used as the stopping criterion for this database-first reference mission. It remains a promotion gate before eventual merge to `main`.
 
