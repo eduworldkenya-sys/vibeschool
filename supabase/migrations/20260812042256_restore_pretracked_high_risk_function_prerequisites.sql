@@ -13,10 +13,17 @@ create table if not exists public.system_config (
 
 alter table public.system_config enable row level security;
 
+revoke all privileges on table public.system_config from public, anon, authenticated, service_role;
+grant select on table public.system_config to authenticated;
+grant select, insert, update, delete on table public.system_config to service_role;
+
 drop policy if exists system_config_read on public.system_config;
 create policy system_config_read on public.system_config
   for select
   using (auth.uid() is not null);
+
+-- authorization-test: public.system_config denies anon; authenticated is read-only
+-- under RLS; service_role retains the explicit backend CRUD contract.
 
 insert into public.system_config(key, value, description)
 values
@@ -42,6 +49,9 @@ create table if not exists public.invitations (
 
 alter table public.invitations enable row level security;
 
+revoke all privileges on table public.invitations from public, anon, authenticated, service_role;
+grant select, insert, update, delete on table public.invitations to authenticated, service_role;
+
 drop policy if exists invitations_admin on public.invitations;
 create policy invitations_admin on public.invitations
   for all
@@ -52,6 +62,9 @@ drop policy if exists invitations_read_by_code on public.invitations;
 create policy invitations_read_by_code on public.invitations
   for select
   using (auth.uid() is not null);
+
+-- authorization-test: public.invitations denies anon direct access; authenticated
+-- access remains constrained by the school-admin/read policies; service_role is backend-only.
 
 create or replace function public.fn_invitation_attempt(p_code text, p_success boolean)
 returns jsonb
