@@ -1,82 +1,75 @@
 # Vibeschool Worker Engine — Foundation Recovery Log
 
-**Status:** Active implementation/recovery log  
+**Status:** Foundation recovered and reconciled; controlled coding may begin  
 **Updated:** 2026-08-12  
 **Authority:** Subordinate to `WORKER_ENGINE_CANONICAL.md` and the frozen Worker Engine architecture.
 
-## Purpose
-
-This log records what the Worker Engine was originally intended to become, what already exists, what has been recovered from historical architecture work, and what remains before controlled autonomy can be considered complete.
-
-It prevents future implementation work from losing the original foundation or mistaking historical implementations for separate engines.
-
-## Recovered founding vision
+## Founding vision
 
 Vibeschool is building one governed autonomous workforce operating system, not a collection of unrestricted AI agents.
 
-The intended end state is an engine capable of observing work, detecting workforce demand or operational gaps, validating evidence, diagnosing the appropriate response, locating an existing capable worker where possible, assigning or rebalancing work, creating a new worker only when justified, provisioning that worker, running it in shadow, verifying its results, routing certification, activating it, supervising it, remediating or suspending it when necessary, and ultimately retiring/archive it with complete institutional evidence.
+The intended end state is an engine capable of observing the company, detecting workforce demand or operational gaps early, validating evidence, diagnosing the appropriate response, locating/reusing/rebalancing existing workers first, generating a new worker only when justified, provisioning it, shadowing it, verifying it, routing certification, activating it under bounded authority, assigning work, supervising outcomes, learning from verified evidence, remediating/suspending/recertifying workers and ultimately retiring/archive them with complete institutional evidence.
 
-### 95/5 doctrine
+## 95/5 doctrine
 
 Approximately 95% of execution capability is deterministic computing. AI is a bounded approximately 5% interpretive capability.
 
-Deterministic ownership includes lifecycle transitions, contracts/schema validation, authorization, school scope, capability checks, budgets/quotas, queueing/routing, identity validation, policy evaluation, verification gates, idempotency, audit emission, retries/failure handling, suspension/revocation, persistence and authoritative state mutation.
+Deterministic computing owns lifecycle, contracts/schema validation, authorization, scope, capabilities, budgets, routing, identity validation, policy evaluation, verification, idempotency, audit, retries, failure handling, suspension/revocation and authoritative state mutation.
 
-AI is reserved for explicitly classified semantic work such as extraction, classification, interpretation, summarization, explanation and bounded recommendation. AI output is untrusted input until deterministic verification passes. AI cannot create authority, change policy, bypass verification, access credentials, directly call unrestricted tools, or directly mutate authoritative state.
+AI is restricted to explicitly classified semantic work such as extraction, classification, interpretation, summarization, explanation and bounded recommendation. AI output is untrusted until deterministic verification. AI cannot create authority, change policy, bypass verification, access credentials, call unrestricted tools directly or directly mutate authoritative state.
 
 ## Canonical autonomous loop
 
 ```text
 Observe / Telemetry
-  -> Detect demand or gap
-  -> Validate evidence
-  -> Diagnose response
-  -> Locate/reuse/rebalance existing capability first
-  -> Plan bounded workforce response
-  -> Authorize
-  -> Issue WorkerCreationContract when creation is justified
-  -> Instantiate
-  -> Bind identity
-  -> Provision scope/capabilities/queue/budget
-  -> SHADOW
-  -> Verify
-  -> CERTIFICATION_PENDING
-  -> Governance certification
-  -> CERTIFIED
-  -> ACTIVE
-  -> Assign/execute/verify
-  -> Monitor
-  -> Learn / remediate / suspend / recertify / retire
-  -> Preserve immutable institutional evidence
+-> Detect demand or gap
+-> Validate evidence
+-> Diagnose response
+-> Eliminate / redesign / automate / train / rebalance / temporary capacity / human judgment / new digital worker
+-> Plan bounded response
+-> Authorize
+-> WorkerCreationContract when creation is justified
+-> Instantiate
+-> Bind identity
+-> Provision scope/capabilities/budget/queue
+-> SHADOW
+-> Verify
+-> CERTIFICATION_PENDING
+-> Governance certification
+-> CERTIFIED
+-> ACTIVE
+-> Assign -> execute -> verify
+-> Monitor
+-> Learn / remediate / suspend / recertify / retire
+-> Immutable institutional evidence
+-> Repeat
 ```
 
-Demand detection does not grant creation authority. Creation does not grant certification authority. Certification does not grant execution authority outside the certified blueprint. Audit evidence cannot be rewritten by the component being audited.
+Demand detection cannot create authority. The creator cannot certify itself. Certification does not grant authority beyond the approved blueprint. Audit evidence cannot be rewritten by the subject being audited.
 
-## Canonical lifecycle recovered from the architecture freeze
+## Canonical lifecycle
 
 ```text
 PROPOSED
-  -> REQUESTED
-  -> INSTANTIATED
-  -> PROVISIONED
-  -> SHADOW
-  -> CERTIFICATION_PENDING
-  -> CERTIFIED
-  -> ACTIVE
-  -> SUSPENDED
-  -> REMEDIATION
-  -> CERTIFICATION_PENDING
-  -> CERTIFIED
-  -> ACTIVE
-  -> RETIRED
-  -> ARCHIVED
+-> REQUESTED
+-> INSTANTIATED
+-> PROVISIONED
+-> SHADOW
+-> CERTIFICATION_PENDING
+-> CERTIFIED
+-> ACTIVE
+-> SUSPENDED
+-> REMEDIATION
+-> CERTIFICATION_PENDING
+-> CERTIFIED
+-> ACTIVE
+-> RETIRED
+-> ARCHIVED
 ```
 
-Illegal transitions fail closed. Certification expiry blocks new assignments. Suspension blocks new assignments and invokes credential enforcement. Retirement is terminal unless a future explicit architecture amendment defines otherwise.
+Illegal transitions fail closed. Certification expiry blocks new assignment. Suspension blocks new assignment and invokes credential enforcement. Retirement is terminal unless explicitly superseded by a future architecture version.
 
 ## Canonical contract set
-
-The recovered minimum registry is:
 
 - `DemandEvidence`
 - `WorkerCreationContract`
@@ -94,94 +87,67 @@ The recovered minimum registry is:
 - `RetirementRecord`
 - `AuditEvent`
 
-Contracts are versioned and immutable once issued. Unknown versions fail closed rather than being guessed. Security-relevant contracts carry explicit scope. Externally visible effects require idempotency.
+Contracts are versioned and immutable once issued. Unknown versions fail closed. Security-relevant contracts carry explicit semantic scope. Externally visible effects require idempotency.
 
-## Recovered enforcement doctrine
+## Reconciliation completed 2026-08-12
 
-A rule is not considered implemented merely because frontend or ordinary application code checks it. Security and authority invariants require mechanical enforcement at the appropriate database, RPC, gateway, policy, queue, verification or immutable-audit boundary.
+A production catalog/runtime inspection was reconciled against the recovered architecture. The detailed KEEP/HARDEN/MIGRATE/BUILD decisions are in `WORKER_ENGINE_RECONCILIATION_MATRIX.md`; status tracking is in `WORKER_ENGINE_PROGRESS_LOG.md`.
 
-Required properties include deny-by-default authority, blueprint ceilings, single-writer lifecycle transitions, capability-gated tools, transactional budgets, school-scope enforcement, model-gateway AI classification, deterministic verification of AI output, live revocation checks, production isolation during shadow execution, append-only audit evidence, idempotency and fail-closed contract-version handling.
+### Strong existing foundations to preserve
 
-## Existing implementation foundation
+- 32 `hq_workforce_*` tables forming the existing one-engine control plane.
+- 10 workers, 10 lanes and 12 versioned skills.
+- deterministic gap diagnosis and quantified Workforce Intelligence decision tree.
+- worker probation creation mechanics.
+- context authorization primitives.
+- decisions and owner escalation.
+- independent outcome verification.
+- recovery structures.
+- evidence, corrections, learning candidates, skill promotion/replay/rollback and institutional memory.
+- fail-closed direct workforce-table access: inspected workforce tables have RLS enabled with no direct policies.
+- only two workforce RPCs exposed to `authenticated`; both are HQ-owner asserted.
+- all 10 currently active workers have paid AI disabled.
 
-The existing `hq_workforce_*` database/runtime, HQ workforce surfaces, worker templates, workers, roles, jobs, assignments, messages/runs, skills, decisions, evidence, verification, memory, certifications, activation approvals and related lifecycle/security functions are foundation material for this same Worker Engine.
+### Important corrections established
 
-They are not a second engine. Existing useful deterministic work-bus behavior should be preserved where it conforms to the canonical architecture.
+1. Current worker `active` status is historical runtime status, not proof of certification under the frozen canonical lifecycle.
+2. `hq_workforce_execute_safe_queue()` currently performs `internal_review_only` with `side_effects=none`; it is orchestration/review, not the final real execution kernel.
+3. There are no production workforce cron jobs; schedule metadata does not yet constitute an autonomous heartbeat.
+4. The runtime has 5 jobs for 10 workers; 5 workers currently lack `job_key` normalization.
+5. There are 0 `school_id` columns across 32 workforce tables. Scope must be classified contract-by-contract as platform-global or school-scoped; blindly adding `school_id` is prohibited.
+6. Existing descriptive `permissions` are not equivalent to canonical enforceable capability grants.
+7. Existing `paid_ai_allowed` is not equivalent to the complete 95/5 Model Gateway contract.
+8. Existing worker UUID/key is not equivalent to canonical WorkerIdentity + expiring/revocable credential binding.
 
-## Current reconciliation findings
+## Foundation gate decision
 
-### Confirmed
+**GREEN FOR CONTROLLED IMPLEMENTATION CODING.**
 
-- One-engine authority is now recorded on `main` in `docs/WORKER_ENGINE_CANONICAL.md`.
-- Historical HQ workforce code and frozen architecture are explicitly defined as one engine lineage.
-- The architecture freeze contains the detailed 95/5 doctrine, constitutional boundaries, lifecycle, contract registry, enforcement map, platform constraints and reference lifecycle trace.
-- The architecture explicitly prohibits general autonomous-workforce expansion before one reference worker passes the complete lifecycle/security acceptance suite.
+The architecture-discovery/reconciliation phase is closed. Further open-ended design archaeology is not required before WE-L1.
 
-### Partial / requires reconciliation
+This does not authorize broad autonomy or production mutation. It authorizes implementation on a protected branch against the reconciled architecture.
 
-- Existing worker statuses and lifecycle behavior predate the canonical lifecycle and must be mapped rather than assumed equivalent.
-- Existing `paid_ai_allowed`-style controls do not by themselves implement the full AI classification/model-gateway doctrine.
-- Existing workforce tables/RPCs need contract-by-contract comparison with the recovered canonical registry.
-- Existing audit/evidence structures need verification against append-only/concurrency/reconstructability requirements.
-- Existing worker creation/factory behavior needs proof that detection, authorization, creation, certification and execution powers remain separated.
+## Next phase: WE-L1 — Authority & Lifecycle Convergence
 
-### Not yet proven complete
+Implement in this order:
 
-- Full autonomous demand -> diagnosis -> reuse/rebalance/create decision loop.
-- Deterministic proof that an existing worker is preferred before creating another worker.
-- Complete canonical lifecycle enforcement through one writer.
-- Complete immutable/versioned contract registry.
-- Blueprint authority ceilings enforced at privileged boundaries.
-- Worker identity issuance, expiry and live revocation at every privileged call.
-- Capability and budget enforcement transactionally bound to privileged effects.
-- Production-isolated SHADOW execution.
-- Independent deterministic outcome verification before authoritative mutation where required.
-- Full Model Gateway with AI-0 denial and bounded AI-enabled skills.
-- Complete queue retry/backpressure/DLQ/idempotency semantics.
-- Complete institutional event history sufficient to reconstruct a worker from proposal through archive.
-- One reference worker passing the entire lifecycle and security acceptance suite.
-- Controlled autonomous worker generation enabled only after that reference-worker gate passes.
+1. canonical contract registry primitives;
+2. Blueprint + WorkerCreationContract authority ceiling;
+3. canonical lifecycle registry and single-writer transition RPC;
+4. transitional mapping for legacy active workers without falsely recertifying them;
+5. WorkerIdentity + live revocation primitive;
+6. enforceable capability grants;
+7. transactional worker execution budgets;
+8. negative acceptance tests for illegal lifecycle transitions, missing authority, revoked identity, missing capability and exhausted budget.
 
-## Implementation gate
+Do not enable production-effect Tool Gateway execution, Model Gateway AI, scheduler-driven autonomous creation or broad worker expansion until these gates pass.
 
-Do not add another Worker Engine, parallel Foundry, duplicate lifecycle controller or competing `worker_*` control plane.
+## Implementation discipline
 
-Before implementing a missing capability:
+No new table/RPC/service is justified merely because the architecture names a concept. First prove the existing `hq_workforce_*` implementation cannot safely be extended. Preserve conforming behavior, harden partial behavior and migrate historical representations instead of duplicating them.
 
-1. inspect the existing HQ workforce implementation;
-2. identify whether the capability already exists fully or partially;
-3. map it to the canonical architecture section and contract;
-4. preserve conforming behavior;
-5. harden/reconcile conflicting behavior rather than duplicating it;
-6. define the mechanical enforcement boundary;
-7. define the acceptance test;
-8. implement only after the architecture decision is explicit.
-
-## Current recommended sequence
-
-```text
-Foundation documentation recovery
--> Existing HQ workforce inventory
--> Architecture-to-runtime reconciliation matrix
--> Security/RPC enforcement verification
--> Canonical contract registry
--> Lifecycle state-machine reconciliation
--> Identity/capabilities/budgets
--> Audit/event reconstruction guarantees
--> Queue/task routing and idempotency
--> Context/tool gateways
--> Verification engine
--> Model Gateway
--> One reference worker end-to-end
--> Full acceptance/security suite
--> Controlled autonomy
--> Demand-driven worker generation
-```
-
-## Architecture-change rule
-
-Implementation must not silently invent architecture. If coding exposes a missing architectural decision, record and review that decision first. Amendments must be explicit and versioned.
+Implementation must not silently invent architecture. If coding exposes a genuinely missing architectural decision, update the architecture/log explicitly before implementing it.
 
 ## Log discipline
 
-Update this file whenever a material Worker Engine capability changes state. Each future update should record evidence, current implementation status, remaining gap, acceptance test and the next smallest safe action. Never mark a capability complete from documentation alone; completion requires runtime/mechanical evidence.
+Every material Worker Engine change must update the progress ledger with evidence, implementation state, acceptance result and next safe action. Never mark a capability complete from documentation or row counts alone.
