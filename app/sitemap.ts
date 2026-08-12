@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ])
 
   const courseById = new Map(courses.map(course => [course.id, course]))
-  const moduleById = new Map(modules.map(module => [module.id, module]))
+  const moduleById = new Map(modules.map(publicModule => [publicModule.id, publicModule]))
   const entries: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: 'weekly', priority: 1 },
     { url: `${SITE_URL}/about`, changeFrequency: 'monthly', priority: 0.8 },
@@ -47,12 +47,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   for (const topic of topics) {
-    const module = moduleById.get(topic.module_id)
-    if (!module) continue
-    const course = courseById.get(module.course_id)
+    const publicModule = moduleById.get(topic.module_id)
+    if (!publicModule) continue
+    const course = courseById.get(publicModule.course_id)
     if (!course) continue
     entries.push({
-      url: `${SITE_URL}/knowledge/${encodeURIComponent(course.slug)}/${encodeURIComponent(module.slug)}/${encodeURIComponent(topic.slug)}`,
+      url: `${SITE_URL}/knowledge/${encodeURIComponent(course.slug)}/${encodeURIComponent(publicModule.slug)}/${encodeURIComponent(topic.slug)}`,
       changeFrequency: 'monthly',
       priority: 0.8,
     })
