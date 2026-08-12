@@ -1,0 +1,14 @@
+-- Preserved provenance copy of duplicate repository migration version 20260809111500.
+--
+-- This file was previously stored under supabase/migrations as
+-- 20260809111500_hq_publication_release_enforcement_v1.sql, but it contains
+-- comments only and no replayable DDL. A second migration uses the same ledger
+-- version: 20260809111500_publishing_factory_repository_parity.sql.
+-- PostgreSQL/Supabase correctly rejects two migrations with the same version.
+-- Keep this historical note as L0 evidence rather than an executable migration.
+--
+-- Original repository note:
+-- HQ publication release enforcement v1
+-- Applied to production Supabase on 2026-08-09.
+-- Enforces publication.release_enabled inside publish_publication() and publish_textbook()
+-- before publication mutations. Full DDL is recorded in the Supabase migration ledger.
