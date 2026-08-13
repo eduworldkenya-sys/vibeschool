@@ -14,8 +14,6 @@ const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // HQ uses isolated authentication/storage. Never let the normal app session
-  // participate in HQ routing, and never cache auth responses.
   if (pathname.startsWith('/hq')) {
     const response = NextResponse.next()
     response.headers.set('Cache-Control', 'private, no-store')
@@ -44,35 +42,32 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  function redirectWithAuth(url: URL) {
-    const response = NextResponse.redirect(url)
+  function copyAuthState(response: NextResponse) {
     supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
     for (const header of ['cache-control', 'expires', 'pragma']) {
       const value = supabaseResponse.headers.get(header)
       if (value) response.headers.set(header, value)
     }
+    return response
+  }
+
+  function redirectWithAuth(url: URL) {
+    const response = copyAuthState(NextResponse.redirect(url))
     response.headers.set('Cache-Control', 'private, no-store')
     return response
   }
 
-  // One server-side auth resolution prevents the root login page from mounting
-  // and then performing a second client-side auth check + hard navigation.
-  // Supabase recommends server-side auth for SSR protection and cookie-backed
-  // sessions; keep authorization checks on the server as well.
   const { data: { user } } = await supabase.auth.getUser()
   const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
 
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/'
+    loginUrl.pathname = '/login'
     loginUrl.searchParams.set('redirect', pathname)
     return redirectWithAuth(loginUrl)
   }
 
-  // If an authenticated user requests the public root, resolve their canonical
-  // role before React mounts the login UI. This removes the visible loading /
-  // redirect / remount cycle on refresh and when returning to the app root.
-  if (pathname === '/' && user) {
+  if ((pathname === '/' || pathname === '/login') && user) {
     const { data: rpcRole } = await supabase.rpc('get_my_role')
     const destination = rpcRole ? DASHBOARDS[rpcRole] : undefined
     if (destination) {
@@ -81,6 +76,18 @@ export async function middleware(request: NextRequest) {
       destinationUrl.search = ''
       return redirectWithAuth(destinationUrl)
     }
+  }
+
+  if (!user && pathname === '/') {
+    const welcomeUrl = request.nextUrl.clone()
+    welcomeUrl.pathname = '/welcome'
+    return copyAuthState(NextResponse.rewrite(welcomeUrl))
+  }
+
+  if (!user && pathname === '/login') {
+    const authUrl = request.nextUrl.clone()
+    authUrl.pathname = '/'
+    return copyAuthState(NextResponse.rewrite(authUrl))
   }
 
   return supabaseResponse
