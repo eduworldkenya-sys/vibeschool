@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { Jost, DM_Mono, Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google'
 import LearnYourWayReaderBridge from '@/components/student/LearnYourWayReaderBridge'
+import PwaInstallPrompt from '@/components/pwa/PwaInstallPrompt'
 import './globals.css'
 
 const jost = Jost({ subsets: ['latin'], weight: ['300', '400', '600', '800'], display: 'block', variable: '--font-display' })
@@ -35,6 +36,10 @@ export const metadata: Metadata = {
   twitter: { card: 'summary', title: 'VibeSchool — Learning, teaching and education, connected', description: 'A connected education experience for learners, teachers, parents and schools, with curriculum-aligned learning resources.', images: ['https://www.vibeschool.co.ke/icons/icon-512.svg'] },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'VibeSchool' },
+  icons: {
+    icon: [{ url: '/icons/icon.png?size=192', type: 'image/png', sizes: '192x192' }],
+    apple: [{ url: '/icons/icon.png?size=192', type: 'image/png', sizes: '192x192' }],
+  },
   formatDetection: { telephone: false },
 }
 
@@ -47,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }} />
         {children}
         <LearnYourWayReaderBridge />
+        <PwaInstallPrompt />
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
