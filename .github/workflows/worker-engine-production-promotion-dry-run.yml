@@ -26,7 +26,7 @@ jobs:
       EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
 
     steps:
-      - name: Require exact dry-run confirmation
+      - name: Require exact dry-run confirmation and main ref
         shell: bash
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
@@ -34,6 +34,10 @@ jobs:
           set -euo pipefail
           if [ "$CONFIRMATION" != "DRY_RUN_WORKER_ENGINE_PROMOTION" ]; then
             echo "Refusing Worker Engine production dry run: confirmation phrase mismatch." >&2
+            exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Refusing Worker Engine production dry run from non-main ref: $GITHUB_REF" >&2
             exit 1
           fi
 
@@ -48,6 +52,7 @@ jobs:
           {
             echo "run_id=${{ github.run_id }}"
             echo "actor=${{ github.actor }}"
+            echo "ref=${{ github.ref }}"
             echo "sha=${{ github.sha }}"
             echo "project_ref=$EXPECTED_PROJECT_REF"
             echo "mode=DRY_RUN_ONLY"
@@ -106,10 +111,6 @@ jobs:
           remote = set()
           for line in text.splitlines():
               timestamps = re.findall(r'(?<!\d)(\d{14})(?!\d)', line)
-              # `migration list` prints LOCAL and REMOTE side by side. Any timestamp
-              # appearing at least twice on a row is an exact local/remote match;
-              # remote-only rows still contain one timestamp. A direct SQL-backed
-              # TBL-013 audit remains the authority if CLI formatting changes.
               if len(timestamps) >= 2 and timestamps[0] == timestamps[1]:
                   remote.add(timestamps[1])
               elif len(timestamps) == 1 and timestamps[0] not in local:
@@ -151,6 +152,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          grep -F 'ref=refs/heads/main' .worker-engine-promotion-dry-run/context.txt
           grep -F 'mode=DRY_RUN_ONLY' .worker-engine-promotion-dry-run/context.txt
           test -s .worker-engine-promotion-dry-run/migration-list.txt
           test -s .worker-engine-promotion-dry-run/candidate-set.txt
