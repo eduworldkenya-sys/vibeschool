@@ -165,4 +165,5 @@ jobs:
           name: worker-engine-production-promotion-dry-run-${{ github.run_id }}
           path: .worker-engine-promotion-dry-run/
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 30
