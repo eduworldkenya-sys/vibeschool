@@ -60,6 +60,9 @@ jobs:
             echo "production_ddl=false"
           } > .worker-engine-promotion-dry-run/context.txt
 
+      - name: Run ledger staging regression suite
+        run: python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+
       - name: Set up pinned Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -97,123 +100,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PYEOF'
-          import json
-          import re
-          import shutil
-          from pathlib import Path
-
-          expected = {
-              '20260812191500','20260812191600','20260812193000',
-              '20260812194000','20260812195000','20260812200000',
-              '20260812201000','20260812202000','20260812202100',
-              '20260812202200','20260812202300','20260812202400',
-              '20260812202500','20260812202600','20260812211500',
-              '20260812213000','20260812214500','20260812215500',
-              '20260812221000','20260812222000','20260812223000',
-              '20260813023028',
-          }
-
-          report_path = Path('.worker-engine-promotion-dry-run/tbl013-report.json')
-          report = json.loads(report_path.read_text(encoding='utf-8'))
-
-          if report.get('read_only_audit') is not True:
-              raise SystemExit('Worker Engine dry run blocked: TBL-013 report is not read-only')
-          if report.get('authorized_repairs'):
-              raise SystemExit('Worker Engine dry run blocked: ledger repair unexpectedly authorized')
-          if report['counts'].get('duplicate_local_versions') != 0:
-              raise SystemExit('Worker Engine dry run blocked: duplicate repository migration versions')
-          if report['counts'].get('duplicate_remote_versions') != 0:
-              raise SystemExit('Worker Engine dry run blocked: duplicate production migration versions')
-
-          local_only = {entry['version'] for entry in report['local_only']}
-          remote_only = {entry['version'] for entry in report['remote_only']}
-          parity = set(report['parity_versions'])
-          missing_expected = sorted(expected - local_only)
-          unrelated_local_only = sorted(local_only - expected)
-
-          if missing_expected:
-              raise SystemExit(
-                  'Worker Engine dry run blocked: expected migration is not genuinely pending: '
-                  + ','.join(missing_expected)
-              )
-
-          if parity & remote_only or parity & local_only or remote_only & local_only:
-              raise SystemExit('Worker Engine dry run blocked: TBL-013 version classes overlap')
-
-          stage = Path('.worker-engine-promotion-stage')
-          if stage.exists():
-              shutil.rmtree(stage)
-          (stage / 'supabase' / 'migrations').mkdir(parents=True)
-
-          config = Path('supabase/config.toml')
-          if not config.is_file():
-              raise SystemExit('Worker Engine dry run blocked: supabase/config.toml missing')
-          shutil.copy2(config, stage / 'supabase' / 'config.toml')
-
-          migration_re = re.compile(r'^(\d{8,14})_.+\.sql$')
-          staged_versions = set()
-
-          for source in sorted(Path('supabase/migrations').glob('*.sql')):
-              match = migration_re.fullmatch(source.name)
-              if match is None:
-                  raise SystemExit(f'invalid migration filename: {source.name}')
-              version = match.group(1)
-              if version in unrelated_local_only:
-                  continue
-              shutil.copy2(source, stage / 'supabase' / 'migrations' / source.name)
-              staged_versions.add(version)
-
-          for version in sorted(remote_only):
-              if version in staged_versions:
-                  raise SystemExit(
-                      f'Worker Engine dry run blocked: remote-only version unexpectedly staged: {version}'
-                  )
-              placeholder = (
-                  stage / 'supabase' / 'migrations' /
-                  f'{version}_production_history_placeholder.sql'
-              )
-              placeholder.write_text(
-                  '-- CI-only ledger-alignment placeholder for an already-applied production migration.\n'
-                  '-- Never executed; version exists in production history.\n',
-                  encoding='utf-8',
-              )
-              staged_versions.add(version)
-
-          remote_versions = parity | remote_only
-          expected_stage = remote_versions | expected
-
-          if staged_versions != expected_stage:
-              missing = sorted(expected_stage - staged_versions)
-              extra = sorted(staged_versions - expected_stage)
-              raise SystemExit(
-                  f'Worker Engine dry run blocked: staged ledger mismatch missing={missing} extra={extra}'
-              )
-
-          manifest = {
-              'mode': 'EPHEMERAL_LEDGER_ALIGNED_DRY_RUN_VIEW',
-              'expected_worker_engine_versions': sorted(expected),
-              'excluded_unrelated_repository_only': unrelated_local_only,
-              'production_only_placeholders': sorted(remote_only),
-              'parity_versions': sorted(parity),
-              'staged_version_count': len(staged_versions),
-              'remote_version_count': len(remote_versions),
-              'authorized_repairs': [],
-              'production_mutation': False,
-          }
-          Path('.worker-engine-promotion-dry-run/staging-manifest.json').write_text(
-              json.dumps(manifest, indent=2) + '\n', encoding='utf-8'
-          )
-          Path('.worker-engine-promotion-dry-run/expected-versions.txt').write_text(
-              '\n'.join(sorted(expected)) + '\n', encoding='utf-8'
-          )
-
-          print('Expected Worker Engine migrations:', len(expected))
-          print('Excluded unrelated repository-only:', len(unrelated_local_only))
-          print('Production-only placeholders:', len(remote_only))
-          print('Parity versions:', len(parity))
-          print('Staged migration versions:', len(staged_versions))
-          PYEOF
+          python3 scripts/worker-engine-build-ledger-aligned-stage.py \
+            --report .worker-engine-promotion-dry-run/tbl013-report.json \
+            --migrations-dir supabase/migrations \
+            --config supabase/config.toml \
+            --stage-dir .worker-engine-promotion-stage \
+            --manifest .worker-engine-promotion-dry-run/staging-manifest.json \
+            --expected-versions .worker-engine-promotion-dry-run/expected-versions.txt
 
       - name: Link ephemeral view to exact production project
         shell: bash
