@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { Jost, DM_Mono, Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google'
 import LearnYourWayReaderBridge from '@/components/student/LearnYourWayReaderBridge'
 import PwaInstallPrompt from '@/components/pwa/PwaInstallPrompt'
+import PwaServiceWorker from '@/components/pwa/PwaServiceWorker'
 import './globals.css'
 
 const jost = Jost({ subsets: ['latin'], weight: ['300', '400', '600', '800'], display: 'block', variable: '--font-display' })
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 }
 
-export const viewport: Viewport = { themeColor: '#05050F', width: 'device-width', initialScale: 1, minimumScale: 1, viewportFit: 'cover' }
+export const viewport: Viewport = { themeColor: '#070B1F', width: 'device-width', initialScale: 1, minimumScale: 1, viewportFit: 'cover' }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -53,14 +54,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }} />
         {children}
         <LearnYourWayReaderBridge />
+        <PwaServiceWorker />
         <PwaInstallPrompt />
-        <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js')
-            })
-          }
-        ` }} />
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-VKBSGBYKKF" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
           {`
