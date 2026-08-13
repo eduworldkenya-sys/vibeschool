@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'VibeSchool' },
   icons: {
     icon: [{ url: '/icons/icon-192.svg', type: 'image/svg+xml', sizes: '192x192' }],
-    apple: [{ url: '/icons/icon-192.svg', type: 'image/svg+xml', sizes: '192x192' }],
+    apple: [{ url: '/apple-icon', type: 'image/png', sizes: '180x180' }],
   },
   formatDetection: { telephone: false },
 }
