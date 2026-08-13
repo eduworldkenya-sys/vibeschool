@@ -1,0 +1,23 @@
+name: School discovery contract
+
+on:
+  push:
+    paths:
+      - 'app/teacher/onboarding/school/**'
+      - 'supabase/migrations/*school_*.sql'
+      - 'scripts/test-school-discovery-contract.py'
+  pull_request:
+    paths:
+      - 'app/teacher/onboarding/school/**'
+      - 'supabase/migrations/*school_*.sql'
+      - 'scripts/test-school-discovery-contract.py'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python scripts/test-school-discovery-contract.py
