@@ -53,6 +53,7 @@ jobs:
 
       - name: Install isolated Playwright runtime
         run: |
+          rm -rf /tmp/vibeschool-pwa-browser
           mkdir -p /tmp/vibeschool-pwa-browser
           cd /tmp/vibeschool-pwa-browser
           npm init -y >/dev/null 2>&1
@@ -82,6 +83,10 @@ jobs:
           PWA_TEST_BASE_URL: http://127.0.0.1:3000
         run: node test-pwa-browser.mjs
 
-      - name: Show server log on failure
+      - name: Show diagnostics on failure
         if: failure()
-        run: cat /tmp/vibeschool-pwa-server.log || true
+        run: |
+          echo '--- VibeSchool production server log ---'
+          cat /tmp/vibeschool-pwa-server.log || true
+          echo '--- Browser gate environment ---'
+          test -f /tmp/vibeschool-pwa-browser/package.json && cat /tmp/vibeschool-pwa-browser/package.json || true
