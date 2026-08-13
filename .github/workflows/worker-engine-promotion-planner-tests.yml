@@ -3,21 +3,27 @@ name: Worker Engine Promotion Planner Regression Gate
 on:
   pull_request:
     paths:
+      - supabase/migrations/*worker_engine*.sql
       - scripts/worker-engine-build-ledger-aligned-stage.py
       - scripts/test-worker-engine-build-ledger-aligned-stage.py
       - scripts/worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-assert-dry-run-plan.py
+      - scripts/test-worker-engine-pgcrypto-qualification.py
       - .github/workflows/worker-engine-production-promotion-dry-run.yml
+      - .github/workflows/worker-engine-production-promotion-apply.yml
       - .github/workflows/worker-engine-promotion-planner-tests.yml
   push:
     branches-ignore:
       - main
     paths:
+      - supabase/migrations/*worker_engine*.sql
       - scripts/worker-engine-build-ledger-aligned-stage.py
       - scripts/test-worker-engine-build-ledger-aligned-stage.py
       - scripts/worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-assert-dry-run-plan.py
+      - scripts/test-worker-engine-pgcrypto-qualification.py
       - .github/workflows/worker-engine-production-promotion-dry-run.yml
+      - .github/workflows/worker-engine-production-promotion-apply.yml
       - .github/workflows/worker-engine-promotion-planner-tests.yml
 
 permissions:
@@ -35,3 +41,5 @@ jobs:
         run: python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
       - name: Run dry-run output assertion regression suite
         run: python3 scripts/test-worker-engine-assert-dry-run-plan.py
+      - name: Guard pgcrypto schema qualification
+        run: python3 scripts/test-worker-engine-pgcrypto-qualification.py
