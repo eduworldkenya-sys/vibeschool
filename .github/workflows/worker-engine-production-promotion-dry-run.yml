@@ -80,13 +80,24 @@ jobs:
           supabase migration list --linked 2>&1 \
             | tee .worker-engine-promotion-dry-run/migration-list.txt
 
+      - name: Run proven TBL-013 read-only ledger parser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/tbl013-live-ledger-audit.py \
+            --migrations-dir supabase/migrations \
+            --ledger .worker-engine-promotion-dry-run/migration-list.txt \
+            --report .worker-engine-promotion-dry-run/tbl013-report.json \
+            --plan .worker-engine-promotion-dry-run/tbl013-plan.md \
+            --project-ref "$EXPECTED_PROJECT_REF"
+
       - name: Enforce exact Worker Engine candidate set
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PYEOF'
+          import json
           from pathlib import Path
-          import re
 
           expected = {
               '20260812191500','20260812191600','20260812193000',
@@ -99,38 +110,32 @@ jobs:
               '20260813023028',
           }
 
-          local = {
-              p.name.split('_', 1)[0]
-              for p in Path('supabase/migrations').glob('*.sql')
-              if re.fullmatch(r'\d{14}_.+\.sql', p.name)
-          }
-
-          text = Path('.worker-engine-promotion-dry-run/migration-list.txt').read_text(
-              encoding='utf-8', errors='replace'
+          report = json.loads(
+              Path('.worker-engine-promotion-dry-run/tbl013-report.json').read_text(
+                  encoding='utf-8'
+              )
           )
-          remote = set()
-          for line in text.splitlines():
-              timestamps = re.findall(r'(?<!\d)(\d{14})(?!\d)', line)
-              if len(timestamps) >= 2 and timestamps[0] == timestamps[1]:
-                  remote.add(timestamps[1])
-              elif len(timestamps) == 1 and timestamps[0] not in local:
-                  remote.add(timestamps[0])
-
-          candidate = local - remote
+          candidate = {entry['version'] for entry in report['local_only']}
           missing_expected = sorted(expected - candidate)
           unexpected = sorted(candidate - expected)
 
-          report = [
+          summary = [
               f'expected_count={len(expected)}',
               f'candidate_count={len(candidate)}',
               f'missing_expected={missing_expected}',
               f'unexpected_repository_only={unexpected}',
+              f'production_only_count={report["counts"]["remote_only_versions"]}',
+              f'authorized_repairs={report["counts"]["authorized_repairs"]}',
           ]
           Path('.worker-engine-promotion-dry-run/candidate-set.txt').write_text(
-              '\n'.join(report) + '\n', encoding='utf-8'
+              '\n'.join(summary) + '\n', encoding='utf-8'
           )
-          print('\n'.join(report))
+          print('\n'.join(summary))
 
+          if report.get('read_only_audit') is not True:
+              raise SystemExit('Worker Engine dry run blocked: TBL-013 report is not read-only')
+          if report.get('authorized_repairs'):
+              raise SystemExit('Worker Engine dry run blocked: ledger repair unexpectedly authorized')
           if missing_expected:
               raise SystemExit('Worker Engine dry run blocked: expected migration is not pending')
           if unexpected:
@@ -155,6 +160,8 @@ jobs:
           grep -F 'ref=refs/heads/main' .worker-engine-promotion-dry-run/context.txt
           grep -F 'mode=DRY_RUN_ONLY' .worker-engine-promotion-dry-run/context.txt
           test -s .worker-engine-promotion-dry-run/migration-list.txt
+          test -s .worker-engine-promotion-dry-run/tbl013-report.json
+          test -s .worker-engine-promotion-dry-run/tbl013-plan.md
           test -s .worker-engine-promotion-dry-run/candidate-set.txt
           test -s .worker-engine-promotion-dry-run/db-push-dry-run.txt
           sha256sum .worker-engine-promotion-dry-run/* \
