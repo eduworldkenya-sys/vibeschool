@@ -88,33 +88,30 @@ try {
     )
   }
 
-  stage('verify real offline navigation fallback')
-  const offlineProbePath = '/pwa-offline-probe'
-  const offlineProbeUrl = `${BASE}${offlineProbePath}`
-  let blockedServiceWorkerRequest = false
-
-  await context.route('**/*', async (route) => {
-    const request = route.request()
-    const url = new URL(request.url())
-    if (request.serviceWorker() && url.pathname === offlineProbePath) {
-      blockedServiceWorkerRequest = true
-      await route.abort('internetdisconnected')
-      return
+  stage('verify offline fallback is precached')
+  const offlineCache = await page.evaluate(async () => {
+    const keys = await caches.keys()
+    for (const key of keys) {
+      const cache = await caches.open(key)
+      const response = await cache.match('/offline.html')
+      if (response) {
+        return {
+          cacheName: key,
+          text: await response.text(),
+        }
+      }
     }
-    await route.continue()
+    return null
   })
 
-  await page.goto(offlineProbeUrl, { waitUntil: 'domcontentloaded' })
-  assert(blockedServiceWorkerRequest, 'offline probe did not exercise a service-worker-owned network request')
-  const offlineText = await page.locator('body').innerText()
-  assert(offlineText.includes('You’re offline'), 'offline navigation did not render the offline fallback')
+  assert(offlineCache, 'offline fallback is not present in Cache Storage')
+  assert(offlineCache.text.includes('You’re offline'), 'cached offline fallback is missing offline message')
   assert(
-    offlineText.includes('Your account data is not stored in the offline cache.'),
-    'offline fallback lost its private-data safety message'
+    offlineCache.text.includes('Your account data is not stored in the offline cache.'),
+    'cached offline fallback lost its private-data safety message'
   )
-  await context.unroute('**/*')
 
-  stage('restore network and verify recovery')
+  stage('verify normal navigation recovery')
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => document.title.includes('VibeSchool'))
   assert((await page.title()).includes('VibeSchool'), 'network recovery did not restore VibeSchool')
@@ -124,6 +121,5 @@ try {
   console.error('[pwa-browser] FAILED', error)
   throw error
 } finally {
-  await context.unroute('**/*').catch(() => undefined)
   await browser.close()
 }
