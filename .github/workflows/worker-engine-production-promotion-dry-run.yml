@@ -1,0 +1,177 @@
+name: Worker Engine Production Promotion Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DRY_RUN_WORKER_ENGINE_PROMOTION to run the read-only production plan
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-engine-production-promotion-dry-run
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    name: Read-only Worker Engine production promotion plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-migration-repair
+
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+
+    steps:
+      - name: Require exact dry-run confirmation and main ref
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRMATION" != "DRY_RUN_WORKER_ENGINE_PROMOTION" ]; then
+            echo "Refusing Worker Engine production dry run: confirmation phrase mismatch." >&2
+            exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Refusing Worker Engine production dry run from non-main ref: $GITHUB_REF" >&2
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize immutable evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .worker-engine-promotion-dry-run
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "actor=${{ github.actor }}"
+            echo "ref=${{ github.ref }}"
+            echo "sha=${{ github.sha }}"
+            echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo "mode=DRY_RUN_ONLY"
+          } > .worker-engine-promotion-dry-run/context.txt
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Link exact production project
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+
+      - name: Capture local and remote migration ledger
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          supabase migration list --linked 2>&1 \
+            | tee .worker-engine-promotion-dry-run/migration-list.txt
+
+      - name: Run proven TBL-013 read-only ledger parser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/tbl013-live-ledger-audit.py \
+            --migrations-dir supabase/migrations \
+            --ledger .worker-engine-promotion-dry-run/migration-list.txt \
+            --report .worker-engine-promotion-dry-run/tbl013-report.json \
+            --plan .worker-engine-promotion-dry-run/tbl013-plan.md \
+            --project-ref "$EXPECTED_PROJECT_REF"
+
+      - name: Enforce exact Worker Engine candidate set
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYEOF'
+          import json
+          from pathlib import Path
+
+          expected = {
+              '20260812191500','20260812191600','20260812193000',
+              '20260812194000','20260812195000','20260812200000',
+              '20260812201000','20260812202000','20260812202100',
+              '20260812202200','20260812202300','20260812202400',
+              '20260812202500','20260812202600','20260812211500',
+              '20260812213000','20260812214500','20260812215500',
+              '20260812221000','20260812222000','20260812223000',
+              '20260813023028',
+          }
+
+          report = json.loads(
+              Path('.worker-engine-promotion-dry-run/tbl013-report.json').read_text(
+                  encoding='utf-8'
+              )
+          )
+          candidate = {entry['version'] for entry in report['local_only']}
+          missing_expected = sorted(expected - candidate)
+          unexpected = sorted(candidate - expected)
+
+          summary = [
+              f'expected_count={len(expected)}',
+              f'candidate_count={len(candidate)}',
+              f'missing_expected={missing_expected}',
+              f'unexpected_repository_only={unexpected}',
+              f'production_only_count={report["counts"]["remote_only_versions"]}',
+              f'authorized_repairs={report["counts"]["authorized_repairs"]}',
+          ]
+          Path('.worker-engine-promotion-dry-run/candidate-set.txt').write_text(
+              '\n'.join(summary) + '\n', encoding='utf-8'
+          )
+          print('\n'.join(summary))
+
+          if report.get('read_only_audit') is not True:
+              raise SystemExit('Worker Engine dry run blocked: TBL-013 report is not read-only')
+          if report.get('authorized_repairs'):
+              raise SystemExit('Worker Engine dry run blocked: ledger repair unexpectedly authorized')
+          if missing_expected:
+              raise SystemExit('Worker Engine dry run blocked: expected migration is not pending')
+          if unexpected:
+              raise SystemExit(
+                  'Worker Engine dry run blocked: unrelated repository-only migrations would be included'
+              )
+          PYEOF
+
+      - name: Supabase production push dry run
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          supabase db push --linked --dry-run --include-all 2>&1 \
+            | tee .worker-engine-promotion-dry-run/db-push-dry-run.txt
+
+      - name: Assert dry-run-only evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'ref=refs/heads/main' .worker-engine-promotion-dry-run/context.txt
+          grep -F 'mode=DRY_RUN_ONLY' .worker-engine-promotion-dry-run/context.txt
+          test -s .worker-engine-promotion-dry-run/migration-list.txt
+          test -s .worker-engine-promotion-dry-run/tbl013-report.json
+          test -s .worker-engine-promotion-dry-run/tbl013-plan.md
+          test -s .worker-engine-promotion-dry-run/candidate-set.txt
+          test -s .worker-engine-promotion-dry-run/db-push-dry-run.txt
+          sha256sum .worker-engine-promotion-dry-run/* \
+            > .worker-engine-promotion-dry-run/evidence.sha256
+
+      - name: Upload dry-run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-engine-production-promotion-dry-run-${{ github.run_id }}
+          path: .worker-engine-promotion-dry-run/
+          if-no-files-found: error
+          retention-days: 30
