@@ -5,6 +5,8 @@ on:
     paths:
       - scripts/tbl013-live-ledger-audit.py
       - scripts/test-tbl013-live-ledger-audit.py
+      - scripts/tbl013-statement-fingerprint-classifier.py
+      - scripts/test-tbl013-statement-fingerprint-classifier.py
       - .github/workflows/tbl013-live-ledger-audit.yml
       - .github/workflows/tbl013-auditor-tests.yml
   push:
@@ -13,6 +15,8 @@ on:
     paths:
       - scripts/tbl013-live-ledger-audit.py
       - scripts/test-tbl013-live-ledger-audit.py
+      - scripts/tbl013-statement-fingerprint-classifier.py
+      - scripts/test-tbl013-statement-fingerprint-classifier.py
       - .github/workflows/tbl013-live-ledger-audit.yml
       - .github/workflows/tbl013-auditor-tests.yml
 
@@ -28,5 +32,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run auditor regression suite
+      - name: Run live-ledger auditor regression suite
         run: python3 scripts/test-tbl013-live-ledger-audit.py
+
+      - name: Run statement fingerprint classifier regression suite
+        run: python3 scripts/test-tbl013-statement-fingerprint-classifier.py
