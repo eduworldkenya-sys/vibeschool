@@ -26,8 +26,28 @@ try {
   })
 
   stage('navigate into service-worker control')
-  await page.goto(`${BASE}/?pwa-browser-control=1`, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
+  // A newly activated service worker can abort the first navigation while it
+  // takes control. Retry the controlled navigation rather than treating that
+  // expected lifecycle race as an application failure.
+  let controlled = false
+  let lastNavigationError
+  for (let attempt = 1; attempt <= 3 && !controlled; attempt += 1) {
+    try {
+      await page.goto(`${BASE}/?pwa-browser-control=${attempt}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 15000,
+      })
+    } catch (error) {
+      lastNavigationError = error
+      console.log(`[pwa-browser] control navigation attempt ${attempt} was interrupted; retrying`)
+    }
+
+    controlled = await page
+      .waitForFunction(() => Boolean(navigator.serviceWorker.controller), undefined, { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false)
+  }
+  assert(controlled, `service worker never controlled the page: ${lastNavigationError || 'no controller'}`)
 
   stage('inspect Chromium manifest')
   const cdp = await context.newCDPSession(page)
