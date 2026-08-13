@@ -10,12 +10,11 @@ const DASHBOARDS: Record<string, string> = {
   global_user: '/global',
 }
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
+const PUBLIC_AUTH_ROUTES = new Set(['/login'])
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // HQ uses isolated authentication/storage. Never let the normal app session
-  // participate in HQ routing, and never cache auth responses.
   if (pathname.startsWith('/hq')) {
     const response = NextResponse.next()
     response.headers.set('Cache-Control', 'private, no-store')
@@ -55,24 +54,17 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // One server-side auth resolution prevents the root login page from mounting
-  // and then performing a second client-side auth check + hard navigation.
-  // Supabase recommends server-side auth for SSR protection and cookie-backed
-  // sessions; keep authorization checks on the server as well.
   const { data: { user } } = await supabase.auth.getUser()
   const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
 
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/'
+    loginUrl.pathname = '/login'
     loginUrl.searchParams.set('redirect', pathname)
     return redirectWithAuth(loginUrl)
   }
 
-  // If an authenticated user requests the public root, resolve their canonical
-  // role before React mounts the login UI. This removes the visible loading /
-  // redirect / remount cycle on refresh and when returning to the app root.
-  if (pathname === '/' && user) {
+  if ((pathname === '/' || PUBLIC_AUTH_ROUTES.has(pathname)) && user) {
     const { data: rpcRole } = await supabase.rpc('get_my_role')
     const destination = rpcRole ? DASHBOARDS[rpcRole] : undefined
     if (destination) {
