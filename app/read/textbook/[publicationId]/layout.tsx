@@ -74,25 +74,6 @@ export async function generateMetadata({
         ? { images: [{ url: publication.cover_url, alt: title }] }
         : {}),
     },
-    other: {
-      "script:ld+json": JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Book",
-        name: title,
-        description,
-        url: canonical,
-        inLanguage: "en",
-        isAccessibleForFree: true,
-        publisher: {
-          "@type": "EducationalOrganization",
-          name: "VibeSchool",
-          url: SITE_URL,
-        },
-        ...(publication.cover_url ? { image: publication.cover_url } : {}),
-        ...(publication.published_at ? { datePublished: publication.published_at } : {}),
-        ...(publication.updated_at ? { dateModified: publication.updated_at } : {}),
-      }),
-    },
   };
 }
 
