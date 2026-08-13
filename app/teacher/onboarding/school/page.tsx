@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -95,6 +95,15 @@ export default function SchoolDiscovery() {
     return () => clearTimeout(timer)
   }, [q, level, county, subCounty, lat, lng])
 
+  const hasAmbiguousNames = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const row of rows) {
+      const key = `${row.name.toLowerCase().replace(/[^a-z0-9]/g, "")}|${(row.county || "").toLowerCase()}|${(row.sub_county || "").toLowerCase()}`
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+    return [...counts.values()].some((count) => count > 1)
+  }, [rows])
+
   async function connect() {
     if (!picked || !level) return
     setBusy(true)
@@ -106,7 +115,12 @@ export default function SchoolDiscovery() {
     const { error } = await supabase.rpc(fn, args)
     setBusy(false)
     if (error) {
-      setMsg("We could not connect you to that school. Please retry.")
+      if (error.message?.includes("school_identity_review_required")) {
+        setMsg("This directory school needs verification before we can connect it safely. Send the school details below and our team will reconcile it without creating a duplicate.")
+        setMissingMode(true)
+      } else {
+        setMsg("We could not connect you to that school. Please retry.")
+      }
       return
     }
     router.push("/teacher/onboarding/class")
@@ -147,7 +161,7 @@ export default function SchoolDiscovery() {
       <section style={{ maxWidth: 560, margin: "40px auto", background: "#fff", borderRadius: 20, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,.08)" }}>
         <h1 style={{ marginTop: 0, marginBottom: 8 }}>Find your school</h1>
         <p style={{ color: "#667085", marginTop: 0 }}>
-          Choose your level, type a few words, and pick your school. We use school names, known aliases and location clues to make the match faster.
+          Choose your level, type a few words, and pick your school. We use school names, verified aliases and location clues to make the match faster.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
@@ -182,10 +196,16 @@ export default function SchoolDiscovery() {
 
         {searching && <p style={{ color: "#667085", fontSize: 13 }}>Searching schools…</p>}
 
+        {hasAmbiguousNames && (
+          <div style={{ marginTop: 12, padding: 12, background: "#fffaeb", border: "1px solid #fedf89", borderRadius: 12, fontSize: 13, color: "#7a2e0e" }}>
+            <b>There are schools with the same name.</b> Check the county/sub-county and location details before connecting.
+          </div>
+        )}
+
         {rows.map((school) => (
           <button
             key={`${school.source}-${school.id}`}
-            onClick={() => setPicked(school)}
+            onClick={() => { setPicked(school); setMsg("") }}
             style={{ display: "block", width: "100%", textAlign: "left", padding: 13, marginTop: 8, borderRadius: 12, border: picked?.id === school.id && picked?.source === school.source ? "2px solid #16a34a" : "1px solid #e5e7eb", background: picked?.id === school.id && picked?.source === school.source ? "#f0fdf4" : "#fff" }}
           >
             <b>{school.name}</b>
@@ -197,6 +217,9 @@ export default function SchoolDiscovery() {
               {school.distance_km != null ? ` · ${school.distance_km} km away` : ""}
               {school.knec_code ? ` · KNEC ${school.knec_code}` : ""}
             </div>
+            {school.source === "DIRECTORY" && (
+              <div style={{ marginTop: 5, fontSize: 11, color: "#667085" }}>Directory record · identity is verified before a canonical connection is created.</div>
+            )}
           </button>
         ))}
 
@@ -212,7 +235,7 @@ export default function SchoolDiscovery() {
           </div>
         )}
 
-        {msg && <p style={{ color: "#b42318", fontWeight: 600 }}>{msg}</p>}
+        {msg && <p role="alert" style={{ color: "#b42318", fontWeight: 600 }}>{msg}</p>}
 
         {picked && (
           <button disabled={busy} onClick={connect} style={{ width: "100%", marginTop: 12, padding: 14, border: 0, borderRadius: 12, background: "#16a34a", color: "#fff", fontWeight: 700 }}>
@@ -232,7 +255,7 @@ export default function SchoolDiscovery() {
               <>
                 <b>School details received.</b>
                 <p style={{ fontSize: 13, color: "#667085", marginBottom: 0 }}>
-                  We'll check the directory and reconcile the school before creating a duplicate. You can continue once it is identified.
+                  We'll check the directory and reconcile the school before creating a duplicate. You can retry the school connection once it is identified.
                 </p>
               </>
             ) : (
