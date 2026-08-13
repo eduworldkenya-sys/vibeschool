@@ -60,8 +60,12 @@ jobs:
             echo "production_ddl=false"
           } > .worker-engine-promotion-dry-run/context.txt
 
-      - name: Run ledger staging regression suite
-        run: python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+      - name: Run promotion regression suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+          python3 scripts/test-worker-engine-assert-dry-run-plan.py
 
       - name: Set up pinned Supabase CLI
         uses: supabase/setup-cli@v1
@@ -127,46 +131,14 @@ jobs:
           supabase db push --linked --dry-run --include-all 2>&1 \
             | tee ../.worker-engine-promotion-dry-run/db-push-dry-run.txt
 
-      - name: Assert dry run plans exactly the approved 22 migrations
+      - name: Assert dry run plans exactly the approved migrations
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PYEOF'
-          import re
-          from pathlib import Path
-
-          expected = set(
-              Path('.worker-engine-promotion-dry-run/expected-versions.txt')
-              .read_text(encoding='utf-8')
-              .split()
-          )
-          output = Path('.worker-engine-promotion-dry-run/db-push-dry-run.txt').read_text(
-              encoding='utf-8', errors='replace'
-          )
-          migration_tokens = set(
-              re.findall(r'(?<![0-9A-Za-z_])(\d{14})_[0-9A-Za-z_.-]+\.sql', output)
-          )
-          missing = sorted(expected - migration_tokens)
-          unexpected = sorted(migration_tokens - expected)
-
-          summary = [
-              f'expected_count={len(expected)}',
-              f'planned_migration_count={len(migration_tokens)}',
-              f'missing_expected={missing}',
-              f'unexpected_planned_versions={unexpected}',
-          ]
-          Path('.worker-engine-promotion-dry-run/dry-run-assertion.txt').write_text(
-              '\n'.join(summary) + '\n', encoding='utf-8'
-          )
-          print('\n'.join(summary))
-
-          if missing:
-              raise SystemExit('Worker Engine dry run blocked: not all approved migrations were planned')
-          if unexpected:
-              raise SystemExit('Worker Engine dry run blocked: dry run planned an unapproved migration')
-          if len(migration_tokens) != len(expected):
-              raise SystemExit('Worker Engine dry run blocked: planned migration count is not exactly 22')
-          PYEOF
+          python3 scripts/worker-engine-assert-dry-run-plan.py \
+            --expected .worker-engine-promotion-dry-run/expected-versions.txt \
+            --dry-run-output .worker-engine-promotion-dry-run/db-push-dry-run.txt \
+            --report .worker-engine-promotion-dry-run/dry-run-assertion.txt
 
       - name: Assert dry-run-only evidence
         shell: bash
@@ -176,6 +148,7 @@ jobs:
           grep -F 'mode=DRY_RUN_ONLY' .worker-engine-promotion-dry-run/context.txt
           grep -F 'ledger_mutation=false' .worker-engine-promotion-dry-run/context.txt
           grep -F 'production_ddl=false' .worker-engine-promotion-dry-run/context.txt
+          grep -F 'status=PASSED' .worker-engine-promotion-dry-run/dry-run-assertion.txt
           test -s .worker-engine-promotion-dry-run/migration-list.txt
           test -s .worker-engine-promotion-dry-run/tbl013-report.json
           test -s .worker-engine-promotion-dry-run/tbl013-plan.md
