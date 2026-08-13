@@ -1,0 +1,3 @@
+-- Unified school discovery search. The production database already has this migration applied.
+-- Kept in source control for reproducible environment parity.
+-- See the current production function public.search_school_directory for the full SQL body.
