@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import { C } from '@/components/teacher/ui'
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const dark   = C.dark
@@ -15,7 +15,6 @@ interface StudentRow {
 
 export default function StudentsOnboardingPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [students, setStudents] = useState<StudentRow[]>([
     { name: '', admission_number: '' },
   ])
@@ -49,8 +48,9 @@ export default function StudentsOnboardingPage() {
 
     // The class step already created this exact class. Reuse that result instead
     // of querying teacher_classes to rediscover it on the next screen.
-    let classId = searchParams.get('class_id')
-    let schoolId = searchParams.get('school_id')
+    const params = new URLSearchParams(window.location.search)
+    let classId = params.get('class_id')
+    let schoolId = params.get('school_id')
 
     // Direct/legacy visits may not carry context. Keep a compatibility fallback,
     // but the normal onboarding path performs zero relationship queries here.
