@@ -27,6 +27,7 @@ export const metadata: Metadata = {
   title: { default: 'VibeSchool — Free CBC & Secondary Ebooks, Past Papers Kenya', template: '%s | VibeSchool' },
   description: 'Free CBC and Secondary school ebooks, past papers and exam materials for Kenyan students. Curriculum-aligned study resources from Grade 1 to Form 4.',
   keywords: ['free CBC ebooks Kenya', 'KCSE past papers', 'KCPE past papers', 'CBC study materials', 'Kenya secondary school notes', 'free study materials Kenya'],
+  alternates: { canonical: 'https://www.vibeschool.co.ke' },
   openGraph: {
     title: 'VibeSchool — Learning, teaching and education, connected',
     description: 'VibeSchool connects learning resources, curriculum, teaching, evidence and the people supporting a learner.',
