@@ -10,6 +10,7 @@ on:
       - scripts/test-worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-pgcrypto-qualification.py
       - scripts/worker-engine-verify-production-contract.py
+      - scripts/test-worker-engine-production-verifier-transport.py
       - .github/workflows/worker-engine-production-promotion-dry-run.yml
       - .github/workflows/worker-engine-production-promotion-apply.yml
       - .github/workflows/worker-engine-production-contract-verify.yml
@@ -25,6 +26,7 @@ on:
       - scripts/test-worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-pgcrypto-qualification.py
       - scripts/worker-engine-verify-production-contract.py
+      - scripts/test-worker-engine-production-verifier-transport.py
       - .github/workflows/worker-engine-production-promotion-dry-run.yml
       - .github/workflows/worker-engine-production-promotion-apply.yml
       - .github/workflows/worker-engine-production-contract-verify.yml
@@ -49,3 +51,5 @@ jobs:
         run: python3 scripts/test-worker-engine-pgcrypto-qualification.py
       - name: Syntax-check production contract verifier
         run: python3 -m py_compile scripts/worker-engine-verify-production-contract.py
+      - name: Test production verifier transport fail-closed behavior
+        run: python3 scripts/test-worker-engine-production-verifier-transport.py
