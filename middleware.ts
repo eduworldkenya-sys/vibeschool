@@ -10,7 +10,6 @@ const DASHBOARDS: Record<string, string> = {
   global_user: '/global',
 }
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
-const PUBLIC_AUTH_ROUTES = new Set(['/login'])
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -43,13 +42,17 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  function redirectWithAuth(url: URL) {
-    const response = NextResponse.redirect(url)
+  function copyAuthState(response: NextResponse) {
     supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
     for (const header of ['cache-control', 'expires', 'pragma']) {
       const value = supabaseResponse.headers.get(header)
       if (value) response.headers.set(header, value)
     }
+    return response
+  }
+
+  function redirectWithAuth(url: URL) {
+    const response = copyAuthState(NextResponse.redirect(url))
     response.headers.set('Cache-Control', 'private, no-store')
     return response
   }
@@ -64,7 +67,7 @@ export async function middleware(request: NextRequest) {
     return redirectWithAuth(loginUrl)
   }
 
-  if ((pathname === '/' || PUBLIC_AUTH_ROUTES.has(pathname)) && user) {
+  if ((pathname === '/' || pathname === '/login') && user) {
     const { data: rpcRole } = await supabase.rpc('get_my_role')
     const destination = rpcRole ? DASHBOARDS[rpcRole] : undefined
     if (destination) {
@@ -73,6 +76,18 @@ export async function middleware(request: NextRequest) {
       destinationUrl.search = ''
       return redirectWithAuth(destinationUrl)
     }
+  }
+
+  if (!user && pathname === '/') {
+    const welcomeUrl = request.nextUrl.clone()
+    welcomeUrl.pathname = '/welcome'
+    return copyAuthState(NextResponse.rewrite(welcomeUrl))
+  }
+
+  if (!user && pathname === '/login') {
+    const authUrl = request.nextUrl.clone()
+    authUrl.pathname = '/'
+    return copyAuthState(NextResponse.rewrite(authUrl))
   }
 
   return supabaseResponse
