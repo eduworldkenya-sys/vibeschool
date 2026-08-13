@@ -18,10 +18,10 @@ const FIRST_ACCESS: Record<string, string> = {
   global_user: '/global',
 }
 
-function safeRole(value: string | null): string {
+function safeRequestedRole(value: string | null): string | null {
   return value && Object.prototype.hasOwnProperty.call(DASHBOARDS, value)
     ? value
-    : 'teacher'
+    : null
 }
 
 function safeNext(value: string | null): string | null {
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   const next = safeNext(searchParams.get('next'))
-  const requestedRole = safeRole(searchParams.get('role'))
+  const requestedRole = safeRequestedRole(searchParams.get('role'))
 
   if (code) {
     const cookieStore = cookies()
@@ -83,8 +83,9 @@ export async function GET(req: NextRequest) {
           return NextResponse.redirect(new URL(DASHBOARDS[profile.role], req.url))
         }
 
-        // New Google user with no profile yet — use the role selected before OAuth.
-        const destination = FIRST_ACCESS[requestedRole] ?? '/'
+        // New Google user with no profile yet — use only a validated role
+        // selected before OAuth. Never default an invalid/missing role to teacher.
+        const destination = requestedRole ? FIRST_ACCESS[requestedRole] : '/'
         return NextResponse.redirect(new URL(destination, req.url))
       }
     }
