@@ -1,0 +1,28 @@
+name: Entry Architecture Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'middleware.ts'
+      - 'app/page.tsx'
+      - 'app/welcome/**'
+      - 'app/sitemap.ts'
+      - 'app/robots.ts'
+      - 'scripts/test-entry-contract.mjs'
+      - '.github/workflows/entry-architecture-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  entry-contract:
+    name: Public entry, auth routing and indexing contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/test-entry-contract.mjs
