@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 }
 
 const roles = [
-  { title: 'I am a learner', text: 'Find learning resources, practise, understand your work and know what to focus on next.', href: '/login' },
+  { title: 'I am a learner', text: 'Find learning resources, practise, understand your work and know what to focus on next.', href: '/login/student' },
   { title: 'I am a teacher', text: 'Plan, teach, organise your work and use evidence to understand what your learners need next.', href: '/signup/teacher' },
-  { title: 'I am a parent', text: 'Get a clearer view of your child’s learning and build a stronger connection between home and school.', href: '/login' },
+  { title: 'I am a parent', text: 'Get a clearer view of your child’s learning and build a stronger connection between home and school.', href: '/login/parent' },
   { title: 'I run a school', text: 'Bring people, curriculum, learning activity and school operations into a more connected experience.', href: '/admin/signup' },
 ]
 
