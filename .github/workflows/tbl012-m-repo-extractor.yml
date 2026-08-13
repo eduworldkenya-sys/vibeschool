@@ -37,7 +37,7 @@ jobs:
             country_majority_ages school_members school_periods exams \
             > m-repo.json
 
-      - name: Calibrate known mutations
+      - name: Calibrate known mutations and routine authority
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -47,13 +47,21 @@ jobs:
             process.exit(1);
           }
           const mutations = data.mutations;
+          const routines = data.routines ?? [];
+          const routinePrivileges = data.routine_privileges ?? [];
           const has = (predicate) => mutations.some(predicate);
+          const hasRoutine = (predicate) => routines.some(predicate);
+          const hasRoutinePrivilege = (predicate) => routinePrivileges.some(predicate);
           const checks = [
             ['teacher_classes.class_id SET_NOT_NULL', has(m => m.type === 'SET_NOT_NULL' && m.table === 'public.teacher_classes' && m.column === 'class_id' && m.migration.startsWith('20260717214543'))],
             ['timetable overlap constraint #1', has(m => m.type === 'ADD_CONSTRAINT' && m.table === 'public.timetable_slots' && m.migration.startsWith('20260717162232'))],
             ['timetable overlap constraint #2', has(m => m.type === 'ADD_CONSTRAINT' && m.table === 'public.timetable_slots' && m.migration.startsWith('20260717215951'))],
             ['school_periods CREATE_TABLE', has(m => m.type === 'CREATE_TABLE' && m.table === 'public.school_periods' && m.migration.startsWith('20260719104519'))],
             ['timetable_slots.period_id ADD_COLUMN', has(m => m.type === 'ADD_COLUMN' && m.table === 'public.timetable_slots' && m.column === 'period_id' && m.migration.startsWith('20260719104519'))],
+            ['historical workforce probation certifier routine', hasRoutine(r => r.routine === 'public.hq_workforce_certify_probation_workers' && r.migration.startsWith('20260809151713'))],
+            ['Worker Engine scheduled heartbeat routine', hasRoutine(r => r.routine === 'public.hq_workforce_scheduled_heartbeat' && r.migration.startsWith('20260812221000'))],
+            ['WE-L12 scheduled heartbeat service-role grant', hasRoutinePrivilege(p => p.action === 'GRANT' && p.privilege === 'EXECUTE' && p.routine === 'public.hq_workforce_scheduled_heartbeat' && p.grantee === 'service_role' && p.migration.startsWith('20260812222000'))],
+            ['WE-L13 legacy probation certifier service-role revoke', hasRoutinePrivilege(p => p.action === 'REVOKE' && p.routine === 'public.hq_workforce_certify_probation_workers' && p.grantee === 'service_role' && p.migration.startsWith('20260812223000'))],
           ];
           let failed = false;
           for (const [name, ok] of checks) {
@@ -61,7 +69,7 @@ jobs:
             failed ||= !ok;
           }
           if (failed) process.exit(1);
-          console.log(`PASS calibration: ${mutations.length} mutations extracted across ${data.foundation_tables.length} foundation tables`);
+          console.log(`PASS calibration: ${mutations.length} table mutations, ${routines.length} routine definitions, ${routinePrivileges.length} routine privilege events across ${data.foundation_tables.length} foundation tables`);
           NODE
 
       - name: Upload extractor output

@@ -1,11 +1,12 @@
 // scripts/l0/extract-m-repo.js
-// Contract: migration-dir + foundation tables -> { mutations: [] }
+// Contract: migration-dir + foundation tables -> { mutations: [], routines: [], routine_privileges: [] }
 //
 // Example:
 //   node scripts/l0/extract-m-repo.js schools profiles classes subjects teacher_classes timetable_slots country_majority_ages school_members school_periods
 //   node scripts/l0/extract-m-repo.js supabase/migrations schools profiles classes subjects teacher_classes timetable_slots country_majority_ages school_members school_periods
 //
-// Uses pgsql-parser (libpg_query-backed) so mutation detection is AST-based rather than regex-based.
+// Uses pgsql-parser (libpg_query-backed) so mutation and routine-authority
+// detection is AST-based rather than regex-based.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -23,6 +24,8 @@ if (foundationTables.size === 0) {
 }
 
 const mutations = [];
+const routines = [];
+const routinePrivileges = [];
 const parseErrors = [];
 
 function scalarName(value) {
@@ -41,6 +44,64 @@ function nestedName(value, keys) {
     if (name) return name;
   }
   return undefined;
+}
+
+function unwrapNode(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const entries = Object.entries(value);
+  return entries.length === 1 && entries[0][1] && typeof entries[0][1] === 'object'
+    ? entries[0][1]
+    : value;
+}
+
+function listNames(values) {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((value) => scalarName(value) || scalarName(unwrapNode(value)))
+    .filter(Boolean);
+}
+
+function qualifiedRoutineName(values) {
+  const names = listNames(values);
+  if (names.length === 0) return undefined;
+  return names.length === 1 ? `public.${names[0]}` : names.join('.');
+}
+
+function typeName(value) {
+  const node = unwrapNode(value);
+  const names = listNames(node?.names);
+  if (names.length) return names.join('.');
+  return scalarName(node) || 'unknown';
+}
+
+function routineObject(value) {
+  const node = unwrapNode(value);
+  const routine = qualifiedRoutineName(node?.objname || node?.objName || node?.name);
+  if (!routine) return undefined;
+  const argTypes = Array.isArray(node?.objargs)
+    ? node.objargs.map(typeName)
+    : [];
+  return { routine, arg_types: argTypes };
+}
+
+function roleName(value) {
+  const node = unwrapNode(value);
+  const explicit = scalarName(node?.rolename) || scalarName(node?.roleName);
+  if (explicit) return explicit;
+  const roleType = String(node?.roletype || node?.roleType || '');
+  return roleType.includes('PUBLIC') ? 'PUBLIC' : undefined;
+}
+
+function privilegeNames(values) {
+  if (!Array.isArray(values) || values.length === 0) return ['ALL'];
+  const names = values
+    .map((value) => {
+      const node = unwrapNode(value);
+      return scalarName(node?.priv_name) || scalarName(node?.privName) || scalarName(node?.name);
+    })
+    .filter(Boolean)
+    .map((value) => value.toUpperCase());
+  return names.length ? names : ['ALL'];
 }
 
 function tableName(node) {
@@ -158,6 +219,50 @@ function walk(node, context) {
       pushMutation('CREATE_TRIGGER', table, { trigger }, context.migration);
     }
 
+    if (tag === 'CreateFunctionStmt') {
+      const routine = qualifiedRoutineName(body?.funcname || body?.funcName);
+      if (routine) {
+        const parameters = Array.isArray(body?.parameters)
+          ? body.parameters.map((value) => {
+              const parameter = unwrapNode(value);
+              return typeName(parameter?.argType || parameter?.argtype);
+            })
+          : [];
+        routines.push({
+          type: body?.replace ? 'CREATE_OR_REPLACE_FUNCTION' : 'CREATE_FUNCTION',
+          routine,
+          arg_types: parameters,
+          migration: context.migration,
+        });
+      }
+    }
+
+    if (tag === 'GrantStmt') {
+      const objectType = String(body?.objtype || body?.objType || '');
+      if (objectType.includes('FUNCTION') || objectType.includes('PROCEDURE') || objectType.includes('ROUTINE')) {
+        const objects = (body?.objects || [])
+          .map(routineObject)
+          .filter(Boolean);
+        const grantees = (body?.grantees || [])
+          .map(roleName)
+          .filter(Boolean);
+        const privileges = privilegeNames(body?.privileges);
+        for (const object of objects) {
+          for (const grantee of grantees) {
+            for (const privilege of privileges) {
+              routinePrivileges.push({
+                action: body?.is_grant ? 'GRANT' : 'REVOKE',
+                privilege,
+                ...object,
+                grantee,
+                migration: context.migration,
+              });
+            }
+          }
+        }
+      }
+    }
+
     walk(body, context);
   }
 }
@@ -179,14 +284,15 @@ for (const migration of migrations) {
   }
 }
 
-// Deduplicate exact AST hits while preserving migration order.
-const seen = new Set();
-const uniqueMutations = mutations.filter((mutation) => {
-  const key = JSON.stringify(mutation);
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-});
+function dedupe(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = JSON.stringify(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 console.log(JSON.stringify({
   contract: 'm-repo-v2',
@@ -195,7 +301,9 @@ console.log(JSON.stringify({
   foundation_tables: [...foundationTables],
   migrations_scanned: migrations,
   parse_errors: parseErrors,
-  mutations: uniqueMutations,
+  mutations: dedupe(mutations),
+  routines: dedupe(routines),
+  routine_privileges: dedupe(routinePrivileges),
 }, null, 2));
 
 if (parseErrors.length) process.exitCode = 1;
