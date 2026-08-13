@@ -38,8 +38,8 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'VibeSchool' },
   icons: {
-    icon: [{ url: '/icons/icon.png?size=192', type: 'image/png', sizes: '192x192' }],
-    apple: [{ url: '/icons/icon.png?size=192', type: 'image/png', sizes: '192x192' }],
+    icon: [{ url: '/icons/icon-192.svg', type: 'image/svg+xml', sizes: '192x192' }],
+    apple: [{ url: '/icons/icon-192.svg', type: 'image/svg+xml', sizes: '192x192' }],
   },
   formatDetection: { telephone: false },
 }
