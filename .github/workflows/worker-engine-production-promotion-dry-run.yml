@@ -121,6 +121,10 @@ jobs:
               raise SystemExit('Worker Engine dry run blocked: TBL-013 report is not read-only')
           if report.get('authorized_repairs'):
               raise SystemExit('Worker Engine dry run blocked: ledger repair unexpectedly authorized')
+          if report['counts'].get('duplicate_local_versions') != 0:
+              raise SystemExit('Worker Engine dry run blocked: duplicate repository migration versions')
+          if report['counts'].get('duplicate_remote_versions') != 0:
+              raise SystemExit('Worker Engine dry run blocked: duplicate production migration versions')
 
           local_only = {entry['version'] for entry in report['local_only']}
           remote_only = {entry['version'] for entry in report['remote_only']}
@@ -246,16 +250,17 @@ jobs:
           output = Path('.worker-engine-promotion-dry-run/db-push-dry-run.txt').read_text(
               encoding='utf-8', errors='replace'
           )
-          seen = set(re.findall(r'(?<!\d)(\d{14})(?!\d)', output))
-          planned = seen & expected
-          unexpected = sorted(seen - expected)
-          missing = sorted(expected - planned)
+          migration_tokens = set(
+              re.findall(r'(?<![0-9A-Za-z_])(\d{14})_[0-9A-Za-z_.-]+\.sql', output)
+          )
+          missing = sorted(expected - migration_tokens)
+          unexpected = sorted(migration_tokens - expected)
 
           summary = [
               f'expected_count={len(expected)}',
-              f'planned_expected_count={len(planned)}',
+              f'planned_migration_count={len(migration_tokens)}',
               f'missing_expected={missing}',
-              f'unexpected_timestamp_tokens={unexpected}',
+              f'unexpected_planned_versions={unexpected}',
           ]
           Path('.worker-engine-promotion-dry-run/dry-run-assertion.txt').write_text(
               '\n'.join(summary) + '\n', encoding='utf-8'
@@ -265,7 +270,9 @@ jobs:
           if missing:
               raise SystemExit('Worker Engine dry run blocked: not all approved migrations were planned')
           if unexpected:
-              raise SystemExit('Worker Engine dry run blocked: dry run referenced an unapproved timestamp')
+              raise SystemExit('Worker Engine dry run blocked: dry run planned an unapproved migration')
+          if len(migration_tokens) != len(expected):
+              raise SystemExit('Worker Engine dry run blocked: planned migration count is not exactly 22')
           PYEOF
 
       - name: Assert dry-run-only evidence
