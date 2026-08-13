@@ -25,8 +25,8 @@ try {
     await navigator.serviceWorker.ready
   })
 
-  stage('reload into service-worker control')
-  await page.reload({ waitUntil: 'domcontentloaded' })
+  stage('navigate into service-worker control')
+  await page.goto(`${BASE}/?pwa-browser-control=1`, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
 
   stage('inspect Chromium manifest')
