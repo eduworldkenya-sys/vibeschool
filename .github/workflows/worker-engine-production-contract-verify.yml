@@ -1,0 +1,92 @@
+name: Worker Engine Production Contract Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type VERIFY_WORKER_ENGINE_PRODUCTION to run read-only production verification
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-engine-production-contract-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Read-only Worker Engine production contract verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-migration-repair
+    env:
+      SUPABASE_PROJECT_REF: yauqsxggtuxuykcbrtzf
+      WORKER_ENGINE_VERIFY_EVIDENCE: .worker-engine-production-verify/verification.json
+
+    steps:
+      - name: Require exact verification confirmation and main ref
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRMATION" != "VERIFY_WORKER_ENGINE_PRODUCTION" ]; then
+            echo "Refusing production verification: confirmation phrase mismatch." >&2
+            exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Refusing production verification from non-main ref: $GITHUB_REF" >&2
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize read-only evidence context
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .worker-engine-production-verify
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "actor=${{ github.actor }}"
+            echo "ref=${{ github.ref }}"
+            echo "sha=${{ github.sha }}"
+            echo "project_ref=$SUPABASE_PROJECT_REF"
+            echo "mode=READ_ONLY_PRODUCTION_VERIFY"
+            echo "production_ddl=false"
+            echo "production_dml=false"
+            echo "autonomous_activation=false"
+          } > .worker-engine-production-verify/context.txt
+
+      - name: Syntax-check verifier
+        run: python3 -m py_compile scripts/worker-engine-verify-production-contract.py
+
+      - name: Verify live production Worker Engine contract read-only
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python3 scripts/worker-engine-verify-production-contract.py
+
+      - name: Assert evidence and safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'ref=refs/heads/main' .worker-engine-production-verify/context.txt
+          grep -F 'mode=READ_ONLY_PRODUCTION_VERIFY' .worker-engine-production-verify/context.txt
+          grep -F 'production_ddl=false' .worker-engine-production-verify/context.txt
+          grep -F 'production_dml=false' .worker-engine-production-verify/context.txt
+          grep -F 'autonomous_activation=false' .worker-engine-production-verify/context.txt
+          test -s .worker-engine-production-verify/verification.json
+          sha256sum .worker-engine-production-verify/* > .worker-engine-production-verify/evidence.sha256
+
+      - name: Upload production verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-engine-production-contract-verify-${{ github.run_id }}
+          path: .worker-engine-production-verify/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 90

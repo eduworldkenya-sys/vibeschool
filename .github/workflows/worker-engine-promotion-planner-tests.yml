@@ -9,8 +9,10 @@ on:
       - scripts/worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-pgcrypto-qualification.py
+      - scripts/worker-engine-verify-production-contract.py
       - .github/workflows/worker-engine-production-promotion-dry-run.yml
       - .github/workflows/worker-engine-production-promotion-apply.yml
+      - .github/workflows/worker-engine-production-contract-verify.yml
       - .github/workflows/worker-engine-promotion-planner-tests.yml
   push:
     branches-ignore:
@@ -22,8 +24,10 @@ on:
       - scripts/worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-assert-dry-run-plan.py
       - scripts/test-worker-engine-pgcrypto-qualification.py
+      - scripts/worker-engine-verify-production-contract.py
       - .github/workflows/worker-engine-production-promotion-dry-run.yml
       - .github/workflows/worker-engine-production-promotion-apply.yml
+      - .github/workflows/worker-engine-production-contract-verify.yml
       - .github/workflows/worker-engine-promotion-planner-tests.yml
 
 permissions:
@@ -43,3 +47,5 @@ jobs:
         run: python3 scripts/test-worker-engine-assert-dry-run-plan.py
       - name: Guard pgcrypto schema qualification
         run: python3 scripts/test-worker-engine-pgcrypto-qualification.py
+      - name: Syntax-check production contract verifier
+        run: python3 -m py_compile scripts/worker-engine-verify-production-contract.py
