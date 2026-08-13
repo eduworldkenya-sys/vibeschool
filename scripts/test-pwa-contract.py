@@ -82,7 +82,9 @@ def main() -> int:
     require(manager, "controllerchange", "service worker manager")
     require(install, "beforeinstallprompt", "install prompt")
     require(install, "DISMISS_MS", "install prompt")
-    require(install, "iphone|ipad|ipod", "iOS install path")
+    install_lower = install.lower()
+    for token in ["iphone", "ipad", "ipod"]:
+        require(install_lower, token, "iOS install path")
     require(install, "Add to Home Screen", "iOS install path")
     require(install, "/pwa-icons/v2/192", "install artwork")
     require(offline, "Your account data is not stored in the offline cache.", "offline page")
