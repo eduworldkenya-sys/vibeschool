@@ -1,4 +1,4 @@
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -7,21 +7,25 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: [
           '/',
+          '/about',
+          '/contact',
           '/global',
           '/global/chronicles',
           '/global/vibes',
           '/global/read/',
-          '/student/learn',
-          '/student/resources',
           '/legal/',
         ],
         disallow: [
+          '/login',
+          '/welcome',
+          '/auth/',
+          '/reset-password',
+          '/api/',
+          '/hq/',
           '/admin/',
           '/teacher/',
           '/parent/',
-          '/student/claim',
-          '/student/vibelearn',
-
+          '/student/',
           '/select',
           '/global/create/',
           '/global/dashboard',
