@@ -10,9 +10,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 PROJECT_REF = os.environ.get("SUPABASE_PROJECT_REF", "").strip()
@@ -55,23 +54,50 @@ def rows_from_response(payload):
 def query(sql: str):
     if not PROJECT_REF or not ACCESS_TOKEN:
         die("SUPABASE_PROJECT_REF and SUPABASE_ACCESS_TOKEN are required")
+
     url = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query/read-only"
-    request = urllib.request.Request(
-        url,
-        data=json.dumps({"query": sql, "parameters": []}).encode("utf-8"),
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {ACCESS_TOKEN}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
+    body = json.dumps({"query": sql, "parameters": []})
+
+    # GitHub-hosted runners were blocked by Cloudflare Error 1010 when Python's
+    # urllib TLS/client signature called api.supabase.com directly. Use curl as
+    # the HTTP transport while keeping the same official read-only Management API
+    # endpoint and bearer-token authentication. This does not change database
+    # privileges or the read-only safety boundary.
+    completed = subprocess.run(
+        [
+            "curl",
+            "--silent",
+            "--show-error",
+            "--fail-with-body",
+            "--max-time",
+            "60",
+            "--request",
+            "POST",
+            url,
+            "--header",
+            f"Authorization: Bearer {ACCESS_TOKEN}",
+            "--header",
+            "Content-Type: application/json",
+            "--header",
+            "Accept: application/json",
+            "--header",
+            "User-Agent: Vibeschool-Worker-Engine-Production-Verifier/1.0",
+            "--data-binary",
+            "@-",
+        ],
+        input=body,
+        text=True,
+        capture_output=True,
+        timeout=70,
+        check=False,
     )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "curl request failed").strip()
+        die(f"read-only Management API query transport failed: {detail[:700]}")
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        die(f"read-only Management API query returned HTTP {exc.code}: {body[:500]}")
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        die(f"read-only Management API returned non-JSON response: {completed.stdout[:500]} ({exc})")
     return rows_from_response(payload)
 
 
