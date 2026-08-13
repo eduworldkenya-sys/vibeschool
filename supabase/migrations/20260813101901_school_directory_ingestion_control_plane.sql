@@ -1,0 +1,6 @@
+create table if not exists public.school_directory_ingest_batches(id uuid primary key default gen_random_uuid(),source_name text not null,source_url text,source_version text,source_observed_at timestamptz,record_count integer,checksum text,status text not null default 'staged' check(status in ('staged','validated','published','rejected')),created_by uuid references public.profiles(id),created_at timestamptz not null default now(),published_at timestamptz,metadata jsonb not null default '{}'::jsonb);
+create unique index if not exists school_directory_ingest_checksum_uidx on public.school_directory_ingest_batches(source_name,checksum) where checksum is not null;
+alter table public.school_directory_ingest_batches enable row level security;
+drop policy if exists school_directory_ingest_no_client_write on public.school_directory_ingest_batches;
+create policy school_directory_ingest_no_client_write on public.school_directory_ingest_batches for all to authenticated using(false) with check(false);
+comment on table public.school_directory_ingest_batches is 'Audit/control plane for national school directory imports. Raw external data must be staged, validated, deduplicated and only then published.';
