@@ -124,6 +124,7 @@ jobs:
 
           local_only = {entry['version'] for entry in report['local_only']}
           remote_only = {entry['version'] for entry in report['remote_only']}
+          parity = set(report['parity_versions'])
           missing_expected = sorted(expected - local_only)
           unrelated_local_only = sorted(local_only - expected)
 
@@ -132,6 +133,9 @@ jobs:
                   'Worker Engine dry run blocked: expected migration is not genuinely pending: '
                   + ','.join(missing_expected)
               )
+
+          if parity & remote_only or parity & local_only or remote_only & local_only:
+              raise SystemExit('Worker Engine dry run blocked: TBL-013 version classes overlap')
 
           stage = Path('.worker-engine-promotion-stage')
           if stage.exists():
@@ -172,9 +176,7 @@ jobs:
               )
               staged_versions.add(version)
 
-          remote_versions = {
-              entry['version'] for entry in report.get('matched', [])
-          } | remote_only
+          remote_versions = parity | remote_only
           expected_stage = remote_versions | expected
 
           if staged_versions != expected_stage:
@@ -189,6 +191,7 @@ jobs:
               'expected_worker_engine_versions': sorted(expected),
               'excluded_unrelated_repository_only': unrelated_local_only,
               'production_only_placeholders': sorted(remote_only),
+              'parity_versions': sorted(parity),
               'staged_version_count': len(staged_versions),
               'remote_version_count': len(remote_versions),
               'authorized_repairs': [],
@@ -204,6 +207,7 @@ jobs:
           print('Expected Worker Engine migrations:', len(expected))
           print('Excluded unrelated repository-only:', len(unrelated_local_only))
           print('Production-only placeholders:', len(remote_only))
+          print('Parity versions:', len(parity))
           print('Staged migration versions:', len(staged_versions))
           PYEOF
 
