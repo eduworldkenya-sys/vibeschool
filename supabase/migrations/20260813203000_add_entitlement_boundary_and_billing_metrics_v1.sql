@@ -1,0 +1,11 @@
+begin;
+create table if not exists public.plan_entitlements (plan_key text not null, entitlement_key text not null, enabled boolean not null default true, limits jsonb not null default '{}'::jsonb, created_at timestamptz not null default now(), updated_at timestamptz not null default now(), primary key(plan_key,entitlement_key));
+create table if not exists public.profile_entitlements (profile_id uuid not null references public.profiles(id) on delete cascade, entitlement_key text not null, source text not null default 'subscription', granted_until timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now(), primary key(profile_id,entitlement_key));
+alter table public.plan_entitlements enable row level security; alter table public.profile_entitlements enable row level security;
+create policy plan_entitlements_owner_read on public.plan_entitlements for select to authenticated using(coalesce(public.is_platform_owner(),false));
+create policy profile_entitlements_self_read on public.profile_entitlements for select to authenticated using(profile_id=auth.uid() or coalesce(public.is_platform_owner(),false));
+revoke all on public.plan_entitlements from anon,authenticated; grant select on public.plan_entitlements to authenticated;
+revoke all on public.profile_entitlements from anon,authenticated; grant select on public.profile_entitlements to authenticated;
+create or replace function public.has_entitlement(p_entitlement_key text) returns boolean language sql stable security definer set search_path=public,extensions,pg_temp as $$ select exists(select 1 from public.profile_entitlements pe where pe.profile_id=auth.uid() and pe.entitlement_key=p_entitlement_key and (pe.granted_until is null or pe.granted_until>now())) or exists(select 1 from public.billing_subscriptions bs join public.plan_entitlements pe on pe.plan_key=bs.plan_key and pe.entitlement_key=p_entitlement_key where bs.profile_id=auth.uid() and bs.status in ('active','trialing') and pe.enabled=true and (bs.current_period_end is null or bs.current_period_end>now())) $$;
+revoke all on function public.has_entitlement(text) from public,anon; grant execute on function public.has_entitlement(text) to authenticated;
+commit;
