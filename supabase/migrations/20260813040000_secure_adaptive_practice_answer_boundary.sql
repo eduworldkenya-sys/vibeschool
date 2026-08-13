@@ -1,5 +1,6 @@
 -- P1/P6: adaptive practice must never expose authoritative answer keys to learner clients.
--- Also bind all learner evidence/mistake writes to students.id, not auth profile id.
+-- Identity is intentionally mixed by table contract: evidence/twin tables use students.id;
+-- the legacy mistake notebook uses profiles.id. Do not collapse these authorities.
 
 create or replace function public.student_answer_adaptive_practice_question(
   p_question_id uuid,
@@ -65,12 +66,13 @@ begin
   ) returning id into v_event_id;
 
   if not v_correct then
+    -- student_mistake_notebook.student_id is intentionally profile-scoped.
     insert into public.student_mistake_notebook(
       student_id,exam_question_id,subject,topic,prompt_snapshot,selected_index,
       correct_index,explanation_snapshot,hint_snapshot,repeat_count,status,
       first_missed_at,last_missed_at,outcome_id,generated_question_id
     ) values (
-      v_student_id,null,
+      v_profile_id,null,
       coalesce((select name from public.subjects where id=v_q.subject_id),'General'),
       coalesce((select outcome_code from public.curriculum_learning_outcomes where id=v_q.outcome_id),'Adaptive practice'),
       v_q.prompt,p_selected_index,v_q.correct_index,v_q.explanation,
@@ -96,7 +98,7 @@ begin
   else
     update public.student_mistake_notebook
     set status='resolved',resolved_at=now(),last_correct_at=now()
-    where student_id=v_student_id
+    where student_id=v_profile_id
       and outcome_id=v_q.outcome_id
       and generated_question_id is not null
       and status <> 'resolved';
@@ -153,7 +155,6 @@ begin
 end;
 $function$;
 
--- Internal helper: callable by the trusted SECURITY DEFINER answer function, not by learner clients.
 revoke execute on function public.student_record_adaptive_misconception(uuid,uuid,uuid,integer,integer) from public, anon, authenticated;
 grant execute on function public.student_record_adaptive_misconception(uuid,uuid,uuid,integer,integer) to service_role;
 
