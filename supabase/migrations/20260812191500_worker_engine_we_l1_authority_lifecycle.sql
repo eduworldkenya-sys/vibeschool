@@ -21,7 +21,7 @@ create table if not exists public.hq_workforce_contracts (
   contract_key text not null,
   version integer not null check (version > 0),
   payload jsonb not null,
-  payload_hash text generated always as (encode(digest(payload::text, 'sha256'), 'hex')) stored,
+  payload_hash text generated always as (encode(extensions.digest(payload::text, 'sha256'), 'hex')) stored,
   scope_type text not null default 'platform_internal' check (scope_type in ('platform_internal','global','school','multi_school')),
   scope_ref jsonb not null default '{}'::jsonb,
   status text not null default 'issued' check (status in ('issued','superseded','revoked','expired')),
