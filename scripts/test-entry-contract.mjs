@@ -5,6 +5,7 @@ const welcome = fs.readFileSync('app/welcome/page.tsx', 'utf8')
 const sitemap = fs.readFileSync('app/sitemap.ts', 'utf8')
 const robots = fs.readFileSync('app/robots.ts', 'utf8')
 const teacherSignup = fs.readFileSync('app/signup/teacher/page.tsx', 'utf8')
+const parentSignup = fs.readFileSync('app/signup/parent/page.tsx', 'utf8')
 const studentSignup = fs.readFileSync('app/signup/student/page.tsx', 'utf8')
 const roleLogin = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
 
@@ -16,9 +17,11 @@ const checks = [
   [welcome.includes('/login/student') && welcome.includes('/login/parent'), 'learner and parent leads preserve role intent'],
   [teacherSignup.includes("role: 'teacher'"), 'teacher signup creates the teacher role'],
   [teacherSignup.includes("router.replace('/teacher/onboarding/school')"), 'teacher signup continues into school onboarding'],
+  [parentSignup.includes("role: 'parent'"), 'parent signup creates the parent role'],
+  [parentSignup.includes("router.replace('/parent/students')"), 'parent signup continues into learner connection'],
   [studentSignup.includes("redeem_student_claim"), 'learner signup validates and redeems the teacher claim'],
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the existing server-side account creation boundary'],
-  [roleLogin.includes("href=\"/signup/student\""), 'new learners move directly from sign in to claim signup'],
+  [roleLogin.includes("href=\"/signup/student\"") && roleLogin.includes("href=\"/signup/parent\""), 'focused sign in connects new learners and parents to direct signup'],
   [roleLogin.includes("actualRole !== expectedRole"), 'focused sign in verifies the authenticated role before routing'],
   [roleLogin.includes("student: { label: 'Learner', destination: '/student', email: false }"), 'learner sign in uses admission number and PIN'],
   [roleLogin.includes("parent: { label: 'Parent', destination: '/parent', email: true }"), 'parent sign in uses the focused parent path'],
