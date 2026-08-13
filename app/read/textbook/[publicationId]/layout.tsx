@@ -23,26 +23,30 @@ type PublicationMetadata = {
   updated_at: string | null;
 };
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { publicationId: string };
-}): Promise<Metadata> {
-  let publication: PublicationMetadata | null = null;
-
+async function getPublishedPublication(publicationId: string): Promise<PublicationMetadata | null> {
   try {
     const supabase = getSupabaseServerClient();
     const { data } = await supabase
       .from("vibe_publications")
       .select("id,title,description,cover_url,cbc_subject,cbc_grade,status,published_at,updated_at")
-      .eq("id", params.publicationId)
+      .eq("id", publicationId)
       .maybeSingle();
-    publication = data as PublicationMetadata | null;
-  } catch {
-    publication = null;
-  }
 
-  if (!publication || publication.status !== "published") {
+    const publication = data as PublicationMetadata | null;
+    return publication?.status === "published" ? publication : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { publicationId: string };
+}): Promise<Metadata> {
+  const publication = await getPublishedPublication(params.publicationId);
+
+  if (!publication) {
     return {
       title: "VibeSchool Textbook",
       robots: { index: false, follow: false },
@@ -77,15 +81,57 @@ export async function generateMetadata({
   };
 }
 
-export default function TextbookReaderLayout({
+export default async function TextbookReaderLayout({
   children,
   params,
 }: {
   children: ReactNode;
   params: { publicationId: string };
 }) {
+  const publication = await getPublishedPublication(params.publicationId);
+  const title = publication?.title?.trim() || "VibeSchool Textbook";
+  const description =
+    publication?.description?.trim() ||
+    [publication?.cbc_grade, publication?.cbc_subject]
+      .filter(Boolean)
+      .join(" · ") ||
+    "A published educational resource from VibeSchool.";
+  const canonical = `${SITE_URL}/read/textbook/${params.publicationId}`;
+
+  const bookSchema = publication
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Book",
+        "@id": `${canonical}#book`,
+        name: title,
+        description,
+        url: canonical,
+        inLanguage: "en-KE",
+        publisher: {
+          "@type": "EducationalOrganization",
+          name: "VibeSchool",
+          url: SITE_URL,
+        },
+        ...(publication.cover_url ? { image: publication.cover_url } : {}),
+        ...(publication.published_at ? { datePublished: publication.published_at } : {}),
+        ...(publication.updated_at ? { dateModified: publication.updated_at } : {}),
+        ...(publication.cbc_grade ? { educationalLevel: publication.cbc_grade } : {}),
+        ...(publication.cbc_subject ? { about: publication.cbc_subject } : {}),
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": canonical,
+        },
+      }
+    : null;
+
   return (
     <div id="vibetextbook-reader-shell">
+      {bookSchema ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(bookSchema) }}
+        />
+      ) : null}
       <ReaderStudyViewControls />
       <ReadingAnalyticsTracker />
       <div id="vibetextbook-reading-content" tabIndex={-1}>
