@@ -24,12 +24,14 @@ def forbid(text: str, needle: str, label: str) -> None:
 def main() -> int:
     manifest = read("app/manifest.ts")
     layout = read("app/layout.tsx")
+    apple = read("app/apple-icon.tsx")
     sw = read("public/sw.js")
     offline = read("public/offline.html")
     install = read("components/pwa/PwaInstallPrompt.tsx")
     manager = read("components/pwa/PwaServiceWorker.tsx")
     icon192 = read("public/icons/icon-192.svg")
     icon512 = read("public/icons/icon-512.svg")
+    maskable = read("public/icons/icon-maskable-512.svg")
 
     for value in [
         "name: 'VibeSchool'",
@@ -41,6 +43,7 @@ def main() -> int:
         "theme_color: '#070B1F'",
         "'/icons/icon-192.svg'",
         "'/icons/icon-512.svg'",
+        "'/icons/icon-maskable-512.svg'",
         "purpose: 'maskable'",
     ]:
         require(manifest, value, "manifest")
@@ -49,6 +52,12 @@ def main() -> int:
     forbid(layout, "/icons/icon.png?size=", "layout")
     require(layout, "<PwaServiceWorker />", "layout")
     require(layout, "<PwaInstallPrompt />", "layout")
+    require(layout, "url: '/apple-icon'", "layout")
+    require(layout, "type: 'image/png'", "layout")
+
+    require(apple, "ImageResponse", "Apple icon")
+    require(apple, "export const size = { width: 180, height: 180 }", "Apple icon")
+    require(apple, "#070B1F", "Apple icon")
 
     require(sw, "url.pathname.startsWith('/api/')", "service worker")
     require(sw, "url.pathname.startsWith('/auth/')", "service worker")
@@ -62,7 +71,7 @@ def main() -> int:
     require(install, "DISMISS_MS", "install prompt")
     require(offline, "/icons/icon-192.svg", "offline page")
 
-    for label, icon in [("192", icon192), ("512", icon512)]:
+    for label, icon in [("192", icon192), ("512", icon512), ("maskable", maskable)]:
         require(icon, "#070B1F", f"icon {label}")
         require(icon, "linearGradient", f"icon {label}")
         forbid(icon, ">VIBE<", f"icon {label}")
