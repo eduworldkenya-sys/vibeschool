@@ -62,16 +62,23 @@ export default function ClassOnboardingPage() {
 
     if (!schoolId) { setLoading(false); router.push('/teacher/onboarding/school'); return }
 
-    const { error: fnErr } = await supabase.rpc('onboard_teacher_class', {
+    const { data: classId, error: fnErr } = await supabase.rpc('onboard_teacher_class', {
       p_school_id:  schoolId,
       p_teacher_id: user.id,
       p_grade:      grade,
       p_stream:     stream.trim(),
       p_subject:    subject,
     })
-    if (fnErr) { setLoading(false); setError('Failed to create class: ' + fnErr.message); return }
+    if (fnErr || !classId) {
+      setLoading(false)
+      setError('Failed to create class: ' + (fnErr?.message ?? 'No class was returned'))
+      return
+    }
+
     setLoading(false)
-    router.push('/teacher/onboarding/students')
+    // Carry forward the authoritative result of the create operation.
+    // The next step must not query teacher_classes just to rediscover it.
+    router.push(`/teacher/onboarding/students?class_id=${encodeURIComponent(String(classId))}&school_id=${encodeURIComponent(schoolId)}`)
   }
 
   const inp: React.CSSProperties = { width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' }
