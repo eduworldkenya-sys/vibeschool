@@ -7,32 +7,48 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
 }
 
+type InstallMode = 'chromium' | 'ios' | null
+
 const DISMISS_KEY = 'vibeschool:pwa-install-dismissed-at'
 const DISMISS_MS = 14 * 24 * 60 * 60 * 1000
 
 export default function PwaInstallPrompt() {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null)
+  const [mode, setMode] = useState<InstallMode>(null)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    const nav = navigator as Navigator & { standalone?: boolean }
     const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+      window.matchMedia('(display-mode: standalone)').matches || Boolean(nav.standalone)
 
     if (isStandalone) return
 
     const dismissedAt = Number(window.localStorage.getItem(DISMISS_KEY) || '0')
     const recentlyDismissed = dismissedAt > 0 && Date.now() - dismissedAt < DISMISS_MS
+    const userAgent = navigator.userAgent
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent)
+    const isIOSSafari =
+      isIOS &&
+      /Safari/.test(userAgent) &&
+      !/CriOS|FxiOS|EdgiOS|OPiOS/.test(userAgent)
+
+    if (isIOSSafari && !recentlyDismissed) {
+      setMode('ios')
+      setVisible(true)
+    }
 
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault()
       setInstallEvent(event as BeforeInstallPromptEvent)
+      setMode('chromium')
       if (!recentlyDismissed) setVisible(true)
     }
 
     const handleInstalled = () => {
       window.localStorage.removeItem(DISMISS_KEY)
       setInstallEvent(null)
+      setMode(null)
       setVisible(false)
     }
 
@@ -45,7 +61,7 @@ export default function PwaInstallPrompt() {
     }
   }, [])
 
-  if (!visible || !installEvent) return null
+  if (!visible || !mode) return null
 
   const dismiss = () => {
     window.localStorage.setItem(DISMISS_KEY, String(Date.now()))
@@ -53,6 +69,7 @@ export default function PwaInstallPrompt() {
   }
 
   const install = async () => {
+    if (!installEvent) return
     await installEvent.prompt()
     const choice = await installEvent.userChoice
     if (choice.outcome === 'dismissed') {
@@ -61,6 +78,8 @@ export default function PwaInstallPrompt() {
     setInstallEvent(null)
     setVisible(false)
   }
+
+  const ios = mode === 'ios'
 
   return (
     <aside
@@ -85,7 +104,7 @@ export default function PwaInstallPrompt() {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <img
-          src="/icons/icon-192.svg"
+          src="/pwa-icons/v2/192"
           alt=""
           width={52}
           height={52}
@@ -96,7 +115,9 @@ export default function PwaInstallPrompt() {
             Put VibeSchool on your home screen
           </div>
           <div style={{ marginTop: '3px', color: 'rgba(255,255,255,0.68)', fontSize: '12px', lineHeight: 1.45 }}>
-            Faster access, app-style launch, and a cleaner learning experience.
+            {ios
+              ? 'In Safari, tap Share, then choose Add to Home Screen.'
+              : 'Faster access, app-style launch, and a cleaner learning experience.'}
           </div>
         </div>
         <button
@@ -119,7 +140,8 @@ export default function PwaInstallPrompt() {
       </div>
       <button
         type="button"
-        onClick={install}
+        onClick={ios ? dismiss : () => void install()}
+        disabled={!ios && !installEvent}
         style={{
           width: '100%',
           marginTop: '12px',
@@ -134,7 +156,7 @@ export default function PwaInstallPrompt() {
           boxShadow: '0 8px 26px rgba(166,43,229,0.28)',
         }}
       >
-        Install VibeSchool
+        {ios ? 'Got it' : 'Install VibeSchool'}
       </button>
     </aside>
   )
