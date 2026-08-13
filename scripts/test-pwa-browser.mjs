@@ -6,21 +6,30 @@ function assert(condition, message) {
   if (!condition) throw new Error(message)
 }
 
+function stage(message) {
+  console.log(`[pwa-browser] ${message}`)
+}
+
 const browser = await chromium.launch({ headless: true })
 const context = await browser.newContext({ serviceWorkers: 'allow' })
 const page = await context.newPage()
 
 try {
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  stage('open production build')
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await page.waitForLoadState('load')
 
+  stage('wait for service worker readiness')
   await page.evaluate(async () => {
     if (!('serviceWorker' in navigator)) throw new Error('service workers unavailable')
     await navigator.serviceWorker.ready
   })
 
-  await page.reload({ waitUntil: 'networkidle' })
+  stage('reload into service-worker control')
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller))
 
+  stage('inspect Chromium manifest')
   const cdp = await context.newCDPSession(page)
   await cdp.send('Page.enable')
 
@@ -28,12 +37,14 @@ try {
   assert(manifest.url?.includes('/manifest.webmanifest'), 'Chromium did not discover the VibeSchool manifest')
   assert(!manifest.errors?.length, `Chromium manifest errors: ${JSON.stringify(manifest.errors)}`)
 
+  stage('inspect Chromium installability')
   const installability = await cdp.send('Page.getInstallabilityErrors')
   assert(
     installability.installabilityErrors.length === 0,
     `Chromium installability errors: ${JSON.stringify(installability.installabilityErrors)}`
   )
 
+  stage('verify versioned PNG launcher assets')
   for (const [path, size] of [
     ['/pwa-icons/v2/192', '192'],
     ['/pwa-icons/v2/512', '512'],
@@ -57,6 +68,7 @@ try {
     )
   }
 
+  stage('verify real offline navigation fallback')
   await context.setOffline(true)
   await page.goto(`${BASE}/pwa-offline-probe`, { waitUntil: 'domcontentloaded' })
   const offlineText = await page.locator('body').innerText()
@@ -66,11 +78,17 @@ try {
     'offline fallback lost its private-data safety message'
   )
 
+  stage('restore network and verify recovery')
   await context.setOffline(false)
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await page.waitForFunction(() => document.title.includes('VibeSchool'))
   assert((await page.title()).includes('VibeSchool'), 'network recovery did not restore VibeSchool')
 
   console.log('PWA BROWSER GATE PASSED')
+} catch (error) {
+  console.error('[pwa-browser] FAILED', error)
+  throw error
 } finally {
+  await context.setOffline(false).catch(() => undefined)
   await browser.close()
 }
