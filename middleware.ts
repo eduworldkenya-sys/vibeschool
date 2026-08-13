@@ -2,26 +2,30 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student']
+const DASHBOARDS: Record<string, string> = {
+  teacher: '/teacher',
+  parent: '/parent',
+  student: '/student',
+  admin: '/admin',
+  global_user: '/global',
+}
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // HQ authentication is intentionally isolated in its own browser client/storage
-  // and must not consume or mutate the normal Student/Teacher/Parent/Admin session.
-  // HQ authorization is re-checked inside the HQ surface using hq_check_owner_access.
+  // HQ uses isolated authentication/storage. Never let the normal app session
+  // participate in HQ routing, and never cache auth responses.
   if (pathname.startsWith('/hq')) {
     const response = NextResponse.next()
     response.headers.set('Cache-Control', 'private, no-store')
     response.headers.set('Pragma', 'no-cache')
     response.headers.set('Expires', '0')
-
     if (HQ_PUBLIC_AUTH_ROUTES.has(pathname)) return response
     return response
   }
 
   let supabaseResponse = NextResponse.next()
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -30,7 +34,7 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet, cacheHeaders) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next()
+          supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
           Object.entries(cacheHeaders ?? {}).forEach(([name, value]) => {
             if (value) supabaseResponse.headers.set(name, String(value))
@@ -47,9 +51,14 @@ export async function middleware(request: NextRequest) {
       const value = supabaseResponse.headers.get(header)
       if (value) response.headers.set(header, value)
     }
+    response.headers.set('Cache-Control', 'private, no-store')
     return response
   }
 
+  // One server-side auth resolution prevents the root login page from mounting
+  // and then performing a second client-side auth check + hard navigation.
+  // Supabase recommends server-side auth for SSR protection and cookie-backed
+  // sessions; keep authorization checks on the server as well.
   const { data: { user } } = await supabase.auth.getUser()
   const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
 
@@ -58,6 +67,20 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = '/'
     loginUrl.searchParams.set('redirect', pathname)
     return redirectWithAuth(loginUrl)
+  }
+
+  // If an authenticated user requests the public root, resolve their canonical
+  // role before React mounts the login UI. This removes the visible loading /
+  // redirect / remount cycle on refresh and when returning to the app root.
+  if (pathname === '/' && user) {
+    const { data: rpcRole } = await supabase.rpc('get_my_role')
+    const destination = rpcRole ? DASHBOARDS[rpcRole] : undefined
+    if (destination) {
+      const destinationUrl = request.nextUrl.clone()
+      destinationUrl.pathname = destination
+      destinationUrl.search = ''
+      return redirectWithAuth(destinationUrl)
+    }
   }
 
   return supabaseResponse
