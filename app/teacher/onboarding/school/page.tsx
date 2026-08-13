@@ -101,7 +101,7 @@ export default function SchoolDiscovery() {
       const key = `${row.name.toLowerCase().replace(/[^a-z0-9]/g, "")}|${(row.county || "").toLowerCase()}|${(row.sub_county || "").toLowerCase()}`
       counts.set(key, (counts.get(key) || 0) + 1)
     }
-    return [...counts.values()].some((count) => count > 1)
+    return Array.from(counts.values()).some((count) => count > 1)
   }, [rows])
 
   async function connect() {
