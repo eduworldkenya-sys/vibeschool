@@ -48,13 +48,17 @@ jobs:
       - name: Install exact app dependencies
         run: npm ci
 
+      - name: Build production app before browser tooling
+        run: npm run build
+
       - name: Install isolated Playwright runtime
         run: |
+          mkdir -p /tmp/vibeschool-pwa-browser
+          cd /tmp/vibeschool-pwa-browser
+          npm init -y >/dev/null 2>&1
           npm install --no-save --package-lock=false playwright@1.55.0
           npx playwright install --with-deps chromium
-
-      - name: Build production app
-        run: npm run build
+          cp "$GITHUB_WORKSPACE/scripts/test-pwa-browser.mjs" ./test-pwa-browser.mjs
 
       - name: Start production server
         run: |
@@ -72,8 +76,11 @@ jobs:
           cat /tmp/vibeschool-pwa-server.log
           exit 1
 
-      - name: Run Chromium PWA gate
-        run: node scripts/test-pwa-browser.mjs
+      - name: Run isolated Chromium PWA gate
+        working-directory: /tmp/vibeschool-pwa-browser
+        env:
+          PWA_TEST_BASE_URL: http://127.0.0.1:3000
+        run: node test-pwa-browser.mjs
 
       - name: Show server log on failure
         if: failure()
