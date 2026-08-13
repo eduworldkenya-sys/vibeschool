@@ -94,6 +94,27 @@ def main() -> int:
     print("PASS: full parity")
 
     ledger = """
+   Local            | Remote           | Time (UTC)
+  ------------------|------------------|-----------------------
+   `20260701000000` | `20260701000000` | `2026-07-01 00:00:00`
+   ` `              | `20260703000000` | `2026-07-03 00:00:00`
+   `20260702000000` | ` `              | `2026-07-02 00:00:00`
+"""
+    result, report, _ = run_case(
+        [("20260701000000", "one"), ("20260702000000", "two")], ledger
+    )
+    if result.returncode != 0:
+        raise AssertionError(result.stdout + result.stderr)
+    if not report:
+        raise AssertionError("backtick-formatted CLI ledger produced no report")
+    if [entry["version"] for entry in report["remote_only"]] != ["20260703000000"]:
+        raise AssertionError("backtick-formatted remote-only version was not parsed")
+    if [entry["version"] for entry in report["local_only"]] != ["20260702000000"]:
+        raise AssertionError("backtick-formatted local-only version was not parsed")
+    assert_no_repairs(report)
+    print("PASS: Supabase CLI backtick ledger format")
+
+    ledger = """
  Local          | Remote         | Time (UTC)
 ----------------|----------------|---------------------
  20260701000000 | 20260701000000 | 2026-07-01
