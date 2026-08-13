@@ -34,25 +34,51 @@ export default function ClassOnboardingPage() {
     if (!grade)   { setError('Select a grade.'); return }
     if (!subject) { setError('Select a subject.'); return }
     setLoading(true)
+
     const { data: { user }, error: userErr } = await supabase.auth.getUser()
     if (userErr || !user) { setLoading(false); router.push('/'); return }
-    const [profileRes, teacherRes, memberRes] = await Promise.all([
-      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
-      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-    ])
-    const profile = { school_id: memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null }
-    if (!profile?.school_id) { setLoading(false); router.push('/teacher/onboarding/school'); return }
-    const { error: fnErr } = await supabase.rpc('onboard_teacher_class', {
-      p_school_id:  profile.school_id,
+
+    // A teacher needs only the school relationship required to create the class.
+    // Avoid probing profiles + teacher_profiles + school_members in parallel.
+    let schoolId: string | null = null
+    const { data: memberData } = await supabase
+      .from('school_members')
+      .select('school_id')
+      .eq('profile_id', user.id)
+      .maybeSingle()
+
+    schoolId = memberData?.school_id ?? null
+
+    // Legacy teacher accounts may predate school_members; keep a single fallback
+    // rather than querying three identity sources for every onboarding attempt.
+    if (!schoolId) {
+      const { data: teacherData } = await supabase
+        .from('teacher_profiles')
+        .select('school_id')
+        .eq('profile_id', user.id)
+        .maybeSingle()
+      schoolId = teacherData?.school_id ?? null
+    }
+
+    if (!schoolId) { setLoading(false); router.push('/teacher/onboarding/school'); return }
+
+    const { data: classId, error: fnErr } = await supabase.rpc('onboard_teacher_class', {
+      p_school_id:  schoolId,
       p_teacher_id: user.id,
       p_grade:      grade,
       p_stream:     stream.trim(),
       p_subject:    subject,
     })
-    if (fnErr) { setLoading(false); setError('Failed to create class: ' + fnErr.message); return }
+    if (fnErr || !classId) {
+      setLoading(false)
+      setError('Failed to create class: ' + (fnErr?.message ?? 'No class was returned'))
+      return
+    }
+
     setLoading(false)
-    router.push('/teacher/onboarding/students')
+    // Carry forward the authoritative result of the create operation.
+    // The next step must not query teacher_classes just to rediscover it.
+    router.push(`/teacher/onboarding/students?class_id=${encodeURIComponent(String(classId))}&school_id=${encodeURIComponent(schoolId)}`)
   }
 
   const inp: React.CSSProperties = { width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' }
@@ -92,7 +118,7 @@ export default function ClassOnboardingPage() {
           <button onClick={handleCreate} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: 'none', background: loading ? '#9ca3af' : accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
             {loading ? 'Creating…' : 'Create Class →'}
           </button>
-          <button onClick={() => router.push('/teacher')} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4, width: '100%' }}>
+          <button onClick={() => router.push('/teacher')} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4, width: '100%' }}>
             Skip for now
           </button>
         </div>
