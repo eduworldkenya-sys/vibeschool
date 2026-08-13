@@ -3,18 +3,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 const DASHBOARDS: Record<string, string> = {
-  teacher:     '/teacher',
-  parent:      '/parent',
-  student:     '/student',
-  admin:       '/admin',
+  teacher: '/teacher',
+  parent: '/parent',
+  student: '/student',
+  admin: '/admin',
   global_user: '/global',
+}
+
+const FIRST_ACCESS: Record<string, string> = {
+  teacher: '/teacher/onboarding/school',
+  parent: '/parent',
+  student: '/student',
+  admin: '/admin',
+  global_user: '/global',
+}
+
+function safeRole(value: string | null): string {
+  return value && Object.prototype.hasOwnProperty.call(DASHBOARDS, value)
+    ? value
+    : 'teacher'
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next')
-  const role = searchParams.get('role') ?? 'teacher'
+  const requestedRole = safeRole(searchParams.get('role'))
 
   if (code) {
     const cookieStore = cookies()
@@ -46,13 +60,16 @@ export async function GET(req: NextRequest) {
           .eq('id', user.id)
           .maybeSingle()
 
-        // Existing user — go to their dashboard
+        // Existing user — the database is authoritative for role.
         if (profile?.role && DASHBOARDS[profile.role]) {
           return NextResponse.redirect(new URL(DASHBOARDS[profile.role], req.url))
         }
 
-        // New Google user — forward role hint so root page can guide profile completion
-        return NextResponse.redirect(new URL(`/?role=${role}&from=google`, req.url))
+        // New Google user — never leave the user at a root page that ignores
+        // the role hint. Send them directly to the shortest valid first-access
+        // destination for the role selected before OAuth.
+        const destination = FIRST_ACCESS[requestedRole] ?? '/'
+        return NextResponse.redirect(new URL(destination, req.url))
       }
     }
   }
