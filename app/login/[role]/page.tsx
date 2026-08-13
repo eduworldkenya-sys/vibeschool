@@ -76,7 +76,7 @@ export default function RoleLoginPage() {
     {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
     <p className="switch">Wrong role? <a href="/login">Choose another sign-in</a></p>
     {role === 'teacher' && <p className="switch">New teacher? <a href="/signup/teacher">Create an account</a></p>}
-    {role === 'student' && <p className="switch">New learner with a claim code? <a href="/login?role=student&mode=signup">Create learner account</a></p>}
+    {role === 'student' && <p className="switch">New learner with a claim code? <a href="/signup/student">Create learner account</a></p>}
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
