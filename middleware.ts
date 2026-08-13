@@ -2,14 +2,16 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student']
-const DASHBOARDS: Record<string, string> = {
-  teacher: '/teacher',
-  parent: '/parent',
-  student: '/student',
-  admin: '/admin',
-  global_user: '/global',
-}
+const ROLE_ROOTS = new Set(PROTECTED_PREFIXES)
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
+
+function isSafeDestination(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+}
+
+function destinationPrefix(destination: string): string | null {
+  return PROTECTED_PREFIXES.find(prefix => destination === prefix || destination.startsWith(`${prefix}/`)) ?? null
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -57,8 +59,15 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  function redirectTo(destination: string) {
+    const destinationUrl = request.nextUrl.clone()
+    destinationUrl.pathname = destination
+    destinationUrl.search = ''
+    return redirectWithAuth(destinationUrl)
+  }
+
   const { data: { user } } = await supabase.auth.getUser()
-  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
+  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
 
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone()
@@ -67,14 +76,40 @@ export async function middleware(request: NextRequest) {
     return redirectWithAuth(loginUrl)
   }
 
-  if ((pathname === '/' || pathname === '/login') && user) {
-    const { data: rpcRole } = await supabase.rpc('get_my_role')
-    const destination = rpcRole ? DASHBOARDS[rpcRole] : undefined
-    if (destination) {
-      const destinationUrl = request.nextUrl.clone()
-      destinationUrl.pathname = destination
-      destinationUrl.search = ''
-      return redirectWithAuth(destinationUrl)
+  if (user && (isProtected || pathname === '/' || pathname === '/login')) {
+    const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+
+    if (!onboardingError && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
+      const state = typeof onboarding.state === 'string' ? onboarding.state : null
+      const destination = isSafeDestination(onboarding.destination) ? onboarding.destination : null
+
+      if (destination && state && state !== 'unknown_role') {
+        if (pathname === '/' || pathname === '/login') {
+          return redirectTo(destination)
+        }
+
+        if (isProtected) {
+          const canonicalPrefix = destinationPrefix(destination)
+          const currentPrefix = PROTECTED_PREFIXES.find(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`)) ?? null
+
+          // Required onboarding/connect steps are authoritative. An authenticated
+          // user cannot bypass them by entering a dashboard URL directly.
+          if (state !== 'ready' && pathname !== destination) {
+            return redirectTo(destination)
+          }
+
+          // Ready users should stay inside their canonical role surface. This
+          // also converts legacy role-root redirects (for example /teacher)
+          // into the resolver's current destination (/teacher/pulse).
+          if (state === 'ready' && canonicalPrefix && currentPrefix !== canonicalPrefix) {
+            return redirectTo(destination)
+          }
+
+          if (state === 'ready' && ROLE_ROOTS.has(pathname) && pathname !== destination) {
+            return redirectTo(destination)
+          }
+        }
+      }
     }
   }
 
