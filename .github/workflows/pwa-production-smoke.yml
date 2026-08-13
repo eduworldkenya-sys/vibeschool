@@ -1,0 +1,33 @@
+name: PWA Production Smoke
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/manifest.ts'
+      - 'app/layout.tsx'
+      - 'components/pwa/**'
+      - 'public/icons/**'
+      - 'public/offline.html'
+      - 'public/sw.js'
+      - 'scripts/verify-pwa-production.py'
+      - '.github/workflows/pwa-production-smoke.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pwa-production-smoke
+  cancel-in-progress: true
+
+jobs:
+  production-smoke:
+    name: Live VibeSchool PWA verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Verify production PWA endpoints and release markers
+        run: python3 scripts/verify-pwa-production.py

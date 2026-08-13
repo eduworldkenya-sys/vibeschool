@@ -1,0 +1,39 @@
+name: PWA Contract Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/manifest.ts'
+      - 'app/layout.tsx'
+      - 'components/pwa/**'
+      - 'public/icons/**'
+      - 'public/offline.html'
+      - 'public/sw.js'
+      - 'scripts/test-pwa-contract.py'
+      - '.github/workflows/pwa-contract.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/manifest.ts'
+      - 'app/layout.tsx'
+      - 'components/pwa/**'
+      - 'public/icons/**'
+      - 'public/offline.html'
+      - 'public/sw.js'
+      - 'scripts/test-pwa-contract.py'
+      - '.github/workflows/pwa-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pwa-contract:
+    name: PWA production contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run PWA contract regression suite
+        run: python3 scripts/test-pwa-contract.py
