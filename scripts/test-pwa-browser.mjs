@@ -89,17 +89,32 @@ try {
   }
 
   stage('verify real offline navigation fallback')
-  await context.setOffline(true)
-  await page.goto(`${BASE}/pwa-offline-probe`, { waitUntil: 'domcontentloaded' })
+  const offlineProbePath = '/pwa-offline-probe'
+  const offlineProbeUrl = `${BASE}${offlineProbePath}`
+  let blockedServiceWorkerRequest = false
+
+  await context.route('**/*', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.serviceWorker() && url.pathname === offlineProbePath) {
+      blockedServiceWorkerRequest = true
+      await route.abort('internetdisconnected')
+      return
+    }
+    await route.continue()
+  })
+
+  await page.goto(offlineProbeUrl, { waitUntil: 'domcontentloaded' })
+  assert(blockedServiceWorkerRequest, 'offline probe did not exercise a service-worker-owned network request')
   const offlineText = await page.locator('body').innerText()
   assert(offlineText.includes('You’re offline'), 'offline navigation did not render the offline fallback')
   assert(
     offlineText.includes('Your account data is not stored in the offline cache.'),
     'offline fallback lost its private-data safety message'
   )
+  await context.unroute('**/*')
 
   stage('restore network and verify recovery')
-  await context.setOffline(false)
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => document.title.includes('VibeSchool'))
   assert((await page.title()).includes('VibeSchool'), 'network recovery did not restore VibeSchool')
@@ -109,6 +124,6 @@ try {
   console.error('[pwa-browser] FAILED', error)
   throw error
 } finally {
-  await context.setOffline(false).catch(() => undefined)
+  await context.unroute('**/*').catch(() => undefined)
   await browser.close()
 }
