@@ -56,6 +56,8 @@ jobs:
             echo "sha=${{ github.sha }}"
             echo "project_ref=$EXPECTED_PROJECT_REF"
             echo "mode=DRY_RUN_ONLY"
+            echo "ledger_mutation=false"
+            echo "production_ddl=false"
           } > .worker-engine-promotion-dry-run/context.txt
 
       - name: Set up pinned Supabase CLI
@@ -91,12 +93,14 @@ jobs:
             --plan .worker-engine-promotion-dry-run/tbl013-plan.md \
             --project-ref "$EXPECTED_PROJECT_REF"
 
-      - name: Enforce exact Worker Engine candidate set
+      - name: Build ledger-aligned ephemeral promotion view
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PYEOF'
           import json
+          import re
+          import shutil
           from pathlib import Path
 
           expected = {
@@ -110,48 +114,166 @@ jobs:
               '20260813023028',
           }
 
-          report = json.loads(
-              Path('.worker-engine-promotion-dry-run/tbl013-report.json').read_text(
-                  encoding='utf-8'
-              )
-          )
-          candidate = {entry['version'] for entry in report['local_only']}
-          missing_expected = sorted(expected - candidate)
-          unexpected = sorted(candidate - expected)
-
-          summary = [
-              f'expected_count={len(expected)}',
-              f'candidate_count={len(candidate)}',
-              f'missing_expected={missing_expected}',
-              f'unexpected_repository_only={unexpected}',
-              f'production_only_count={report["counts"]["remote_only_versions"]}',
-              f'authorized_repairs={report["counts"]["authorized_repairs"]}',
-          ]
-          Path('.worker-engine-promotion-dry-run/candidate-set.txt').write_text(
-              '\n'.join(summary) + '\n', encoding='utf-8'
-          )
-          print('\n'.join(summary))
+          report_path = Path('.worker-engine-promotion-dry-run/tbl013-report.json')
+          report = json.loads(report_path.read_text(encoding='utf-8'))
 
           if report.get('read_only_audit') is not True:
               raise SystemExit('Worker Engine dry run blocked: TBL-013 report is not read-only')
           if report.get('authorized_repairs'):
               raise SystemExit('Worker Engine dry run blocked: ledger repair unexpectedly authorized')
+          if report['counts'].get('duplicate_local_versions') != 0:
+              raise SystemExit('Worker Engine dry run blocked: duplicate repository migration versions')
+          if report['counts'].get('duplicate_remote_versions') != 0:
+              raise SystemExit('Worker Engine dry run blocked: duplicate production migration versions')
+
+          local_only = {entry['version'] for entry in report['local_only']}
+          remote_only = {entry['version'] for entry in report['remote_only']}
+          parity = set(report['parity_versions'])
+          missing_expected = sorted(expected - local_only)
+          unrelated_local_only = sorted(local_only - expected)
+
           if missing_expected:
-              raise SystemExit('Worker Engine dry run blocked: expected migration is not pending')
-          if unexpected:
               raise SystemExit(
-                  'Worker Engine dry run blocked: unrelated repository-only migrations would be included'
+                  'Worker Engine dry run blocked: expected migration is not genuinely pending: '
+                  + ','.join(missing_expected)
               )
+
+          if parity & remote_only or parity & local_only or remote_only & local_only:
+              raise SystemExit('Worker Engine dry run blocked: TBL-013 version classes overlap')
+
+          stage = Path('.worker-engine-promotion-stage')
+          if stage.exists():
+              shutil.rmtree(stage)
+          (stage / 'supabase' / 'migrations').mkdir(parents=True)
+
+          config = Path('supabase/config.toml')
+          if not config.is_file():
+              raise SystemExit('Worker Engine dry run blocked: supabase/config.toml missing')
+          shutil.copy2(config, stage / 'supabase' / 'config.toml')
+
+          migration_re = re.compile(r'^(\d{8,14})_.+\.sql$')
+          staged_versions = set()
+
+          for source in sorted(Path('supabase/migrations').glob('*.sql')):
+              match = migration_re.fullmatch(source.name)
+              if match is None:
+                  raise SystemExit(f'invalid migration filename: {source.name}')
+              version = match.group(1)
+              if version in unrelated_local_only:
+                  continue
+              shutil.copy2(source, stage / 'supabase' / 'migrations' / source.name)
+              staged_versions.add(version)
+
+          for version in sorted(remote_only):
+              if version in staged_versions:
+                  raise SystemExit(
+                      f'Worker Engine dry run blocked: remote-only version unexpectedly staged: {version}'
+                  )
+              placeholder = (
+                  stage / 'supabase' / 'migrations' /
+                  f'{version}_production_history_placeholder.sql'
+              )
+              placeholder.write_text(
+                  '-- CI-only ledger-alignment placeholder for an already-applied production migration.\n'
+                  '-- Never executed; version exists in production history.\n',
+                  encoding='utf-8',
+              )
+              staged_versions.add(version)
+
+          remote_versions = parity | remote_only
+          expected_stage = remote_versions | expected
+
+          if staged_versions != expected_stage:
+              missing = sorted(expected_stage - staged_versions)
+              extra = sorted(staged_versions - expected_stage)
+              raise SystemExit(
+                  f'Worker Engine dry run blocked: staged ledger mismatch missing={missing} extra={extra}'
+              )
+
+          manifest = {
+              'mode': 'EPHEMERAL_LEDGER_ALIGNED_DRY_RUN_VIEW',
+              'expected_worker_engine_versions': sorted(expected),
+              'excluded_unrelated_repository_only': unrelated_local_only,
+              'production_only_placeholders': sorted(remote_only),
+              'parity_versions': sorted(parity),
+              'staged_version_count': len(staged_versions),
+              'remote_version_count': len(remote_versions),
+              'authorized_repairs': [],
+              'production_mutation': False,
+          }
+          Path('.worker-engine-promotion-dry-run/staging-manifest.json').write_text(
+              json.dumps(manifest, indent=2) + '\n', encoding='utf-8'
+          )
+          Path('.worker-engine-promotion-dry-run/expected-versions.txt').write_text(
+              '\n'.join(sorted(expected)) + '\n', encoding='utf-8'
+          )
+
+          print('Expected Worker Engine migrations:', len(expected))
+          print('Excluded unrelated repository-only:', len(unrelated_local_only))
+          print('Production-only placeholders:', len(remote_only))
+          print('Parity versions:', len(parity))
+          print('Staged migration versions:', len(staged_versions))
           PYEOF
 
-      - name: Supabase production push dry run
+      - name: Link ephemeral view to exact production project
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd .worker-engine-promotion-stage
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+
+      - name: Supabase production push dry run from ledger-aligned view
         shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -o pipefail
+          cd .worker-engine-promotion-stage
           supabase db push --linked --dry-run --include-all 2>&1 \
-            | tee .worker-engine-promotion-dry-run/db-push-dry-run.txt
+            | tee ../.worker-engine-promotion-dry-run/db-push-dry-run.txt
+
+      - name: Assert dry run plans exactly the approved 22 migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYEOF'
+          import re
+          from pathlib import Path
+
+          expected = set(
+              Path('.worker-engine-promotion-dry-run/expected-versions.txt')
+              .read_text(encoding='utf-8')
+              .split()
+          )
+          output = Path('.worker-engine-promotion-dry-run/db-push-dry-run.txt').read_text(
+              encoding='utf-8', errors='replace'
+          )
+          migration_tokens = set(
+              re.findall(r'(?<![0-9A-Za-z_])(\d{14})_[0-9A-Za-z_.-]+\.sql', output)
+          )
+          missing = sorted(expected - migration_tokens)
+          unexpected = sorted(migration_tokens - expected)
+
+          summary = [
+              f'expected_count={len(expected)}',
+              f'planned_migration_count={len(migration_tokens)}',
+              f'missing_expected={missing}',
+              f'unexpected_planned_versions={unexpected}',
+          ]
+          Path('.worker-engine-promotion-dry-run/dry-run-assertion.txt').write_text(
+              '\n'.join(summary) + '\n', encoding='utf-8'
+          )
+          print('\n'.join(summary))
+
+          if missing:
+              raise SystemExit('Worker Engine dry run blocked: not all approved migrations were planned')
+          if unexpected:
+              raise SystemExit('Worker Engine dry run blocked: dry run planned an unapproved migration')
+          if len(migration_tokens) != len(expected):
+              raise SystemExit('Worker Engine dry run blocked: planned migration count is not exactly 22')
+          PYEOF
 
       - name: Assert dry-run-only evidence
         shell: bash
@@ -159,11 +281,14 @@ jobs:
           set -euo pipefail
           grep -F 'ref=refs/heads/main' .worker-engine-promotion-dry-run/context.txt
           grep -F 'mode=DRY_RUN_ONLY' .worker-engine-promotion-dry-run/context.txt
+          grep -F 'ledger_mutation=false' .worker-engine-promotion-dry-run/context.txt
+          grep -F 'production_ddl=false' .worker-engine-promotion-dry-run/context.txt
           test -s .worker-engine-promotion-dry-run/migration-list.txt
           test -s .worker-engine-promotion-dry-run/tbl013-report.json
           test -s .worker-engine-promotion-dry-run/tbl013-plan.md
-          test -s .worker-engine-promotion-dry-run/candidate-set.txt
+          test -s .worker-engine-promotion-dry-run/staging-manifest.json
           test -s .worker-engine-promotion-dry-run/db-push-dry-run.txt
+          test -s .worker-engine-promotion-dry-run/dry-run-assertion.txt
           sha256sum .worker-engine-promotion-dry-run/* \
             > .worker-engine-promotion-dry-run/evidence.sha256
 
