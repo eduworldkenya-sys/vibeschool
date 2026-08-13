@@ -1,47 +1,37 @@
 # Worker Engine Production Readiness Audit
 
-Updated: 2026-08-12
-Issue: #96
-Base main: `1bc4e6aa4a146bc8386e5b72f67427cb8eb8abb5`
+Updated: 2026-08-13
 Production project: `yauqsxggtuxuykcbrtzf`
+Status: production runtime promotion complete and independently verified; autonomy remains OFF
 
 ## Decision boundary
 
-This audit prepares a future production runtime promotion. It does **not** authorize or enable Worker Engine autonomy.
-
 Production promotion and production autonomy activation are separate protected decisions.
 
-## Current production evidence
+This audit now records the completed production-promotion evidence. It does **not** authorize Worker Engine autonomy.
 
-Read-only production inspection on 2026-08-12 shows the production workforce runtime is older than the merged WE-L1 through WE-L13 repository state:
+## Production promotion result
 
-- `hq_workforce_engine_contract` currently has only `singleton`, `mission`, `responsibilities`, `exclusions`, `routine_paid_ai_required`, and `updated_at`.
-- `heartbeat_enabled` and `heartbeat_limit` are absent.
-- `hq_workforce_scheduled_heartbeat()` is absent.
-- `vibeschool-worker-engine-heartbeat` cron jobs: `0`.
+**PRODUCTION RUNTIME PROMOTION: VERIFIED.**
 
-Production also still exposes the legacy probation lifecycle to `service_role`:
+Protected apply workflow run: `31690019768`.
 
-- `hq_workforce_create_probation_worker(...)` — service-role EXECUTE = true;
-- `hq_workforce_certify_probation_worker(...)` — service-role EXECUTE = true;
-- `hq_workforce_certify_probation_workers()` — service-role EXECUTE = true.
+The exact certified Worker Engine migration set was applied to production after protected dry-run verification and repair of the WE-L1 pgcrypto qualification defect.
 
-Anon/authenticated do not have EXECUTE on these three functions. This is therefore not a public-client exposure, but it is a production governance drift: the legacy functions can create probation workers and directly promote qualifying workers to legacy `active` state outside the merged WE-L12/WE-L13 single-entrypoint lifecycle.
+The production runtime was then independently verified through a protected read-only workflow.
 
-Production autonomy through the new governed Worker Engine is not active, but production does not yet satisfy the repository's final authority model.
+Successful production verification run: `31692743162`.
 
-## Canonical Worker Engine migration set
+Evidence artifact: `9178052369`.
+Artifact SHA-256: `197c4e347438606cf21abb088fb929265954d43b5e2eddbbd4ca2a8e6066a7e2`.
 
-The production promotion unit is the complete Worker Engine migration sequence introduced by merged PRs #90, #91 and #92. Do not cherry-pick a partial subset.
+## Certified Worker Engine migration set
 
-### PR #90 — WE-L1 / WE-L2
+The production promotion unit was the complete Worker Engine sequence introduced by merged WE-L1 through WE-L13 work plus the promotion-separation migration.
 
 1. `20260812191500_worker_engine_we_l1_authority_lifecycle.sql`
 2. `20260812191600_worker_engine_we_l1_contract_hardening.sql`
 3. `20260812193000_worker_engine_we_l2_execution_foundation.sql`
-
-### PR #91 — WE-L3 through WE-L6 and runtime hardening
-
 4. `20260812194000_worker_engine_we_l3_shadow_certification.sql`
 5. `20260812195000_worker_engine_we_l4_heartbeat.sql`
 6. `20260812200000_worker_engine_we_l5_model_gateway.sql`
@@ -53,9 +43,6 @@ The production promotion unit is the complete Worker Engine migration sequence i
 12. `20260812202400_worker_engine_certification_key_hardening.sql`
 13. `20260812202500_worker_engine_live_time_authority_hardening.sql`
 14. `20260812202600_worker_engine_scheduler_audit_hardening.sql`
-
-### PR #92 — WE-L7 through WE-L13
-
 15. `20260812211500_worker_engine_we_l7_factory_v2.sql`
 16. `20260812213000_worker_engine_we_l8_autonomous_demand_factory.sql`
 17. `20260812214500_worker_engine_we_l9_autonomous_qualification_dispatch.sql`
@@ -63,65 +50,109 @@ The production promotion unit is the complete Worker Engine migration sequence i
 19. `20260812221000_worker_engine_we_l11_demand_sensor.sql`
 20. `20260812222000_worker_engine_we_l12_single_entrypoint_hardening.sql`
 21. `20260812223000_worker_engine_we_l13_lifecycle_bypass_closure.sql`
+22. `20260813023028_worker_engine_promotion_separation.sql`
 
-## Promotion-separation blocker discovered
+## Promotion blockers discovered and resolved
 
-`20260812202600_worker_engine_scheduler_audit_hardening.sql` registers an active pg_cron job named `vibeschool-worker-engine-heartbeat` whenever `pg_cron` exists. The scheduled function itself remains fail-closed because `heartbeat_enabled` defaults to `false`, and later WE-L11 also requires `factory_enabled` or `heartbeat_enabled` before doing work.
+### Scheduler/promotion separation
 
-That protects against autonomous execution, but it does **not** satisfy the stricter production policy that runtime promotion and scheduler activation must be mechanically separate. A runtime-only promotion should leave the final database with no active Worker Engine cron trigger.
+The original readiness audit identified that historical replay could register the Worker Engine heartbeat cron job even while runtime switches were disabled.
 
-Therefore production promotion is blocked until a **forward migration** (do not rewrite historical migrations) is generated through the normal Supabase migration workflow and verified to leave `vibeschool-worker-engine-heartbeat` unscheduled by default. A later protected activation change may register the cron job only after explicit approval.
+Resolution:
 
-## Required acceptance suites
+- a forward promotion-separation migration was added;
+- production promotion and scheduler activation were mechanically separated;
+- final production verification confirms zero Worker Engine heartbeat cron jobs.
 
-The migration promotion is not ready until the exact promotion head passes:
+### WE-L1 pgcrypto function qualification
 
-- TBL-011 isolated clean database replay;
-- TBL-012 repository/production mutation parity;
-- Supabase migration-security contract;
-- `supabase/tests/worker_engine_we_l1_authority_lifecycle.sql`;
-- `supabase/tests/worker_engine_we_l2_execution_foundation.sql`;
-- `supabase/tests/worker_engine_reference_loop.sql`;
-- `supabase/tests/worker_engine_we_l7_factory_v2.sql`;
-- `supabase/tests/worker_engine_we_l8_l10_autonomous_factory.sql`;
-- `supabase/tests/worker_engine_we_l11_demand_sensor.sql`;
-- TypeScript;
-- ESLint;
-- Next.js production build;
-- zero unresolved blocking review threads.
+The first production apply attempt stopped safely because unqualified `digest()` was not resolvable under the restricted production search path.
 
-## Mandatory fail-closed promotion invariants
+Resolution:
 
-Before any production migration is applied, isolated verification must prove:
+- WE-L1 now uses `extensions.digest(...)`;
+- a regression guard prevents unqualified pgcrypto calls from returning;
+- a fresh protected dry-run certified the repaired 22-migration plan;
+- the repaired apply succeeded.
 
-1. `heartbeat_enabled` defaults to `false` and remains `false` after migration replay.
-2. `factory_enabled` defaults to `false` and remains `false` after migration replay.
-3. `hq_workforce_scheduled_heartbeat()` returns disabled state while both switches are off.
-4. final replay state has **zero active `vibeschool-worker-engine-heartbeat` cron jobs** until a separate activation change.
-5. unknown/unapproved FactoryTemplates fail closed.
-6. generated workers stop at SHADOW before independent qualification/certification.
-7. service-role cannot execute legacy probation creation/certification or direct lifecycle/certification bypasses after promotion.
-8. `hq_workforce_scheduled_heartbeat()` is the only positive service-role runtime orchestration entrypoint.
-9. no migration statement sets the production activation flags to true.
+### Read-only verifier transport
 
-## Production promotion sequence
+The first independent production-verification run was blocked by Cloudflare Error 1010 before executing SQL.
 
-1. Generate and review the forward scheduler-separation migration through the normal Supabase migration workflow.
-2. Verify the exact migration set and OFF defaults in isolated clean replay.
-3. Generate production preflight object/grant/job diff, including removal of legacy service-role worker activation paths.
-4. Pass all repository and Worker Engine acceptance gates.
-5. Apply the complete runtime promotion under a protected production change window with activation flags kept OFF and the Worker Engine cron job absent.
-6. Immediately verify production objects, grants, RLS, zero Worker Engine cron jobs, both OFF switches, and legacy bypass revocations.
-7. Stop. Do not activate autonomy as part of runtime promotion.
-8. Open a separate protected activation decision only after production runtime verification evidence is accepted.
+Resolution:
 
-## Explicitly prohibited in this audit
+- the official read-only Supabase Management API boundary was retained;
+- transport was changed from blocked Python `urllib` to `curl`;
+- fail-closed regression coverage was added;
+- the next production contract verification passed.
+
+## Final production verification evidence
+
+The successful protected read-only production verification proved:
+
+- approved migrations: `22`;
+- promoted tables verified: `21`;
+- promoted function names verified: `52`;
+- `heartbeat_enabled=false`;
+- `factory_enabled=false`;
+- Worker Engine heartbeat cron jobs: `0`;
+- `production_ddl=false` during verification;
+- `production_dml=false` during verification;
+- `autonomous_activation=false`;
+- evidence artifact generation succeeded.
+
+Independent live catalog checks additionally confirmed:
+
+- all certified migration ledger entries are present;
+- the inspected `hq_workforce_*` tables have RLS enabled;
+- anon/authenticated direct table DML is absent on the inspected workforce tables;
+- legacy probation creation/certification bypass functions are not executable by anon, authenticated, or service_role;
+- heartbeat and factory switches remain OFF.
+
+## Production readiness conclusion
+
+The Worker Engine production **foundation** is now ready:
+
+- repository implementation complete for WE-L1 through WE-L13;
+- certified migration set promoted;
+- production database contracts present;
+- production security boundary verified;
+- promotion/runtime separation verified;
+- autonomous scheduler absent;
+- factory and heartbeat switches disabled;
+- evidence preserved.
+
+This means the production migration mission is complete.
+
+It does **not** mean autonomous operation is approved.
+
+## Runtime unlock boundary
+
+The next phase must be treated as a new controlled mission: **Worker Engine Runtime Unlock / Shadow Certification**.
+
+The system must not jump directly from installed foundation to broad autonomy.
+
+Runtime capabilities will be unlocked one item at a time, each with its own branch, tests, evidence and explicit completion gate.
+
+The first proposed item is **WE-R1.1 — Runtime Authority & Kill-Switch Audit**. No heartbeat, factory, cron or autonomous production execution is enabled by that item.
+
+See `docs/WORKER_ENGINE_RUNTIME_UNLOCK_PLAN.md`.
+
+## Explicitly prohibited until separately authorized
 
 - setting `heartbeat_enabled=true`;
 - setting `factory_enabled=true`;
-- registering/activating the Worker Engine production cron job;
-- invoking autonomous production work;
-- changing production Vercel behavior;
-- bypassing external deployment safeguards tracked in issue #95;
-- rewriting already-merged historical Worker Engine migrations;
-- treating repository merge as evidence that production runtime is already promoted.
+- registering the Worker Engine production cron heartbeat;
+- enabling autonomous production work;
+- enabling automatic worker creation;
+- expanding worker authority without certified contracts;
+- combining multiple runtime-unlock stages into one uncontrolled change.
+
+## Final status
+
+```text
+PRODUCTION FOUNDATION: VERIFIED
+MIGRATION BLOCKERS: NONE KNOWN
+AUTONOMOUS RUNTIME: OFF
+NEXT PHASE: CONTROLLED RUNTIME UNLOCK, ONE ITEM AT A TIME
+```
