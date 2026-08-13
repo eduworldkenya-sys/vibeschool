@@ -1,0 +1,168 @@
+name: Worker Engine Production Promotion Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DRY_RUN_WORKER_ENGINE_PROMOTION to run the read-only production plan
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-engine-production-promotion-dry-run
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    name: Read-only Worker Engine production promotion plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-migration-repair
+
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+
+    steps:
+      - name: Require exact dry-run confirmation
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRMATION" != "DRY_RUN_WORKER_ENGINE_PROMOTION" ]; then
+            echo "Refusing Worker Engine production dry run: confirmation phrase mismatch." >&2
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize immutable evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .worker-engine-promotion-dry-run
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "actor=${{ github.actor }}"
+            echo "sha=${{ github.sha }}"
+            echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo "mode=DRY_RUN_ONLY"
+          } > .worker-engine-promotion-dry-run/context.txt
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Link exact production project
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+
+      - name: Capture local and remote migration ledger
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          supabase migration list --linked 2>&1 \
+            | tee .worker-engine-promotion-dry-run/migration-list.txt
+
+      - name: Enforce exact Worker Engine candidate set
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYEOF'
+          from pathlib import Path
+          import re
+
+          expected = {
+              '20260812191500','20260812191600','20260812193000',
+              '20260812194000','20260812195000','20260812200000',
+              '20260812201000','20260812202000','20260812202100',
+              '20260812202200','20260812202300','20260812202400',
+              '20260812202500','20260812202600','20260812211500',
+              '20260812213000','20260812214500','20260812215500',
+              '20260812221000','20260812222000','20260812223000',
+              '20260813023028',
+          }
+
+          local = {
+              p.name.split('_', 1)[0]
+              for p in Path('supabase/migrations').glob('*.sql')
+              if re.fullmatch(r'\d{14}_.+\.sql', p.name)
+          }
+
+          text = Path('.worker-engine-promotion-dry-run/migration-list.txt').read_text(
+              encoding='utf-8', errors='replace'
+          )
+          remote = set()
+          for line in text.splitlines():
+              timestamps = re.findall(r'(?<!\d)(\d{14})(?!\d)', line)
+              # `migration list` prints LOCAL and REMOTE side by side. Any timestamp
+              # appearing at least twice on a row is an exact local/remote match;
+              # remote-only rows still contain one timestamp. A direct SQL-backed
+              # TBL-013 audit remains the authority if CLI formatting changes.
+              if len(timestamps) >= 2 and timestamps[0] == timestamps[1]:
+                  remote.add(timestamps[1])
+              elif len(timestamps) == 1 and timestamps[0] not in local:
+                  remote.add(timestamps[0])
+
+          candidate = local - remote
+          missing_expected = sorted(expected - candidate)
+          unexpected = sorted(candidate - expected)
+
+          report = [
+              f'expected_count={len(expected)}',
+              f'candidate_count={len(candidate)}',
+              f'missing_expected={missing_expected}',
+              f'unexpected_repository_only={unexpected}',
+          ]
+          Path('.worker-engine-promotion-dry-run/candidate-set.txt').write_text(
+              '\n'.join(report) + '\n', encoding='utf-8'
+          )
+          print('\n'.join(report))
+
+          if missing_expected:
+              raise SystemExit('Worker Engine dry run blocked: expected migration is not pending')
+          if unexpected:
+              raise SystemExit(
+                  'Worker Engine dry run blocked: unrelated repository-only migrations would be included'
+              )
+          PYEOF
+
+      - name: Supabase production push dry run
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          supabase db push --linked --dry-run --include-all 2>&1 \
+            | tee .worker-engine-promotion-dry-run/db-push-dry-run.txt
+
+      - name: Assert dry-run-only evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'mode=DRY_RUN_ONLY' .worker-engine-promotion-dry-run/context.txt
+          test -s .worker-engine-promotion-dry-run/migration-list.txt
+          test -s .worker-engine-promotion-dry-run/candidate-set.txt
+          test -s .worker-engine-promotion-dry-run/db-push-dry-run.txt
+          sha256sum .worker-engine-promotion-dry-run/* \
+            > .worker-engine-promotion-dry-run/evidence.sha256
+
+      - name: Upload dry-run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-engine-production-promotion-dry-run-${{ github.run_id }}
+          path: .worker-engine-promotion-dry-run/
+          if-no-files-found: error
+          retention-days: 30
