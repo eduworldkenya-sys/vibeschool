@@ -22,9 +22,7 @@ from pathlib import Path
 from typing import Any
 
 MIGRATION_FILE_RE = re.compile(r"^(?P<version>\d{8,14})_(?P<name>.+)\.sql$")
-LEDGER_ROW_RE = re.compile(
-    r"^\s*(?P<local>\d{8,14})?\s*\|\s*(?P<remote>\d{8,14})?\s*\|"
-)
+LEDGER_VERSION_RE = re.compile(r"^\d{8,14}$")
 EXPECTED_PROJECT_REF = "yauqsxggtuxuykcbrtzf"
 
 
@@ -73,6 +71,17 @@ def load_local_migrations(
     return migrations, by_version
 
 
+def normalize_ledger_field(raw: str) -> str | None:
+    value = raw.strip()
+    if value.startswith("`") and value.endswith("`") and len(value) >= 2:
+        value = value[1:-1].strip()
+    if not value:
+        return None
+    if LEDGER_VERSION_RE.fullmatch(value) is None:
+        raise ValueError(value)
+    return value
+
+
 def parse_live_ledger(path: Path) -> dict[str, dict[str, Any]]:
     if not path.is_file():
         raise AuditFailure(f"live ledger capture missing: {path}")
@@ -85,12 +94,16 @@ def parse_live_ledger(path: Path) -> dict[str, dict[str, Any]]:
     matched_rows = 0
 
     for line_number, line in enumerate(text.splitlines(), start=1):
-        match = LEDGER_ROW_RE.match(line)
-        if match is None:
+        columns = line.split("|")
+        if len(columns) < 3:
             continue
 
-        local = match.group("local")
-        remote = match.group("remote")
+        try:
+            local = normalize_ledger_field(columns[0])
+            remote = normalize_ledger_field(columns[1])
+        except ValueError:
+            continue
+
         if local is None and remote is None:
             continue
 
