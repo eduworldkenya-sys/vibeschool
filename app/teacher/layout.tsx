@@ -506,6 +506,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [unreadConnect, setUnreadConnect] = useState(0);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const teacherIdRef = useRef<string | null>(null);
 
   const refreshCredits = useCallback(() => {
@@ -523,38 +524,103 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) setAuthError("VibeSchool is taking longer than expected to open your workspace.");
+    }, 12000);
+
     async function fetchProfile() {
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) { router.replace("/?role=teacher"); return; }
+      try {
+        setAuthError(null);
+        const { data: { user }, error: userErr } = await supabase.auth.getUser();
+        if (cancelled) return;
+        if (userErr || !user) { router.replace("/login/teacher"); return; }
 
-      const { data: profileData, error: profileErr } = await supabase.from("profiles").select("full_name, school_id, role").eq("id", user.id).single();
-      if (profileErr || !profileData || profileData.role !== "teacher") { router.replace("/?role=teacher"); return; }
-      localStorage.setItem(`vs_role_${user.id}`, JSON.stringify({ role: 'teacher', t: Date.now() }));
-      const name = profileData.full_name ?? "";
-      setFullName(name);
-      const parts = name.trim().split(" ").filter(Boolean);
-      setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+        const { data: onboarding, error: onboardingErr } = await supabase.rpc("get_my_onboarding_state");
+        if (cancelled) return;
+        if (onboardingErr || !onboarding || typeof onboarding !== "object" || Array.isArray(onboarding)) {
+          setAuthError("We could not verify your teacher workspace. Please retry or sign in again.");
+          return;
+        }
 
-      const [memberRes, teacherRes] = await Promise.all([
-        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
-      ]);
-      const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding")
-      const hasSchool = !!(memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id)
-      if (!teacherRes.data?.profile_id && !isOnboardingPath && hasSchool) { router.replace("/teacher/onboarding/school"); return; }
-      const schoolId = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id ?? null;
-      if (schoolId) {
-        const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle();
-        setSchool(schoolData?.name ?? "");
+        const state = typeof onboarding.state === "string" ? onboarding.state : null;
+        const destination = typeof onboarding.destination === "string" && onboarding.destination.startsWith("/") && !onboarding.destination.startsWith("//")
+          ? onboarding.destination
+          : null;
+        const isOnboardingPath = pathname.startsWith("/teacher/onboarding");
+
+        if (state === "unknown_role" || state === "profile_missing") {
+          setAuthError("This account does not have a valid teacher profile yet.");
+          return;
+        }
+        if (state !== "ready" && destination && !isOnboardingPath) {
+          router.replace(destination);
+          return;
+        }
+
+        const { data: profileData, error: profileErr } = await supabase.from("profiles").select("full_name, school_id, role").eq("id", user.id).single();
+        if (cancelled) return;
+        if (profileErr || !profileData || profileData.role !== "teacher") {
+          setAuthError("This account is not registered as a teacher.");
+          return;
+        }
+
+        localStorage.setItem(`vs_role_${user.id}`, JSON.stringify({ role: 'teacher', t: Date.now() }));
+        const name = profileData.full_name ?? "";
+        setFullName(name);
+        const parts = name.trim().split(" ").filter(Boolean);
+        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+
+        const [memberRes, teacherRes] = await Promise.all([
+          supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
+          supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        const schoolId = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id ?? null;
+        if (schoolId) {
+          const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle();
+          if (!cancelled) setSchool(schoolData?.name ?? "");
+        }
+        teacherIdRef.current = user.id;
+        refreshCredits();
+        window.clearTimeout(timeout);
+        setAuthReady(true);
+      } catch {
+        if (!cancelled) setAuthError("Something interrupted sign-in while opening your workspace.");
       }
-      teacherIdRef.current = user.id;
-      refreshCredits();
-      setAuthReady(true);
     }
-    fetchProfile();
-  }, [refreshCredits, router]);
+    void fetchProfile();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [pathname, refreshCredits, router]);
 
-  if (!authReady) return <div style={{ minHeight: "100vh", background: "#f8fafc" }} />;
+  if (!authReady) {
+    return (
+      <div style={{ minHeight: "100dvh", background: "#05050f", color: "#fff", display: "grid", placeItems: "center", padding: 24, fontFamily: "var(--font-jakarta), Arial, sans-serif" }}>
+        <div style={{ width: "100%", maxWidth: 360, textAlign: "center" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 28 }}>Vibe<span style={{ color: "#c8a84b" }}>School</span></div>
+          {authError ? (
+            <>
+              <div style={{ width: 44, height: 44, margin: "0 auto 18px", borderRadius: "50%", display: "grid", placeItems: "center", background: "rgba(200,168,75,.12)", color: "#c8a84b", fontWeight: 900 }}>!</div>
+              <p style={{ margin: "0 0 18px", color: "rgba(255,255,255,.75)", lineHeight: 1.5 }}>{authError}</p>
+              <div style={{ display: "grid", gap: 10 }}>
+                <button onClick={() => window.location.reload()} style={{ border: 0, borderRadius: 10, padding: "13px 16px", background: "#c8a84b", color: "#05050f", fontWeight: 800, cursor: "pointer" }}>Retry</button>
+                <button onClick={() => router.replace("/login/teacher")} style={{ border: "1px solid rgba(255,255,255,.18)", borderRadius: 10, padding: "13px 16px", background: "transparent", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Back to teacher sign in</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ width: 42, height: 42, margin: "0 auto 18px", border: "3px solid rgba(255,255,255,.12)", borderTopColor: "#c8a84b", borderRadius: "50%", animation: "vsTeacherSpin .8s linear infinite" }} />
+              <p style={{ margin: 0, color: "rgba(255,255,255,.62)", fontSize: 14 }}>Opening your teacher workspace…</p>
+              <style>{`@keyframes vsTeacherSpin { to { transform: rotate(360deg) } }`}</style>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ToastContext.Provider value={{ showToast }}>
