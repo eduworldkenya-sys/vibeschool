@@ -1,10 +1,10 @@
 -- access: authenticated=select; service_role=all; anon=none
--- authorization-test: authenticated can read directory rows; anon cannot access the table; direct authenticated writes remain denied by grants/RLS.
+-- authorization-test: public.schools_directory authenticated can read directory rows; anon cannot access the table; direct authenticated writes remain denied by grants/RLS.
 --
 -- TBL-011 prerequisite reconstruction.
 -- Production contains public.schools_directory before the tracked unified school
--- discovery migrations, but the repository had no CREATE TABLE for it. Restore
--- only the canonical pre-tracked relation shape required by the later chain.
+-- discovery migrations, but the repository never tracked its original relation
+-- creation. Restore only the canonical pre-tracked shape required by the later chain.
 
 create table if not exists public.schools_directory (
   id uuid primary key default gen_random_uuid(),
