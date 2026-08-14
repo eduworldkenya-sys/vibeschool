@@ -1,0 +1,39 @@
+name: Existing account auth hotfix
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  hotfix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply precise auth error mapping
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/page.tsx')
+          s = p.read_text()
+          anchor = "  'User not found':            'No account found with that email.',\n"
+          insert = anchor + "  'User already registered': 'An account with this email already exists. Sign in instead.',\n  'user_already_exists':       'An account with this email already exists. Sign in instead.',\n"
+          if "'user_already_exists':" not in s:
+              if anchor not in s:
+                  raise SystemExit('auth error anchor not found')
+              s = s.replace(anchor, insert, 1)
+              p.write_text(s)
+      - name: Verify, self-remove and commit
+        run: |
+          grep -q "User already registered" app/page.tsx
+          grep -q "user_already_exists" app/page.tsx
+          grep -q "Sign in instead" app/page.tsx
+          git diff --check
+          rm .github/workflows/tmp-existing-account-hotfix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/page.tsx .github/workflows/tmp-existing-account-hotfix.yml
+          git commit -m "fix(auth): direct existing users to sign in"
+          git push origin HEAD:main
