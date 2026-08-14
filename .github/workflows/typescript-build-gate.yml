@@ -50,6 +50,9 @@ jobs:
       - name: Install exact dependencies
         run: npm ci
 
+      - name: Strategic remediation truth contract
+        run: node scripts/test-strategic-remediation-contract.mjs
+
       - name: TypeScript — report all errors
         run: npm run typecheck
 
