@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { getStudentHomeOsBrief } from "@/lib/student/tasks";
+import { getStudentHomeOsBrief, updateStudentHomePreferences, type PreferredStudyTime } from "@/lib/student/tasks";
 
 const C = { bg: "#f0f2f5", surface: "#fff", border: "#e5e7eb", text: "#111827", muted: "#6b7280", dark: "#1e1b4b", accent: "#6366f1", error: "#ef4444" };
-type StudyTime = "morning" | "afternoon" | "evening" | "flexible";
 
 export default function StudentGoalsPage() {
   const router = useRouter();
@@ -15,7 +13,8 @@ export default function StudentGoalsPage() {
   const [targetGrade, setTargetGrade] = useState("");
   const [weeklyMinutes, setWeeklyMinutes] = useState(300);
   const [sessionMinutes, setSessionMinutes] = useState(25);
-  const [studyTime, setStudyTime] = useState<StudyTime>("evening");
+  const [studyTime, setStudyTime] = useState<PreferredStudyTime>("evening");
+  const [subjectTargets, setSubjectTargets] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -25,12 +24,12 @@ export default function StudentGoalsPage() {
       try {
         const brief = await getStudentHomeOsBrief();
         if (cancelled) return;
-        const targets = brief.progress?.targets;
-        setTargetGrade(targets?.kcseTargetGrade ?? "");
-        setWeeklyMinutes(targets?.weeklyStudyMinutes ?? 300);
-        setSessionMinutes(targets?.preferredSessionMinutes ?? 25);
-        const preferred = targets?.preferredStudyTime;
-        if (preferred === "morning" || preferred === "afternoon" || preferred === "evening" || preferred === "flexible") setStudyTime(preferred);
+        const targets = brief.progress.targets;
+        setTargetGrade(targets.kcseTargetGrade ?? "");
+        setWeeklyMinutes(targets.weeklyStudyMinutes);
+        setSessionMinutes(targets.preferredSessionMinutes);
+        setStudyTime(targets.preferredStudyTime);
+        setSubjectTargets(targets.subjectTargets);
       } catch { if (!cancelled) setError("Your current learning goals could not be loaded."); }
       finally { if (!cancelled) setLoading(false); }
     }
@@ -42,16 +41,12 @@ export default function StudentGoalsPage() {
     if (!Number.isInteger(weeklyMinutes) || weeklyMinutes < 30 || weeklyMinutes > 4200) { setError("Weekly study time must be between 30 and 4,200 minutes."); return; }
     if (!Number.isInteger(sessionMinutes) || sessionMinutes < 10 || sessionMinutes > 180) { setError("Focus sessions must be between 10 and 180 minutes."); return; }
     setSaving(true);
-    const { error: rpcError } = await supabase.rpc("student_update_home_preferences", {
-      p_kcse_target_grade: targetGrade.trim() || null,
-      p_weekly_study_minutes: weeklyMinutes,
-      p_preferred_session_minutes: sessionMinutes,
-      p_preferred_study_time: studyTime,
-      p_subject_targets: null,
-    });
-    setSaving(false);
-    if (rpcError) { setError("Your learning goals could not be saved."); return; }
-    setNotice("Learning goals saved. Your Home OS and Twin can now use the updated preferences.");
+    try {
+      await updateStudentHomePreferences({ kcseTargetGrade: targetGrade.trim() || null, weeklyStudyMinutes: weeklyMinutes, preferredSessionMinutes: sessionMinutes, preferredStudyTime: studyTime, subjectTargets });
+      setNotice("Learning goals saved. Your Home OS and Twin can now use the updated preferences.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Your learning goals could not be saved.");
+    } finally { setSaving(false); }
   }
 
   if (loading) return <main style={{ minHeight: "100%", background: C.bg, padding: 16 }}><div style={{ height: 180, borderRadius: 18, background: "#e5e7eb" }} /></main>;
@@ -68,7 +63,7 @@ export default function StudentGoalsPage() {
       <label style={labelStyle}>Target grade<input value={targetGrade} onChange={e => setTargetGrade(e.target.value)} placeholder="e.g. A-, B+" maxLength={12} style={inputStyle} /></label>
       <label style={labelStyle}>Weekly study minutes<input type="number" min={30} max={4200} step={15} value={weeklyMinutes} onChange={e => setWeeklyMinutes(Number(e.target.value))} style={inputStyle} /><span style={{ fontWeight: 500, color: "#9ca3af" }}>About {(weeklyMinutes / 60).toFixed(1)} hours per week.</span></label>
       <label style={labelStyle}>Preferred focus-session length<input type="number" min={10} max={180} step={5} value={sessionMinutes} onChange={e => setSessionMinutes(Number(e.target.value))} style={inputStyle} /></label>
-      <label style={labelStyle}>Preferred study time<select value={studyTime} onChange={e => setStudyTime(e.target.value as StudyTime)} style={inputStyle}><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="flexible">Flexible</option></select></label>
+      <label style={labelStyle}>Preferred study time<select value={studyTime} onChange={e => setStudyTime(e.target.value as PreferredStudyTime)} style={inputStyle}><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="flexible">Flexible</option></select></label>
       <button disabled={saving} onClick={() => void save()} style={{ border: "none", borderRadius: 12, padding: 12, background: saving ? "#9ca3af" : C.accent, color: "#fff", fontWeight: 850, fontSize: 12, cursor: "pointer" }}>{saving ? "Saving…" : "Save goals"}</button>
     </section>
   </main>;
