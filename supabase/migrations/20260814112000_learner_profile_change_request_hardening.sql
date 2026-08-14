@@ -56,17 +56,19 @@ begin
   if auth.uid() is null then raise exception 'authentication required'; end if;
   if p_decision not in ('approved','rejected') then raise exception 'invalid decision'; end if;
 
-  select r.*, c.school_id
-    into v_request, v_school_id
+  select r.* into v_request
   from public.child_change_requests r
-  join public.students s on s.id = r.student_id
-  left join public.classes c on c.id = s.class_id
   where r.id = p_request_id and r.deleted_at is null and r.status = 'pending'
-  for update of r;
+  for update;
 
-  if not found or v_school_id is null then
-    raise exception 'pending request not found or learner has no school';
-  end if;
+  if not found then raise exception 'pending request not found'; end if;
+
+  select c.school_id into v_school_id
+  from public.students s
+  left join public.classes c on c.id = s.class_id
+  where s.id = v_request.student_id;
+
+  if v_school_id is null then raise exception 'learner has no school'; end if;
 
   -- Existing VibeSchool school-membership model uses school_members.profile_id.
   select exists (
