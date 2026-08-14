@@ -4,11 +4,12 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "supabase/migrations/20260814111500_worker_engine_we_r1_3_shadow_governance_kernel.sql"
-      - "supabase/migrations/20260814152000_worker_engine_we_r1_3_shadow_scheduler_resources.sql"
+      - "supabase/migrations/*worker_engine_we_r1_3*.sql"
       - "supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql"
       - ".github/workflows/worker-engine-we-r1-3-acceptance.yml"
       - "docs/WORKER_ENGINE_WE_R1_3_GOVERNED_SHADOW_OPERATIONS.md"
+      - "app/hq/workforce/**"
+      - "components/hq/HQShell.tsx"
 
 concurrency:
   group: worker-engine-we-r1-3-${{ github.ref }}
@@ -35,10 +36,9 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           workflow=Path('.github/workflows/worker-engine-we-r1-3-acceptance.yml').read_text()
-          migrations='\n'.join(Path(p).read_text() for p in [
-              'supabase/migrations/20260814111500_worker_engine_we_r1_3_shadow_governance_kernel.sql',
-              'supabase/migrations/20260814152000_worker_engine_we_r1_3_shadow_scheduler_resources.sql',
-          ])
+          paths=sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_3*.sql'))
+          if not paths: raise SystemExit('WE-R1.3 migrations not found')
+          migrations='\n'.join(p.read_text() for p in paths)
           forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL','production'+'-migration-repair','${{ '+'secrets.']
           hit=[x for x in forbidden if x in workflow]
           if hit: raise SystemExit('production reference detected: '+', '.join(hit))
@@ -48,6 +48,8 @@ jobs:
           if missing: raise SystemExit('fail-closed assignments missing: '+', '.join(missing))
           if 'hq_workforce_tool_gateway_execute(' in migrations.lower():
               raise SystemExit('shadow migrations reference consequential gateway invocation')
+          if 'cron.schedule' in migrations.lower():
+              raise SystemExit('WE-R1.3 must not install a scheduler cron')
           PY
 
       - name: Verify Docker
@@ -70,14 +72,14 @@ jobs:
       - name: Rebuild full migration chain
         run: supabase db reset --local --no-seed
 
-      - name: Run WE-R1.3 acceptance suite
+      - name: Run WE-R1.3 adversarial acceptance suite
         run: PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql
 
       - name: Reassert fail-closed state
         shell: bash
         run: |
-          STATE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
-          test "$STATE" = "false|false|false|0|0|false|false|true"
+          STATE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text||'|'||shadow_anomaly_paused::text from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = "false|false|false|0|0|false|false|true|false"
 
       - name: Destroy disposable database
         if: always()
