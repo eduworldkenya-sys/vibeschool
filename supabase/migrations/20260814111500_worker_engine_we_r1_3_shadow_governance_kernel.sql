@@ -4,8 +4,8 @@
 -- authorization-test: public.hq_workforce_shadow_runs denies anon/authenticated direct access; function-owner runtime may append governed evidence.
 -- access: service-only public.hq_workforce_shadow_events
 -- authorization-test: public.hq_workforce_shadow_events denies anon/authenticated direct access; function-owner runtime may append immutable trace events.
--- access: service-only public.hq_workforce_decisions
--- authorization-test: public.hq_workforce_decisions denies anon/authenticated direct access; owner-governed functions control state transitions.
+-- access: service-only public.hq_workforce_shadow_decisions
+-- authorization-test: public.hq_workforce_shadow_decisions denies anon/authenticated direct access; owner-governed functions control state transitions.
 -- access: service-only public.hq_workforce_evidence
 -- authorization-test: public.hq_workforce_evidence denies anon/authenticated direct access; function-owner runtime may append provenance records.
 
@@ -98,7 +98,8 @@ create table if not exists public.hq_workforce_evidence (
 );
 create index if not exists hq_workforce_evidence_trace_idx on public.hq_workforce_evidence(trace_id,created_at);
 
-create table if not exists public.hq_workforce_decisions (
+-- Separate from the legacy HQ workforce Decision Inbox. Shadow approval is judgment only.
+create table if not exists public.hq_workforce_shadow_decisions (
   id uuid primary key default gen_random_uuid(),
   trace_id uuid not null references public.hq_workforce_shadow_runs(trace_id) on delete restrict,
   decision_key text not null unique,
@@ -114,7 +115,7 @@ create table if not exists public.hq_workforce_decisions (
   updated_at timestamptz not null default clock_timestamp(),
   check ((state in ('approved','rejected','revise')) = (reviewed_at is not null) or state in ('proposed','awaiting_review','verified','closed'))
 );
-create index if not exists hq_workforce_decisions_state_idx on public.hq_workforce_decisions(state,created_at desc);
+create index if not exists hq_workforce_shadow_decisions_state_idx on public.hq_workforce_shadow_decisions(state,created_at desc);
 
 -- Shadow authority evaluation is deliberately hypothetical. It NEVER calls the consequential gateway.
 create or replace function public.hq_workforce_shadow_evaluate_authority(
@@ -141,7 +142,12 @@ begin
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
   if not found then raise exception 'runtime_contract_missing'; end if;
   select * into sm from public.hq_workforce_skill_manifests where id=p_skill_manifest_id;
-  if not found then
+
+  if not ec.shadow_enabled or ec.shadow_global_stop then
+    v_reason := 'shadow_global_stop';
+  elsif ec.runtime_execution_enabled or ec.runtime_autonomy_level>0 then
+    v_reason := 'consequential_runtime_must_remain_off';
+  elsif not found then
     v_reason := 'skill_not_found';
   elsif sm.certification_status <> 'certified' then
     v_reason := 'skill_uncertified';
@@ -177,15 +183,15 @@ create or replace function public.hq_workforce_shadow_review_decision(
   p_decision_id uuid,
   p_state text,
   p_rationale text default null
-) returns public.hq_workforce_decisions
+) returns public.hq_workforce_shadow_decisions
 language plpgsql
 security definer
 set search_path=public,pg_temp
 as $$
-declare d public.hq_workforce_decisions%rowtype;
+declare d public.hq_workforce_shadow_decisions%rowtype;
 begin
   if p_state not in ('approved','rejected','revise') then raise exception 'invalid_review_state'; end if;
-  update public.hq_workforce_decisions
+  update public.hq_workforce_shadow_decisions
      set state=p_state,
          human_rationale=p_rationale,
          reviewed_by=auth.uid(),
@@ -201,16 +207,16 @@ end $$;
 alter table public.hq_workforce_shadow_runs enable row level security;
 alter table public.hq_workforce_shadow_events enable row level security;
 alter table public.hq_workforce_evidence enable row level security;
-alter table public.hq_workforce_decisions enable row level security;
+alter table public.hq_workforce_shadow_decisions enable row level security;
 
 revoke all on table public.hq_workforce_shadow_runs from public,anon,authenticated;
 revoke all on table public.hq_workforce_shadow_events from public,anon,authenticated;
 revoke all on table public.hq_workforce_evidence from public,anon,authenticated;
-revoke all on table public.hq_workforce_decisions from public,anon,authenticated;
+revoke all on table public.hq_workforce_shadow_decisions from public,anon,authenticated;
 grant select,insert,update on table public.hq_workforce_shadow_runs to service_role;
 grant select,insert on table public.hq_workforce_shadow_events to service_role;
 grant select,insert on table public.hq_workforce_evidence to service_role;
-grant select,insert,update on table public.hq_workforce_decisions to service_role;
+grant select,insert,update on table public.hq_workforce_shadow_decisions to service_role;
 grant usage,select on sequence public.hq_workforce_shadow_events_id_seq to service_role;
 
 revoke all on function public.hq_workforce_shadow_evaluate_authority(uuid,uuid,smallint,smallint,text,jsonb) from public,anon,authenticated;
