@@ -33,10 +33,20 @@ jobs:
           set -euo pipefail
           test -f supabase/migrations/20260814094000_worker_engine_we_r1_2_runtime_policy_kernel.sql
           test -f supabase/tests/worker_engine_we_r1_2_runtime_policy_kernel.sql
-          if grep -R --line-number -E 'SUPABASE_ACCESS_TOKEN|SUPABASE_DB_PASSWORD|PROD_URL|production-migration-repair' .github/workflows/worker-engine-we-r1-2-acceptance.yml; then
-            echo "Production credential/reference detected in disposable-local acceptance workflow" >&2
-            exit 1
-          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path('.github/workflows/worker-engine-we-r1-2-acceptance.yml').read_text(encoding='utf-8')
+          forbidden = [
+              'SUPABASE_' + 'ACCESS_TOKEN',
+              'SUPABASE_' + 'DB_PASSWORD',
+              'PROD_' + 'URL',
+              'production' + '-migration-repair',
+              '${{ ' + 'secrets.',
+          ]
+          found = [needle for needle in forbidden if needle in text]
+          if found:
+              raise SystemExit('production credential/reference detected: ' + ', '.join(found))
+          PY
 
       - name: Verify Docker
         shell: bash
