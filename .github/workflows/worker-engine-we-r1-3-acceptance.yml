@@ -74,9 +74,31 @@ jobs:
         run: supabase db reset --local --no-seed
 
       - name: Run WE-R1.3 adversarial acceptance suite
-        run: PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql
+        id: adversarial
+        shell: bash
+        run: |
+          set +e
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql 2>&1 | tee /tmp/we-r1-3-adversarial.log
+          code=${PIPESTATUS[0]}
+          {
+            echo '## WE-R1.3 adversarial acceptance output'
+            echo '```text'
+            tail -n 120 /tmp/we-r1-3-adversarial.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+
+      - name: Upload adversarial evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: we-r1-3-adversarial-${{ github.run_id }}
+          path: /tmp/we-r1-3-adversarial.log
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Reassert fail-closed state
+        if: always()
         shell: bash
         run: |
           STATE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text||'|'||shadow_anomaly_paused::text from public.hq_workforce_engine_contract where singleton=true")"
