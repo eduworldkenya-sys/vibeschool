@@ -38,6 +38,58 @@ revoke all on table public.child_change_requests from anon;
 revoke update, delete, truncate on table public.child_change_requests from authenticated;
 grant select, insert on table public.child_change_requests to authenticated;
 
+create or replace function public.list_school_child_change_requests(p_status text default 'pending')
+returns table (
+  id uuid,
+  student_id uuid,
+  student_name text,
+  class_name text,
+  field text,
+  old_value text,
+  new_value text,
+  reason text,
+  status text,
+  parent_id uuid,
+  created_at timestamptz,
+  reviewed_at timestamptz,
+  review_note text
+)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select
+    r.id,
+    r.student_id,
+    s.name,
+    trim(concat_ws(' ', c.name, c.stream)),
+    r.field,
+    r.old_value,
+    r.new_value,
+    r.reason,
+    r.status,
+    r.parent_id,
+    r.created_at,
+    r.reviewed_at,
+    r.review_note
+  from public.child_change_requests r
+  join public.students s on s.id = r.student_id
+  join public.classes c on c.id = s.class_id
+  where r.deleted_at is null
+    and (p_status is null or r.status = p_status)
+    and exists (
+      select 1 from public.school_members sm
+      where sm.school_id = c.school_id
+        and sm.profile_id = auth.uid()
+        and sm.role in ('admin','owner')
+    )
+  order by r.created_at desc;
+$$;
+
+revoke all on function public.list_school_child_change_requests(text) from public, anon;
+grant execute on function public.list_school_child_change_requests(text) to authenticated;
+
 create or replace function public.review_child_change_request(
   p_request_id uuid,
   p_decision text,
@@ -108,7 +160,8 @@ $$;
 revoke all on function public.review_child_change_request(uuid,text,text) from public, anon;
 grant execute on function public.review_child_change_request(uuid,text,text) to authenticated;
 
--- authorization-test: public.review_child_change_request is authenticated-only and
--- enforces active caller membership as the learner school's admin/owner before mutation.
+-- authorization-test: public.child_change_requests is parent-linked and append-only;
+-- public.list_school_child_change_requests only returns schools where auth.uid() is admin/owner;
+-- public.review_child_change_request rechecks that same school authority before canonical mutation.
 
 commit;
