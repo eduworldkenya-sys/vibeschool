@@ -1,8 +1,13 @@
 -- WE-R1.3X.1-.3: Global Resource Registry + Competency Graph + Capability Graph.
 -- Additive, service-only, Shadow/L0 safe. MUST NOT activate runtime, heartbeat, factory, cron or consequential execution.
 -- access: service-only public.hq_workforce_resources
+-- authorization-test: public.hq_workforce_resources denies anon/authenticated direct access; service_role manages registered resources.
 -- access: service-only public.hq_workforce_worker_competencies
+-- authorization-test: public.hq_workforce_worker_competencies denies anon/authenticated direct access; service_role manages certified competency evidence.
 -- access: service-only public.hq_workforce_capability_edges
+-- authorization-test: public.hq_workforce_capability_edges denies anon/authenticated direct access; service_role manages capability composition edges.
+-- access: service-only public.hq_workforce_skill_resources
+-- authorization-test: public.hq_workforce_skill_resources denies anon/authenticated direct access; service_role manages explicit skill/resource bindings.
 
 create table if not exists public.hq_workforce_resources (
   id uuid primary key default gen_random_uuid(),
