@@ -1,5 +1,5 @@
--- Learner profile correction request hardening
--- Parents may create/read their own linked-learner requests, but reviewer state is school-controlled.
+-- Learner profile correction request hardening.
+-- Parent submissions are linked-learner-only and append-only; school review is RPC-only.
 
 begin;
 
@@ -10,42 +10,32 @@ drop policy if exists "parents read own learner correction requests" on public.c
 drop policy if exists "parents create linked learner correction requests" on public.child_change_requests;
 
 create policy "parents read own learner correction requests"
-on public.child_change_requests
-for select
-to authenticated
+on public.child_change_requests for select to authenticated
 using (
   parent_id = auth.uid()
   and exists (
-    select 1
-    from public.parent_student_links psl
+    select 1 from public.parent_student_links psl
     where psl.parent_id = auth.uid()
       and psl.student_id = child_change_requests.student_id
   )
 );
 
 create policy "parents create linked learner correction requests"
-on public.child_change_requests
-for insert
-to authenticated
+on public.child_change_requests for insert to authenticated
 with check (
   parent_id = auth.uid()
   and status = 'pending'
-  and reviewed_by is null
-  and reviewed_at is null
-  and review_note is null
-  and field in ('name', 'admission_number', 'date_of_birth', 'gender')
+  and reviewed_by is null and reviewed_at is null and review_note is null
+  and field in ('name','admission_number','date_of_birth','gender')
   and exists (
-    select 1
-    from public.parent_student_links psl
+    select 1 from public.parent_student_links psl
     where psl.parent_id = auth.uid()
       and psl.student_id = child_change_requests.student_id
   )
 );
 
--- Parent requests are append-only after submission. School review is deliberately
--- not exposed through direct table UPDATE; a controlled reviewer RPC owns it.
-revoke update, delete, truncate on table public.child_change_requests from anon, authenticated;
-revoke insert, select on table public.child_change_requests from anon;
+revoke all on table public.child_change_requests from anon;
+revoke update, delete, truncate on table public.child_change_requests from authenticated;
 grant select, insert on table public.child_change_requests to authenticated;
 
 create or replace function public.review_child_change_request(
@@ -63,50 +53,36 @@ declare
   v_school_id uuid;
   v_is_admin boolean := false;
 begin
-  if auth.uid() is null then
-    raise exception 'authentication required';
-  end if;
+  if auth.uid() is null then raise exception 'authentication required'; end if;
+  if p_decision not in ('approved','rejected') then raise exception 'invalid decision'; end if;
 
-  if p_decision not in ('approved', 'rejected') then
-    raise exception 'invalid decision';
-  end if;
-
-  select c.school_id
-    into v_school_id
+  select r.*, c.school_id
+    into v_request, v_school_id
   from public.child_change_requests r
   join public.students s on s.id = r.student_id
   left join public.classes c on c.id = s.class_id
-  where r.id = p_request_id
-    and r.deleted_at is null
-    and r.status = 'pending'
+  where r.id = p_request_id and r.deleted_at is null and r.status = 'pending'
   for update of r;
 
-  if v_school_id is null then
+  if not found or v_school_id is null then
     raise exception 'pending request not found or learner has no school';
   end if;
 
+  -- Existing VibeSchool school-membership model uses school_members.profile_id.
   select exists (
     select 1 from public.school_members sm
     where sm.school_id = v_school_id
-      and sm.user_id = auth.uid()
-      and sm.status = 'active'
-      and sm.role in ('admin', 'owner', 'school_admin')
+      and sm.profile_id = auth.uid()
+      and sm.role in ('admin','owner','school_admin')
   ) into v_is_admin;
 
-  if not v_is_admin then
-    raise exception 'school admin access required';
-  end if;
-
-  select * into v_request
-  from public.child_change_requests
-  where id = p_request_id
-  for update;
+  if not v_is_admin then raise exception 'school admin access required'; end if;
 
   if p_decision = 'approved' then
     if v_request.field = 'name' then
       update public.students set name = v_request.new_value, updated_at = now() where id = v_request.student_id;
     elsif v_request.field = 'admission_number' then
-      update public.students set admission_number = nullif(v_request.new_value, ''), updated_at = now() where id = v_request.student_id;
+      update public.students set admission_number = nullif(v_request.new_value,''), updated_at = now() where id = v_request.student_id;
     elsif v_request.field = 'date_of_birth' then
       update public.students set date_of_birth = v_request.new_value::date, updated_at = now() where id = v_request.student_id;
     elsif v_request.field = 'gender' then
@@ -117,11 +93,8 @@ begin
   end if;
 
   update public.child_change_requests
-  set status = p_decision,
-      reviewed_by = auth.uid(),
-      reviewed_at = now(),
-      review_note = nullif(trim(coalesce(p_review_note, '')), ''),
-      updated_at = now()
+  set status = p_decision, reviewed_by = auth.uid(), reviewed_at = now(),
+      review_note = nullif(trim(coalesce(p_review_note,'')),''), updated_at = now()
   where id = p_request_id
   returning * into v_request;
 
