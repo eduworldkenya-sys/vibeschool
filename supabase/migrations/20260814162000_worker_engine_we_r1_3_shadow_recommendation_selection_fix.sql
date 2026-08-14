@@ -68,7 +68,7 @@ begin
     return jsonb_build_object('mode','shadow','status','escalated','reason','skill_selection_missing','candidate_id',c.id,'worker_key',w.worker_key,'consequential_execution',false);
   end if;
 
-  insert into public.hq_workforce_shadow_runs(cycle_key,worker_key,lane_key,skill_manifest_id,scope_type,scope_ref,status,confidence)
+  insert into public.hq_workforce_shadow_traces(cycle_key,worker_key,lane_key,skill_manifest_id,scope_type,scope_ref,status,confidence)
   values('candidate:'||c.id::text,w.worker_key,c.lane_key,sm.id,'platform_internal',c.scope_ref,'reasoning',confidence)
   returning trace_id into tr;
 
@@ -109,7 +109,7 @@ begin
     case when auth_decision='allow' then 'allow' else 'deny' end,auth_reason,'awaiting_review'
   );
 
-  update public.hq_workforce_shadow_runs
+  update public.hq_workforce_shadow_traces
      set status='awaiting_review',predicted_outcome=expected,confidence=confidence
    where trace_id=tr;
   insert into public.hq_workforce_shadow_resource_usage(trace_id,worker_key,resource_kind,window_started_at,amount)
