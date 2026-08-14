@@ -1,252 +1,188 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/components/student/StudentUiContext'
+import { useStudent } from '@/lib/student-context'
+import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
+import {
+  getPersonalizedLearningPath,
+  getStudentHomeOsBrief,
+  type StudentHomeOsBrief,
+  type StudentPersonalizedPath,
+} from '@/lib/student/tasks'
 
 const C = {
   bg: '#f0f2f5', surface: '#ffffff', border: '#e5e7eb',
-  textPrimary: '#111827', textMuted: '#6b7280',
+  textPrimary: '#111827', textMuted: '#6b7280', dark: '#1e1b4b',
   accent: '#6366f1', accentLight: '#eef2ff', error: '#ef4444',
 }
 
-interface ProfileData {
-  full_name:     string
+interface SchoolIdentityDetails {
   date_of_birth: string
-  gender:        string
-  avatar_url:    string
-}
-
-interface StudentData {
-  name:             string
-  admission_number: string
-  class_name:       string
+  gender: string
 }
 
 interface GuardianData {
-  full_name:    string
-  phone:        string
+  full_name: string
   relationship: string
 }
 
+interface Learner360Data {
+  avatarUrl: string
+  schoolIdentity: SchoolIdentityDetails
+  guardian: GuardianData | null
+  attendancePct: number | null
+  home: StudentHomeOsBrief
+  path: StudentPersonalizedPath
+  twin: LearnerTwinState
+}
+
 function Skeleton({ h = 44 }: { h?: number }) {
-  return (
-    <div style={{
-      height: h, borderRadius: 10,
-      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
-      backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
-    }} />
-  )
+  return <div style={{ height: h, borderRadius: 14, background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+}
+
+function Card({ children }: { children: React.ReactNode }) {
+  return <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16 }}>{children}</section>
+}
+
+function SectionHead({ title, sub }: { title: string; sub?: string }) {
+  return <div style={{ marginBottom: 13 }}><h2 style={{ margin: 0, color: C.textPrimary, fontSize: 15, fontWeight: 850 }}>{title}</h2>{sub && <p style={{ margin: '4px 0 0', color: C.textMuted, fontSize: 11, lineHeight: 1.45 }}>{sub}</p>}</div>
+}
+
+function Metric({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+  return <div style={{ background: '#f8fafc', border: `1px solid ${C.border}`, borderRadius: 14, padding: 12, minWidth: 0 }}><div style={{ fontSize: 18, color: C.textPrimary, fontWeight: 900 }}>{value}</div><div style={{ fontSize: 10, color: C.textMuted, fontWeight: 750, marginTop: 2 }}>{label}</div>{hint && <div style={{ fontSize: 9, color: '#9ca3af', marginTop: 3 }}>{hint}</div>}</div>
+}
+
+function percent(value: number | null) { return value == null ? '—' : `${Math.round(value)}%` }
+function formatDate(value: string) {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'
 }
 
 export default function StudentProfilePage() {
   const router = useRouter()
+  const { identity, loading: identityLoading, error: identityError } = useStudent()
   const { theme, setTheme } = useTheme()
-  const [loading,   setLoading]   = useState(true)
+  const [data, setData] = useState<Learner360Data | null>(null)
+  const [loading, setLoading] = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
-  const [profile,   setProfile]   = useState<ProfileData>({
-    full_name: '', date_of_birth: '', gender: '', avatar_url: '',
-  })
-  const [student,  setStudent]  = useState<StudentData>({
-    name: '', admission_number: '', class_name: '',
-  })
-  const [guardian, setGuardian] = useState<GuardianData | null>(null)
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-    router.push('/')
-  }
 
   useEffect(() => {
-    async function load() {
-      try {
-        const { data: authData, error: authErr } = await supabase.auth.getUser()
-        if (authErr || !authData.user) {
-          setPageError('Could not load your session. Please refresh.')
-          setLoading(false)
-          return
-        }
-        const uid = authData.user.id
+    if (identityLoading) return
+    if (!identity) { setLoading(false); return }
+    const activeIdentity = identity
+    let cancelled = false
 
-        const [profileRes, studentRes] = await Promise.all([
-          supabase.from('profiles').select('full_name, date_of_birth, gender, avatar_url').eq('id', uid).single(),
-          supabase.from('students').select('name, admission_number, class_id').eq('profile_id', uid).single(),
+    async function load() {
+      setLoading(true)
+      setPageError(null)
+      try {
+        const [accountRes, schoolIdentityRes, home, path, twin, attendanceRes, linkRes] = await Promise.all([
+          supabase.from('profiles').select('avatar_url').eq('id', activeIdentity.profileId).single(),
+          supabase.from('students').select('date_of_birth,gender').eq('id', activeIdentity.studentId).single(),
+          getStudentHomeOsBrief(),
+          getPersonalizedLearningPath(),
+          getLearnerTwinState(),
+          supabase.from('attendance').select('status').eq('student_id', activeIdentity.studentId),
+          supabase.from('parent_student_links').select('parent_id,relationship,is_primary').eq('student_id', activeIdentity.studentId).order('is_primary', { ascending: false }).limit(1).maybeSingle(),
         ])
 
-        if (profileRes.error) {
-          setPageError('Failed to load your profile. Please refresh.')
-          setLoading(false)
-          return
+        if (schoolIdentityRes.error) throw new Error('Your school learner identity could not be loaded.')
+
+        const attendanceRows = attendanceRes.data ?? []
+        const marked = attendanceRows.filter(row => row.status === 'present' || row.status === 'absent' || row.status === 'excused')
+        const present = marked.filter(row => row.status === 'present').length
+        const attendancePct = marked.length ? Math.round((present / marked.length) * 100) : null
+
+        let guardian: GuardianData | null = null
+        if (linkRes.data?.parent_id) {
+          const { data: parentProfile } = await supabase.from('profiles').select('full_name').eq('id', linkRes.data.parent_id).maybeSingle()
+          guardian = { full_name: parentProfile?.full_name ?? 'Connected guardian', relationship: linkRes.data.relationship ?? 'Guardian' }
         }
 
-        const p = profileRes.data
-        setProfile({
-          full_name:     p?.full_name     ?? '',
-          date_of_birth: p?.date_of_birth ?? '',
-          gender:        p?.gender        ?? '',
-          avatar_url:    p?.avatar_url    ?? '',
-        })
-
-        const s = studentRes.data
-        let className = ''
-        if (s?.class_id) {
-          const { data: cls } = await supabase.from('classes').select('name, stream').eq('id', s.class_id).single()
-          if (cls) className = cls.name + (cls.stream ? ' ' + cls.stream : '')
+        if (!cancelled) {
+          setData({
+            avatarUrl: accountRes.data?.avatar_url ?? '',
+            schoolIdentity: {
+              date_of_birth: schoolIdentityRes.data?.date_of_birth ?? '',
+              gender: schoolIdentityRes.data?.gender ?? '',
+            },
+            guardian,
+            attendancePct,
+            home,
+            path,
+            twin,
+          })
         }
-
-        setStudent({
-          name:             s?.name             ?? '',
-          admission_number: s?.admission_number ?? '',
-          class_name:       className,
-        })
-
-        const { data: studentRow } = await supabase.from('students').select('id').eq('profile_id', uid).single()
-        if (studentRow?.id) {
-          const { data: link } = await supabase
-            .from('parent_student_links').select('parent_id')
-            .eq('student_id', studentRow.id).maybeSingle()
-          if (link?.parent_id) {
-            const [parentProfileRes, parentExtraRes] = await Promise.all([
-              supabase.from('profiles').select('full_name, phone').eq('id', link.parent_id).single(),
-              supabase.from('parent_profiles').select('relationship').eq('profile_id', link.parent_id).maybeSingle(),
-            ])
-            setGuardian({
-              full_name:    parentProfileRes.data?.full_name ?? '',
-              phone:        parentProfileRes.data?.phone     ?? '',
-              relationship: parentExtraRes.data?.relationship ?? '',
-            })
-          }
-        }
-      } catch {
-        setPageError('Unexpected error. Please refresh.')
+      } catch (cause) {
+        if (!cancelled) setPageError(cause instanceof Error ? cause.message : 'Your learner profile could not be loaded.')
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    load()
-  }, [])
 
-  return (
-    <div style={{ background: C.bg, minHeight: '100%', padding: 16 }}>
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }`}</style>
+    void load()
+    return () => { cancelled = true }
+  }, [identity, identityLoading])
 
-      <button
-        onClick={() => router.push('/student')}
-        style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
-      >
-        ← Back
-      </button>
+  const strengths = useMemo(() => [...(data?.twin.mastery.subjects ?? [])].filter(s => s.masteryPercentage != null).sort((a, b) => (b.masteryPercentage ?? 0) - (a.masteryPercentage ?? 0)).slice(0, 3), [data])
+  const focus = useMemo(() => [...(data?.twin.mastery.subjects ?? [])].filter(s => s.masteryPercentage != null).sort((a, b) => (a.masteryPercentage ?? 0) - (b.masteryPercentage ?? 0)).slice(0, 3), [data])
 
-      <h1 style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, margin: '0 0 16px' }}>My Profile</h1>
+  async function signOut() {
+    await supabase.auth.signOut()
+    document.cookie = 'vibe_role=; path=/; max-age=0'
+    router.replace('/')
+  }
 
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[1, 2, 3].map(i => <Skeleton key={i} h={56} />)}
-        </div>
-      ) : pageError ? (
-        <div style={{ padding: '10px 14px', borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: C.error, fontSize: 13 }}>
-          {pageError}
-        </div>
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: C.accentLight, border: `2px solid ${C.accent}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
-              {profile.avatar_url
-                ? <img src={profile.avatar_url} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : '👤'
-              }
-            </div>
-            <div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: C.textPrimary }}>
-                {student.name || profile.full_name || 'Student'}
-              </div>
-              <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>
-                {student.class_name || 'No class assigned'}
-              </div>
-            </div>
-          </div>
+  if (identityLoading || loading) return <div style={{ display: 'grid', gap: 12, padding: 16 }}><style>{`@keyframes shimmer {0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style><Skeleton h={190} /><Skeleton h={112} /><Skeleton h={180} /><Skeleton h={180} /></div>
+  if (!identity) return <div style={{ padding: 16, color: C.error }}>{identityError || 'Student identity is unavailable.'}</div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[
-              { label: 'Admission Number', value: student.admission_number || '—' },
-              { label: 'Class',            value: student.class_name || '—' },
-              { label: 'Date of Birth',    value: profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' },
-              { label: 'Gender',           value: profile.gender || '—' },
-            ].map(row => (
-              <div key={row.label} style={{ background: C.surface, borderRadius: 12, padding: '12px 16px', border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{row.label}</span>
-                <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{row.value}</span>
-              </div>
-            ))}
-          </div>
+  const progress = data?.home.progress
+  const achievements = data?.path.motivation.achievements ?? []
+  const timeline = data?.path.timeline ?? []
+  const recommendations = progress?.recommendations ?? []
 
-          {guardian && (
-            <>
-              <h2 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: '24px 0 10px' }}>Guardian</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  { label: 'Name',         value: guardian.full_name    || '—' },
-                  { label: 'Relationship', value: guardian.relationship || '—' },
-                  { label: 'Phone',        value: guardian.phone        || '—' },
-                ].map(row => (
-                  <div key={row.label} style={{ background: C.surface, borderRadius: 12, padding: '12px 16px', border: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 600 }}>{row.label}</span>
-                    <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 700 }}>{row.value}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+  return <div style={{ background: C.bg, minHeight: '100%', padding: '14px 14px 30px' }}>
+    <style>{`@keyframes shimmer {0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    <button onClick={() => router.push('/student')} style={{ border: 'none', background: 'none', color: C.textMuted, fontSize: 12, fontWeight: 700, padding: '2px 0 12px', cursor: 'pointer' }}>← Home</button>
 
-          <h2 style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: '24px 0 10px' }}>Display Theme</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['light', 'dark', 'auto'] as const).map(t => (
-              <button key={t} onClick={() => setTheme(t)} style={{
-                flex: 1, padding: '10px 4px', borderRadius: 12, border: 'none',
-                cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
-                background: theme === t ? C.accent : C.surface,
-                color:      theme === t ? '#fff'   : C.textMuted,
-              }}>
-                {t === 'light' ? '☀️ Light' : t === 'dark' ? '🌙 Dark' : '⚙️ Auto'}
-              </button>
-            ))}
-          </div>
+    <section style={{ background: C.dark, color: '#fff', borderRadius: 22, padding: 18, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <div style={{ width: 78, height: 78, borderRadius: '50%', overflow: 'hidden', background: '#312e81', border: '3px solid rgba(255,255,255,.3)', display: 'grid', placeItems: 'center', fontSize: 30, flexShrink: 0 }}>{data?.avatarUrl ? <img src={data.avatarUrl} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}</div>
+        <div style={{ minWidth: 0 }}><div style={{ fontSize: 10, letterSpacing: 1.2, opacity: .65, fontWeight: 800 }}>MY LEARNER PROFILE</div><h1 style={{ margin: '4px 0', fontSize: 22, lineHeight: 1.15 }}>{identity.name}</h1><p style={{ margin: 0, fontSize: 12, opacity: .75 }}>{identity.className || 'Class not assigned'}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p></div>
+      </div>
+      <p style={{ margin: '14px 0 0', fontSize: 11, opacity: .72, lineHeight: 1.55 }}>One learner record: school identity, progress, achievements, journey and Twin evidence. Your parent and teachers see role-appropriate views of the same learner.</p>
+    </section>
 
-          <div style={{ marginTop: 20, padding: '14px 16px', borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center' }}>
-            <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
-              Need to update your details? Ask your class teacher or school admin.
-            </p>
-          </div>
+    {(pageError || identityError) && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, color: '#991b1b', padding: 12, fontSize: 12, marginBottom: 12 }}>{pageError || identityError}</div>}
 
-          <button
-            onClick={() => router.push('/student/workspace')}
-            style={{
-              width: '100%', marginTop: 20, padding: '14px 0',
-              borderRadius: 14, border: `1px solid ${C.border}`,
-              background: C.surface, color: C.textPrimary,
-              fontSize: 14, fontWeight: 800, cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            📚 My Study Workspace
-          </button>
+    {data && <div style={{ display: 'grid', gap: 12 }}>
+      <Card><SectionHead title="Learning pulse" sub="A quick view of your current learning state." /><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}><Metric label="Twin confidence" value={percent(data.twin.confidence * 100)} hint="Verified evidence behind your Twin" /><Metric label="Attendance" value={percent(data.attendancePct)} /><Metric label="Learning streak" value={data.twin.streak.current} hint={`Best ${data.twin.streak.longest}`} /><Metric label="Verified XP" value={progress?.totalXp ?? 0} /></div></Card>
 
-          <button
-            onClick={handleSignOut}
-            style={{
-              width: '100%', marginTop: 20, padding: '14px 0', borderRadius: 14,
-              border: `2px solid ${C.error}`, background: 'transparent',
-              color: C.error, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            Sign Out
-          </button>
-        </>
-      )}
-    </div>
-  )
+      <Card><SectionHead title="My goals" sub="Learning targets belong to your learner profile, not a disconnected settings page." /><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }}><Metric label="Target grade" value={progress?.targets.kcseTargetGrade ?? 'Not set'} /><Metric label="Weekly study" value={`${progress?.targets.weeklyStudyMinutes ?? 300}m`} /><Metric label="Focus session" value={`${progress?.targets.preferredSessionMinutes ?? 25}m`} /></div><button onClick={() => router.push('/student')} style={{ marginTop: 12, width: '100%', padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff', fontWeight: 800, color: C.accent, cursor: 'pointer' }}>Manage learning goals</button></Card>
+
+      <Card><SectionHead title="My strengths" sub="Built from marked and verified learning evidence." />{strengths.length === 0 ? <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Strengths appear after enough verified learning evidence is available.</p> : strengths.map(subject => <div key={subject.subjectId} style={{ marginBottom: 11 }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}><strong>{subject.subjectName}</strong><span>{percent(subject.masteryPercentage)}</span></div><div style={{ height: 7, borderRadius: 99, background: '#eef2ff', marginTop: 5, overflow: 'hidden' }}><div style={{ height: '100%', width: `${Math.max(0, Math.min(100, subject.masteryPercentage ?? 0))}%`, background: C.accent, borderRadius: 99 }} /></div></div>)}</Card>
+
+      <Card><SectionHead title="What I am working on" sub="Focus areas are learning opportunities, not labels." />{focus.length === 0 ? <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Focus areas appear after enough learning evidence is available.</p> : focus.map(subject => <div key={subject.subjectId} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid #f3f4f6', gap: 12 }}><div><strong style={{ fontSize: 12 }}>{subject.subjectName}</strong><div style={{ color: C.textMuted, fontSize: 10, marginTop: 2 }}>{subject.completedTasks} verified tasks completed</div></div><span style={{ fontSize: 12, fontWeight: 850, color: C.accent }}>{percent(subject.masteryPercentage)}</span></div>)}{recommendations[0] && <div style={{ marginTop: 12, padding: 12, background: C.accentLight, borderRadius: 12 }}><div style={{ fontSize: 10, color: C.accent, fontWeight: 850 }}>RECOMMENDED NEXT</div><strong style={{ display: 'block', fontSize: 12, marginTop: 3 }}>{recommendations[0].title}</strong><p style={{ margin: '4px 0 0', color: C.textMuted, fontSize: 10, lineHeight: 1.45 }}>{recommendations[0].reason}</p></div>}</Card>
+
+      <Card><SectionHead title="My achievements" sub="Milestones earned from real learning activity." />{achievements.length === 0 ? <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Your first achievement will appear here when it is earned.</p> : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>{achievements.slice(0, 6).map(item => <div key={item.slug} style={{ border: `1px solid ${C.border}`, borderRadius: 13, padding: 11 }}><div style={{ fontSize: 20 }}>{item.icon}</div><strong style={{ display: 'block', fontSize: 11, marginTop: 4 }}>{item.title}</strong><span style={{ display: 'block', color: C.textMuted, fontSize: 9, marginTop: 2 }}>{item.description}</span></div>)}</div>}</Card>
+
+      <Card><SectionHead title="My learning journey" sub="One timeline shared by your learning system." />{timeline.length === 0 ? <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>Learning events will build your journey here.</p> : timeline.slice(0, 6).map(event => <div key={event.id} style={{ display: 'grid', gridTemplateColumns: '10px 1fr', gap: 10, padding: '8px 0' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: C.accent, marginTop: 4 }} /><div><strong style={{ fontSize: 11 }}>{event.title}</strong>{event.summary && <p style={{ margin: '2px 0', color: C.textMuted, fontSize: 10, lineHeight: 1.4 }}>{event.summary}</p>}<span style={{ color: '#9ca3af', fontSize: 9 }}>{formatDate(event.occurredAt)}</span></div></div>)}</Card>
+
+      <Card><SectionHead title="My Twin" sub="Your Twin consumes the same learner evidence shown across VibeSchool." /><div style={{ background: '#f8fafc', borderRadius: 14, padding: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span style={{ color: C.textMuted, fontSize: 11 }}>Evidence confidence</span><strong style={{ fontSize: 12 }}>{percent(data.twin.evidence.stateConfidence * 100)}</strong></div><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 8 }}><span style={{ color: C.textMuted, fontSize: 11 }}>Learning events</span><strong style={{ fontSize: 12 }}>{data.twin.evidence.learningEventCount}</strong></div><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 8 }}><span style={{ color: C.textMuted, fontSize: 11 }}>Verified task receipts</span><strong style={{ fontSize: 12 }}>{data.twin.evidence.taskReceiptCount}</strong></div></div>{data.twin.decision.now && <div style={{ marginTop: 10, padding: 12, borderRadius: 13, background: C.accentLight }}><div style={{ fontSize: 10, color: C.accent, fontWeight: 850 }}>TWIN SAYS DO THIS NOW</div><strong style={{ display: 'block', fontSize: 12, marginTop: 3 }}>{data.twin.decision.now.title}</strong>{data.twin.decision.now.reason && <p style={{ margin: '4px 0 0', fontSize: 10, color: C.textMuted }}>{data.twin.decision.now.reason}</p>}</div>}</Card>
+
+      <Card><SectionHead title="My school identity" sub="These school-controlled facts are the same facts the parent and teacher views use." />{[['Admission number', identity.admissionNo || '—'], ['Class', identity.className || '—'], ['School', identity.schoolName || '—'], ['Date of birth', formatDate(data.schoolIdentity.date_of_birth)], ['Gender', data.schoolIdentity.gender || '—']].map(([label, value]) => <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '9px 0', borderBottom: '1px solid #f3f4f6' }}><span style={{ color: C.textMuted, fontSize: 11 }}>{label}</span><strong style={{ color: C.textPrimary, fontSize: 11, textAlign: 'right' }}>{value}</strong></div>)}<p style={{ margin: '12px 0 0', color: C.textMuted, fontSize: 10, lineHeight: 1.45 }}>Ask your school to correct identity facts so every authorized view changes together.</p></Card>
+
+      <Card><SectionHead title="My support network" />{data.guardian ? <div style={{ padding: 12, borderRadius: 13, background: '#ecfdf5' }}><strong style={{ fontSize: 12 }}>{data.guardian.full_name}</strong><div style={{ color: '#047857', fontSize: 10, marginTop: 2 }}>{data.guardian.relationship}</div></div> : <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>No guardian is connected to your learner profile yet.</p>}</Card>
+
+      <Card><SectionHead title="Display" /><div style={{ display: 'flex', gap: 8 }}>{(['light', 'dark', 'auto'] as const).map(option => <button key={option} onClick={() => setTheme(option)} style={{ flex: 1, padding: '10px 4px', borderRadius: 12, border: `1px solid ${theme === option ? C.accent : C.border}`, background: theme === option ? C.accent : '#fff', color: theme === option ? '#fff' : C.textMuted, fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>{option === 'light' ? '☀️ Light' : option === 'dark' ? '🌙 Dark' : '⚙️ Auto'}</button>)}</div></Card>
+
+      <button onClick={() => router.push('/student/workspace')} style={{ width: '100%', padding: 14, borderRadius: 14, border: `1px solid ${C.border}`, background: '#fff', color: C.textPrimary, fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>📚 My Study Workspace</button>
+      <button onClick={() => void signOut()} style={{ width: '100%', padding: 13, borderRadius: 14, border: `1.5px solid ${C.error}`, background: 'transparent', color: C.error, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Sign Out</button>
+    </div>}
+  </div>
 }

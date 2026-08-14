@@ -49,7 +49,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { router.replace("/?role=student"); return }
 
-        // 2. Profile
+        // 2. Profile is the authenticated account record, not the school learner authority.
         const { data: profile, error: profileErr } = await supabase
           .from("profiles")
           .select("full_name, role")
@@ -59,7 +59,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
         if (profileErr || !profile) { router.replace("/?role=student"); return }
         if (profile.role !== "student") { router.replace("/?role=student"); return }
 
-        // 3. Student row — the identity chain pivot
+        // 3. Student row is the canonical school learner identity chain pivot.
         const { data: student, error: studentErr } = await supabase
           .from("students")
           .select("id, name, admission_number, class_id")
@@ -99,8 +99,10 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
           schoolName = school?.name ?? ""
         }
 
-        const fullName  = profile.full_name ?? student.name ?? ""
-        const firstName = fullName.split(" ")[0] || "Student"
+        // School-controlled learner name wins. profiles.full_name remains a safe fallback
+        // for legacy rows while the identity data is reconciled.
+        const fullName  = student.name?.trim() || profile.full_name?.trim() || "Student"
+        const firstName = fullName.split(/\s+/)[0] || "Student"
 
         setIdentity({
           profileId:   user.id,
