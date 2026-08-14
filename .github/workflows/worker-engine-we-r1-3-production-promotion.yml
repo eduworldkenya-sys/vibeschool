@@ -1,6 +1,12 @@
 name: Worker Engine WE-R1.3 Production Promotion
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/worker-engine-we-r1-3-production-promotion.yml"
+      - "supabase/migrations/*worker_engine_we_r1_3*.sql"
+      - "scripts/worker-engine-build-ledger-aligned-stage.py"
+      - "scripts/worker-engine-assert-dry-run-plan.py"
   workflow_dispatch:
     inputs:
       confirmation:
@@ -12,12 +18,42 @@ permissions:
   contents: read
 
 concurrency:
-  group: worker-engine-production-promotion
+  group: worker-engine-we-r1-3-production-promotion-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate WE-R1.3 promotion contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact ref
+        uses: actions/checkout@v4
+      - name: Verify certified migration set and fail-closed contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="20260814111500 20260814152000 20260814153500 20260814155000 20260814160000 20260814162000"
+          for version in $expected; do
+            file="$(find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" -print -quit)"
+            test -n "$file"
+            grep -F 'worker_engine_we_r1_3' <<<"$file"
+          done
+          migrations="$(cat $(for version in $expected; do find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" -print -quit; done))"
+          ! grep -Fq 'hq_workforce_tool_gateway_execute(' <<<"$migrations"
+          ! grep -Fq 'cron.schedule' <<<"$migrations"
+          compact="$(tr -d '[:space:]' <<<"$migrations" | tr '[:upper:]' '[:lower:]')"
+          for invariant in heartbeat_enabled=false factory_enabled=false runtime_execution_enabled=false runtime_autonomy_level=0 runtime_max_risk=0 shadow_enabled=false shadow_scheduler_enabled=false shadow_global_stop=true; do
+            grep -Fq "$invariant" <<<"$compact"
+          done
+          grep -Fq 'APPLY_WORKER_ENGINE_WE_R1_3_PRODUCTION' .github/workflows/worker-engine-we-r1-3-production-promotion.yml
+          grep -Fq 'environment: production-migration-repair' .github/workflows/worker-engine-we-r1-3-production-promotion.yml
+          python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+          python3 scripts/test-worker-engine-assert-dry-run-plan.py
+
   apply:
     name: Protected WE-R1.3 production infrastructure promotion
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 35
     environment: production-migration-repair
@@ -64,28 +100,6 @@ jobs:
             echo "shadow_activation=false"
             echo "autonomous_activation=false"
           } > .worker-engine-we-r1-3-promotion/context.txt
-
-      - name: Assert certified WE-R1.3 repository contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          while read -r version; do
-            file="$(find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" -print -quit)"
-            test -n "$file"
-            grep -F 'worker_engine_we_r1_3' <<<"$file"
-          done < .worker-engine-we-r1-3-promotion/certified-versions.txt
-          migrations="$(cat $(while read -r version; do find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" -print -quit; done < .worker-engine-we-r1-3-promotion/certified-versions.txt))"
-          ! grep -Fq 'hq_workforce_tool_gateway_execute(' <<<"$migrations"
-          ! grep -Fq 'cron.schedule' <<<"$migrations"
-          compact="$(tr -d '[:space:]' <<<"$migrations" | tr '[:upper:]' '[:lower:]')"
-          grep -Fq 'heartbeat_enabled=false' <<<"$compact"
-          grep -Fq 'factory_enabled=false' <<<"$compact"
-          grep -Fq 'runtime_execution_enabled=false' <<<"$compact"
-          grep -Fq 'runtime_autonomy_level=0' <<<"$compact"
-          grep -Fq 'runtime_max_risk=0' <<<"$compact"
-          grep -Fq 'shadow_enabled=false' <<<"$compact"
-          grep -Fq 'shadow_scheduler_enabled=false' <<<"$compact"
-          grep -Fq 'shadow_global_stop=true' <<<"$compact"
 
       - name: Run promotion regression suites
         shell: bash
