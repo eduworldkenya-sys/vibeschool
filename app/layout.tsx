@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import Script from 'next/script'
 import { Jost, DM_Mono, Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google'
 import LearnYourWayReaderBridge from '@/components/student/LearnYourWayReaderBridge'
 import PwaInstallPrompt from '@/components/pwa/PwaInstallPrompt'
@@ -56,15 +55,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LearnYourWayReaderBridge />
         <PwaServiceWorker />
         <PwaInstallPrompt />
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-VKBSGBYKKF" strategy="afterInteractive" />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-VKBSGBYKKF');
-          `}
-        </Script>
       </body>
     </html>
   )
