@@ -23,34 +23,41 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  repair-auth-password-contract:
-    name: Repair auth password contract
+  validate:
+    name: Full Linux validation
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
     steps:
-      - name: Checkout repair branch
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          ref: fix/auth-password-contract-20260814
-          fetch-depth: 0
-      - name: Apply exact repair
-        run: echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnBhdGggPSBQYXRoKCJhcHAvcGFnZS50c3giKQp0ZXh0ID0gcGF0aC5yZWFkX3RleHQoKQpvbGQgPSAiIiJjb25zdCBBVVRIX0VSUk9SUzogUmVjb3JkPHN0cmluZywgc3RyaW5nPiA9IHsKICAnSW52YWxpZCBsb2dpbiBjcmVkZW50aWFscyc6ICdJbmNvcnJlY3QgZW1haWwgb3IgcGFzc3dvcmQuJywKICAnRW1haWwgbm90IGNvbmZpcm1lZCc6ICAgICAgICdQbGVhc2UgY29uZmlybSB5b3VyIGVtYWlsIGZpcnN0LicsCiAgJ1VzZXIgbm90IGZvdW5kJzogICAgICAgICAgICAnTm8gYWNjb3VudCBmb3VuZCB3aXRoIHRoYXQgZW1haWwuJywKICAnVG9vIG1hbnkgcmVxdWVzdHMnOiAgICAgICAgICdUb28gbWFueSBhdHRlbXB0cy4gV2FpdCBhbmQgdHJ5IGFnYWluLicsCn0KCmZ1bmN0aW9uIGZyaWVuZGx5RXJyb3IobXNnOiBzdHJpbmcpOiBzdHJpbmcgewogIGlmICh0eXBlb2YgbmF2aWdhdG9yICE9PSAndW5kZWZpbmVkJyAmJiAhbmF2aWdhdG9yLm9uTGluZSkKICAgIHJldHVybiAnTm8gaW50ZXJuZXQgY29ubmVjdGlvbi4nCiAgZm9yIChjb25zdCBbaywgdl0gb2YgT2JqZWN0LmVudHJpZXMoQVVUSF9FUlJPUlMpKQogICAgaWYgKG1zZy5pbmNsdWRlcyhrKSkgcmV0dXJuIHYKICByZXR1cm4gJ1NvbWV0aGluZyB3ZW50IHdyb25nLiBQbGVhc2UgdHJ5IGFnYWluLicKfQoiIiIKbmV3ID0gIiIiY29uc3QgQVVUSF9FUlJPUlM6IFJlY29yZDxzdHJpbmcsIHN0cmluZz4gPSB7CiAgJ0ludmFsaWQgbG9naW4gY3JlZGVudGlhbHMnOiAnSW5jb3JyZWN0IGVtYWlsIG9yIHBhc3N3b3JkLicsCiAgJ0VtYWlsIG5vdCBjb25maXJtZWQnOiAgICAgICAnUGxlYXNlIGNvbmZpcm0geW91ciBlbWFpbCBmaXJzdC4nLAogICdVc2VyIG5vdCBmb3VuZCc6ICAgICAgICAgICAgJ05vIGFjY291bnQgZm91bmQgd2l0aCB0aGF0IGVtYWlsLicsCiAgJ1RvbyBtYW55IHJlcXVlc3RzJzogICAgICAgICAnVG9vIG1hbnkgYXR0ZW1wdHMuIFdhaXQgYW5kIHRyeSBhZ2Fpbi4nLAogICdQYXNzd29yZCBzaG91bGQgY29udGFpbic6ICAgJ1Bhc3N3b3JkIG11c3QgaW5jbHVkZSB1cHBlcmNhc2UgYW5kIGxvd2VyY2FzZSBsZXR0ZXJzLCBhIG51bWJlciBhbmQgYSBzcGVjaWFsIGNoYXJhY3Rlci4nLAogICd3ZWFrX3Bhc3N3b3JkJzogICAgICAgICAgICAgJ1Bhc3N3b3JkIG11c3QgaW5jbHVkZSB1cHBlcmNhc2UgYW5kIGxvd2VyY2FzZSBsZXR0ZXJzLCBhIG51bWJlciBhbmQgYSBzcGVjaWFsIGNoYXJhY3Rlci4nLAp9CgpmdW5jdGlvbiB2YWxpZGF0ZVBhc3N3b3JkKHZhbHVlOiBzdHJpbmcpOiBzdHJpbmcgfCBudWxsIHsKICBpZiAodmFsdWUubGVuZ3RoIDwgOCkgcmV0dXJuICdQYXNzd29yZCBtdXN0IGJlIGF0IGxlYXN0IDggY2hhcmFjdGVycy4nCiAgaWYgKCEvW2Etel0vLnRlc3QodmFsdWUpKSByZXR1cm4gJ1Bhc3N3b3JkIG11c3QgaW5jbHVkZSBhIGxvd2VyY2FzZSBsZXR0ZXIuJwogIGlmICghL1tBLVpdLy50ZXN0KHZhbHVlKSkgcmV0dXJuICdQYXNzd29yZCBtdXN0IGluY2x1ZGUgYW4gdXBwZXJjYXNlIGxldHRlci4nCiAgaWYgKCEvWzAtOV0vLnRlc3QodmFsdWUpKSByZXR1cm4gJ1Bhc3N3b3JkIG11c3QgaW5jbHVkZSBhIG51bWJlci4nCiAgaWYgKCEvW15BLVphLXowLTldLy50ZXN0KHZhbHVlKSkgcmV0dXJuICdQYXNzd29yZCBtdXN0IGluY2x1ZGUgYSBzcGVjaWFsIGNoYXJhY3Rlci4nCiAgcmV0dXJuIG51bGwKfQoKZnVuY3Rpb24gZnJpZW5kbHlFcnJvcihtc2c6IHN0cmluZyk6IHN0cmluZyB7CiAgaWYgKHR5cGVvZiBuYXZpZ2F0b3IgIT09ICd1bmRlZmluZWQnICYmICFuYXZpZ2F0b3Iub25MaW5lKQogICAgcmV0dXJuICdObyBpbnRlcm5ldCBjb25uZWN0aW9uLicKICBmb3IgKGNvbnN0IFtrLCB2XSBvZiBPYmplY3QuZW50cmllcyhBVVRIX0VSUk9SUykpCiAgICBpZiAobXNnLmluY2x1ZGVzKGspKSByZXR1cm4gdgogIHJldHVybiAnU29tZXRoaW5nIHdlbnQgd3JvbmcuIFBsZWFzZSB0cnkgYWdhaW4uJwp9CiIiIgppZiBvbGQgbm90IGluIHRleHQ6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJBVVRIX0VSUk9SUy9mcmllbmRseUVycm9yIGFuY2hvciBub3QgZm91bmQiKQp0ZXh0ID0gdGV4dC5yZXBsYWNlKG9sZCwgbmV3LCAxKQoKb2xkID0gIiIiICAgICAgaWYgKCFlbWFpbC50cmltKCkpICAgIHsgc2V0RXJyb3IoJ0VtYWlsIGlzIHJlcXVpcmVkLicpOyByZXR1cm4gfQogICAgICBpZiAoIXBhc3N3b3JkKSAgICAgICAgeyBzZXRFcnJvcignUGFzc3dvcmQgaXMgcmVxdWlyZWQuJyk7IHJldHVybiB9CiAgICAgIGlmIChwYXNzd29yZC5sZW5ndGggPCA4KSB7IHNldEVycm9yKCdQYXNzd29yZCBtdXN0IGJlIGF0IGxlYXN0IDggY2hhcmFjdGVycy4nKTsgcmV0dXJuIH0KICAgICAgaWYgKHJvbGUgIT09ICdBZG1pbicgJiYgcGFzc3dvcmQgIT09IGNvbmZpcm1QYXNzd29yZCkgeyBzZXRFcnJvcignUGFzc3dvcmRzIGRvIG5vdCBtYXRjaC4nKTsgcmV0dXJuIH0KIiIiCm5ldyA9ICIiIiAgICAgIGlmICghZW1haWwudHJpbSgpKSAgICB7IHNldEVycm9yKCdFbWFpbCBpcyByZXF1aXJlZC4nKTsgcmV0dXJuIH0KICAgICAgaWYgKCFwYXNzd29yZCkgICAgICAgIHsgc2V0RXJyb3IoJ1Bhc3N3b3JkIGlzIHJlcXVpcmVkLicpOyByZXR1cm4gfQogICAgICBjb25zdCBwYXNzd29yZEVycm9yID0gdmFsaWRhdGVQYXNzd29yZChwYXNzd29yZCkKICAgICAgaWYgKHBhc3N3b3JkRXJyb3IpIHsgc2V0RXJyb3IocGFzc3dvcmRFcnJvcik7IHJldHVybiB9CiAgICAgIGlmIChyb2xlICE9PSAnQWRtaW4nICYmIHBhc3N3b3JkICE9PSBjb25maXJtUGFzc3dvcmQpIHsgc2V0RXJyb3IoJ1Bhc3N3b3JkcyBkbyBub3QgbWF0Y2guJyk7IHJldHVybiB9CiIiIgppZiBvbGQgbm90IGluIHRleHQ6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJzaWdudXAgcGFzc3dvcmQgdmFsaWRhdGlvbiBhbmNob3Igbm90IGZvdW5kIikKdGV4dCA9IHRleHQucmVwbGFjZShvbGQsIG5ldywgMSkKCm9sZCA9ICIiIiAgICAgICAgICAgICAgICAgICAgICAgIHR5cGU9e3Nob3dQdyA/ICd0ZXh0JyA6ICdwYXNzd29yZCd9IGF1dG9Db21wbGV0ZT0ibmV3LXBhc3N3b3JkIiBwbGFjZWhvbGRlcj0iTWluIDggY2hhcmFjdGVycyIKICAgICAgICAgICAgICAgICAgICAgICAgdmFsdWU9e3Bhc3N3b3JkfSBvbkNoYW5nZT17ZSA9PiBzZXRQYXNzd29yZChlLnRhcmdldC52YWx1ZSl9IGRpc2FibGVkPXtpc0J1c3l9IC8+CiAgICAgICAgICAgICAgICAgICAgICA8YnV0dG9uIHN0eWxlPXtTLmV5ZUJ0bn0gdHlwZT0iYnV0dG9uIiBvbkNsaWNrPXsoKSA9PiBzZXRTaG93UHcodiA9PiAhdil9PntzaG93UHcgPyAn8J+ZiCcgOiAn8J+RgSd9PC9idXR0b24+CiAgICAgICAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgICAgICAgICAgPGxhYmVsIHN0eWxlPXt7IC4uLlMuZmllbGRMYWJlbCwgbWFyZ2luVG9wOiAxNCB9fT5Db25maXJtIFBhc3N3b3JkPC9sYWJlbD4KIiIiCm5ldyA9ICIiIiAgICAgICAgICAgICAgICAgICAgICAgIHR5cGU9e3Nob3dQdyA/ICd0ZXh0JyA6ICdwYXNzd29yZCd9IGF1dG9Db21wbGV0ZT0ibmV3LXBhc3N3b3JkIiBwbGFjZWhvbGRlcj0iOCsgY2hhcnMsIHVwcGVyL2xvd2VyLCBudW1iZXIgJiBzeW1ib2wiCiAgICAgICAgICAgICAgICAgICAgICAgIHZhbHVlPXtwYXNzd29yZH0gb25DaGFuZ2U9e2UgPT4gc2V0UGFzc3dvcmQoZS50YXJnZXQudmFsdWUpfSBkaXNhYmxlZD17aXNCdXN5fSAvPgogICAgICAgICAgICAgICAgICAgICAgPGJ1dHRvbiBzdHlsZT17Uy5leWVCdG59IHR5cGU9ImJ1dHRvbiIgb25DbGljaz17KCkgPT4gc2V0U2hvd1B3KHYgPT4gIXYpfT57c2hvd1B3ID8gJ/CfmYgnIDogJ/CfkYEnfTwvYnV0dG9uPgogICAgICAgICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgICAgICAgIDxwIHN0eWxlPXt7IGZvbnRTaXplOiAxMCwgY29sb3I6ICdyZ2JhKDI1NSwyNTUsMjU1LDAuMzIpJywgbWFyZ2luVG9wOiAtOCwgbWFyZ2luQm90dG9tOiAxNCwgbGluZUhlaWdodDogMS41IH19PgogICAgICAgICAgICAgICAgICAgICAgVXNlIDgrIGNoYXJhY3RlcnMgd2l0aCB1cHBlcmNhc2UsIGxvd2VyY2FzZSwgYSBudW1iZXIgYW5kIGEgc3BlY2lhbCBjaGFyYWN0ZXIuCiAgICAgICAgICAgICAgICAgICAgPC9wPgogICAgICAgICAgICAgICAgICAgIDxsYWJlbCBzdHlsZT17eyAuLi5TLmZpZWxkTGFiZWwsIG1hcmdpblRvcDogMTQgfX0+Q29uZmlybSBQYXNzd29yZDwvbGFiZWw+CiIiIgppZiBvbGQgbm90IGluIHRleHQ6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJzaWdudXAgcGFzc3dvcmQgZmllbGQgYW5jaG9yIG5vdCBmb3VuZCIpCnRleHQgPSB0ZXh0LnJlcGxhY2Uob2xkLCBuZXcsIDEpCnBhdGgud3JpdGVfdGV4dCh0ZXh0KQo=' | base64 -d | python3
-      - name: Restore normal workflow and verify
-        run: |
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/typescript-build-gate.yml
-          rm -f .github/workflows/tmp-auth-password-fix.yml
-          grep -q "function validatePassword" app/page.tsx
-          grep -q "Password should contain" app/page.tsx
-          grep -q "8+ characters with uppercase" app/page.tsx
-          git diff --check
-      - name: Commit repair
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/page.tsx .github/workflows/typescript-build-gate.yml
-          git add -u .github/workflows
-          git commit -m "fix(auth): align signup password contract with Supabase"
-          git push origin HEAD:fix/auth-password-contract-20260814
+          node-version: 20
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Strategic remediation truth contract
+        run: node scripts/test-strategic-remediation-contract.mjs
+
+      - name: TypeScript — report all errors
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Next.js production build
+        run: npm run build

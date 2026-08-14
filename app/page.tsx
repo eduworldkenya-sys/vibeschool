@@ -54,6 +54,17 @@ const AUTH_ERRORS: Record<string, string> = {
   'Email not confirmed':       'Please confirm your email first.',
   'User not found':            'No account found with that email.',
   'Too many requests':         'Too many attempts. Wait and try again.',
+  'Password should contain':   'Password must include uppercase and lowercase letters, a number and a special character.',
+  'weak_password':             'Password must include uppercase and lowercase letters, a number and a special character.',
+}
+
+function validatePassword(value: string): string | null {
+  if (value.length < 8) return 'Password must be at least 8 characters.'
+  if (!/[a-z]/.test(value)) return 'Password must include a lowercase letter.'
+  if (!/[A-Z]/.test(value)) return 'Password must include an uppercase letter.'
+  if (!/[0-9]/.test(value)) return 'Password must include a number.'
+  if (!/[^A-Za-z0-9]/.test(value)) return 'Password must include a special character.'
+  return null
 }
 
 function friendlyError(msg: string): string {
@@ -454,7 +465,8 @@ export default function RootPage() {
     } else {
       if (!email.trim())    { setError('Email is required.'); return }
       if (!password)        { setError('Password is required.'); return }
-      if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+      const passwordError = validatePassword(password)
+      if (passwordError) { setError(passwordError); return }
       if (role !== 'Admin' && password !== confirmPassword) { setError('Passwords do not match.'); return }
     }
     if ((role === 'Teacher' || role === 'Parent' || role === 'Global') && !country) { setError('Country is required.'); return }
@@ -722,10 +734,13 @@ export default function RootPage() {
                     <label style={S.fieldLabel}>Password</label>
                     <div style={S.inputWrap}>
                       <input style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
-                        type={showPw ? 'text' : 'password'} autoComplete="new-password" placeholder="Min 8 characters"
+                        type={showPw ? 'text' : 'password'} autoComplete="new-password" placeholder="8+ chars, upper/lower, number & symbol"
                         value={password} onChange={e => setPassword(e.target.value)} disabled={isBusy} />
                       <button style={S.eyeBtn} type="button" onClick={() => setShowPw(v => !v)}>{showPw ? '🙈' : '👁'}</button>
                     </div>
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
+                      Use 8+ characters with uppercase, lowercase, a number and a special character.
+                    </p>
                     <label style={{ ...S.fieldLabel, marginTop: 14 }}>Confirm Password</label>
                     <div style={S.inputWrap}>
                       <input style={{ ...S.input, marginBottom: 0, paddingRight: 42 }}
