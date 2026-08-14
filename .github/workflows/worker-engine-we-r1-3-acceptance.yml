@@ -1,0 +1,80 @@
+name: Worker Engine WE-R1.3 Acceptance Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "supabase/migrations/20260814111500_worker_engine_we_r1_3_shadow_governance_kernel.sql"
+      - "supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql"
+      - ".github/workflows/worker-engine-we-r1-3-acceptance.yml"
+      - "docs/WORKER_ENGINE_WE_R1_3_GOVERNED_SHADOW_OPERATIONS.md"
+
+concurrency:
+  group: worker-engine-we-r1-3-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    name: WE-R1.3 disposable-local acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify no production credentials or activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          workflow=Path('.github/workflows/worker-engine-we-r1-3-acceptance.yml').read_text()
+          migration=Path('supabase/migrations/20260814111500_worker_engine_we_r1_3_shadow_governance_kernel.sql').read_text()
+          forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL','production'+'-migration-repair','${{ '+'secrets.']
+          hit=[x for x in forbidden if x in workflow]
+          if hit: raise SystemExit('production reference detected: '+', '.join(hit))
+          compact=migration.replace(' ','').replace('\n','').lower()
+          required=['heartbeat_enabled=false','factory_enabled=false','runtime_execution_enabled=false','runtime_autonomy_level=0','runtime_max_risk=0','shadow_enabled=false','shadow_scheduler_enabled=false','shadow_global_stop=true']
+          missing=[x for x in required if x not in compact]
+          if missing: raise SystemExit('fail-closed assignments missing: '+', '.join(missing))
+          if 'hq_workforce_tool_gateway_execute(' in migration.lower():
+              raise SystemExit('shadow migration references consequential gateway invocation')
+          PY
+
+      - name: Verify Docker
+        run: docker info >/dev/null
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Disable seed for schema-only proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
+
+      - name: Start disposable local Supabase
+        run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+
+      - name: Rebuild full migration chain
+        run: supabase db reset --local --no-seed
+
+      - name: Run WE-R1.3 acceptance suite
+        run: PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql
+
+      - name: Reassert fail-closed state
+        shell: bash
+        run: |
+          STATE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = "false|false|false|0|0|false|false|true"
+
+      - name: Destroy disposable database
+        if: always()
+        run: supabase stop --no-backup >/dev/null 2>&1 || true
