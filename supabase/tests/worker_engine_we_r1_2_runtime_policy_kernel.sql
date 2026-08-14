@@ -1,5 +1,6 @@
 -- WE-R1.2 runtime policy kernel acceptance suite.
 -- Disposable/local replay only. All configuration mutation is rolled back.
+-- Executed by the dedicated Worker Engine WE-R1.2 Acceptance Gate.
 begin;
 
 do $$
