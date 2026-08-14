@@ -1,3 +1,6 @@
+-- access: authenticated policy-governed public.publication_curriculum_provenance; service_role full control
+-- authorization-test: public.publication_curriculum_provenance anon denied; authenticated limited by RLS; authors cannot self-certify reviewed/verified/approved states.
+
 begin;
 
 -- Publication-level curriculum provenance. This deliberately separates
