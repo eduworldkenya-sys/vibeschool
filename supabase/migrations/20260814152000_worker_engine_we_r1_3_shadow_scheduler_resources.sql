@@ -28,7 +28,7 @@ where singleton=true;
 
 create table if not exists public.hq_workforce_shadow_candidates (
   id uuid primary key default gen_random_uuid(),
-  trace_id uuid references public.hq_workforce_shadow_runs(trace_id) on delete restrict,
+  trace_id uuid references public.hq_workforce_shadow_traces(trace_id) on delete restrict,
   source_work_item_id uuid references public.hq_work_items(id) on delete restrict,
   candidate_fingerprint text not null,
   lane_key text not null,
@@ -50,7 +50,7 @@ create index if not exists hq_workforce_shadow_candidates_lane_idx on public.hq_
 
 create table if not exists public.hq_workforce_shadow_resource_usage (
   id bigint generated always as identity primary key,
-  trace_id uuid references public.hq_workforce_shadow_runs(trace_id) on delete restrict,
+  trace_id uuid references public.hq_workforce_shadow_traces(trace_id) on delete restrict,
   worker_key text,
   resource_kind text not null check (resource_kind in ('cycle','candidate','evidence_read','reasoning_step','recommendation','retry','denial','escalation')),
   amount numeric not null default 1 check (amount >= 0),
@@ -62,7 +62,7 @@ create index if not exists hq_workforce_shadow_resource_usage_window_idx on publ
 
 create table if not exists public.hq_workforce_shadow_anomalies (
   id uuid primary key default gen_random_uuid(),
-  trace_id uuid references public.hq_workforce_shadow_runs(trace_id) on delete restrict,
+  trace_id uuid references public.hq_workforce_shadow_traces(trace_id) on delete restrict,
   anomaly_key text not null,
   severity text not null check (severity in ('warning','high','critical')),
   action text not null check (action in ('deny','escalate','pause')),
@@ -81,8 +81,6 @@ as $$
   select md5(concat_ws('|',coalesce(p_work_item.department_key,''),coalesce(p_work_item.work_type,''),coalesce(p_work_item.source_type,''),coalesce(p_work_item.source_id::text,''),coalesce(p_work_item.title,'')))
 $$;
 
--- One bounded shadow scheduler cycle over internal HQ work only.
--- It reads production facts and writes exclusively to Worker Engine shadow/control tables.
 create or replace function public.hq_workforce_run_shadow_cycle(p_cycle_key text, p_limit integer default 25)
 returns jsonb
 language plpgsql
@@ -150,10 +148,7 @@ begin
     end;
   end loop;
 
-  return jsonb_build_object(
-    'mode','shadow','cycle_key',p_cycle_key,'inserted',inserted_count,'duplicates',duplicate_count,
-    'escalated',escalated_count,'consequential_execution',false
-  );
+  return jsonb_build_object('mode','shadow','cycle_key',p_cycle_key,'inserted',inserted_count,'duplicates',duplicate_count,'escalated',escalated_count,'consequential_execution',false);
 end $$;
 
 alter table public.hq_workforce_shadow_candidates enable row level security;
@@ -173,7 +168,6 @@ revoke all on function public.hq_workforce_run_shadow_cycle(text,integer) from p
 grant execute on function public.hq_workforce_shadow_candidate_fingerprint(public.hq_work_items) to service_role;
 grant execute on function public.hq_workforce_run_shadow_cycle(text,integer) to service_role;
 
--- No cron is installed. Preserve all activation gates OFF.
 do $$
 declare ec public.hq_workforce_engine_contract%rowtype;
 begin
