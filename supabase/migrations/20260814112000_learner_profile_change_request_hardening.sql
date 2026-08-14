@@ -70,25 +70,26 @@ begin
 
   if v_school_id is null then raise exception 'learner has no school'; end if;
 
-  -- Existing VibeSchool school-membership model uses school_members.profile_id.
   select exists (
     select 1 from public.school_members sm
     where sm.school_id = v_school_id
       and sm.profile_id = auth.uid()
-      and sm.role in ('admin','owner','school_admin')
+      and sm.role in ('admin','owner')
   ) into v_is_admin;
 
   if not v_is_admin then raise exception 'school admin access required'; end if;
 
   if p_decision = 'approved' then
     if v_request.field = 'name' then
-      update public.students set name = v_request.new_value, updated_at = now() where id = v_request.student_id;
+      if trim(v_request.new_value) = '' then raise exception 'name cannot be empty'; end if;
+      update public.students set name = trim(v_request.new_value), updated_at = now() where id = v_request.student_id;
     elsif v_request.field = 'admission_number' then
-      update public.students set admission_number = nullif(v_request.new_value,''), updated_at = now() where id = v_request.student_id;
+      update public.students set admission_number = nullif(trim(v_request.new_value),''), updated_at = now() where id = v_request.student_id;
     elsif v_request.field = 'date_of_birth' then
       update public.students set date_of_birth = v_request.new_value::date, updated_at = now() where id = v_request.student_id;
     elsif v_request.field = 'gender' then
-      update public.students set gender = v_request.new_value, updated_at = now() where id = v_request.student_id;
+      if trim(v_request.new_value) = '' then raise exception 'gender cannot be empty'; end if;
+      update public.students set gender = trim(v_request.new_value), updated_at = now() where id = v_request.student_id;
     else
       raise exception 'field is not reviewable';
     end if;
@@ -106,5 +107,8 @@ $$;
 
 revoke all on function public.review_child_change_request(uuid,text,text) from public, anon;
 grant execute on function public.review_child_change_request(uuid,text,text) to authenticated;
+
+-- authorization-test: public.review_child_change_request is authenticated-only and
+-- enforces active caller membership as the learner school's admin/owner before mutation.
 
 commit;
