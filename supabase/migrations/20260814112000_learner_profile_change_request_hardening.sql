@@ -5,6 +5,10 @@ begin;
 
 alter table public.child_change_requests enable row level security;
 
+create unique index if not exists ux_child_change_requests_one_pending_field
+  on public.child_change_requests(parent_id, student_id, field)
+  where status = 'pending' and deleted_at is null;
+
 drop policy if exists "parent owns change requests" on public.child_change_requests;
 drop policy if exists "parents read own learner correction requests" on public.child_change_requests;
 drop policy if exists "parents create linked learner correction requests" on public.child_change_requests;
@@ -59,20 +63,9 @@ security definer
 stable
 set search_path = public
 as $$
-  select
-    r.id,
-    r.student_id,
-    s.name,
-    trim(concat_ws(' ', c.name, c.stream)),
-    r.field,
-    r.old_value,
-    r.new_value,
-    r.reason,
-    r.status,
-    r.parent_id,
-    r.created_at,
-    r.reviewed_at,
-    r.review_note
+  select r.id, r.student_id, s.name, trim(concat_ws(' ', c.name, c.stream)),
+         r.field, r.old_value, r.new_value, r.reason, r.status, r.parent_id,
+         r.created_at, r.reviewed_at, r.review_note
   from public.child_change_requests r
   join public.students s on s.id = r.student_id
   join public.classes c on c.id = s.class_id
@@ -134,14 +127,13 @@ begin
   if p_decision = 'approved' then
     if v_request.field = 'name' then
       if trim(v_request.new_value) = '' then raise exception 'name cannot be empty'; end if;
-      update public.students set name = trim(v_request.new_value), updated_at = now() where id = v_request.student_id;
+      update public.students set name = trim(v_request.new_value) where id = v_request.student_id;
     elsif v_request.field = 'admission_number' then
-      update public.students set admission_number = nullif(trim(v_request.new_value),''), updated_at = now() where id = v_request.student_id;
+      update public.students set admission_number = nullif(trim(v_request.new_value),'') where id = v_request.student_id;
     elsif v_request.field = 'date_of_birth' then
-      update public.students set date_of_birth = v_request.new_value::date, updated_at = now() where id = v_request.student_id;
+      update public.students set date_of_birth = v_request.new_value::date where id = v_request.student_id;
     elsif v_request.field = 'gender' then
-      if trim(v_request.new_value) = '' then raise exception 'gender cannot be empty'; end if;
-      update public.students set gender = trim(v_request.new_value), updated_at = now() where id = v_request.student_id;
+      update public.students set gender = nullif(trim(v_request.new_value),'') where id = v_request.student_id;
     else
       raise exception 'field is not reviewable';
     end if;
