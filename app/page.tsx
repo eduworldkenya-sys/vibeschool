@@ -53,6 +53,8 @@ const AUTH_ERRORS: Record<string, string> = {
   'Invalid login credentials': 'Incorrect email or password.',
   'Email not confirmed':       'Please confirm your email first.',
   'User not found':            'No account found with that email.',
+  'User already registered': 'An account with this email already exists. Sign in instead.',
+  'user_already_exists':       'An account with this email already exists. Sign in instead.',
   'Too many requests':         'Too many attempts. Wait and try again.',
   'Password should contain':   'Password must include uppercase and lowercase letters, a number and a special character.',
   'weak_password':             'Password must include uppercase and lowercase letters, a number and a special character.',
