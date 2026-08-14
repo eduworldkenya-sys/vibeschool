@@ -1,0 +1,39 @@
+name: Temporary existing account repair
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/auth-existing-account-message-20260814
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/auth-existing-account-message-20260814
+      - name: Patch existing-account messaging
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('app/page.tsx')
+          s = p.read_text()
+          anchor = "  'User not found':            'No account found with that email.',\n"
+          insert = anchor + "  'User already registered': 'An account with this email already exists. Sign in instead.',\n  'user_already_exists':       'An account with this email already exists. Sign in instead.',\n"
+          if anchor not in s:
+              raise SystemExit('auth error anchor not found')
+          s = s.replace(anchor, insert, 1)
+          p.write_text(s)
+      - name: Verify and commit
+        run: |
+          grep -q "User already registered" app/page.tsx
+          grep -q "user_already_exists" app/page.tsx
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/tmp-existing-account-fix.yml
+          git add app/page.tsx .github/workflows/tmp-existing-account-fix.yml
+          git commit -m "fix(auth): direct existing users to sign in"
+          git push origin HEAD:fix/auth-existing-account-message-20260814
