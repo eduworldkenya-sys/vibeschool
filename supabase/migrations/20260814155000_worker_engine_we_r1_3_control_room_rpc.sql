@@ -41,7 +41,7 @@ begin
       'open_work_items',(select count(*) from public.hq_work_items where status in ('open','in_progress','waiting_approval')),
       'shadow_candidates',(select count(*) from public.hq_workforce_shadow_candidates where status in ('candidate','recommended','escalated')),
       'shadow_runs',(select count(*) from public.hq_workforce_shadow_runs),
-      'decisions_waiting',(select count(*) from public.hq_workforce_decisions where state in ('proposed','awaiting_review','revise')),
+      'decisions_waiting',(select count(*) from public.hq_workforce_shadow_decisions where state in ('proposed','awaiting_review','revise')),
       'certified_skills',(select count(*) from public.hq_workforce_skill_manifests where certification_status='certified'),
       'shadow_capable_skills',(select count(*) from public.hq_workforce_skill_manifests where certification_status='certified' and shadow_capable),
       'authority_denials',(select count(*) from public.hq_workforce_runtime_authorization_events where decision='deny'),
@@ -89,7 +89,7 @@ begin
       select jsonb_agg(to_jsonb(x) order by x.created_at desc)
       from (
         select id,trace_id,decision_key,proposed_action,required_authority,hypothetical_authority_result,authority_reason,state,human_rationale,reviewed_by,reviewed_at,created_at,updated_at
-        from public.hq_workforce_decisions
+        from public.hq_workforce_shadow_decisions
         order by created_at desc
         limit lim
       ) x
@@ -132,9 +132,10 @@ begin
         ) x
       ),'[]'::jsonb),
       'dead_letters',coalesce((
-        select jsonb_agg(to_jsonb(x))
+        select jsonb_agg(to_jsonb(x) order by x.created_at desc)
         from (
-          select * from public.hq_workforce_dead_letters
+          select id,task_id,worker_key,error_code,error_detail,attempts,created_at
+          from public.hq_workforce_dead_letters
           order by created_at desc
           limit lim
         ) x
@@ -158,7 +159,7 @@ create or replace function public.hq_workforce_owner_review_shadow_decision(
   p_decision_id uuid,
   p_state text,
   p_rationale text default null
-) returns public.hq_workforce_decisions
+) returns public.hq_workforce_shadow_decisions
 language plpgsql
 security definer
 set search_path=public,pg_temp
