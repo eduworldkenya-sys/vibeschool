@@ -40,7 +40,7 @@ begin
       'active_workers',(select count(*) from public.hq_workforce_workers where status='active'),
       'open_work_items',(select count(*) from public.hq_work_items where status in ('open','in_progress','waiting_approval')),
       'shadow_candidates',(select count(*) from public.hq_workforce_shadow_candidates where status in ('candidate','recommended','escalated')),
-      'shadow_runs',(select count(*) from public.hq_workforce_shadow_runs),
+      'shadow_runs',(select count(*) from public.hq_workforce_shadow_traces),
       'decisions_waiting',(select count(*) from public.hq_workforce_shadow_decisions where state in ('proposed','awaiting_review','revise')),
       'certified_skills',(select count(*) from public.hq_workforce_skill_manifests where certification_status='certified'),
       'shadow_capable_skills',(select count(*) from public.hq_workforce_skill_manifests where certification_status='certified' and shadow_capable),
@@ -80,7 +80,7 @@ begin
       select jsonb_agg(to_jsonb(x) order by x.created_at desc)
       from (
         select trace_id,cycle_key,worker_key,lane_key,skill_manifest_id,scope_type,scope_ref,status,confidence,predicted_outcome,consequential_action_performed,started_at,completed_at,created_at
-        from public.hq_workforce_shadow_runs
+        from public.hq_workforce_shadow_traces
         order by created_at desc
         limit lim
       ) x
