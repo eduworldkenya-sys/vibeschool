@@ -36,10 +36,10 @@ create table public.hq_workforce_memory (
 create index hq_workforce_memory_lookup_idx on public.hq_workforce_memory(memory_key,scope_type,scope_key,authoritative,valid_from desc);
 
 create or replace function public.hq_workforce_propose_skill_candidate(p_gap jsonb,p_manifest jsonb,p_tests jsonb default '[]'::jsonb,p_adversarial jsonb default '[]'::jsonb)
-returns uuid language plpgsql security definer set search_path=public,pg_temp as $$
+returns uuid language plpgsql security definer set search_path=public,extensions,pg_temp as $$
 declare v_id uuid; v_key text;
 begin
- v_key='skill-candidate-'||encode(digest(coalesce(p_gap,'{}'::jsonb)::text||coalesce(p_manifest,'{}'::jsonb)::text,'sha256'),'hex');
+ v_key='skill-candidate-'||encode(extensions.digest(coalesce(p_gap,'{}'::jsonb)::text||coalesce(p_manifest,'{}'::jsonb)::text,'sha256'),'hex');
  insert into public.hq_workforce_skill_candidates(candidate_key,detected_gap,proposed_manifest,proposed_tests,adversarial_cases)
  values(v_key,coalesce(p_gap,'{}'),coalesce(p_manifest,'{}'),coalesce(p_tests,'[]'),coalesce(p_adversarial,'[]'))
  on conflict(candidate_key) do update set updated_at=clock_timestamp() returning id into v_id;
