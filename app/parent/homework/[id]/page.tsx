@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { TOKENS } from "@/lib/tokens";
 
 interface Submission { status:string; mark:number|null; feedback:string|null; photo_url:string|null }
@@ -14,7 +15,7 @@ function dueBadge(due:string,status:string){if(status==="marked")return{label:"M
 
 export default function ParentHomeworkDetailPage(){
   const {id}=useParams<{id:string}>();const router=useRouter();const[payload,setPayload]=useState<Payload|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState("");
-  useEffect(()=>{if(!id)return;let cancelled=false;(async()=>{const {createClient}=await import("@/lib/supabase");const client=createClient?.()??null;const {supabase}=await import("@/lib/supabase");const db=client??supabase;const{data,error:rpcError}=await db.rpc("get_parent_homework_detail",{p_homework_id:id});if(cancelled)return;if(rpcError){setError(rpcError.message.includes("not authorized")?"You don't have access to this homework.":"We couldn't load this homework.");setLoading(false);return}setPayload(data as Payload);setLoading(false)})().catch(()=>{if(!cancelled){setError("We couldn't load this homework.");setLoading(false)}});return()=>{cancelled=true}},[id]);
+  useEffect(()=>{if(!id)return;let cancelled=false;(async()=>{const{data,error:rpcError}=await supabase.rpc("get_parent_homework_detail",{p_homework_id:id});if(cancelled)return;if(rpcError){setError(rpcError.message.toLowerCase().includes("authorized")?"You don't have access to this homework.":"We couldn't load this homework.");setLoading(false);return}setPayload(data as Payload);setLoading(false)})().catch(()=>{if(!cancelled){setError("We couldn't load this homework.");setLoading(false)}});return()=>{cancelled=true}},[id]);
   if(loading)return <div style={{padding:24,textAlign:"center",color:TOKENS.textMuted,fontFamily:TOKENS.fontFamily}}>Loading…</div>;
   if(error||!payload)return <div style={{padding:24,textAlign:"center",color:TOKENS.textMuted,fontFamily:TOKENS.fontFamily}}>{error||"Assignment not found."}<div style={{marginTop:12}}><button onClick={()=>router.back()} style={{border:"none",borderRadius:10,padding:"10px 14px",background:"#1e1b4b",color:"#fff",fontWeight:800}}>Back</button></div></div>;
   const hw=payload.homework;const child=payload.children[0];const sub=child?.submission??null;const badge=dueBadge(hw.due_date,sub?.status??"pending");
