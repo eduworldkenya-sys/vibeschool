@@ -61,13 +61,15 @@ jobs:
             echo "autonomous_activation=false"
           } > .worker-engine-production-verify/context.txt
 
-      - name: Syntax-check verifier
-        run: python3 -m py_compile scripts/worker-engine-verify-production-contract.py
+      - name: Syntax-check verifiers
+        run: |
+          python3 -m py_compile scripts/worker-engine-verify-production-contract.py
+          python3 -m py_compile scripts/worker-engine-we-r1-2-verify-production.py
 
       - name: Verify live production Worker Engine contract read-only
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: python3 scripts/worker-engine-verify-production-contract.py
+        run: python3 scripts/worker-engine-we-r1-2-verify-production.py
 
       - name: Assert evidence and safety boundary
         shell: bash
