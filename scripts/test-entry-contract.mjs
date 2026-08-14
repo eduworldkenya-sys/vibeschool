@@ -7,6 +7,7 @@ const robots = fs.readFileSync('app/robots.ts', 'utf8')
 const teacherSignup = fs.readFileSync('app/signup/teacher/page.tsx', 'utf8')
 const parentSignup = fs.readFileSync('app/signup/parent/page.tsx', 'utf8')
 const studentSignup = fs.readFileSync('app/signup/student/page.tsx', 'utf8')
+const studentAccountRoute = fs.readFileSync('app/api/create-student-account/route.ts', 'utf8')
 const roleLogin = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
 
 const checks = [
@@ -19,8 +20,10 @@ const checks = [
   [teacherSignup.includes("router.replace('/teacher/onboarding/school')"), 'teacher signup continues into school onboarding'],
   [parentSignup.includes("role: 'parent'"), 'parent signup creates the parent role'],
   [parentSignup.includes("router.replace('/parent/students')"), 'parent signup continues into learner connection'],
-  [studentSignup.includes("redeem_student_claim"), 'learner signup validates and redeems the teacher claim'],
-  [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the existing server-side account creation boundary'],
+  [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
+  [studentAccountRoute.includes(".from('student_claim_codes')") && studentAccountRoute.includes(".eq('role', 'student')"), 'learner claim is validated server-side'],
+  [studentAccountRoute.includes('parent_linked_at') && studentAccountRoute.includes(".from('parent_student_links')") && studentAccountRoute.includes("code: 'guardian_required'"), 'learner credentials require an established parent or guardian connection'],
+  [studentSignup.includes('guardianRequired') && studentSignup.includes('Parent or guardian connects'), 'learner UX explains the guardian-first activation path'],
   [roleLogin.includes("href=\"/signup/student\"") && roleLogin.includes("href=\"/signup/parent\""), 'focused sign in connects new learners and parents to direct signup'],
   [roleLogin.includes("actualRole !== expectedRole"), 'focused sign in verifies the authenticated role before routing'],
   [roleLogin.includes("student: { label: 'Learner', destination: '/student', email: false }"), 'learner sign in uses admission number and PIN'],
