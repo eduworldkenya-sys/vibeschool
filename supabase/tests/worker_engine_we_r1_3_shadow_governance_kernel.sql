@@ -42,7 +42,7 @@ declare defs text;
 begin
   select string_agg(pg_get_functiondef(p.oid),E'\n') into defs
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-  where n.nspname='public' and p.proname in ('hq_workforce_shadow_evaluate_authority','hq_workforce_shadow_review_decision','hq_workforce_run_shadow_cycle');
+  where n.nspname='public' and p.proname in ('hq_workforce_shadow_evaluate_authority','hq_workforce_shadow_review_decision','hq_workforce_run_shadow_cycle','hq_workforce_shadow_recommend_candidate');
   if defs is null then raise exception 'shadow_functions_missing'; end if;
   if position('hq_workforce_tool_gateway_execute' in defs)>0 then raise exception 'shadow_invokes_consequential_gateway'; end if;
   if position('hq_workforce_execute_task_queue' in defs)>0 then raise exception 'shadow_invokes_consequential_queue'; end if;
@@ -73,7 +73,7 @@ begin
   end if;
 end $$;
 
--- Scheduler must fail closed while the migration defaults are OFF.
+-- Scheduler must fail closed while migration defaults are OFF.
 do $$
 declare blocked boolean:=false;
 begin
@@ -81,14 +81,38 @@ begin
   if not blocked then raise exception 'shadow_scheduler_ran_while_off'; end if;
 end $$;
 
--- In an isolated transaction, prove bounded detection/dedup without mutating source work.
+-- Disposable local proof: detect, deduplicate, recommend, deny missing capability, preserve source, persist anomaly pause.
 do $$
-declare wid uuid; r1 jsonb; r2 jsonb; r3 jsonb; before_status text; after_status text; n integer; anomaly_count integer; paused boolean;
+declare
+  wid uuid; cid uuid; tool_id uuid; manifest_id uuid; tr uuid;
+  r1 jsonb; r2 jsonb; rr jsonb; r3 jsonb;
+  before_status text; after_status text; n integer; anomaly_count integer; paused boolean;
 begin
   insert into public.hq_work_items(department_key,work_type,priority,status,title,summary,source_type,route,approval_required,evidence)
   values('executive','we_r1_3_acceptance','high','open','WE-R1.3 disposable shadow test','Local-only acceptance input','acceptance','/hq/workforce',false,'{}'::jsonb)
   returning id into wid;
   select status into before_status from public.hq_work_items where id=wid;
+
+  -- The recommendation pipeline needs an existing active worker and a separately certified shadow-capable skill.
+  insert into public.hq_workforce_workers(worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,paid_ai_allowed)
+  values('we-r1-3-acceptance-worker','digital','WE-R1.3 Acceptance Worker','executive','Disposable local shadow certification worker','active','deterministic',false)
+  on conflict(worker_key) do update set status='active',department_key='executive';
+
+  insert into public.hq_workforce_tool_contracts(
+    tool_key,version,title,handler_key,required_capability_key,operation,resource_type,side_effect_class,status,approved_at
+  ) values(
+    'we_r1_3_acceptance_triage',1,'WE-R1.3 acceptance triage','work_item.triage_and_own','work_item.triage','update','hq_work_items','internal_write','approved',clock_timestamp()
+  ) returning id into tool_id;
+
+  insert into public.hq_workforce_skill_manifests(
+    skill_key,version,tool_contract_id,autonomy_required,risk_class,allowed_scope_types,allowed_data_classes,
+    max_records_affected,max_attempts,max_runtime_ms,requires_human_approval,verification_required,compensation_strategy,
+    owner_key,certification_status,certified_at,purpose,shadow_capable,immutable_version_key
+  ) values(
+    'we_r1_3_acceptance_triage',1,tool_id,2,1,array['platform_internal']::text[],array['internal']::text[],
+    1,2,30000,true,true,'manual_review','platform_governance','certified',clock_timestamp(),
+    'Disposable local proof of shadow recommendation governance',true,'we_r1_3_acceptance_triage@1'
+  ) returning id into manifest_id;
 
   update public.hq_workforce_engine_contract
      set shadow_enabled=true,shadow_scheduler_enabled=true,shadow_global_stop=false,
@@ -97,8 +121,22 @@ begin
 
   r1:=public.hq_workforce_run_shadow_cycle('acceptance-1',5);
   if r1->>'status'<>'completed' or (r1->>'inserted')::int<1 then raise exception 'shadow_first_cycle_failed:%',r1; end if;
-  select count(*) into n from public.hq_workforce_shadow_candidates where source_work_item_id=wid;
-  if n<>1 then raise exception 'candidate_expected_once_got:%',n; end if;
+  select id into cid from public.hq_workforce_shadow_candidates where source_work_item_id=wid;
+  if cid is null then raise exception 'candidate_not_created'; end if;
+
+  rr:=public.hq_workforce_shadow_recommend_candidate(cid);
+  if rr->>'status'<>'awaiting_review' or (rr->>'consequential_execution')::boolean then raise exception 'shadow_recommendation_failed:%',rr; end if;
+  if rr->>'authority_decision'<>'deny' or rr->>'authority_reason'<>'worker_capability_missing' then
+    raise exception 'missing_capability_did_not_fail_closed:%',rr;
+  end if;
+  tr:=(rr->>'trace_id')::uuid;
+  select count(*) into n from public.hq_workforce_shadow_events where trace_id=tr;
+  if n<>7 then raise exception 'trace_event_count_expected_7_got:%',n; end if;
+  if not exists(select 1 from public.hq_workforce_evidence where trace_id=tr and evidence_kind='fact') then raise exception 'trace_evidence_missing'; end if;
+  if not exists(select 1 from public.hq_workforce_shadow_decisions where trace_id=tr and state='awaiting_review' and hypothetical_authority_result='deny') then
+    raise exception 'shadow_decision_missing_or_not_denied';
+  end if;
+  if exists(select 1 from public.hq_workforce_shadow_runs where trace_id=tr and consequential_action_performed) then raise exception 'consequential_shadow_write_recorded'; end if;
 
   r2:=public.hq_workforce_run_shadow_cycle('acceptance-2',5);
   if r2->>'status'<>'completed' or (r2->>'duplicates')::int<1 then raise exception 'shadow_dedup_failed:%',r2; end if;
@@ -114,8 +152,6 @@ begin
   select shadow_anomaly_paused into paused from public.hq_workforce_engine_contract where singleton=true;
   select count(*) into anomaly_count from public.hq_workforce_shadow_anomalies where anomaly_key='cycle_rate_ceiling' and resolved_at is null;
   if not paused or anomaly_count<1 then raise exception 'anomaly_pause_evidence_not_persisted'; end if;
-
-  if exists(select 1 from public.hq_workforce_shadow_runs where consequential_action_performed) then raise exception 'consequential_shadow_write_recorded'; end if;
 end $$;
 
 rollback;
