@@ -39,7 +39,8 @@ jobs:
           paths=sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_3*.sql'))
           if not paths: raise SystemExit('WE-R1.3 migrations not found')
           migrations='\n'.join(p.read_text() for p in paths)
-          forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL','production'+'-migration-repair','${{ '+'secrets.']
+          secrets_expr='$'+'{{'+' secrets.'
+          forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL','production'+'-migration-repair',secrets_expr]
           hit=[x for x in forbidden if x in workflow]
           if hit: raise SystemExit('production reference detected: '+', '.join(hit))
           compact=migrations.replace(' ','').replace('\n','').lower()
