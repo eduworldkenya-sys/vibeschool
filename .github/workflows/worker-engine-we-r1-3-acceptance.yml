@@ -1,13 +1,14 @@
-name: Worker Engine WE-R1.3 Acceptance Gate
+name: Worker Engine WE-R1.3 / R1.3X Acceptance Gate
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - "supabase/migrations/*worker_engine_we_r1_3*.sql"
-      - "supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql"
+      - "supabase/tests/worker_engine_we_r1_3*.sql"
       - ".github/workflows/worker-engine-we-r1-3-acceptance.yml"
       - "docs/WORKER_ENGINE_WE_R1_3_GOVERNED_SHADOW_OPERATIONS.md"
+      - "docs/worker-engine/WE-R1.3X-GLOBAL-CAPABILITY-INTELLIGENCE-FABRIC.md"
       - "app/hq/workforce/**"
       - "components/hq/HQShell.tsx"
 
@@ -20,7 +21,7 @@ permissions:
 
 jobs:
   acceptance:
-    name: WE-R1.3 disposable-local acceptance
+    name: WE-R1.3/R1.3X disposable-local acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -37,7 +38,7 @@ jobs:
           from pathlib import Path
           workflow=Path('.github/workflows/worker-engine-we-r1-3-acceptance.yml').read_text()
           paths=sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_3*.sql'))
-          if not paths: raise SystemExit('WE-R1.3 migrations not found')
+          if not paths: raise SystemExit('WE-R1.3/R1.3X migrations not found')
           migrations='\n'.join(p.read_text() for p in paths)
           secrets_expr='$'+'{{'+' secrets.'
           forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL','production'+'-migration-repair',secrets_expr]
@@ -50,7 +51,7 @@ jobs:
           if 'hq_workforce_tool_gateway_execute(' in migrations.lower():
               raise SystemExit('shadow migrations reference consequential gateway invocation')
           if 'cron.schedule' in migrations.lower():
-              raise SystemExit('WE-R1.3 must not install a scheduler cron')
+              raise SystemExit('WE-R1.3/R1.3X must not install scheduler cron')
           PY
 
       - name: Verify Docker
@@ -74,26 +75,29 @@ jobs:
         run: supabase db reset --local --no-seed
 
       - name: Run WE-R1.3 adversarial acceptance suite
-        id: adversarial
         shell: bash
         run: |
           set +e
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql 2>&1 | tee /tmp/we-r1-3-adversarial.log
           code=${PIPESTATUS[0]}
-          {
-            echo '## WE-R1.3 adversarial acceptance output'
-            echo '```text'
-            tail -n 120 /tmp/we-r1-3-adversarial.log
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
           exit "$code"
 
-      - name: Upload adversarial evidence
+      - name: Run WE-R1.3X capability-fabric acceptance suite
+        shell: bash
+        run: |
+          set +e
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_capability_fabric.sql 2>&1 | tee /tmp/we-r1-3x-capability.log
+          code=${PIPESTATUS[0]}
+          exit "$code"
+
+      - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: we-r1-3-adversarial-${{ github.run_id }}
-          path: /tmp/we-r1-3-adversarial.log
+          name: we-r1-3x-acceptance-${{ github.run_id }}
+          path: |
+            /tmp/we-r1-3-adversarial.log
+            /tmp/we-r1-3x-capability.log
           if-no-files-found: warn
           retention-days: 30
 
