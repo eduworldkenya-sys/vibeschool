@@ -1,5 +1,11 @@
 -- WE-R1.2: runtime policy kernel and circuit-breaker convergence.
 -- Additive/forward hardening. Does NOT enable heartbeat, factory, cron, or autonomous execution.
+-- access: service-only public.hq_workforce_runtime_policies
+-- authorization-test: public.hq_workforce_runtime_policies denies anon/authenticated direct access; service_role receives governed configuration access only.
+-- access: service-only public.hq_workforce_skill_manifests
+-- authorization-test: public.hq_workforce_skill_manifests denies anon/authenticated direct access; service_role receives governed configuration access only.
+-- access: service-only public.hq_workforce_runtime_authorization_events
+-- authorization-test: public.hq_workforce_runtime_authorization_events denies anon/authenticated direct access; service_role is read-only while function-owner runtime appends evidence.
 
 alter table public.hq_workforce_engine_contract
   add column if not exists runtime_execution_enabled boolean not null default false,
@@ -9,7 +15,6 @@ alter table public.hq_workforce_engine_contract
   add column if not exists runtime_max_concurrency integer not null default 1 check (runtime_max_concurrency between 1 and 1000),
   add column if not exists runtime_max_executions_per_minute integer not null default 10 check (runtime_max_executions_per_minute between 1 and 100000);
 
--- Production-safe default. Schema promotion never implies execution authority.
 update public.hq_workforce_engine_contract
 set runtime_execution_enabled=false,
     runtime_autonomy_level=0,
@@ -64,8 +69,6 @@ create table if not exists public.hq_workforce_skill_manifests (
   check (expires_at is null or expires_at > created_at)
 );
 
--- Existing allowlisted tool contracts become explicit certified manifests, but the
--- global runtime remains L0/OFF so this does not activate them.
 insert into public.hq_workforce_skill_manifests(
   skill_key,version,tool_contract_id,autonomy_required,risk_class,
   allowed_scope_types,allowed_data_classes,max_records_affected,max_attempts,
@@ -161,8 +164,6 @@ begin
   v_max_rate:=ec.runtime_max_executions_per_minute;
   v_scope_key:=coalesce(nullif(w.department_key,''),'unassigned');
 
-  -- Any applicable active policy can only reduce authority. A disabled applicable
-  -- policy is a circuit breaker and fails closed.
   for p in
     select rp.* from public.hq_workforce_runtime_policies rp
      where rp.status='active' and (
@@ -202,8 +203,6 @@ begin
   );
 end $$;
 
--- Replace the consequential tool gateway so every business mutation passes the
--- same scope-aware policy kernel before budget reservation or side effect.
 create or replace function public.hq_workforce_tool_gateway_execute(p_task_id uuid)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare
@@ -216,12 +215,9 @@ begin
   select * into t from public.hq_workforce_task_contracts where id=p_task_id for update;
   if not found then raise exception 'task_not_found'; end if;
   if t.status<>'running' then raise exception 'task_not_running'; end if;
-
   perform public.hq_workforce_assert_runtime_task_authorized(t.id);
-
   select * into tc from public.hq_workforce_tool_contracts where id=t.tool_contract_id and status='approved';
   if not found then raise exception 'tool_contract_not_approved'; end if;
-
   budget_id:=public.hq_workforce_reserve_budget(t.worker_key,t.budget_key,t.budget_amount);
   begin
     if tc.handler_key='work_item.triage_and_own' then
@@ -244,8 +240,6 @@ begin
   end;
 end $$;
 
--- Queue state changes are also runtime execution. A global stop must block direct
--- queue invocation before leases/attempt counters can change.
 create or replace function public.hq_workforce_execute_task_queue(p_limit integer default 20,p_lease_seconds integer default 60)
 returns integer language plpgsql security definer set search_path=public,pg_temp as $$
 declare r record; n integer:=0; evidence jsonb; err text; v_enabled boolean; v_paused boolean;
@@ -287,9 +281,6 @@ begin
   return n;
 end $$;
 
--- Scheduled orchestration remains the only service-role positive execution entrypoint.
--- Even if heartbeat/factory switches are accidentally enabled later, runtime L0/OFF
--- wins and the scheduler returns without invoking lower-level mutation paths.
 create or replace function public.hq_workforce_scheduled_heartbeat()
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare
@@ -314,8 +305,6 @@ begin
   return jsonb_build_object('factory',v_factory_result,'qualification',v_qual_result,'runtime',v_runtime_result,'mode','deterministic');
 end $$;
 
--- Close remaining direct service-role positive mutation paths. SECURITY DEFINER
--- orchestration can still call them internally as function owner.
 revoke all on function public.hq_workforce_tool_gateway_execute(uuid) from service_role;
 revoke all on function public.hq_workforce_execute_task_queue(integer,integer) from service_role;
 revoke all on function public.hq_workforce_verify_task(uuid,text) from service_role;
@@ -332,7 +321,6 @@ grant select,insert,update on table public.hq_workforce_runtime_policies to serv
 grant select,insert,update on table public.hq_workforce_skill_manifests to service_role;
 grant select on table public.hq_workforce_runtime_authorization_events to service_role;
 
--- Preserve activation separation mechanically.
 update public.hq_workforce_engine_contract
 set heartbeat_enabled=false,
     factory_enabled=false,
