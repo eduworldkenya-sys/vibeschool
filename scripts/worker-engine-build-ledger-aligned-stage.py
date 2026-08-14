@@ -2,7 +2,7 @@
 """Build a CI-only Supabase migration view for Worker Engine promotion dry-runs.
 
 The staged timestamp set is exactly:
-    production migration history + approved Worker Engine promotion migrations.
+    production migration history + pending approved Worker Engine promotion migrations.
 
 Repository-only migrations outside the approved set are omitted. Production-only
 versions receive inert placeholder files so Supabase CLI sees their timestamps as
@@ -28,7 +28,7 @@ APPROVED_WORKER_ENGINE_VERSIONS = {
     "20260812202500", "20260812202600", "20260812211500",
     "20260812213000", "20260812214500", "20260812215500",
     "20260812221000", "20260812222000", "20260812223000",
-    "20260813023028",
+    "20260813023028", "20260814094000",
 }
 
 
@@ -75,12 +75,7 @@ def version_set(rows: list[dict], label: str) -> set[str]:
     return result
 
 
-def build_stage(
-    report: dict,
-    migrations_dir: Path,
-    config_path: Path,
-    stage_dir: Path,
-) -> dict:
+def build_stage(report: dict, migrations_dir: Path, config_path: Path, stage_dir: Path) -> dict:
     if not migrations_dir.is_dir():
         raise StageFailure(f"migration directory missing: {migrations_dir}")
     if not config_path.is_file():
@@ -91,18 +86,22 @@ def build_stage(
     parity = set(map(str, report.get("parity_versions", [])))
     if not all(re.fullmatch(r"\d{8,14}", v) for v in parity):
         raise StageFailure("invalid parity migration version")
-
     if parity & remote_only or parity & local_only or remote_only & local_only:
         raise StageFailure("TBL-013 version classes overlap")
 
-    expected = APPROVED_WORKER_ENGINE_VERSIONS
-    missing_expected = sorted(expected - local_only)
-    if missing_expected:
-        raise StageFailure(
-            "approved Worker Engine migration is not genuinely pending: "
-            + ",".join(missing_expected)
-        )
-    unrelated_local_only = sorted(local_only - expected)
+    approved = APPROVED_WORKER_ENGINE_VERSIONS
+    known = parity | local_only | remote_only
+    missing_approved = sorted(approved - known)
+    if missing_approved:
+        raise StageFailure("approved Worker Engine migration absent from ledger classification: " + ",".join(missing_approved))
+    approved_remote_only = sorted(approved & remote_only)
+    if approved_remote_only:
+        raise StageFailure("approved Worker Engine migration exists only in production history: " + ",".join(approved_remote_only))
+
+    pending = approved & local_only
+    if not pending:
+        raise StageFailure("no approved Worker Engine migrations are pending production promotion")
+    unrelated_local_only = sorted(local_only - pending)
 
     if stage_dir.exists():
         shutil.rmtree(stage_dir)
@@ -135,7 +134,7 @@ def build_stage(
         staged_versions.add(version)
 
     remote_versions = parity | remote_only
-    expected_stage = remote_versions | expected
+    expected_stage = remote_versions | pending
     if staged_versions != expected_stage:
         missing = sorted(expected_stage - staged_versions)
         extra = sorted(staged_versions - expected_stage)
@@ -143,7 +142,8 @@ def build_stage(
 
     return {
         "mode": "EPHEMERAL_LEDGER_ALIGNED_DRY_RUN_VIEW",
-        "expected_worker_engine_versions": sorted(expected),
+        "approved_worker_engine_versions": sorted(approved),
+        "expected_worker_engine_versions": sorted(pending),
         "excluded_unrelated_repository_only": unrelated_local_only,
         "production_only_placeholders": sorted(remote_only),
         "parity_versions": sorted(parity),
@@ -158,23 +158,16 @@ def main() -> int:
     args = parse_args()
     try:
         report = load_report(Path(args.report))
-        manifest = build_stage(
-            report,
-            Path(args.migrations_dir),
-            Path(args.config),
-            Path(args.stage_dir),
-        )
+        manifest = build_stage(report, Path(args.migrations_dir), Path(args.config), Path(args.stage_dir))
         manifest_path = Path(args.manifest)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         expected_path = Path(args.expected_versions)
         expected_path.parent.mkdir(parents=True, exist_ok=True)
-        expected_path.write_text(
-            "\n".join(manifest["expected_worker_engine_versions"]) + "\n",
-            encoding="utf-8",
-        )
+        expected_path.write_text("\n".join(manifest["expected_worker_engine_versions"]) + "\n", encoding="utf-8")
         print("WORKER ENGINE LEDGER-ALIGNED DRY-RUN STAGE READY")
-        print("approved migrations:", len(manifest["expected_worker_engine_versions"]))
+        print("approved migrations:", len(manifest["approved_worker_engine_versions"]))
+        print("pending approved migrations:", len(manifest["expected_worker_engine_versions"]))
         print("excluded unrelated repository-only:", len(manifest["excluded_unrelated_repository_only"]))
         print("production-only placeholders:", len(manifest["production_only_placeholders"]))
         print("staged versions:", manifest["staged_version_count"])

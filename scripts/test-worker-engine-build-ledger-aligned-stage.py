@@ -22,15 +22,9 @@ def make_fixture(root: Path) -> tuple[Path, Path]:
     config = root / "supabase" / "config.toml"
     config.write_text('project_id = "fixture"\n', encoding="utf-8")
     for version in sorted(APPROVED):
-        (migrations / f"{version}_worker_engine_fixture.sql").write_text(
-            f"-- approved {version}\n", encoding="utf-8"
-        )
-    (migrations / "20260801000000_parity_fixture.sql").write_text(
-        "-- parity\n", encoding="utf-8"
-    )
-    (migrations / "20260802000000_unrelated_repository_only.sql").write_text(
-        "-- unrelated\n", encoding="utf-8"
-    )
+        (migrations / f"{version}_worker_engine_fixture.sql").write_text(f"-- approved {version}\n", encoding="utf-8")
+    (migrations / "20260801000000_parity_fixture.sql").write_text("-- parity\n", encoding="utf-8")
+    (migrations / "20260802000000_unrelated_repository_only.sql").write_text("-- unrelated\n", encoding="utf-8")
     return migrations, config
 
 
@@ -38,10 +32,7 @@ def good_report() -> dict:
     return {
         "read_only_audit": True,
         "authorized_repairs": [],
-        "counts": {
-            "duplicate_local_versions": 0,
-            "duplicate_remote_versions": 0,
-        },
+        "counts": {"duplicate_local_versions": 0, "duplicate_remote_versions": 0},
         "parity_versions": ["20260801000000"],
         "local_only": [
             *[{"version": version} for version in sorted(APPROVED)],
@@ -66,17 +57,34 @@ def test_success() -> None:
         migrations, config = make_fixture(root)
         stage = root / "stage"
         manifest = module.build_stage(good_report(), migrations, config, stage)
-        staged = sorted((stage / "supabase" / "migrations").glob("*.sql"))
-        versions = {p.name.split("_", 1)[0] for p in staged}
+        versions = {p.name.split("_", 1)[0] for p in (stage / "supabase" / "migrations").glob("*.sql")}
         expected = APPROVED | {"20260801000000", "20260731000000"}
         assert versions == expected
         assert "20260802000000" not in versions
+        assert set(manifest["expected_worker_engine_versions"]) == APPROVED
         assert manifest["authorized_repairs"] == []
         assert manifest["production_mutation"] is False
         assert manifest["production_only_placeholders"] == ["20260731000000"]
         placeholder = stage / "supabase" / "migrations" / "20260731000000_production_history_placeholder.sql"
         assert placeholder.is_file()
         assert "Never executed" in placeholder.read_text(encoding="utf-8")
+
+
+def test_incremental_promotion_only_stages_pending_approved() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        migrations, config = make_fixture(root)
+        pending = "20260814094000"
+        report = good_report()
+        report["local_only"] = [
+            {"version": pending},
+            {"version": "20260802000000"},
+        ]
+        report["parity_versions"] = ["20260801000000", *sorted(APPROVED - {pending})]
+        manifest = module.build_stage(report, migrations, config, root / "stage")
+        assert manifest["expected_worker_engine_versions"] == [pending]
+        assert set(manifest["approved_worker_engine_versions"]) == APPROVED
+        assert "20260802000000" in manifest["excluded_unrelated_repository_only"]
 
 
 def test_missing_approved_blocks() -> None:
@@ -86,7 +94,17 @@ def test_missing_approved_blocks() -> None:
         report = good_report()
         missing = sorted(APPROVED)[0]
         report["local_only"] = [r for r in report["local_only"] if r["version"] != missing]
-        expect_failure(report, migrations, config, root, "not genuinely pending")
+        expect_failure(report, migrations, config, root, "absent from ledger classification")
+
+
+def test_no_pending_approved_blocks() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        migrations, config = make_fixture(root)
+        report = good_report()
+        report["local_only"] = [{"version": "20260802000000"}]
+        report["parity_versions"] = ["20260801000000", *sorted(APPROVED)]
+        expect_failure(report, migrations, config, root, "no approved Worker Engine migrations are pending")
 
 
 def test_overlap_blocks() -> None:
@@ -131,7 +149,9 @@ def test_duplicate_count_blocks() -> None:
 
 def main() -> None:
     test_success()
+    test_incremental_promotion_only_stages_pending_approved()
     test_missing_approved_blocks()
+    test_no_pending_approved_blocks()
     test_overlap_blocks()
     test_repair_authority_blocks()
     test_duplicate_count_blocks()
