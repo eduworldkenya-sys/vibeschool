@@ -41,7 +41,7 @@ jobs:
               'SUPABASE_' + 'DB_PASSWORD',
               'PROD_' + 'URL',
               'production' + '-migration-repair',
-              '${{ ' + 'secrets.',
+              '$' + '{{ ' + 'secrets.',
           ]
           found = [needle for needle in forbidden if needle in text]
           if found:
