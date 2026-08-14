@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -300,7 +300,7 @@ function QuickLink({ icon, label, detail, onClick }: { icon: string; label: stri
   return <button onClick={onClick} style={{ ...card, display: "flex", alignItems: "center", gap: 11, cursor: "pointer", textAlign: "left", padding: 12 }}><div style={{ width: 38, height: 38, borderRadius: 12, background: "#eef2ff", display: "grid", placeItems: "center", fontSize: 18 }}>{icon}</div><div><div style={{ fontSize: 13, fontWeight: 800, color: "#111827" }}>{label}</div><div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{detail}</div></div><div style={{ marginLeft: "auto", color: "#9ca3af", fontSize: 20 }}>›</div></button>;
 }
 
-const card: React.CSSProperties = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, boxShadow: "0 1px 3px rgba(0,0,0,.04)" };
-const avatar: React.CSSProperties = { width: 44, height: 44, borderRadius: "50%", background: "#ede9fe", color: "#1e1b4b", display: "grid", placeItems: "center", fontSize: 17, fontWeight: 850, flexShrink: 0 };
-const primaryButton: React.CSSProperties = { border: "none", borderRadius: 11, padding: "10px 11px", background: "#1e1b4b", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" };
-const secondaryButton: React.CSSProperties = { border: "1px solid #d1d5db", borderRadius: 11, padding: "10px 11px", background: "#fff", color: "#1e1b4b", fontWeight: 800, fontSize: 12, cursor: "pointer" };
+const card: CSSProperties = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 14, boxShadow: "0 1px 3px rgba(0,0,0,.04)" };
+const avatar: CSSProperties = { width: 44, height: 44, borderRadius: "50%", background: "#ede9fe", color: "#1e1b4b", display: "grid", placeItems: "center", fontSize: 17, fontWeight: 850, flexShrink: 0 };
+const primaryButton: CSSProperties = { border: "none", borderRadius: 11, padding: "10px 11px", background: "#1e1b4b", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" };
+const secondaryButton: CSSProperties = { border: "1px solid #d1d5db", borderRadius: 11, padding: "10px 11px", background: "#fff", color: "#1e1b4b", fontWeight: 800, fontSize: 12, cursor: "pointer" };
