@@ -1,3 +1,6 @@
+-- access: service-only public.school_identity_candidates
+-- authorization-test: public.school_identity_candidates has RLS enabled and no direct public, anon, or authenticated table access.
+
 create table if not exists public.school_identity_candidates (
   id uuid primary key default gen_random_uuid(),
   directory_school_id uuid references public.schools_directory(id) on delete set null,
@@ -10,6 +13,10 @@ create table if not exists public.school_identity_candidates (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.school_identity_candidates enable row level security;
+revoke all on table public.school_identity_candidates from public, anon, authenticated;
+
 create index if not exists school_identity_candidates_status_idx on public.school_identity_candidates(status);
 create index if not exists school_identity_candidates_directory_idx on public.school_identity_candidates(directory_school_id);
 alter table public.school_aliases add column if not exists source_type text;
