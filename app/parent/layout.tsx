@@ -2,14 +2,14 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { ParentNavTab } from "@/lib/types";
 import OfflineBar from "@/components/teacher/OfflineBar";
 
+type ParentTabId = "home" | "students" | "messages" | "learn" | "profile";
 interface UserCtx { fullName: string; initials: string }
 const UserContext = createContext<UserCtx>({ fullName: "", initials: "" });
 const useUser = () => useContext(UserContext);
 
-const NAV_TABS: ParentNavTab[] = [
+const NAV_TABS: ReadonlyArray<{ id: ParentTabId; label: string; icon: string; href: string }> = [
   { id: "home",     label: "Home",     icon: "🏠", href: "/parent" },
   { id: "students", label: "Children", icon: "👨‍👩‍👧", href: "/parent/students" },
   { id: "messages", label: "Messages", icon: "💬", href: "/parent/messages" },
@@ -17,13 +17,13 @@ const NAV_TABS: ParentNavTab[] = [
   { id: "profile",  label: "Profile",  icon: "👤", href: "/parent/profile" },
 ];
 
-function tabIdFromPath(path: string): ParentNavTab["id"] {
+function tabIdFromPath(path: string): ParentTabId {
   if (path === "/parent" || path === "/parent/") return "home";
   const match = NAV_TABS.find(t => t.href !== "/parent" && path.startsWith(t.href));
-  return (match?.id ?? "home") as ParentNavTab["id"];
+  return match?.id ?? "home";
 }
 
-function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
+function BottomNav({ activeId }: { activeId: ParentTabId }) {
   const router = useRouter();
   return (
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700, background: "#fff", borderTop: "1px solid #e5e7eb", display: "flex", height: 64, boxShadow: "0 -2px 12px rgba(0,0,0,0.06)" }}>
