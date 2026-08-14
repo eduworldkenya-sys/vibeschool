@@ -1,5 +1,5 @@
 -- WE-R1.3.4: hypothetical authority hardening for governed shadow recommendations.
--- Evaluates worker, skill, tool, capability and exact scope without invoking any consequential gateway.
+-- Evaluates worker lifecycle/identity/certification, skill, tool, capability and exact scope without invoking any consequential gateway.
 
 create or replace function public.hq_workforce_shadow_evaluate_authority(
   p_trace_id uuid,
@@ -14,7 +14,7 @@ security definer
 set search_path=public,pg_temp
 as $$
 declare
-  r public.hq_workforce_shadow_runs%rowtype;
+  r public.hq_workforce_shadow_traces%rowtype;
   sm public.hq_workforce_skill_manifests%rowtype;
   tc public.hq_workforce_tool_contracts%rowtype;
   cap public.hq_workforce_capability_grants%rowtype;
@@ -25,7 +25,7 @@ declare
   tool_found boolean:=false;
   cap_found boolean:=false;
 begin
-  select * into r from public.hq_workforce_shadow_runs where trace_id=p_trace_id;
+  select * into r from public.hq_workforce_shadow_traces where trace_id=p_trace_id;
   if not found then raise exception 'shadow_trace_not_found'; end if;
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
   if not found then raise exception 'runtime_contract_missing'; end if;
@@ -51,6 +51,12 @@ begin
     v_reason := 'consequential_runtime_must_remain_off';
   elsif not exists(select 1 from public.hq_workforce_workers w where w.worker_key=r.worker_key and w.status='active') then
     v_reason := 'worker_not_active';
+  elsif public.hq_workforce_current_lifecycle_state(r.worker_key)<>'active' then
+    v_reason := 'worker_lifecycle_not_active';
+  elsif not exists(select 1 from public.hq_workforce_identities i where i.worker_key=r.worker_key and i.status='active' and i.expires_at>clock_timestamp()) then
+    v_reason := 'worker_identity_invalid';
+  elsif not exists(select 1 from public.hq_workforce_certifications c where c.worker_key=r.worker_key and c.status='active' and c.expires_at>clock_timestamp()) then
+    v_reason := 'worker_certification_invalid';
   elsif not skill_found then
     v_reason := 'skill_not_found';
   elsif sm.certification_status <> 'certified' then
