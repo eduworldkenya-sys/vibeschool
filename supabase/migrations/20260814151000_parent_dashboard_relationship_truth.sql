@@ -1,7 +1,7 @@
 begin;
 
--- Final trust correction for Home: a revoked/none relationship must never
--- produce a child card, and duplicate historical links must not duplicate UI.
+-- Canonical final Home projection. A usable parent-child relationship is the
+-- only source of child visibility; duplicate historical links are collapsed.
 create or replace function public.get_parent_dashboard()
 returns jsonb
 language plpgsql
@@ -35,12 +35,14 @@ begin
           coalesce(att.recorded_count, 0) as attendance_recorded,
           att.attendance_pct,
           case
+            when s.deleted_at is not null then 'unavailable'
             when s.class_id is null then 'waiting'
             when coalesce(att.recorded_count, 0) < 5 then 'insufficient_data'
             when att.attendance_pct < 80 then 'needs_attention'
             else 'attendance_on_track'
           end as status,
           case
+            when s.deleted_at is not null then 'No longer available'
             when s.class_id is null then 'Waiting for school'
             when coalesce(att.recorded_count, 0) < 5 then 'Not enough recent data'
             when att.attendance_pct < 80 then 'Attendance needs attention'
@@ -51,16 +53,14 @@ begin
         left join public.classes c on c.id = s.class_id
         left join public.schools sc on sc.id = c.school_id
         left join lateral (
-          select
-            count(*)::int as recorded_count,
+          select count(*)::int as recorded_count,
             round(100.0 * count(*) filter (where a.status = 'present') / nullif(count(*), 0))::int as attendance_pct
           from public.attendance a
-          where a.student_id = s.id
-            and a.date >= current_date - 30
+          where a.student_id = s.id and a.date >= current_date - 30
         ) att on true
         where psl.parent_id = caller
           and coalesce(psl.access_level, 'full') <> 'none'
-        order by s.id, psl.is_primary desc nulls last, psl.created_at desc nulls last
+        order by s.id, psl.is_primary desc nulls last, psl.updated_at desc nulls last, psl.created_at desc nulls last
       ) child_row
     ), '[]'::jsonb),
     'attention', coalesce((
@@ -78,18 +78,18 @@ begin
         from public.parent_student_links psl
         join public.students s on s.id = psl.student_id
         cross join lateral (
-          select
-            count(*)::int as recorded_count,
+          select count(*)::int as recorded_count,
             round(100.0 * count(*) filter (where a.status = 'present') / nullif(count(*), 0))::int as attendance_pct
           from public.attendance a
-          where a.student_id = s.id
-            and a.date >= current_date - 30
+          where a.student_id = s.id and a.date >= current_date - 30
         ) att
         where psl.parent_id = caller
           and coalesce(psl.access_level, 'full') <> 'none'
+          and s.deleted_at is null
+          and s.class_id is not null
           and att.recorded_count >= 5
           and att.attendance_pct < 80
-        order by s.id, psl.is_primary desc nulls last, psl.created_at desc nulls last
+        order by s.id, psl.is_primary desc nulls last, psl.updated_at desc nulls last, psl.created_at desc nulls last
       ) attention_row
     ), '[]'::jsonb)
   ) into payload;
@@ -102,6 +102,6 @@ revoke all on function public.get_parent_dashboard() from public, anon;
 grant execute on function public.get_parent_dashboard() to authenticated;
 
 comment on function public.get_parent_dashboard() is
-'Parent-scoped dashboard summary. Only current usable parent-child links are included; duplicate historical links are collapsed; missing evidence is never treated as positive evidence.';
+'Parent-scoped dashboard summary. Only usable parent-child links are included; duplicate historical links are collapsed; deleted children do not generate attention; missing evidence is never treated as positive evidence.';
 
 commit;
