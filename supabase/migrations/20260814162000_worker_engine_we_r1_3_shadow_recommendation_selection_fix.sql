@@ -95,7 +95,14 @@ begin
     (tr,'proposed_action',5,proposed),
     (tr,'expected_outcome',6,expected);
 
-  auth_result:=public.hq_workforce_shadow_evaluate_authority(tr,sm.id,least(sm.autonomy_required,2),sm.risk_class,'platform_internal',c.scope_ref);
+  auth_result:=public.hq_workforce_shadow_evaluate_authority(
+    tr,
+    sm.id,
+    least(sm.autonomy_required,2::smallint)::smallint,
+    sm.risk_class::smallint,
+    'platform_internal'::text,
+    c.scope_ref
+  );
   auth_decision:=coalesce(auth_result->>'decision','deny');
   auth_reason:=coalesce(auth_result->>'reason','fail_closed');
   insert into public.hq_workforce_shadow_events(trace_id,event_kind,sequence_no,payload)
