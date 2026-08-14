@@ -65,8 +65,8 @@ with check (
   )
 );
 
--- authorization-test: anon has no table privileges; authenticated parents may
--- only SELECT/INSERT requests for learners linked to auth.uid(); no UPDATE or
+-- authorization-test: public.child_change_requests denies anon; authenticated parents
+-- may only SELECT/INSERT requests for learners linked to auth.uid(); no UPDATE or
 -- DELETE grant exists and reviewer-owned fields must be null on INSERT.
 
 commit;
