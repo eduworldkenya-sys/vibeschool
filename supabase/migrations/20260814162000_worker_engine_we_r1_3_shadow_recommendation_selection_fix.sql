@@ -19,7 +19,7 @@ declare
   auth_reason text;
   proposed jsonb;
   expected jsonb;
-  confidence numeric:=0.9000;
+  v_confidence numeric:=0.9000;
 begin
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
   if not found then raise exception 'runtime_contract_missing'; end if;
@@ -69,11 +69,11 @@ begin
   end if;
 
   insert into public.hq_workforce_shadow_traces(cycle_key,worker_key,lane_key,skill_manifest_id,scope_type,scope_ref,status,confidence)
-  values('candidate:'||c.id::text,w.worker_key,c.lane_key,sm.id,'platform_internal',c.scope_ref,'reasoning',confidence)
+  values('candidate:'||c.id::text,w.worker_key,c.lane_key,sm.id,'platform_internal',c.scope_ref,'reasoning',v_confidence)
   returning trace_id into tr;
 
   update public.hq_workforce_shadow_candidates
-     set trace_id=tr,worker_key=w.worker_key,skill_manifest_id=sm.id,status='recommended',confidence=confidence,
+     set trace_id=tr,worker_key=w.worker_key,skill_manifest_id=sm.id,status='recommended',confidence=v_confidence,
          reasoning_summary='Active lane worker and certified shadow-capable skill selected deterministically; recommendation awaits human review.'
    where id=c.id;
 
@@ -110,7 +110,7 @@ begin
   );
 
   update public.hq_workforce_shadow_traces
-     set status='awaiting_review',predicted_outcome=expected,confidence=confidence
+     set status='awaiting_review',predicted_outcome=expected,confidence=v_confidence
    where trace_id=tr;
   insert into public.hq_workforce_shadow_resource_usage(trace_id,worker_key,resource_kind,window_started_at,amount)
   values(tr,w.worker_key,'recommendation',date_trunc('hour',clock_timestamp()),1);
