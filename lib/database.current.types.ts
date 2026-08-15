@@ -1,4 +1,4 @@
-import type { Database } from './database.types'
+import type { Database, Json } from './database.types'
 
 /**
  * Live-schema additions that are present in production but not yet represented
@@ -14,7 +14,6 @@ type GeneratedFunctions = GeneratedPublic['Functions']
 
 type CurrentStudents = GeneratedTables['students']
 type CurrentClaimCodes = GeneratedTables['student_claim_codes']
-
 type CurrentFunctions = GeneratedFunctions & {
   parent_set_student_self_use: {
     Args: {
@@ -71,5 +70,3 @@ export type CurrentDatabase = Omit<Database, 'public'> & {
     Functions: CurrentFunctions
   }
 }
-
-export type { Json } from './database.types'
