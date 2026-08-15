@@ -1,8 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
-import type { CurrentDatabase } from './database.current.types'
+import type { Database } from './database.types'
 
 export function createSupabaseClient() {
-  return createBrowserClient<CurrentDatabase>(
+  return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -14,7 +14,7 @@ export function createSupabaseClient() {
   )
 }
 
-type TypedBrowserClient = ReturnType<typeof createBrowserClient<CurrentDatabase>>
+type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
 
 // Safe singleton — only created once on client side
 let client: TypedBrowserClient | null = null
@@ -26,8 +26,6 @@ export function getSupabaseClient() {
   return client
 }
 
-// The client is strictly typed against the checked-in schema plus the explicit
-// live-schema additions in database.current.types.ts. No any/unknown escape hatch.
 export const supabase = getSupabaseClient()
 
 export async function getTeacherProfile(userId: string) {
