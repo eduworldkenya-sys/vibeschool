@@ -1,11 +1,11 @@
 import type { Database, Json } from './database.types'
 
 /**
- * Live-schema additions that are present in production but not yet represented
- * by the checked-in generated database.types.ts snapshot.
+ * Live-schema additions and contract corrections that are present in production
+ * but not yet represented accurately by the checked-in generated snapshot.
  *
  * This is deliberately explicit: it is a typed contract, not an `any` escape
- * hatch. The next generated-types refresh should absorb these additions into
+ * hatch. The next generated-types refresh should absorb these differences into
  * database.types.ts and this compatibility layer can then be removed.
  */
 type GeneratedPublic = Database['public']
@@ -14,7 +14,15 @@ type GeneratedFunctions = GeneratedPublic['Functions']
 
 type CurrentStudents = GeneratedTables['students']
 type CurrentClaimCodes = GeneratedTables['student_claim_codes']
-type CurrentFunctions = GeneratedFunctions & {
+type CurrentFunctions = Omit<GeneratedFunctions, 'create_child_for_parent'> & {
+  create_child_for_parent: {
+    Args: {
+      p_name: string
+      p_dob: string
+      p_class_id: string | null
+    }
+    Returns: string
+  }
   parent_set_student_self_use: {
     Args: {
       p_enabled: boolean
