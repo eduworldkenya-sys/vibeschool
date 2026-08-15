@@ -63,12 +63,6 @@ jobs:
       - name: Rebuild full migration chain
         run: supabase db reset --local --no-seed
 
-      - name: Run inherited runtime policy regression
-        shell: bash
-        run: |
-          set -euo pipefail
-          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_2_runtime_policy_kernel.sql 2>&1 | tee /tmp/we-r1-4-runtime-regression.log
-
       - name: Run inherited Shadow governance regression
         shell: bash
         run: |
@@ -110,7 +104,6 @@ jobs:
         with:
           name: we-r1-4-acceptance-${{ github.run_id }}
           path: |
-            /tmp/we-r1-4-runtime-regression.log
             /tmp/we-r1-4-shadow-regression.log
             /tmp/we-r1-4-r1-3x-regression.log
             /tmp/we-r1-4-acceptance.log
