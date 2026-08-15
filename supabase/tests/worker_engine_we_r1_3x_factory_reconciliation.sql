@@ -21,7 +21,7 @@ select id,'x8.reuse.analysis',true,1,.6 from public.hq_workforce_capabilities wh
 insert into public.hq_workforce_capability_resources(capability_id,resource_id,access_mode,required,minimum_reliability,priority,constraints)
 select c.id,r.id,'read',true,.9,100,'{}' from public.hq_workforce_capabilities c cross join public.hq_workforce_resources r where c.capability_key='test.x8.reuse' and r.resource_key='test.x8.deterministic';
 insert into public.hq_workforce_tool_contracts(tool_key,version,title,handler_key,required_capability_key,operation,resource_type,side_effect_class,status,approved_at)
-values('test_x8_reuse_tool',1,'X8 reuse fixture','test.x8.reuse','test.x8.reuse','read','hq_workforce','read_only','approved',clock_timestamp());
+values('test_x8_reuse_tool',1,'X8 reuse fixture','work_item.triage_and_own','test.x8.reuse','read','hq_workforce','internal_write','approved',clock_timestamp());
 insert into public.hq_workforce_skill_manifests(skill_key,version,tool_contract_id,autonomy_required,risk_class,allowed_scope_types,allowed_data_classes,max_records_affected,max_attempts,max_runtime_ms,requires_human_approval,verification_required,compensation_strategy,owner_key,certification_status,certified_at,purpose,shadow_capable,immutable_version_key)
 select 'test_x8_reuse_skill',1,id,0,0,array['platform_internal'],array['internal'],1,1,1000,false,true,'none','platform_governance','certified',clock_timestamp(),'X8 certified reuse fixture',true,'test_x8_reuse_skill@1' from public.hq_workforce_tool_contracts where tool_key='test_x8_reuse_tool' and version=1;
 insert into public.hq_workforce_skill_capabilities(skill_manifest_id,capability_id,coverage,role,evidence)
@@ -57,7 +57,7 @@ select id,'x8.missing.specialist',true,1,.8 from public.hq_workforce_capabilitie
 insert into public.hq_workforce_capability_resources(capability_id,resource_id,access_mode,required,minimum_reliability,priority,constraints)
 select c.id,r.id,'read',true,.9,100,'{}' from public.hq_workforce_capabilities c cross join public.hq_workforce_resources r where c.capability_key='test.x8.worker-gap' and r.resource_key='test.x8.deterministic';
 insert into public.hq_workforce_tool_contracts(tool_key,version,title,handler_key,required_capability_key,operation,resource_type,side_effect_class,status,approved_at)
-values('test_x8_gap_tool',1,'X8 gap fixture','test.x8.gap','test.x8.worker-gap','read','hq_workforce','read_only','approved',clock_timestamp());
+values('test_x8_gap_tool',1,'X8 gap fixture','work_item.triage_and_own','test.x8.worker-gap','read','hq_workforce','internal_write','approved',clock_timestamp());
 insert into public.hq_workforce_skill_manifests(skill_key,version,tool_contract_id,autonomy_required,risk_class,allowed_scope_types,allowed_data_classes,max_records_affected,max_attempts,max_runtime_ms,requires_human_approval,verification_required,compensation_strategy,owner_key,certification_status,certified_at,purpose,shadow_capable,immutable_version_key)
 select 'test_x8_gap_skill',1,id,0,0,array['platform_internal'],array['internal'],1,1,1000,false,true,'none','platform_governance','certified',clock_timestamp(),'X8 certified gap fixture',true,'test_x8_gap_skill@1' from public.hq_workforce_tool_contracts where tool_key='test_x8_gap_tool' and version=1;
 insert into public.hq_workforce_skill_capabilities(skill_manifest_id,capability_id,coverage,role,evidence)
