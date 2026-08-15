@@ -4,6 +4,8 @@
 -- Blank-database invariant: this migration is deliberately ordered after the
 -- school identity foundation/review migrations and defines the normalization
 -- primitive before any expression index or function references it.
+-- Access: owner-read/function-write public.school_identity_coverage_runs
+-- Authorization-test: public.school_identity_coverage_runs anon direct access -> denied; authenticated non-owner SELECT -> zero rows; platform owner SELECT -> allowed; no client write policy exists.
 
 create or replace function public.normalize_school_identity_name(p_name text)
 returns text
