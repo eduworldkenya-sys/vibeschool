@@ -2,8 +2,10 @@
 -- NON-ACTIVATING. This gate classifies already-governed execution/verification/recovery
 -- evidence. It does not grant authority, retry consequential business outcomes, mutate
 -- governed resources, or enable runtime, heartbeat, Factory, Shadow, autonomy or risk.
--- access: service-only public.hq_workforce_execution_outcomes and public.hq_workforce_execution_escalations
--- authorization-test: evidence tables deny public/anon/authenticated direct access; service_role is read-only.
+-- access: service-only public.hq_workforce_execution_outcomes
+-- authorization-test: public.hq_workforce_execution_outcomes denies public/anon/authenticated direct access and service_role is read-only.
+-- access: service-only public.hq_workforce_execution_escalations
+-- authorization-test: public.hq_workforce_execution_escalations denies public/anon/authenticated direct access and service_role is read-only.
 
 create table if not exists public.hq_workforce_execution_outcomes (
   id uuid primary key default gen_random_uuid(),
