@@ -49,6 +49,6 @@ $$;
 revoke all on function public.teacher_generate_shared_claim_code(uuid) from public;
 grant execute on function public.teacher_generate_shared_claim_code(uuid) to authenticated;
 
-update public.student_claim_codes
-set role = 'shared'
-where role in ('student','parent');
+-- Legacy student/parent rows are intentionally NOT rewritten here. The later
+-- shared-lifecycle migration first records which lane consumed each historical
+-- credential, then reconciles role to `shared` without losing identity history.
