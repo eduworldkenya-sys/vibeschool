@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/shared-claim-code-10of10
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
