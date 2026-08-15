@@ -22,6 +22,19 @@ do $$
 begin
   if to_regprocedure('public.hq_workforce_assert_consequential_task_authorized(uuid)') is null then raise exception 'consequential authorization function missing'; end if;
   if to_regprocedure('public.hq_workforce_consequential_execution_gateway(uuid)') is null then raise exception 'consequential gateway function missing'; end if;
+  if to_regprocedure('public.hq_workforce_tool_gateway_execute(uuid)') is null then raise exception 'canonical tool gateway missing'; end if;
+end $$;
+
+-- A nonexistent task cannot reach any consequential side effect.
+do $$
+declare v_failed boolean:=false;
+begin
+  begin
+    perform public.hq_workforce_consequential_execution_gateway(gen_random_uuid());
+  exception when others then
+    v_failed:=true;
+  end;
+  if not v_failed then raise exception 'missing task did not fail closed'; end if;
 end $$;
 
 rollback;
