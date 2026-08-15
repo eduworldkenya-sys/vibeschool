@@ -15,8 +15,8 @@ export function createSupabaseClient() {
 }
 
 type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
-type LiveSchemaCompatClient = TypedBrowserClient & {
-  from(relation: string): any
+type LiveSchemaCompatClient = Omit<TypedBrowserClient, 'from' | 'rpc'> & {
+  from(table: string): any
   rpc(fn: string, args?: Record<string, unknown>): any
 }
 
