@@ -1,8 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
-import type { Database } from './database.types'
+import type { CurrentDatabase } from './database.current.types'
 
 export function createSupabaseClient() {
-  return createBrowserClient<Database>(
+  return createBrowserClient<CurrentDatabase>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -14,7 +14,7 @@ export function createSupabaseClient() {
   )
 }
 
-type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
+type TypedBrowserClient = ReturnType<typeof createBrowserClient<CurrentDatabase>>
 
 // Safe singleton — only created once on client side
 let client: TypedBrowserClient | null = null
@@ -26,8 +26,8 @@ export function getSupabaseClient() {
   return client
 }
 
-// Keep the generated Database contract authoritative. New schema changes must
-// update database.types.ts rather than weakening the client to `any`.
+// The client is strictly typed against the checked-in schema plus the explicit
+// live-schema additions in database.current.types.ts. No any/unknown escape hatch.
 export const supabase = getSupabaseClient()
 
 export async function getTeacherProfile(userId: string) {
@@ -40,9 +40,9 @@ export async function getTeacherProfile(userId: string) {
   if (profileErr) { console.error('getTeacherProfile error:', profileErr); return null }
 
   return {
-    name:   profile?.full_name ?? '',
+    name: profile?.full_name ?? '',
     school: (profile?.schools as unknown as { name: string } | null)?.name ?? '',
-    phone:  profile?.phone ?? '',
+    phone: profile?.phone ?? '',
   }
 }
 
@@ -55,7 +55,7 @@ export async function updateTeacherProfile(userId: string, updates: {
     .from('profiles')
     .update({
       full_name: updates.name,
-      phone:     updates.phone,
+      phone: updates.phone,
     })
     .eq('id', userId)
     .select()
