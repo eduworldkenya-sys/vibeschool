@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
 
 export function createSupabaseClient() {
@@ -15,19 +16,14 @@ export function createSupabaseClient() {
 }
 
 type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
+type DynamicQueryClient = SupabaseClient<any>
 
-// The generated Database type is the canonical migration/rebuild contract.
-// Production still contains legacy objects that predate reconstructable migration
-// history. Quarantine only PostgREST query inference at this application boundary;
-// auth, storage, realtime, functions, and the underlying client remain typed.
-//
-// Omit is intentional: intersecting a broad overload with TypedBrowserClient keeps
-// the strict generated `from`/`rpc` overloads eligible, which reintroduces both the
-// global inference explosion and false negatives for production-only legacy schema.
-type ApplicationSupabaseClient = Omit<TypedBrowserClient, 'from' | 'rpc'> & {
-  from(relation: string): any
-  rpc(fn: string, args?: Record<string, unknown>): any
-}
+// Keep auth/storage/realtime from the canonical typed browser client, but use
+// Supabase's own schema-agnostic query-builder signatures for PostgREST calls.
+// This preserves normal chain/result typing without expanding the full generated
+// relationship graph at every application query site.
+type ApplicationSupabaseClient = Omit<TypedBrowserClient, 'from' | 'rpc'> &
+  Pick<DynamicQueryClient, 'from' | 'rpc'>
 
 // Safe singleton — only created once on client side
 let client: TypedBrowserClient | null = null
