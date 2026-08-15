@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "supabase/migrations/*worker_engine_we_r1_3*.sql"
+      - "supabase/migrations/*worker_engine_r1_3x*.sql"
       - "supabase/tests/worker_engine_we_r1_3*.sql"
       - ".github/workflows/worker-engine-we-r1-3-acceptance.yml"
       - "docs/WORKER_ENGINE_WE_R1_3_GOVERNED_SHADOW_OPERATIONS.md"
@@ -37,8 +38,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           workflow=Path('.github/workflows/worker-engine-we-r1-3-acceptance.yml').read_text()
-          paths=sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_3*.sql'))
-          if not paths: raise SystemExit('WE-R1.3 migrations not found')
+          paths=sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_3*.sql')) + sorted(Path('supabase/migrations').glob('*worker_engine_r1_3x*.sql'))
+          if not paths: raise SystemExit('WE-R1.3/R1.3X migrations not found')
           migrations='\n'.join(p.read_text() for p in paths)
           secrets_expr='$'+'{{'+' secrets.'
           forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL','production'+'-migration-repair',secrets_expr]
@@ -49,7 +50,9 @@ jobs:
           missing=[x for x in required if x not in compact]
           if missing: raise SystemExit('fail-closed assignments missing: '+', '.join(missing))
           if 'hq_workforce_tool_gateway_execute(' in migrations.lower(): raise SystemExit('shadow migrations reference consequential gateway invocation')
-          if 'cron.schedule' in migrations.lower(): raise SystemExit('WE-R1.3/R1.3X must not install a scheduler cron')
+          # Historical migrations contain the retired scheduler cron. R1.3X itself must never install or re-install cron.
+          r13x='\n'.join(p.read_text() for p in paths if 'r1_3x' in p.name.lower())
+          if 'cron.schedule' in r13x.lower(): raise SystemExit('WE-R1.3X must not install a scheduler cron')
           PY
 
       - name: Verify Docker
@@ -103,6 +106,11 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_competency_routing_collaboration.sql 2>&1 | tee /tmp/we-r1-3x-x6.log
+      - name: Run WE-R1.3X X7 Scheduler Reconciliation suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_scheduler_reconciliation.sql 2>&1 | tee /tmp/we-r1-3x-x7.log
 
       - name: Upload acceptance evidence
         if: always()
@@ -117,6 +125,7 @@ jobs:
             /tmp/we-r1-3x-x4.log
             /tmp/we-r1-3x-x5.log
             /tmp/we-r1-3x-x6.log
+            /tmp/we-r1-3x-x7.log
           if-no-files-found: warn
           retention-days: 30
       - name: Reassert fail-closed state
