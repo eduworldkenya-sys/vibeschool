@@ -50,7 +50,6 @@ jobs:
           missing=[x for x in required if x not in compact]
           if missing: raise SystemExit('fail-closed assignments missing: '+', '.join(missing))
           if 'hq_workforce_tool_gateway_execute(' in migrations.lower(): raise SystemExit('shadow migrations reference consequential gateway invocation')
-          # Historical migrations contain the retired scheduler cron. R1.3X itself must never install or re-install cron.
           r13x='\n'.join(p.read_text() for p in paths if 'r1_3x' in p.name.lower())
           if 'cron.schedule' in r13x.lower(): raise SystemExit('WE-R1.3X must not install a scheduler cron')
           PY
@@ -111,6 +110,11 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_scheduler_reconciliation.sql 2>&1 | tee /tmp/we-r1-3x-x7.log
+      - name: Run WE-R1.3X X8 Factory Reconciliation suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_factory_reconciliation.sql 2>&1 | tee /tmp/we-r1-3x-x8.log
 
       - name: Upload acceptance evidence
         if: always()
@@ -126,6 +130,7 @@ jobs:
             /tmp/we-r1-3x-x5.log
             /tmp/we-r1-3x-x6.log
             /tmp/we-r1-3x-x7.log
+            /tmp/we-r1-3x-x8.log
           if-no-files-found: warn
           retention-days: 30
       - name: Reassert fail-closed state
