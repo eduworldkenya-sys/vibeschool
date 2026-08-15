@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
 import { C } from '@/components/teacher/ui'
 import { supabase } from '@/lib/supabase'
+import { ClaimCodeCard } from '@/components/claims/ClaimCodeCard'
 import { useRouter, useParams } from 'next/navigation'
 import { getAttendanceRecords, summarizeAttendance } from '@/lib/attendance/summary'
 import { getRangeDates } from '@/lib/attendance/ranges'
@@ -65,33 +66,9 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
   return <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 6px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>{value}</div><div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginTop: 2, lineHeight: 1.3 }}>{label}</div></div>
 }
 
-function secureClaimCode(): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const bytes = new Uint8Array(6)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, value => alphabet[value % alphabet.length]).join('')
-}
-
-function OverviewTab({ student, studentCode, parentCode, onReload, myGroups }: {
-  student: Student; studentCode: ClaimCode | null; parentCode: ClaimCode | null; onReload: () => Promise<void>; myGroups: StudentGroup[]
+function OverviewTab({ student, claimCode, onGenerateCode, onRegenerateCode, myGroups }: {
+  student: Student; claimCode: ClaimCode | null; onGenerateCode: () => Promise<void>; onRegenerateCode: () => Promise<void>; myGroups: StudentGroup[]
 }) {
-  const [copied, setCopied] = useState(false)
-  const [genning, setGenning] = useState(false)
-
-  async function handleGenCode() {
-    setGenning(true)
-    const nextStudentCode = secureClaimCode()
-    const nextParentCode = secureClaimCode()
-    await supabase.from('student_claim_codes').delete().eq('student_id', student.id).eq('claimed', false)
-    const expiry = new Date(); expiry.setDate(expiry.getDate() + 30)
-    const { error } = await supabase.from('student_claim_codes').insert([
-      { student_id: student.id, code: nextStudentCode, claimed: false, role: 'student', expires_at: expiry.toISOString() },
-      { student_id: student.id, code: nextParentCode, claimed: false, role: 'parent', expires_at: expiry.toISOString() },
-    ])
-    setGenning(false)
-    if (!error) await onReload()
-  }
-
   async function handleResetPin() {
     const newPin = prompt('Enter new PIN for ' + student.name + ' (4-6 digits):')
     if (!newPin) return
@@ -104,38 +81,11 @@ function OverviewTab({ student, studentCode, parentCode, onReload, myGroups }: {
     if (result.ok) alert('PIN reset for ' + student.name)
     else alert('Failed: ' + result.error)
   }
-
-  async function handleCopy(code: string) {
-    await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000)
-  }
-
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-    <Card>
-      <SectionHead title="School learner identity" />
-      <div style={{ padding: '10px 12px', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, marginBottom: 12 }}>
-        <p style={{ margin: 0, fontSize: 11, color: C.textMuted, lineHeight: 1.5 }}>This is the same canonical learner identity used by the student and parent views. Teacher access is instructional; school identity corrections must go through authorized school administration.</p>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {[
-          { label: 'Full Name', value: student.name }, { label: 'Admission No.', value: student.admission_number || '—' },
-          { label: 'Gender', value: student.gender || '—' }, { label: 'Date of Birth', value: student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' },
-          { label: 'Autonomy Level', value: student.autonomy_level != null ? String(student.autonomy_level) : '—' },
-          { label: 'Enrolled', value: new Date(student.created_at).toLocaleDateString() }, { label: 'Account Status', value: student.profile_id ? 'Claimed ✓' : 'Unclaimed' },
-          { label: 'Parent Status', value: student.parent_linked_at ? 'Parent Linked ✓' : 'No Parent Linked' },
-        ].map(row => <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid #f3f4f6' }}><span style={{ fontSize: 12, color: C.textMuted }}>{row.label}</span><span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{row.value}</span></div>)}
-      </div>
-    </Card>
-
+    <Card><SectionHead title="School learner identity" /><div style={{ padding: '10px 12px', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, marginBottom: 12 }}><p style={{ margin: 0, fontSize: 11, color: C.textMuted, lineHeight: 1.5 }}>This is the same canonical learner identity used by the student and parent views. Teacher access is instructional; school identity corrections must go through authorized school administration.</p></div><div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[{ label: 'Full Name', value: student.name }, { label: 'Admission No.', value: student.admission_number || '—' }, { label: 'Gender', value: student.gender || '—' }, { label: 'Date of Birth', value: student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' }, { label: 'Autonomy Level', value: student.autonomy_level != null ? String(student.autonomy_level) : '—' }, { label: 'Enrolled', value: new Date(student.created_at).toLocaleDateString() }, { label: 'Account Status', value: student.profile_id ? 'Claimed ✓' : 'Unclaimed' }, { label: 'Parent Status', value: student.parent_linked_at ? 'Parent Linked ✓' : 'No Parent Linked' }].map(row => <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid #f3f4f6' }}><span style={{ fontSize: 12, color: C.textMuted }}>{row.label}</span><span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{row.value}</span></div>)}</div></Card>
     {myGroups.length > 0 && <Card><SectionHead title="Groups" /><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{myGroups.map(g => <div key={`${g.type}:${g.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}><span style={{ fontSize: 12, color: C.textMuted, textTransform: 'capitalize' }}>{g.type} Group</span><span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: g.bg, color: g.color }}>{g.name}</span></div>)}</div></Card>}
-
-    <Card><SectionHead title="Account connection" />
-      {(studentCode || parentCode) ? <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div><p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>Student Code</p>{studentCode ? <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><div><p style={{ fontSize: 26, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 4, fontFamily: 'monospace' }}>{studentCode.code}</p>{studentCode.expires_at && <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>Expires {new Date(studentCode.expires_at).toLocaleDateString()}</p>}</div><button onClick={() => handleCopy(studentCode.code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>{copied ? 'Copied' : 'Copy'}</button></div> : <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>Not generated</p>}</div>
-        <div><p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase', margin: '0 0 8px' }}>Parent Link</p><div style={{ display: 'flex', gap: 8 }}><button onClick={() => handleCopy('https://vibeschool.co.ke/parent/harmonize?sid=' + student.id + (parentCode ? '&token=' + parentCode.code : ''))} style={{ flex: 1, padding: '7px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer' }}>Copy secure link</button><a href={`https://wa.me/?text=${encodeURIComponent('Use this link to connect with ' + student.name + ' on VibeSchool: https://vibeschool.co.ke/parent/harmonize?sid=' + student.id + (parentCode ? '&token=' + parentCode.code : ''))}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '7px 12px', borderRadius: 8, border: '1.5px solid #25D366', color: '#25D366', fontWeight: 700, fontSize: 11, textDecoration: 'none', textAlign: 'center' }}>WhatsApp</a></div></div>
-        {student.profile_id && <button onClick={handleResetPin} style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #ef4444', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Reset Student PIN</button>}
-        <button onClick={handleGenCode} disabled={genning} style={{ padding: '8px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>{genning ? 'Generating…' : 'Regenerate connection codes'}</button>
-      </div> : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>No connection codes yet</p><button onClick={handleGenCode} disabled={genning} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>{genning ? 'Generating…' : 'Generate Codes'}</button></div>}
-    </Card>
+    <ClaimCodeCard studentName={student.name} code={claimCode?.code ?? null} expiresAt={claimCode?.expires_at ?? null} onGenerate={onGenerateCode} onRegenerate={onRegenerateCode} />
+    {student.profile_id && <Card><SectionHead title="Learner account" /><button onClick={handleResetPin} style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid #ef4444', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Reset learner PIN</button><p style={{ fontSize: 10, color: C.textMuted, lineHeight: 1.45, margin: '8px 0 0' }}>Only use this when the learner cannot access their existing account. The claim code is separate from the PIN.</p></Card>}
   </div>
 }
 
@@ -200,7 +150,7 @@ function ResultsTab({ examResults, exams, subjects }: { examResults: ExamResult[
 
 function StudentProfileInner() {
   const router = useRouter(); const params = useParams(); const classId = params.id as string; const studentId = params.studentId as string
-  const [student, setStudent] = useState<Student | null>(null); const [studentCode, setStudentCode] = useState<ClaimCode | null>(null); const [parentCode, setParentCode] = useState<ClaimCode | null>(null)
+  const [student, setStudent] = useState<Student | null>(null); const [claimCode, setClaimCode] = useState<ClaimCode | null>(null)
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]); const [assessments, setAssessments] = useState<Assessment[]>([]); const [homework, setHomework] = useState<Homework[]>([]); const [submissions, setSubmissions] = useState<Submission[]>([]); const [resources, setResources] = useState<Resource[]>([]); const [streaks, setStreaks] = useState<Streak[]>([]); const [goals, setGoals] = useState<Goal[]>([]); const [skills, setSkills] = useState<Skill[]>([]); const [badges, setBadges] = useState<Badge[]>([]); const [examResults, setExamResults] = useState<ExamResult[]>([]); const [exams, setExams] = useState<ExamItem[]>([]); const [subjects, setSubjects] = useState<Subject[]>([]); const [myGroups, setMyGroups] = useState<StudentGroup[]>([]); const [loading, setLoading] = useState(true); const [activeTab, setActiveTab] = useState<Tab>('overview')
 
   async function loadAll() {
@@ -208,7 +158,7 @@ function StudentProfileInner() {
     const { data: { user } } = await supabase.auth.getUser(); if (!user) { router.push('/'); return }
     const [stuRes, codeRes, attRes, asmRes, hwRes, subjRes, resRes, strRes, goalRes, skillRes] = await Promise.all([
       supabase.from('students').select('*').eq('id', studentId).eq('class_id', classId).single(),
-      supabase.from('student_claim_codes').select('code, role, claimed, expires_at').eq('student_id', studentId).eq('claimed', false),
+      supabase.from('student_claim_codes').select('code, role, claimed, expires_at').eq('student_id', studentId).order('expires_at', { ascending: false }).limit(1),
       supabase.from('attendance').select('*').eq('student_id', studentId).eq('class_id', classId).order('date', { ascending: false }),
       supabase.from('cbc_assessments').select('*').eq('student_id', studentId).eq('class_id', classId).order('created_at', { ascending: false }),
       supabase.from('homework').select('*').eq('class_id', classId).order('due_date', { ascending: false }), supabase.from('subjects').select('id, name'),
@@ -227,16 +177,18 @@ function StudentProfileInner() {
     const myGroupIds = new Set((mbrData.data ?? []).map(row => row.group_id).filter((id): id is string => id !== null)); const COLOR_BG: Record<string, string> = { '#065f46': '#d1fae5', '#92400e': '#fef3c7', '#991b1b': '#fee2e2', '#1d4ed8': '#dbeafe', '#6d28d9': '#ede9fe', '#0f766e': '#ccfbf1', '#9d174d': '#fce7f3' }
     setMyGroups(grpData.filter(group => myGroupIds.has(group.id)).map(group => { const color = group.color ?? '#64748b'; return { type: group.type ?? 'group', name: group.name ?? 'Unnamed group', color, bg: COLOR_BG[color] ?? '#f3f4f6' } }))
     const stu = stuRes.data; setStudent({ id: stu.id, name: stu.name, admission_number: stu.admission_number, profile_id: stu.profile_id, date_of_birth: stu.date_of_birth, parent_linked_at: stu.parent_linked_at, gender: stu.gender, autonomy_level: stu.autonomy_level, created_at: stu.created_at ?? '' })
-    const codes = (codeRes.data ?? []) as ClaimCode[]; setStudentCode(codes.find(c => c.role === 'student') ?? null); setParentCode(codes.find(c => c.role === 'parent') ?? null); setAttendance(attRes.data ?? [])
+    const codes = (codeRes.data ?? []) as ClaimCode[]; setClaimCode(codes[0] ?? null); setAttendance(attRes.data ?? [])
     setAssessments((asmRes.data ?? []).map((a: any): Assessment => ({ id: a.id, subject_id: a.subject_id, strand_id: a.strand_id, sub_strand: a.sub_strand, assessment_type: a.assessment_type, performance: a.performance, term: a.term, academic_year: a.academic_year, notes: a.notes, created_at: a.created_at })))
     setSubjects(subjRes.data ?? []); setHomework((hwRes.data ?? []).map((h: any): Homework => ({ id: h.id, title: h.title, subject: h.subject, due_date: h.due_date ?? '', type: h.type }))); setSubmissions((subsData.data ?? []).map((s: any): Submission => ({ homework_id: s.homework_id, status: s.status, mark: s.mark, feedback: s.feedback, submitted_at: s.submitted_at }))); setResources((resRes.data ?? []).map((r: any): Resource => ({ id: r.id, title: r.title, type: r.type, subject: r.subject, external_url: r.external_url, content: r.content, created_at: r.created_at ?? '' }))); setStreaks((strRes.data ?? []).map((s: any): Streak => ({ type: s.type, current_count: s.current_count, longest_count: s.longest_count, last_recorded: s.last_recorded ?? '' }))); setGoals((goalRes.data ?? []).map((g: any): Goal => ({ id: g.id, title: g.title, category: g.category, status: g.status, target_date: g.target_date, description: g.description }))); setSkills((skillRes.data ?? []).map((s: any): Skill => ({ id: s.id, name: s.name, category: s.category, level: s.level, notes: s.notes, endorsed_by: s.endorsed_by })))
     if (cb.length) setBadges((bdgsData.data ?? []).map(badge => ({ id: badge.id, name: badge.name ?? 'Unnamed badge', icon: badge.icon ?? '🏅', category: badge.category ?? 'general', level: badge.level?.toString() ?? '', description: badge.description ?? '', earned_at: cb.find(row => row.badge_id === badge.id)?.earned_at ?? '' }))); else setBadges([])
     setLoading(false)
   }
   useEffect(() => { void loadAll() }, [studentId, classId])
+  async function generateClaimCode() { const { data, error } = await supabase.rpc('teacher_generate_shared_claim_code', { p_student_id: studentId }); if (error) { alert(error.message === 'unauthorized_teacher' ? 'You are not authorized to manage this learner.' : 'We could not create the claim code. Please try again.'); return } const result = data as { status?: string; code?: string; expires_at?: string | null } | null; if (result?.status === 'success' && result.code) setClaimCode({ code: result.code, claimed: false, expires_at: result.expires_at ?? null, role: 'shared' }); else alert('We could not create the claim code. Please try again.') }
+
   const attRate = attendance.length ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100) : 0; const hwDone = homework.length ? submissions.filter(s => s.status === 'submitted' || s.status === 'graded').length : 0; const claimed = !!student?.profile_id
   if (loading || !student) return <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3,4].map(i => <div key={i} style={{ height: 56, borderRadius: 12, background: '#f0f0f0' }} />)}</div>
-  return <div id="student-profile-page" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: '100%' }}><div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #10b981 150%)', padding: '20px 16px 28px' }}><button onClick={() => router.push('/teacher/classhub/' + classId)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, color: '#fff', fontSize: 18, marginBottom: 20 }}>←</button><div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}><div style={{ width: 72, height: 72, borderRadius: '50%', background: claimed ? 'linear-gradient(135deg, #10b981, #065f46)' : 'linear-gradient(135deg, #6d28d9, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#fff' }}>{student.name.charAt(0).toUpperCase()}</div><div><h1 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>{student.name}</h1><p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: '3px 0' }}>{student.admission_number ? 'Adm · ' + student.admission_number : 'No admission number'}</p><span style={{ fontSize: 10, color: claimed ? '#10b981' : '#fbbf24' }}>{claimed ? '● Active' : '○ Unclaimed'}</span></div></div><div style={{ display: 'flex', gap: 8 }}><StatBox label="Attendance" value={attRate + '%'} /><StatBox label="Assessments" value={assessments.length} /><StatBox label="HW Done" value={homework.length ? hwDone + '/' + homework.length : '—'} /><StatBox label="Badges" value={badges.length} /></div></div><div style={{ background: '#fff', borderBottom: '1px solid #f3f4f6', position: 'sticky', top: 56, zIndex: 100 }}><div style={{ display: 'flex', overflowX: 'auto', padding: '0 8px' }}>{TABS.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flexShrink: 0, padding: '12px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, fontWeight: activeTab === t.id ? 800 : 600, color: activeTab === t.id ? C.accent : C.textMuted, borderBottom: activeTab === t.id ? '2.5px solid ' + C.accent : '2.5px solid transparent' }}>{t.icon} {t.label}</button>)}</div></div><div style={{ padding: 16 }}>{activeTab === 'overview' && <OverviewTab student={student} studentCode={studentCode} parentCode={parentCode} onReload={loadAll} myGroups={myGroups} />}{activeTab === 'results' && <ResultsTab examResults={examResults} exams={exams} subjects={subjects} />}{activeTab === 'attendance' && <AttendanceTab records={attendance} studentId={studentId} />}{activeTab === 'assessments' && <AssessmentsTab assessments={assessments} subjects={subjects} />}{activeTab === 'homework' && <HomeworkTab homework={homework} submissions={submissions} />}{activeTab === 'resources' && <ResourcesTab resources={resources} />}{activeTab === 'journey' && <JourneyTab streaks={streaks} goals={goals} skills={skills} />}{activeTab === 'badges' && <BadgesTab badges={badges} />}</div></div>
+  return <div id="student-profile-page" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: '100%' }}><div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #10b981 150%)', padding: '20px 16px 28px' }}><button onClick={() => router.push('/teacher/classhub/' + classId)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, color: '#fff', fontSize: 18, marginBottom: 20 }}>←</button><div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}><div style={{ width: 72, height: 72, borderRadius: '50%', background: claimed ? 'linear-gradient(135deg, #10b981, #065f46)' : 'linear-gradient(135deg, #6d28d9, #4c1d95)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#fff' }}>{student.name.charAt(0).toUpperCase()}</div><div><h1 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>{student.name}</h1><p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: '3px 0' }}>{student.admission_number ? 'Adm · ' + student.admission_number : 'No admission number'}</p><span style={{ fontSize: 10, color: claimed ? '#10b981' : '#fbbf24' }}>{claimed ? '● Active' : '○ Unclaimed'}</span></div></div><div style={{ display: 'flex', gap: 8 }}><StatBox label="Attendance" value={attRate + '%'} /><StatBox label="Assessments" value={assessments.length} /><StatBox label="HW Done" value={homework.length ? hwDone + '/' + homework.length : '—'} /><StatBox label="Badges" value={badges.length} /></div></div><div style={{ background: '#fff', borderBottom: '1px solid #f3f4f6', position: 'sticky', top: 56, zIndex: 100 }}><div style={{ display: 'flex', overflowX: 'auto', padding: '0 8px' }}>{TABS.map(t => <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flexShrink: 0, padding: '12px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, fontWeight: activeTab === t.id ? 800 : 600, color: activeTab === t.id ? C.accent : C.textMuted, borderBottom: activeTab === t.id ? '2.5px solid ' + C.accent : '2.5px solid transparent' }}>{t.icon} {t.label}</button>)}</div></div><div style={{ padding: 16 }}>{activeTab === 'overview' && <OverviewTab student={student} claimCode={claimCode} onGenerateCode={generateClaimCode} onRegenerateCode={generateClaimCode} myGroups={myGroups} />}{activeTab === 'results' && <ResultsTab examResults={examResults} exams={exams} subjects={subjects} />}{activeTab === 'attendance' && <AttendanceTab records={attendance} studentId={studentId} />}{activeTab === 'assessments' && <AssessmentsTab assessments={assessments} subjects={subjects} />}{activeTab === 'homework' && <HomeworkTab homework={homework} submissions={submissions} />}{activeTab === 'resources' && <ResourcesTab resources={resources} />}{activeTab === 'journey' && <JourneyTab streaks={streaks} goals={goals} skills={skills} />}{activeTab === 'badges' && <BadgesTab badges={badges} />}</div></div>
 }
 
 export default function StudentProfilePage() {
