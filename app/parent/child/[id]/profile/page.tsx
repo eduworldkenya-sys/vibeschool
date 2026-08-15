@@ -121,7 +121,7 @@ export default function ParentChildProfilePage() {
 
       const { data: student, error: studentError } = await supabase
         .from("students")
-        .select("id,name,profile_id,class_id,admission_number,date_of_birth,gender,autonomy_level,self_use_enabled")
+        .select("*")
         .eq("id", studentId)
         .single();
 
@@ -238,6 +238,7 @@ export default function ParentChildProfilePage() {
     if (!data || !parentId) return;
     const next = window.prompt(`Enter the correct ${field}:`, currentValue);
     if (!next?.trim() || next.trim() === currentValue) return;
+
     const reason = window.prompt("Reason for this correction (optional):", "") ?? "";
 
     const { error: requestError } = await supabase.from("child_change_requests").insert({
