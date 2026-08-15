@@ -1,6 +1,8 @@
 -- WE-R1.4.3: transactional preconditions + database-owned idempotency.
 -- NON-ACTIVATING. This gate does not enable runtime, heartbeat, Factory, Shadow,
 -- autonomy, risk authority, or capability authority activation.
+-- access: service-only public.hq_workforce_execution_intents
+-- authorization-test: public.hq_workforce_execution_intents denies public/anon/authenticated direct access and service_role is read-only.
 
 create table if not exists public.hq_workforce_execution_intents (
   id uuid primary key default gen_random_uuid(),
@@ -128,8 +130,6 @@ revoke all on function public.hq_workforce_commit_execution_intent(uuid,jsonb) f
 grant execute on function public.hq_workforce_reserve_execution_intent(uuid,uuid,jsonb,jsonb,jsonb) to service_role;
 grant execute on function public.hq_workforce_commit_execution_intent(uuid,jsonb) to service_role;
 
--- Bind the gateway to the execution-intent transaction and enforce target preconditions
--- immediately before the side effect under a row lock.
 create or replace function public.hq_workforce_consequential_execution_gateway(p_task_id uuid)
 returns jsonb
 language plpgsql
@@ -176,9 +176,7 @@ begin
     raise exception 'tool_handler_not_allowlisted';
   end if;
 
-  v_intent:=public.hq_workforce_reserve_execution_intent(
-    t.id,v_authority_id,v_resource_identity,v_precondition,v_desired
-  );
+  v_intent:=public.hq_workforce_reserve_execution_intent(t.id,v_authority_id,v_resource_identity,v_precondition,v_desired);
   v_intent_id:=nullif(v_intent->>'intent_id','')::uuid;
   if coalesce((v_intent->>'reused')::boolean,false) then
     return coalesce(v_intent->'result','{}'::jsonb)||jsonb_build_object('idempotent_replay',true,'intent_id',v_intent_id);
@@ -197,9 +195,7 @@ begin
        set action_taken=coalesce(action_taken,'{}'::jsonb)||jsonb_build_object(
              'worker_key',t.worker_key,'action','triage_and_own','task_id',t.id,
              'authority_grant_id',v_authority_id,'plan_step_id',t.plan_step_id,'execution_intent_id',v_intent_id),
-           acted_at=coalesce(acted_at,clock_timestamp()),
-           updated_at=clock_timestamp(),
-           status='in_progress'
+           acted_at=coalesce(acted_at,clock_timestamp()),updated_at=clock_timestamp(),status='in_progress'
      where id=work_item_id;
 
     result:=jsonb_build_object(
@@ -218,7 +214,6 @@ end $$;
 revoke all on function public.hq_workforce_consequential_execution_gateway(uuid) from public,anon,authenticated;
 grant execute on function public.hq_workforce_consequential_execution_gateway(uuid) to service_role;
 
--- Gate invariant: R1.4.3 is structural only and cannot activate autonomy.
 do $$
 declare ec public.hq_workforce_engine_contract%rowtype; v_active integer;
 begin
