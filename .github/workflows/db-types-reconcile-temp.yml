@@ -11,16 +11,19 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate:
-    name: Generate types from rebuilt branch schema
+    name: Reconcile types from rebuilt branch schema
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - name: Checkout exact branch head
         uses: actions/checkout@v4
+        with:
+          ref: fix/shared-claim-code-10of10
+          fetch-depth: 0
 
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v1
@@ -56,6 +59,21 @@ jobs:
           test -s db-types-artifact/database.types.generated.ts
           sha256sum db-types-artifact/database.types.generated.ts > db-types-artifact/database.types.generated.sha256
           git rev-parse HEAD > db-types-artifact/source-head.txt
+
+      - name: Reconcile repository contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp db-types-artifact/database.types.generated.ts lib/database.types.ts
+          if git diff --quiet -- lib/database.types.ts; then
+            echo "database.types.ts already matches rebuilt branch schema"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/database.types.ts
+          git commit -m "chore: regenerate database types from branch schema"
+          git push origin HEAD:fix/shared-claim-code-10of10
 
       - name: Upload generated contract
         uses: actions/upload-artifact@v4
