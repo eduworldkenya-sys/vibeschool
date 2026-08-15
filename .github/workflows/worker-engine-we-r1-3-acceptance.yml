@@ -123,6 +123,14 @@ jobs:
           code=${PIPESTATUS[0]}
           exit "$code"
 
+      - name: Run WE-R1.3X measurement certification
+        shell: bash
+        run: |
+          set +e
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_measurement.sql 2>&1 | tee /tmp/we-r1-3x-measurement.log
+          code=${PIPESTATUS[0]}
+          exit "$code"
+
       - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -135,6 +143,7 @@ jobs:
             /tmp/we-r1-3x-planning-quality.log
             /tmp/we-r1-3x-reconciliation.log
             /tmp/we-r1-3x-adversarial.log
+            /tmp/we-r1-3x-measurement.log
           if-no-files-found: warn
           retention-days: 30
 
