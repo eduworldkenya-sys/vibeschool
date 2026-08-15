@@ -1,7 +1,7 @@
 -- WE-R1.3X X9: empirical calibration, verification and institutional learning. NON-ACTIVATING.
 -- Static confidence remains only as an explicitly labelled prior until enough verified evidence exists.
 -- access: service-only public.hq_workforce_calibration_observations
--- authorization-test: calibration evidence denies anon/authenticated direct access and is append-only.
+-- authorization-test: public.hq_workforce_calibration_observations denies anon/authenticated direct access and is append-only.
 
 update public.hq_workforce_engine_contract
 set heartbeat_enabled=false,factory_enabled=false,runtime_execution_enabled=false,
