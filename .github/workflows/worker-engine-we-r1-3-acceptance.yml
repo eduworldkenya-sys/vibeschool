@@ -115,6 +115,11 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_factory_reconciliation.sql 2>&1 | tee /tmp/we-r1-3x-x8.log
+      - name: Run WE-R1.3X X9 Calibration Learning suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_calibration_learning.sql 2>&1 | tee /tmp/we-r1-3x-x9.log
 
       - name: Upload acceptance evidence
         if: always()
@@ -131,6 +136,7 @@ jobs:
             /tmp/we-r1-3x-x6.log
             /tmp/we-r1-3x-x7.log
             /tmp/we-r1-3x-x8.log
+            /tmp/we-r1-3x-x9.log
           if-no-files-found: warn
           retention-days: 30
       - name: Reassert fail-closed state
