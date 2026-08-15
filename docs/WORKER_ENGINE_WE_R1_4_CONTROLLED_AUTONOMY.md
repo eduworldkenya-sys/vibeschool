@@ -8,7 +8,7 @@ Prove that one explicitly certified capability can perform one bounded, reversib
 
 Canonical execution chain:
 
-`Objective → Plan → Plan Step → Certified Capability Version → Authority Envelope → Preconditions → Idempotency → Consequential Gateway → Postcondition Verification → Measure → Compensate/Escalate`
+`Objective → Plan → Plan Step → Certified Capability Version → Authority Envelope → Preconditions → Idempotency → Consequential Gateway → Postcondition Verification → Measure → Compensate → Outcome Classification → Escalate`
 
 R1.4 authorizes capabilities, never workers wholesale.
 
@@ -33,7 +33,9 @@ Failure of an entry criterion blocks activation, not engineering.
 - No valid preconditions → no execution.
 - No idempotency key where required → no execution.
 - No bounded compensation strategy where required → no execution.
-- Verification failure → PAUSE / COMPENSATE / ESCALATE.
+- Verification failure → PAUSE / COMPENSATE / CLASSIFY / ESCALATE.
+- Escalation is immutable evidence, never authority and never a mutation gateway.
+- Post-commit business outcomes are never autonomously retried in R1.4.6; transient database retries must replay the complete transaction before a committed outcome exists.
 - Global stop dominates every capability grant.
 - Capability stop dominates worker assignment.
 - Worker identity, lifecycle and competency remain necessary but never sufficient for autonomous authority.
@@ -81,33 +83,37 @@ A mutation is not successful until an independent verifier confirms the exact ex
 
 Persist the pre-execution snapshot needed for bounded compensation. Compensation is a separate governed transition and must itself be verified.
 
-### R1.4.6 — Budgets / rate / concurrency
+### R1.4.6 — Escalation + Outcome Classification
+
+Derive outcomes only from authoritative execution, verification and compensation evidence. Failed verification without completed recovery is non-terminal `recovery_required`; verified success and verified compensation become terminal successful outcomes; divergence, denied/unsafe recovery and contradictory/missing evidence become terminal escalation outcomes. Escalation rows are immutable evidence only and confer no authority. Post-commit business outcomes have zero autonomous retries.
+
+### R1.4.7 — Budgets / rate / concurrency
 
 Enforce capability-specific operations-per-cycle, records-per-operation, rate, concurrency and runtime ceilings in addition to existing worker budgets.
 
-### R1.4.7 — Circuit breakers and stops
+### R1.4.8 — Circuit breakers and stops
 
 Support global, capability and assigned-worker stops. Verification failures, repeated denials, scope anomalies, compensation failures and budget violations trip the relevant breaker fail-closed.
 
-### R1.4.8 — Canary certification
+### R1.4.9 — Canary certification
 
-Certify only `internal.work_queue.prioritize@1` against the exact tool/skill/plan/verification/compensation contracts. Certification does not activate it.
+Certify only `internal.work_queue.prioritize@1` against the exact tool/skill/plan/verification/compensation/outcome contracts. Certification does not activate it.
 
-### R1.4.9 — Adversarial autonomous execution tests
+### R1.4.10 — Adversarial autonomous execution tests
 
-Test missing grants, expired grants, wrong capability version, wrong worker, wrong plan step, stale preconditions, replay, duplicate delivery, over-budget execution, concurrency collision, scope expansion, verifier failure, compensation failure, stop races and privilege bypass.
+Test missing grants, expired grants, wrong capability version, wrong worker, wrong plan step, stale preconditions, replay, duplicate delivery, over-budget execution, concurrency collision, scope expansion, verifier failure, compensation failure, ambiguous evidence, escalation-authority bypass, stop races and privilege bypass.
 
-### R1.4.10 — Production canary
+### R1.4.11 — Production canary
 
 Activation requires a separate explicit production gate. Begin with one operation, one record, one capability, one worker assignment and global stop inheritance. Expand only within the already-certified envelope.
 
-### R1.4.11 — Extended observation
+### R1.4.12 — Extended observation
 
-Measure execution count, denial rate, verification success, compensation count, breaker trips, latency, stale-precondition rate and human intervention. Any unexplained mismatch resets the capability to OFF.
+Measure execution count, denial rate, verification success, compensation count, escalation count, outcome mix, breaker trips, latency, stale-precondition rate and human intervention. Any unexplained mismatch resets the capability to OFF.
 
-### R1.4.12 — Autonomous Operations Certification
+### R1.4.13 — Autonomous Operations Certification
 
-Certify R1.4 only if the exact production evidence proves bounded mutation, independent verification, recoverability and zero authority leakage.
+Certify R1.4 only if the exact production evidence proves bounded mutation, independent verification, recoverability, deterministic terminal outcomes and zero authority leakage.
 
 ## Engineering loop per gate
 
