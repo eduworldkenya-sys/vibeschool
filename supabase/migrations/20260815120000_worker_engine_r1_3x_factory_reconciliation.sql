@@ -1,4 +1,5 @@
 -- WE-R1.3X X8: Factory Reconciliation. NON-ACTIVATING.
+-- Exact-head recertification marker after concurrent main/base movement cancelled prior CI; no runtime semantics changed.
 -- Factory creation is replaced by evidence-first last-resort diagnosis during reconciliation.
 -- access: service-only public.hq_workforce_factory_diagnoses
 -- authorization-test: public.hq_workforce_factory_diagnoses denies anon/authenticated direct access; append-only Factory recommendation evidence.
