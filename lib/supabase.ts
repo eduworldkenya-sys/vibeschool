@@ -16,14 +16,13 @@ export function createSupabaseClient() {
 
 type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
 
-// Keep the generated Database contract authoritative while placing a bounded
-// compiler-complexity boundary around the shared application client. Without
-// these fallback overloads, Supabase/PostgREST relationship inference expands
-// the full generated relationship graph at every shared-client call site and
-// makes project-wide TypeScript validation non-terminating in CI.
-//
-// Known generated relations/RPCs still retain the TypedBrowserClient overloads;
-// the string fallbacks exist only as the compatibility/performance boundary.
+// The generated Database type is the canonical migration/rebuild contract.
+// Production still contains legacy objects that predate reconstructable migration
+// history. Keep that drift quarantined at this application boundary instead of
+// corrupting generated types or teaching unrelated UI code to lie with casts.
+// Known canonical relations/RPCs retain TypedBrowserClient overloads; the broad
+// overloads preserve compatibility for legacy-production objects until their
+// migrations are reconciled into the canonical rebuild.
 type ApplicationSupabaseClient = TypedBrowserClient & {
   from(relation: string): any
   rpc(fn: string, args?: Record<string, unknown>): any
@@ -32,14 +31,14 @@ type ApplicationSupabaseClient = TypedBrowserClient & {
 // Safe singleton — only created once on client side
 let client: TypedBrowserClient | null = null
 
-export function getSupabaseClient() {
+export function getSupabaseClient(): ApplicationSupabaseClient {
   if (!client) {
     client = createSupabaseClient()
   }
-  return client
+  return client as ApplicationSupabaseClient
 }
 
-export const supabase = getSupabaseClient() as ApplicationSupabaseClient
+export const supabase = getSupabaseClient()
 
 export async function getTeacherProfile(userId: string) {
   const sb = getSupabaseClient()
