@@ -13,6 +13,8 @@
 -- SECURITY DECLARATION: source observations and ingest metadata are internal
 -- platform-owner evidence. RLS is enabled and anon/authenticated have no direct
 -- table privileges. The owner-only staging RPC remains the sole write surface.
+-- ACCESS: service-only public.school_directory_source_observations
+-- AUTHORIZATION-TEST: public.school_directory_source_observations direct anon/authenticated access must fail; writes are reachable only through the owner-authorized staging RPC.
 
 alter table public.schools_directory
   add column if not exists source_name text,
@@ -101,8 +103,6 @@ begin
     raise exception 'sha256_checksum_required';
   end if;
 
-  -- Exact snapshot replay is idempotent: return the existing batch rather than
-  -- raising the checksum unique constraint or inserting duplicate observations.
   select id into v_existing_batch
   from public.school_directory_ingest_batches
   where source_name=p_source_name and checksum=lower(trim(p_checksum))
@@ -119,8 +119,6 @@ begin
     );
   end if;
 
-  -- Tier-0 evidence must originate from the registered official host. This
-  -- rejects a third-party mirror being passed under an authoritative source_name.
   if v_authority_tier = 0 then
     if nullif(trim(p_source_url),'') is null then
       raise exception 'tier0_source_url_required';
@@ -175,9 +173,6 @@ begin
       raise exception 'tier0_source_record_id_required';
     end if;
 
-    -- Lower-tier legacy/discovery adapters may lack a native ID. Give the
-    -- observation a deterministic adapter-local identity without representing
-    -- it as government authority.
     if v_source_record_id is null then
       v_source_record_id := encode(digest(
         concat_ws('|',
