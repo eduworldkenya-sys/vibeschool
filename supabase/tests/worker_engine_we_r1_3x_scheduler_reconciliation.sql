@@ -52,18 +52,17 @@ do $$ declare oid uuid; mid uuid; pid uuid; sid uuid; cid uuid; begin
   insert into public.hq_workforce_plan_step_capabilities(plan_step_id,capability_id,role,minimum_coverage) values(sid,cid,'required',1);
 end $$;
 
--- Adversarial proof: one usable critical context plus one later-invalidated policy must fail closed.
--- Authoritative records cannot be mutated to revoked because X2 correctly constrains authoritative => verified.
--- We therefore invalidate the bound policy by expiring its validity window after binding; X7 must revalidate it.
+-- Adversarial proof: one usable critical context plus one stale policy must fail closed.
+-- Keep the authoritative memory record valid and verified; invalidate only the objective binding's freshness contract.
 do $$ declare oid uuid; good_mid uuid; bad_mid uuid; v jsonb; begin
   oid:=public.hq_workforce_create_objective('test.x7.context_fail_closed','acceptance','x7-invalid-context','Prove all critical context remains valid before planning','platform_internal','{}'::jsonb,'[]'::jsonb,'[{"criterion":"all_critical_context_valid"}]'::jsonb,'[{"evidence":"scheduler_events"}]'::jsonb,89::smallint,0::smallint,null::timestamptz,'{"suite":"x7","source":"adversarial"}'::jsonb,null::uuid);
   v:=public.hq_workforce_run_r1_3x_shadow_scheduler('x7-context-detect',10);
   if (select status from public.hq_workforce_objectives where id=oid)<>'context_pending' then raise exception 'X7 adversarial objective did not enter context_pending'; end if;
   good_mid:=public.hq_workforce_add_memory('test.x7.context.good','fact','{"condition":"usable"}'::jsonb,'{"suite":"x7","source":"adversarial"}'::jsonb,'acceptance','x7',1::numeric,'verified',true);
-  bad_mid:=public.hq_workforce_add_memory('test.x7.context.bad','fact','{"condition":"will_expire"}'::jsonb,'{"suite":"x7","source":"adversarial"}'::jsonb,'acceptance','x7',1::numeric,'verified',true);
+  bad_mid:=public.hq_workforce_add_memory('test.x7.context.bad','fact','{"condition":"must_be_fresh"}'::jsonb,'{"suite":"x7","source":"adversarial"}'::jsonb,'acceptance','x7',1::numeric,'verified',true);
   perform public.hq_workforce_bind_objective_context(oid,good_mid,'required','Usable critical context.',3600::bigint);
-  perform public.hq_workforce_bind_objective_context(oid,bad_mid,'policy','Policy context that expires after binding must block planning.',3600::bigint);
-  update public.hq_workforce_memory_records set valid_until=clock_timestamp()-interval '1 second' where id=bad_mid;
+  perform public.hq_workforce_bind_objective_context(oid,bad_mid,'policy','Policy context with zero freshness tolerance must block planning once stale.',0::bigint);
+  perform pg_sleep(0.01);
   v:=public.hq_workforce_run_r1_3x_shadow_scheduler('x7-context-invalid',10);
   if (select status from public.hq_workforce_objectives where id=oid)<>'context_pending' then raise exception 'X7 scheduler advanced despite invalid critical context: %',v; end if;
   if exists(select 1 from public.hq_workforce_scheduler_events where cycle_key='x7-context-invalid' and objective_id=oid and stage='planning') then raise exception 'X7 scheduler emitted planning despite invalid critical context'; end if;
