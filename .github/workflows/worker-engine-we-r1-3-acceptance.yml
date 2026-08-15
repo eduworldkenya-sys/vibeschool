@@ -99,6 +99,14 @@ jobs:
           code=${PIPESTATUS[0]}
           exit "$code"
 
+      - name: Run WE-R1.3X true-Shadow-capability bootstrap suite
+        shell: bash
+        run: |
+          set +e
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_shadow_capability_bootstrap.sql 2>&1 | tee /tmp/we-r1-3x-bootstrap.log
+          code=${PIPESTATUS[0]}
+          exit "$code"
+
       - name: Run WE-R1.3X planning-quality acceptance suite
         shell: bash
         run: |
@@ -140,6 +148,7 @@ jobs:
             /tmp/we-r1-3-adversarial.log
             /tmp/we-r1-3x-capability.log
             /tmp/we-r1-3x-objective.log
+            /tmp/we-r1-3x-bootstrap.log
             /tmp/we-r1-3x-planning-quality.log
             /tmp/we-r1-3x-reconciliation.log
             /tmp/we-r1-3x-adversarial.log
