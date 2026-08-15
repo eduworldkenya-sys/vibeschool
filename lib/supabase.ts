@@ -17,13 +17,27 @@ export function createSupabaseClient() {
 
 type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
 type DynamicQueryClient = SupabaseClient<any>
+type DynamicFromResult = ReturnType<DynamicQueryClient['from']>
+
+type ApplicationQueryMethods = {
+  // PostgREST cannot infer many-to-one cardinality from an untyped schema for
+  // this embedded relation, so leave this one legacy relation dynamic and let
+  // the feature's explicit Profile contract own the narrowing.
+  from(relation: 'meeting_attendees'): any
+  from(relation: string): DynamicFromResult
+
+  // RPC builders are PromiseLike rather than native Promise. Several existing
+  // orchestration helpers intentionally accept native-Promise callbacks, so the
+  // compatibility boundary remains dynamic for RPCs while runtime behavior is
+  // unchanged.
+  rpc(fn: string, args?: object): any
+}
 
 // Keep auth/storage/realtime from the canonical typed browser client, but use
-// Supabase's own schema-agnostic query-builder signatures for PostgREST calls.
-// This preserves normal chain/result typing without expanding the full generated
-// relationship graph at every application query site.
+// a bounded application query surface for PostgREST calls. This avoids expanding
+// the full generated relationship graph at every query site.
 type ApplicationSupabaseClient = Omit<TypedBrowserClient, 'from' | 'rpc'> &
-  Pick<DynamicQueryClient, 'from' | 'rpc'>
+  ApplicationQueryMethods
 
 // Safe singleton — only created once on client side
 let client: TypedBrowserClient | null = null
