@@ -1,16 +1,22 @@
-name: Worker Engine WE-R1.3 Production Promotion
+name: Worker Engine WE-R1.3X Production Promotion
 
 on:
   pull_request:
     paths:
       - ".github/workflows/worker-engine-we-r1-3-production-promotion.yml"
-      - "supabase/migrations/*worker_engine_we_r1_3*.sql"
+      - "supabase/migrations/*worker_engine_we_r1_3x*.sql"
+      - "supabase/migrations/*worker_engine_r1_3x*.sql"
       - "scripts/worker-engine-build-ledger-aligned-stage.py"
       - "scripts/worker-engine-assert-dry-run-plan.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/worker-engine-we-r1-3-production-promotion.yml"
+      - "supabase/migrations/20260815133000_worker_engine_we_r1_3x_production_reconciliation_sentinel.sql"
   workflow_dispatch:
     inputs:
       confirmation:
-        description: Type APPLY_WORKER_ENGINE_WE_R1_3_PRODUCTION to apply the six certified WE-R1.3 migrations
+        description: Type APPLY_WORKER_ENGINE_WE_R1_3X_PRODUCTION to apply the certified WE-R1.3X reconciliation set
         required: true
         type: string
 
@@ -18,12 +24,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: worker-engine-we-r1-3-production-promotion-${{ github.ref }}
+  group: worker-engine-we-r1-3x-production-promotion
   cancel-in-progress: false
 
 jobs:
   validate:
-    name: Validate WE-R1.3 promotion contract
+    name: Validate WE-R1.3X promotion contract
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact ref
@@ -32,11 +38,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          expected="20260814111500 20260814152000 20260814153500 20260814155000 20260814160000 20260814162000"
+          expected="20260815080000 20260815090000 20260815091000 20260815092000 20260815093000 20260815094000 20260815095000 20260815110000 20260815111000 20260815120000 20260815130000 20260815133000"
           for version in $expected; do
             file="$(find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" -print -quit)"
             test -n "$file"
-            grep -F 'worker_engine_we_r1_3' <<<"$file"
+            grep -Eq 'worker_engine_(we_)?r1_3x' <<<"$file"
           done
           migrations="$(cat $(for version in $expected; do find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" -print -quit; done))"
           ! grep -Fq 'hq_workforce_tool_gateway_execute(' <<<"$migrations"
@@ -45,31 +51,35 @@ jobs:
           for invariant in heartbeat_enabled=false factory_enabled=false runtime_execution_enabled=false runtime_autonomy_level=0 runtime_max_risk=0 shadow_enabled=false shadow_scheduler_enabled=false shadow_global_stop=true; do
             grep -Fq "$invariant" <<<"$compact"
           done
-          grep -Fq 'APPLY_WORKER_ENGINE_WE_R1_3_PRODUCTION' .github/workflows/worker-engine-we-r1-3-production-promotion.yml
+          grep -Fq 'APPLY_WORKER_ENGINE_WE_R1_3X_PRODUCTION' .github/workflows/worker-engine-we-r1-3-production-promotion.yml
           grep -Fq 'environment: production-migration-repair' .github/workflows/worker-engine-we-r1-3-production-promotion.yml
           python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
           python3 scripts/test-worker-engine-assert-dry-run-plan.py
 
   apply:
-    name: Protected WE-R1.3 production infrastructure promotion
-    if: github.event_name == 'workflow_dispatch'
+    name: Protected WE-R1.3X production infrastructure promotion
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     environment: production-migration-repair
 
     env:
       EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
 
     steps:
-      - name: Require exact production confirmation and main ref
+      - name: Require authorized production trigger and main ref
         shell: bash
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           set -euo pipefail
-          test "$CONFIRMATION" = "APPLY_WORKER_ENGINE_WE_R1_3_PRODUCTION"
           test "$GITHUB_REF" = "refs/heads/main"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            test "$CONFIRMATION" = "APPLY_WORKER_ENGINE_WE_R1_3X_PRODUCTION"
+          else
+            test "$GITHUB_EVENT_NAME" = "push"
+          fi
 
       - name: Checkout exact main head
         uses: actions/checkout@v4
@@ -80,26 +90,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .worker-engine-we-r1-3-promotion
-          cat > .worker-engine-we-r1-3-promotion/certified-versions.txt <<'EOF'
-          20260814111500
-          20260814152000
-          20260814153500
-          20260814155000
-          20260814160000
-          20260814162000
+          mkdir -p .worker-engine-we-r1-3x-promotion
+          cat > .worker-engine-we-r1-3x-promotion/certified-versions.txt <<'EOF'
+          20260815080000
+          20260815090000
+          20260815091000
+          20260815092000
+          20260815093000
+          20260815094000
+          20260815095000
+          20260815110000
+          20260815111000
+          20260815120000
+          20260815130000
+          20260815133000
           EOF
           {
             echo "run_id=${{ github.run_id }}"
             echo "actor=${{ github.actor }}"
+            echo "event=${{ github.event_name }}"
             echo "ref=${{ github.ref }}"
             echo "sha=${{ github.sha }}"
             echo "project_ref=$EXPECTED_PROJECT_REF"
-            echo "mission=WE-R1.3"
+            echo "mission=WE-R1.3X"
             echo "mode=CONTROLLED_INFRASTRUCTURE_APPLY"
             echo "shadow_activation=false"
             echo "autonomous_activation=false"
-          } > .worker-engine-we-r1-3-promotion/context.txt
+          } > .worker-engine-we-r1-3x-promotion/context.txt
 
       - name: Run promotion regression suites
         shell: bash
@@ -128,26 +145,26 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -o pipefail
-          supabase migration list --linked 2>&1 | tee .worker-engine-we-r1-3-promotion/migration-list-before.txt
+          supabase migration list --linked 2>&1 | tee .worker-engine-we-r1-3x-promotion/migration-list-before.txt
 
-      - name: Parse live ledger and build Worker Engine promotion stage
+      - name: Parse live ledger and build exact promotion stage
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/tbl013-live-ledger-audit.py \
             --migrations-dir supabase/migrations \
-            --ledger .worker-engine-we-r1-3-promotion/migration-list-before.txt \
-            --report .worker-engine-we-r1-3-promotion/tbl013-report-before.json \
-            --plan .worker-engine-we-r1-3-promotion/tbl013-plan-before.md \
+            --ledger .worker-engine-we-r1-3x-promotion/migration-list-before.txt \
+            --report .worker-engine-we-r1-3x-promotion/tbl013-report-before.json \
+            --plan .worker-engine-we-r1-3x-promotion/tbl013-plan-before.md \
             --project-ref "$EXPECTED_PROJECT_REF"
           python3 scripts/worker-engine-build-ledger-aligned-stage.py \
-            --report .worker-engine-we-r1-3-promotion/tbl013-report-before.json \
+            --report .worker-engine-we-r1-3x-promotion/tbl013-report-before.json \
             --migrations-dir supabase/migrations \
             --config supabase/config.toml \
-            --stage-dir .worker-engine-we-r1-3-stage \
-            --manifest .worker-engine-we-r1-3-promotion/staging-manifest.json \
-            --expected-versions .worker-engine-we-r1-3-promotion/actual-pending-versions.txt
-          diff -u .worker-engine-we-r1-3-promotion/certified-versions.txt .worker-engine-we-r1-3-promotion/actual-pending-versions.txt
+            --stage-dir .worker-engine-we-r1-3x-stage \
+            --manifest .worker-engine-we-r1-3x-promotion/staging-manifest.json \
+            --expected-versions .worker-engine-we-r1-3x-promotion/actual-pending-versions.txt
+          diff -u .worker-engine-we-r1-3x-promotion/certified-versions.txt .worker-engine-we-r1-3x-promotion/actual-pending-versions.txt
 
       - name: Link ephemeral stage to production
         shell: bash
@@ -155,7 +172,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
-          cd .worker-engine-we-r1-3-stage
+          cd .worker-engine-we-r1-3x-stage
           supabase link --project-ref "$EXPECTED_PROJECT_REF"
           test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
 
@@ -165,27 +182,27 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -o pipefail
-          cd .worker-engine-we-r1-3-stage
-          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.worker-engine-we-r1-3-promotion/db-push-preflight.txt
+          cd .worker-engine-we-r1-3x-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.worker-engine-we-r1-3x-promotion/db-push-preflight.txt
 
-      - name: Assert dry-run matches all and only certified WE-R1.3 migrations
+      - name: Assert dry-run matches all and only certified migrations
         shell: bash
         run: |
           set -euo pipefail
           python3 scripts/worker-engine-assert-dry-run-plan.py \
-            --expected .worker-engine-we-r1-3-promotion/certified-versions.txt \
-            --dry-run-output .worker-engine-we-r1-3-promotion/db-push-preflight.txt \
-            --report .worker-engine-we-r1-3-promotion/preflight-assertion.txt
-          grep -F 'status=PASSED' .worker-engine-we-r1-3-promotion/preflight-assertion.txt
+            --expected .worker-engine-we-r1-3x-promotion/certified-versions.txt \
+            --dry-run-output .worker-engine-we-r1-3x-promotion/db-push-preflight.txt \
+            --report .worker-engine-we-r1-3x-promotion/preflight-assertion.txt
+          grep -F 'status=PASSED' .worker-engine-we-r1-3x-promotion/preflight-assertion.txt
 
-      - name: Apply exact certified WE-R1.3 infrastructure
+      - name: Apply exact certified WE-R1.3X infrastructure
         shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -o pipefail
-          cd .worker-engine-we-r1-3-stage
-          supabase db push --linked --include-all 2>&1 | tee ../.worker-engine-we-r1-3-promotion/db-push-apply.txt
+          cd .worker-engine-we-r1-3x-stage
+          supabase db push --linked --include-all 2>&1 | tee ../.worker-engine-we-r1-3x-promotion/db-push-apply.txt
 
       - name: Capture and verify post-apply migration ledger
         shell: bash
@@ -193,52 +210,52 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
-          supabase migration list --linked 2>&1 | tee .worker-engine-we-r1-3-promotion/migration-list-after.txt
+          supabase migration list --linked 2>&1 | tee .worker-engine-we-r1-3x-promotion/migration-list-after.txt
           python3 - <<'PY'
           import re
           from pathlib import Path
-          expected=[x.strip() for x in Path('.worker-engine-we-r1-3-promotion/certified-versions.txt').read_text().splitlines() if x.strip()]
-          text=Path('.worker-engine-we-r1-3-promotion/migration-list-after.txt').read_text()
+          expected=[x.strip() for x in Path('.worker-engine-we-r1-3x-promotion/certified-versions.txt').read_text().splitlines() if x.strip()]
+          text=Path('.worker-engine-we-r1-3x-promotion/migration-list-after.txt').read_text()
           remote=set()
           for line in text.splitlines():
               cols=[c.strip().strip('`') for c in line.split('|')]
               if len(cols)>=2 and re.fullmatch(r'\d{8,14}',cols[1]): remote.add(cols[1])
           missing=[v for v in expected if v not in remote]
-          report=[f'expected_count={len(expected)}',f'remote_present_count={sum(v in remote for v in expected)}',f'missing_expected={missing}','status='+('PASSED' if not missing and len(expected)==6 else 'FAILED')]
-          Path('.worker-engine-we-r1-3-promotion/post-apply-ledger-assertion.txt').write_text('\n'.join(report)+'\n')
+          report=[f'expected_count={len(expected)}',f'remote_present_count={sum(v in remote for v in expected)}',f'missing_expected={missing}','status='+('PASSED' if not missing and len(expected)==12 else 'FAILED')]
+          Path('.worker-engine-we-r1-3x-promotion/post-apply-ledger-assertion.txt').write_text('\n'.join(report)+'\n')
           print('\n'.join(report))
-          if missing or len(expected)!=6: raise SystemExit(1)
+          if missing or len(expected)!=12: raise SystemExit(1)
           PY
 
-      - name: Re-run dry plan and require zero WE-R1.3 pending work
+      - name: Re-run dry plan and require zero pending WE-R1.3X work
         shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -o pipefail
-          cd .worker-engine-we-r1-3-stage
-          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.worker-engine-we-r1-3-promotion/db-push-postflight-dry-run.txt
+          cd .worker-engine-we-r1-3x-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.worker-engine-we-r1-3x-promotion/db-push-postflight-dry-run.txt
           cd ..
-          for version in $(cat .worker-engine-we-r1-3-promotion/certified-versions.txt); do
-            ! grep -Fq "$version" .worker-engine-we-r1-3-promotion/db-push-postflight-dry-run.txt
+          for version in $(cat .worker-engine-we-r1-3x-promotion/certified-versions.txt); do
+            ! grep -Fq "$version" .worker-engine-we-r1-3x-promotion/db-push-postflight-dry-run.txt
           done
 
       - name: Assert activation remains outside promotion scope
         shell: bash
         run: |
           set -euo pipefail
-          grep -F 'shadow_activation=false' .worker-engine-we-r1-3-promotion/context.txt
-          grep -F 'autonomous_activation=false' .worker-engine-we-r1-3-promotion/context.txt
-          grep -F 'status=PASSED' .worker-engine-we-r1-3-promotion/preflight-assertion.txt
-          grep -F 'status=PASSED' .worker-engine-we-r1-3-promotion/post-apply-ledger-assertion.txt
-          sha256sum .worker-engine-we-r1-3-promotion/* > .worker-engine-we-r1-3-promotion/evidence.sha256
+          grep -F 'shadow_activation=false' .worker-engine-we-r1-3x-promotion/context.txt
+          grep -F 'autonomous_activation=false' .worker-engine-we-r1-3x-promotion/context.txt
+          grep -F 'status=PASSED' .worker-engine-we-r1-3x-promotion/preflight-assertion.txt
+          grep -F 'status=PASSED' .worker-engine-we-r1-3x-promotion/post-apply-ledger-assertion.txt
+          sha256sum .worker-engine-we-r1-3x-promotion/* > .worker-engine-we-r1-3x-promotion/evidence.sha256
 
       - name: Upload immutable production-promotion evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: worker-engine-we-r1-3-production-promotion-${{ github.run_id }}
-          path: .worker-engine-we-r1-3-promotion/
+          name: worker-engine-we-r1-3x-production-promotion-${{ github.run_id }}
+          path: .worker-engine-we-r1-3x-promotion/
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 90
