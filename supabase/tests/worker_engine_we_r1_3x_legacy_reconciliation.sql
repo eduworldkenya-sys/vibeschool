@@ -16,13 +16,14 @@ insert into public.hq_workforce_worker_competencies(worker_key,competency_key,ve
 values('r13x-cross-lane-worker','quality.analysis',1,.99,.98,'certified',array['platform_internal','global'],array['global']);
 insert into public.hq_workforce_resources(resource_key,version,resource_type,display_name,trust_tier,allowed_scope_types,allowed_operations,health_status,enabled,shadow_capable,risk_class)
 values('r13x.reconciliation.quality_source',1,'dataset','Reconciliation quality evidence',5,array['platform_internal','global'],array['read'],'healthy',true,true,0);
-
 insert into public.hq_workforce_tool_contracts(tool_key,version,title,handler_key,required_capability_key,operation,resource_type,side_effect_class,status,approved_at)
 values('r13x-reconciliation-shadow-tool',1,'R1.3X reconciliation shadow tool','work_item.triage_and_own','quality.analysis','update','hq_work_items','internal_write','approved',clock_timestamp()) returning id \gset tool_
 insert into public.hq_workforce_skill_manifests(skill_key,version,tool_contract_id,autonomy_required,risk_class,allowed_scope_types,allowed_data_classes,max_records_affected,max_attempts,max_runtime_ms,requires_human_approval,verification_required,compensation_strategy,owner_key,certification_status,certified_at,purpose,input_contract,resource_contract,preconditions,expected_outcome,verification_contract,failure_handling,retry_policy,escalation_contract,shadow_capable,immutable_version_key)
 values('r13x.quality.inspect',1,:'tool_id',0,0,array['platform_internal','global'],array['internal'],1,2,30000,true,true,'manual_review','platform_governance','certified',clock_timestamp(),'Inspect quality evidence in Shadow Mode','{}','{}','[]','{}','{}','{}','{}','{}',true,'r13x.quality.inspect@1') returning id \gset skill_
 insert into public.hq_workforce_skill_resources(skill_manifest_id,resource_id,usage_role,operation)
 select :'skill_id',id,'input','read' from public.hq_workforce_resources where resource_key='r13x.reconciliation.quality_source';
+insert into public.hq_workforce_competency_capabilities(competency_key,skill_key,version,min_skill_version,priority,status,approved_at)
+values('quality.analysis','r13x.quality.inspect',1,1,1000,'approved',clock_timestamp());
 
 insert into public.hq_work_items(department_key,work_type,priority,status,title,summary,source_type,route,approval_required,evidence)
 values('quality','r13x_reconciliation','high','open','Cross-lane quality objective','Must route by competency instead of department equality','acceptance','/hq/workforce',false,'{}') returning id \gset work_
@@ -60,6 +61,6 @@ end $$;
 do $$ declare ec public.hq_workforce_engine_contract%rowtype; begin
  select * into ec from public.hq_workforce_engine_contract where singleton=true;
  if ec.heartbeat_enabled or ec.factory_enabled or ec.runtime_execution_enabled or ec.runtime_autonomy_level<>0 then raise exception 'legacy_positive_control_reactivated'; end if;
+ if has_function_privilege('service_role','public.hq_workforce_scheduled_heartbeat()','EXECUTE') then raise exception 'legacy_scheduler_authority_restored'; end if;
 end $$;
-
 rollback;
