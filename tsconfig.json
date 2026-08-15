@@ -28,6 +28,9 @@
       }
     ],
     "paths": {
+      "@/lib/database.types": [
+        "./lib/application-database.types.ts"
+      ],
       "@/*": [
         "./*"
       ]
