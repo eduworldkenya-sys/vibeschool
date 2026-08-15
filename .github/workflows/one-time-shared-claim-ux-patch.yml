@@ -1,0 +1,120 @@
+name: One-time shared claim UX migration
+
+on:
+  push:
+    branches: [fix/shared-claim-code-10of10]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "!contains(github.event.head_commit.message, '[claim-ux-patched]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply surgical teacher claim migration
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('app/teacher/classhub/[id]/student/[studentId]/page.tsx')
+          text = path.read_text()
+
+          marker = "import { supabase } from '@/lib/supabase'"
+          if "@/components/claims/ClaimCodeCard" not in text:
+              text = text.replace(marker, marker + "\nimport { ClaimCodeCard } from '@/components/claims/ClaimCodeCard'")
+
+          text = re.sub(r"\nfunction secureClaimCode\(\): string \{.*?\n\}\n\nfunction OverviewTab", "\nfunction OverviewTab", text, flags=re.S)
+
+          overview = r'''function OverviewTab({ student, claimCode, onGenerateCode, onRegenerateCode, myGroups }: {
+  student: Student; claimCode: ClaimCode | null; onGenerateCode: () => Promise<void>; onRegenerateCode: () => Promise<void>; myGroups: StudentGroup[]
+}) {
+  async function handleResetPin() {
+    const newPin = prompt('Enter new PIN for ' + student.name + ' (4-6 digits):')
+    if (!newPin) return
+    if (!/^\d{4,6}$/.test(newPin)) { alert('PIN must contain 4-6 digits.'); return }
+    if (!student.profile_id) { alert('This learner has not claimed an account yet.'); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) { alert('Your session expired. Sign in again.'); return }
+    const res = await fetch('/api/reset-student-pin', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token }, body: JSON.stringify({ student_auth_id: student.profile_id, new_pin: newPin }) })
+    const result = await res.json()
+    if (result.ok) alert('PIN reset for ' + student.name)
+    else alert('Failed: ' + result.error)
+  }
+
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <Card>
+      <SectionHead title="School learner identity" />
+      <div style={{ padding: '10px 12px', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 12, marginBottom: 12 }}>
+        <p style={{ margin: 0, fontSize: 11, color: C.textMuted, lineHeight: 1.5 }}>This is the same canonical learner identity used by the student and parent views. Teacher access is instructional; school identity corrections must go through authorized school administration.</p>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {[
+          { label: 'Full Name', value: student.name }, { label: 'Admission No.', value: student.admission_number || '—' },
+          { label: 'Gender', value: student.gender || '—' }, { label: 'Date of Birth', value: student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' },
+          { label: 'Autonomy Level', value: student.autonomy_level != null ? String(student.autonomy_level) : '—' },
+          { label: 'Enrolled', value: new Date(student.created_at).toLocaleDateString() }, { label: 'Account Status', value: student.profile_id ? 'Claimed ✓' : 'Unclaimed' },
+          { label: 'Parent Status', value: student.parent_linked_at ? 'Parent Linked ✓' : 'No Parent Linked' },
+        ].map(row => <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid #f3f4f6' }}><span style={{ fontSize: 12, color: C.textMuted }}>{row.label}</span><span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{row.value}</span></div>)}
+      </div>
+    </Card>
+
+    {myGroups.length > 0 && <Card><SectionHead title="Groups" /><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{myGroups.map(g => <div key={`${g.type}:${g.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}><span style={{ fontSize: 12, color: C.textMuted, textTransform: 'capitalize' }}>{g.type} Group</span><span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20, background: g.bg, color: g.color }}>{g.name}</span></div>)}</div></Card>}
+
+    <ClaimCodeCard studentName={student.name} code={claimCode?.code ?? null} expiresAt={claimCode?.expires_at ?? null} onGenerate={onGenerateCode} onRegenerate={onRegenerateCode} />
+
+    {student.profile_id && <Card><SectionHead title="Learner account" /><button onClick={handleResetPin} style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1.5px solid #ef4444', background: 'transparent', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Reset learner PIN</button><p style={{ fontSize: 10, color: C.textMuted, lineHeight: 1.45, margin: '8px 0 0' }}>Only use this when the learner cannot access their existing account. The claim code is separate from the PIN.</p></Card>}
+  </div>
+}
+'''
+          text, count = re.subn(r"function OverviewTab\(.*?\n\}\n\nconst ATTENDANCE_RANGES", overview + "\nconst ATTENDANCE_RANGES", text, flags=re.S)
+          if count != 1:
+              raise SystemExit(f'OverviewTab replacement count={count}')
+
+          text = text.replace("const [student, setStudent] = useState<Student | null>(null); const [studentCode, setStudentCode] = useState<ClaimCode | null>(null); const [parentCode, setParentCode] = useState<ClaimCode | null>(null)", "const [student, setStudent] = useState<Student | null>(null); const [claimCode, setClaimCode] = useState<ClaimCode | null>(null)")
+          old_query = "supabase.from('student_claim_codes').select('code, role, claimed, expires_at').eq('student_id', studentId).eq('claimed', false)"
+          new_query = "supabase.from('student_claim_codes').select('code, role, claimed, expires_at').eq('student_id', studentId).order('expires_at', { ascending: false }).limit(1)"
+          if old_query not in text:
+              raise SystemExit('legacy claim query not found')
+          text = text.replace(old_query, new_query)
+          old_codes = "const codes = (codeRes.data ?? []) as ClaimCode[]; setStudentCode(codes.find(c => c.role === 'student') ?? null); setParentCode(codes.find(c => c.role === 'parent') ?? null); setAttendance(attRes.data ?? [])"
+          new_codes = "const codes = (codeRes.data ?? []) as ClaimCode[]; setClaimCode(codes[0] ?? null); setAttendance(attRes.data ?? [])"
+          if old_codes not in text:
+              raise SystemExit('legacy claim state assignment not found')
+          text = text.replace(old_codes, new_codes)
+
+          anchor = "  useEffect(() => { void loadAll() }, [studentId, classId])"
+          generator = """  async function generateClaimCode() {\n    const { data, error } = await supabase.rpc('teacher_generate_shared_claim_code', { p_student_id: studentId })\n    if (error) { alert(error.message === 'unauthorized_teacher' ? 'You are not authorized to manage this learner.' : 'We could not create the claim code. Please try again.'); return }\n    const result = data as { status?: string; code?: string; expires_at?: string | null } | null\n    if (result?.status === 'success' && result.code) setClaimCode({ code: result.code, claimed: false, expires_at: result.expires_at ?? null, role: 'shared' })\n    else alert('We could not create the claim code. Please try again.')\n  }\n"""
+          if anchor not in text:
+              raise SystemExit('load effect anchor not found')
+          text = text.replace(anchor, anchor + "\n" + generator)
+
+          old_render = "<OverviewTab student={student} studentCode={studentCode} parentCode={parentCode} onReload={loadAll} myGroups={myGroups} />"
+          new_render = "<OverviewTab student={student} claimCode={claimCode} onGenerateCode={generateClaimCode} onRegenerateCode={generateClaimCode} myGroups={myGroups} />"
+          if old_render not in text:
+              raise SystemExit('legacy OverviewTab render not found')
+          text = text.replace(old_render, new_render)
+
+          if 'Student Code' in text or 'Parent Link' in text or 'Regenerate connection codes' in text or "role: 'parent'" in text or "role: 'student'" in text:
+              raise SystemExit('legacy claim UX remains after patch')
+
+          path.write_text(text)
+      - name: Typecheck changed teacher surface
+        run: |
+          test -f app/teacher/classhub/'[id]'/student/'[studentId]'/page.tsx
+          grep -q "ClaimCodeCard" app/teacher/classhub/'[id]'/student/'[studentId]'/page.tsx
+          ! grep -qE "Student Code|Parent Link|Regenerate connection codes|role: 'parent'|role: 'student'" app/teacher/classhub/'[id]'/student/'[studentId]'/page.tsx
+
+      - name: Commit surgical migration and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/teacher/classhub/'[id]'/student/'[studentId]'/page.tsx
+          git rm .github/workflows/one-time-shared-claim-ux-patch.yml
+          git commit -m "feat: migrate teacher learner to shared claim code [claim-ux-patched]"
+          git push
