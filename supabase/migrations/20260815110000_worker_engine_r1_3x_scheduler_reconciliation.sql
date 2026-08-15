@@ -193,10 +193,20 @@ begin
     'shadow_ready',ready_count,'blocked',blocked_count,'routed_steps',routed_steps,'pipeline',jsonb_build_array('sense','objective','context','planning','resolve','route','shadow'),'consequential_execution',false);
 end $$;
 
+-- Historical API remains callable for compatibility, but it is now a fail-closed adapter.
+-- Crucially, the OFF contract is checked here before any delegation, preserving R1.3 safety semantics
+-- while preventing the historical open-work-item scanner from remaining an intelligence path.
 create or replace function public.hq_workforce_run_shadow_cycle(p_cycle_key text,p_limit integer default 25)
-returns jsonb language sql security definer set search_path=public,pg_temp as $$
-  select public.hq_workforce_run_r1_3x_shadow_scheduler(p_cycle_key,p_limit)
-$$;
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare ec public.hq_workforce_engine_contract%rowtype;
+begin
+  select * into ec from public.hq_workforce_engine_contract where singleton=true;
+  if not found then raise exception 'runtime_contract_missing'; end if;
+  if not ec.shadow_enabled or not ec.shadow_scheduler_enabled or ec.shadow_global_stop then
+    return jsonb_build_object('status','disabled','reason','shadow_scheduler_global_stop','cycle_key',p_cycle_key,'consequential_execution',false);
+  end if;
+  return public.hq_workforce_run_r1_3x_shadow_scheduler(p_cycle_key,p_limit);
+end $$;
 
 alter table public.hq_workforce_scheduler_events enable row level security;
 revoke all on table public.hq_workforce_scheduler_events from public,anon,authenticated;
