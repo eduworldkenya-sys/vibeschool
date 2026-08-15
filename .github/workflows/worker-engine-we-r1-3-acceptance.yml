@@ -48,70 +48,56 @@ jobs:
           required=['heartbeat_enabled=false','factory_enabled=false','runtime_execution_enabled=false','runtime_autonomy_level=0','runtime_max_risk=0','shadow_enabled=false','shadow_scheduler_enabled=false','shadow_global_stop=true']
           missing=[x for x in required if x not in compact]
           if missing: raise SystemExit('fail-closed assignments missing: '+', '.join(missing))
-          if 'hq_workforce_tool_gateway_execute(' in migrations.lower():
-              raise SystemExit('shadow migrations reference consequential gateway invocation')
-          if 'cron.schedule' in migrations.lower():
-              raise SystemExit('WE-R1.3/R1.3X must not install a scheduler cron')
+          if 'hq_workforce_tool_gateway_execute(' in migrations.lower(): raise SystemExit('shadow migrations reference consequential gateway invocation')
+          if 'cron.schedule' in migrations.lower(): raise SystemExit('WE-R1.3/R1.3X must not install a scheduler cron')
           PY
 
       - name: Verify Docker
         run: docker info >/dev/null
-
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: 2.114.0
-
       - name: Disable seed for schema-only proof
         shell: bash
         run: |
           set -euo pipefail
           if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
-
       - name: Start disposable local Supabase
         run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
-
       - name: Rebuild full migration chain
         run: supabase db reset --local --no-seed
 
       - name: Run WE-R1.3 adversarial acceptance suite
-        id: adversarial
         shell: bash
         run: |
-          set +e
+          set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql 2>&1 | tee /tmp/we-r1-3-adversarial.log
-          code=${PIPESTATUS[0]}
-          {
-            echo '## WE-R1.3 adversarial acceptance output'
-            echo '```text'
-            tail -n 120 /tmp/we-r1-3-adversarial.log
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit "$code"
-
       - name: Run WE-R1.3X X1 Objective Kernel suite
         shell: bash
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_objective_kernel.sql 2>&1 | tee /tmp/we-r1-3x-x1.log
-
       - name: Run WE-R1.3X X2 Memory Context suite
         shell: bash
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_memory_context_fabric.sql 2>&1 | tee /tmp/we-r1-3x-x2.log
-
       - name: Run WE-R1.3X X3 Capability Competency suite
         shell: bash
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_capability_competency_graph.sql 2>&1 | tee /tmp/we-r1-3x-x3.log
-
       - name: Run WE-R1.3X X4 Resource Registry Resolver suite
         shell: bash
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_resource_registry_resolver.sql 2>&1 | tee /tmp/we-r1-3x-x4.log
+      - name: Run WE-R1.3X X5 Planning Graph suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_planning_graph.sql 2>&1 | tee /tmp/we-r1-3x-x5.log
 
       - name: Upload acceptance evidence
         if: always()
@@ -124,16 +110,15 @@ jobs:
             /tmp/we-r1-3x-x2.log
             /tmp/we-r1-3x-x3.log
             /tmp/we-r1-3x-x4.log
+            /tmp/we-r1-3x-x5.log
           if-no-files-found: warn
           retention-days: 30
-
       - name: Reassert fail-closed state
         if: always()
         shell: bash
         run: |
           STATE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text||'|'||shadow_anomaly_paused::text from public.hq_workforce_engine_contract where singleton=true")"
           test "$STATE" = "false|false|false|0|0|false|false|true|false"
-
       - name: Destroy disposable database
         if: always()
         run: supabase stop --no-backup >/dev/null 2>&1 || true
