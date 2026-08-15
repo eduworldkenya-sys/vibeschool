@@ -12,13 +12,16 @@ begin
   if to_regclass('public.hq_workforce_plans') is null then raise exception 'R1.3X production sentinel: planning graph missing'; end if;
   if to_regclass('public.hq_workforce_collaborations') is null then raise exception 'R1.3X production sentinel: collaboration fabric missing'; end if;
   if to_regclass('public.hq_workforce_scheduler_events') is null then raise exception 'R1.3X production sentinel: scheduler reconciliation missing'; end if;
-  if to_regclass('public.hq_workforce_factory_recommendations') is null then raise exception 'R1.3X production sentinel: factory reconciliation missing'; end if;
+  if to_regclass('public.hq_workforce_factory_diagnoses') is null then raise exception 'R1.3X production sentinel: factory diagnosis fabric missing'; end if;
 
   if to_regprocedure('public.hq_workforce_run_r1_3x_shadow_scheduler(text,integer)') is null then
     raise exception 'R1.3X production sentinel: canonical shadow scheduler missing';
   end if;
   if to_regprocedure('public.hq_workforce_route_plan_step(uuid,text,text)') is null then
     raise exception 'R1.3X production sentinel: competency router missing';
+  end if;
+  if to_regprocedure('public.hq_workforce_diagnose_factory_gap(uuid)') is null then
+    raise exception 'R1.3X production sentinel: canonical last-resort factory diagnosis missing';
   end if;
 
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
