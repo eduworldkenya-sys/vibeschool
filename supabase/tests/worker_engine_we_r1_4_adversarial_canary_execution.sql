@@ -38,6 +38,7 @@ begin
       raise exception 'unexpected canary control execution privilege for %',r;
     end if;
   end loop;
+  -- Legacy helper implementations remain internal/non-callable after canonicalization.
   if has_function_privilege('service_role','public.hq_workforce_verify_priority_canary(uuid,text)','EXECUTE') then raise exception 'service_role bypasses canonical verifier'; end if;
   if has_function_privilege('service_role','public.hq_workforce_compensate_priority_canary(uuid,text,text)','EXECUTE') then raise exception 'service_role bypasses canonical compensation'; end if;
 end $$;
@@ -59,34 +60,45 @@ begin
   if position('records_affected'',1' in d)=0 then raise exception 'single-record evidence missing'; end if;
 end $$;
 
--- Canary verifier and compensation must route through canonical entrypoints, not be public alternatives.
+-- Canary verification and compensation must be embedded in canonical entrypoints, not delegated
+-- to separately executable mutation/recovery gateways.
 do $$
 declare vd text; cd text;
 begin
   select lower(pg_get_functiondef('public.hq_workforce_verify_consequential_execution(uuid,text)'::regprocedure)) into vd;
   select lower(pg_get_functiondef('public.hq_workforce_compensate_consequential_execution(uuid,text,text)'::regprocedure)) into cd;
-  if position('update_priority' in vd)=0 or position('hq_workforce_verify_priority_canary' in vd)=0 then raise exception 'canonical verifier does not dispatch canary'; end if;
-  if position('update_priority' in cd)=0 or position('hq_workforce_compensate_priority_canary' in cd)=0 then raise exception 'canonical compensation does not dispatch canary'; end if;
+  if position('internal.work_queue.prioritize' in vd)=0 or position('update_priority' in vd)=0
+     or position('v_is_priority_canary' in vd)=0 then raise exception 'canonical verifier missing canary branch'; end if;
+  if position('worker_cannot_verify_own_execution' in vd)=0
+     or position('verification_execution_intent_not_committed' in vd)=0
+     or position('verification_contract_missing' in vd)=0 then raise exception 'canonical verifier lost inherited verification gates'; end if;
+  if position('internal.work_queue.prioritize' in cd)=0 or position('update_priority' in cd)=0
+     or position('v_is_priority_canary' in cd)=0 then raise exception 'canonical compensation missing canary branch'; end if;
+  if position('compensation_requires_failed_verification' in cd)=0
+     or position('compensation_recovery_snapshot_missing' in cd)=0
+     or position('compare-and-compensate' in cd)=0 then raise exception 'canonical compensation lost inherited recovery gates'; end if;
 end $$;
 
 -- Independent verification must bind expected priority AND continued queue admission.
 do $$
 declare d text;
 begin
-  select lower(pg_get_functiondef('public.hq_workforce_verify_priority_canary(uuid,text)'::regprocedure)) into d;
+  select lower(pg_get_functiondef('public.hq_workforce_verify_consequential_execution(uuid,text)'::regprocedure)) into d;
   if position('worker_cannot_verify_own_execution' in d)=0 then raise exception 'self-verification denial missing'; end if;
   if position('queue_member' in d)=0 or position('worker_engine_internal' in d)=0 then raise exception 'verifier queue-boundary check missing'; end if;
   if position('priority' in d)=0 or position('v_expected=v_observed' in d)=0 then raise exception 'exact priority verifier missing'; end if;
+  if position('execution_intent_id' in d)=0 or position('authority_grant_id' in d)=0 or position('plan_step_id' in d)=0 then raise exception 'canary verification lineage incomplete'; end if;
 end $$;
 
 -- Compensation must compare the current priority before restoring the exact authoritative snapshot.
 do $$
 declare d text;
 begin
-  select lower(pg_get_functiondef('public.hq_workforce_compensate_priority_canary(uuid,text,text)'::regprocedure)) into d;
+  select lower(pg_get_functiondef('public.hq_workforce_compensate_consequential_execution(uuid,text,text)'::regprocedure)) into d;
   if position('current_priority_diverged' in d)=0 then raise exception 'human/process collision protection missing'; end if;
   if position('authoritative_before_state' in d)=0 or position('expected_after_state' in d)=0 then raise exception 'recovery snapshot lineage missing'; end if;
   if position('set priority=i.authoritative_before_state->>''priority''' in d)=0 then raise exception 'exact priority restore missing'; end if;
+  if position('compensation_authority_lineage_mismatch' in d)=0 then raise exception 'compensation authority lineage gate missing'; end if;
 end $$;
 
 -- Missing authority/lineage and invented targets must fail closed rather than reach a mutation.
