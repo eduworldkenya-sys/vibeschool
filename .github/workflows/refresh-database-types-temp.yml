@@ -1,0 +1,46 @@
+name: Refresh database types temporary
+
+on:
+  push:
+    branches:
+      - fix/shared-claim-code-10of10
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-database-types-temp
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_ID: yauqsxggtuxuykcbrtzf
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/shared-claim-code-10of10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate canonical database contract
+        run: npx --yes supabase@latest gen types typescript --project-id "$PROJECT_ID" > lib/database.types.ts
+      - name: Verify generated contract is non-empty
+        run: |
+          test -s lib/database.types.ts
+          grep -q 'export type Database' lib/database.types.ts
+      - name: Commit generated contract when changed
+        run: |
+          if git diff --quiet -- lib/database.types.ts; then
+            echo 'Database types already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/database.types.ts
+          git commit -m 'chore(types): sync canonical Supabase schema contract'
+          git push origin HEAD:fix/shared-claim-code-10of10
