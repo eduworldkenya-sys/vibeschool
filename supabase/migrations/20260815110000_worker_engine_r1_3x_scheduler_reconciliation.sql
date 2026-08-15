@@ -149,7 +149,10 @@ begin
             select 1 from public.hq_workforce_plan_step_resources pr
             where pr.plan_step_id=ps.id and pr.capability_id=psc.capability_id and pr.access_mode=cr.access_mode and pr.required)
         loop
-          res:=public.hq_workforce_resolve_resource(cap.capability_id,o.scope_type,'global','internal',cap.access_mode,0,0,true,o.id);
+          res:=public.hq_workforce_resolve_resource(
+            cap.capability_id,o.scope_type,'global','internal',cap.access_mode,
+            0::smallint,0::smallint,true,o.id
+          );
           if res->>'status'='selected' then
             select id into resolution_event from public.hq_workforce_resource_resolution_events
             where objective_id=o.id and capability_id=cap.capability_id and selected_resource_id=(res->>'selected_resource_id')::uuid order by id desc limit 1;
@@ -167,7 +170,7 @@ begin
         values(p_cycle_key,o.id,p.id,'shadow',coalesce(sim->>'status','unknown'),jsonb_build_object('simulation',sim));
       end loop;
 
-      sel:=public.hq_workforce_select_least_sufficient_plan(o.id,0,0);
+      sel:=public.hq_workforce_select_least_sufficient_plan(o.id,0::smallint,0::smallint);
       if sel->>'status'<>'selected' then
         perform public.hq_workforce_transition_objective(o.id,'blocked','X7 scheduler found no least-sufficient L0/R0 plan.','system','r1_3x_scheduler','[]'::jsonb);
         insert into public.hq_workforce_scheduler_events(cycle_key,objective_id,stage,outcome,details)
