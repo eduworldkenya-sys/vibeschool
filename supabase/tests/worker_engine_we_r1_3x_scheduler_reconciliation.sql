@@ -78,13 +78,23 @@ do $$ declare v jsonb; oid uuid; begin
   if not exists(select 1 from public.hq_workforce_plans where objective_id=oid and status='selected') then raise exception 'X7 did not select least-sufficient plan'; end if;
   if not exists(select 1 from public.hq_workforce_plan_step_resources psr join public.hq_workforce_plan_steps ps on ps.id=psr.plan_step_id join public.hq_workforce_plans p on p.id=ps.plan_id where p.objective_id=oid and psr.required) then raise exception 'X7 did not route through canonical resource resolution'; end if;
   if not exists(select 1 from public.hq_workforce_routing_events re where re.objective_id=oid and re.routing_mode='single_worker' and re.selected_workers @> array['x7-scheduler-specialist']::text[] and re.rationale->>'department_is_hard_gate'='false') then raise exception 'X7 did not route through competency graph independent of department'; end if;
-  if not exists(select 1 from public.hq_workforce_scheduler_events where cycle_key='x7-cycle-plan' and objective_id=oid and stage='context' and outcome='usable_context_verified') then raise exception 'X7 context stage evidence missing'; end if;
-  if not exists(select 1 from public.hq_workforce_scheduler_events where cycle_key='x7-cycle-plan' and objective_id=oid and stage='resolve' and outcome='resource_selected') then raise exception 'X7 resolve stage evidence missing'; end if;
-  if not exists(select 1 from public.hq_workforce_scheduler_events where cycle_key='x7-cycle-plan' and objective_id=oid and stage='route' and outcome='single_worker') then raise exception 'X7 route stage evidence missing'; end if;
-  if not exists(select 1 from public.hq_workforce_scheduler_events where cycle_key='x7-cycle-plan' and objective_id=oid and stage='shadow' and outcome='objective_shadow_ready') then raise exception 'X7 shadow-ready evidence missing'; end if;
+  if not exists(select 1 from public.hq_workforce_scheduler_events where objective_id=oid and stage='context' and outcome='usable_context_verified') then raise exception 'X7 context stage evidence missing'; end if;
+  if not exists(select 1 from public.hq_workforce_scheduler_events where objective_id=oid and stage='resolve' and outcome='resource_selected') then raise exception 'X7 resolve stage evidence missing'; end if;
+  if not exists(select 1 from public.hq_workforce_scheduler_events where objective_id=oid and stage='route' and outcome='single_worker') then raise exception 'X7 route stage evidence missing'; end if;
+  if not exists(select 1 from public.hq_workforce_scheduler_events where objective_id=oid and stage='shadow' and outcome='objective_shadow_ready') then raise exception 'X7 shadow-ready evidence missing'; end if;
 end $$;
 
-do $$ begin begin update public.hq_workforce_scheduler_events set outcome='tampered' where cycle_key='x7-cycle-plan'; raise exception 'X7 scheduler evidence was mutable'; exception when others then if sqlerrm='X7 scheduler evidence was mutable' then raise; end if; if position('worker_engine_scheduler_evidence_is_append_only' in sqlerrm)=0 then raise; end if; end; end $$;
+-- Tamper-proofing must target known objective evidence, not depend on which scheduler cycle advanced it.
+do $$ declare oid uuid; begin
+  select id into oid from public.hq_workforce_objectives where objective_key='test.x7.objective';
+  begin
+    update public.hq_workforce_scheduler_events set outcome='tampered' where objective_id=oid;
+    raise exception 'X7 scheduler evidence was mutable';
+  exception when others then
+    if sqlerrm='X7 scheduler evidence was mutable' then raise; end if;
+    if position('worker_engine_scheduler_evidence_is_append_only' in sqlerrm)=0 then raise; end if;
+  end;
+end $$;
 
 do $$ begin
   if has_table_privilege('anon','public.hq_workforce_scheduler_events','SELECT') or has_table_privilege('authenticated','public.hq_workforce_scheduler_events','SELECT') then raise exception 'X7 scheduler evidence leaked to product roles'; end if;
