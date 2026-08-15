@@ -11,11 +11,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 type TypedServerClient = SupabaseClient<Database>
 
-// The generated Database type remains canonical for migration/rebuild truth.
-// Production also contains legacy tables/RPCs that predate complete migration
-// reconstruction. Quarantine that compatibility here rather than mutating the
-// generated contract or scattering unsafe casts through server routes.
-type ApplicationServerClient = TypedServerClient & {
+// Canonical migration/rebuild truth stays in Database. Production also contains
+// legacy objects that predate complete migration reconstruction, so quarantine
+// only PostgREST query inference here. Omit (rather than intersection) ensures
+// the strict generated from/rpc overloads cannot win overload resolution.
+type ApplicationServerClient = Omit<TypedServerClient, 'from' | 'rpc'> & {
   from(relation: string): any
   rpc(fn: string, args?: Record<string, unknown>): any
 }
