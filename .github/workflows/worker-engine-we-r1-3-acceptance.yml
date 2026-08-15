@@ -91,6 +91,14 @@ jobs:
           code=${PIPESTATUS[0]}
           exit "$code"
 
+      - name: Run WE-R1.3X objective-semantics acceptance suite
+        shell: bash
+        run: |
+          set +e
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_objective_semantics.sql 2>&1 | tee /tmp/we-r1-3x-objective.log
+          code=${PIPESTATUS[0]}
+          exit "$code"
+
       - name: Run WE-R1.3X legacy-reconciliation acceptance suite
         shell: bash
         run: |
@@ -115,6 +123,7 @@ jobs:
           path: |
             /tmp/we-r1-3-adversarial.log
             /tmp/we-r1-3x-capability.log
+            /tmp/we-r1-3x-objective.log
             /tmp/we-r1-3x-reconciliation.log
             /tmp/we-r1-3x-adversarial.log
           if-no-files-found: warn
