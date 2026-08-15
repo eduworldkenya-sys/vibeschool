@@ -9,6 +9,7 @@ on:
       - ".github/workflows/worker-engine-we-r1-3-acceptance.yml"
       - "docs/WORKER_ENGINE_WE_R1_3_GOVERNED_SHADOW_OPERATIONS.md"
       - "docs/worker-engine/WE-R1.3X-GLOBAL-CAPABILITY-INTELLIGENCE-FABRIC.md"
+      - "docs/worker-engine/WE-R1.3X-LEGACY-RECONCILIATION.md"
       - "app/hq/workforce/**"
       - "components/hq/HQShell.tsx"
 
@@ -90,6 +91,14 @@ jobs:
           code=${PIPESTATUS[0]}
           exit "$code"
 
+      - name: Run WE-R1.3X legacy-reconciliation acceptance suite
+        shell: bash
+        run: |
+          set +e
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_legacy_reconciliation.sql 2>&1 | tee /tmp/we-r1-3x-reconciliation.log
+          code=${PIPESTATUS[0]}
+          exit "$code"
+
       - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,6 +107,7 @@ jobs:
           path: |
             /tmp/we-r1-3-adversarial.log
             /tmp/we-r1-3x-capability.log
+            /tmp/we-r1-3x-reconciliation.log
           if-no-files-found: warn
           retention-days: 30
 
