@@ -124,6 +124,7 @@ begin
     if not found then raise exception 'execution_breaker_authority_not_found'; end if;
   end if;
 
+  -- Serialize trip/reset state transitions for this exact scope.
   perform pg_advisory_xact_lock(hashtextextended('we-r1.4.8|breaker|'||v_scope_type||'|'||v_scope_ref,0));
   select id into v_id from public.hq_workforce_execution_breakers
    where scope_type=v_scope_type and scope_ref=v_scope_ref and status='tripped'
@@ -165,6 +166,8 @@ begin
   return b.id;
 end $$;
 
+-- This assertion is deliberately internal. It acquires the same scope locks as trip/reset
+-- so execution cannot pass a check concurrently with a breaker becoming authoritative.
 create or replace function public.hq_workforce_assert_execution_not_stopped(
   p_task_id uuid,
   p_stage text
@@ -182,6 +185,7 @@ begin
   v_capability_ref:=t.capability_key||'@'||t.capability_version::text;
   v_authority_ref:=case when t.autonomous_authority_grant_id is null then null else t.autonomous_authority_grant_id::text end;
 
+  -- Fixed lock order prevents deadlocks across global/capability/authority scopes.
   perform pg_advisory_xact_lock(hashtextextended('we-r1.4.8|breaker|global|global',0));
   perform pg_advisory_xact_lock(hashtextextended('we-r1.4.8|breaker|capability|'||v_capability_ref,0));
   if v_authority_ref is not null then
@@ -208,6 +212,9 @@ begin
   return jsonb_build_object('stopped',false,'stage',p_stage);
 end $$;
 
+-- Replace only the canonical consequential gateway. R1.4.3-R1.4.7 semantics remain
+-- unchanged except for two subtractive stop checks: before budget/resource reservation
+-- and immediately before mutation.
 create or replace function public.hq_workforce_consequential_execution_gateway(p_task_id uuid)
 returns jsonb
 language plpgsql security definer set search_path=public,pg_temp as $$
@@ -266,6 +273,7 @@ begin
   end if;
   if v_intent_id is null then raise exception 'execution_intent_evidence_missing'; end if;
 
+  -- A stop dominates otherwise-valid authority and happens before budget/limit reservation.
   perform public.hq_workforce_assert_execution_not_stopped(t.id,'pre_reservation');
   if extract(epoch from (clock_timestamp()-started_at))*1000 >= max_runtime_ms then raise exception 'capability_runtime_ceiling_exceeded_before_mutation'; end if;
 
@@ -286,6 +294,7 @@ begin
     limits:=public.hq_workforce_reserve_capability_execution(t.id,1);
     if extract(epoch from (clock_timestamp()-started_at))*1000 >= max_runtime_ms then raise exception 'capability_runtime_ceiling_exceeded_before_mutation'; end if;
 
+    -- Second check closes a concurrent trip-vs-execute race before consequential mutation.
     perform public.hq_workforce_assert_execution_not_stopped(t.id,'pre_mutation');
 
     update public.hq_work_items
@@ -333,6 +342,7 @@ revoke all on function public.hq_workforce_tool_gateway_execute(uuid) from publi
 grant execute on function public.hq_workforce_consequential_execution_gateway(uuid) to service_role;
 grant execute on function public.hq_workforce_tool_gateway_execute(uuid) to service_role;
 
+-- Gate invariant: a stop layer can only narrow execution.
 do $$
 declare ec public.hq_workforce_engine_contract%rowtype; v_active integer;
 begin
