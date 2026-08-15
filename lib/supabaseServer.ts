@@ -10,15 +10,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 // browser client used by client components with the anon key.
 
 type TypedServerClient = SupabaseClient<Database>
+type DynamicQueryClient = SupabaseClient<any>
 
-// Canonical migration/rebuild truth stays in Database. Production also contains
-// legacy objects that predate complete migration reconstruction, so quarantine
-// only PostgREST query inference here. Omit (rather than intersection) ensures
-// the strict generated from/rpc overloads cannot win overload resolution.
-type ApplicationServerClient = Omit<TypedServerClient, 'from' | 'rpc'> & {
-  from(relation: string): any
-  rpc(fn: string, args?: Record<string, unknown>): any
-}
+// Preserve the typed server client outside PostgREST querying, while using
+// Supabase's schema-agnostic query-builder signatures for from/rpc. This keeps
+// server query chains useful to TypeScript without expanding the full canonical
+// relationship graph across every call site.
+type ApplicationServerClient = Omit<TypedServerClient, 'from' | 'rpc'> &
+  Pick<DynamicQueryClient, 'from' | 'rpc'>
 
 let serverClient: TypedServerClient | null = null
 
