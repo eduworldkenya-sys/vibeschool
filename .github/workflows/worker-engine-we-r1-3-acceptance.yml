@@ -101,6 +101,12 @@ jobs:
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_memory_context_fabric.sql 2>&1 | tee /tmp/we-r1-3x-x2.log
 
+      - name: Run WE-R1.3X X3 Capability Competency suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_capability_competency_graph.sql 2>&1 | tee /tmp/we-r1-3x-x3.log
+
       - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -110,6 +116,7 @@ jobs:
             /tmp/we-r1-3-adversarial.log
             /tmp/we-r1-3x-x1.log
             /tmp/we-r1-3x-x2.log
+            /tmp/we-r1-3x-x3.log
           if-no-files-found: warn
           retention-days: 30
 
