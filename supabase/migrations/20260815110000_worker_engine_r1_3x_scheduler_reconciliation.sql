@@ -70,6 +70,7 @@ declare
   selected_plan uuid; resolution_event bigint;
   processed integer:=0; ready_count integer:=0; blocked_count integer:=0; routed_steps integer:=0;
   active_depth integer; cycles_this_hour integer; window_start timestamptz:=date_trunc('hour',clock_timestamp());
+  critical_context_count integer; invalid_critical_context_count integer;
 begin
   if char_length(btrim(coalesce(p_cycle_key,''))) not between 3 and 200 then raise exception 'r1_3x_scheduler_cycle_key_invalid'; end if;
   if p_limit<1 or p_limit>100 then raise exception 'r1_3x_scheduler_limit_invalid'; end if;
@@ -120,18 +121,39 @@ begin
     end if;
 
     if o.status='context_pending' then
-      if not exists(
-        select 1 from public.hq_workforce_objective_context oc join public.hq_workforce_memory_records m on m.id=oc.memory_id
-        where oc.objective_id=o.id and oc.context_role in ('required','constraint','policy','risk')
-          and m.verification_state not in ('revoked','superseded','disputed') and (m.valid_until is null or m.valid_until>clock_timestamp())
-          and (oc.required_freshness_seconds is null or coalesce(m.observed_at,m.created_at)>=clock_timestamp()-make_interval(secs=>oc.required_freshness_seconds::double precision))
-      ) then
+      select count(*) into critical_context_count
+      from public.hq_workforce_objective_context oc
+      where oc.objective_id=o.id and oc.context_role in ('required','constraint','policy','risk');
+
+      select count(*) into invalid_critical_context_count
+      from public.hq_workforce_objective_context oc
+      join public.hq_workforce_memory_records m on m.id=oc.memory_id
+      where oc.objective_id=o.id and oc.context_role in ('required','constraint','policy','risk')
+        and (
+          m.verification_state in ('revoked','superseded','disputed')
+          or (m.valid_until is not null and m.valid_until<=clock_timestamp())
+          or (oc.required_freshness_seconds is not null and coalesce(m.observed_at,m.created_at)<clock_timestamp()-make_interval(secs=>oc.required_freshness_seconds::double precision))
+        );
+
+      if critical_context_count=0 or invalid_critical_context_count>0 then
         insert into public.hq_workforce_scheduler_events(cycle_key,objective_id,stage,outcome,details)
-        values(p_cycle_key,o.id,'context','awaiting_governed_context',jsonb_build_object('policy','scheduler_does_not_invent_context'));
+        values(
+          p_cycle_key,o.id,'context','awaiting_governed_context',
+          jsonb_build_object(
+            'policy','all_bound_critical_context_must_be_current_and_usable',
+            'critical_context_count',critical_context_count,
+            'invalid_critical_context_count',invalid_critical_context_count
+          )
+        );
         continue;
       end if;
-      perform public.hq_workforce_transition_objective(o.id,'planning','X7 scheduler verified usable governed context and advanced objective to planning.','system','r1_3x_scheduler','[]'::jsonb);
-      insert into public.hq_workforce_scheduler_events(cycle_key,objective_id,stage,outcome) values(p_cycle_key,o.id,'context','usable_context_verified');
+
+      perform public.hq_workforce_transition_objective(o.id,'planning','X7 scheduler verified all bound critical context is usable and advanced objective to planning.','system','r1_3x_scheduler','[]'::jsonb);
+      insert into public.hq_workforce_scheduler_events(cycle_key,objective_id,stage,outcome,details)
+      values(
+        p_cycle_key,o.id,'context','usable_context_verified',
+        jsonb_build_object('critical_context_count',critical_context_count,'invalid_critical_context_count',invalid_critical_context_count)
+      );
       o.status:='planning';
     end if;
 
@@ -221,8 +243,8 @@ end $$;
 alter table public.hq_workforce_scheduler_events enable row level security;
 revoke all on table public.hq_workforce_scheduler_events from public,anon,authenticated;
 grant select,insert on table public.hq_workforce_scheduler_events to service_role;
+revoke all on sequence public.hq_workforce_scheduler_events_id_seq from public,anon,authenticated;
 grant usage,select on sequence public.hq_workforce_scheduler_events_id_seq to service_role;
-revoke all on function public.hq_workforce_scheduler_events_immutable() from public,anon,authenticated;
 revoke all on function public.hq_workforce_run_r1_3x_shadow_scheduler(text,integer) from public,anon,authenticated;
 revoke all on function public.hq_workforce_run_shadow_cycle(text,integer) from public,anon,authenticated;
 grant execute on function public.hq_workforce_run_r1_3x_shadow_scheduler(text,integer) to service_role;
