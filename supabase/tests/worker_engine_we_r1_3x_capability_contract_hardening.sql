@@ -9,15 +9,15 @@ insert into public.hq_workforce_skill_manifests(
  max_records_affected,max_attempts,max_runtime_ms,requires_human_approval,verification_required,
  compensation_strategy,owner_key,certification_status,certified_at,purpose,input_contract,output_contract,
  resource_contract,preconditions,expected_outcome,verification_contract,failure_handling,retry_policy,
- escalation_contract,compensation_contract,jurisdiction_contract,shadow_capable,immutable_version_key
+ escalation_contract,compensation_contract,jurisdiction_contract,shadow_capable,immutable_version_key,capability_mode
 ) values (
  'test.x3.reason',1,null,0,0,array['global'],array['internal'],1,2,30000,true,true,
  'manual_review','platform_governance','certified',clock_timestamp(),'reason safely','{}','{}','{}','[]',
- '{}','{}','{}','{"max_attempts":2}','{}','{}','{"allowed":["global"]}',true,'test.x3.reason@1'
+ '{}','{}','{}','{"max_attempts":2}','{}','{}','{"allowed":["global"]}',true,'test.x3.reason@1','shadow_reasoning'
 ),(
  'test.x3.invalid',1,null,1,0,array['global'],array['internal'],1,2,30000,false,false,
  'none','platform_governance','certified',clock_timestamp(),'invalid reasoning capability','{}','{}','{}','[]',
- '{}','{}','{}','{}','{}','{}','{"allowed":["global"]}',true,'test.x3.invalid@1'
+ '{}','{}','{}','{}','{}','{}','{"allowed":["global"]}',true,'test.x3.invalid@1','shadow_reasoning'
 );
 
 insert into public.hq_workforce_skill_resources(skill_manifest_id,resource_id,usage_role,required,operation)
