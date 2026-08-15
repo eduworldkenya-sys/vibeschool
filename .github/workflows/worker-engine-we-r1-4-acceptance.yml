@@ -1,0 +1,115 @@
+name: Worker Engine WE-R1.4 Acceptance Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "supabase/migrations/*worker_engine_we_r1_4*.sql"
+      - "supabase/tests/worker_engine_we_r1_4*.sql"
+      - ".github/workflows/worker-engine-we-r1-4-acceptance.yml"
+      - "docs/WORKER_ENGINE_WE_R1_4*.md"
+
+concurrency:
+  group: worker-engine-we-r1-4-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    name: WE-R1.4 disposable-local acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify no production credentials or activation mechanism
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          workflow=Path('.github/workflows/worker-engine-we-r1-4-acceptance.yml').read_text()
+          secrets_expr='$'+'{{'+' secrets.'
+          forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL',secrets_expr]
+          hit=[x for x in forbidden if x in workflow]
+          if hit: raise SystemExit('production credential/reference detected: '+', '.join(hit))
+          migrations='\n'.join(p.read_text() for p in sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_4*.sql')))
+          if not migrations: raise SystemExit('WE-R1.4 migrations not found')
+          if 'cron.schedule' in migrations.lower(): raise SystemExit('WE-R1.4 engineering branch must not install scheduler cron')
+          PY
+
+      - name: Verify Docker
+        run: docker info >/dev/null
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Disable seed for schema-only proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
+
+      - name: Start disposable local Supabase
+        run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+
+      - name: Rebuild full migration chain
+        run: supabase db reset --local --no-seed
+
+      - name: Run inherited Shadow governance regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql 2>&1 | tee /tmp/we-r1-4-shadow-regression.log
+
+      - name: Run inherited R1.3X regression suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in supabase/tests/worker_engine_we_r1_3x_*.sql; do
+            echo "=== $f ==="
+            PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$f"
+          done 2>&1 | tee /tmp/we-r1-4-r1-3x-regression.log
+
+      - name: Run all WE-R1.4 acceptance suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t tests < <(find supabase/tests -maxdepth 1 -type f -name 'worker_engine_we_r1_4*.sql' | sort)
+          if [ "${#tests[@]}" -eq 0 ]; then echo 'WE-R1.4 tests not found' >&2; exit 1; fi
+          for f in "${tests[@]}"; do
+            echo "=== $f ==="
+            PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$f"
+          done 2>&1 | tee /tmp/we-r1-4-acceptance.log
+
+      - name: Reassert fail-closed engine state
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = "false|false|false|0|0|false|false|true"
+          ACTIVE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")"
+          test "$ACTIVE" = "0"
+
+      - name: Upload R1.4 acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: we-r1-4-acceptance-${{ github.run_id }}
+          path: |
+            /tmp/we-r1-4-shadow-regression.log
+            /tmp/we-r1-4-r1-3x-regression.log
+            /tmp/we-r1-4-acceptance.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Destroy disposable database
+        if: always()
+        run: supabase stop --no-backup >/dev/null 2>&1 || true
