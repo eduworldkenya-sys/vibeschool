@@ -5,8 +5,8 @@
 
 do $$
 begin
-  if exists(select 1 from pg_extension where extname='pg_cron') then
-    perform cron.unschedule(jobid) from cron.job where jobname='vibeschool-worker-engine-heartbeat';
+  if to_regclass('cron.job') is not null then
+    execute 'select cron.unschedule(jobid) from cron.job where jobname=$1' using 'vibeschool-worker-engine-heartbeat';
   end if;
 end $$;
 
@@ -22,8 +22,20 @@ begin
   return jsonb_build_object('status','retired','mode','compatibility_tombstone',
     'reason','legacy_heartbeat_scheduler_superseded_by_governed_shadow_scheduler','consequential_execution',false);
 end $$;
+
+create or replace function public.hq_workforce_legacy_heartbeat_cron_present()
+returns boolean language plpgsql security definer set search_path=public,pg_temp stable as $$
+declare v boolean:=false;
+begin
+  if to_regclass('cron.job') is null then return false; end if;
+  execute 'select exists(select 1 from cron.job where jobname=$1)' into v using 'vibeschool-worker-engine-heartbeat';
+  return coalesce(v,false);
+end $$;
+
 revoke all on function public.hq_workforce_scheduled_heartbeat() from public,anon,authenticated;
+revoke all on function public.hq_workforce_legacy_heartbeat_cron_present() from public,anon,authenticated;
 grant execute on function public.hq_workforce_scheduled_heartbeat() to service_role;
+grant execute on function public.hq_workforce_legacy_heartbeat_cron_present() to service_role;
 
 create table if not exists public.hq_workforce_scheduler_events (
   id bigint generated always as identity primary key,
@@ -72,16 +84,14 @@ begin
     return jsonb_build_object('status','disabled','reason','shadow_scheduler_global_stop','cycle_key',p_cycle_key,'consequential_execution',false);
   end if;
   if ec.shadow_anomaly_paused then raise exception 'shadow_scheduler_anomaly_paused'; end if;
-  if exists(select 1 from pg_extension where extname='pg_cron') and exists(select 1 from cron.job where jobname='vibeschool-worker-engine-heartbeat') then
-    raise exception 'r1_3x_scheduler_legacy_cron_bypass_detected';
-  end if;
+  if public.hq_workforce_legacy_heartbeat_cron_present() then raise exception 'r1_3x_scheduler_legacy_cron_bypass_detected'; end if;
 
   select count(*) into cycles_this_hour from public.hq_workforce_shadow_resource_usage where resource_kind='cycle' and window_started_at=window_start;
   if cycles_this_hour>=ec.shadow_max_cycles_per_hour then
     insert into public.hq_workforce_shadow_anomalies(anomaly_key,severity,action,details)
     values('r1_3x_cycle_rate_ceiling','high','pause',jsonb_build_object('cycle_key',p_cycle_key,'count',cycles_this_hour,'ceiling',ec.shadow_max_cycles_per_hour));
     update public.hq_workforce_engine_contract set shadow_anomaly_paused=true,updated_at=clock_timestamp() where singleton=true;
-    raise exception 'shadow_cycle_rate_ceiling_exceeded';
+    return jsonb_build_object('status','paused','reason','cycle_rate_ceiling','cycle_key',p_cycle_key,'consequential_execution',false);
   end if;
 
   select count(*) into active_depth from public.hq_workforce_objectives where status in ('detected','context_pending','planning','shadow_ready');
@@ -89,7 +99,7 @@ begin
     insert into public.hq_workforce_shadow_anomalies(anomaly_key,severity,action,details)
     values('r1_3x_objective_queue_depth_ceiling','critical','pause',jsonb_build_object('depth',active_depth,'ceiling',ec.shadow_max_queue_depth));
     update public.hq_workforce_engine_contract set shadow_anomaly_paused=true,updated_at=clock_timestamp() where singleton=true;
-    raise exception 'shadow_queue_depth_ceiling_exceeded';
+    return jsonb_build_object('status','paused','reason','objective_queue_depth_ceiling','cycle_key',p_cycle_key,'consequential_execution',false);
   end if;
 
   insert into public.hq_workforce_shadow_resource_usage(resource_kind,window_started_at,amount) values('cycle',window_start,1);
@@ -102,7 +112,6 @@ begin
     limit least(p_limit,ec.shadow_max_candidates_per_cycle) for update skip locked
   loop
     processed:=processed+1;
-
     if o.status='detected' then
       perform public.hq_workforce_transition_objective(o.id,'context_pending','X7 scheduler accepted detected objective into governed context stage.','system','r1_3x_scheduler','[]'::jsonb);
       insert into public.hq_workforce_scheduler_events(cycle_key,objective_id,stage,outcome,details)
@@ -194,8 +203,6 @@ begin
 end $$;
 
 -- Historical API remains callable for compatibility, but it is now a fail-closed adapter.
--- Crucially, the OFF contract is checked here before any delegation, preserving R1.3 safety semantics
--- while preventing the historical open-work-item scanner from remaining an intelligence path.
 create or replace function public.hq_workforce_run_shadow_cycle(p_cycle_key text,p_limit integer default 25)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare ec public.hq_workforce_engine_contract%rowtype;
@@ -219,12 +226,11 @@ grant execute on function public.hq_workforce_run_r1_3x_shadow_scheduler(text,in
 grant execute on function public.hq_workforce_run_shadow_cycle(text,integer) to service_role;
 
 do $$
-declare ec public.hq_workforce_engine_contract%rowtype; n integer:=0; d text;
+declare ec public.hq_workforce_engine_contract%rowtype; d text;
 begin
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
   if not found then raise exception 'X7 scheduler reconciliation: runtime contract missing'; end if;
-  if exists(select 1 from pg_extension where extname='pg_cron') then select count(*) into n from cron.job where jobname='vibeschool-worker-engine-heartbeat'; end if;
-  if n<>0 then raise exception 'X7 scheduler reconciliation: legacy heartbeat cron remains installed'; end if;
+  if public.hq_workforce_legacy_heartbeat_cron_present() then raise exception 'X7 scheduler reconciliation: legacy heartbeat cron remains installed'; end if;
   select lower(pg_get_functiondef('public.hq_workforce_run_shadow_cycle(text,integer)'::regprocedure)) into d;
   if position('hq_work_items' in d)>0 or position('hq_workforce_autonomous_heartbeat' in d)>0 then raise exception 'X7 scheduler reconciliation: compatibility shadow cycle retains legacy bypass'; end if;
   if ec.heartbeat_enabled or ec.factory_enabled or ec.runtime_execution_enabled or ec.runtime_autonomy_level<>0 or ec.runtime_max_risk<>0
