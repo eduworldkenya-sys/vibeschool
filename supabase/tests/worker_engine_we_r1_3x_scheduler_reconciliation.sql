@@ -24,12 +24,9 @@ do $$ declare d text; begin
   if position('hq_work_items' in d)>0 or position('hq_workforce_autonomous_heartbeat' in d)>0 then raise exception 'X7 legacy shadow-cycle retains bypass logic'; end if;
 end $$;
 
--- No historical autonomous heartbeat cron may survive reconciliation.
-do $$ declare n integer:=0; begin
-  if exists(select 1 from pg_extension where extname='pg_cron') then
-    select count(*) into n from cron.job where jobname='vibeschool-worker-engine-heartbeat';
-  end if;
-  if n<>0 then raise exception 'X7 legacy heartbeat cron remains installed'; end if;
+-- No historical autonomous heartbeat cron may survive reconciliation, regardless of whether pg_cron exists locally.
+do $$ begin
+  if public.hq_workforce_legacy_heartbeat_cron_present() then raise exception 'X7 legacy heartbeat cron remains installed'; end if;
 end $$;
 
 -- Canonical fixtures: capability/resource/competency are independent of department metadata.
@@ -161,6 +158,10 @@ do $$ begin
   if has_function_privilege('anon','public.hq_workforce_run_shadow_cycle(text,integer)','EXECUTE')
      or has_function_privilege('authenticated','public.hq_workforce_run_shadow_cycle(text,integer)','EXECUTE') then
     raise exception 'X7 compatibility scheduler executable by product roles';
+  end if;
+  if has_function_privilege('anon','public.hq_workforce_legacy_heartbeat_cron_present()','EXECUTE')
+     or has_function_privilege('authenticated','public.hq_workforce_legacy_heartbeat_cron_present()','EXECUTE') then
+    raise exception 'X7 cron guard executable by product roles';
   end if;
 end $$;
 
