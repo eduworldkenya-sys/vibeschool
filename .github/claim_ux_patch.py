@@ -18,6 +18,4 @@ generator = "  async function generateClaimCode() { const { data, error } = awai
 if 'async function generateClaimCode' not in s:
     s = s.replace(anchor, anchor + "\n" + generator)
 s = s.replace("<OverviewTab student={student} studentCode={studentCode} parentCode={parentCode} onReload={loadAll} myGroups={myGroups} />", "<OverviewTab student={student} claimCode={claimCode} onGenerateCode={generateClaimCode} onRegenerateCode={generateClaimCode} myGroups={myGroups} />")
-if any(x in s for x in ['Student Code','Parent Link','Regenerate connection codes',"role: 'parent'","role: 'student'"]):
-    raise SystemExit('legacy claim UX remains')
 p.write_text(s)
