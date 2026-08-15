@@ -18,12 +18,13 @@ type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
 
 // The generated Database type is the canonical migration/rebuild contract.
 // Production still contains legacy objects that predate reconstructable migration
-// history. Keep that drift quarantined at this application boundary instead of
-// corrupting generated types or teaching unrelated UI code to lie with casts.
-// Known canonical relations/RPCs retain TypedBrowserClient overloads; the broad
-// overloads preserve compatibility for legacy-production objects until their
-// migrations are reconciled into the canonical rebuild.
-type ApplicationSupabaseClient = TypedBrowserClient & {
+// history. Quarantine only PostgREST query inference at this application boundary;
+// auth, storage, realtime, functions, and the underlying client remain typed.
+//
+// Omit is intentional: intersecting a broad overload with TypedBrowserClient keeps
+// the strict generated `from`/`rpc` overloads eligible, which reintroduces both the
+// global inference explosion and false negatives for production-only legacy schema.
+type ApplicationSupabaseClient = Omit<TypedBrowserClient, 'from' | 'rpc'> & {
   from(relation: string): any
   rpc(fn: string, args?: Record<string, unknown>): any
 }
