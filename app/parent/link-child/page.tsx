@@ -23,7 +23,8 @@ export default function LinkChildPage() {
       switch (result) {
         case "success": setSuccess("Child connected. Opening your family dashboard…"); setTimeout(() => router.push("/parent"), 1000); break;
         case "not_found": setError("That code isn't valid. Check it with the teacher and try again."); break;
-        case "already_claimed": setError("This code is already connected to your parent account."); break;
+        case "already_claimed": setError("A parent account is already connected with this code. Ask the teacher for a new code if you need to connect another parent account."); break;
+        case "expired": setError("That claim code has expired. Ask the teacher to generate a new shared code."); break;
         case "student_not_found": setError("We couldn't find the learner record. Please contact the school."); break;
         default: setError("We couldn't complete the connection. Please try again.");
       }
