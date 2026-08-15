@@ -36,7 +36,7 @@ create trigger trg_hq_workforce_routing_events_immutable before update or delete
 
 create or replace function public.hq_workforce_route_plan_step(p_plan_step_id uuid,p_legacy_lane_key text default null,p_legacy_worker_key text default null)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
-declare s public.hq_workforce_plan_steps%rowtype; p public.hq_workforce_plans%rowtype; req text[]; selected text[]:=array[]::text[]; candidates jsonb; mode text:='unresolved'; comp text; wk text; all_covered boolean:=true;
+declare s public.hq_workforce_plan_steps%rowtype; p public.hq_workforce_plans%rowtype; req text[]; selected text[]:=array[]::text[]; candidates jsonb; mode text:='unresolved'; comp text; wk text; all_covered boolean:=true; i integer;
 begin
  select * into s from public.hq_workforce_plan_steps where id=p_plan_step_id for update; if not found then raise exception 'plan_step_not_found'; end if;
  select * into p from public.hq_workforce_plans where id=s.plan_id; if not found then raise exception 'plan_not_found'; end if;
@@ -45,7 +45,7 @@ begin
  from public.hq_workforce_plan_step_capabilities pc join public.hq_workforce_capability_competencies cc on cc.capability_id=pc.capability_id and cc.required where pc.plan_step_id=s.id and pc.role='required';
  if cardinality(req)=0 then return jsonb_build_object('status','unresolved','reason','no_competency_contract','consequential_execution',false); end if;
  with loads as (
-   select w.worker_key,count(a.id)::numeric as open_load from public.hq_workforce_workers w left join public.hq_workforce_assignments a on a.worker_key=w.worker_key and a.status in ('assigned','in_progress','blocked') group by w.worker_key
+   select w.worker_key,count(a.id) filter(where a.active)::numeric as open_load from public.hq_workforce_workers w left join public.hq_workforce_assignments a on a.worker_key=w.worker_key group by w.worker_key
  ), ranked as (
    select rw.worker_key,rw.matched_competencies,rw.coverage,rw.fit_score,coalesce(l.open_load,0) open_load,
           (rw.fit_score*0.70 + rw.coverage*0.25 - least(coalesce(l.open_load,0),20)*0.005) final_score
@@ -53,13 +53,13 @@ begin
    left join loads l on l.worker_key=rw.worker_key where w.status='active'
  ) select coalesce(jsonb_agg(jsonb_build_object('worker_key',worker_key,'matched',matched_competencies,'coverage',coverage,'fit',fit_score,'open_load',open_load,'score',final_score) order by final_score desc,worker_key),'[]'::jsonb) into candidates from ranked;
  select array_agg(worker_key order by final_score desc,worker_key) into selected from (
-   with loads as (select w.worker_key,count(a.id)::numeric open_load from public.hq_workforce_workers w left join public.hq_workforce_assignments a on a.worker_key=w.worker_key and a.status in ('assigned','in_progress','blocked') group by w.worker_key)
+   with loads as (select w.worker_key,count(a.id) filter(where a.active)::numeric open_load from public.hq_workforce_workers w left join public.hq_workforce_assignments a on a.worker_key=w.worker_key group by w.worker_key)
    select rw.worker_key,(rw.fit_score*0.70+rw.coverage*0.25-least(coalesce(l.open_load,0),20)*0.005) final_score from public.hq_workforce_rank_workers_by_competency(req,'platform_internal','global',100) rw left join loads l on l.worker_key=rw.worker_key join public.hq_workforce_workers w on w.worker_key=rw.worker_key where w.status='active' and rw.coverage=1 order by final_score desc,rw.worker_key limit 1) q;
  if cardinality(coalesce(selected,'{}'::text[]))=1 then mode:='single_worker'; else
    selected:=array[]::text[];
    foreach comp in array req loop
      select r.worker_key into wk from public.hq_workforce_rank_workers_by_competency(array[comp],'platform_internal','global',100) r join public.hq_workforce_workers w on w.worker_key=r.worker_key where w.status='active' and r.coverage=1 order by r.fit_score desc,r.worker_key limit 1;
-     if wk is null then all_covered:=false; else if not wk=any(selected) then selected:=array_append(selected,wk); end if; end if;
+     if wk is null then all_covered:=false; elsif not wk=any(selected) then selected:=array_append(selected,wk); end if;
    end loop;
    if all_covered and cardinality(selected)>0 then mode:=case when cardinality(selected)=1 then 'single_worker' else 'team' end; else mode:='unresolved'; end if;
  end if;
