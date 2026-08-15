@@ -1,5 +1,7 @@
 -- WE-R1.3X X1 hardening: make Objective a governed, provenance-aware reasoning object.
 -- Additive/non-activating. Existing R1.3X objective rows remain valid and are transparently marked as compatibility-inferred provenance.
+-- access: service-only public.hq_workforce_objective_events
+-- authorization-test: public.hq_workforce_objective_events denies public/anon/authenticated direct access; service_role may append/read objective lifecycle evidence only.
 
 alter table public.hq_workforce_objectives
   add column if not exists parent_objective_id uuid references public.hq_workforce_objectives(id) on delete restrict,
