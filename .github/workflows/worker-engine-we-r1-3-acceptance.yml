@@ -98,6 +98,11 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_planning_graph.sql 2>&1 | tee /tmp/we-r1-3x-x5.log
+      - name: Run WE-R1.3X X6 Competency Routing Collaboration suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_3x_competency_routing_collaboration.sql 2>&1 | tee /tmp/we-r1-3x-x6.log
 
       - name: Upload acceptance evidence
         if: always()
@@ -111,6 +116,7 @@ jobs:
             /tmp/we-r1-3x-x3.log
             /tmp/we-r1-3x-x4.log
             /tmp/we-r1-3x-x5.log
+            /tmp/we-r1-3x-x6.log
           if-no-files-found: warn
           retention-days: 30
       - name: Reassert fail-closed state
