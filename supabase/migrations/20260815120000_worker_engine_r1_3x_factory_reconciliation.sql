@@ -47,7 +47,7 @@ declare
   missing_worker_comp_count integer:=0;
   overloaded_worker_comp_count integer:=0;
   human_available boolean:=false;
-  status text;
+  v_diagnosis_status text;
   factory_ok boolean:=false;
   blockers jsonb:='[]'::jsonb;
   alternatives jsonb;
@@ -62,9 +62,9 @@ begin
   select * into o from public.hq_workforce_objectives where id=p_objective_id;
   if not found then raise exception 'objective_not_found'; end if;
 
-  select * into p from public.hq_workforce_plans where objective_id=o.id and status='selected' order by updated_at desc,id limit 1;
+  select pl.* into p from public.hq_workforce_plans pl where pl.objective_id=o.id and pl.status='selected' order by pl.updated_at desc,pl.id limit 1;
   if not found then
-    status:='no_selected_plan';
+    v_diagnosis_status:='no_selected_plan';
     blockers:=jsonb_build_array(jsonb_build_object('stage','planning','reason','no_selected_plan'));
     alternatives:=jsonb_build_object('routing',false,'resource_resolution',false,'capability_composition',false,'skill_resolution',false,'collaboration',false,'capacity',false,'human_judgment',false);
   else
@@ -138,15 +138,15 @@ begin
       'human_reviewer_available',human_available
     );
 
-    if capability_gap_count>0 then status:='capability_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','capability','count',capability_gap_count));
-    elsif resource_gap_count>0 then status:='resource_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','resource','count',resource_gap_count));
-    elsif skill_gap_count>0 then status:='skill_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','skill_certification','count',skill_gap_count,'automatic_certification',false));
-    elsif cardinality(req_comps)=0 then status:='capability_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','competency_contract','reason','required_capabilities_have_no_competency_contract'));
-    elsif missing_worker_comp_count=0 and overloaded_worker_comp_count>0 then status:='temporary_capacity'; blockers:=jsonb_build_array(jsonb_build_object('stage','capacity','count',overloaded_worker_comp_count,'worker_creation_not_justified',true));
-    elsif missing_worker_comp_count=0 then status:='reuse_or_collaboration';
-    elsif human_available then status:='human_judgment'; blockers:=jsonb_build_array(jsonb_build_object('stage','human_judgment','reason','governed_human_reviewer_available_before_worker_creation'));
+    if capability_gap_count>0 then v_diagnosis_status:='capability_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','capability','count',capability_gap_count));
+    elsif resource_gap_count>0 then v_diagnosis_status:='resource_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','resource','count',resource_gap_count));
+    elsif skill_gap_count>0 then v_diagnosis_status:='skill_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','skill_certification','count',skill_gap_count,'automatic_certification',false));
+    elsif cardinality(req_comps)=0 then v_diagnosis_status:='capability_gap'; blockers:=jsonb_build_array(jsonb_build_object('stage','competency_contract','reason','required_capabilities_have_no_competency_contract'));
+    elsif missing_worker_comp_count=0 and overloaded_worker_comp_count>0 then v_diagnosis_status:='temporary_capacity'; blockers:=jsonb_build_array(jsonb_build_object('stage','capacity','count',overloaded_worker_comp_count,'worker_creation_not_justified',true));
+    elsif missing_worker_comp_count=0 then v_diagnosis_status:='reuse_or_collaboration';
+    elsif human_available then v_diagnosis_status:='human_judgment'; blockers:=jsonb_build_array(jsonb_build_object('stage','human_judgment','reason','governed_human_reviewer_available_before_worker_creation'));
     else
-      status:='persistent_worker_gap'; factory_ok:=true;
+      v_diagnosis_status:='persistent_worker_gap'; factory_ok:=true;
       blockers:=jsonb_build_array(jsonb_build_object('stage','worker_capacity','missing_competencies',missing_worker_comp_count));
       recommendation:=jsonb_build_object(
         'action','propose_probation_worker_gap_for_human_review',
@@ -160,9 +160,9 @@ begin
   end if;
 
   insert into public.hq_workforce_factory_diagnoses(objective_id,plan_id,diagnosis_status,required_capabilities,required_competencies,blockers,alternatives_checked,factory_recommendation,recommendation)
-  values(o.id,p.id,status,req_caps,req_comps,blockers,alternatives,factory_ok,recommendation) returning id into v_id;
+  values(o.id,p.id,v_diagnosis_status,req_caps,req_comps,blockers,alternatives,factory_ok,recommendation) returning id into v_id;
 
-  return jsonb_build_object('status',status,'diagnosis_id',v_id,'objective_id',o.id,'plan_id',p.id,'factory_recommendation',factory_ok,
+  return jsonb_build_object('status',v_diagnosis_status,'diagnosis_id',v_id,'objective_id',o.id,'plan_id',p.id,'factory_recommendation',factory_ok,
     'required_capabilities',req_caps,'required_competencies',req_comps,'blockers',blockers,'alternatives_checked',alternatives,
     'recommendation',recommendation,'factory_enabled',false,'worker_created',false,'worker_certified',false,'authority_granted',false,'consequential_execution',false);
 end $$;
