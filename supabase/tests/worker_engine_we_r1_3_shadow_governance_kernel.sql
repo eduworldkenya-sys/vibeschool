@@ -20,7 +20,6 @@ begin
    if has_table_privilege('anon','public.'||t,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') then raise exception 'anon_privilege_leak:%',t; end if;
    if has_table_privilege('authenticated','public.'||t,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') then raise exception 'authenticated_privilege_leak:%',t; end if;
  end loop;
- -- Legacy worker-certification shadow runs must remain intact and distinct.
  if to_regclass('public.hq_workforce_shadow_runs') is null then raise exception 'legacy_certification_shadow_runs_missing'; end if;
  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='hq_workforce_shadow_runs' and column_name='verifier_key') then raise exception 'legacy_shadow_run_contract_changed'; end if;
  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='hq_workforce_shadow_runs' and column_name='trace_id') then raise exception 'operational_trace_leaked_into_legacy_shadow_runs'; end if;
@@ -39,15 +38,13 @@ begin
  if kinds is null or kinds not like '%observation%' or kinds not like '%candidate_job%' or kinds not like '%reasoning%' or kinds not like '%skill_selection%' or kinds not like '%proposed_action%' or kinds not like '%authority_result%' or kinds not like '%expected_outcome%' or kinds not like '%verification%' or kinds not like '%measurement%' then raise exception 'event_chain_incomplete'; end if;
 end $$;
 
-do $$
-declare blocked boolean:=false;
-begin
+do $$ declare blocked boolean:=false; begin
  begin perform public.hq_workforce_run_shadow_cycle('off-contract',1); exception when others then blocked:=true; end;
  if not blocked then raise exception 'shadow_scheduler_ran_while_off'; end if;
 end $$;
 
 do $$
-declare wid uuid; cid uuid; tool_id uuid; rr jsonb; r1 jsonb; r2 jsonb; r3 jsonb; tr uuid; n integer; before_status text; after_status text; paused boolean;
+declare wid uuid; cid uuid; tool_id uuid; skill_id uuid; resource_id uuid; rr jsonb; r1 jsonb; r2 jsonb; r3 jsonb; tr uuid; n integer; before_status text; after_status text; paused boolean;
 begin
  insert into public.hq_work_items(department_key,work_type,priority,status,title,summary,source_type,route,approval_required,evidence)
  values('executive','we_r1_3_acceptance','high','open','WE-R1.3 disposable shadow test','Local-only acceptance input','acceptance','/hq/workforce',false,'{}') returning id into wid;
@@ -56,11 +53,16 @@ begin
  insert into public.hq_workforce_workers(worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,paid_ai_allowed)
  values('000-we-r1-3-acceptance-worker','digital','WE-R1.3 Acceptance Worker','executive','Disposable local shadow certification worker','active','deterministic',false)
  on conflict(worker_key) do update set status='active',department_key='executive';
+ insert into public.hq_workforce_worker_competencies(worker_key,competency_key,version,proficiency,reliability,certification_status,allowed_scope_types,jurisdictions)
+ values('000-we-r1-3-acceptance-worker','operations.triage',1,.99,.99,'certified',array['platform_internal','global'],array['global']);
 
  insert into public.hq_workforce_tool_contracts(tool_key,version,title,handler_key,required_capability_key,operation,resource_type,side_effect_class,status,approved_at)
  values('we_r1_3_acceptance_triage',1,'WE-R1.3 acceptance triage','work_item.triage_and_own','work_item.triage','update','hq_work_items','internal_write','approved',clock_timestamp()) returning id into tool_id;
  insert into public.hq_workforce_skill_manifests(skill_key,version,tool_contract_id,autonomy_required,risk_class,allowed_scope_types,allowed_data_classes,max_records_affected,max_attempts,max_runtime_ms,requires_human_approval,verification_required,compensation_strategy,owner_key,certification_status,certified_at,purpose,shadow_capable,immutable_version_key)
- values('we_r1_3_acceptance_triage',1,tool_id,2,1,array['platform_internal'],array['internal'],1,2,30000,true,true,'manual_review','platform_governance','certified',clock_timestamp(),'Disposable local proof',true,'we_r1_3_acceptance_triage@1');
+ values('we_r1_3_acceptance_triage',1,tool_id,0,1,array['platform_internal','global'],array['internal'],1,2,30000,true,true,'manual_review','platform_governance','certified',clock_timestamp(),'Disposable local proof',true,'we_r1_3_acceptance_triage@1') returning id into skill_id;
+ insert into public.hq_workforce_resources(resource_key,version,resource_type,display_name,trust_tier,allowed_scope_types,allowed_operations,required_autonomy,risk_class,health_status,enabled,shadow_capable)
+ values('we_r1_3_acceptance_source',1,'dataset','WE-R1.3 acceptance source',5,array['platform_internal','global'],array['read'],0,0,'healthy',true,true) returning id into resource_id;
+ insert into public.hq_workforce_skill_resources(skill_manifest_id,resource_id,usage_role,operation) values(skill_id,resource_id,'input','read');
 
  update public.hq_workforce_engine_contract set shadow_enabled=true,shadow_scheduler_enabled=true,shadow_global_stop=false,shadow_max_cycles_per_hour=10,shadow_max_candidates_per_cycle=5,shadow_max_queue_depth=100,shadow_anomaly_paused=false where singleton=true;
  r1:=public.hq_workforce_run_shadow_cycle('acceptance-1',5);
@@ -70,13 +72,15 @@ begin
 
  rr:=public.hq_workforce_shadow_recommend_candidate(cid);
  if rr->>'status'<>'awaiting_review' or (rr->>'consequential_execution')::boolean then raise exception 'recommendation_failed:%',rr; end if;
- if rr->>'authority_decision'<>'deny' then raise exception 'uncertified_identity_or_capability_did_not_fail_closed:%',rr; end if;
+ if rr->'authority'->>'decision'<>'deny' then raise exception 'uncertified_identity_or_capability_did_not_fail_closed:%',rr; end if;
+ if rr->>'architecture'<>'WE-R1.3X' then raise exception 'legacy_router_still_serving_recommendation:%',rr; end if;
  tr:=(rr->>'trace_id')::uuid;
  select count(*) into n from public.hq_workforce_shadow_events where trace_id=tr;
  if n<>7 then raise exception 'trace_event_count_expected_7_got:%',n; end if;
  if not exists(select 1 from public.hq_workforce_evidence where trace_id=tr and evidence_kind='fact') then raise exception 'trace_evidence_missing'; end if;
  if not exists(select 1 from public.hq_workforce_shadow_decisions where trace_id=tr and state='awaiting_review' and hypothetical_authority_result='deny') then raise exception 'decision_missing_or_not_denied'; end if;
  if exists(select 1 from public.hq_workforce_shadow_traces where trace_id=tr and consequential_action_performed) then raise exception 'consequential_shadow_write_recorded'; end if;
+ if not exists(select 1 from public.hq_workforce_plans p join public.hq_workforce_objectives o on o.id=p.objective_id where p.id=(rr->>'plan_id')::uuid and o.id=(rr->>'objective_id')::uuid) then raise exception 'r13x_objective_plan_missing'; end if;
 
  r2:=public.hq_workforce_run_shadow_cycle('acceptance-2',5);
  if r2->>'status'<>'completed' or (r2->>'duplicates')::int<1 then raise exception 'dedup_failed:%',r2; end if;
@@ -91,5 +95,4 @@ begin
  select shadow_anomaly_paused into paused from public.hq_workforce_engine_contract where singleton=true;
  if not paused or not exists(select 1 from public.hq_workforce_shadow_anomalies where anomaly_key='cycle_rate_ceiling' and resolved_at is null) then raise exception 'anomaly_pause_not_persisted'; end if;
 end $$;
-
 rollback;
