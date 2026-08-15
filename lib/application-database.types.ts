@@ -1,3 +1,4 @@
+export type { Json } from './database.types'
 import type { Database as CanonicalDatabase } from './database.types'
 import type {
   LegacyCreateChildForParentArgs,
