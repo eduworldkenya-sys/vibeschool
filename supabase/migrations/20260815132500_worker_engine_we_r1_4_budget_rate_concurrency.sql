@@ -2,7 +2,7 @@
 -- NON-ACTIVATING. This migration only narrows execution. It does not enable runtime,
 -- heartbeat, Factory, Shadow, autonomy, risk, or activate capability authority.
 -- access: service-only public.hq_workforce_capability_execution_usage
--- authorization-test: product roles have no direct access; service_role is read-only.
+-- authorization-test: public.hq_workforce_capability_execution_usage denies public/anon/authenticated direct access and service_role is read-only.
 
 alter table public.hq_workforce_capability_authority_grants
   add column if not exists max_runtime_ms integer not null default 30000
@@ -83,7 +83,6 @@ begin
         );
         return n;
       exception when unique_violation then
-        -- A committed execution already owns this token. Try the next bounded token.
         null;
       end;
     end if;
@@ -137,13 +136,9 @@ begin
     raise exception 'capability_records_per_operation_exceeded';
   end if;
 
-  -- The selected plan is the conservative execution cycle boundary. This cannot
-  -- under-count work: a plan never receives a fresh cycle merely because time passed.
   cycle_key:='plan:'||ps.plan_id::text;
   rate_key:=to_char(date_trunc('minute',clock_timestamp() at time zone 'UTC'),'YYYYMMDDHH24MI');
 
-  -- Concurrency is an in-flight transaction property, so transaction-scoped advisory
-  -- slots are the authority. A transaction owns exactly one slot until commit/rollback.
   for n in 1..g.max_concurrency loop
     if pg_try_advisory_xact_lock(hashtextextended(g.id::text||'|concurrency|'||n::text,0)) then
       concurrency_slot:=n;
@@ -175,8 +170,6 @@ begin
   );
 end $$;
 
--- R1.4.7 replaces the gateway so every allow-listed mutation reserves capability
--- limits after full authorization and immediately before the consequential write.
 create or replace function public.hq_workforce_consequential_execution_gateway(p_task_id uuid)
 returns jsonb
 language plpgsql security definer set search_path=public,pg_temp as $$
@@ -198,7 +191,6 @@ begin
   if t.status<>'running' then raise exception 'task_not_running'; end if;
 
   auth:=public.hq_workforce_assert_consequential_task_authorized(t.id);
-  -- Re-read because authorization binds autonomous_authority_grant_id on the task.
   select * into t from public.hq_workforce_task_contracts where id=p_task_id;
   select * into tc from public.hq_workforce_tool_contracts where id=t.tool_contract_id and status='approved';
   if not found then raise exception 'tool_contract_not_approved'; end if;
@@ -254,7 +246,6 @@ begin
   end;
 end $$;
 
--- Preserve the single canonical legacy entrypoint; no alternate mutation gateway is added.
 create or replace function public.hq_workforce_tool_gateway_execute(p_task_id uuid)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 begin
@@ -268,8 +259,6 @@ revoke all on function public.hq_workforce_tool_gateway_execute(uuid) from publi
 grant execute on function public.hq_workforce_reserve_capability_execution(uuid,integer) to service_role;
 grant execute on function public.hq_workforce_consequential_execution_gateway(uuid) to service_role;
 grant execute on function public.hq_workforce_tool_gateway_execute(uuid) to service_role;
-
--- Internal helper is callable only by its SECURITY DEFINER owner through trusted functions.
 
 -- Gate invariant: enforcement may narrow execution only; it cannot activate anything.
 do $$
