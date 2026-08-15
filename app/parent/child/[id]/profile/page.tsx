@@ -172,7 +172,7 @@ export default function ParentChildProfilePage() {
       setFavouriteBook(familyProfile?.favourite_book ?? "");
 
       setData({
-        student: student as StudentRecord,
+        student: student as unknown as StudentRecord,
         className,
         schoolName,
         avatarUrl: avatarUrl || familyProfile?.photo_url || "",
