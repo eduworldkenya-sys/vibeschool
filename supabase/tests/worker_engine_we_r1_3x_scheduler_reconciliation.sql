@@ -75,8 +75,8 @@ where singleton=true;
 do $$ declare oid uuid; v jsonb; begin
   oid:=public.hq_workforce_create_objective(
     'test.x7.objective','acceptance','x7','Produce a verified scheduler reconciliation recommendation','platform_internal','{}'::jsonb,
-    '[]'::jsonb,'[{"criterion":"objective_first_pipeline"}]'::jsonb,'[{"evidence":"scheduler_events"}]'::jsonb,90,0,null,
-    '{"suite":"x7","source":"acceptance"}'::jsonb,null
+    '[]'::jsonb,'[{"criterion":"objective_first_pipeline"}]'::jsonb,'[{"evidence":"scheduler_events"}]'::jsonb,
+    90::smallint,0::smallint,null::timestamptz,'{"suite":"x7","source":"acceptance"}'::jsonb,null::uuid
   );
   v:=public.hq_workforce_run_shadow_cycle('x7-cycle-detect',10);
   if v->>'status'<>'completed' then raise exception 'X7 compatibility bridge did not invoke canonical scheduler: %',v; end if;
@@ -93,9 +93,9 @@ do $$ declare oid uuid; mid uuid; pid uuid; sid uuid; cid uuid; begin
   select id into oid from public.hq_workforce_objectives where objective_key='test.x7.objective';
   mid:=public.hq_workforce_add_memory(
     'test.x7.context','fact','{"condition":"scheduler_fixture_ready"}'::jsonb,'{"suite":"x7","source":"acceptance"}'::jsonb,
-    'acceptance','x7',1,'verified',true
+    'acceptance','x7',1::numeric,'verified',true
   );
-  perform public.hq_workforce_bind_objective_context(oid,mid,'required','Verified X7 scheduler fixture context.',3600);
+  perform public.hq_workforce_bind_objective_context(oid,mid,'required','Verified X7 scheduler fixture context.',3600::bigint);
   pid:=public.hq_workforce_create_plan(
     oid,'test.x7.plan','deterministic-analysis','{"reason":"exercise X7 orchestration"}'::jsonb,
     '{"required":true}'::jsonb,'{}'::jsonb,'{"suite":"x7","source":"acceptance"}'::jsonb
