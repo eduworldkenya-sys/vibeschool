@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
 
+# Exact-head validation is intentionally retriggered after database type reconciliation.
 jobs:
   validate:
     runs-on: ubuntu-latest
