@@ -15,9 +15,9 @@ begin
   ) then raise exception 'authoritative after-state trigger missing'; end if;
 
   select lower(pg_get_functiondef('public.hq_workforce_capture_execution_authoritative_after_state()'::regprocedure)) into d;
-  if position("status='reserved'" in d)=0 then raise exception 'after-state capture is not reservation-scoped'; end if;
-  if position("resource_identity->>'work_item_id'=new.id::text" in d)=0 then raise exception 'after-state capture resource binding missing'; end if;
-  if position("'action_taken'" in d)=0 or position("'acted_at'" in d)=0 or position("'updated_at'" in d)=0 then
+  if position($q$status='reserved'$q$ in d)=0 then raise exception 'after-state capture is not reservation-scoped'; end if;
+  if position($q$resource_identity->>'work_item_id'=new.id::text$q$ in d)=0 then raise exception 'after-state capture resource binding missing'; end if;
+  if position($q$'action_taken'$q$ in d)=0 or position($q$'acted_at'$q$ in d)=0 or position($q$'updated_at'$q$ in d)=0 then
     raise exception 'exact authoritative after-state fields missing';
   end if;
 end $$;
@@ -28,12 +28,12 @@ begin
   select lower(pg_get_functiondef('public.hq_workforce_compensate_consequential_execution(uuid,text,text)'::regprocedure)) into d;
   if position('compensation_authoritative_after_state_incomplete' in d)=0 then raise exception 'incomplete after-state fail-closed gate missing'; end if;
   if position('compensation_authority_lineage_mismatch' in d)=0 then raise exception 'compensation authority lineage revalidation missing'; end if;
-  if position("'action_taken'" in d)=0 or position("'acted_at'" in d)=0 or position("'updated_at'" in d)=0 then
+  if position($q$'action_taken'$q$ in d)=0 or position($q$'acted_at'$q$ in d)=0 or position($q$'updated_at'$q$ in d)=0 then
     raise exception 'compensation exact current-state comparison fields missing';
   end if;
   if position('aba_safe' in d)=0 then raise exception 'ABA-safe divergence evidence missing'; end if;
   if position('exact_state_match' in d)=0 then raise exception 'exact-state success evidence missing'; end if;
-  if position("status='committed'" in d)=0 then raise exception 'double-compensation transition guard missing'; end if;
+  if position($q$status='committed'$q$ in d)=0 then raise exception 'double-compensation transition guard missing'; end if;
 end $$;
 
 -- Trigger helper is never an alternate mutation gateway.
