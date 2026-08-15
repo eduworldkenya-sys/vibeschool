@@ -51,17 +51,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .db-types-artifact
-          supabase gen types typescript --local --schema public > .db-types-artifact/database.types.generated.ts
-          test -s .db-types-artifact/database.types.generated.ts
-          sha256sum .db-types-artifact/database.types.generated.ts > .db-types-artifact/database.types.generated.sha256
-          git rev-parse HEAD > .db-types-artifact/source-head.txt
+          mkdir -p db-types-artifact
+          supabase gen types typescript --local --schema public > db-types-artifact/database.types.generated.ts
+          test -s db-types-artifact/database.types.generated.ts
+          sha256sum db-types-artifact/database.types.generated.ts > db-types-artifact/database.types.generated.sha256
+          git rev-parse HEAD > db-types-artifact/source-head.txt
 
       - name: Upload generated contract
         uses: actions/upload-artifact@v4
         with:
           name: branch-database-types-${{ github.run_id }}
-          path: .db-types-artifact/
+          path: db-types-artifact/
           if-no-files-found: error
           retention-days: 7
 
