@@ -11,6 +11,7 @@ export const PROTECTED_ROLE_PREFIXES: Record<string, string> = {
   '/parent': 'parent',
   '/student': 'student',
   '/admin': 'admin',
+  '/global': 'global_user',
 }
 
 export function safeInternalPath(value: string | null | undefined): string | null {
