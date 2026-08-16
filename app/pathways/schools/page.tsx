@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-type SchoolResult = { school_id:string; school_name:string; county:string|null; sub_county:string|null; school_category:string|null; ownership_type:string|null; gender_type:string|null; accommodation_type:string|null; cluster:string|null; knec_code:string|null; pathway_slug:string|null; pathway_name:string|null; combination_slug:string|null; combination_name:string|null; offering_verified_at:string|null }
+type SchoolResult = { school_id:string; school_name:string; county:string|null; sub_county:string|null; school_category:string|null; ownership_type:string|null; gender_type:string|null; accommodation_type:string|null; knec_code:string|null; pathway_slug:string|null; pathway_name:string|null; combination_slug:string|null; combination_name:string|null; offering_verified_at:string|null }
 
 export default function PathwaysSchoolsPage() {
   const [query,setQuery] = useState('')
@@ -47,7 +47,7 @@ export default function PathwaysSchoolsPage() {
     {!loading&&!error&&rows.length===0&&<div style={S.empty}><strong>No matching verified result yet.</strong><p style={S.body}>Try removing the pathway or county filter. VibeSchool does not infer missing school offerings from names, marketing pages or incomplete directory records.</p></div>}
     <div style={S.list}>{rows.map(row=><article key={`${row.school_id}:${row.pathway_slug??'school'}:${row.combination_slug??''}`} style={S.card}>
       <div style={S.cardTop}><div><h2 style={S.school}>{row.school_name}</h2><p style={S.meta}>{[row.sub_county,row.county].filter(Boolean).join(', ')||'Location not published'}{row.knec_code?` · KNEC ${row.knec_code}`:''}</p></div>{row.pathway_name?<span style={S.verified}>✓ {row.pathway_name} verified</span>:<span style={S.unverified}>Offering not yet verified</span>}</div>
-      <div style={S.chips}>{[row.school_category,row.gender_type,row.accommodation_type,row.cluster].filter((value):value is string=>Boolean(value)).map(value=><span key={value} style={S.chip}>{value}</span>)}</div>
+      <div style={S.chips}>{[row.school_category,row.ownership_type,row.gender_type,row.accommodation_type].filter((value):value is string=>Boolean(value)).map(value=><span key={value} style={S.chip}>{value}</span>)}</div>
       {row.combination_name&&<p style={S.body}><strong>Verified combination:</strong> {row.combination_name}</p>}
       {row.offering_verified_at&&<p style={S.audit}>Offering evidence verified {new Date(row.offering_verified_at).toLocaleDateString('en-KE')}</p>}
     </article>)}</div>
