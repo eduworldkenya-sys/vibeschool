@@ -11,7 +11,8 @@ BEGIN
     'hq_workforce_certifications',
     'hq_workforce_creation_contracts',
     'hq_workforce_runtime_policies',
-    'hq_workforce_workers'
+    'hq_workforce_workers',
+    'hq_workforce_engine_contract'
   ] LOOP
     IF NOT has_table_privilege('service_role', format('public.%I', t), 'SELECT') THEN
       RAISE EXCEPTION '%: service_role SELECT missing', t;
@@ -42,6 +43,6 @@ BEGIN
     RAISE EXCEPTION 'service_role can invoke worker factory creation gateway';
   END IF;
 
-  RAISE NOTICE 'PASS: Worker Engine authority plane is read-only to service_role except narrow fail-safe revocation gateways';
+  RAISE NOTICE 'PASS: Worker Engine authority and safety control planes are read-only to service_role except narrow fail-safe revocation gateways';
 END
 $$;
