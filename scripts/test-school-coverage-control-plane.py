@@ -25,5 +25,8 @@ assert 'revoke all on function public.hq_school_identity_coverage_by_county() fr
 assert 'grant execute on function public.hq_school_identity_coverage_by_county() to authenticated' in sql.lower(), 'authenticated surface must still self-authorize owner-only'
 assert 'Directory ratios are diagnostics only' in sql, 'coverage semantics must explicitly reject directory-as-authority'
 assert 'authoritative' in sql.lower(), 'Tier-0 evidence must be a first-class coverage dimension'
+assert "raw_record->>'region'" not in sql, 'region must never be silently substituted for county'
+assert "coalesce(upper(nullif(trim(o.raw_record->>'county'),'')), 'UNKNOWN')" in sql, 'missing authoritative county must fail closed to UNKNOWN'
+assert 'Missing county stays UNKNOWN' in sql, 'operator-facing semantics must document administrative fail-closed behavior'
 
 print('school identity coverage control plane: PASS')
