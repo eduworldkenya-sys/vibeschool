@@ -9,6 +9,8 @@ export default function robots(): MetadataRoute.Robots {
           '/',
           '/about',
           '/contact',
+          '/pathways',
+          '/pathways/',
           '/global',
           '/global/chronicles',
           '/global/vibes',
