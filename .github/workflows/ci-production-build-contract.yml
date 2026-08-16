@@ -1,0 +1,32 @@
+name: CI Production Build Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/actions/production-build-contract/**'
+      - '.github/workflows/**'
+      - 'scripts/test-ci-production-build-contract.mjs'
+  push:
+    branches:
+      - main
+      - 'agent/**'
+    paths:
+      - '.github/actions/production-build-contract/**'
+      - '.github/workflows/**'
+      - 'scripts/test-ci-production-build-contract.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-contract:
+    name: Production build contract drift guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject divergent production build definitions
+        run: node scripts/test-ci-production-build-contract.mjs

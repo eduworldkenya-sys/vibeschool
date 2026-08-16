@@ -1,0 +1,43 @@
+name: VibeSchool production build contract
+description: Canonical Node/install/environment/build contract for every CI production build.
+
+inputs:
+  prebuild_command:
+    description: Optional domain-specific checks to run after npm ci and before the production build.
+    required: false
+    default: ""
+  supabase_url:
+    description: Public Supabase URL required by the Next.js production build.
+    required: false
+    default: ""
+  supabase_anon_key:
+    description: Public Supabase anon key required by the Next.js production build.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set up canonical Node.js runtime
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+
+    - name: Install exact dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Run caller-specific prebuild certification
+      if: ${{ inputs.prebuild_command != '' }}
+      shell: bash
+      run: ${{ inputs.prebuild_command }}
+
+    - name: Build production application
+      shell: bash
+      env:
+        NODE_OPTIONS: --max-old-space-size=6144
+        NEXT_TELEMETRY_DISABLED: "1"
+        NEXT_PUBLIC_SUPABASE_URL: ${{ inputs.supabase_url }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ inputs.supabase_anon_key }}
+      run: npm run build
