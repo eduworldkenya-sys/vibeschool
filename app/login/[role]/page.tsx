@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const ROLE_CONFIG = {
@@ -13,9 +13,18 @@ const ROLE_CONFIG = {
 
 type RoleKey = keyof typeof ROLE_CONFIG
 
+function safeNext(value: string | null): string | null {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return null
+  // Pathways only needs to continue inside its own public decision journey.
+  // Do not turn this query parameter into a general-purpose redirect surface.
+  return value === '/pathways/continue' || value.startsWith('/pathways/continue?') ? value : null
+}
+
 export default function RoleLoginPage() {
   const params = useParams<{ role: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = safeNext(searchParams.get('next'))
   const role = (params.role || '').toLowerCase() as RoleKey
   const config = ROLE_CONFIG[role]
   const [identifier, setIdentifier] = useState('')
@@ -37,18 +46,32 @@ export default function RoleLoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Wrong admission number or PIN. Ask your teacher if you need help.'); return }
 
-      const { data: actualRole } = await supabase.rpc('get_my_role')
+      const { data: actualRole, error: roleError } = await supabase.rpc('get_my_role')
       const expectedRole = role === 'global' ? 'global_user' : role
-      if (actualRole !== expectedRole) {
+      if (roleError || actualRole !== expectedRole) {
         await supabase.auth.signOut()
         setMessage(`This account is not registered as a ${config.label.toLowerCase()}. Choose the correct sign-in.`)
+        return
+      }
+
+      const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+      if (onboardingError || !onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) {
+        await supabase.auth.signOut()
+        setMessage('Your account setup could not be verified safely. Please try again.')
+        return
+      }
+      const state = typeof onboarding.state === 'string' ? onboarding.state : null
+      const destination = typeof onboarding.destination === 'string' ? onboarding.destination : config.destination
+      if (!state || state === 'unknown_role') {
+        await supabase.auth.signOut()
+        setMessage('Your account setup is incomplete or ambiguous. Please contact support.')
         return
       }
 
       const maxAge = data.session?.expires_in ?? 3600
       localStorage.setItem('vs_role', expectedRole)
       document.cookie = `vibe_role=${expectedRole}; path=/; max-age=${maxAge}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
-      router.replace(config.destination)
+      router.replace(state === 'ready' && next ? next : destination)
     } finally {
       setBusy(false)
     }
@@ -58,24 +81,20 @@ export default function RoleLoginPage() {
     if (!config.email || busy) return
     setBusy(true)
     const requestedRole = role === 'global' ? 'global_user' : role
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback?intent=signin&role=${requestedRole}` } })
+    const continuation = next ? `&next=${encodeURIComponent(next)}` : ''
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback?intent=signin&role=${requestedRole}${continuation}` } })
     if (error) { setMessage('Google sign in could not start.'); setBusy(false) }
   }
 
+  const nextQuery = next ? `?next=${encodeURIComponent(next)}` : ''
+
   return <main className="shell">
-    <nav className="topnav" aria-label="Public navigation">
-      <a href="/">Home</a>
-      <a href="/global">Explore</a>
-      <a href="/about">About</a>
-      <a href="/contact">Contact</a>
-    </nav>
+    <nav className="topnav" aria-label="Public navigation"><a href="/">Home</a><a href="/global">Explore</a><a href="/about">About</a><a href="/contact">Contact</a></nav>
     <section className="card">
-      <a className="brand" href="/" aria-label="VibeSchool home">
-        <img src="/icons/vibeschool-logo.png" alt="VibeSchool" />
-      </a>
+      <a className="brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo.png" alt="VibeSchool" /></a>
       <p className="eyebrow">{config.label.toUpperCase()} SIGN IN</p>
       <h1>Welcome back.</h1>
-      <p className="lead">Go straight to your VibeSchool workspace.</p>
+      <p className="lead">{next ? 'Sign in, then continue your Pathways result.' : 'Go straight to your VibeSchool workspace.'}</p>
       {message && <div className="message" role="alert">{message}</div>}
       <label>{config.email ? 'Email' : 'Admission number'}</label>
       <input type={config.email ? 'email' : 'text'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} />
@@ -84,9 +103,9 @@ export default function RoleLoginPage() {
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : `Sign in as ${config.label}`}</button>
       {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
       <p className="switch">Wrong role? <a href="/">Choose another sign-in</a></p>
-      {role === 'teacher' && <p className="switch">New teacher? <a href="/signup/teacher">Create an account</a></p>}
-      {role === 'parent' && <p className="switch">New parent? <a href="/signup/parent">Create an account</a></p>}
-      {role === 'student' && <p className="switch">New learner with a claim code? <a href="/signup/student">Create learner account</a></p>}
+      {role === 'teacher' && <p className="switch">New teacher? <a href={`/signup/teacher${nextQuery}`}>Create an account</a></p>}
+      {role === 'parent' && <p className="switch">New parent? <a href={`/signup/parent${nextQuery}`}>Create an account</a></p>}
+      {role === 'student' && <p className="switch">New learner with a claim code? <a href={`/signup/student${nextQuery}`}>Create learner account</a></p>}
       <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
     </section><style jsx>{styles}</style></main>
 }
