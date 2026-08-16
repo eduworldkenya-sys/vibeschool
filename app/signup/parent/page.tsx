@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { continuationForRole, normalizeContinuation } from '@/lib/auth/continuation'
 
-export default function ParentSignupPage() {
+function ParentSignupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const requestedNext = normalizeContinuation(searchParams.get('next'))
@@ -19,25 +19,18 @@ export default function ParentSignupPage() {
     if(password.length<8){setMessage('Use at least 8 characters for your password.');return}
     setBusy(true)
     try{
-      const {data,error}=await supabase.auth.signUp({
-        email:email.trim(),
-        password,
-        options:{data:{role: 'parent',full_name:name.trim()}},
-      })
+      const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{role: 'parent',full_name:name.trim()}}})
       if(error||!data.user){setMessage(error?.message?.includes('already')?'An account already exists with this email. Sign in instead.':'We could not create your account. Please try again.');return}
       const {error:profileError}=await supabase.from('profiles').update({full_name:name.trim(),country_code:'KE'}).eq('id',data.user.id)
       if(profileError){setMessage('Your account was created, but profile setup needs another try.');return}
       if(data.session){localStorage.setItem('vs_role','parent');document.cookie=`vibe_role=parent; path=/; max-age=${data.session.expires_in??3600}; samesite=lax${location.protocol==='https:'?'; secure':''}`}
-      const next=continuationForRole(requestedNext,'parent')
-      if(next) router.replace(next)
-      else router.replace('/parent/students')
+      const next=continuationForRole(requestedNext,'parent');router.replace(next||'/parent/students')
     }finally{setBusy(false)}
   }
 
   async function google(){
     if(busy)return;setBusy(true)
-    const next=continuationForRole(requestedNext,'parent')
-    const suffix=next?`&next=${encodeURIComponent(next)}`:''
+    const next=continuationForRole(requestedNext,'parent'),suffix=next?`&next=${encodeURIComponent(next)}`:''
     const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:`${window.location.origin}/auth/callback?intent=signup&role=parent${suffix}`}})
     if(error){setMessage('Google signup could not start.');setBusy(false)}
   }
@@ -51,5 +44,7 @@ export default function ParentSignupPage() {
     <p className="switch">Already have an account? <a href={signin}>Sign in</a></p><p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
+
+export default function ParentSignupPage(){return <Suspense fallback={<main className="shell"/>}><ParentSignupContent/></Suspense>}
 
 const styles=`.shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:28px 16px;font-family:var(--font-jakarta),Arial,sans-serif}.card{width:100%;max-width:420px}.brand{display:block;color:#fff;text-decoration:none;font-family:var(--font-display),Arial,sans-serif;font-size:30px;font-weight:800}.brand span{color:#c8a84b}.eyebrow{color:#c8a84b;font:700 10px var(--font-mono),monospace;letter-spacing:.18em;margin:28px 0 8px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:36px;line-height:1.05;margin:0}.lead{color:rgba(255,255,255,.56);margin:12px 0 22px}.message{background:rgba(255,80,80,.1);color:#ffc7c7;padding:11px;border-radius:9px;margin-bottom:14px;font-size:13px}label{display:block;font-size:12px;color:rgba(255,255,255,.65);margin:14px 0 6px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:13px 14px;font-size:16px}.primary,.secondary{width:100%;border-radius:9px;padding:13px 14px;font-weight:800;margin-top:18px;cursor:pointer}.primary{border:0;background:#c8a84b;color:#05050f}.secondary{margin-top:0;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff}.primary:disabled,.secondary:disabled{opacity:.55}.or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.3);font-size:11px;margin:16px 0}.or span{height:1px;background:rgba(255,255,255,.12);flex:1}.switch,.legal{font-size:12px;color:rgba(255,255,255,.45);text-align:center;margin-top:18px}.switch a,.legal a{color:#c8a84b}.legal{font-size:11px;margin-top:24px}`
