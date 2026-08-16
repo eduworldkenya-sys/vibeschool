@@ -4,6 +4,8 @@
 -- This owner-only projection keeps discovery, canonical identity and Tier-0
 -- authoritative evidence as separate measures so operators can see where coverage
 -- is weak without accidentally promoting raw directory volume into government truth.
+-- Administrative geography is fail-closed: missing county remains UNKNOWN; region
+-- must never be silently substituted for county.
 
 create or replace function public.hq_school_identity_coverage_by_county()
 returns table(
@@ -55,11 +57,7 @@ begin
   ),
   authority as (
     select
-      coalesce(
-        upper(nullif(trim(o.raw_record->>'county'),'')),
-        upper(nullif(trim(o.raw_record->>'region'),'')),
-        'UNKNOWN'
-      ) as county,
+      coalesce(upper(nullif(trim(o.raw_record->>'county'),'')), 'UNKNOWN') as county,
       count(*)::bigint as observations,
       count(*) filter (where r.classification = 'matched')::bigint as matched,
       count(*) filter (where r.classification = 'new_candidate')::bigint as new_candidates,
@@ -112,4 +110,4 @@ revoke all on function public.hq_school_identity_coverage_by_county() from publi
 grant execute on function public.hq_school_identity_coverage_by_county() to authenticated;
 
 comment on function public.hq_school_identity_coverage_by_county() is
-'Owner-only School Identity coverage projection. Keeps directory discovery volume, canonical identities and Tier-0 authoritative observations/reconciliation separate. Directory ratios are diagnostics only and are not claims of national completeness.';
+'Owner-only School Identity coverage projection. Keeps directory discovery volume, canonical identities and Tier-0 authoritative observations/reconciliation separate. Missing county stays UNKNOWN; region is never substituted. Directory ratios are diagnostics only and are not claims of national completeness.';
