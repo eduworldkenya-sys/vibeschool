@@ -12,6 +12,8 @@ on:
       - 'public/sw.js'
       - 'supabase/migrations/**auth**'
       - 'scripts/test-auth-gateway-contract.mjs'
+      - 'scripts/test-auth-identity-reconciliation-contract.mjs'
+      - '*.py'
       - '.github/workflows/auth-gateway-contract.yml'
 
 permissions:
@@ -19,7 +21,7 @@ permissions:
 
 jobs:
   auth-gateway-contract:
-    name: Authority, OAuth, recovery and PWA contract
+    name: Authority, OAuth, recovery and identity integrity contract
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -28,3 +30,4 @@ jobs:
         with:
           node-version: 20
       - run: node scripts/test-auth-gateway-contract.mjs
+      - run: node scripts/test-auth-identity-reconciliation-contract.mjs
