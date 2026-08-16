@@ -46,7 +46,7 @@ export default function PathwaysSchoolsPage(){
         if(error){setSuggestions([]);setSuggestOpen(false);return}
         const unique=new Map<string,SchoolRow>()
         for(const row of (data??[]) as SchoolRow[]) if(!unique.has(row.school_id)) unique.set(row.school_id,row)
-        const next=[...unique.values()].slice(0,8)
+        const next=Array.from(unique.values()).slice(0,8)
         setSuggestions(next)
         setSuggestOpen(next.length>0)
       })()
