@@ -6,6 +6,9 @@ page = (ROOT / "app/teacher/onboarding/school/page.tsx").read_text()
 migrations = sorted((ROOT / "supabase/migrations").glob("20260813*_school_*.sql"))
 combined = "\n".join(p.read_text() for p in migrations)
 hardening = (ROOT / "supabase/migrations/20260816161000_school_directory_connect_authority_hardening.sql").read_text()
+prerequisite = ROOT / "supabase/migrations/20260815153900_restore_school_directory_identity_columns_prerequisite.sql"
+matching = ROOT / "supabase/migrations/20260815154000_national_school_identity_engine_matching_v3.sql"
+legacy_matching = ROOT / "supabase/migrations/20260815120000_national_school_identity_engine_matching_v3.sql"
 
 required_page_markers = [
     'search_school_directory',
@@ -55,5 +58,19 @@ assert 'name,subdomain,timezone,country_code,status,created_by,requires_dual_app
 assert "'pending',v_uid,true" in review_body
 assert "v_subdomain := v_slug || '-' || replace(d.id::text,'-','')" in review_body
 assert "raise exception 'canonical_identifier_collision'" in review_body
+
+# Blank-database reproducibility: national matching cannot share the Worker Engine
+# 20260815120000 ledger version and cannot reference its normalization primitive or
+# directory identity columns before they exist.
+assert not legacy_matching.exists(), 'duplicate 20260815120000 national school migration must stay retired'
+assert prerequisite.exists(), 'directory identity prerequisite migration missing'
+assert matching.exists(), 'reordered national school identity migration missing'
+prerequisite_sql = prerequisite.read_text()
+matching_sql = matching.read_text()
+assert 'add column if not exists knec_code text' in prerequisite_sql.lower()
+assert 'add column if not exists ingest_batch_id uuid' in prerequisite_sql.lower()
+normalize_pos = matching_sql.lower().find('create or replace function public.normalize_school_identity_name')
+index_pos = matching_sql.lower().find('schools_directory_name_trgm_idx')
+assert normalize_pos >= 0 and index_pos > normalize_pos, 'normalization primitive must exist before expression index'
 
 print('school discovery contract: PASS')
