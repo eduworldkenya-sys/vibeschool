@@ -99,7 +99,7 @@ jobs:
           SQL
           LEGACY="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='trace_id')::text")"
           test "$LEGACY" = "true"
-          TYPE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select data_type from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='desired_outcome')"
+          TYPE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select data_type from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='desired_outcome'")"
           test "$TYPE" = "jsonb"
           test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_memory_records') is not null")" = "t"
 
@@ -110,7 +110,7 @@ jobs:
           PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
           PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260815090500_worker_engine_we_r1_3x_production_reconciliation_bridge.sql
           test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='trace_id')")" = "f"
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select data_type from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='desired_outcome')" = "text"
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select data_type from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='desired_outcome'")" = "text"
           test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('worker_engine_legacy_archive.hq_workforce_objectives') is not null")" = "t"
           test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_objective_context') is not null")" = "t"
           STATE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
