@@ -1,5 +1,20 @@
 -- National School Identity Engine: matching, coverage, ingestion and gap controls.
 -- Safe to re-run: indexes/functions/view are idempotent; writes remain owner-gated.
+--
+-- Blank-database invariant: this migration is deliberately ordered after the
+-- school identity foundation/review migrations and defines the normalization
+-- primitive before any expression index or function references it.
+-- Access: owner-read/function-write public.school_identity_coverage_runs
+-- Authorization-test: public.school_identity_coverage_runs anon direct access -> denied; authenticated non-owner SELECT -> zero rows; platform owner SELECT -> allowed; no client write policy exists.
+
+create or replace function public.normalize_school_identity_name(p_name text)
+returns text
+language sql
+immutable
+set search_path=public
+as $$
+  select nullif(trim(regexp_replace(lower(coalesce(p_name,'')), '[^a-z0-9]+', ' ', 'g')), '')
+$$;
 
 create index if not exists schools_identity_name_trgm_idx
   on public.schools using gin (name_normalized gin_trgm_ops)
