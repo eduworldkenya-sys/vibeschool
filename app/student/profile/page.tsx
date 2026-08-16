@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useTheme } from '@/components/student/StudentUiContext'
 import { useStudent } from '@/lib/student-context'
 import { getLearnerTwinState, type LearnerTwinState } from '@/lib/student/twin'
+import { getPathwayPassport, type PathwayPassport } from '@/lib/pathways/student'
 import {
   getPersonalizedLearningPath,
   getStudentHomeOsBrief,
@@ -38,6 +39,7 @@ interface Learner360Data {
   home: StudentHomeOsBrief
   path: StudentPersonalizedPath
   twin: LearnerTwinState
+  pathwayPassport: PathwayPassport | null
 }
 
 function Skeleton({ h = 44 }: { h?: number }) {
@@ -81,12 +83,13 @@ export default function StudentProfilePage() {
       setLoading(true)
       setPageError(null)
       try {
-        const [accountRes, schoolIdentityRes, home, path, twin, attendanceRes, linkRes] = await Promise.all([
+        const [accountRes, schoolIdentityRes, home, path, twin, pathwayPassport, attendanceRes, linkRes] = await Promise.all([
           supabase.from('profiles').select('avatar_url').eq('id', activeIdentity.profileId).single(),
           supabase.from('students').select('date_of_birth,gender').eq('id', activeIdentity.studentId).single(),
           getStudentHomeOsBrief(),
           getPersonalizedLearningPath(),
           getLearnerTwinState(),
+          getPathwayPassport(),
           supabase.from('attendance').select('status').eq('student_id', activeIdentity.studentId),
           supabase.from('parent_student_links').select('parent_id,relationship,is_primary').eq('student_id', activeIdentity.studentId).order('is_primary', { ascending: false }).limit(1).maybeSingle(),
         ])
@@ -116,6 +119,7 @@ export default function StudentProfilePage() {
             home,
             path,
             twin,
+            pathwayPassport,
           })
         }
       } catch (cause) {
@@ -155,13 +159,15 @@ export default function StudentProfilePage() {
         <div style={{ width: 78, height: 78, borderRadius: '50%', overflow: 'hidden', background: '#312e81', border: '3px solid rgba(255,255,255,.3)', display: 'grid', placeItems: 'center', fontSize: 30, flexShrink: 0 }}>{data?.avatarUrl ? <img src={data.avatarUrl} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}</div>
         <div style={{ minWidth: 0 }}><div style={{ fontSize: 10, letterSpacing: 1.2, opacity: .65, fontWeight: 800 }}>MY LEARNER PROFILE</div><h1 style={{ margin: '4px 0', fontSize: 22, lineHeight: 1.15 }}>{identity.name}</h1><p style={{ margin: 0, fontSize: 12, opacity: .75 }}>{identity.className || 'Class not assigned'}{identity.schoolName ? ` · ${identity.schoolName}` : ''}</p></div>
       </div>
-      <p style={{ margin: '14px 0 0', fontSize: 11, opacity: .72, lineHeight: 1.55 }}>One learner record: school identity, progress, achievements, journey and Twin evidence. Your parent and teachers see role-appropriate views of the same learner.</p>
+      <p style={{ margin: '14px 0 0', fontSize: 11, opacity: .72, lineHeight: 1.55 }}>One learner record: school identity, progress, Pathway Passport, achievements, journey and Twin evidence. Your parent and teachers see role-appropriate views of the same learner.</p>
     </section>
 
     {(pageError || identityError) && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, color: '#991b1b', padding: 12, fontSize: 12, marginBottom: 12 }}>{pageError || identityError}</div>}
 
     {data && <div style={{ display: 'grid', gap: 12 }}>
       <Card><SectionHead title="Learning pulse" sub="A quick view of your current learning state." /><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}><Metric label="Twin confidence" value={percent(data.twin.confidence * 100)} hint="Verified evidence behind your Twin" /><Metric label="Attendance" value={percent(data.attendancePct)} /><Metric label="Learning streak" value={data.twin.streak.current} hint={`Best ${data.twin.streak.longest}`} /><Metric label="Verified XP" value={progress?.totalXp ?? 0} /></div></Card>
+
+      <Card><SectionHead title="My Pathway Passport" sub="A learner-owned direction that can evolve as your interests, evidence and goals change." />{data.pathwayPassport ? <div><div style={{ padding: 14, background: '#eef2ff', borderRadius: 14 }}><div style={{ fontSize: 10, color: C.accent, fontWeight: 850 }}>CURRENT SAVED DIRECTION</div><strong style={{ display: 'block', fontSize: 20, marginTop: 4 }}>{data.pathwayPassport.pathwayName}</strong><p style={{ margin: '5px 0 0', color: C.textMuted, fontSize: 11, lineHeight: 1.5 }}>{data.pathwayPassport.summary || 'Your saved pathway direction.'}</p></div><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 11, color: C.textMuted, fontSize: 10 }}><span>Saved from {data.pathwayPassport.evidenceType.replaceAll('_',' ')}</span><span>{formatDate(data.pathwayPassport.adoptedAt)}</span></div><p style={{ margin: '11px 0 0', color: C.textMuted, fontSize: 10, lineHeight: 1.5 }}>This is VibeSchool guidance you chose to save, not an official placement decision. Future verified evidence may strengthen or change the guidance without silently rewriting your history.</p><button onClick={() => router.push('/pathways/check')} style={{ marginTop: 12, width: '100%', padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff', fontWeight: 800, color: C.accent, cursor: 'pointer' }}>Review my pathway</button></div> : <div><p style={{ color: C.textMuted, fontSize: 12, margin: 0, lineHeight: 1.55 }}>You have not saved a pathway direction yet. You can explore for free before deciding whether to add one to your learner profile.</p><button onClick={() => router.push('/pathways/check')} style={{ marginTop: 12, width: '100%', padding: 11, borderRadius: 12, border: 'none', background: C.accent, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>Check my direction — free</button></div>}</Card>
 
       <Card><SectionHead title="My goals" sub="Learning targets belong to your learner profile, not a disconnected settings page." /><div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }}><Metric label="Target grade" value={progress?.targets.kcseTargetGrade ?? 'Not set'} /><Metric label="Weekly study" value={`${progress?.targets.weeklyStudyMinutes ?? 300}m`} /><Metric label="Focus session" value={`${progress?.targets.preferredSessionMinutes ?? 25}m`} /></div><button onClick={() => router.push('/student')} style={{ marginTop: 12, width: '100%', padding: 11, borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff', fontWeight: 800, color: C.accent, cursor: 'pointer' }}>Manage learning goals</button></Card>
 
