@@ -24,22 +24,9 @@ def normalized(sql: str) -> str:
     return re.sub(r"\s+", " ", sql.lower())
 
 
-def sql_code_only(raw: str) -> str:
-    """Remove SQL comments before structural statement discovery.
-
-    Access/authorization declarations are intentionally matched against the
-    original raw text below. This only prevents prose such as
-    "CREATE TABLE IF NOT EXISTS" inside comments from being misclassified as
-    an actual table declaration.
-    """
-    without_block_comments = re.sub(r"/\*.*?\*/", " ", raw, flags=re.DOTALL)
-    return re.sub(r"--[^\n]*", " ", without_block_comments)
-
-
 def validate(path: Path) -> list[str]:
     raw = path.read_text(encoding="utf-8")
-    code = sql_code_only(raw)
-    sql = normalized(code)
+    sql = normalized(raw)
     errors: list[str] = []
 
     # Keep privilege matching inside one SQL statement. A service_role-only
@@ -53,7 +40,7 @@ def validate(path: Path) -> list[str]:
     if re.search(r"grant\s+[^;]*\btruncate\b[^;]*\bto\s+(?:anon|authenticated)\b", sql):
         errors.append("TRUNCATE may not be granted to anon/authenticated")
 
-    for table in sorted(set(CREATE_TABLE.findall(code))):
+    for table in sorted(set(CREATE_TABLE.findall(raw))):
         qualified = rf"(?:public\.)?{re.escape(table)}"
         has_rls = re.search(
             rf"alter\s+table\s+{qualified}\s+enable\s+row\s+level\s+security",
