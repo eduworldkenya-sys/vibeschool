@@ -21,6 +21,7 @@ export default function PathwaysContinuePage(){
   const [signedIn,setSignedIn]=useState(false)
   const [busy,setBusy]=useState(false)
   const [message,setMessage]=useState('')
+  const [savedKind,setSavedKind]=useState<'student'|'parent'|null>(null)
 
   useEffect(()=>{
     try { const raw=localStorage.getItem(QUICK_CHECK_STORAGE_KEY); if(raw) setStored(JSON.parse(raw) as StoredCheck) } catch {}
@@ -41,19 +42,21 @@ export default function PathwaysContinuePage(){
 
   async function save(){
     if(!validDraft||!stored?.answers)return
-    setBusy(true);setMessage('')
+    setBusy(true);setMessage('');setSavedKind(null)
     try{
       const key=createIdempotencyKey(`pathways-${userRole??'account'}`)
       if(userRole==='student'){
         const {error}=await supabase.rpc('student_adopt_pathway_quick_check',{p_pathway_slug:result.canonicalSlug,p_answers:stored.answers,p_scores:scores,p_rule_version:QUICK_CHECK_RULE_VERSION,p_idempotency_key:key})
         if(error)throw error
         setMessage('Saved to your learner Pathway Passport. You can review or change this direction later.')
+        setSavedKind('student')
         return
       }
       if(userRole==='parent'){
         const {error}=await supabase.rpc('parent_save_pathway_draft',{p_pathway_slug:result.canonicalSlug,p_answers:stored.answers,p_scores:scores,p_rule_version:QUICK_CHECK_RULE_VERSION,p_idempotency_key:key})
         if(error)throw error
         setMessage('Saved as your parent-owned family Pathways draft. It has not changed any learner account or learner Pathway Passport.')
+        setSavedKind('parent')
         return
       }
       setMessage('This result can only be saved as a learner-owned Passport or a parent-owned family draft.')
@@ -67,7 +70,7 @@ export default function PathwaysContinuePage(){
     <Link href="/pathways/check" style={S.back}>← Pathway Check</Link><p style={S.kicker}>SAFE CONTINUATION</p><h1 style={S.h1}>Keep the value. Add an account only when it helps.</h1>
     {!validDraft?<section style={S.card}><strong>No completed Pathway Check found on this device.</strong><p style={S.body}>Run the free check first. Pathways does not create an account just to show an answer.</p><Link href="/pathways/check" style={S.primary}>Start free check</Link></section>:<>
       <section style={S.result}><span style={S.resultLabel}>LOCAL RESULT</span><h2 style={S.resultTitle}>{result.name}</h2><p style={S.resultBody}>{result.summary}</p></section>
-      {!signedIn?<section style={S.card}><h2 style={S.cardTitle}>Choose the safe account lane</h2><p style={S.body}>For a completely new family, the durable account starts with the adult parent. A learner account still requires the existing guardian/school connection and learner code; Pathways does not bypass that safeguard.</p><div style={S.actions}><Link href={`/signup/parent?next=${CONTINUE}`} style={S.primary}>Create parent account</Link><Link href={`/login/parent?next=${CONTINUE}`} style={S.secondary}>Parent sign in</Link><Link href={`/login/student?next=${CONTINUE}`} style={S.secondary}>Existing learner sign in</Link></div><p style={S.small}>Your completed result remains in this browser while you sign in. Parent saving creates only an adult-owned planning draft, never a learner identity.</p></section>:<section style={S.card}><h2 style={S.cardTitle}>{userRole==='student'?'Save to my learner Passport':userRole==='parent'?'Save as a family planning draft':'This account cannot own a Pathways result'}</h2><p style={S.body}>{userRole==='student'?'Saving records your current direction and the rule version that produced it. You remain able to review or change it later.':userRole==='parent'?'Saving preserves the result under your adult account so your family can continue later. It does not silently adopt the direction for a child.':'Teacher/admin accounts may support learners but do not own the learner decision.'}</p>{(userRole==='student'||userRole==='parent')&&<button type="button" disabled={busy} onClick={()=>void save()} style={S.primaryButton}>{busy?'Saving safely…':'Save and continue'}</button>}{message&&<div role="status" style={S.message}>{message}</div>}</section>}
+      {!signedIn?<section style={S.card}><h2 style={S.cardTitle}>Choose the safe account lane</h2><p style={S.body}>For a completely new family, the durable account starts with the adult parent. A learner account still requires the existing guardian/school connection and learner code; Pathways does not bypass that safeguard.</p><div style={S.actions}><Link href={`/signup/parent?next=${CONTINUE}`} style={S.primary}>Create parent account</Link><Link href={`/login/parent?next=${CONTINUE}`} style={S.secondary}>Parent sign in</Link><Link href={`/login/student?next=${CONTINUE}`} style={S.secondary}>Existing learner sign in</Link></div><p style={S.small}>Your completed result remains in this browser while you sign in. Parent saving creates only an adult-owned planning draft, never a learner identity.</p></section>:<section style={S.card}><h2 style={S.cardTitle}>{userRole==='student'?'Save to my learner Passport':userRole==='parent'?'Save as a family planning draft':'This account cannot own a Pathways result'}</h2><p style={S.body}>{userRole==='student'?'Saving records your current direction and the rule version that produced it. You remain able to review or change it later.':userRole==='parent'?'Saving preserves the result under your adult account so your family can continue later. It does not silently adopt the direction for a child.':'Teacher/admin accounts may support learners but do not own the learner decision.'}</p>{(userRole==='student'||userRole==='parent')&&<button type="button" disabled={busy} onClick={()=>void save()} style={S.primaryButton}>{busy?'Saving safely…':'Save and continue'}</button>}{message&&<div role="status" style={S.message}>{message}</div>}{savedKind==='student'&&<Link href="/student/pathways" style={{...S.primary,marginTop:10}}>Open my Pathway Passport</Link>}{savedKind==='parent'&&<Link href="/parent/pathways" style={{...S.secondary,marginTop:10}}>Open family Pathways support</Link>}</section>}
     </>}
   </div></main>
 }
