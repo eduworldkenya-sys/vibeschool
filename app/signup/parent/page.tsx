@@ -20,22 +20,37 @@ export default function ParentSignupPage() {
     if (password.length < 8) { setMessage('Use at least 8 characters for your password.'); return }
     setBusy(true)
     try {
+      const callback = `${window.location.origin}/auth/callback?intent=signup&role=parent`
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { role: 'parent', full_name: name.trim() } },
+        options: { emailRedirectTo: callback, data: { full_name: name.trim() } },
       })
       if (error || !data.user) {
-        setMessage(error?.message?.includes('already') ? 'An account already exists with this email. Sign in instead.' : 'We could not create your account. Please try again.')
+        setMessage('We could not create your account. If you already registered, sign in instead.')
+        return
+      }
+      if (!data.session) {
+        setMessage('Check your email to confirm your account. After confirmation, VibeSchool will continue parent setup.')
+        return
+      }
+      const claim = await supabase.rpc('claim_my_initial_role', { p_role: 'parent' })
+      if (claim.error || claim.data !== 'parent') {
+        router.replace('/auth/error?reason=role_claim_failed')
         return
       }
       const { error: profileError } = await supabase.from('profiles').update({ full_name: name.trim(), country_code: 'KE' }).eq('id', data.user.id)
-      if (profileError) { setMessage('Your account was created, but profile setup needs another try.'); return }
-      if (data.session) {
-        localStorage.setItem('vs_role', 'parent')
-        document.cookie = `vibe_role=parent; path=/; max-age=${data.session.expires_in ?? 3600}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
+      if (profileError) {
+        router.replace('/auth/error?reason=profile_resolution_failed')
+        return
       }
-      router.replace('/parent/students')
+      const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+      const destination = onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding) && typeof onboarding.destination === 'string' ? onboarding.destination : null
+      if (onboardingError || !destination) {
+        router.replace('/auth/error?reason=onboarding_resolution_failed')
+        return
+      }
+      router.replace(destination)
     } finally {
       setBusy(false)
     }
@@ -44,7 +59,10 @@ export default function ParentSignupPage() {
   async function google() {
     if (busy) return
     setBusy(true)
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback?intent=signup&role=parent` } })
+    const flow = crypto.randomUUID()
+    const redirectTo = `${window.location.origin}/auth/callback?intent=signup&role=parent&flow=${encodeURIComponent(flow)}`
+    console.info(JSON.stringify({ scope: 'auth_journey', stage: 'oauth_started', flow_id: flow, detail: 'parent_signup' }))
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
     if (error) { setMessage('Google signup could not start.'); setBusy(false) }
   }
 
