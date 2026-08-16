@@ -41,17 +41,15 @@ export async function GET(req: NextRequest) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet: PendingCookie[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            pendingCookies.push({ name, value, options })
-            cookieStore.set(name, value, options)
-          })
-        },
+    { cookies: {
+      getAll() { return cookieStore.getAll() },
+      setAll(cookiesToSet: PendingCookie[]) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          pendingCookies.push({ name, value, options })
+          cookieStore.set(name, value, options)
+        })
       },
-    }
+    }}
   )
 
   const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -60,14 +58,16 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return redirectWithCookies(req, '/login?oauth_error=user_missing', pendingCookies)
 
-  const { data: onboarding, error: onboardingErr } = await supabase.rpc('get_my_onboarding_state')
-  if (!onboardingErr && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
+  const [{ data: onboarding, error: onboardingErr }, { data: actualRole, error: roleErr }] = await Promise.all([
+    supabase.rpc('get_my_onboarding_state'),
+    supabase.rpc('get_my_role'),
+  ])
+
+  if (!onboardingErr && !roleErr && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding) && typeof actualRole === 'string') {
     const state = typeof onboarding.state === 'string' ? onboarding.state : null
     const destination = typeof onboarding.destination === 'string' ? onboarding.destination : null
-    const role = typeof onboarding.role === 'string' ? onboarding.role : null
-
     if (destination && state && state !== 'unknown_role') {
-      const continuation = state === 'ready' ? continuationForRole(requestedNext, role) : null
+      const continuation = state === 'ready' ? continuationForRole(requestedNext, actualRole) : null
       return redirectWithCookies(req, continuation || destination, pendingCookies)
     }
   }
@@ -78,8 +78,6 @@ export async function GET(req: NextRequest) {
     return redirectWithCookies(req, continuation || ROLE_HOME[profile.role], pendingCookies)
   }
 
-  // A brand-new OAuth identity has no application authority yet. Requested role
-  // selects only the bounded first-access onboarding route; it never creates role.
-  const destination = requestedRole ? FIRST_ACCESS[requestedRole] : '/'
-  return redirectWithCookies(req, destination, pendingCookies)
+  // Requested role is onboarding intent only. It never becomes application authority.
+  return redirectWithCookies(req, requestedRole ? FIRST_ACCESS[requestedRole] : '/', pendingCookies)
 }
