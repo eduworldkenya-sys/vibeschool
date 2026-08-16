@@ -124,17 +124,22 @@ $$;
 revoke all on function public.connect_teacher_to_school(uuid,text) from public, anon;
 grant execute on function public.connect_teacher_to_school(uuid,text) to authenticated;
 
-create or replace function public.connect_teacher_to_directory_school(p_directory_id uuid, p_level text default null)
+-- Auth hardening must not become a second School Engine identity authority.
+-- Preserve the current governed directory reconciliation path and add only the
+-- canonical teacher-role precondition required by this auth mission.
+create or replace function public.connect_teacher_to_directory_school(p_directory_id uuid,p_level text default null)
 returns uuid
 language plpgsql
 security definer
-set search_path = public, auth, pg_temp
+set search_path=public,extensions,auth,pg_temp
 as $$
 declare
-  v_uid uuid := auth.uid();
+  v_uid uuid:=auth.uid();
   v_role text;
   d record;
   v_school uuid;
+  v_match_count integer:=0;
+  v_reason text;
 begin
   if v_uid is null then raise exception 'authentication_required' using errcode='42501'; end if;
   select public.get_my_role() into v_role;
@@ -145,33 +150,48 @@ begin
   where id=p_directory_id and lower(coalesce(status,'active'))<>'closed';
   if not found then raise exception 'directory_school_not_found'; end if;
 
-  select id into v_school from public.schools
-  where deleted_at is null and (
-    (d.knec_code is not null and knec_code=d.knec_code)
-    or (d.nemis_code is not null and nemis_code=d.nemis_code)
-    or (lower(name)=lower(d.name) and coalesce(lower(county),'')=coalesce(lower(d.county),''))
-  )
-  order by case
-    when knec_code=d.knec_code and d.knec_code is not null then 0
-    when nemis_code=d.nemis_code and d.nemis_code is not null then 1
-    else 2 end
+  select c.canonical_school_id into v_school
+  from public.school_identity_candidates c
+  where c.directory_school_id=p_directory_id
+    and c.status in ('matched','new')
+    and c.canonical_school_id is not null
+  order by case when c.status='matched' then 0 else 1 end,c.updated_at desc
   limit 1;
 
   if v_school is null then
-    insert into public.schools(
-      name,timezone,country_code,status,created_by,requires_dual_approval,
-      county,sub_county,gps_lat,gps_lng,knec_code,nemis_code,
-      school_type,directory_source,directory_source_ref,last_verified_at
-    ) values(
-      d.name,'Africa/Nairobi','KE','active',v_uid,true,
-      d.county,d.sub_county,d.latitude,d.longitude,d.knec_code,d.nemis_code,
-      d.type,'schools_directory',d.id::text,now()
-    ) returning id into v_school;
+    select count(*),min(s.id) into v_match_count,v_school
+    from public.schools s
+    where s.deleted_at is null and s.status in ('pending','active')
+      and lower(regexp_replace(s.name,'[^a-zA-Z0-9]+','','g'))=lower(regexp_replace(d.name,'[^a-zA-Z0-9]+','','g'))
+      and lower(coalesce(s.county,''))=lower(coalesce(d.county,''))
+      and lower(coalesce(s.sub_county,''))=lower(coalesce(d.sub_county,''));
+    if v_match_count=1 then
+      v_reason:='Unique normalized name + county + sub-county match';
+    else
+      v_school:=null;
+    end if;
   end if;
+
+  if v_school is null then
+    insert into public.school_identity_candidates(directory_school_id,status,confidence,match_reason)
+    values(p_directory_id,'pending',0,'No unambiguous canonical school match')
+    on conflict (directory_school_id) where status in ('pending','matched','new')
+    do update set updated_at=now(),match_reason=excluded.match_reason;
+    raise exception 'school_identity_review_required';
+  end if;
+
+  insert into public.school_identity_candidates(
+    directory_school_id,canonical_school_id,status,confidence,match_reason,reviewed_by,reviewed_at
+  ) values(
+    p_directory_id,v_school,'matched',1,coalesce(v_reason,'Existing trusted reconciliation'),v_uid,now()
+  )
+  on conflict (directory_school_id) where status in ('pending','matched','new')
+  do update set canonical_school_id=excluded.canonical_school_id,status='matched',confidence=excluded.confidence,
+    match_reason=excluded.match_reason,reviewed_by=excluded.reviewed_by,reviewed_at=excluded.reviewed_at,updated_at=now();
 
   insert into public.school_members(school_id,profile_id,role)
   values(v_school,v_uid,'teacher')
-  on conflict(school_id,profile_id) do update set role='teacher';
+  on conflict(school_id,profile_id) do nothing;
   update public.profiles set school_id=v_school where id=v_uid;
   insert into public.teacher_profiles(profile_id,school_id)
   values(v_uid,v_school)
@@ -232,6 +252,6 @@ grant execute on function public.approve_school_admin_join_request(uuid,text) to
 comment on function public.claim_my_initial_role(text) is 'One-time allowlisted self-service role claim. Existing canonical role always wins.';
 comment on function public.guard_profile_authority_fields() is 'Blocks direct authenticated mutation of canonical authority fields; governed SECURITY DEFINER transitions remain available.';
 comment on function public.connect_teacher_to_school(uuid,text) is 'Connects only an already-canonical teacher account to a canonical school.';
-comment on function public.connect_teacher_to_directory_school(uuid,text) is 'Connects only an already-canonical teacher account through the governed directory reconciliation path.';
+comment on function public.connect_teacher_to_directory_school(uuid,text) is 'Preserves the School Engine reconciliation path and requires canonical teacher authority before connection.';
 
 commit;
