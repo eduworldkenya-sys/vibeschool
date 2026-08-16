@@ -26,6 +26,10 @@ function requestedRole(value: string | null): string | null {
   return value && SELF_SERVICE_ROLES.has(value) ? value : null
 }
 
+function requestedIntent(value: string | null): 'signin' | 'signup' | null {
+  return value === 'signin' || value === 'signup' ? value : null
+}
+
 function safeNext(value: string | null): string | null {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null
   try {
@@ -62,11 +66,13 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get('code')
   const next = safeNext(searchParams.get('next'))
   const roleIntent = requestedRole(searchParams.get('role'))
+  const intent = requestedIntent(searchParams.get('intent'))
   const flowId = searchParams.get('flow')?.slice(0, 80) || crypto.randomUUID()
   const pendingCookies: PendingCookie[] = []
 
   logStage('provider_returned', flowId, code ? 'code_present' : 'code_missing')
   if (!code) return authError(req, 'missing_code', pendingCookies)
+  if (!intent) return authError(req, 'invalid_intent', pendingCookies)
 
   const cookieStore = cookies()
   const supabase = createServerClient(
@@ -105,9 +111,10 @@ export async function GET(req: NextRequest) {
     return authError(req, 'profile_resolution_failed', pendingCookies)
   }
 
-  // A role supplied by the OAuth URL is only a first-access hint. Once the
-  // profile has a role, claim_my_initial_role returns it unchanged.
-  if (!role && roleIntent) {
+  // Only explicit signup may classify an unclassified account. Sign-in never
+  // provisions authority. Existing database roles always win for both flows.
+  if (!role && intent === 'signup') {
+    if (!roleIntent) return authError(req, 'role_required', pendingCookies)
     const claim = await supabase.rpc('claim_my_initial_role', { p_role: roleIntent })
     if (claim.error) {
       logStage('role_claim_failed', flowId, claim.error.code)
@@ -116,9 +123,14 @@ export async function GET(req: NextRequest) {
     role = claim.data
   }
 
+  if (!role && intent === 'signin') {
+    logStage('account_unregistered', flowId)
+    return authError(req, 'account_unregistered', pendingCookies)
+  }
+
   if (typeof role !== 'string' || !ROLE_PREFIXES[role]) {
     logStage('role_unresolved', flowId)
-    return authError(req, roleIntent ? 'role_unresolved' : 'role_required', pendingCookies)
+    return authError(req, 'role_unresolved', pendingCookies)
   }
   logStage('profile_resolved', flowId, role)
 
