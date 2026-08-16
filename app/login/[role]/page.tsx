@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const ROLE_CONFIG = {
@@ -15,22 +15,23 @@ type RoleKey = keyof typeof ROLE_CONFIG
 
 function safeNext(value: string | null): string | null {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null
-  // Pathways only needs to continue inside its own public decision journey.
-  // Do not turn this query parameter into a general-purpose redirect surface.
   return value === '/pathways/continue' || value.startsWith('/pathways/continue?') ? value : null
 }
 
 export default function RoleLoginPage() {
   const params = useParams<{ role: string }>()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const next = safeNext(searchParams.get('next'))
   const role = (params.role || '').toLowerCase() as RoleKey
   const config = ROLE_CONFIG[role]
+  const [next, setNext] = useState<string | null>(null)
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    setNext(safeNext(new URLSearchParams(window.location.search).get('next')))
+  }, [])
 
   if (!config) {
     return <main className="shell"><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><a href="/">Go home</a><style jsx>{styles}</style></section></main>
