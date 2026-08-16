@@ -46,37 +46,20 @@ begin
   if not found then raise exception 'task_not_found'; end if;
   v_capability_ref:=t.capability_key||'@'||t.capability_version::text;
   v_authority_ref:=case when t.autonomous_authority_grant_id is null then null else t.autonomous_authority_grant_id::text end;
-
   perform pg_advisory_xact_lock(hashtextextended('we-r1.4.8|breaker|global|global',0));
   perform pg_advisory_xact_lock(hashtextextended('we-r1.4.8|breaker|capability|'||v_capability_ref,0));
-  if v_authority_ref is not null then
-    perform pg_advisory_xact_lock(hashtextextended('we-r1.4.8|breaker|authority_grant|'||v_authority_ref,0));
-  end if;
-
+  if v_authority_ref is not null then perform pg_advisory_xact_lock(hashtextextended('we-r1.4.8|breaker|authority_grant|'||v_authority_ref,0)); end if;
   select * into b from public.hq_workforce_execution_breakers
-   where status='tripped' and (
-     (scope_type='global' and scope_ref='global')
-     or (scope_type='capability' and scope_ref=v_capability_ref)
-     or (scope_type='authority_grant' and scope_ref=v_authority_ref)
-   )
-   order by case scope_type when 'global' then 1 when 'capability' then 2 else 3 end,created_at
-   limit 1 for update;
-
+   where status='tripped' and ((scope_type='global' and scope_ref='global') or (scope_type='capability' and scope_ref=v_capability_ref) or (scope_type='authority_grant' and scope_ref=v_authority_ref))
+   order by case scope_type when 'global' then 1 when 'capability' then 2 else 3 end,created_at limit 1 for update;
   if found then
-    insert into public.hq_workforce_execution_breaker_events(
-      breaker_id,event_kind,task_id,authority_grant_id,capability_key,actor,reason_code,evidence
-    ) values(
-      b.id,'execution_blocked',t.id,t.autonomous_authority_grant_id,t.capability_key,
-      'worker-engine',b.reason_code,jsonb_build_object('stage',p_stage,'scope_type',b.scope_type,'scope_ref',b.scope_ref,'durable_denial',true)
-    ) returning id into v_event_id;
-    return jsonb_build_object(
-      'stopped',true,'stage',p_stage,'breaker_id',b.id,'breaker_event_id',v_event_id,
-      'scope_type',b.scope_type,'scope_ref',b.scope_ref,'reason_code',b.reason_code
-    );
+    insert into public.hq_workforce_execution_breaker_events(breaker_id,event_kind,task_id,authority_grant_id,capability_key,actor,reason_code,evidence)
+    values(b.id,'execution_blocked',t.id,t.autonomous_authority_grant_id,t.capability_key,'worker-engine',b.reason_code,jsonb_build_object('stage',p_stage,'scope_type',b.scope_type,'scope_ref',b.scope_ref,'durable_denial',true))
+    returning id into v_event_id;
+    return jsonb_build_object('stopped',true,'stage',p_stage,'breaker_id',b.id,'breaker_event_id',v_event_id,'scope_type',b.scope_type,'scope_ref',b.scope_ref,'reason_code',b.reason_code);
   end if;
   return jsonb_build_object('stopped',false,'stage',p_stage);
 end $$;
-
 revoke all on function public.hq_workforce_assert_execution_not_stopped(uuid,text) from public,anon,authenticated;
 grant execute on function public.hq_workforce_assert_execution_not_stopped(uuid,text) to service_role;
 
@@ -114,7 +97,6 @@ begin
   select * into t from public.hq_workforce_task_contracts where id=p_task_id for update;
   if not found then raise exception 'task_not_found'; end if;
   if t.status<>'running' then raise exception 'task_not_running'; end if;
-
   auth:=public.hq_workforce_assert_consequential_task_authorized(t.id);
   v_authority_id:=nullif(auth->>'authority_grant_id','')::uuid;
   if v_authority_id is null then raise exception 'consequential_authority_evidence_missing'; end if;
@@ -125,7 +107,6 @@ begin
   max_runtime_ms:=g.max_runtime_ms;
   select * into tc from public.hq_workforce_tool_contracts where id=t.tool_contract_id and status='approved';
   if not found then raise exception 'tool_contract_not_approved'; end if;
-
   work_item_id:=nullif(t.payload->>'work_item_id','')::uuid;
   if work_item_id is null then raise exception 'work_item_id_required'; end if;
   v_resource_identity:=jsonb_build_object('work_item_id',work_item_id);
@@ -133,7 +114,6 @@ begin
   v_desired:=t.payload->'desired_state';
   if coalesce(jsonb_typeof(v_precondition),'null')<>'object' then raise exception 'precondition_snapshot_required'; end if;
   if coalesce(jsonb_typeof(v_desired),'null')<>'object' then raise exception 'desired_state_required'; end if;
-
   if tc.handler_key='work_item.triage_and_own' then
     if not (v_precondition ? 'status' and v_precondition ? 'updated_at') then raise exception 'work_item_precondition_incomplete'; end if;
     if v_desired->>'status' is distinct from 'in_progress' then raise exception 'work_item_desired_state_denied'; end if;
@@ -148,20 +128,16 @@ begin
     perform 1 from public.hq_workforce_canary_queue_memberships m where m.work_item_id=work_item_id and m.queue_key='worker_engine_internal' for key share;
     if not found then raise exception 'priority_canary_queue_membership_required'; end if;
   else raise exception 'tool_handler_not_allowlisted'; end if;
-
-  -- First breaker gate occurs before intent/budget reservation. A blocked result commits its event.
   stop_state:=public.hq_workforce_assert_execution_not_stopped(t.id,'pre_reservation');
   if coalesce((stop_state->>'stopped')::boolean,false) then
     return jsonb_build_object('outcome','blocked','mutation_applied',false,'records_affected',0,'breaker',stop_state,'task_id',t.id);
   end if;
-
   v_intent:=public.hq_workforce_reserve_execution_intent(t.id,v_authority_id,v_resource_identity,v_precondition,v_desired);
   v_intent_id:=nullif(v_intent->>'intent_id','')::uuid;
   if coalesce((v_intent->>'reused')::boolean,false) then return coalesce(v_intent->'result','{}'::jsonb)||jsonb_build_object('idempotent_replay',true,'intent_id',v_intent_id); end if;
   if v_intent_id is null then raise exception 'execution_intent_evidence_missing'; end if;
   if extract(epoch from (clock_timestamp()-started_at))*1000 >= max_runtime_ms then raise exception 'capability_runtime_ceiling_exceeded_before_mutation'; end if;
   budget_id:=public.hq_workforce_reserve_budget(t.worker_key,t.budget_key,t.budget_amount);
-
   begin
     select * into wi from public.hq_work_items where id=work_item_id for update;
     if not found then raise exception 'work_item_not_found'; end if;
@@ -178,21 +154,18 @@ begin
       v_before:=jsonb_build_object('priority',wi.priority,'resource_revision',wi.resource_revision);
       v_after:=jsonb_build_object('priority',v_priority,'resource_revision',wi.resource_revision+1);
     end if;
-
     update public.hq_workforce_execution_intents set authoritative_before_state=v_before,expected_after_state=v_after where id=v_intent_id and status='reserved';
     if not found then raise exception 'execution_recovery_snapshot_not_recorded'; end if;
     limits:=public.hq_workforce_reserve_capability_execution(t.id,1);
-
-    -- Second breaker gate is immediately before mutation. Release all reservations and persist denial.
     stop_state:=public.hq_workforce_assert_execution_not_stopped(t.id,'pre_mutation');
     if coalesce((stop_state->>'stopped')::boolean,false) then
-      perform public.hq_workforce_release_capability_execution(t.id,1);
+      -- Persistent cycle/rate usage is intentionally retained as evidence of the blocked attempt;
+      -- the transaction-scoped concurrency slot releases automatically when this call returns.
       perform public.hq_workforce_release_budget(budget_id,t.budget_amount);
-      result:=jsonb_build_object('outcome','blocked','mutation_applied',false,'records_affected',0,'breaker',stop_state,'task_id',t.id,'execution_intent_id',v_intent_id);
+      result:=jsonb_build_object('outcome','blocked','mutation_applied',false,'records_affected',0,'breaker',stop_state,'task_id',t.id,'execution_intent_id',v_intent_id,'capability_limits',limits,'quota_consumed_by_blocked_attempt',true);
       perform public.hq_workforce_block_execution_intent(v_intent_id,result);
       return result;
     end if;
-
     if tc.handler_key='work_item.triage_and_own' then
       update public.hq_work_items set action_taken=coalesce(action_taken,'{}'::jsonb)||jsonb_build_object('worker_key',t.worker_key,'action','triage_and_own','task_id',t.id,'authority_grant_id',v_authority_id,'plan_step_id',t.plan_step_id,'execution_intent_id',v_intent_id),acted_at=coalesce(acted_at,clock_timestamp()),updated_at=clock_timestamp(),status='in_progress' where id=work_item_id;
     else
@@ -210,11 +183,9 @@ begin
     raise;
   end;
 end $$;
-
 revoke all on function public.hq_workforce_consequential_execution_gateway(uuid) from public,anon,authenticated;
 grant execute on function public.hq_workforce_consequential_execution_gateway(uuid) to service_role;
 
--- Remains fail-closed and non-activating.
 do $$
 declare ec public.hq_workforce_engine_contract%rowtype; v_active integer;
 begin
