@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { buildOAuthCallbackUrl, type OAuthRole } from '@/lib/auth/oauth'
 
 const ROLE_CONFIG = {
   teacher: { label: 'Teacher', destination: '/teacher', email: true },
@@ -57,30 +58,22 @@ export default function RoleLoginPage() {
   async function google() {
     if (!config.email || busy) return
     setBusy(true)
-    const requestedRole = role === 'global' ? 'global_user' : role
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback?intent=signin&role=${requestedRole}` } })
+    const requestedRole = (role === 'global' ? 'global_user' : role) as OAuthRole
+    const redirectTo = buildOAuthCallbackUrl(window.location.origin, 'signin', requestedRole)
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
     if (error) { setMessage('Google sign in could not start.'); setBusy(false) }
   }
 
   return <main className="shell">
     <nav className="topnav" aria-label="Public navigation">
-      <a href="/">Home</a>
-      <a href="/global">Explore</a>
-      <a href="/about">About</a>
-      <a href="/contact">Contact</a>
+      <a href="/">Home</a><a href="/global">Explore</a><a href="/about">About</a><a href="/contact">Contact</a>
     </nav>
     <section className="card">
-      <a className="brand" href="/" aria-label="VibeSchool home">
-        <img src="/icons/vibeschool-logo.png" alt="VibeSchool" />
-      </a>
-      <p className="eyebrow">{config.label.toUpperCase()} SIGN IN</p>
-      <h1>Welcome back.</h1>
-      <p className="lead">Go straight to your VibeSchool workspace.</p>
+      <a className="brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo.png" alt="VibeSchool" /></a>
+      <p className="eyebrow">{config.label.toUpperCase()} SIGN IN</p><h1>Welcome back.</h1><p className="lead">Go straight to your VibeSchool workspace.</p>
       {message && <div className="message" role="alert">{message}</div>}
-      <label>{config.email ? 'Email' : 'Admission number'}</label>
-      <input type={config.email ? 'email' : 'text'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} />
-      <label>{config.email ? 'Password' : 'PIN'}</label>
-      <input type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
+      <label>{config.email ? 'Email' : 'Admission number'}</label><input type={config.email ? 'email' : 'text'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} />
+      <label>{config.email ? 'Password' : 'PIN'}</label><input type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : `Sign in as ${config.label}`}</button>
       {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
       <p className="switch">Wrong role? <a href="/">Choose another sign-in</a></p>
