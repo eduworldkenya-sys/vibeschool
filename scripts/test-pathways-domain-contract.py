@@ -55,6 +55,18 @@ for fragment in [
     if fragment not in hardening:
         errors.append(f'Pathways hardening migration missing: {fragment}')
 
+evidence_api = read_single_migration('pathways_public_school_evidence_v2')
+for fragment in [
+    'pathways_search_public_schools_v2',
+    'source_authority text',
+    'source_reference text',
+    "src.is_public = true",
+    "src.status = 'active'",
+    'revoke all on function public.pathways_search_public_schools_v2',
+]:
+    if fragment not in evidence_api:
+        errors.append(f'Pathways evidence API migration missing: {fragment}')
+
 if errors:
     print('PATHWAYS DOMAIN CONTRACT: FAIL')
     for error in errors:
