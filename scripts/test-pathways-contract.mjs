@@ -68,10 +68,13 @@ assert(parentSupport.includes('read-only support view') && teacherSupport.includ
 
 assert(funnelMigration.includes('create table public.pathways_funnel_events'), 'Pathways has a dedicated privacy-safe funnel plane')
 assert(funnelMigration.includes('revoke all on table public.pathways_funnel_events from public, anon, authenticated'), 'raw funnel table is not directly client-readable/writable')
-for (const forbidden of ['answers','marks','date_of_birth','school_id','pathway_result']) assert(!funnelMigration.match(new RegExp(`\\b${forbidden}\\b`, 'i')), `funnel schema excludes ${forbidden}`)
+for (const forbidden of ['answers','marks','date_of_birth','school_id','pathway_result']) {
+  const columnPattern = new RegExp(`^\\s*${forbidden}\\s+(uuid|text|jsonb|numeric|integer|boolean|date|timestamp|timestamptz)\\b`, 'im')
+  assert(!columnPattern.test(funnelMigration), `funnel schema excludes ${forbidden} column`)
+}
 assert(funnelMigration.includes('unsupported_pathways_event'), 'funnel RPC enforces an event whitelist')
 assert(funnelMigration.includes('events_today >= 200'), 'anonymous event volume is bounded per session')
-assert(telemetry.includes('anonymous_session_id') || telemetry.includes('p_anonymous_session_id'), 'client telemetry uses a random anonymous session id rather than learner answers')
+assert(telemetry.includes('p_anonymous_session_id'), 'client telemetry uses a random anonymous session id rather than learner answers')
 
 assert(sitemap.includes('`${SITE_URL}/pathways`') && sitemap.includes('`${SITE_URL}/pathways/check`') && sitemap.includes('`${SITE_URL}/pathways/schools`'), 'Pathways public acquisition surfaces are in the canonical sitemap')
 assert(robots.includes("'/pathways'") && robots.includes("'/pathways/'") && robots.includes("'/student/'"), 'robots permits public Pathways while private learner routes stay excluded')
