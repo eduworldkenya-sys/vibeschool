@@ -13,6 +13,7 @@ on:
       - 'feature/**'
       - 'feat/**'
       - 'fix/**'
+      - 'agent/**'
   pull_request:
     branches:
       - main
@@ -31,33 +32,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    env:
-      NODE_OPTIONS: --max-old-space-size=6144
-      NEXT_TELEMETRY_DISABLED: "1"
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Repository truth + canonical production build certification
+        uses: ./.github/actions/production-build-contract
         with:
-          node-version: 20
-          cache: npm
-
-      - name: Install exact dependencies
-        run: npm ci
-
-      - name: Strategic remediation truth contract
-        run: node scripts/test-strategic-remediation-contract.mjs
-
-      - name: TypeScript — report all errors
-        run: npm run typecheck
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Next.js production build
-        run: npm run build
+          prebuild_command: |
+            node scripts/test-strategic-remediation-contract.mjs
+            npm run typecheck
+            npm run lint
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
