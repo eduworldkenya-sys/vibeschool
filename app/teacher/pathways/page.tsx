@@ -13,8 +13,8 @@ export default function TeacherPathwaysPage(){
  const [rows,setRows]=useState<LearnerPathway[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState('')
  useEffect(()=>{let cancelled=false; async function load(){try{
   const {data:{user}}=await supabase.auth.getUser(); if(!user) throw new Error('Sign in as a teacher to support learners.')
-  const {data:assignments,error:aErr}=await supabase.from('teacher_classes').select('class_id').eq('teacher_id',user.id).eq('is_active',true)
-  if(aErr) throw new Error('Your active classes could not be loaded.')
+  const {data:assignments,error:aErr}=await supabase.from('teacher_classes').select('class_id').eq('teacher_id',user.id)
+  if(aErr) throw new Error('Your classes could not be loaded.')
   const classIds=Array.from(new Set((assignments??[]).map(a=>a.class_id).filter(Boolean)))
   if(!classIds.length){if(!cancelled)setRows([]);return}
   const {data:learners,error:lErr}=await supabase.from('students').select('id,name,class_id,admission_number').in('class_id',classIds).is('deleted_at',null).order('name')
@@ -23,9 +23,9 @@ export default function TeacherPathwaysPage(){
   if(!cancelled)setRows(resolved)
  }catch(cause){if(!cancelled)setError(cause instanceof Error?cause.message:'Pathway support could not be loaded.')}finally{if(!cancelled)setLoading(false)}} void load(); return()=>{cancelled=true}},[])
  return <main style={S.root}><div style={S.shell}>
-  <Link href="/teacher/pulse" style={S.back}>← Teacher home</Link><div style={S.kicker}>PATHWAY GUIDANCE</div><h1 style={S.h1}>Support a learner without taking over their decision.</h1><p style={S.lead}>This view is read-only and limited to learners in your active classes. It deliberately excludes raw Quick Check answers and does not give teachers authority to adopt or change a learner's Pathway Passport.</p>
+  <Link href="/teacher/pulse" style={S.back}>← Teacher home</Link><div style={S.kicker}>PATHWAY GUIDANCE</div><h1 style={S.h1}>Support a learner without taking over their decision.</h1><p style={S.lead}>This view is read-only and limited to learners in your assigned classes. It deliberately excludes raw Quick Check answers and does not give teachers authority to adopt or change a learner's Pathway Passport.</p>
   {loading&&<div style={S.card}>Loading learners…</div>}{error&&<div style={S.error}>{error}</div>}
-  {!loading&&!error&&rows.length===0&&<div style={S.card}><strong>No active class learners found.</strong><p style={S.body}>Pathways support follows your existing class authority and does not create a separate teacher-to-learner relationship.</p></div>}
+  {!loading&&!error&&rows.length===0&&<div style={S.card}><strong>No assigned class learners found.</strong><p style={S.body}>Pathways support follows your existing class authority and does not create a separate teacher-to-learner relationship.</p></div>}
   <div style={S.list}>{rows.map(row=><article key={row.learner.id} style={S.card}><div style={S.top}><div><h2 style={S.name}>{row.learner.name}</h2>{row.learner.admission_number&&<span style={S.meta}>{row.learner.admission_number}</span>}</div>{row.passport&&<span style={S.badge}>Saved</span>}</div>{row.error?<p style={S.errorText}>{row.error}</p>:row.passport?<><div style={S.passport}><span style={S.smallLabel}>LEARNER'S SAVED DIRECTION</span><strong style={S.pathway}>{row.passport.pathwayName}</strong><p style={S.body}>{row.passport.summary}</p></div><p style={S.note}>{row.passport.supportNotice}</p><div style={S.actions}><Link href="/pathways" style={S.secondary}>Explain pathway</Link><Link href="/pathways/schools" style={S.secondary}>Explore verified schools</Link></div></>:<><p style={S.body}>No Pathway Passport saved yet.</p><p style={S.note}>Use the free public Pathway Check as a discussion aid; do not choose on the learner's behalf.</p><Link href="/pathways/check" style={S.secondary}>Open Pathway Check</Link></>}</article>)}</div>
  </div></main>
 }
