@@ -5,7 +5,10 @@ on:
   pull_request:
     paths:
       - "supabase/migrations/*worker_engine_we_r1_4*.sql"
+      - "supabase/migrations/*worker_engine_production_readiness*.sql"
       - "supabase/tests/worker_engine_we_r1_4*.sql"
+      - "supabase/tests/worker_engine_production_readiness*.sql"
+      - "scripts/worker-engine-r1-4-production-attest.py"
       - ".github/workflows/worker-engine-we-r1-4-acceptance.yml"
       - "docs/WORKER_ENGINE_WE_R1_4*.md"
 
@@ -38,7 +41,8 @@ jobs:
           forbidden=['SUPABASE_'+'ACCESS_TOKEN','SUPABASE_'+'DB_PASSWORD','PROD_'+'URL',secrets_expr]
           hit=[x for x in forbidden if x in workflow]
           if hit: raise SystemExit('production credential/reference detected: '+', '.join(hit))
-          migrations='\n'.join(p.read_text() for p in sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_4*.sql')))
+          paths=sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_4*.sql'))+sorted(Path('supabase/migrations').glob('*worker_engine_production_readiness*.sql'))
+          migrations='\n'.join(p.read_text() for p in paths)
           if not migrations: raise SystemExit('WE-R1.4 migrations not found')
           if 'cron.schedule' in migrations.lower(): raise SystemExit('WE-R1.4 engineering branch must not install scheduler cron')
           PY
@@ -82,7 +86,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t tests < <(find supabase/tests -maxdepth 1 -type f -name 'worker_engine_we_r1_4*.sql' | sort)
+          mapfile -t tests < <(find supabase/tests -maxdepth 1 -type f \( -name 'worker_engine_we_r1_4*.sql' -o -name 'worker_engine_production_readiness*.sql' \) | sort)
           if [ "${#tests[@]}" -eq 0 ]; then echo 'WE-R1.4 tests not found' >&2; exit 1; fi
           for f in "${tests[@]}"; do
             echo "=== $f ==="
@@ -97,6 +101,8 @@ jobs:
           test "$STATE" = "false|false|false|0|0|false|false|true"
           ACTIVE="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")"
           test "$ACTIVE" = "0"
+          LEGACY="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select has_function_privilege('service_role','public.hq_workforce_execute_safe_queue()','EXECUTE')::text")"
+          test "$LEGACY" = "false"
 
       - name: Upload R1.4 acceptance evidence
         if: always()
