@@ -20,6 +20,15 @@ html, body {
   color: #ffffff;
 }
 
+/* The uploaded master logo has an opaque white artboard. On dark authentication
+   surfaces use the transparent lockup instead, without changing social/PWA assets. */
+a[aria-label="VibeSchool home"]:has(> img[src="/icons/vibeschool-logo.png"]) {
+  background: url('/icons/vibeschool-logo-dark.svg') center / contain no-repeat;
+}
+a[aria-label="VibeSchool home"] > img[src="/icons/vibeschool-logo.png"] {
+  opacity: 0;
+}
+
 /* VibeSchool Admin — Force dark theme across all admin pages */
 [id^="admin-"] {
   background: transparent !important;
