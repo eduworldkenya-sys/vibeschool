@@ -1,0 +1,15 @@
+'use client'
+
+import Link from 'next/link'
+import { useEffect,useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
+type Row={student_id:string;student_name:string;class_id:string;pathway_slug:string|null;pathway_name:string|null;adopted_at:string|null;reviewed_at:string|null}
+
+export default function TeacherPathwaysPage(){
+ const[rows,setRows]=useState<Row[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState('')
+ useEffect(()=>{let live=true;void(async()=>{const{data,error}=await(supabase as any).rpc('teacher_get_assigned_pathway_passports');if(!live)return;if(error){setError('Assigned learner Pathways could not be loaded safely.');setLoading(false);return}setRows((data??[]) as Row[]);setLoading(false)})();return()=>{live=false}},[])
+ return <main className="page"><div className="wrap"><Link href="/teacher" className="back">← Teacher home</Link><p className="eyebrow">PATHWAYS GUIDANCE SUPPORT</p><h1>Guide assigned learners without becoming the decision owner.</h1><p className="lead">This surface is scoped through your teacher-class assignments. It is read-only with respect to learner Passports.</p>{loading&&<section className="card">Loading…</section>}{error&&<section className="error" role="alert">{error}</section>}{!loading&&!error&&<section className="card"><strong>Assigned learners</strong>{rows.length===0?<p>No assigned learner Pathways available yet.</p>:rows.map(r=><div className="row" key={`${r.class_id}:${r.student_id}`}><div><b>{r.student_name}</b><p>{r.pathway_name??'No learner-owned Passport yet.'}</p></div>{r.pathway_slug&&<Link href={`/pathways/${encodeURIComponent(r.pathway_slug)}`}>Guidance context →</Link>}</div>)}</section>}<section className="notice"><strong>Teacher boundary</strong><p>Use the learner’s direction as one conversation input alongside subject evidence and interests. This page intentionally provides no learner-Passport mutation.</p></section></div><style jsx>{styles}</style></main>
+}
+
+const styles=`.page{min-height:100dvh;background:#f5f6f8;color:#111827}.wrap{max-width:800px;margin:0 auto;padding:24px 16px 60px}.back,.row a{color:#4f46e5;font-weight:800;text-decoration:none}.eyebrow{margin:28px 0 8px;font-size:10px;font-weight:900;letter-spacing:.15em;color:#4f46e5}h1{font-size:clamp(31px,6vw,46px);line-height:1.07;letter-spacing:-.04em;margin:0}.lead,.card p,.notice p{color:#626b7b;line-height:1.6}.card{margin-top:16px;background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:20px}.row{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid #f0f1f4}.row p{margin:4px 0 0;font-size:12px}.notice{margin-top:16px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:16px;padding:16px}.error{margin-top:16px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:14px;padding:14px}`
