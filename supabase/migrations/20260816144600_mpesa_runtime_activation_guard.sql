@@ -4,6 +4,8 @@ begin;
 -- external M-Pesa side-effect boundary. This prevents a function/code deploy,
 -- commercial-policy change, or stale client from initiating an STK request
 -- until an operator explicitly enables the M-Pesa runtime control.
+-- Release invariant: schema and hardened functions may be deployed while this
+-- control remains false; activation is a separate, explicit post-certification act.
 create or replace function public.claim_mpesa_payment_attempt(p_attempt_id uuid)
 returns boolean
 language plpgsql
