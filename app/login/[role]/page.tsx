@@ -5,10 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const ROLE_CONFIG = {
-  teacher: { label: 'Teacher', destination: '/teacher', email: true },
-  parent: { label: 'Parent', destination: '/parent', email: true },
-  student: { label: 'Learner', destination: '/student', email: false },
-  global: { label: 'Global learner', destination: '/global', email: true },
+  teacher: { label: 'Teacher', email: true },
+  parent: { label: 'Parent', email: true },
+  student: { label: 'Learner', email: false },
+  global: { label: 'Global learner', email: true },
 } as const
 
 type RoleKey = keyof typeof ROLE_CONFIG
@@ -37,18 +37,24 @@ export default function RoleLoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Wrong admission number or PIN. Ask your teacher if you need help.'); return }
 
-      const { data: actualRole } = await supabase.rpc('get_my_role')
-      const expectedRole = role === 'global' ? 'global_user' : role
-      if (actualRole !== expectedRole) {
-        await supabase.auth.signOut()
-        setMessage(`This account is not registered as a ${config.label.toLowerCase()}. Choose the correct sign-in.`)
+      const { data: actualRole, error: roleError } = await supabase.rpc('get_my_role')
+      if (roleError || typeof actualRole !== 'string') {
+        router.replace('/auth/error?reason=account_unregistered')
         return
       }
 
-      const maxAge = data.session?.expires_in ?? 3600
-      localStorage.setItem('vs_role', expectedRole)
-      document.cookie = `vibe_role=${expectedRole}; path=/; max-age=${maxAge}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
-      router.replace(config.destination)
+      // The URL selected the sign-in UI only. It never overrides the account's
+      // database role, so entering through the "wrong" role URL is harmless.
+      const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+      const destination = onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding) && typeof onboarding.destination === 'string'
+        ? onboarding.destination
+        : null
+      if (onboardingError || !destination) {
+        router.replace('/auth/error?reason=onboarding_resolution_failed')
+        return
+      }
+
+      router.replace(destination)
     } finally {
       setBusy(false)
     }
@@ -58,7 +64,10 @@ export default function RoleLoginPage() {
     if (!config.email || busy) return
     setBusy(true)
     const requestedRole = role === 'global' ? 'global_user' : role
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback?intent=signin&role=${requestedRole}` } })
+    const flow = crypto.randomUUID()
+    console.info(JSON.stringify({ scope: 'auth_journey', stage: 'oauth_started', flow_id: flow, detail: `${requestedRole}_signin` }))
+    const redirectTo = `${window.location.origin}/auth/callback?intent=signin&role=${requestedRole}&flow=${encodeURIComponent(flow)}`
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
     if (error) { setMessage('Google sign in could not start.'); setBusy(false) }
   }
 
