@@ -9,6 +9,8 @@ hardening = (ROOT / "supabase/migrations/20260816161000_school_directory_connect
 prerequisite = ROOT / "supabase/migrations/20260815153900_restore_school_directory_identity_columns_prerequisite.sql"
 matching = ROOT / "supabase/migrations/20260815154000_national_school_identity_engine_matching_v3.sql"
 legacy_matching = ROOT / "supabase/migrations/20260815120000_national_school_identity_engine_matching_v3.sql"
+support_rls = ROOT / "supabase/migrations/20260816102000_school_identity_support_tables_rls.sql"
+tier0_guard = ROOT / "supabase/migrations/20260816104500_tier0_school_snapshot_strong_identifier_guard.sql"
 
 required_page_markers = [
     'search_school_directory',
@@ -72,5 +74,42 @@ assert 'add column if not exists ingest_batch_id uuid' in prerequisite_sql.lower
 normalize_pos = matching_sql.lower().find('create or replace function public.normalize_school_identity_name')
 index_pos = matching_sql.lower().find('schools_directory_name_trgm_idx')
 assert normalize_pos >= 0 and index_pos > normalize_pos, 'normalization primitive must exist before expression index'
+
+# Support-table RLS must close browser mutation without breaking the approved
+# SECURITY INVOKER search path, which needs authenticated reads of levels/aliases.
+assert support_rls.exists(), 'school identity support-table RLS migration missing'
+support_sql = support_rls.read_text().lower()
+for table in ('school_levels', 'school_aliases', 'school_directory_sources'):
+    assert f'alter table public.{table} enable row level security' in support_sql
+    assert f'revoke all on table public.{table} from anon, authenticated' in support_sql
+for table in ('school_levels', 'school_aliases'):
+    assert f'grant select on table public.{table} to authenticated' in support_sql
+assert 'grant select on table public.school_directory_sources to authenticated' not in support_sql
+assert 'school_levels_authenticated_read' in support_sql
+assert 'school_aliases_authenticated_read' in support_sql
+
+# Tier-0 authority must fail closed at the database seal boundary, independently
+# of whether the offline preparer was used. All four government identifier
+# namespaces stay separate and each is duplicate-guarded.
+assert tier0_guard.exists(), 'Tier-0 authoritative snapshot guard migration missing'
+guard_sql = tier0_guard.read_text().lower()
+assert 'create or replace function public.guard_school_ingest_batch_seal()' in guard_sql
+assert "old.status = 'staged' and new.status = 'validated'" in guard_sql
+assert "sr.authority_tier = 0" in guard_sql
+assert "sr.verification_mode = 'authoritative'" in guard_sql
+assert 'tier0_snapshot_noncertifiable_records' in guard_sql
+for marker in (
+    'tier0_snapshot_duplicate_knec',
+    'tier0_snapshot_duplicate_nemis',
+    'tier0_snapshot_duplicate_moe_registration',
+    'tier0_snapshot_duplicate_tsc',
+):
+    assert marker in guard_sql, f'missing Tier-0 duplicate guard: {marker}'
+assert "raw_record->>'knec_code'" in guard_sql
+assert "raw_record->>'nemis_uic'" in guard_sql
+assert "raw_record->>'moe_registration_no'" in guard_sql
+assert "raw_record->>'tsc_code'" in guard_sql
+assert 'sealed_school_ingest_batch_immutable' in guard_sql, 'existing seal immutability must be preserved'
+assert 'sealed_school_ingest_batch_status_regression' in guard_sql, 'existing status regression guard must be preserved'
 
 print('school discovery contract: PASS')
