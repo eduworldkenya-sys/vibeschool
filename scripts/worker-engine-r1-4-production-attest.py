@@ -33,6 +33,7 @@ REQUIRED_RELATIONS = [
     "hq_workforce_canary_queue_memberships",
     "hq_workforce_verifier_assignments",
     "hq_workforce_execution_envelopes",
+    "hq_workforce_execution_budget_events",
 ]
 REQUIRED_FUNCTIONS = [
     "public.hq_workforce_consequential_execution_gateway(uuid)",
@@ -42,6 +43,7 @@ REQUIRED_FUNCTIONS = [
     "public.hq_workforce_get_execution_dossier(uuid)",
     "public.hq_workforce_assign_verifier(uuid,text,timestamptz)",
     "public.hq_workforce_scheduled_factory_heartbeat()",
+    "public.hq_workforce_guard_runtime_activation()",
 ]
 
 
@@ -98,7 +100,7 @@ def main() -> None:
       select v.signature,
              pg_catalog.to_regprocedure(v.signature)::text as resolved,
              case when pg_catalog.to_regprocedure(v.signature) is null then null
-                  else encode(digest(pg_get_functiondef(pg_catalog.to_regprocedure(v.signature)),'sha256'),'hex') end as definition_sha256,
+                  else encode(extensions.digest(convert_to(pg_get_functiondef(pg_catalog.to_regprocedure(v.signature)),'UTF8'),'sha256'),'hex') end as definition_sha256,
              case when pg_catalog.to_regprocedure(v.signature) is null then false
                   else has_function_privilege('service_role',pg_catalog.to_regprocedure(v.signature),'EXECUTE') end as service_execute,
              case when pg_catalog.to_regprocedure(v.signature) is null then false
@@ -147,9 +149,21 @@ def main() -> None:
     if any(int(counts[k]) != 0 for k in counts):
         die(f"unexpected production authority/policy/verifier activation: {counts}")
 
+    policy_cols = base.query("""
+      select column_name from information_schema.columns
+      where table_schema='public' and table_name='hq_workforce_runtime_authorization_events'
+        and column_name in ('policy_snapshot','policy_snapshot_sha256','engine_contract_snapshot')
+    """)
+    if {r['column_name'] for r in policy_cols} != {'policy_snapshot','policy_snapshot_sha256','engine_contract_snapshot'}:
+        die("runtime authorization policy snapshot columns missing")
+
     factory = base.query("select lower(pg_get_functiondef('public.hq_workforce_scheduled_factory_heartbeat()'::regprocedure)) as def")[0]["def"]
     if "runtime_execution_enabled" not in factory or "runtime_anomaly_paused" not in factory:
         die("Factory heartbeat does not obey runtime/anomaly master gates")
+
+    activation = base.query("select lower(pg_get_functiondef('public.hq_workforce_guard_runtime_activation()'::regprocedure)) as def")[0]["def"]
+    if "runtime_activation_requires_exactly_one_active_global_policy" not in activation or "runtime_activation_requires_explicit_capability_authority" not in activation:
+        die("runtime activation guard prerequisites missing")
 
     verifier_acl = next(r for r in fns if r["signature"] == "public.hq_workforce_assign_verifier(uuid,text,timestamptz)")
     if verifier_acl["service_execute"] or not verifier_acl["authenticated_execute"]:
