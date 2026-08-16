@@ -1,0 +1,31 @@
+name: Pathways Mission Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/pathways/**'
+      - 'app/login/[role]/page.tsx'
+      - 'app/signup/parent/page.tsx'
+      - 'app/signup/student/page.tsx'
+      - 'lib/pathways/**'
+      - 'supabase/migrations/*pathways*.sql'
+      - 'app/sitemap.ts'
+      - 'scripts/test-pathways-contract.mjs'
+      - '.github/workflows/pathways-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pathways-contract:
+    name: Truth, identity, safeguarding and continuation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run Pathways mission contract
+        run: node scripts/test-pathways-contract.mjs
