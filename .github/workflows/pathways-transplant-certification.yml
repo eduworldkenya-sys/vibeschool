@@ -1,0 +1,43 @@
+name: Pathways Transplant Certification
+
+on:
+  pull_request:
+    paths:
+      - 'app/pathways/**'
+      - 'app/auth/callback/route.ts'
+      - 'app/login/[role]/page.tsx'
+      - 'lib/auth/continuation.ts'
+      - 'lib/pathways/**'
+      - 'supabase/migrations/*pathways*.sql'
+      - 'scripts/test-pathways-transplant-contract.py'
+      - 'app/sitemap.ts'
+      - '.github/workflows/pathways-transplant-certification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  architecture-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/test-pathways-transplant-contract.py
+
+  application-certification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
