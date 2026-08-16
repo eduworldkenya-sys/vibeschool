@@ -9,6 +9,7 @@ on:
       - 'app/student/profile/page.tsx'
       - 'lib/pathways/**'
       - 'supabase/migrations/*pathways*.sql'
+      - 'supabase/migrations/*national_school_identity*.sql'
       - 'app/sitemap.ts'
       - 'app/robots.ts'
       - 'scripts/test-pathways-contract.mjs'
