@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
+type OnboardingState = { destination?: unknown }
+
 export default function ParentSignupPage() {
   const router = useRouter()
   const [name, setName] = useState('')
@@ -21,39 +23,22 @@ export default function ParentSignupPage() {
     setBusy(true)
     try {
       const callback = `${window.location.origin}/auth/callback?intent=signup&role=parent`
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: { emailRedirectTo: callback, data: { full_name: name.trim() } },
-      })
-      if (error || !data.user) {
-        setMessage('We could not create your account. If you already registered, sign in instead.')
-        return
-      }
-      if (!data.session) {
-        setMessage('Check your email to confirm your account. After confirmation, VibeSchool will continue parent setup.')
-        return
-      }
+      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: callback, data: { full_name: name.trim() } } })
+      if (error || !data.user) { setMessage('We could not create your account. If you already registered, sign in instead.'); return }
+      if (!data.session) { setMessage('Check your email to confirm your account. After confirmation, VibeSchool will continue parent setup.'); return }
       const claim = await supabase.rpc('claim_my_initial_role', { p_role: 'parent' })
-      if (claim.error || claim.data !== 'parent') {
-        router.replace('/auth/error?reason=role_claim_failed')
-        return
-      }
+      if (claim.error || claim.data !== 'parent') { router.replace('/auth/error?reason=role_claim_failed'); return }
       const { error: profileError } = await supabase.from('profiles').update({ full_name: name.trim(), country_code: 'KE' }).eq('id', data.user.id)
-      if (profileError) {
-        router.replace('/auth/error?reason=profile_resolution_failed')
-        return
-      }
+      if (profileError) { router.replace('/auth/error?reason=profile_resolution_failed'); return }
       const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
-      const destination = onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding) && typeof onboarding.destination === 'string' ? onboarding.destination : null
-      if (onboardingError || !destination) {
-        router.replace('/auth/error?reason=onboarding_resolution_failed')
-        return
+      let destination: string | null = null
+      if (onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
+        const rawDestination = (onboarding as OnboardingState).destination
+        destination = typeof rawDestination === 'string' ? rawDestination : null
       }
+      if (onboardingError || !destination) { router.replace('/auth/error?reason=onboarding_resolution_failed'); return }
       router.replace(destination)
-    } finally {
-      setBusy(false)
-    }
+    } finally { setBusy(false) }
   }
 
   async function google() {
@@ -67,19 +52,10 @@ export default function ParentSignupPage() {
   }
 
   return <main className="shell"><section className="card">
-    <a href="/" className="brand">Vibe<span>School</span></a>
-    <p className="eyebrow">PARENT SETUP</p>
-    <h1>Stay connected to learning.</h1>
-    <p className="lead">Create your account first. Then connect your learner.</p>
+    <a href="/" className="brand">Vibe<span>School</span></a><p className="eyebrow">PARENT SETUP</p><h1>Stay connected to learning.</h1><p className="lead">Create your account first. Then connect your learner.</p>
     {message && <div role="alert" className="message">{message}</div>}
-    <label>Full name</label><input autoComplete="name" value={name} onChange={e=>setName(e.target.value)} />
-    <label>Email</label><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} />
-    <label>Password</label><input type="password" autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
-    <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create parent account'}</button>
-    <div className="or"><span/>or<span/></div>
-    <button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button>
-    <p className="switch">Already have an account? <a href="/login/parent">Sign in</a></p>
-    <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
+    <label>Full name</label><input autoComplete="name" value={name} onChange={e=>setName(e.target.value)} /><label>Email</label><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /><label>Password</label><input type="password" autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
+    <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create parent account'}</button><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button><p className="switch">Already have an account? <a href="/login/parent">Sign in</a></p><p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
 
