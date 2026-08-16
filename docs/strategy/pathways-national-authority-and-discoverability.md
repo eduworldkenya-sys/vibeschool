@@ -6,20 +6,31 @@
 
 ## 1. Strategic Ambition
 
-VibeSchool Pathways should become one of the most discoverable, useful and trusted independent sources for Kenyan pathway guidance.
+VibeSchool Pathways is being built with an explicit **#1 discoverability objective** for Kenyan pathway guidance.
 
-The target is not merely to rank for the word “pathway.” The target is that when a learner, parent, teacher, school, search engine or AI assistant asks a real Kenya education question, VibeSchool has a relevant, indexable, structured, current and source-backed answer.
+### Primary Discoverability Objective
 
-Examples of intended discovery questions:
+> **Make VibeSchool the #1 organic destination for Kenyan pathway-intent searches and the most frequently surfaced independent Kenyan pathway reference in AI-generated answers, measured across a defined, versioned benchmark query set.**
 
-- Which senior school pathway should I choose in Kenya?
-- What are the Grade 10 pathways in Kenya?
-- Which subjects are required for STEM?
-- Which schools offer a specific subject combination?
-- What careers can a given pathway lead to?
-- Which pathway fits a learner interested in engineering, medicine, business, agriculture, arts or sports?
-- Which senior schools in a county offer a given combination?
-- What does a specific Ministry/KICD pathway rule mean for a learner?
+This is an operating target, not a claim that ranking can be guaranteed. Google, Bing and AI providers control their own ranking and answer systems. VibeSchool therefore treats #1 as a measurable optimization objective: benchmark → measure → diagnose gaps → improve data/content/technical authority → re-measure → defend leadership.
+
+The target is not merely to rank for the word “pathway.” When a learner, parent, teacher, school, search engine or AI assistant asks a real Kenya education question, VibeSchool should have a relevant, indexable, structured, current and source-backed answer.
+
+### #1 Benchmark Query Portfolio
+
+The benchmark must be maintained as a versioned query portfolio rather than judged from one vanity keyword. It should include:
+
+- head terms: `pathways in Kenya`, `senior school pathways Kenya`, `Grade 10 pathways Kenya`, `CBC pathways Kenya`;
+- pathway entities: STEM, Social Sciences, Arts and Sports Science and any authoritative successor terminology;
+- subject-combination intent: `subject combinations Kenya`, pathway/subject pairings and specific combinations;
+- school discovery: `schools offering [combination]`, `senior schools offering [pathway]`, county/sub-county variants;
+- career intent: `best pathway for medicine`, engineering, agriculture, business, technology, arts, sports and other major career families;
+- comparison intent: pathway-vs-pathway and subject-vs-subject decisions;
+- eligibility/action intent: how to choose, requirements, selection rules and deadlines where authoritative/current;
+- policy/current-information intent: latest pathway and senior-school selection guidance;
+- long-tail combinations across pathway × subject × school × county × career relationships.
+
+The portfolio must include high-volume, high-intent and long-tail queries and be expanded from real Search Console/query evidence after launch.
 
 ## 2. Authority Positioning
 
@@ -37,24 +48,9 @@ Official facts remain attributed to their authoritative source. VibeSchool recom
 
 The Ministry’s current Grade 10 selection ecosystem already publishes pathway, subject-combination, school and career information. Therefore VibeSchool cannot win by reproducing a thinner version of the same material.
 
-VibeSchool must compete on:
+VibeSchool must compete on completeness, clarity, searchability, structured relationships, provenance, freshness, explanation, comparison, personalization, accessibility, low-bandwidth performance, public indexability, machine readability and longitudinal learner context.
 
-- completeness;
-- clarity;
-- searchability;
-- structured relationships;
-- provenance;
-- freshness;
-- explanation;
-- comparison;
-- personalization;
-- accessibility;
-- low-bandwidth performance;
-- public indexability;
-- machine readability;
-- longitudinal learner context.
-
-The target is **authority-grade coverage**, not official-government identity.
+The target is **authority-grade national coverage plus #1 discoverability**, not official-government identity.
 
 ## 4. Knowledge Coverage Contract
 
@@ -120,76 +116,29 @@ The Pathways knowledge system should eventually model at least:
 
 ## 5. National Knowledge Graph
 
-The information must not remain isolated pages or copied text.
-
-It should form a versioned graph such as:
+The information must not remain isolated pages or copied text. It should form a versioned graph:
 
 **Policy → Cohort → Pathway → Track → Subject combination → Subject → School → County → Career → Further study → Learner action**
 
-Every consequential edge should be attributable to evidence or explicitly marked as VibeSchool inference/guidance.
-
-This graph powers both personalized recommendations and public discovery pages.
+Every consequential edge should be attributable to evidence or explicitly marked as VibeSchool inference/guidance. This graph powers both personalized recommendations and public discovery pages.
 
 ## 6. Provenance and Trust Contract
 
-Every important official claim should support:
+Every important official claim should support source organization, source URL/document identity, retrieval/observation date, effective date where known, evidence type, version/status, confidence and whether the claim is official fact, normalized interpretation or VibeSchool recommendation.
 
-- source organization;
-- source URL/document identity;
-- retrieval/observation date;
-- effective date where known;
-- evidence type;
-- version/status;
-- confidence;
-- whether the claim is official fact, normalized interpretation or VibeSchool recommendation.
-
-When sources conflict, the system must not silently choose one. Record the conflict and either resolve it with stronger evidence or expose uncertainty appropriately.
-
-Stale data should be detectable. Superseded policy must not continue appearing as current guidance.
+When sources conflict, the system must not silently choose one. Record the conflict and either resolve it with stronger evidence or expose uncertainty appropriately. Stale data should be detectable. Superseded policy must not continue appearing as current guidance.
 
 ## 7. SEO Architecture
 
 SEO is a product/data architecture responsibility, not a marketing afterthought.
 
-### Public indexable entities
+Where privacy and source rights permit, VibeSchool should have canonical public pages for high-value entities and queries: pathways, subjects, subject combinations, schools, counties, careers and query-intent guides. Exact routes must be chosen after auditing the existing application and URL architecture.
 
-Where privacy and source rights permit, VibeSchool should have canonical public pages for high-value entities and queries, for example:
-
-- `/pathways`
-- `/pathways/stem`
-- `/pathways/social-sciences`
-- `/pathways/arts-sports-science`
-- `/subjects/...`
-- `/subject-combinations/...`
-- `/schools/...`
-- `/counties/.../senior-schools`
-- `/careers/...`
-- query-intent guides such as subject/pathway/career relationships.
-
-Exact routes must be chosen after auditing the existing application and URL architecture.
-
-### Technical SEO requirements
-
-- stable canonical URLs;
-- server-rendered or otherwise reliably crawlable primary content;
-- unique titles/descriptions;
-- semantic heading structure;
-- canonical tags;
-- XML sitemaps segmented by entity type where scale warrants;
-- robots policy that intentionally exposes public knowledge and blocks private/session surfaces;
-- structured internal linking;
-- useful 404/redirect behavior;
-- no duplicate thin pages generated from arbitrary filters;
-- fast mobile performance;
-- accessible semantic HTML;
-- freshness metadata where useful;
-- correct language/locale treatment if multilingual pages are introduced.
+Technical requirements include stable canonical URLs, reliably crawlable primary content, unique titles/descriptions, semantic headings, canonical tags, segmented XML sitemaps where scale warrants, intentional robots policy, structured internal linking, useful redirects/404s, duplicate/thin-page controls, fast mobile performance, accessible semantic HTML and correct language/locale handling.
 
 ## 8. Search Intent Architecture
 
-Do not optimize only for entity names. Build around real questions and decision intent.
-
-Priority intent families:
+Priority intent families are:
 
 1. **Understand** — “What is STEM pathway in Kenya?”
 2. **Compare** — “STEM vs Social Sciences pathway.”
@@ -206,150 +155,109 @@ Every high-value intent should map to a canonical knowledge page or tool, not an
 
 AI systems should be able to understand VibeSchool’s public knowledge without scraping a client-only application or guessing relationships.
 
-The public layer should therefore provide:
+The public layer should provide clear entity names and definitions, concise factual summaries, explicit relationships, source attribution, dates/freshness, stable URLs, crawlable HTML, valid structured data, machine-readable sitemaps/feeds where useful, consistent terminology and genuine question/answer content.
 
-- clear entity names and definitions;
-- concise factual summaries near the top of pages;
-- explicit relationships between pathways, subjects, careers and schools;
-- source attribution;
-- dates and freshness signals;
-- stable URLs;
-- crawlable HTML;
-- structured data using appropriate schema.org types where valid;
-- machine-readable sitemaps/feeds where useful;
-- consistent terminology and canonical aliases;
-- FAQ-style answers only when they represent genuine user questions, not search spam.
+The AI objective is measured separately from SEO: for the benchmark portfolio, periodically sample major AI answer/search systems where permitted and record whether VibeSchool is surfaced/cited, which competitors/sources are surfaced, factual agreement, citation destination and missing content/authority signals.
 
-Do not invent unsupported “AI SEO” metadata. Prioritize high-quality public information, strong structure and verifiable provenance.
+Do not invent unsupported “AI SEO” metadata.
 
-## 10. Structured Data Contract
+## 10. Programmatic Knowledge Quality
 
-During implementation, evaluate and use only schema.org types that accurately describe the page, such as appropriate Organization, EducationalOrganization, School, Course, FAQPage, BreadcrumbList, Article or Dataset markup where the underlying content genuinely qualifies.
+Programmatic SEO is allowed only when each generated page has independent user value. A school/pathway/combination page should contain meaningful structured information and relationships, not just swap a county or subject keyword into a template.
 
-Structured data must match visible page content. Never create fabricated ratings, reviews, admissions data or other rich-result bait.
+Thin, duplicate or speculative pages remain unpublished/noindex until the knowledge contract is satisfied.
 
-## 11. Programmatic Knowledge Pages — Quality Gate
+## 11. Freshness Engine
 
-Programmatic SEO is allowed only when each generated page has independent user value.
+Authority requires ongoing maintenance:
 
-A school/pathway/combination page should contain meaningful structured information and relationships, not just swap a county or subject keyword into a template.
-
-Do not publish pages when evidence is too weak to make them useful. Thin, duplicate or speculative pages should remain unpublished/noindex until the knowledge contract is satisfied.
-
-## 12. Freshness Engine
-
-Authority requires ongoing maintenance.
-
-The system should eventually support:
-
-**Discover source change → ingest evidence → compare against canonical state → detect conflict/change → human/governed review where required → update canonical knowledge → regenerate affected public surfaces → update freshness → retain history.**
-
-Priority monitored sources should include official Kenya education authorities relevant to pathway facts.
+**Discover source change → ingest evidence → compare canonical state → detect conflict/change → governed review where required → update canonical knowledge → regenerate affected public surfaces → update freshness → retain history.**
 
 No automated source change may silently rewrite consequential learner guidance without the required governance level.
 
-## 13. Content Depth Standard
+## 12. Acquisition Integration
 
-To rival official portals in usefulness, each major entity page should answer the next questions a user is likely to ask.
+Public authority pages feed the acquisition strategy:
 
-For a pathway page, this can include:
-- what it is;
-- who it may suit;
-- official structure;
-- subjects/combinations;
-- schools;
-- possible careers/progression;
-- how selection works;
-- common misunderstandings;
-- source/update history;
-- pathway discovery CTA.
-
-For a school page:
-- canonical identity;
-- location;
-- verified classification fields;
-- offered pathways/combinations where supported;
-- relevant contextual filters;
-- evidence/freshness;
-- link into pathway discovery.
-
-Content must distinguish facts from recommendations.
-
-## 14. Acquisition Integration
-
-Public authority pages are not separate from the acquisition strategy.
-
-The loop is:
-
-**Search/AI answer/referral → authoritative VibeSchool knowledge page → useful answer → “Discover my pathway” → anonymous pathway experience → value moment → free sign-in → activation.**
+**Search/AI answer/referral → authoritative VibeSchool knowledge page → useful answer → Discover my pathway → anonymous pathway experience → value moment → free sign-in → activation.**
 
 SEO traffic without pathway activation is not the end goal.
 
-## 15. Measurement
+## 13. Ranking Measurement Contract
 
-Track at minimum:
+### Primary SEO KPI
 
-- indexed canonical pages;
-- coverage by entity type;
-- source freshness/staleness;
-- organic impressions/clicks;
-- rankings for representative intent clusters;
-- AI/referral traffic where observable;
-- public knowledge page → pathway-start conversion;
-- pathway-start → result;
-- result → registration;
-- registration → activation;
-- crawl/index errors;
-- duplicate/thin page rate;
-- pages with missing provenance;
-- coverage gaps against authoritative source sets.
+For the maintained benchmark portfolio, measure:
+- percentage of tracked queries at organic position #1;
+- percentage in top 3;
+- percentage in top 10;
+- weighted visibility/share of voice;
+- impressions and clicks;
+- click-through rate;
+- winning/losing URLs;
+- competitor domains outranking VibeSchool;
+- query-to-activation conversion.
 
-The north star remains activated pathway users, with discoverability serving the acquisition engine.
+### Primary AI KPI
 
-## 16. Priority Roadmap
+For a stable sampled question set, measure:
+- VibeSchool citation/surface rate;
+- first-source/primary-source rate where observable;
+- competitor/source share;
+- answer factual accuracy against VibeSchool/official evidence;
+- referral traffic where observable;
+- AI referral → pathway activation.
 
-### A0 — Authority baseline audit
-- inventory current Pathways public pages;
-- inventory existing school/pathway/subject/career data;
-- inspect what Google can crawl today;
-- inspect metadata, rendering, sitemap, robots and canonical behavior;
-- inspect existing provenance and freshness fields;
-- compare coverage to official Ministry/KICD/KNEC public sources;
-- quantify missing entities and relationships.
+### #1 Gap Loop
+
+For every strategically important query not at #1:
+
+**Observe rank → identify winning result → compare intent satisfaction, authority, content depth, freshness, links, technical/indexing quality and entity coverage → identify legitimate gap → improve → recrawl/reindex → re-measure.**
+
+Do not copy competitors or manipulate rankings. Win by providing a more useful, trustworthy and technically accessible resource.
+
+## 14. Priority Roadmap
+
+### A0 — Authority + ranking baseline
+- inventory current public Pathways surfaces and data;
+- inspect crawlability, metadata, sitemap, robots and canonical behavior;
+- quantify national data/provenance gaps;
+- create benchmark query portfolio;
+- capture baseline ranks/visibility and current winning domains;
+- capture baseline AI citation/surface sample.
 
 ### A1 — Canonical knowledge model
-- define canonical entity IDs;
-- define provenance model;
-- define version/effective-date model;
-- define source conflict behavior;
-- connect pathways, combinations, subjects, schools and careers;
-- define public/private field boundaries.
+- canonical entity IDs;
+- provenance/version/effective-date model;
+- source conflict behavior;
+- pathway/combination/subject/school/career graph;
+- public/private boundaries.
 
 ### A2 — Public knowledge surfaces
-- build canonical entity pages;
-- build internal-link graph;
-- add crawlable factual summaries;
-- add citations/source history;
-- add discovery CTA;
-- ensure strong mobile/low-bandwidth UX.
+- canonical entity pages;
+- strong internal-link graph;
+- crawlable factual summaries;
+- citations/source history;
+- discovery CTA;
+- mobile/low-bandwidth quality.
 
 ### A3 — Technical SEO
 - metadata;
 - canonical URLs;
 - sitemap architecture;
 - robots policy;
-- structured data;
-- redirect/404 contracts;
-- performance and indexability validation.
+- valid structured data;
+- redirects/404s;
+- performance/indexability validation.
 
 ### A4 — National coverage
-- ingest/verify authoritative pathway data;
+- authoritative pathway data;
 - subject-combination coverage;
 - senior-school coverage;
 - county/local discovery;
 - career/progression knowledge;
 - policy history;
-- gap dashboards.
+- measurable gap dashboards.
 
 ### A5 — Freshness and authority operations
 - source monitoring;
@@ -358,45 +266,36 @@ The north star remains activated pathway users, with discoverability serving the
 - stale-data detection;
 - conflict handling;
 - provenance audit;
-- scheduled coverage checks.
+- scheduled coverage/ranking checks.
 
-### A6 — Search and AI authority certification
-- representative Google/Bing query audit;
-- rendered-page/crawler audit;
-- structured data validation;
-- AI answer/citation sampling across major assistants/search systems where permitted;
-- factual accuracy adversarial review;
-- search-intent coverage report;
-- acquisition conversion measurement.
+### A6 — #1 Search + AI authority campaign
+- monitor benchmark portfolio;
+- run gap loop on non-#1 strategic queries;
+- expand high-value long-tail coverage from observed demand;
+- strengthen pages and knowledge relationships where evidence shows gaps;
+- validate rendered/crawler/structured-data behavior;
+- sample AI citations/surfacing;
+- measure acquisition conversion;
+- continue until leadership targets are achieved and then defend them.
 
-## 17. Certification Standard
+## 15. Certification Standard
 
-This authority mission is not complete because pages exist.
+Technical implementation certification requires canonical entities/relationships, provenance, freshness governance, crawlable/indexable public pages, correct sitemap/canonical/robots behavior, substantial independent page value, measured national coverage, visible authoritative-source gaps, privacy protection, factual/recommendation separation, truthful structured data, acquisition integration, ranking monitoring and adversarial factual review.
 
-Completion requires evidence that:
+### Discoverability success target
 
-- [ ] canonical entities and relationships are modeled;
-- [ ] authoritative claims carry provenance;
-- [ ] stale/superseded facts are governed;
-- [ ] key public pages are crawlable and indexable;
-- [ ] sitemap/canonical/robots behavior is correct;
-- [ ] pages provide substantial independent value;
-- [ ] school/pathway/subject-combination coverage is measured nationally;
-- [ ] gaps against authoritative public datasets are visible;
-- [ ] no private learner data is exposed to search crawlers;
-- [ ] recommendations do not masquerade as official government decisions;
-- [ ] structured data reflects visible truth;
-- [ ] public pages connect into the Pathways acquisition journey;
-- [ ] representative search-intent queries are monitored;
-- [ ] factual accuracy and source freshness pass adversarial audit;
-- [ ] branch-level implementation, tests and production-readiness gates pass before merge is considered.
+The strategic discoverability mission is successful when VibeSchool demonstrates sustained leadership across the benchmark portfolio, with **#1 organic position as the explicit target for strategically important Kenyan pathway queries**, strong top-3 coverage across the wider portfolio, and leading independent-source surfacing/citation across sampled AI answer systems.
 
-## 18. Non-Negotiable Position
+A single #1 keyword does not certify success. The target is portfolio-level authority and sustained leadership.
 
-The goal is not “beat the Ministry by pretending to be official.”
+Rankings must be measured externally after public deployment/indexation; branch-level tests can certify technical readiness but cannot fabricate or pre-certify Google/AI ranking outcomes.
+
+## 16. Non-Negotiable Position
+
+The goal is not to beat the Ministry by pretending to be official.
 
 The goal is:
 
-> **Use authoritative Kenyan education sources better than anyone else: normalize them, connect them, explain them, keep them current, expose them cleanly to humans and machines, and turn that knowledge into useful learner action.**
+> **Become the #1 discoverable independent Kenyan Pathways destination by using authoritative education sources exceptionally well: normalize them, connect them, explain them, keep them current, expose them cleanly to humans and machines, and turn that knowledge into useful learner action.**
 
-If VibeSchool achieves that consistently, search engines, AI systems, teachers, parents and learners have a legitimate reason to treat it as a leading reference for pathway discovery.
+The branch remains isolated until the complete Pathways mission is implemented and certified for promotion.
