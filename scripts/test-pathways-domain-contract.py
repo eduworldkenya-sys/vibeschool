@@ -19,6 +19,9 @@ required_files = [
     'app/pathways/check/page.tsx',
     'app/pathways/continue/page.tsx',
     'app/pathways/schools/page.tsx',
+    'app/student/pathways/page.tsx',
+    'app/parent/pathways/page.tsx',
+    'app/teacher/pathways/page.tsx',
     'lib/pathways/quickCheck.ts',
 ]
 for rel in required_files:
@@ -67,6 +70,44 @@ for fragment in [
 ]:
     if fragment not in evidence_api:
         errors.append(f'Pathways evidence API migration missing: {fragment}')
+
+canonical = read_single_migration('pathways_canonical_learner_authority')
+for fragment in [
+    'create table if not exists public.student_pathway_decisions',
+    'references public.students(id)',
+    "if caller_role<>'student' then raise exception 'canonical_student_role_required'",
+    'canonical_student_identity_not_found',
+    'create table if not exists public.parent_pathway_drafts',
+    'Adult-owned planning draft; not a learner Pathway Passport.',
+    'where l.parent_id=auth.uid()',
+    'where tc.teacher_id=auth.uid()',
+    'from public.school_directory_public d',
+    'revoke all on function public.pathways_save_my_quick_check',
+]:
+    if fragment not in canonical:
+        errors.append(f'Canonical learner-authority migration missing: {fragment}')
+
+continuation = (ROOT / 'app/pathways/continue/page.tsx').read_text(encoding='utf-8')
+for fragment in [
+    "role === 'student'",
+    "role === 'parent'",
+    '/login/student?redirect=/pathways/continue',
+    '/signup/parent?redirect=/pathways/continue',
+    'Pathways does not manufacture a child identity',
+]:
+    if fragment not in continuation:
+        errors.append(f'Pathways continuation missing: {fragment}')
+for forbidden in [
+    "role === 'global_user' &&",
+    'href="/global/signup"',
+]:
+    if forbidden in continuation:
+        errors.append(f'Pathways continuation contains forbidden authority path: {forbidden}')
+
+parent_ui = (ROOT / 'app/parent/pathways/page.tsx').read_text(encoding='utf-8')
+teacher_ui = (ROOT / 'app/teacher/pathways/page.tsx').read_text(encoding='utf-8')
+if 'pathways_save_my_quick_check' in parent_ui or 'pathways_save_my_quick_check' in teacher_ui:
+    errors.append('parent/teacher support must not mutate learner Passport')
 
 if errors:
     print('PATHWAYS DOMAIN CONTRACT: FAIL')
