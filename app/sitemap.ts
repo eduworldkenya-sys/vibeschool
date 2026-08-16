@@ -11,6 +11,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/about`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/contact`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${SITE_URL}/global/read`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${SITE_URL}/pathways`, changeFrequency: 'weekly', priority: 0.95 },
+    { url: `${SITE_URL}/pathways/check`, changeFrequency: 'monthly', priority: 0.82 },
+    { url: `${SITE_URL}/pathways/schools`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/legal/privacy`, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${SITE_URL}/legal/terms`, changeFrequency: 'monthly', priority: 0.3 },
   ]
@@ -34,7 +37,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: publication.format === 'vibetextbook' ? 0.9 : 0.8,
     }))
 
-    return [...staticRoutes, ...publicationRoutes]
+    // Pathways is additive to deployments where the canonical domain migration
+    // has landed. Until then, static Pathways routes remain indexable and this
+    // optional query simply contributes no dynamic routes.
+    let pathwayRoutes: MetadataRoute.Sitemap = []
+    const { data: pathways, error: pathwayError } = await supabase
+      .from('pathways')
+      .select('slug, updated_at')
+      .eq('status', 'published')
+      .limit(100)
+
+    if (!pathwayError) {
+      pathwayRoutes = (pathways ?? []).map((pathway) => ({
+        url: `${SITE_URL}/pathways/${encodeURIComponent(pathway.slug)}`,
+        lastModified: pathway.updated_at ?? undefined,
+        changeFrequency: 'weekly',
+        priority: 0.9,
+      }))
+    }
+
+    return [...staticRoutes, ...pathwayRoutes, ...publicationRoutes]
   } catch {
     return staticRoutes
   }
