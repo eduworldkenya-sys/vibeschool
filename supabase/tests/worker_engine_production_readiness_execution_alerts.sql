@@ -2,10 +2,9 @@
 begin;
 
 do $$
-declare d text; n integer;
+declare d text;
 begin
   select lower(pg_get_functiondef('public.hq_workforce_emit_execution_alert()'::regprocedure)) into d;
-  foreach n in array array[1] loop null; end loop;
   if position('execution_verification_failed' in d)=0 then raise exception 'verification_failure_alert_missing'; end if;
   if position('execution_compensation_conflict' in d)=0 then raise exception 'compensation_conflict_alert_missing'; end if;
   if position('execution_escalation_created' in d)=0 then raise exception 'escalation_alert_missing'; end if;
