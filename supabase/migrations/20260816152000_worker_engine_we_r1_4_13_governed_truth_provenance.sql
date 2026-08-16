@@ -2,12 +2,22 @@
 -- NON-ACTIVATING. service_role may record observations, but it may not manufacture
 -- verified/authoritative institutional memory or human/founder approval truth.
 
--- Retire direct externally callable legacy truth/promotion front doors. Owner-gated or
--- canonical governed functions may still invoke inaccessible helpers as function owner.
-revoke all on function public.hq_workforce_capture_founder_decision(uuid,integer,text,uuid,uuid,jsonb,jsonb,text)
-  from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_certify_learning_pipeline()
-  from public,anon,authenticated,service_role;
+-- Retire direct externally callable legacy truth/promotion front doors.
+-- Production and clean rebuilds do not necessarily contain the same historical overloads,
+-- so revoke discovered functions by OID/name instead of assuming a signature exists.
+do $$
+declare r record;
+begin
+  for r in
+    select p.oid
+      from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace
+     where n.nspname='public'
+       and p.proname in ('hq_workforce_capture_founder_decision','hq_workforce_certify_learning_pipeline')
+  loop
+    execute format('revoke all on function %s from public,anon,authenticated,service_role',r.oid::regprocedure);
+  end loop;
+end $$;
 
 -- Preserve the X2 memory constructor as an internal implementation, then expose the
 -- same public RPC name with a stricter contract: transport can only create non-authoritative
@@ -121,7 +131,9 @@ grant execute on function public.hq_workforce_owner_verify_memory(uuid,text,json
 
 -- NON-ACTIVATION + truth-boundary attestation.
 do $$
-declare ec public.hq_workforce_engine_contract%rowtype;
+declare
+  ec public.hq_workforce_engine_contract%rowtype;
+  r record;
 begin
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
   if not found then raise exception 'WE-R1.4.13 requires engine contract'; end if;
@@ -131,10 +143,17 @@ begin
      or coalesce(ec.shadow_scheduler_enabled,false) or not coalesce(ec.shadow_global_stop,true) then
     raise exception 'WE-R1.4.13 violated fail_closed_activation_boundary';
   end if;
-  if has_function_privilege('service_role','public.hq_workforce_capture_founder_decision(uuid,integer,text,uuid,uuid,jsonb,jsonb,text)','EXECUTE')
-     or has_function_privilege('service_role','public.hq_workforce_certify_learning_pipeline()','EXECUTE') then
-    raise exception 'WE-R1.4.13 legacy truth gateway remains service callable';
-  end if;
+  for r in
+    select p.oid
+      from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace
+     where n.nspname='public'
+       and p.proname in ('hq_workforce_capture_founder_decision','hq_workforce_certify_learning_pipeline')
+  loop
+    if has_function_privilege('service_role',r.oid,'EXECUTE') then
+      raise exception 'WE-R1.4.13 legacy truth gateway remains service callable:%',r.oid::regprocedure;
+    end if;
+  end loop;
   if has_table_privilege('service_role','public.hq_workforce_memory_records','UPDATE') then
     raise exception 'WE-R1.4.13 direct memory truth write remains';
   end if;
