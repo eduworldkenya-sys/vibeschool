@@ -13,6 +13,7 @@ on:
       - 'scripts/test-school-live-authoritative-adapter.py'
       - 'scripts/test-school-search-helper-privilege-contract.py'
       - 'scripts/test-school-alias-prerequisite-contract.py'
+      - 'scripts/test-school-coverage-runtime-contract.py'
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
@@ -25,6 +26,7 @@ on:
       - 'scripts/test-school-live-authoritative-adapter.py'
       - 'scripts/test-school-search-helper-privilege-contract.py'
       - 'scripts/test-school-alias-prerequisite-contract.py'
+      - 'scripts/test-school-coverage-runtime-contract.py'
 
 jobs:
   contract:
@@ -41,3 +43,4 @@ jobs:
       - run: python scripts/test-school-live-authoritative-adapter.py
       - run: python scripts/test-school-search-helper-privilege-contract.py
       - run: python scripts/test-school-alias-prerequisite-contract.py
+      - run: python scripts/test-school-coverage-runtime-contract.py
