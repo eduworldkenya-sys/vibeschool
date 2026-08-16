@@ -1,8 +1,9 @@
 # VibeSchool Pathways — Mission Documentation Index
 
 **Branch:** `agent/pathways-customer-acquisition-strategy`  
+**Draft PR:** #168  
 **Purpose:** Prevent future engineers/agents from reading only one Pathways strategy file and missing governing requirements.  
-**Promotion rule:** This branch remains isolated until the complete mission is implemented and certified.
+**Promotion rule:** This branch remains isolated until the complete mission is implemented and exact-head certified.
 
 ## Required Reading Order
 
@@ -13,11 +14,12 @@ Anyone continuing the Pathways acquisition mission must read **all** of the foll
 3. `docs/strategy/pathways-action-first-trust-and-guidance.md` — action-first/depth-on-demand UX, quick guidance, progressive evidence, uncertainty, Pathway Passport, literacy/language and human guidance.
 4. `docs/strategy/pathways-national-authority-and-discoverability.md` — national knowledge graph, provenance, #1 SEO objective, AI discoverability, benchmark portfolio, public knowledge and authority operations.
 5. `docs/strategy/pathways-seven-constitutions-and-human-system-architecture.md` — learner/parent/teacher/school profiles, decision psychology, trust/patience/capability states, truth, recommendation, safety/privacy, discovery, commercial and operations constitutions.
-6. `docs/strategy/pathways-ask-understand-act-product-model.md` — why short-form/social/AI experiences reduce synthesis effort and VibeSchool's response: Ask → Understand → Verify → Personalize → Act → Human Help → Remember; multiple entry doors, Ask VibeSchool, search pages as tools, voice/listen and channel continuity.
-7. `docs/strategy/pathways-repository-product-ux-execution-plan.md` — repository-aware product/CTO/UX integration plan: existing systems to reuse, route placement, one-truth-engine rules, P0.0→P4 dependency gates, first coherent release slice, metrics, research, engineering rules and work regimentation.
-8. `docs/strategy/pathways-acquisition-execution-handoff.md` — operational work board, P0→P4 sequence, engineering acceptance contract, analytics and continuation protocol.
+6. `docs/strategy/pathways-ask-understand-act-product-model.md` — Ask → Understand → Verify → Personalize → Act → Human Help → Remember; multiple entry doors, Ask VibeSchool, search pages as tools, voice/listen and channel continuity.
+7. `docs/strategy/pathways-repository-product-ux-execution-plan.md` — repository-aware product/CTO/UX integration plan, reuse/extend boundaries, route placement, one-truth-engine rules and dependency gates.
+8. `docs/strategy/pathways-p0-baseline-audit-ledger.md` — **live implementation/ownership ledger**: GitHub + Supabase findings, implemented artifacts, unresolved dependencies and certification state.
+9. `docs/strategy/pathways-acquisition-execution-handoff.md` — **current operational work board** and continuation protocol.
 
-**Reading one file is insufficient. A future chat must read this index and all eight documents before changing implementation or redefining the mission.**
+**Reading one file is insufficient. A future chat must read this index and all nine documents before changing implementation or redefining the mission.**
 
 ## Governing Product Model
 
@@ -31,85 +33,66 @@ Do not simplify Pathways into “a quiz,” “a chatbot,” “SEO pages,” �
 
 ## Repository Integration Decision
 
-Pathways is not a greenfield product beside VibeSchool. Current repository foundations include public `/learn` and careers, Student Home/Profile/Tasks/Twin, canonical learner identity, assessment infrastructure, national school identity/search, sitemap/robots, PWA/offline foundations, parent/teacher projections and canonical auth/onboarding work.
+Pathways is not a greenfield product beside VibeSchool. Current foundations include public `/learn`, Student Home/Profile/Tasks/Twin, canonical learner identity, formal assessment infrastructure, national school identity/search, sitemap/robots, PWA/offline foundations, parent/teacher projections and canonical auth/onboarding.
 
-Therefore the architectural default is **reuse/extend canonical systems, not duplicate them**. In particular:
+Architectural default: **reuse/extend canonical systems, never duplicate them without proof that the existing system cannot satisfy the invariant.**
 
+Non-negotiable examples:
 - no second learner identity;
 - no second school identity/directory;
-- no second recommendation brain beside Pathways/Twin;
+- no second Pathways truth/recommendation brain;
 - no second auth/onboarding router;
 - no second sitemap/robots authority;
-- no separate career taxonomy without reconciling `/learn/careers`;
-- no Pathways implementation schema before live Supabase archaeology.
+- no use of formal classroom assessments as anonymous Pathways sessions;
+- no use of mastery/task recommendations as career/pathway recommendations.
 
-The next engineering gate is explicitly **P0.0 Baseline Freeze and Collision Audit**, not feature coding.
+## Current Implementation Anchor
 
-## Why Ask → Understand → Act Matters
+Implementation is active on draft PR #168 and currently includes:
+- canonical public `/pathways`;
+- deterministic anonymous `/pathways/check`;
+- device-local pre-consent state;
+- `/pathways/continue` consent/save bridge;
+- safe `next` behavior integrated with canonical onboarding;
+- additive provenance-backed Pathways graph migration;
+- learner Pathway Passport persistence and Student Profile projection;
+- safe public canonical school finder foundation;
+- Pathways sitemap/robots metadata integration.
 
-Many users prefer short-form/social/AI experiences because they reduce the effort required to turn information into understanding and action. Traditional search can provide authoritative documents but often leaves synthesis to the user; social explanations can provide fast synthesis but may lack authoritative evidence.
+**This paragraph is not a completion claim.** Read the live P0 ledger and execution handoff, then inspect the current PR head/live Supabase before acting.
 
-VibeSchool's intended combination is:
+## Cross-Document Invariants
 
-> **short-form simplicity + search discoverability + authoritative Kenyan education evidence + teacher-like explanation + personalization + immediate action.**
-
-Learn from low-friction comprehension without adopting misinformation, sensationalism, engagement bait or popularity-as-truth.
-
-## Multiple Entry Doors, One Canonical System
-
-Users may begin from:
-
-- **Me:** help me find my pathway;
-- **Career:** I want to become X;
-- **Subjects:** where can these subjects take me?;
-- **School:** what does this school offer?;
-- **Pathway:** help me understand/explore it;
-- **Location:** what relevant options exist here?;
-- **Question:** Ask VibeSchool;
-- **Unknown:** guide me.
-
-All entry doors converge on the same canonical knowledge/evidence/recommendation system.
-
-## Non-Negotiable Cross-Document Invariants
-
-- Core Pathways discovery remains free.
-- Value precedes the primary sign-in trigger.
-- Sign-in is for persistence/continuity, not ransom for a result.
-- Anonymous pathway state should survive authentication where safe.
-- Action first; detail/evidence on demand.
-- Important answers lead to a legitimate educational next action where one exists.
-- Ask VibeSchool is evidence-grounded, never an unconstrained LLM truth source.
-- Search-intent pages answer the query directly and behave like useful tools where appropriate, not thin SEO articles.
-- Channel referrals deep-link to relevant answer/tool context where safe.
-- Audio/voice is presentation/input over canonical truth, not another factual engine.
-- Official fact, learner evidence and VibeSchool guidance remain distinguishable.
-- Eligibility, suitability and aspiration remain distinguishable.
+- Core discovery remains free.
+- Value precedes primary sign-in.
+- Authentication is for continuity/persistence/personalization, not basic answer access.
+- Current anonymous Quick Check answers remain on-device until explicit Save.
+- Canonical onboarding always dominates continuation.
+- Existing school-linked learner signup safeguarding is not weakened for conversion.
+- Parent/teacher support cannot overwrite learner-owned Pathway Passport state.
+- Public pathway/school facts require provenance and publish/verification state.
+- Absence of verified school-offering evidence means “not yet verified,” not “does not exist.”
+- Official fact, learner evidence and VibeSchool guidance remain visibly distinguishable.
+- Eligibility, suitability and aspiration remain distinct.
 - Recommendations expose uncertainty and never fabricate precision.
-- Learner agency, privacy and safeguarding outrank conversion.
-- Commercial relationships cannot alter educational truth or recommendation ranking.
-- National public knowledge is provenance-backed, versioned and freshness-governed.
-- #1 organic discoverability is an explicit measured objective, never a fabricated guarantee.
+- Twin may explain canonical Pathways state but cannot invent official eligibility/offering truth.
+- Commercial relationships cannot alter educational truth/ranking.
 - Public SEO/AI surfaces never expose private learner data.
-- Shared-device/assisted-use boundaries prevent learner-state leakage.
-- Consequential recommendation results should become reconstructable by evidence/knowledge/rule/model version.
-- Policy/source changes and corrections propagate through affected surfaces under governance.
-- Documentation is not implementation; completion requires repository/test evidence.
-- No merge to `main` until the full mission is complete and certified.
+- #1 organic discoverability is a measured objective, never a fabricated guarantee.
+- Consequential recommendation outcomes must become reconstructable from evidence + knowledge + rule/model versions.
+- Documentation is not implementation; implementation is not certification.
+- No merge to `main` and no production application of branch migrations until full mission promotion requirements are satisfied.
 
-## Continuation Rule
+## Account/Safeguarding Warning
 
-A future agent must not implement one document in isolation. First reconcile current repository and live Supabase reality against the complete mission contract, then decompose the highest-priority unmet requirements into dependency-aware gates.
-
-The default next action is **P0.0 Baseline Freeze and Collision Audit** from `pathways-repository-product-ux-execution-plan.md`.
-
-Before coding, establish how current implementation handles or fails to handle: public/question/search entry; `/learn/careers`; pathway/school/subject/career data; assessment primitives; anonymous discovery; answer/action presentation; auth continuation; persistent pathway state; learner profile authority; Twin authority; official provenance; recommendation uncertainty; mobile/low-literacy behavior; indexability; analytics; privacy/safeguarding/shared devices; school identity/offering coverage; and existing AI/chat/search surfaces that could become a second truth engine.
+The current canonical learner signup is teacher-code + guardian-first. A future agent must not remove those safeguards merely to improve Pathways conversion and must not invent a parallel `pathway_users` learner identity. A standalone family/independent-learner acquisition identity is a separate safeguarding/identity design gate.
 
 ## Mission Certification Layers
 
-Before promotion, certification covers at least:
+Before promotion, prove at least:
 
 1. Product/UX behavior.
-2. Anonymous→authenticated state continuity.
+2. Anonymous→authenticated consent/state continuity.
 3. Canonical educational data/provenance.
 4. Recommendation correctness, uncertainty and fairness.
 5. Learner privacy/safeguarding/consent.
@@ -117,18 +100,19 @@ Before promotion, certification covers at least:
 7. Mobile/accessibility/low-bandwidth behavior.
 8. Search crawlability/technical SEO/public-private boundaries.
 9. Ask/answer/action grounding and canonical-truth consistency.
-10. Channel-to-product deep-link/context continuity.
-11. Existing-system integration/no duplicate authority.
-12. Analytics/observability and reconstruction.
-13. Freshness/correction/policy-change operations.
-14. Commercial neutrality.
-15. Repository TypeScript/lint/build/tests/migration-security gates as applicable.
-16. End-to-end exact-head mission acceptance.
+10. Channel-to-product context continuity.
+11. Analytics/observability/reconstruction.
+12. Freshness/correction/policy-change operations.
+13. Commercial neutrality.
+14. Parent/teacher relationship-based projection authority.
+15. Supabase migration security.
+16. Clean database rebuild/repository extraction where applicable.
+17. TypeScript/ESLint/Next.js production build.
+18. Pathways-specific adversarial acceptance.
+19. End-to-end exact-head mission acceptance.
 
-External Google/AI ranking outcomes can only be measured after public deployment/indexation. Branch-level work must certify the technical/data/content prerequisites for the #1 objective, not fabricate ranking success.
+External Google/AI ranking outcomes can only be measured after public deployment/indexation; branch certification must prove prerequisites rather than fabricate ranking results.
 
-## Handoff Sentence for a New Chat
+## Handoff Sentence
 
-> **Continue the VibeSchool Pathways mission on `agent/pathways-customer-acquisition-strategy`. First read `docs/strategy/pathways-mission-documentation-index.md` and all eight required documents in order. Treat them as governing mission memory. Then perform/continue P0.0 by inspecting current GitHub and live Supabase read-only, reconcile existing systems before inventing anything, and continue the highest-priority unmet gate. Do not merge to main until the full mission is implemented and certified. Do not reinterpret Pathways as only a quiz, chatbot, SEO project, directory or marketplace.**
-
-The index exists so a future chat can reconstruct product intent and implementation discipline without depending on the original conversation.
+> **Continue the VibeSchool Pathways mission on `agent/pathways-customer-acquisition-strategy`, draft PR #168. First read this index and all nine required documents in order, especially the live P0 baseline ledger and execution handoff. Treat repository documents as governing mission memory. Inspect current GitHub and live Supabase reality before changing code. Continue the highest-priority unfinished gate, preserve canonical learner/school/auth/Twin/safeguarding boundaries, and do not merge to main or production-apply branch migrations until the full mission is implemented and exact-head certified.**
