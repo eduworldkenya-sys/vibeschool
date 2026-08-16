@@ -1,9 +1,15 @@
 import type { MetadataRoute } from 'next'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseServerClient } from '@/lib/supabaseServer'
 
 const SITE_URL = 'https://www.vibeschool.co.ke'
 
 export const revalidate = 3600
+
+type PublishedPathwaySitemapRow = {
+  slug: string
+  updated_at: string | null
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -38,17 +44,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
 
     // Pathways is additive to deployments where the canonical domain migration
-    // has landed. Until then, static Pathways routes remain indexable and this
-    // optional query simply contributes no dynamic routes.
+    // has landed. The generated production Database type intentionally lags
+    // this branch-only schema until migration + type regeneration, so isolate
+    // that temporary boundary to this new query and narrow its result below.
     let pathwayRoutes: MetadataRoute.Sitemap = []
-    const { data: pathways, error: pathwayError } = await supabase
+    const pathwaysClient = supabase as SupabaseClient<any>
+    const { data: pathways, error: pathwayError } = await pathwaysClient
       .from('pathways')
       .select('slug, updated_at')
       .eq('status', 'published')
       .limit(100)
 
     if (!pathwayError) {
-      pathwayRoutes = (pathways ?? []).map((pathway) => ({
+      pathwayRoutes = ((pathways ?? []) as PublishedPathwaySitemapRow[]).map((pathway) => ({
         url: `${SITE_URL}/pathways/${encodeURIComponent(pathway.slug)}`,
         lastModified: pathway.updated_at ?? undefined,
         changeFrequency: 'weekly',
