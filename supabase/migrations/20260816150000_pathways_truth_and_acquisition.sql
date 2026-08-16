@@ -1,6 +1,6 @@
--- VibeSchool Pathways truth/acquisition layer.
--- Additive only. Reuses public.profiles, public.students, public.subjects and public.schools.
--- No Pathways-owned school or learner identity is created.
+-- VibeSchool Pathways truth + acquisition foundation.
+-- Additive only. Canonical learner, subject and school identities remain owned by
+-- public.profiles/public.students, public.subjects and public.schools.
 
 create table if not exists public.pathway_sources (
   id uuid primary key default gen_random_uuid(),
@@ -21,8 +21,10 @@ create table if not exists public.pathway_sources (
 alter table public.pathway_sources enable row level security;
 revoke all on public.pathway_sources from public, anon, authenticated;
 grant select on public.pathway_sources to anon, authenticated;
-create policy pathway_sources_public_verified_read on public.pathway_sources for select to anon, authenticated
+grant select, insert, update, delete on public.pathway_sources to service_role;
+create policy pathway_sources_public_read on public.pathway_sources for select to anon, authenticated
   using (is_public and status='active');
+-- authorization-test: public.pathway_sources anon/authenticated read only active public provenance; client writes denied; service_role manages sources.
 
 create table if not exists public.pathway_source_observations (
   id uuid primary key default gen_random_uuid(),
@@ -39,7 +41,9 @@ create table if not exists public.pathway_source_observations (
 );
 alter table public.pathway_source_observations enable row level security;
 revoke all on public.pathway_source_observations from public, anon, authenticated;
--- Evidence staging is service/operator-only. No client policy.
+grant select, insert, update, delete on public.pathway_source_observations to service_role;
+-- access: service-only public.pathway_source_observations
+-- authorization-test: public.pathway_source_observations anon/authenticated direct access denied; staging/promotion occurs only through owner-gated routines or service_role.
 
 create table if not exists public.pathways (
   id uuid primary key default gen_random_uuid(),
@@ -58,8 +62,10 @@ create table if not exists public.pathways (
 alter table public.pathways enable row level security;
 revoke all on public.pathways from public, anon, authenticated;
 grant select on public.pathways to anon, authenticated;
+grant select, insert, update, delete on public.pathways to service_role;
 create policy pathways_verified_public_read on public.pathways for select to anon, authenticated
   using (status='published' and verification_state='verified');
+-- authorization-test: public.pathways anon/authenticated see only published verified pathways; direct client writes denied.
 
 create table if not exists public.pathway_tracks (
   id uuid primary key default gen_random_uuid(),
@@ -78,8 +84,13 @@ create table if not exists public.pathway_tracks (
 alter table public.pathway_tracks enable row level security;
 revoke all on public.pathway_tracks from public, anon, authenticated;
 grant select on public.pathway_tracks to anon, authenticated;
+grant select, insert, update, delete on public.pathway_tracks to service_role;
 create policy pathway_tracks_verified_public_read on public.pathway_tracks for select to anon, authenticated
-  using (status='published' and verification_state='verified' and exists(select 1 from public.pathways p where p.id=pathway_id and p.status='published' and p.verification_state='verified'));
+  using (
+    status='published' and verification_state='verified'
+    and exists (select 1 from public.pathways p where p.id=pathway_id and p.status='published' and p.verification_state='verified')
+  );
+-- authorization-test: public.pathway_tracks anon/authenticated read only verified published tracks under a verified published pathway; writes denied.
 
 create table if not exists public.pathway_subject_combinations (
   id uuid primary key default gen_random_uuid(),
@@ -98,11 +109,16 @@ create table if not exists public.pathway_subject_combinations (
 alter table public.pathway_subject_combinations enable row level security;
 revoke all on public.pathway_subject_combinations from public, anon, authenticated;
 grant select on public.pathway_subject_combinations to anon, authenticated;
+grant select, insert, update, delete on public.pathway_subject_combinations to service_role;
 create policy pathway_combinations_verified_public_read on public.pathway_subject_combinations for select to anon, authenticated
-  using (status='published' and verification_state='verified' and exists(select 1 from public.pathways p where p.id=pathway_id and p.status='published' and p.verification_state='verified'));
+  using (
+    status='published' and verification_state='verified'
+    and exists (select 1 from public.pathways p where p.id=pathway_id and p.status='published' and p.verification_state='verified')
+  );
+-- authorization-test: public.pathway_subject_combinations anon/authenticated read only verified published combinations under verified pathways; writes denied.
 
--- Official subject labels are observations. resolved_subject_id is populated only after
--- reconciliation with VibeSchool's existing subject identity; Pathways never invents it.
+-- Official subject text is kept as evidence. A VibeSchool subject identity is linked
+-- only after reconciliation; Pathways never creates a second canonical subject table.
 create table if not exists public.pathway_combination_subject_claims (
   combination_id uuid not null references public.pathway_subject_combinations(id) on delete cascade,
   subject_name text not null,
@@ -117,8 +133,10 @@ create table if not exists public.pathway_combination_subject_claims (
 alter table public.pathway_combination_subject_claims enable row level security;
 revoke all on public.pathway_combination_subject_claims from public, anon, authenticated;
 grant select on public.pathway_combination_subject_claims to anon, authenticated;
+grant select, insert, update, delete on public.pathway_combination_subject_claims to service_role;
 create policy pathway_subject_claims_verified_public_read on public.pathway_combination_subject_claims for select to anon, authenticated
-  using (exists(select 1 from public.pathway_subject_combinations c where c.id=combination_id and c.status='published' and c.verification_state='verified'));
+  using (exists (select 1 from public.pathway_subject_combinations c where c.id=combination_id and c.status='published' and c.verification_state='verified'));
+-- authorization-test: public.pathway_combination_subject_claims public readers see claims only for a verified published combination; unresolved identity mapping is explicit; writes denied.
 
 create table if not exists public.pathway_careers (
   id uuid primary key default gen_random_uuid(),
@@ -134,7 +152,10 @@ create table if not exists public.pathway_careers (
 alter table public.pathway_careers enable row level security;
 revoke all on public.pathway_careers from public, anon, authenticated;
 grant select on public.pathway_careers to anon, authenticated;
-create policy pathway_careers_verified_public_read on public.pathway_careers for select to anon, authenticated using(status='published' and verification_state='verified');
+grant select, insert, update, delete on public.pathway_careers to service_role;
+create policy pathway_careers_verified_public_read on public.pathway_careers for select to anon, authenticated
+  using(status='published' and verification_state='verified');
+-- authorization-test: public.pathway_careers anon/authenticated read only published verified careers; client writes denied.
 
 create table if not exists public.pathway_career_links (
   career_id uuid not null references public.pathway_careers(id) on delete cascade,
@@ -150,8 +171,14 @@ create table if not exists public.pathway_career_links (
 alter table public.pathway_career_links enable row level security;
 revoke all on public.pathway_career_links from public, anon, authenticated;
 grant select on public.pathway_career_links to anon, authenticated;
+grant select, insert, update, delete on public.pathway_career_links to service_role;
 create policy pathway_career_links_verified_public_read on public.pathway_career_links for select to anon, authenticated
-  using(verification_state='verified' and exists(select 1 from public.pathway_careers c where c.id=career_id and c.status='published' and c.verification_state='verified'));
+  using (
+    verification_state='verified'
+    and exists (select 1 from public.pathway_careers c where c.id=career_id and c.status='published' and c.verification_state='verified')
+    and exists (select 1 from public.pathways p where p.id=pathway_id and p.status='published' and p.verification_state='verified')
+  );
+-- authorization-test: public.pathway_career_links public readers see only verified links whose career and pathway are both verified/published; writes denied.
 
 create table if not exists public.pathway_school_offerings (
   id uuid primary key default gen_random_uuid(),
@@ -166,18 +193,25 @@ create table if not exists public.pathway_school_offerings (
   effective_from date,
   effective_to date,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique(school_id,pathway_id,combination_id,source_id)
+  updated_at timestamptz not null default now()
 );
 alter table public.pathway_school_offerings enable row level security;
 revoke all on public.pathway_school_offerings from public, anon, authenticated;
 grant select on public.pathway_school_offerings to anon, authenticated;
+grant select, insert, update, delete on public.pathway_school_offerings to service_role;
 create policy pathway_school_offerings_verified_public_read on public.pathway_school_offerings for select to anon, authenticated
-  using(verification_state='verified' and verified_at is not null and (effective_to is null or effective_to >= current_date));
+  using (
+    verification_state='verified' and verified_at is not null
+    and (effective_to is null or effective_to >= current_date)
+    and exists (select 1 from public.pathways p where p.id=pathway_id and p.status='published' and p.verification_state='verified')
+  );
+-- authorization-test: public.pathway_school_offerings public readers see only current verified offerings tied to canonical schools; unverified/stale/disputed offerings are hidden; writes denied.
 
--- Learner-owned save layer uses the existing authenticated profile identity so both
--- school-linked students and independent global_user learners can save. No school
--- membership is synthesized for an independent learner.
+create unique index if not exists pathway_school_offering_identity_idx
+  on public.pathway_school_offerings(school_id,pathway_id,coalesce(combination_id,'00000000-0000-0000-0000-000000000000'::uuid),source_id);
+
+-- Learner save state is profile-owned so both an existing school-linked student and
+-- an independent global_user can save without inventing school membership.
 create table if not exists public.pathway_profile_decisions (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
@@ -192,7 +226,10 @@ create table if not exists public.pathway_profile_decisions (
 alter table public.pathway_profile_decisions enable row level security;
 revoke all on public.pathway_profile_decisions from public, anon, authenticated;
 grant select on public.pathway_profile_decisions to authenticated;
-create policy pathway_profile_decisions_own_read on public.pathway_profile_decisions for select to authenticated using(profile_id=(select auth.uid()));
+grant select, insert, update, delete on public.pathway_profile_decisions to service_role;
+create policy pathway_profile_decisions_own_read on public.pathway_profile_decisions for select to authenticated
+  using(profile_id=(select auth.uid()));
+-- authorization-test: public.pathway_profile_decisions anon denied; authenticated users read only their own history; direct authenticated writes denied.
 
 create table if not exists public.pathway_profile_passports (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
@@ -207,72 +244,184 @@ create table if not exists public.pathway_profile_passports (
 alter table public.pathway_profile_passports enable row level security;
 revoke all on public.pathway_profile_passports from public, anon, authenticated;
 grant select on public.pathway_profile_passports to authenticated;
-create policy pathway_profile_passports_own_read on public.pathway_profile_passports for select to authenticated using(profile_id=(select auth.uid()));
+grant select, insert, update, delete on public.pathway_profile_passports to service_role;
+create policy pathway_profile_passports_own_read on public.pathway_profile_passports for select to authenticated
+  using(profile_id=(select auth.uid()));
+-- authorization-test: public.pathway_profile_passports anon denied; authenticated users read only their own passport; mutation is RPC/service-only.
 
-create or replace function public.pathways_save_my_quick_check(p_pathway_slug text,p_answers jsonb,p_scores jsonb,p_rule_version text,p_idempotency_key text)
-returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
-declare caller uuid:=auth.uid(); caller_role text; chosen public.pathways%rowtype; decision_id uuid;
+create index if not exists pathway_observations_source_idx on public.pathway_source_observations(source_id,entity_kind,resolution_state);
+create index if not exists pathway_tracks_pathway_idx on public.pathway_tracks(pathway_id,status,verification_state);
+create index if not exists pathway_combinations_pathway_idx on public.pathway_subject_combinations(pathway_id,track_id,status,verification_state);
+create index if not exists pathway_offerings_school_idx on public.pathway_school_offerings(school_id,verification_state);
+create index if not exists pathway_decisions_profile_idx on public.pathway_profile_decisions(profile_id,created_at desc);
+
+create or replace function public.pathways_save_my_quick_check(
+  p_pathway_slug text,
+  p_answers jsonb,
+  p_scores jsonb,
+  p_rule_version text,
+  p_idempotency_key text
+) returns jsonb
+language plpgsql
+security definer
+set search_path=public,pg_temp
+as $$
+declare
+  caller uuid:=auth.uid();
+  caller_role text;
+  chosen public.pathways%rowtype;
+  decision_id uuid;
 begin
   if caller is null then raise exception 'not_authenticated'; end if;
   select role into caller_role from public.profiles where id=caller;
   if caller_role not in ('student','global_user') then raise exception 'learner_role_required'; end if;
   if p_idempotency_key is null or length(p_idempotency_key)<8 or length(p_idempotency_key)>128 then raise exception 'invalid_idempotency_key'; end if;
-  if p_rule_version is null or length(p_rule_version)>80 then raise exception 'invalid_rule_version'; end if;
+  if p_rule_version is null or length(p_rule_version)<1 or length(p_rule_version)>80 then raise exception 'invalid_rule_version'; end if;
+  if jsonb_typeof(coalesce(p_answers,'{}'::jsonb))<>'object' or jsonb_typeof(coalesce(p_scores,'{}'::jsonb))<>'object' then raise exception 'invalid_payload_shape'; end if;
   if pg_column_size(coalesce(p_answers,'{}'::jsonb))>16384 or pg_column_size(coalesce(p_scores,'{}'::jsonb))>4096 then raise exception 'payload_too_large'; end if;
-  select * into chosen from public.pathways where slug=lower(trim(p_pathway_slug)) and status='published' and verification_state='verified';
+
+  select * into chosen from public.pathways
+  where slug=lower(trim(p_pathway_slug)) and status='published' and verification_state='verified';
   if not found then raise exception 'verified_pathway_not_found'; end if;
+
   insert into public.pathway_profile_decisions(profile_id,pathway_id,decision_type,evidence_snapshot,rule_version,idempotency_key)
-  values(caller,chosen.id,'quick_check_saved',jsonb_build_object('evidence_class','learner_supplied_quick_check','answers',coalesce(p_answers,'{}'::jsonb),'scores',coalesce(p_scores,'{}'::jsonb),'disclaimer','VibeSchool guidance; not an official placement decision.'),p_rule_version,p_idempotency_key)
-  on conflict(profile_id,idempotency_key) do update set idempotency_key=excluded.idempotency_key returning id into decision_id;
+  values(caller,chosen.id,'quick_check_saved',jsonb_build_object(
+    'evidence_class','learner_supplied_quick_check',
+    'answers',coalesce(p_answers,'{}'::jsonb),
+    'scores',coalesce(p_scores,'{}'::jsonb),
+    'disclaimer','VibeSchool guidance; not an official placement decision.'
+  ),p_rule_version,p_idempotency_key)
+  on conflict(profile_id,idempotency_key) do update set idempotency_key=excluded.idempotency_key
+  returning id into decision_id;
+
   insert into public.pathway_profile_passports(profile_id,pathway_id,source_decision_id,rule_version,evidence_snapshot,adopted_at,updated_at)
   values(caller,chosen.id,decision_id,p_rule_version,jsonb_build_object('scores',coalesce(p_scores,'{}'::jsonb)),now(),now())
-  on conflict(profile_id) do update set pathway_id=excluded.pathway_id,source_decision_id=excluded.source_decision_id,rule_version=excluded.rule_version,evidence_snapshot=excluded.evidence_snapshot,adopted_at=excluded.adopted_at,updated_at=now();
+  on conflict(profile_id) do update set
+    pathway_id=excluded.pathway_id,
+    source_decision_id=excluded.source_decision_id,
+    rule_version=excluded.rule_version,
+    evidence_snapshot=excluded.evidence_snapshot,
+    adopted_at=excluded.adopted_at,
+    updated_at=now();
+
   return jsonb_build_object('ok',true,'pathway_slug',chosen.slug,'pathway_name',chosen.name,'decision_id',decision_id);
-end $$;
-revoke all on function public.pathways_save_my_quick_check(text,jsonb,jsonb,text,text) from public, anon;
+end
+$$;
+revoke all on function public.pathways_save_my_quick_check(text,jsonb,jsonb,text,text) from public,anon;
 grant execute on function public.pathways_save_my_quick_check(text,jsonb,jsonb,text,text) to authenticated;
 
 create or replace function public.pathways_get_my_passport()
-returns jsonb language sql stable security invoker set search_path=public as $$
-select coalesce((select jsonb_build_object('pathway_slug',p.slug,'pathway_name',p.name,'summary',p.summary,'rule_version',pp.rule_version,'evidence_snapshot',pp.evidence_snapshot,'adopted_at',pp.adopted_at,'reviewed_at',pp.reviewed_at,'updated_at',pp.updated_at)
-  from public.pathway_profile_passports pp join public.pathways p on p.id=pp.pathway_id where pp.profile_id=auth.uid()),'null'::jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path=public
+as $$
+  select coalesce((
+    select jsonb_build_object(
+      'pathway_slug',p.slug,
+      'pathway_name',p.name,
+      'summary',p.summary,
+      'rule_version',pp.rule_version,
+      'evidence_snapshot',pp.evidence_snapshot,
+      'adopted_at',pp.adopted_at,
+      'reviewed_at',pp.reviewed_at,
+      'updated_at',pp.updated_at
+    )
+    from public.pathway_profile_passports pp
+    join public.pathways p on p.id=pp.pathway_id
+    where pp.profile_id=auth.uid()
+  ),'null'::jsonb)
 $$;
-revoke all on function public.pathways_get_my_passport() from public, anon;
+revoke all on function public.pathways_get_my_passport() from public,anon;
 grant execute on function public.pathways_get_my_passport() to authenticated;
 
--- Deliberate narrow public API. SECURITY DEFINER is required because canonical schools
--- are not directly anonymous-readable. No dynamic SQL; bounded inputs; safe columns only.
-create or replace function public.pathways_search_public_schools(p_query text default null,p_county text default null,p_pathway_slug text default null,p_combination_slug text default null,p_limit integer default 30)
-returns table(school_id uuid,school_name text,county text,sub_county text,school_category text,ownership_type text,gender_type text,accommodation_type text,cluster text,knec_code text,pathway_slug text,pathway_name text,combination_slug text,combination_name text,verified_at timestamptz)
-language sql stable security definer set search_path=public,pg_temp as $$
-select s.id,s.name::text,s.county::text,s.sub_county::text,s.school_category::text,s.ownership_type,s.gender_type,s.accommodation_type,s.cluster,s.knec_code::text,p.slug,p.name,c.slug,c.display_name,o.verified_at
-from public.schools s
-left join public.pathway_school_offerings o on o.school_id=s.id and o.verification_state='verified' and o.verified_at is not null and (o.effective_to is null or o.effective_to>=current_date)
-left join public.pathways p on p.id=o.pathway_id and p.status='published' and p.verification_state='verified'
-left join public.pathway_subject_combinations c on c.id=o.combination_id and c.status='published' and c.verification_state='verified'
-where s.deleted_at is null and s.status='active'
- and (p_query is null or trim(p_query)='' or lower(s.name) like '%'||lower(trim(p_query))||'%')
- and (p_county is null or trim(p_county)='' or lower(coalesce(s.county,''))=lower(trim(p_county)))
- and (p_pathway_slug is null or p.slug=lower(trim(p_pathway_slug)))
- and (p_combination_slug is null or c.slug=lower(trim(p_combination_slug)))
-order by s.name
-limit greatest(1,least(coalesce(p_limit,30),50))
+-- Deliberately narrow public projection. SECURITY DEFINER is required because
+-- public.schools is not directly anon-readable. No dynamic SQL or private columns.
+create or replace function public.pathways_search_public_schools(
+  p_query text default null,
+  p_county text default null,
+  p_pathway_slug text default null,
+  p_combination_slug text default null,
+  p_limit integer default 30
+) returns table(
+  school_id uuid,
+  school_name text,
+  county text,
+  sub_county text,
+  school_category text,
+  ownership_type text,
+  gender_type text,
+  accommodation_type text,
+  cluster text,
+  knec_code text,
+  pathway_slug text,
+  pathway_name text,
+  combination_slug text,
+  combination_name text,
+  verified_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path=public,pg_temp
+as $$
+  select
+    s.id,
+    s.name::text,
+    s.county::text,
+    s.sub_county::text,
+    s.school_category::text,
+    s.ownership_type,
+    s.gender_type,
+    s.accommodation_type,
+    s.cluster,
+    s.knec_code::text,
+    p.slug,
+    p.name,
+    c.slug,
+    c.display_name,
+    o.verified_at
+  from public.schools s
+  left join public.pathway_school_offerings o
+    on o.school_id=s.id
+   and o.verification_state='verified'
+   and o.verified_at is not null
+   and (o.effective_to is null or o.effective_to>=current_date)
+  left join public.pathways p
+    on p.id=o.pathway_id and p.status='published' and p.verification_state='verified'
+  left join public.pathway_subject_combinations c
+    on c.id=o.combination_id and c.status='published' and c.verification_state='verified'
+  where s.deleted_at is null
+    and s.status='active'
+    and (p_query is null or trim(p_query)='' or lower(s.name) like '%'||lower(trim(p_query))||'%')
+    and (p_county is null or trim(p_county)='' or lower(coalesce(s.county,''))=lower(trim(p_county)))
+    and (p_pathway_slug is null or p.slug=lower(trim(p_pathway_slug)))
+    and (p_combination_slug is null or c.slug=lower(trim(p_combination_slug)))
+  order by s.name
+  limit greatest(1,least(coalesce(p_limit,30),50))
 $$;
 revoke all on function public.pathways_search_public_schools(text,text,text,text,integer) from public;
-grant execute on function public.pathways_search_public_schools(text,text,text,text,integer) to anon, authenticated;
+grant execute on function public.pathways_search_public_schools(text,text,text,text,integer) to anon,authenticated;
 
-create index if not exists pathway_observations_source_idx on public.pathway_source_observations(source_id,entity_kind,resolution_state);
-create index if not exists pathway_offerings_school_idx on public.pathway_school_offerings(school_id,verification_state);
-create index if not exists pathway_decisions_profile_idx on public.pathway_profile_decisions(profile_id,created_at desc);
+-- Authoritative high-level seed only. Tracks, combinations, careers and school
+-- offerings remain absent until evidence is staged and promoted.
+insert into public.pathway_sources(
+  id,authority_name,source_name,source_url,source_reference,source_kind,
+  observed_at,status,is_public,metadata
+) values (
+  'bdb736d5-fc4f-4f42-aec8-7cda7f4b0091',
+  'Kenya Ministry of Education',
+  'Grade 10 School & Pathway Selection System',
+  'https://selection.education.go.ke/about',
+  'Grade 10 School & Pathway Selection System — About',
+  'official_portal',
+  '2026-08-16T00:00:00Z',
+  'active',true,
+  jsonb_build_object('jurisdiction','Kenya','scope','Grade 9 to Senior School transition')
+) on conflict(id) do nothing;
 
--- Authoritative high-level seed only. Detailed tracks/combinations/offerings remain
--- absent until ingested as observations and verified against source evidence.
-insert into public.pathway_sources(id,authority_name,source_name,source_url,source_reference,source_kind,observed_at,status,is_public,metadata)
-values('bdb736d5-fc4f-4f42-aec8-7cda7f4b0091','Kenya Ministry of Education','Grade 10 School & Pathway Selection System','https://selection.education.go.ke/about','Grade 10 School & Pathway Selection System — About','official_portal','2026-08-16T00:00:00Z','active',true,jsonb_build_object('jurisdiction','Kenya','scope','Grade 9 to Senior School transition'))
-on conflict(id) do nothing;
-
-insert into public.pathways(id,slug,name,summary,source_id,verification_state,status)
-values
+insert into public.pathways(id,slug,name,summary,source_id,verification_state,status) values
 ('34476b83-1aad-4f94-a958-c2996311079e','stem','STEM','Science, technology, engineering and mathematics.','bdb736d5-fc4f-4f42-aec8-7cda7f4b0091','verified','published'),
 ('d9a19fd7-4f15-45de-9131-f0de50c376a0','social-sciences','Social Sciences','Social sciences pathway.','bdb736d5-fc4f-4f42-aec8-7cda7f4b0091','verified','published'),
 ('74d3d667-e0a1-4b48-8904-31203208d139','arts-and-sports-science','Arts & Sports Science','Arts and sports pathway.','bdb736d5-fc4f-4f42-aec8-7cda7f4b0091','verified','published')
