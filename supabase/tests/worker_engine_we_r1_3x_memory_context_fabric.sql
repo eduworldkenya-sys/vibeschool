@@ -21,7 +21,7 @@ begin
   end loop;
 end $$;
 
--- Authoritative memory must be verified; hypotheses can never be authoritative.
+-- Service transport must never manufacture authoritative or verified institutional truth.
 do $$
 begin
   begin
@@ -30,17 +30,24 @@ begin
   exception when others then if sqlerrm='unverified authoritative memory accepted' then raise; end if; end;
 
   begin
+    perform public.hq_workforce_add_memory('X2-BAD-VERIFIED-'||gen_random_uuid()::text,'fact','{"value":1}','{"source":"test"}','test',null,0.8,'verified',false);
+    raise exception 'service transport created verified memory';
+  exception when others then if sqlerrm='service transport created verified memory' then raise; end if; end;
+
+  begin
     perform public.hq_workforce_add_memory('X2-BAD-HYP-'||gen_random_uuid()::text,'hypothesis','{"value":1}','{"source":"test"}','test',null,0.8,'verified',true);
     raise exception 'authoritative hypothesis accepted';
   exception when others then if sqlerrm='authoritative hypothesis accepted' then raise; end if; end;
 end $$;
 
--- Verified fact may be created and recalled with provenance.
+-- Corroborated non-authoritative evidence may be captured with provenance.
 do $$
-declare mid uuid; cnt integer;
+declare mid uuid;
 begin
-  mid:=public.hq_workforce_add_memory('X2-FACT-'||gen_random_uuid()::text,'fact','{"value":"known"}','{"source":"x2-suite"}','test','case-1',0.95,'verified',true,'platform_internal','{}',array['internal'],array['global']);
+  mid:=public.hq_workforce_add_memory('X2-FACT-'||gen_random_uuid()::text,'fact','{"value":"known"}','{"source":"x2-suite"}','test','case-1',0.95,'corroborated',false,'platform_internal','{}',array['internal'],array['global']);
   if mid is null then raise exception 'valid memory create failed'; end if;
+  if (select verification_state from public.hq_workforce_memory_records where id=mid)<>'corroborated' then raise exception 'corroborated memory state changed'; end if;
+  if (select authoritative from public.hq_workforce_memory_records where id=mid) then raise exception 'transport memory became authoritative'; end if;
   if (select count(*) from public.hq_workforce_memory_events where memory_id=mid and event_kind='created')<>1 then raise exception 'memory creation evidence missing'; end if;
 end $$;
 
@@ -69,15 +76,16 @@ begin
   exception when others then if sqlerrm='contradictory memory bound' then raise; end if; end;
 end $$;
 
--- Supersession must demote prior memory and preserve lineage.
+-- Supersession must demote prior memory and preserve lineage without granting authority.
 do $$
 declare old_id uuid; new_id uuid; key text:='X2-V-'||gen_random_uuid()::text;
 begin
-  old_id:=public.hq_workforce_add_memory(key,'fact','{"v":1}','{"source":"old"}','test',null,0.9,'verified',true);
-  new_id:=public.hq_workforce_add_memory(key,'fact','{"v":2}','{"source":"new"}','test',null,0.95,'verified',true,'platform_internal','{}',array['internal'],array['global'],clock_timestamp(),null,clock_timestamp(),old_id);
+  old_id:=public.hq_workforce_add_memory(key,'fact','{"v":1}','{"source":"old"}','test',null,0.9,'corroborated',false);
+  new_id:=public.hq_workforce_add_memory(key,'fact','{"v":2}','{"source":"new"}','test',null,0.95,'corroborated',false,'platform_internal','{}',array['internal'],array['global'],clock_timestamp(),null,clock_timestamp(),old_id);
   if (select verification_state from public.hq_workforce_memory_records where id=old_id)<>'superseded' then raise exception 'superseded memory not demoted'; end if;
   if (select authoritative from public.hq_workforce_memory_records where id=old_id) then raise exception 'superseded memory stayed authoritative'; end if;
   if (select supersedes_id from public.hq_workforce_memory_records where id=new_id)<>old_id then raise exception 'supersession lineage missing'; end if;
+  if (select authoritative from public.hq_workforce_memory_records where id=new_id) then raise exception 'replacement memory became authoritative'; end if;
 end $$;
 
 -- History is append-only.
