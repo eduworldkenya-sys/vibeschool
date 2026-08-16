@@ -9,6 +9,7 @@ on:
       - 'supabase/migrations/**'
       - 'scripts/validate-supabase-migration-contract.py'
       - 'scripts/test-supabase-migration-contract.py'
+      - 'scripts/test-worker-engine-authority-plane-contract.py'
       - '.github/workflows/supabase-migration-contract.yml'
   workflow_dispatch:
 
@@ -34,6 +35,9 @@ jobs:
 
       - name: Test migration guard
         run: python3 scripts/test-supabase-migration-contract.py
+
+      - name: Test Worker Engine authority plane
+        run: python3 scripts/test-worker-engine-authority-plane-contract.py
 
       - name: Validate new migrations
         if: github.event_name == 'pull_request'
