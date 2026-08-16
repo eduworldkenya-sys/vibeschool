@@ -12,6 +12,8 @@ create table if not exists public.auth_identity_reconciliation_runs (
 alter table public.auth_identity_reconciliation_runs enable row level security;
 revoke all on table public.auth_identity_reconciliation_runs from public, anon, authenticated;
 grant select, insert, update on table public.auth_identity_reconciliation_runs to service_role;
+-- Access: service-only public.auth_identity_reconciliation_runs
+-- Authorization-test: public.auth_identity_reconciliation_runs is unreachable to public, anon, and authenticated; only service_role receives table privileges and the table has RLS enabled with no client policies.
 
 create or replace function public.run_auth_identity_reconciliation_cycle()
 returns jsonb
