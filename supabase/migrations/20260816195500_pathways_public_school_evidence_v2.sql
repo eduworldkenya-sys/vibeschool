@@ -62,18 +62,20 @@ as $$
    and o.verification_state = 'verified'
    and o.verified_at is not null
    and (o.effective_to is null or o.effective_to >= current_date)
-  left join public.pathways p
-    on p.id = o.pathway_id
-   and p.status = 'published'
-   and p.verification_state = 'verified'
-  left join public.pathway_subject_combinations c
-    on c.id = o.combination_id
-   and c.status = 'published'
-   and c.verification_state = 'verified'
   left join public.pathway_sources src
     on src.id = o.source_id
    and src.is_public = true
    and src.status = 'active'
+  left join public.pathways p
+    on p.id = o.pathway_id
+   and src.id is not null
+   and p.status = 'published'
+   and p.verification_state = 'verified'
+  left join public.pathway_subject_combinations c
+    on c.id = o.combination_id
+   and p.id is not null
+   and c.status = 'published'
+   and c.verification_state = 'verified'
   where s.deleted_at is null
     and s.status = 'active'
     and (
