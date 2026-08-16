@@ -5,6 +5,7 @@ page = (ROOT / "app/teacher/onboarding/school/page.tsx").read_text()
 
 migrations = sorted((ROOT / "supabase/migrations").glob("20260813*_school_*.sql"))
 combined = "\n".join(p.read_text() for p in migrations)
+hardening = (ROOT / "supabase/migrations/20260816161000_school_directory_connect_authority_hardening.sql").read_text()
 
 required_page_markers = [
     'search_school_directory',
@@ -35,5 +36,24 @@ for marker in required_db_markers:
 assert 'SECURITY INVOKER' in combined.upper() or 'security invoker' in combined.lower(), 'school search must remain SECURITY INVOKER'
 assert 'grant execute on function public.search_school_directory' in combined.lower(), 'school search grant must be explicit'
 assert 'from public,anon' in combined.lower(), 'public/anon execute must be revoked from sensitive functions'
+
+# P0 trust boundary: end-user directory connection is a consumer of owner-reviewed
+# reconciliation, never an identity matcher or reviewer itself.
+assert "c.reviewed_by is not null" in hardening
+assert "c.reviewed_at is not null" in hardening
+assert "raise exception 'school_identity_review_required'" in hardening
+assert "unique normalized name + county + sub-county match" not in hardening.lower()
+connect_body = hardening.split('create or replace function public.connect_teacher_to_directory_school', 1)[1].split('create or replace function public.hq_review_school_identity_candidate', 1)[0]
+assert 'insert into public.school_identity_candidates' not in connect_body.lower(), 'teacher connection must not create reconciliation evidence'
+assert 'update public.school_identity_candidates' not in connect_body.lower(), 'teacher connection must not review/mutate identity evidence'
+assert 'reviewed_by' not in connect_body.lower().split('where c.directory_school_id', 1)[0], 'teacher connection must not assign reviewer identity'
+
+# Owner NEW path must satisfy canonical school schema without bypassing pending/dual approval.
+review_body = hardening.split('create or replace function public.hq_review_school_identity_candidate', 1)[1]
+assert "not coalesce(public.is_platform_owner(),false)" in review_body
+assert 'name,subdomain,timezone,country_code,status,created_by,requires_dual_approval' in review_body
+assert "'pending',v_uid,true" in review_body
+assert "v_subdomain := v_slug || '-' || replace(d.id::text,'-','')" in review_body
+assert "raise exception 'canonical_identifier_collision'" in review_body
 
 print('school discovery contract: PASS')
