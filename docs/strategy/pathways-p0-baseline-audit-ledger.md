@@ -134,18 +134,13 @@ The finder explicitly explains that an empty pathway-filtered result is **not pr
 
 ## Security and architecture certification evidence
 
-Repository migration contract requires every new public table to declare:
-- RLS;
-- explicit privileges;
-- policy/service-only classification;
-- authorization-test marker;
-- no blanket anon/authenticated `GRANT ALL`.
+Repository migration contract requires every new public table to declare RLS, explicit privileges, policy/service-only classification and authorization-test evidence with no blanket anon/authenticated `GRANT ALL`.
 
 The first migration-security workflow for the new domain passed. The initial Entry Architecture run exposed a regression-test assumption that direct signup hrefs were static; the implementation correctly preserves `next`, and the regression contract was strengthened to assert direct signup availability plus continuation's onboarding dominance. The subsequent Entry Architecture run passed.
 
 ## Current Certification Checkpoint
 
-The branch is now changing quickly across several coherent sub-gates. **Only the newest PR head counts.** Older green workflow results are useful diagnostics but are not promotion evidence once the head moves.
+**Only the newest PR head counts.** Older green workflow results are diagnostic evidence, not promotion evidence once the head moves.
 
 For every final candidate head, require:
 - Entry Architecture Contract — PASS;
