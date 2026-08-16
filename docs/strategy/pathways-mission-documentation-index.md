@@ -21,6 +21,18 @@ Anyone continuing the Pathways acquisition mission must read **all** of the foll
 
 **Reading one file is insufficient. A future chat must read this index and all nine documents before changing implementation or redefining the mission.**
 
+## Current Status Rule
+
+For strategy and constitutional intent, read all nine files. For **what is actually implemented right now**, the precedence is:
+
+1. current GitHub branch/PR evidence;
+2. live Supabase evidence;
+3. `pathways-p0-baseline-audit-ledger.md`;
+4. `pathways-acquisition-execution-handoff.md`;
+5. older planning text.
+
+Never use an older unchecked roadmap item to contradict newer repository evidence.
+
 ## Governing Product Model
 
 > **A free, trusted acquisition front door and education decision/navigation system that converts authoritative Kenyan education evidence into understandable, action-first guidance; lets users enter from a question, themselves, a career, subject, school, pathway or location; earns sign-in through continuity; builds a persistent learner journey; becomes a #1 discoverable independent Pathways authority; and later supports optional governed human/commercial services without allowing money to influence educational truth.**
