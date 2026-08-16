@@ -72,6 +72,26 @@ jobs:
           supabase db reset --local --no-seed --version 20260815090000
           PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
           PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 <<'SQL'
+          -- The legacy production table used JSONB desired_outcome and trace_id. The
+          -- canonical clean-X1 table has a text-only desired_outcome CHECK; remove only
+          -- that canonical constraint before changing the column type so the simulation
+          -- represents a valid historical schema rather than an impossible intermediate.
+          do $$
+          declare r record;
+          begin
+            for r in
+              select c.conname
+                from pg_constraint c
+                join pg_class t on t.oid=c.conrelid
+                join pg_namespace n on n.oid=t.relnamespace
+               where n.nspname='public'
+                 and t.relname='hq_workforce_objectives'
+                 and c.contype='c'
+                 and pg_get_constraintdef(c.oid) ilike '%desired_outcome%'
+            loop
+              execute format('alter table public.hq_workforce_objectives drop constraint %I',r.conname);
+            end loop;
+          end $$;
           alter table public.hq_workforce_objectives add column trace_id uuid;
           alter table public.hq_workforce_objectives
             alter column desired_outcome type jsonb
