@@ -48,7 +48,11 @@ begin
   end;
 end $$;
 
--- Invalid lifecycle skip must fail; achieved requires evidence.
+-- Invalid lifecycle skip must fail. R1.4 deliberately removed human approval from
+-- the generic transition RPC; the owner-review gateway owns approval now. Keep this
+-- inherited X1 test focused on lifecycle/achievement semantics without impersonating
+-- an owner identity. R1.4 suites separately prove the authenticated owner gateway and
+-- immutable selected-plan binding.
 do $$
 declare oid uuid;begin
   oid:=public.hq_workforce_create_objective('TEST-STATE-'||gen_random_uuid()::text,'test',null,'Prove lifecycle guards','platform_internal','{}','[]','[]','[]',50::smallint,0::smallint,null,'{"suite":"x1"}',null);
@@ -59,7 +63,22 @@ declare oid uuid;begin
   perform public.hq_workforce_transition_objective(oid,'planning','planning begins','system',null,'[]');
   perform public.hq_workforce_transition_objective(oid,'shadow_ready','shadow plan ready','system',null,'[]');
   perform public.hq_workforce_transition_objective(oid,'awaiting_review','human review required','system',null,'[]');
-  perform public.hq_workforce_transition_objective(oid,'approved','human approved hypothetical plan','human','test-owner','[]');
+
+  begin
+    perform public.hq_workforce_transition_objective(oid,'approved','generic transition must not impersonate owner','human','test-owner','["test:review"]');
+    raise exception 'generic owner approval accepted';
+  exception when others then
+    if sqlerrm='generic owner approval accepted' then raise; end if;
+    if sqlerrm<>'objective_review_requires_owner_identity' then raise; end if;
+  end;
+
+  -- White-box fixture only: put this transaction-local objective into the historical
+  -- X1 approved state so the inherited achievement-evidence guard remains exercised.
+  -- This is not an approval path and rolls back at the end of the suite.
+  update public.hq_workforce_objectives
+     set status='approved',updated_at=clock_timestamp()
+   where id=oid;
+
   begin
     perform public.hq_workforce_transition_objective(oid,'achieved','cannot claim success without evidence','system',null,'[]');
     raise exception 'evidence-free achievement accepted';
