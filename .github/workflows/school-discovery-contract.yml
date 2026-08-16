@@ -9,6 +9,10 @@ on:
       - 'scripts/prepare-authoritative-school-snapshot.py'
       - 'scripts/test-prepare-authoritative-school-snapshot.py'
       - 'scripts/test-authoritative-school-runtime-contract.py'
+      - 'scripts/test-school-coverage-control-plane.py'
+      - 'scripts/test-school-live-authoritative-adapter.py'
+      - 'scripts/test-school-search-helper-privilege-contract.py'
+      - 'scripts/test-school-alias-prerequisite-contract.py'
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
@@ -17,6 +21,10 @@ on:
       - 'scripts/prepare-authoritative-school-snapshot.py'
       - 'scripts/test-prepare-authoritative-school-snapshot.py'
       - 'scripts/test-authoritative-school-runtime-contract.py'
+      - 'scripts/test-school-coverage-control-plane.py'
+      - 'scripts/test-school-live-authoritative-adapter.py'
+      - 'scripts/test-school-search-helper-privilege-contract.py'
+      - 'scripts/test-school-alias-prerequisite-contract.py'
 
 jobs:
   contract:
@@ -29,3 +37,7 @@ jobs:
       - run: python scripts/test-school-discovery-contract.py
       - run: python scripts/test-prepare-authoritative-school-snapshot.py
       - run: python scripts/test-authoritative-school-runtime-contract.py
+      - run: python scripts/test-school-coverage-control-plane.py
+      - run: python scripts/test-school-live-authoritative-adapter.py
+      - run: python scripts/test-school-search-helper-privilege-contract.py
+      - run: python scripts/test-school-alias-prerequisite-contract.py
