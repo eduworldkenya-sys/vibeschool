@@ -39,7 +39,7 @@ export default function PathwaysContinuePage() {
     })()
   }, [])
 
-  const answers = stored?.answers ?? {}
+  const answers = useMemo(() => stored?.answers ?? {}, [stored])
   const scores = useMemo(() => calculateQuickCheck(answers), [answers])
   const outcome = useMemo(() => evaluateQuickCheck(scores), [scores])
 
