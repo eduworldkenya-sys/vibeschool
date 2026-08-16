@@ -64,7 +64,16 @@ for required in ["status: 'uncertain'", "reason: 'no_evidence'", "reason: 'tie'"
     if required not in quick:
         errors.append(f'lib/pathways/quickCheck.ts: missing explicit uncertainty contract: {required}')
 
-hardening = read('supabase/migrations/20260816152000_pathways_quick_check_contract_hardening.sql')
+# Do not pin this invariant to a migration timestamp: migration versions are
+# intentionally unique repository ledger identifiers and may be renumbered when
+# concurrent work lands. Find the Pathways hardening migration by semantic name.
+hardening_files = sorted((ROOT / 'supabase/migrations').glob('*_pathways_quick_check_contract_hardening.sql'))
+if len(hardening_files) != 1:
+    errors.append(f'Expected exactly one Pathways quick-check hardening migration, found {len(hardening_files)}')
+    hardening = ''
+else:
+    hardening = hardening_files[0].read_text(encoding='utf-8')
+
 for required in ['idempotency_key_reused_for_different_decision', 'quick_check_uncertain', 'selected_score-runner_score<2']:
     if required not in hardening:
         errors.append(f'Pathways hardening migration missing invariant: {required}')
