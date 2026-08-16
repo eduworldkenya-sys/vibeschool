@@ -21,6 +21,16 @@ function routeBelongsToRole(pathname: string, role: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Production has both apex and www attached. Pick one cookie/session origin.
+  // Preview/Vercel hosts and the separate HQ host are intentionally untouched.
+  if (request.nextUrl.hostname === 'www.vibeschool.co.ke') {
+    const canonical = request.nextUrl.clone()
+    canonical.hostname = 'vibeschool.co.ke'
+    canonical.protocol = 'https:'
+    canonical.port = ''
+    return NextResponse.redirect(canonical, 308)
+  }
+
   if (pathname.startsWith('/hq')) {
     const response = NextResponse.next()
     response.headers.set('Cache-Control', 'private, no-store')
@@ -58,13 +68,12 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  function redirectWithAuth(path: string, search?: Record<string, string>) {
-    const url = request.nextUrl.clone()
-    url.pathname = path
-    url.search = ''
+  function redirectWithAuth(target: string, search?: Record<string, string>) {
+    const url = new URL(target, request.nextUrl.origin)
     Object.entries(search ?? {}).forEach(([key, value]) => url.searchParams.set(key, value))
     const response = copyAuthState(NextResponse.redirect(url))
     response.headers.set('Cache-Control', 'private, no-store')
+    response.headers.set('Pragma', 'no-cache')
     return response
   }
 
@@ -88,12 +97,15 @@ export async function middleware(request: NextRequest) {
 
     const state = (onboarding as OnboardingState).state
     const destination = (onboarding as OnboardingState).destination
-    if (typeof state !== 'string' || typeof destination !== 'string' || !destination.startsWith('/')) {
+    if (typeof state !== 'string' || typeof destination !== 'string' || !destination.startsWith('/') || destination.startsWith('//')) {
       return redirectWithAuth('/auth/error', { reason: 'onboarding_invalid' })
     }
 
     if (state !== 'ready') {
-      if (pathname !== destination) return redirectWithAuth(destination)
+      const resolved = new URL(destination, request.nextUrl.origin)
+      const current = `${pathname}${request.nextUrl.search}`
+      const expected = `${resolved.pathname}${resolved.search}`
+      if (current !== expected) return redirectWithAuth(destination)
       return supabaseResponse
     }
 
