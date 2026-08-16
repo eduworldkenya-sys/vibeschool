@@ -14,10 +14,12 @@ import {
 type StoredCheck = { answers?: Record<string, number>; complete?: boolean }
 type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: unknown }
 
+type Role = 'student' | 'parent' | 'teacher' | 'admin' | 'global_user' | string
+
 export default function PathwaysContinuePage() {
   const [stored, setStored] = useState<StoredCheck | null>(null)
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
-  const [eligible, setEligible] = useState(false)
+  const [role, setRole] = useState<Role | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -30,12 +32,12 @@ export default function PathwaysContinuePage() {
     void (async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setSignedIn(false); return }
-      setSignedIn(true)
       const { data, error } = await supabase.rpc('get_my_auth_access_state')
-      if (error || !data || typeof data !== 'object' || Array.isArray(data)) return
+      if (error || !data || typeof data !== 'object' || Array.isArray(data)) { setSignedIn(true); return }
       const access = data as AccessState
-      const role = typeof access.role === 'string' ? access.role : null
-      setEligible((role === 'student' || role === 'global_user') && access.account_status !== 'restricted' && access.is_anonymized !== true)
+      if (access.account_status === 'restricted' || access.is_anonymized === true) { setSignedIn(true); return }
+      setRole(typeof access.role === 'string' ? access.role : null)
+      setSignedIn(true)
     })()
   }, [])
 
@@ -43,25 +45,27 @@ export default function PathwaysContinuePage() {
   const scores = useMemo(() => calculateQuickCheck(answers), [answers])
   const outcome = useMemo(() => evaluateQuickCheck(scores), [scores])
 
-  async function save() {
-    if (busy || outcome.status !== 'confident' || !eligible) return
+  async function save(kind: 'student' | 'parent') {
+    if (busy || outcome.status !== 'confident') return
     setBusy(true); setMessage('')
     try {
-      let idempotencyKey = localStorage.getItem('vs_pathways_save_id_v2')
+      const storageKey = kind === 'student' ? 'vs_pathways_save_id_v2' : 'vs_pathways_parent_draft_id_v1'
+      let idempotencyKey = localStorage.getItem(storageKey)
       if (!idempotencyKey) {
         idempotencyKey = crypto.randomUUID()
-        localStorage.setItem('vs_pathways_save_id_v2', idempotencyKey)
+        localStorage.setItem(storageKey, idempotencyKey)
       }
       const pathway = QUICK_CHECK_PATHWAYS[outcome.pathway]
-      const { error } = await supabase.rpc('pathways_save_my_quick_check', {
+      const rpc = kind === 'student' ? 'pathways_save_my_quick_check' : 'pathways_save_parent_draft'
+      const { error } = await supabase.rpc(rpc as never, {
         p_pathway_slug: pathway.canonicalSlug,
         p_answers: answers,
         p_scores: scores,
         p_rule_version: QUICK_CHECK_RULE_VERSION,
         p_idempotency_key: idempotencyKey,
-      })
-      if (error) { setMessage('We could not save your result. Your existing data was not changed.'); return }
-      setMessage('Saved. You can return to this pathway from your learner account.')
+      } as never)
+      if (error) { setMessage('We could not save this result safely. Your browser copy was not changed.'); return }
+      setMessage(kind === 'student' ? 'Saved to your learner Pathway Passport.' : 'Saved as an adult-owned family planning draft. It did not change any learner Passport.')
     } finally { setBusy(false) }
   }
 
@@ -69,18 +73,21 @@ export default function PathwaysContinuePage() {
     <header className="top"><Link href="/pathways/check">← Quick Check</Link><Link href="/" className="brand">VibeSchool</Link></header>
     <p className="eyebrow">SAVE YOUR DIRECTION</p>
     <h1>Keep your result and continue later.</h1>
-    <p className="lead">You only need an account if you want VibeSchool to remember your pathway result across devices and future visits.</p>
+    <p className="lead">You only need an account if you want VibeSchool to remember this result. The account does not create authority; VibeSchool resolves your existing role and learner identity first.</p>
 
     {!stored?.complete && <section className="card"><strong>No completed Quick Check found</strong><p>Complete the free check first, then come back here if you want to save the result.</p><Link className="primary" href="/pathways/check">Start Quick Check</Link></section>}
 
     {stored?.complete && outcome.status === 'uncertain' && <section className="card"><strong>There is nothing to save yet</strong><p>Your result is still uncertain. Explore more than one direction rather than saving one pathway as if it had clearly won.</p><div className="actions"><Link className="primary" href="/learn/careers">Explore careers</Link><Link href="/pathways">Explore pathways</Link></div></section>}
 
-    {stored?.complete && outcome.status === 'confident' && signedIn === false && <section className="card"><span className="label">YOUR RESULT IS SAFE ON THIS DEVICE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>{QUICK_CHECK_PATHWAYS[outcome.pathway].summary}</p><p>Sign in to an existing learner account or create one if you want to save this direction.</p><div className="actions"><Link className="primary" href="/login/global?redirect=/pathways/continue">Sign in and save</Link><Link href="/global/signup">Create learner account</Link></div><small>Signing in does not change your VibeSchool role. Pathways uses the learner identity already authorized by VibeSchool.</small></section>}
+    {stored?.complete && outcome.status === 'confident' && signedIn === false && <section className="card"><span className="label">YOUR RESULT IS SAFE ON THIS DEVICE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>{QUICK_CHECK_PATHWAYS[outcome.pathway].summary}</p><p>Existing learners can sign in and save to their canonical learner Passport. A completely new family should start with the adult parent account; Pathways does not manufacture a child identity.</p><div className="actions"><Link className="primary" href="/login/student?redirect=/pathways/continue">Existing learner sign in</Link><Link href="/signup/parent?redirect=/pathways/continue">Create parent account</Link><Link href="/login/parent?redirect=/pathways/continue">Parent sign in</Link></div><small>Signing in never changes your VibeSchool role. The hardened auth gateway resolves authority and onboarding before returning here.</small></section>}
 
-    {stored?.complete && outcome.status === 'confident' && signedIn === true && !eligible && <section className="card"><strong>This account cannot save a learner pathway</strong><p>This feature is for learner accounts. Your existing account and role will not be changed.</p><Link href="/pathways">Return to Pathways</Link></section>}
+    {stored?.complete && outcome.status === 'confident' && signedIn === true && role === 'student' && <section className="card"><span className="label">READY TO SAVE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>This save is bound to your canonical student record, not merely to a login profile.</p><button className="primary button" disabled={busy} onClick={() => void save('student')}>{busy ? 'Saving…' : 'Save to my Pathway Passport'}</button>{message && <p role="status" className="status">{message}</p>}{message.startsWith('Saved') && <Link href="/student/pathways">Open my Pathway Passport →</Link>}</section>}
 
-    {stored?.complete && outcome.status === 'confident' && eligible && <section className="card"><span className="label">READY TO SAVE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>{QUICK_CHECK_PATHWAYS[outcome.pathway].summary}</p><button className="primary button" disabled={busy} onClick={() => void save()}>{busy ? 'Saving…' : 'Save this result'}</button>{message && <p role="status" className="status">{message}</p>}</section>}
-    <p className="privacy">Pathways cannot change your account role or create school-offering claims. Those remain controlled by VibeSchool's existing identity and verified-school systems.</p>
+    {stored?.complete && outcome.status === 'confident' && signedIn === true && role === 'parent' && <section className="card"><span className="label">PARENT PLANNING DRAFT</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>You may preserve this as an adult-owned planning draft. It does not adopt a pathway for a child and does not create a learner account.</p><button className="primary button" disabled={busy} onClick={() => void save('parent')}>{busy ? 'Saving…' : 'Save family planning draft'}</button>{message && <p role="status" className="status">{message}</p>}{message.startsWith('Saved') && <Link href="/parent/pathways">Open family Pathways support →</Link>}</section>}
+
+    {stored?.complete && outcome.status === 'confident' && signedIn === true && role !== 'student' && role !== 'parent' && <section className="card"><strong>This account cannot own a learner pathway</strong><p>Teacher, admin, global and unresolved accounts cannot write a learner Passport. Your existing account and role are unchanged.</p><Link href="/pathways">Return to Pathways</Link></section>}
+
+    <p className="privacy">Pathways cannot change your account role or invent school-offering claims. Learner identity, parent relationships, teacher assignments and verified-school evidence remain controlled by VibeSchool's canonical systems.</p>
   </div><style jsx>{styles}</style></main>
 }
 
