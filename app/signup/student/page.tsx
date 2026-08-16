@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { continuationForRole, normalizeContinuation } from '@/lib/auth/continuation'
 
-export default function StudentSignupPage() {
+function StudentSignupContent() {
   const router=useRouter(), searchParams=useSearchParams()
   const requestedNext=normalizeContinuation(searchParams.get('next'))
   const [name,setName]=useState(''),[claimCode,setClaimCode]=useState(''),[pin,setPin]=useState('')
@@ -36,5 +36,7 @@ export default function StudentSignupPage() {
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy?'Creating account…':'Create learner account'}</button><p className="switch">Already registered? <a href={signin}>Sign in</a></p><p className="help">Need the parent link or learner code? Ask your teacher. VibeSchool never asks a learner to send a password or one-time code over WhatsApp.</p><p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
+
+export default function StudentSignupPage(){return <Suspense fallback={<main className="shell"/>}><StudentSignupContent/></Suspense>}
 
 const styles=`.shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:28px 16px;font-family:var(--font-jakarta),Arial,sans-serif}.card{width:100%;max-width:440px}.brand{display:block;color:#fff;text-decoration:none;font-family:var(--font-display),Arial,sans-serif;font-size:30px;font-weight:800}.brand span{color:#c8a84b}.eyebrow{color:#c8a84b;font:700 10px var(--font-mono),monospace;letter-spacing:.18em;margin:28px 0 8px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:36px;line-height:1.05;margin:0}.lead{color:rgba(255,255,255,.62);margin:12px 0 18px;line-height:1.65}.steps{display:grid;gap:7px;margin:0 0 22px}.steps div{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.62);font-size:12px}.steps strong{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:rgba(200,168,75,.12);border:1px solid rgba(200,168,75,.35);color:#c8a84b}.message{background:rgba(255,80,80,.1);color:#ffc7c7;padding:12px;border-radius:9px;margin-bottom:14px;font-size:13px;line-height:1.55}.message.guardian{background:rgba(200,168,75,.1);border:1px solid rgba(200,168,75,.25);color:#f4e6b0}.message p{margin:7px 0 0}label{display:block;font-size:12px;color:rgba(255,255,255,.65);margin:14px 0 6px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:13px 14px;font-size:16px}.primary{width:100%;border:0;border-radius:9px;padding:13px 14px;font-weight:800;margin-top:18px;background:#c8a84b;color:#05050f}.primary:disabled{opacity:.55}.switch,.legal,.help{font-size:12px;color:rgba(255,255,255,.45);text-align:center;margin-top:18px;line-height:1.55}.switch a,.legal a{color:#c8a84b}.help,.legal{font-size:11px}`
