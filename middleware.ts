@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student']
-const DASHBOARDS: Record<string, string> = {
+const PROTECTED_PREFIXES = ['/teacher', '/admin', '/parent', '/student', '/global']
+const ROLE_PREFIX: Record<string, string> = {
   teacher: '/teacher',
   parent: '/parent',
   student: '/student',
@@ -10,6 +10,13 @@ const DASHBOARDS: Record<string, string> = {
   global_user: '/global',
 }
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
+
+type OnboardingState = { state?: unknown; destination?: unknown }
+
+function routeBelongsToRole(pathname: string, role: string): boolean {
+  const prefix = ROLE_PREFIX[role]
+  return Boolean(prefix && (pathname === prefix || pathname.startsWith(`${prefix}/`)))
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -51,30 +58,51 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  function redirectWithAuth(url: URL) {
+  function redirectWithAuth(path: string, search?: Record<string, string>) {
+    const url = request.nextUrl.clone()
+    url.pathname = path
+    url.search = ''
+    Object.entries(search ?? {}).forEach(([key, value]) => url.searchParams.set(key, value))
     const response = copyAuthState(NextResponse.redirect(url))
     response.headers.set('Cache-Control', 'private, no-store')
     return response
   }
 
   const { data: { user } } = await supabase.auth.getUser()
-  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname.startsWith(prefix))
+  const isProtected = PROTECTED_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
 
   if (isProtected && !user) {
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/login'
-    loginUrl.searchParams.set('redirect', pathname)
-    return redirectWithAuth(loginUrl)
+    return redirectWithAuth('/login', { redirect: pathname })
   }
 
-  if ((pathname === '/' || pathname === '/login') && user) {
-    const { data: rpcRole } = await supabase.rpc('get_my_role')
-    const destination = rpcRole ? DASHBOARDS[rpcRole] : undefined
-    if (destination) {
-      const destinationUrl = request.nextUrl.clone()
-      destinationUrl.pathname = destination
-      destinationUrl.search = ''
-      return redirectWithAuth(destinationUrl)
+  if (user && (isProtected || pathname === '/' || pathname === '/login')) {
+    const [{ data: role, error: roleError }, { data: onboarding, error: onboardingError }] = await Promise.all([
+      supabase.rpc('get_my_role'),
+      supabase.rpc('get_my_onboarding_state'),
+    ])
+
+    if (roleError || onboardingError || typeof role !== 'string' || !ROLE_PREFIX[role] ||
+        !onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) {
+      return redirectWithAuth('/auth/error', { reason: 'authority_resolution_failed' })
+    }
+
+    const state = (onboarding as OnboardingState).state
+    const destination = (onboarding as OnboardingState).destination
+    if (typeof state !== 'string' || typeof destination !== 'string' || !destination.startsWith('/')) {
+      return redirectWithAuth('/auth/error', { reason: 'onboarding_invalid' })
+    }
+
+    if (state !== 'ready') {
+      if (pathname !== destination) return redirectWithAuth(destination)
+      return supabaseResponse
+    }
+
+    if (isProtected && !routeBelongsToRole(pathname, role)) {
+      return redirectWithAuth(destination)
+    }
+
+    if (pathname === '/' || pathname === '/login') {
+      return redirectWithAuth(destination)
     }
   }
 
