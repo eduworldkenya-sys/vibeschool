@@ -1,7 +1,8 @@
 # VibeSchool Pathways — P0 Baseline, Ownership & Implementation Ledger
 
 **Mission branch:** `agent/pathways-customer-acquisition-strategy`  
-**Status:** ACTIVE — P0 ownership audit substantially resolved; bounded implementation underway  
+**Draft PR:** #168  
+**Status:** ACTIVE — ownership audit substantially resolved; bounded P0/P1 foundation implementation underway  
 **Started:** 2026-08-16  
 **Safety:** no production Supabase migration/application from this branch until promotion is separately authorized and exact-head certification is green.
 
@@ -24,7 +25,7 @@ Build Pathways by extending canonical VibeSchool systems rather than duplicating
 | unmatched school directory | KEEP SEPARATE | discovery evidence must not be presented as canonical identity |
 | auth/onboarding | REUSE | `get_my_onboarding_state()` stays authoritative |
 | sitemap/robots | EXTEND | existing Next.js authorities own Pathways crawl/index policy |
-| `/learn/careers` hard-coded launcher | RETIRE AS AUTHORITY / KEEP TEMPORARILY | do not grow it into national career truth |
+| `/learn/careers` hard-coded launcher | RETIRE AS AUTHORITY / KEEP TEMPORARILY | do not grow it into Pathways graph |
 | Pathway/career/combination graph | NEW BOUNDED DOMAIN | absent from production baseline; additive graph created on branch |
 | anonymous Quick Check state | NEW CLIENT-LOCAL CONTRACT | remains on-device until user explicitly chooses Save |
 | Pathway Passport | NEW LEARNER PROJECTION | canonical learner-owned persistent direction/history |
@@ -113,16 +114,18 @@ Creates `pathways_search_public_schools(...)`:
 - active canonical `schools` only;
 - no unmatched directory candidates;
 - no membership/contact/private fields;
-- pathway/combination filtering requires `pathway_school_offerings.offering_status='verified'` and `verified_at` evidence.
+- pathway/combination filters only if `pathway_school_offerings` has verified evidence.
 
 UI/service:
 - `lib/pathways/public.ts`
 - `app/pathways/schools/page.tsx`
 - `app/pathways/schools/layout.tsx`
 
+The finder explicitly explains that an empty pathway-filtered result is **not proof that a school does not offer the pathway**; it means VibeSchool does not yet hold a matching verified offering record.
+
 ### Learner projection
 - `lib/pathways/student.ts`
-- `app/student/profile/page.tsx` now includes **My Pathway Passport**.
+- `app/student/profile/page.tsx` includes **My Pathway Passport**.
 
 ### SEO/index authority
 - `app/sitemap.ts` includes `/pathways`, `/pathways/check`, `/pathways/schools`.
@@ -153,7 +156,7 @@ The first exact-head migration-security workflow for the new domain passed. The 
 9. Build bounded Ask VibeSchool only after the canonical graph is sufficiently populated.
 10. Run representative mobile/accessibility/low-literacy E2E checks.
 
-## Current Blocker Outside Pathways Code
+## Current External Dependency
 
 National-scale school-offering coverage depends on authoritative Ministry/NEMIS/KNEC source acquisition and canonical-school reconciliation. The Pathways architecture is prepared to ingest verified offerings, but absence of a verified record must remain “not yet verified” rather than being converted into a false negative or invented fact.
 
