@@ -1,0 +1,34 @@
+'use client'
+
+import type { CSSProperties } from 'react'
+import Link from 'next/link'
+import { useEffect,useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
+type AssignedPathway={student_id:string;student_name:string;class_id:string;pathway_slug:string|null;pathway_name:string|null;evidence_type:string|null;adopted_at:string|null;reviewed_at:string|null}
+
+export default function TeacherPathwaysPage(){
+  const [rows,setRows]=useState<AssignedPathway[]>([])
+  const [loading,setLoading]=useState(true)
+  const [error,setError]=useState('')
+
+  useEffect(()=>{
+    let active=true
+    void (async()=>{
+      const {data,error:rpcError}=await supabase.rpc('teacher_get_assigned_pathway_passports')
+      if(!active)return
+      if(rpcError){setError('Assigned learner Pathways could not be loaded safely.');setLoading(false);return}
+      setRows((data??[]) as AssignedPathway[]);setLoading(false)
+    })()
+    return()=>{active=false}
+  },[])
+
+  return <main style={S.root}><div style={S.shell}>
+    <Link href="/teacher" style={S.back}>← Teacher home</Link><p style={S.kicker}>PATHWAYS GUIDANCE SUPPORT</p><h1 style={S.h1}>Guide assigned learners without becoming the decision owner.</h1><p style={S.lead}>This view shows only learners in classes assigned to your teacher profile. A saved pathway is learner-owned guidance evidence, not an official placement and not a permission for teachers to overwrite the learner Passport.</p>
+    {loading&&<section style={S.card}>Loading assigned learner Pathways…</section>}{error&&<section role="alert" style={S.error}>{error}</section>}
+    {!loading&&!error&&<section style={S.card}><h2 style={S.cardTitle}>Assigned learners</h2>{rows.length===0?<p style={S.body}>No assigned learners with Pathways context are available yet.</p>:rows.map(row=><div key={`${row.class_id}:${row.student_id}`} style={S.row}><div><strong style={S.name}>{row.student_name}</strong><p style={S.body}>{row.pathway_name?`${row.pathway_name} · ${row.evidence_type?.replaceAll('_',' ')??'saved direction'}`:'No learner-owned Pathway Passport yet.'}</p></div>{row.pathway_slug&&<Link href={`/pathways/${encodeURIComponent(row.pathway_slug)}`} style={S.smallLink}>Guidance context →</Link>}</div>)}</section>}
+    <section style={S.notice}><strong>Teacher boundary</strong><p style={S.body}>Use the learner’s saved direction as a conversation input alongside actual subject evidence and interests. This page intentionally has no control that changes the learner’s Pathway Passport.</p></section>
+  </div></main>
+}
+
+const S:Record<string,CSSProperties>={root:{minHeight:'100dvh',background:'#f5f6f8',color:'#111827',padding:'20px 14px 56px'},shell:{maxWidth:800,margin:'0 auto'},back:{display:'inline-block',marginBottom:25,color:'#4f46e5',fontWeight:800,fontSize:12,textDecoration:'none'},kicker:{fontSize:10,fontWeight:900,letterSpacing:'.15em',color:'#4f46e5'},h1:{fontSize:'clamp(30px,6vw,46px)',lineHeight:1.07,letterSpacing:'-.038em',margin:'7px 0 12px'},lead:{color:'#657080',fontSize:13,lineHeight:1.65},card:{background:'#fff',border:'1px solid #e4e6eb',borderRadius:18,padding:18,marginTop:12},cardTitle:{fontSize:17,margin:'0 0 8px'},row:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'12px 0',borderBottom:'1px solid #f0f1f4'},name:{fontSize:13},body:{color:'#687181',fontSize:11,lineHeight:1.55,margin:'4px 0 0'},smallLink:{color:'#4f46e5',fontSize:11,fontWeight:850,textDecoration:'none',whiteSpace:'nowrap'},notice:{background:'#eef2ff',border:'1px solid #c7d2fe',borderRadius:16,padding:16,marginTop:12,color:'#3730a3'},error:{background:'#fef2f2',border:'1px solid #fecaca',color:'#991b1b',borderRadius:14,padding:14}}
