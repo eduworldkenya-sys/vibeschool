@@ -5,6 +5,9 @@
 -- institution. Exact government identifiers may establish the link; name/location
 -- evidence is review-only. Canonical mutation remains owner-gated through the
 -- existing authoritative promotion gateway.
+--
+-- Access: owner-read/function-write public.school_authoritative_discovery_links
+-- Authorization-test: public.school_authoritative_discovery_links authenticated non-owner SELECT -> zero rows; direct client INSERT/UPDATE/DELETE -> denied; platform owner SELECT -> allowed; writes occur only through the owner-gated reconciliation function or service-role trigger path.
 
 create table if not exists public.school_authoritative_discovery_links (
   source_observation_id uuid not null references public.school_directory_source_observations(id) on delete restrict,
