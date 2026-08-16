@@ -52,13 +52,22 @@ with check (
   or coalesce(public.is_platform_owner(), false)
 );
 
--- Provisioning-failure evidence contains identity/security diagnostics and is not
--- a school-admin data surface. Keep it owner-only in interactive authenticated use.
-drop policy if exists signup_provisioning_failures_staff_select on public.signup_provisioning_failures;
-create policy signup_provisioning_failures_staff_select
-on public.signup_provisioning_failures
-for select
-to authenticated
-using (coalesce(public.is_platform_owner(), false));
+-- signup_provisioning_failures is a production legacy/observability object that is
+-- intentionally not required by the clean-rebuild schema. Harden it where it exists
+-- without making a fresh database depend on an out-of-band historical relation.
+do $do$
+begin
+  if to_regclass('public.signup_provisioning_failures') is not null then
+    execute 'drop policy if exists signup_provisioning_failures_staff_select on public.signup_provisioning_failures';
+    execute $policy$
+      create policy signup_provisioning_failures_staff_select
+      on public.signup_provisioning_failures
+      for select
+      to authenticated
+      using (coalesce(public.is_platform_owner(), false))
+    $policy$;
+  end if;
+end
+$do$;
 
 commit;
