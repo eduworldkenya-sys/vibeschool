@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 function safeNext(value: string | null): string | null {
@@ -11,13 +11,16 @@ function safeNext(value: string | null): string | null {
 
 export default function ParentSignupPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const next = safeNext(searchParams.get('next'))
+  const [next, setNext] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    setNext(safeNext(new URLSearchParams(window.location.search).get('next')))
+  }, [])
 
   async function submit() {
     if (busy) return
@@ -27,11 +30,7 @@ export default function ParentSignupPage() {
     if (password.length < 8) { setMessage('Use at least 8 characters for your password.'); return }
     setBusy(true)
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: { data: { role: 'parent', full_name: name.trim() } },
-      })
+      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password, options: { data: { role: 'parent', full_name: name.trim() } } })
       if (error || !data.user) {
         setMessage(error?.message?.includes('already') ? 'An account already exists with this email. Sign in instead.' : 'We could not create your account. Please try again.')
         return
@@ -43,9 +42,7 @@ export default function ParentSignupPage() {
         document.cookie = `vibe_role=parent; path=/; max-age=${data.session.expires_in ?? 3600}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       }
       router.replace(data.session && next ? next : '/parent/students')
-    } finally {
-      setBusy(false)
-    }
+    } finally { setBusy(false) }
   }
 
   async function google() {
@@ -69,8 +66,7 @@ export default function ParentSignupPage() {
     <label>Email</label><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} />
     <label>Password</label><input type="password" autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create parent account'}</button>
-    <div className="or"><span/>or<span/></div>
-    <button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button>
+    <div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button>
     <p className="switch">Already have an account? <a href={`/login/parent${nextQuery}`}>Sign in</a></p>
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
