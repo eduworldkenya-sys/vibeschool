@@ -8,6 +8,9 @@ export const revalidate = 3600
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: 'weekly', priority: 1 },
+    { url: `${SITE_URL}/pathways`, changeFrequency: 'weekly', priority: 0.95 },
+    { url: `${SITE_URL}/pathways/check`, changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${SITE_URL}/pathways/schools`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/about`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE_URL}/contact`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${SITE_URL}/global/read`, changeFrequency: 'daily', priority: 0.9 },
@@ -25,10 +28,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .limit(1000)
 
     const publicationRoutes: MetadataRoute.Sitemap = (publications ?? []).map((publication) => ({
-      url:
-        publication.format === 'vibetextbook'
-          ? `${SITE_URL}/read/textbook/${publication.id}`
-          : `${SITE_URL}/global/read/publication/${publication.id}`,
+      url: publication.format === 'vibetextbook'
+        ? `${SITE_URL}/read/textbook/${publication.id}`
+        : `${SITE_URL}/global/read/publication/${publication.id}`,
       lastModified: publication.updated_at ?? publication.published_at ?? undefined,
       changeFrequency: 'weekly',
       priority: publication.format === 'vibetextbook' ? 0.9 : 0.8,
