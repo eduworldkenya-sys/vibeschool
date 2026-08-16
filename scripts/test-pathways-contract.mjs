@@ -1,11 +1,7 @@
 import fs from 'node:fs'
 
 function read(path) { return fs.readFileSync(path, 'utf8') }
-function assert(ok, label) {
-  console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`)
-  if (!ok) failed = true
-}
-
+function assert(ok, label) { console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`); if (!ok) failed = true }
 let failed = false
 
 const landing = read('app/pathways/page.tsx')
@@ -16,9 +12,14 @@ const continuationLayout = read('app/pathways/continue/layout.tsx')
 const roleLogin = read('app/login/[role]/page.tsx')
 const studentSignup = read('app/signup/student/page.tsx')
 const profile = read('app/student/profile/page.tsx')
+const parentSupport = read('app/parent/pathways/page.tsx')
+const teacherSupport = read('app/teacher/pathways/page.tsx')
 const graphMigration = read('supabase/migrations/20260816070000_pathways_canonical_domain.sql')
 const passportMigration = read('supabase/migrations/20260816071000_pathways_passport_and_adoption.sql')
 const schoolMigration = read('supabase/migrations/20260816072000_pathways_public_school_read.sql')
+const supportMigration = read('supabase/migrations/20260816073000_pathways_support_projections.sql')
+const funnelMigration = read('supabase/migrations/20260816074000_pathways_privacy_safe_funnel.sql')
+const telemetry = read('lib/pathways/telemetry.ts')
 const sitemap = read('app/sitemap.ts')
 const robots = read('app/robots.ts')
 
@@ -38,10 +39,7 @@ assert(roleLogin.includes("get_my_onboarding_state") && roleLogin.includes("stat
 assert(studentSignup.includes("get_my_onboarding_state") && studentSignup.includes("state === 'ready' && next"), 'learner signup cannot use continuation to bypass onboarding')
 assert(profile.includes('My Pathway Passport') && profile.includes('getPathwayPassport'), 'Pathway Passport projects into canonical Student Profile')
 
-for (const table of [
-  'pathway_sources', 'pathways', 'pathway_tracks', 'pathway_subject_combinations',
-  'pathway_combination_subjects', 'pathway_careers', 'pathway_career_links', 'pathway_school_offerings',
-]) {
+for (const table of ['pathway_sources','pathways','pathway_tracks','pathway_subject_combinations','pathway_combination_subjects','pathway_careers','pathway_career_links','pathway_school_offerings']) {
   assert(graphMigration.includes(`create table public.${table}`), `canonical graph creates ${table}`)
   assert(graphMigration.includes(`alter table public.${table} enable row level security`), `${table} is RLS-enabled`)
 }
@@ -61,6 +59,19 @@ assert(schoolMigration.includes("s.status = 'active'"), 'public school finder re
 assert(!schoolMigration.includes('from public.schools_directory'), 'public Pathways school finder excludes unmatched directory candidates')
 assert(schoolMigration.includes("o.offering_status = 'verified'") && schoolMigration.includes('o.verified_at is not null'), 'pathway-filtered school results require verified offering evidence')
 assert(schoolMigration.includes('limit greatest(1, least(coalesce(p_limit,30),50))'), 'anonymous school search is bounded')
+
+assert(supportMigration.includes("caller_role = 'parent'") && supportMigration.includes('parent_student_links'), 'parent support requires existing parent-learner relationship')
+assert(supportMigration.includes("caller_role = 'teacher'") && supportMigration.includes('teacher_classes'), 'teacher support requires active class authority')
+assert(!supportMigration.includes("'answers'"), 'support projection does not expose raw Quick Check answers')
+assert(supportMigration.includes('revoke all on function public.pathways_get_supported_learner_passport(uuid) from public, anon'), 'anonymous users cannot invoke support projection')
+assert(parentSupport.includes('read-only support view') && teacherSupport.includes('read-only'), 'parent and teacher UX communicates non-owner support authority')
+
+assert(funnelMigration.includes('create table public.pathways_funnel_events'), 'Pathways has a dedicated privacy-safe funnel plane')
+assert(funnelMigration.includes('revoke all on table public.pathways_funnel_events from public, anon, authenticated'), 'raw funnel table is not directly client-readable/writable')
+for (const forbidden of ['answers','marks','date_of_birth','school_id','pathway_result']) assert(!funnelMigration.match(new RegExp(`\\b${forbidden}\\b`, 'i')), `funnel schema excludes ${forbidden}`)
+assert(funnelMigration.includes('unsupported_pathways_event'), 'funnel RPC enforces an event whitelist')
+assert(funnelMigration.includes('events_today >= 200'), 'anonymous event volume is bounded per session')
+assert(telemetry.includes('anonymous_session_id') || telemetry.includes('p_anonymous_session_id'), 'client telemetry uses a random anonymous session id rather than learner answers')
 
 assert(sitemap.includes('`${SITE_URL}/pathways`') && sitemap.includes('`${SITE_URL}/pathways/check`') && sitemap.includes('`${SITE_URL}/pathways/schools`'), 'Pathways public acquisition surfaces are in the canonical sitemap')
 assert(robots.includes("'/pathways'") && robots.includes("'/pathways/'") && robots.includes("'/student/'"), 'robots permits public Pathways while private learner routes stay excluded')
