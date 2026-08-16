@@ -6,11 +6,15 @@ on:
       - 'app/teacher/onboarding/school/**'
       - 'supabase/migrations/*school_*.sql'
       - 'scripts/test-school-discovery-contract.py'
+      - 'scripts/prepare-authoritative-school-snapshot.py'
+      - 'scripts/test-prepare-authoritative-school-snapshot.py'
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
       - 'supabase/migrations/*school_*.sql'
       - 'scripts/test-school-discovery-contract.py'
+      - 'scripts/prepare-authoritative-school-snapshot.py'
+      - 'scripts/test-prepare-authoritative-school-snapshot.py'
 
 jobs:
   contract:
@@ -21,3 +25,4 @@ jobs:
         with:
           python-version: '3.x'
       - run: python scripts/test-school-discovery-contract.py
+      - run: python scripts/test-prepare-authoritative-school-snapshot.py
