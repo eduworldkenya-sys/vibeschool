@@ -12,6 +12,7 @@ on:
       - 'app/sitemap.ts'
       - 'app/robots.ts'
       - 'scripts/test-pathways-contract.mjs'
+      - 'scripts/test-pathways-school-trust-contract.mjs'
       - '.github/workflows/pathways-contract.yml'
   workflow_dispatch:
 
@@ -30,3 +31,5 @@ jobs:
           node-version: 20
       - name: Run Pathways mission contract
         run: node scripts/test-pathways-contract.mjs
+      - name: Run School-to-Pathways trust contract
+        run: node scripts/test-pathways-school-trust-contract.mjs
