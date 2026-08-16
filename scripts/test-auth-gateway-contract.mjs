@@ -14,6 +14,7 @@ const callback = read('app/auth/callback/route.ts')
 const reset = read('app/reset-password/page.tsx')
 const routing = read('lib/auth-routing.ts')
 const sw = read('public/sw.js')
+const adminLogin = read('app/admin/login/page.tsx')
 const gatewayMigration = read('supabase/migrations/20260816144501_auth_gateway_authority_hardening.sql')
 const reconcileMigration = read('supabase/migrations/20260816154000_auth_onboarding_authority_reconcile.sql')
 const adminMigration = read('supabase/migrations/20260816152000_auth_admin_provisioning_approval.sql')
@@ -46,6 +47,12 @@ requireText('password reset', reset, 'supabase.auth.updateUser({ password })')
 requireText('password reset', reset, 'await supabase.auth.signOut()')
 requireText('password reset', reset, 'autoComplete="new-password"')
 forbidText('password reset', reset, 'ROLE_BACK')
+
+// Browser role state is never authority. Admin login must authenticate through
+// Supabase and resolve role from the database without minting parallel client state.
+requireText('admin login', adminLogin, "supabase.rpc('get_my_role')")
+forbidText('admin login', adminLogin, "localStorage.setItem('vs_role'")
+forbidText('admin login', adminLogin, 'document.cookie = `vibe_role=')
 
 requireText('gateway migration', gatewayMigration, 'create or replace function public.get_my_auth_access_state()')
 requireText('gateway migration', gatewayMigration, 'revoke all on function public.get_my_role() from anon;')
