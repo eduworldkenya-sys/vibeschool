@@ -20,26 +20,16 @@ def run_case(root: Path, csv_text: str, output_name: str = "out") -> subprocess.
     records.write_text(csv_text, encoding="utf-8")
     return subprocess.run(
         [
-            sys.executable,
-            str(SCRIPT),
-            "--artifact",
-            str(artifact),
-            "--records",
-            str(records),
-            "--source-name",
-            "kenya_ministry_grade10_selection",
-            "--source-url",
-            "https://selection.education.go.ke/files/senior-schools-in-kenya.pdf",
-            "--source-version",
-            "test-v1",
-            "--retrieved-at",
-            "2026-08-16T00:00:00+00:00",
-            "--output-dir",
-            str(output),
+            sys.executable, str(SCRIPT),
+            "--artifact", str(artifact),
+            "--records", str(records),
+            "--source-name", "kenya_ministry_grade10_selection",
+            "--source-url", "https://selection.education.go.ke/files/senior-schools-in-kenya.pdf",
+            "--source-version", "test-v2",
+            "--retrieved-at", "2026-08-16T00:00:00+00:00",
+            "--output-dir", str(output),
         ],
-        text=True,
-        capture_output=True,
-        check=False,
+        text=True, capture_output=True, check=False,
     )
 
 
@@ -51,9 +41,9 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         good_csv = (
-            "School Name,UIC,KNEC Code,County,Sub County,Type\n"
-            "Alliance High School,001234,11200001,Kiambu,Kikuyu,Public\n"
-            "Alliance Girls High School,001235,11200002,Kiambu,Kikuyu,Public\n"
+            "School Name,UIC,KNEC Code,County,Sub County,Type,Accommodation,Gender,Institution Type\n"
+            "Alliance High School,001234,11200001,Kiambu,Kikuyu,Public,Boarding,Boys,National\n"
+            "Alliance Girls High School,001235,11200002,Kiambu,Kikuyu,Public,Boarding,Girls,National\n"
         )
         first = run_case(root, good_csv, "first")
         assert first.returncode == 0, first.stderr or first.stdout
@@ -62,6 +52,14 @@ def main() -> int:
         assert records[0]["nemis_uic"] == "001234", "leading zero in UIC was lost"
         assert records[0]["knec_code"] == "11200001"
         assert records[0]["source_record_id"] == "nemis:001234"
+        assert records[0]["ownership_type"] == "Public", "generic Type=Public must map to ownership_type"
+        assert records[0]["accommodation_type"] == "Boarding"
+        assert records[0]["gender_type"] == "Boys"
+        assert records[0]["school_type"] == "National"
+        assert "type" not in records[0]
+        assert "accommodation" not in records[0]
+        assert "gender" not in records[0]
+        assert manifest["contract"].endswith(".v2")
         assert manifest["records"]["count"] == 2
         assert manifest["records"]["certifiable_count"] == 2
         assert manifest["safety"]["tier0_staging_safe"] is True
@@ -72,6 +70,29 @@ def main() -> int:
         assert manifest["artifact"]["sha256"] == manifest2["artifact"]["sha256"]
         assert manifest["package_sha256"] == manifest2["package_sha256"], "same input must package identically"
         assert load_json(root / "first" / "records.json") == load_json(root / "second" / "records.json")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        alias_csv = (
+            "name,knec_code,ownership,boarding_status,sex,school_type\n"
+            "Alias School,12345670,Private,Day,Mixed,Senior School\n"
+        )
+        result = run_case(root, alias_csv)
+        assert result.returncode == 0, result.stderr or result.stdout
+        record = load_json(root / "out" / "records.json")[0]
+        assert record["ownership_type"] == "Private"
+        assert record["accommodation_type"] == "Day"
+        assert record["gender_type"] == "Mixed"
+        assert record["school_type"] == "Senior School"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        ambiguous_csv = "name,knec_code,type\nAmbiguous School,12345671,Unknown Composite Category\n"
+        result = run_case(root, ambiguous_csv)
+        assert result.returncode == 0, result.stderr or result.stdout
+        record = load_json(root / "out" / "records.json")[0]
+        assert record["school_type"] == "Unknown Composite Category"
+        assert "ownership_type" not in record
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
