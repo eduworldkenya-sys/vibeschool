@@ -19,7 +19,11 @@ export default function ParentSignupPage() {
     if(password.length<8){setMessage('Use at least 8 characters for your password.');return}
     setBusy(true)
     try{
-      const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{role:'parent',full_name:name.trim()}}})
+      const {data,error}=await supabase.auth.signUp({
+        email:email.trim(),
+        password,
+        options:{data:{role: 'parent',full_name:name.trim()}},
+      })
       if(error||!data.user){setMessage(error?.message?.includes('already')?'An account already exists with this email. Sign in instead.':'We could not create your account. Please try again.');return}
       const {error:profileError}=await supabase.from('profiles').update({full_name:name.trim(),country_code:'KE'}).eq('id',data.user.id)
       if(profileError){setMessage('Your account was created, but profile setup needs another try.');return}
