@@ -1,7 +1,7 @@
 -- Worker Engine production-readiness hardening: independent verifier identity binding.
 -- NON-ACTIVATING. Creates no verifier assignments, capabilities, or authority.
 -- access: service-only public.hq_workforce_verifier_assignments (no direct service_role CRUD)
--- authorization-test: verifier assignments can be created only through owner-gated authenticated RPC; service_role cannot manufacture them.
+-- authorization-test: public.hq_workforce_verifier_assignments denies public/anon/authenticated/service_role direct mutation; creation is owner-gated RPC only.
 
 create table if not exists public.hq_workforce_verifier_assignments (
   id uuid primary key default gen_random_uuid(),
