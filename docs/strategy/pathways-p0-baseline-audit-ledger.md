@@ -3,36 +3,26 @@
 **Branch:** `agent/pathways-customer-acquisition-strategy` · **Draft PR:** #168  
 **Status:** ACTIVE. **No production migration and no merge until complete exact-head certification.**
 
-## Current-truth precedence
+Current-truth precedence: **PR head/workflows → live Supabase → this ledger → execution handoff → older plans.**
 
-**PR head/workflows → live Supabase → this ledger → execution handoff → older planning docs.**
+## Locked architecture
 
-## Locked ownership
+- Reuse `students.id`, canonical global subjects, canonical `schools`, canonical auth/onboarding and existing SEO infrastructure.
+- Extend Student Profile with Pathway Passport; do not create a second learner dashboard.
+- Keep formal assessment, mastery recommendations and VibeTwin as neighboring domains; none owns Pathways truth.
+- Keep unmatched school-directory records as discovery evidence, never canonical public truth.
+- Add only the missing provenance-backed Pathways graph, decision history, Passport and verified offering relationships.
 
-- Learner: reuse `students.id`; no duplicate Pathways learner identity.
-- Student Profile: extend with Pathway Passport.
-- Student Home: preserve current learning next-action authority; no second dashboard.
-- Personalized learning path: keep separate mastery/task domain.
-- VibeTwin: future explainer/coach only; not Pathways truth.
-- Formal assessment: separate from Quick Check.
-- Subjects: reuse canonical global subjects.
-- Schools: reuse canonical `schools`; unmatched directory remains discovery evidence.
-- Auth/onboarding: `get_my_onboarding_state()` dominates continuation.
-- SEO: extend existing sitemap/robots.
-- `/learn/careers`: temporary non-authoritative launcher.
-- New Pathways concepts only: provenance/graph/decision/Passport.
+## Implemented branch surfaces
 
-## Implemented on branch
-
-- `/pathways` free public decision home.
-- `/pathways/check` deterministic six-question `pathways-quick-v1`; device-local before consent; honest ambiguity.
-- `/pathways/continue` explicit Save bridge; noindex.
-- `/pathways/schools` canonical public school finder; verified-only offering filters.
-- safe `next` in role login + learner signup; canonical onboarding always dominates.
-- Pathways graph migration referencing canonical subjects/schools.
-- learner decision history + Pathway Passport migration and Student Profile projection.
+- `/pathways` — free public decision home.
+- `/pathways/check` — deterministic six-question `pathways-quick-v1`; device-local before consent; honest ambiguity.
+- `/pathways/continue` — explicit Save bridge; noindex.
+- `/pathways/schools` — canonical public school finder; verified-only offering filters.
+- safe `next` in role login + learner signup, subordinate to `get_my_onboarding_state()`.
+- Student Profile **My Pathway Passport**.
 - sitemap/robots/metadata integration.
-- Pathways Mission Contract CI.
+- Pathways Mission Contract workflow.
 
 ## Branch-only migrations
 
@@ -42,39 +32,33 @@
 
 ## Safeguarding
 
-Current learner signup remains teacher-code + guardian-first. Anyone can explore Pathways anonymously. Passport Save currently requires an established learner identity. Standalone family/independent-minor identity is a separate safeguarding gate; never weaken guardian requirements or create `pathway_users` for conversion.
-
-## Mission-specific contract
-
-`scripts/test-pathways-contract.mjs` + `.github/workflows/pathways-contract.yml` assert free-before-auth, no direct Quick Check DB dependency, local-before-consent, versioned deterministic scoring, uncertainty, learner-only adoption, canonical identity reuse, RLS, verified-only offerings, bounded public search and crawl/private-route boundaries.
+Current learner signup remains teacher-code + guardian-first. Anyone can explore Pathways anonymously. Current Passport Save requires an established learner identity. Standalone family/independent-minor identity is a separate safeguarding gate; never weaken guardian requirements or create `pathway_users` for conversion.
 
 ## Exact-head certification
 
-Only the final unchanged head counts. Require on one head:
-- Pathways Mission Contract PASS
-- Entry Architecture PASS
-- Migration Security PASS
-- TBL-011 PASS
-- TBL-012 PASS
-- TypeScript PASS
-- ESLint PASS
-- production build PASS
-- privacy/safeguarding/mobile acceptance PASS
+Final unchanged head must pass:
+- Pathways Mission Contract
+- Entry Architecture
+- Migration Security
+- TBL-011 clean rebuild
+- TBL-012 repository extraction
+- TypeScript
+- ESLint
+- production build
+- privacy/safeguarding/mobile acceptance
 
-## Remaining
+Earlier green runs are diagnostic only after the head changes.
 
-1. Fix/stabilize exact-head CI.
+## Remaining critical work
+
+1. Stabilize/fix exact-head CI.
 2. Parent/teacher read-only support projections.
 3. Privacy-safe funnel analytics.
-4. Authoritative track/combination/offering ingestion/reconciliation.
+4. Authoritative track/combination/offering ingestion and reconciliation.
 5. Canonical pathway/career pages.
 6. Bounded Ask VibeSchool after sufficient evidence coverage.
 7. Representative mobile/accessibility/low-literacy acceptance.
 
-## External dependency
-
 National verified offering coverage depends on authoritative Ministry/NEMIS/KNEC evidence and canonical-school reconciliation. Missing evidence means **not yet verified**, never an invented negative.
-
-## Promotion
 
 **Do not merge PR #168 or production-apply its migrations until the complete mission is exact-head certified and promotion is appropriate.**
