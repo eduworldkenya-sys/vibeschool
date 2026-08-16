@@ -42,7 +42,7 @@ begin
   from public.hq_workforce_engine_contract where singleton=true;
 
   new.policy_snapshot:=v_policies;
-  new.policy_snapshot_sha256:=encode(digest(convert_to(v_policies::text,'UTF8'),'sha256'),'hex');
+  new.policy_snapshot_sha256:=encode(extensions.digest(convert_to(v_policies::text,'UTF8'),'sha256'),'hex');
   new.engine_contract_snapshot:=coalesce(v_engine,'{}'::jsonb);
   return new;
 end $$;
