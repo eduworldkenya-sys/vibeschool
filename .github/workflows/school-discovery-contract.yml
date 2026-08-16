@@ -9,6 +9,7 @@ on:
       - 'scripts/prepare-authoritative-school-snapshot.py'
       - 'scripts/test-prepare-authoritative-school-snapshot.py'
       - 'scripts/test-authoritative-school-runtime-contract.py'
+      - 'scripts/test-school-coverage-control-plane.py'
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
@@ -17,6 +18,7 @@ on:
       - 'scripts/prepare-authoritative-school-snapshot.py'
       - 'scripts/test-prepare-authoritative-school-snapshot.py'
       - 'scripts/test-authoritative-school-runtime-contract.py'
+      - 'scripts/test-school-coverage-control-plane.py'
 
 jobs:
   contract:
@@ -29,3 +31,4 @@ jobs:
       - run: python scripts/test-school-discovery-contract.py
       - run: python scripts/test-prepare-authoritative-school-snapshot.py
       - run: python scripts/test-authoritative-school-runtime-contract.py
+      - run: python scripts/test-school-coverage-control-plane.py
