@@ -1,0 +1,29 @@
+name: Pathways Auth Boundary
+
+on:
+  pull_request:
+    paths:
+      - 'app/pathways/**'
+      - 'app/auth/**'
+      - 'app/login/**'
+      - 'app/signup/**'
+      - 'app/global/signup/**'
+      - 'lib/pathways/**'
+      - 'supabase/migrations/*pathways*.sql'
+      - 'scripts/test-pathways-auth-boundary.py'
+      - '.github/workflows/pathways-auth-boundary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authority-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Assert Pathways consumes auth but never owns it
+        run: python3 scripts/test-pathways-auth-boundary.py
