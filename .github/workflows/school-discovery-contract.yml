@@ -15,6 +15,7 @@ on:
       - 'scripts/test-school-search-helper-privilege-contract.py'
       - 'scripts/test-school-alias-prerequisite-contract.py'
       - 'scripts/test-school-coverage-runtime-contract.py'
+      - 'scripts/test-school-helper-table-rls-contract.py'
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
@@ -29,6 +30,7 @@ on:
       - 'scripts/test-school-search-helper-privilege-contract.py'
       - 'scripts/test-school-alias-prerequisite-contract.py'
       - 'scripts/test-school-coverage-runtime-contract.py'
+      - 'scripts/test-school-helper-table-rls-contract.py'
 
 jobs:
   contract:
@@ -47,3 +49,4 @@ jobs:
       - run: python scripts/test-school-search-helper-privilege-contract.py
       - run: python scripts/test-school-alias-prerequisite-contract.py
       - run: python scripts/test-school-coverage-runtime-contract.py
+      - run: python scripts/test-school-helper-table-rls-contract.py
