@@ -141,11 +141,27 @@ Repository migration contract requires every new public table to declare:
 - authorization-test marker;
 - no blanket anon/authenticated `GRANT ALL`.
 
-The first exact-head migration-security workflow for the new domain passed. The initial Entry Architecture run exposed a regression-test assumption that direct signup hrefs were static; the implementation correctly preserves `next`, and the regression contract was strengthened to assert both direct signup availability and continuation's onboarding dominance. The subsequent Entry Architecture run passed.
+The first migration-security workflow for the new domain passed. The initial Entry Architecture run exposed a regression-test assumption that direct signup hrefs were static; the implementation correctly preserves `next`, and the regression contract was strengthened to assert direct signup availability plus continuation's onboarding dominance. The subsequent Entry Architecture run passed.
+
+## Current Certification Checkpoint
+
+The branch is now changing quickly across several coherent sub-gates. **Only the newest PR head counts.** Older green workflow results are useful diagnostics but are not promotion evidence once the head moves.
+
+For every final candidate head, require:
+- Entry Architecture Contract — PASS;
+- Supabase Migration Security Contract — PASS;
+- TBL-011 Isolated Clean Rebuild — PASS;
+- TBL-012 repository extraction — PASS;
+- TypeScript — PASS;
+- ESLint — PASS;
+- Next.js production build — PASS;
+- Pathways-specific acceptance — PASS once added.
+
+Do not claim exact-head certification until all required gates refer to the same current head.
 
 ## Remaining P0/P1 critical work
 
-1. Complete exact-head clean rebuild, repository extraction, TypeScript, ESLint and production-build certification on the latest head.
+1. Complete exact-head certification on a stable candidate head and repair every real failure.
 2. Add dedicated Pathways contract tests for deterministic scoring, local-before-consent behavior, learner-only adoption and public-school filtering.
 3. Add parent/teacher read-only support projections using existing relationship/class authority; no adoption/mutation rights.
 4. Add Student Home Pathways projection only if it does not displace the current learning next-action authority.
