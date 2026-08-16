@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseServerClient } from '@/lib/supabaseServer'
 
 const SITE_URL = 'https://www.vibeschool.co.ke'
@@ -24,12 +25,21 @@ type Source = {
   effective_to:string|null
 }
 
+// These tables are introduced by this PR's migrations, so the generated
+// production Database type cannot contain them until the migration lands and
+// types are regenerated. Keep the untyped boundary local to these new reads;
+// the returned rows are narrowed immediately to the explicit domain types.
+function getPathwaysClient(): SupabaseClient<any> {
+  return getSupabaseServerClient() as SupabaseClient<any>
+}
+
 async function getPathway(slug:string):Promise<{pathway:Pathway;source:Source|null}|null>{
-  const supabase=getSupabaseServerClient()
+  const supabase=getPathwaysClient()
   const {data:pathway,error}=await supabase.from('pathways').select('id,slug,name,short_name,plain_language_summary,source_id,updated_at').eq('slug',slug).eq('status','published').maybeSingle()
   if(error||!pathway)return null
-  const {data:source}=await supabase.from('pathway_sources').select('source_name,source_url,source_reference,observed_at,effective_from,effective_to').eq('id',pathway.source_id).maybeSingle()
-  return {pathway:pathway as Pathway,source:(source as Source|null)??null}
+  const typedPathway=pathway as Pathway
+  const {data:source}=await supabase.from('pathway_sources').select('source_name,source_url,source_reference,observed_at,effective_from,effective_to').eq('id',typedPathway.source_id).maybeSingle()
+  return {pathway:typedPathway,source:(source as Source|null)??null}
 }
 
 export async function generateMetadata({params}:{params:{slug:string}}):Promise<Metadata>{
