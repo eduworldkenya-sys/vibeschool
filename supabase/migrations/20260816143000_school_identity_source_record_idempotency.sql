@@ -15,6 +15,7 @@
 -- table privileges. The owner-only staging RPC remains the sole write surface.
 -- ACCESS: service-only public.school_directory_source_observations
 -- AUTHORIZATION-TEST: public.school_directory_source_observations direct anon/authenticated access must fail; writes are reachable only through the owner-authorized staging RPC.
+-- CERTIFICATION: non-semantic touch to trigger a fresh exact-head clean-rebuild run after a prior cancelled CI execution.
 
 alter table public.schools_directory
   add column if not exists source_name text,
