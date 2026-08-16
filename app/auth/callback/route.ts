@@ -112,11 +112,12 @@ export async function GET(req: NextRequest) {
     return redirectWithCookies(req, '/auth/reset-password', pendingCookies)
   }
 
-  let { data: role, error: roleError } = await supabase.rpc('get_my_role')
+  const { data: resolvedRole, error: roleError } = await supabase.rpc('get_my_role')
   if (roleError) {
     logStage('profile_resolution_failed', flowId, roleError.code)
     return authError(req, 'profile_resolution_failed', pendingCookies)
   }
+  let role = resolvedRole
 
   // Only explicit signup may classify an unclassified account. Sign-in never
   // provisions authority. Existing database roles always win for both flows.
