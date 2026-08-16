@@ -16,6 +16,7 @@ const routing = read('lib/auth-routing.ts')
 const sw = read('public/sw.js')
 const authorityMigration = read('supabase/migrations/20260816144500_auth_gateway_authority_hardening.sql')
 const oauthMigration = read('supabase/migrations/20260816150500_auth_oauth_initial_role_claim.sql')
+const adminMigration = read('supabase/migrations/20260816152000_auth_admin_provisioning_approval.sql')
 
 requireText('middleware', middleware, "supabase.auth.getUser()")
 requireText('middleware', middleware, "supabase.rpc('get_my_auth_access_state')")
@@ -50,6 +51,13 @@ requireText('oauth role migration', oauthMigration, "v_provider is distinct from
 requireText('oauth role migration', oauthMigration, 'and p.role is null')
 requireText('oauth role migration', oauthMigration, 'revoke all on function public.claim_initial_oauth_role(text) from anon;')
 requireText('oauth role migration', oauthMigration, 'grant execute on function public.claim_initial_oauth_role(text) to authenticated;')
+
+requireText('admin provisioning migration', adminMigration, "status = 'pending'")
+requireText('admin provisioning migration', adminMigration, 'insert into public.school_admin_join_requests')
+requireText('admin provisioning migration', adminMigration, 'coalesce(public.is_platform_owner(), false)')
+requireText('admin provisioning migration', adminMigration, "role = 'admin'")
+requireText('admin provisioning migration', adminMigration, 'revoke all on function public.create_school_with_admin')
+forbidText('admin provisioning migration', adminMigration, "values(p_user_id,trim(p_full_name),v_school_id,'admin')")
 
 requireText('service worker', sw, "const STATIC_ROUTES = ['/offline.html']")
 requireText('service worker', sw, "if (url.pathname.startsWith('/auth/')) return")
