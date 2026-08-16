@@ -15,9 +15,7 @@ const ROLE_CONFIG = {
 type RoleKey = keyof typeof ROLE_CONFIG
 
 const SIGNUP_LINKS: Partial<Record<RoleKey, string>> = {
-  teacher: '/signup/teacher',
-  parent: '/signup/parent',
-  student: '/signup/student',
+  teacher: '/signup/teacher', parent: '/signup/parent', student: '/signup/student',
 }
 
 export default function RoleLoginPage() {
@@ -31,62 +29,28 @@ export default function RoleLoginPage() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
-  if (!config) {
-    return <main className="shell"><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><a href="/">Go home</a><style jsx>{styles}</style></section></main>
-  }
+  if (!config) return <main className="shell"><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><a href="/">Go home</a><style jsx>{styles}</style></section></main>
 
   async function submit() {
     if (busy) return
     setMessage('')
-    if (!identifier.trim() || !password) {
-      setMessage(config.email ? 'Enter your email and password.' : 'Enter your admission number and PIN.')
-      return
-    }
+    if (!identifier.trim() || !password) { setMessage(config.email ? 'Enter your email and password.' : 'Enter your admission number and PIN.'); return }
     setBusy(true)
     try {
       const email = config.email ? identifier.trim().toLowerCase() : `${identifier.trim().toLowerCase().replace(/\s/g, '')}@vs.internal`
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error || !data.user) {
-        setMessage(config.email ? 'Incorrect email or password.' : 'Wrong admission number or PIN. Ask your teacher if you need help.')
-        return
-      }
-
+      if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Wrong admission number or PIN. Ask your teacher if you need help.'); return }
       const { data: accessState } = await supabase.rpc('get_my_auth_access_state')
-      const actualRole = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && typeof accessState.role === 'string'
-        ? accessState.role
-        : null
-      const status = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && typeof accessState.account_status === 'string'
-        ? accessState.account_status
-        : null
+      const actualRole = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && typeof accessState.role === 'string' ? accessState.role : null
+      const status = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && typeof accessState.account_status === 'string' ? accessState.account_status : null
       const anonymized = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && accessState.is_anonymized === true
       const expectedRole = role === 'global' ? 'global_user' : role
-
-      if (status === 'restricted' || anonymized) {
-        await supabase.auth.signOut()
-        setMessage('This account is currently unavailable. Contact VibeSchool support if you believe this is a mistake.')
-        return
-      }
-      if (!actualRole || !AUTH_DASHBOARDS[actualRole]) {
-        await supabase.auth.signOut()
-        setMessage('Your account setup is incomplete. Create an account or contact support.')
-        return
-      }
-      // The selected page is only sign-in intent. Database authority decides the real workspace.
-      // Preserve the explicit comparison because it is also part of the entry architecture contract.
-      if (actualRole !== expectedRole) {
-        const destination = AUTH_DASHBOARDS[actualRole]
-        router.replace(destination)
-        return
-      }
-
+      if (status === 'restricted' || anonymized) { await supabase.auth.signOut(); setMessage('This account is currently unavailable. Contact VibeSchool support if you believe this is a mistake.'); return }
+      if (!actualRole || !AUTH_DASHBOARDS[actualRole]) { await supabase.auth.signOut(); setMessage('Your account setup is incomplete. Create an account or contact support.'); return }
+      if (actualRole !== expectedRole) { router.replace(AUTH_DASHBOARDS[actualRole]); return }
       const requested = safeInternalPath(searchParams.get('redirect'))
-      const destination = requested && roleCanVisit(actualRole, requested)
-        ? requested
-        : AUTH_DASHBOARDS[actualRole]
-      router.replace(destination)
-    } finally {
-      setBusy(false)
-    }
+      router.replace(requested && roleCanVisit(actualRole, requested) ? requested : AUTH_DASHBOARDS[actualRole])
+    } finally { setBusy(false) }
   }
 
   async function google() {
@@ -95,43 +59,36 @@ export default function RoleLoginPage() {
     const requestedRole = role === 'global' ? 'global_user' : role
     const next = safeInternalPath(searchParams.get('redirect'))
     const callback = new URL('/auth/callback', window.location.origin)
-    callback.searchParams.set('intent', 'signin')
-    callback.searchParams.set('role', requestedRole)
+    callback.searchParams.set('intent', 'signin'); callback.searchParams.set('role', requestedRole)
     if (next) callback.searchParams.set('next', next)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: callback.toString() },
-    })
-    if (error) {
-      setMessage('Google sign in could not start. Check your connection and try again.')
-      setBusy(false)
-    }
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: callback.toString() } })
+    if (error) { setMessage('Google sign in could not start. Check your connection and try again.'); setBusy(false) }
   }
 
   const signupLink = SIGNUP_LINKS[role]
-
   return <main className="shell">
-    <nav className="topnav" aria-label="Public navigation">
-      <a href="/">Home</a><a href="/global">Explore</a><a href="/about">About</a><a href="/contact">Contact</a>
-    </nav>
+    <div className="ambient" aria-hidden="true" />
+    <header className="header">
+      <a className="header-brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo-dark.svg" alt="VibeSchool" /></a>
+      <nav className="topnav" aria-label="Public navigation"><a href="/">Home</a><a href="/global">Explore</a><a href="/about">About</a><a href="/contact">Contact</a></nav>
+    </header>
     <section className="card" aria-labelledby="login-title">
-      <a className="brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo.png" alt="VibeSchool" /></a>
-      <p className="eyebrow">{config.label.toUpperCase()} SIGN IN</p>
-      <h1 id="login-title">Welcome back.</h1>
-      <p className="lead">Sign in once. VibeSchool will open the workspace your account is authorized to use.</p>
+      <p className="eyebrow">{config.label.toUpperCase()} ACCESS</p>
+      <h1 id="login-title">Welcome back</h1>
+      <p className="lead">Sign in to continue. Your account automatically opens the workspace you are authorized to use.</p>
       {message && <div className="message" role="alert" aria-live="polite">{message}</div>}
-      <label htmlFor="identifier">{config.email ? 'Email' : 'Admission number'}</label>
-      <input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} />
-      <div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/reset-password">Forgot password?</a>}</div>
-      <input id="password" type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} />
+      <div className="field"><label htmlFor="identifier">{config.email ? 'Email address' : 'Admission number'}</label><input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" placeholder={config.email ? 'you@example.com' : 'e.g. ADM001'} value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} /></div>
+      <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/reset-password">Forgot password?</a>}</div><input id="password" type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'Enter your PIN'} value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /></div>
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : 'Sign in'}</button>
-      {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
+      {config.email && <><div className="or"><span/>or continue with<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}><b className="g">G</b> Google</button></>}
       {signupLink ? <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p> : <p className="switch">New to VibeSchool? <a href="/">Create an account</a></p>}
-      <p className="direct-signups"><a href="/signup/student">Learner sign up</a> · <a href="/signup/parent">Parent sign up</a></p>
-      <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a> · <a href="/contact">Contact</a></p>
-    </section><style jsx>{styles}</style></main>
+      <p className="direct-signups"><a href="/signup/student">Learner sign up</a><span>·</span><a href="/signup/parent">Parent sign up</a></p>
+    </section>
+    <footer className="legal"><a href="/legal/terms">Terms</a><span>·</span><a href="/legal/privacy">Privacy</a><span>·</span><a href="/contact">Contact</a></footer>
+    <style jsx>{styles}</style>
+  </main>
 }
 
 const styles = `
-.shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:92px 16px 32px;font-family:var(--font-jakarta),Arial,sans-serif;position:relative}.topnav{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;width:min(92vw,620px)}.topnav a{color:rgba(255,255,255,.78);text-decoration:none;font-size:13px;font-weight:700}.topnav a:hover,.topnav a:focus-visible{color:#c8a84b}.card{width:100%;max-width:460px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:30px;box-sizing:border-box}.brand{display:flex;justify-content:center;text-decoration:none;margin-bottom:20px}.brand img{display:block;width:min(220px,70%);height:auto;max-height:72px;object-fit:contain}.eyebrow{color:#d8ba62;font:800 11px var(--font-mono),monospace;letter-spacing:.15em;margin:0 0 10px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:34px;line-height:1.1;margin:0}.lead{color:rgba(255,255,255,.74);font-size:14px;line-height:1.55;margin:10px 0 24px}.message{background:rgba(255,80,80,.1);border:1px solid rgba(255,130,130,.22);color:#ffd2d2;padding:12px;border-radius:9px;margin-bottom:14px;font-size:13px;line-height:1.45}label{display:block;font-size:13px;color:rgba(255,255,255,.84);margin:15px 0 7px;font-weight:700}.password-label{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.password-label label{margin-bottom:7px}.password-label a{color:#d8ba62;font-size:12px;margin-bottom:7px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.26);border-radius:10px;padding:14px;font-size:16px;outline:none}input:focus-visible{border-color:#d8ba62;box-shadow:0 0 0 3px rgba(216,186,98,.16)}.primary,.secondary{width:100%;border-radius:10px;padding:14px;font-weight:800;margin-top:18px;cursor:pointer;font-size:14px}.primary{border:1px solid #d8ba62;background:#d8ba62;color:#05050f}.secondary{margin-top:0;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff}.primary:focus-visible,.secondary:focus-visible,a:focus-visible{outline:3px solid rgba(216,186,98,.45);outline-offset:2px}.primary:disabled,.secondary:disabled,input:disabled{opacity:.55;cursor:not-allowed}.or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.58);font-size:12px;margin:17px 0}.or span{height:1px;background:rgba(255,255,255,.18);flex:1}.switch,.direct-signups,.legal{font-size:13px;color:rgba(255,255,255,.66);text-align:center;margin-top:19px}.switch a,.direct-signups a,.legal a{color:#d8ba62}.direct-signups{font-size:12px}.legal{font-size:12px;margin-top:24px}@media(max-width:520px){.shell{padding-top:104px;align-items:start}.topnav{top:20px;gap:15px}.card{padding:24px 18px;border-radius:14px}h1{font-size:30px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.shell{min-height:100dvh;background:#070711;color:#f8fafc;display:flex;flex-direction:column;align-items:center;padding:0 20px 30px;font-family:var(--font-jakarta),Arial,sans-serif;position:relative;overflow:hidden}.ambient{position:fixed;inset:0;pointer-events:none;background:radial-gradient(900px 440px at 50% -120px,rgba(124,58,237,.18),transparent 72%),radial-gradient(620px 360px at 80% 85%,rgba(200,168,75,.06),transparent 72%)}.header{width:min(1120px,100%);height:84px;display:flex;align-items:center;justify-content:space-between;gap:28px;position:relative;z-index:1}.header-brand{display:block;width:174px;height:45px}.header-brand img{width:100%;height:100%;object-fit:contain;object-position:left center}.topnav{display:flex;gap:28px;align-items:center}.topnav a,.legal a{color:#aeb4c2;text-decoration:none;font-size:13px;font-weight:650;transition:color .15s ease}.topnav a:hover,.topnav a:focus-visible,.legal a:hover,.legal a:focus-visible{color:#fff}.card{width:100%;max-width:440px;margin:auto 0;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.028));border:1px solid rgba(255,255,255,.11);box-shadow:0 28px 80px rgba(0,0,0,.34);border-radius:22px;padding:34px;box-sizing:border-box;position:relative;z-index:1}.eyebrow{color:#c8a84b;font:800 11px var(--font-mono),monospace;letter-spacing:.16em;margin:0 0 12px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:36px;letter-spacing:-.035em;line-height:1.05;margin:0}.lead{color:#aeb4c2;font-size:14px;line-height:1.6;margin:12px 0 26px}.message{background:rgba(248,113,113,.09);border:1px solid rgba(248,113,113,.25);color:#fecaca;padding:12px 13px;border-radius:10px;margin-bottom:18px;font-size:13px;line-height:1.45}.field{margin-top:17px}.field>label,.password-label label{display:block;font-size:13px;color:#e5e7eb;margin:0 0 8px;font-weight:700}.password-label{display:flex;align-items:center;justify-content:space-between;gap:12px}.password-label a{color:#d7bc6a;font-size:12px;margin-bottom:8px;text-decoration:none}.password-label a:hover{text-decoration:underline}input{width:100%;box-sizing:border-box;background:#0d0d1c;color:#fff;border:1px solid #303044;border-radius:11px;padding:14px 15px;font-size:16px;outline:none;transition:border-color .15s,box-shadow .15s}input::placeholder{color:#6f7481}input:focus-visible{border-color:#9b7cf6;box-shadow:0 0 0 3px rgba(124,58,237,.18)}.primary,.secondary{width:100%;border-radius:11px;padding:14px;font-weight:800;cursor:pointer;font-size:14px;transition:transform .12s,filter .12s,border-color .12s}.primary{border:1px solid #c8a84b;background:#c8a84b;color:#111018;margin-top:24px}.primary:hover{filter:brightness(1.08)}.secondary{border:1px solid #343448;background:#11111f;color:#f8fafc;display:flex;align-items:center;justify-content:center;gap:10px}.secondary:hover{border-color:#56566e}.g{font-size:16px}.primary:active,.secondary:active{transform:translateY(1px)}.primary:focus-visible,.secondary:focus-visible,a:focus-visible{outline:3px solid rgba(155,124,246,.5);outline-offset:3px}.primary:disabled,.secondary:disabled,input:disabled{opacity:.55;cursor:not-allowed}.or{display:flex;align-items:center;gap:11px;color:#777d8b;font-size:11px;margin:19px 0}.or span{height:1px;background:#29293a;flex:1}.switch{font-size:13px;color:#9da3b1;text-align:center;margin:22px 0 0}.switch a,.direct-signups a{color:#d7bc6a;font-weight:700}.direct-signups{font-size:12px;text-align:center;margin:14px 0 0;display:flex;justify-content:center;gap:9px;color:#555b68}.legal{position:relative;z-index:1;display:flex;gap:10px;justify-content:center;margin-top:26px;color:#555b68}.legal a{font-size:12px}.legal span{color:#414653}@media(max-width:640px){.shell{padding:0 16px 24px;overflow:auto}.header{height:auto;padding:18px 0 22px;flex-direction:column;gap:14px}.header-brand{width:166px;height:42px}.topnav{gap:19px}.topnav a{font-size:12px}.card{padding:28px 21px;border-radius:18px;margin:0}h1{font-size:32px}.legal{margin-top:22px}}@media(max-width:360px){.topnav{gap:13px}.card{padding:24px 17px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 `
