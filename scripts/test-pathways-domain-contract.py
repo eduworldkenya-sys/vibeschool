@@ -62,6 +62,7 @@ for fragment in [
     'source_reference text',
     "src.is_public = true",
     "src.status = 'active'",
+    'and src.id is not null',
     'revoke all on function public.pathways_search_public_schools_v2',
 ]:
     if fragment not in evidence_api:
