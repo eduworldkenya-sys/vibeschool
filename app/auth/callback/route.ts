@@ -2,20 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const DASHBOARDS: Record<string, string> = {
-  teacher: '/teacher',
-  parent: '/parent',
-  student: '/student',
-  admin: '/admin',
-  global_user: '/global',
-}
-
-const FIRST_ACCESS: Record<string, string> = {
-  teacher: '/teacher/onboarding/school',
-  parent: '/parent/students',
-  student: '/student',
-  admin: '/admin',
-  global_user: '/global',
+const SELF_SERVICE_ROLES = new Set(['teacher', 'parent', 'global_user'])
+const ROLE_PREFIXES: Record<string, string[]> = {
+  teacher: ['/teacher'],
+  parent: ['/parent'],
+  student: ['/student'],
+  admin: ['/admin'],
+  global_user: ['/global'],
 }
 
 type PendingCookie = {
@@ -24,92 +17,126 @@ type PendingCookie = {
   options?: Parameters<NextResponse['cookies']['set']>[2]
 }
 
-function safeRequestedRole(value: string | null): string | null {
-  return value && Object.prototype.hasOwnProperty.call(DASHBOARDS, value)
-    ? value
-    : null
+type OnboardingState = {
+  state?: unknown
+  destination?: unknown
+}
+
+function requestedRole(value: string | null): string | null {
+  return value && SELF_SERVICE_ROLES.has(value) ? value : null
 }
 
 function safeNext(value: string | null): string | null {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null
-  return value
+  try {
+    const decoded = decodeURIComponent(value)
+    if (!decoded.startsWith('/') || decoded.startsWith('//') || decoded.includes('\\')) return null
+    return decoded
+  } catch {
+    return null
+  }
+}
+
+function nextMatchesRole(next: string, role: string): boolean {
+  return (ROLE_PREFIXES[role] ?? []).some(prefix => next === prefix || next.startsWith(`${prefix}/`))
 }
 
 function redirectWithCookies(req: NextRequest, target: string, pendingCookies: PendingCookie[]) {
-  const response = NextResponse.redirect(new URL(target, req.url))
-  pendingCookies.forEach(({ name, value, options }) => {
-    response.cookies.set(name, value, options)
-  })
+  const response = NextResponse.redirect(new URL(target, req.nextUrl.origin))
+  pendingCookies.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
   response.headers.set('Cache-Control', 'private, no-store')
+  response.headers.set('Pragma', 'no-cache')
   return response
 }
 
+function authError(req: NextRequest, reason: string, pendingCookies: PendingCookie[]) {
+  return redirectWithCookies(req, `/auth/error?reason=${encodeURIComponent(reason)}`, pendingCookies)
+}
+
+function logStage(stage: string, flowId: string, detail?: string) {
+  console.info(JSON.stringify({ scope: 'auth_journey', stage, flow_id: flowId, detail }))
+}
+
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
+  const { searchParams } = req.nextUrl
   const code = searchParams.get('code')
   const next = safeNext(searchParams.get('next'))
-  const requestedRole = safeRequestedRole(searchParams.get('role'))
+  const roleIntent = requestedRole(searchParams.get('role'))
+  const flowId = searchParams.get('flow')?.slice(0, 80) || crypto.randomUUID()
   const pendingCookies: PendingCookie[] = []
 
-  if (code) {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet: PendingCookie[]) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              pendingCookies.push({ name, value, options })
-              cookieStore.set(name, value, options)
-            })
-          },
+  logStage('provider_returned', flowId, code ? 'code_present' : 'code_missing')
+  if (!code) return authError(req, 'missing_code', pendingCookies)
+
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet: PendingCookie[]) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            pendingCookies.push({ name, value, options })
+            cookieStore.set(name, value, options)
+          })
         },
-      }
-    )
-
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (!error) {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: onboarding, error: onboardingErr } = await supabase.rpc('get_my_onboarding_state')
-
-        if (!onboardingErr && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
-          const state = typeof onboarding.state === 'string' ? onboarding.state : null
-          const destination = typeof onboarding.destination === 'string' ? onboarding.destination : null
-
-          // The database resolver is authoritative for onboarding state.
-          // Do not let a requested dashboard bypass required onboarding.
-          if (destination && state && state !== 'unknown_role') {
-            const ready = state === 'ready'
-            const target = ready && next ? next : destination
-            return redirectWithCookies(req, target, pendingCookies)
-          }
-        }
-
-        // Safe fallback for an older/missing resolver state.
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (profile?.role && DASHBOARDS[profile.role]) {
-          return redirectWithCookies(req, DASHBOARDS[profile.role], pendingCookies)
-        }
-
-        // New Google user with no profile yet — use only a validated role
-        // selected before OAuth. Never default an invalid/missing role to teacher.
-        const destination = requestedRole ? FIRST_ACCESS[requestedRole] : '/'
-        return redirectWithCookies(req, destination, pendingCookies)
-      }
+      },
     }
+  )
 
-    const reason = error ? 'exchange_failed' : 'user_missing'
-    return redirectWithCookies(req, `/login?oauth_error=${reason}`, pendingCookies)
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+  if (exchangeError) {
+    logStage('code_exchange_failed', flowId, exchangeError.name)
+    return authError(req, 'exchange_failed', pendingCookies)
+  }
+  logStage('code_exchanged', flowId)
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    logStage('session_failed', flowId, userError?.name)
+    return authError(req, 'session_failed', pendingCookies)
+  }
+  logStage('session_established', flowId)
+
+  let { data: role, error: roleError } = await supabase.rpc('get_my_role')
+  if (roleError) {
+    logStage('profile_resolution_failed', flowId, roleError.code)
+    return authError(req, 'profile_resolution_failed', pendingCookies)
   }
 
-  return redirectWithCookies(req, '/login?oauth_error=missing_code', pendingCookies)
+  // A role supplied by the OAuth URL is only a first-access hint. Once the
+  // profile has a role, claim_my_initial_role returns it unchanged.
+  if (!role && roleIntent) {
+    const claim = await supabase.rpc('claim_my_initial_role', { p_role: roleIntent })
+    if (claim.error) {
+      logStage('role_claim_failed', flowId, claim.error.code)
+      return authError(req, 'role_claim_failed', pendingCookies)
+    }
+    role = claim.data
+  }
+
+  if (typeof role !== 'string' || !ROLE_PREFIXES[role]) {
+    logStage('role_unresolved', flowId)
+    return authError(req, roleIntent ? 'role_unresolved' : 'role_required', pendingCookies)
+  }
+  logStage('profile_resolved', flowId, role)
+
+  const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+  if (onboardingError || !onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) {
+    logStage('onboarding_resolution_failed', flowId, onboardingError?.code)
+    return authError(req, 'onboarding_resolution_failed', pendingCookies)
+  }
+
+  const state = (onboarding as OnboardingState).state
+  const destination = (onboarding as OnboardingState).destination
+  if (typeof state !== 'string' || typeof destination !== 'string' || !destination.startsWith('/')) {
+    logStage('onboarding_invalid', flowId)
+    return authError(req, 'onboarding_invalid', pendingCookies)
+  }
+  logStage('onboarding_resolved', flowId, state)
+
+  const target = state === 'ready' && next && nextMatchesRole(next, role) ? next : destination
+  logStage('destination_reached', flowId, target)
+  return redirectWithCookies(req, target, pendingCookies)
 }
