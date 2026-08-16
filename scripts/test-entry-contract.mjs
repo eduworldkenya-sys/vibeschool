@@ -10,6 +10,13 @@ const studentSignup = fs.readFileSync('app/signup/student/page.tsx', 'utf8')
 const studentAccountRoute = fs.readFileSync('app/api/create-student-account/route.ts', 'utf8')
 const roleLogin = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
 
+const staticRoleSignupLinks = roleLogin.includes('href="/signup/student"') && roleLogin.includes('href="/signup/parent"')
+const safeContinuationRoleSignupLinks =
+  roleLogin.includes('/signup/student${nextQuery}') &&
+  roleLogin.includes('/signup/parent${nextQuery}') &&
+  roleLogin.includes("value === '/pathways/continue'") &&
+  roleLogin.includes("value.startsWith('/pathways/continue?')")
+
 const checks = [
   [middleware.includes("loginUrl.pathname = '/login'"), 'protected routes redirect signed-out users to /login'],
   [middleware.includes("welcomeUrl.pathname = '/welcome'"), 'signed-out root renders the public welcome experience'],
@@ -19,12 +26,12 @@ const checks = [
   [teacherSignup.includes("role: 'teacher'"), 'teacher signup creates the teacher role'],
   [teacherSignup.includes("router.replace('/teacher/onboarding/school')"), 'teacher signup continues into school onboarding'],
   [parentSignup.includes("role: 'parent'"), 'parent signup creates the parent role'],
-  [parentSignup.includes("router.replace('/parent/students')"), 'parent signup continues into learner connection'],
+  [parentSignup.includes("router.replace('/parent/students')"), 'parent signup preserves learner-connection default when no safe continuation exists'],
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
   [studentAccountRoute.includes(".from('student_claim_codes')") && studentAccountRoute.includes(".eq('role', 'student')"), 'learner claim is validated server-side'],
   [studentAccountRoute.includes('parent_linked_at') && studentAccountRoute.includes(".from('parent_student_links')") && studentAccountRoute.includes("code: 'guardian_required'"), 'learner credentials require an established parent or guardian connection'],
   [studentSignup.includes('guardianRequired') && studentSignup.includes('Parent or guardian connects'), 'learner UX explains the guardian-first activation path'],
-  [roleLogin.includes("href=\"/signup/student\"") && roleLogin.includes("href=\"/signup/parent\""), 'focused sign in connects new learners and parents to direct signup'],
+  [staticRoleSignupLinks || safeContinuationRoleSignupLinks, 'focused sign in connects new learners and parents to direct signup without creating an open redirect'],
   [roleLogin.includes("actualRole !== expectedRole"), 'focused sign in verifies the authenticated role before routing'],
   [roleLogin.includes("student: { label: 'Learner', destination: '/student', email: false }"), 'learner sign in uses admission number and PIN'],
   [roleLogin.includes("parent: { label: 'Parent', destination: '/parent', email: true }"), 'parent sign in uses the focused parent path'],
