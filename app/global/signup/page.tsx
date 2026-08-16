@@ -16,6 +16,8 @@ const COUNTRIES = [
   { code: 'JP', name: 'Japan' },
 ]
 
+type OnboardingState = { destination?: unknown }
+
 const MIN_DOB = new Date()
 MIN_DOB.setFullYear(MIN_DOB.getFullYear() - 120)
 const MAX_DOB = new Date()
@@ -78,7 +80,11 @@ export default function GlobalSignUp() {
       }
 
       const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
-      const destination = onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding) && typeof onboarding.destination === 'string' ? onboarding.destination : null
+      let destination: string | null = null
+      if (onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
+        const rawDestination = (onboarding as OnboardingState).destination
+        destination = typeof rawDestination === 'string' ? rawDestination : null
+      }
       if (onboardingError || !destination) {
         router.replace('/auth/error?reason=onboarding_resolution_failed')
         return
