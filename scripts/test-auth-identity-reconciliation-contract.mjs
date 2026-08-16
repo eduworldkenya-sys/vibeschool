@@ -2,7 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const migrationPath = 'supabase/migrations/20260816193000_auth_identity_reconciliation.sql'
+const policyMigrationPath = 'supabase/migrations/20260816193100_auth_admin_policy_authority_hardening.sql'
 const migration = fs.readFileSync(migrationPath, 'utf8')
+const policyMigration = fs.readFileSync(policyMigrationPath, 'utf8')
 const failures = []
 const requireText = (name, source, token) => {
   if (!source.includes(token)) failures.push(`${name}: missing ${token}`)
@@ -30,6 +32,17 @@ requireText('migration contract', migration, '-- access: service-only public.aut
 requireText('migration contract', migration, '-- authorization-test: public.auth_identity_reconciliation_actions')
 forbidText('reconciliation migration', migration, "raw_user_meta_data->>'role'")
 forbidText('reconciliation migration', migration, "raw_app_meta_data->>'role'")
+
+requireText('admin policy hardening', policyMigration, 'drop policy if exists curriculum_insert')
+requireText('admin policy hardening', policyMigration, 'drop policy if exists curriculum_update')
+requireText('admin policy hardening', policyMigration, 'drop policy if exists exam_bank_insert')
+requireText('admin policy hardening', policyMigration, 'drop policy if exists exam_bank_update')
+requireText('admin policy hardening', policyMigration, 'drop policy if exists signup_provisioning_failures_staff_select')
+requireText('admin policy hardening', policyMigration, "public.get_my_role() = 'admin'")
+requireText('admin policy hardening', policyMigration, "public.get_my_role() in ('teacher','admin')")
+requireText('admin policy hardening', policyMigration, 'using (coalesce(public.is_platform_owner(), false))')
+forbidText('admin policy hardening', policyMigration, "p.role = 'admin'")
+forbidText('admin policy hardening', policyMigration, "profiles.role = 'admin'")
 
 // Historical scripts that directly rewrite authentication/session code must not
 // reappear at repository root. Unrelated legacy maintenance scripts are outside
