@@ -12,6 +12,7 @@ on:
       - 'public/sw.js'
       - 'public/offline.html'
       - 'scripts/test-pwa-browser.mjs'
+      - '.github/actions/production-build-contract/**'
       - '.github/workflows/pwa-browser-gate.yml'
   push:
     branches: [main]
@@ -24,6 +25,7 @@ on:
       - 'public/sw.js'
       - 'public/offline.html'
       - 'scripts/test-pwa-browser.mjs'
+      - '.github/actions/production-build-contract/**'
       - '.github/workflows/pwa-browser-gate.yml'
 
 permissions:
@@ -35,27 +37,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
-    env:
-      NODE_OPTIONS: --max-old-space-size=6144
-      NEXT_TELEMETRY_DISABLED: "1"
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Canonical production build
+        uses: ./.github/actions/production-build-contract
         with:
-          node-version: 20
-          cache: npm
-
-      - name: Install exact app dependencies
-        run: npm ci
-
-      - name: Build production app before browser tooling
-        run: npm run build
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Install isolated Playwright runtime
         run: |
@@ -68,6 +58,10 @@ jobs:
           cp "$GITHUB_WORKSPACE/scripts/test-pwa-browser.mjs" ./test-pwa-browser.mjs
 
       - name: Start production server
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
           npm run start -- -p 3000 > /tmp/vibeschool-pwa-server.log 2>&1 &
           echo $! > /tmp/vibeschool-pwa-server.pid
