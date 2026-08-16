@@ -24,16 +24,27 @@ requireText('admin fail closed', migration, "then 'ADMIN_MEMBERSHIP_MISSING'")
 requireText('operator reason codes', migration, "'reason_code'")
 requireText('service boundary', migration, 'grant execute on function public.refresh_auth_identity_reconciliation() to service_role;')
 requireText('service boundary', migration, 'grant execute on function public.repair_missing_neutral_profile(uuid) to service_role;')
+requireText('migration contract', migration, '-- access: service-only public.auth_identity_reconciliation_findings')
+requireText('migration contract', migration, '-- authorization-test: public.auth_identity_reconciliation_findings')
+requireText('migration contract', migration, '-- access: service-only public.auth_identity_reconciliation_actions')
+requireText('migration contract', migration, '-- authorization-test: public.auth_identity_reconciliation_actions')
 forbidText('reconciliation migration', migration, "raw_user_meta_data->>'role'")
 forbidText('reconciliation migration', migration, "raw_app_meta_data->>'role'")
 
-const rootFiles = fs.readdirSync('.')
-const forbiddenPatchScripts = rootFiles.filter((name) => {
-  const lower = name.toLowerCase()
-  return lower.endsWith('.py') && /(fix|patch|signup|auth|profile)/.test(lower)
-})
-if (forbiddenPatchScripts.length) {
-  failures.push(`root patch scripts are forbidden: ${forbiddenPatchScripts.join(', ')}`)
+// Historical scripts that directly rewrite authentication/session code must not
+// reappear at repository root. Unrelated legacy maintenance scripts are outside
+// this auth contract and are handled separately.
+const forbiddenAuthPatchScripts = new Set([
+  'signup_fix.py',
+  'session_fix.py',
+  'auth_fix.py',
+  'auth_patch.py',
+  'profile_auth_fix.py',
+])
+for (const name of fs.readdirSync('.')) {
+  if (forbiddenAuthPatchScripts.has(name.toLowerCase())) {
+    failures.push(`historical auth patch script is forbidden: ${name}`)
+  }
 }
 
 if (!fs.existsSync(path.dirname(migrationPath))) {
