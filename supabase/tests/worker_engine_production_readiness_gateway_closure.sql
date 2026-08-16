@@ -31,9 +31,28 @@ begin
   end if;
 end $$;
 
--- A global/anomaly stop also dominates Factory even if runtime and Factory switches are true.
+-- The activation guard itself must reject attempts to turn runtime on while an
+-- anomaly/global stop is asserted. Do not bypass that safety invariant merely
+-- to manufacture an impossible state for the Factory heartbeat test.
+do $$
+begin
+  begin
+    update public.hq_workforce_engine_contract
+    set runtime_anomaly_paused=true,
+        runtime_execution_enabled=true,
+        factory_enabled=true
+    where singleton=true;
+    raise exception 'runtime_activation_guard_failed_to_block_anomaly_stop';
+  exception
+    when others then
+      if sqlerrm <> 'runtime_activation_blocked_by_anomaly_stop' then raise; end if;
+  end;
+end $$;
+
+-- With runtime already OFF, asserting the stop must continue to dominate the
+-- Factory path and return the canonical master-runtime denial.
 update public.hq_workforce_engine_contract
-set runtime_execution_enabled=true,
+set runtime_execution_enabled=false,
     runtime_anomaly_paused=true,
     factory_enabled=true
 where singleton=true;
