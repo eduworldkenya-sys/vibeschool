@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
-const OAUTH_SELF_CLAIM_ROLES = new Set(['teacher', 'parent', 'global_user'])
+const SELF_SERVICE_ROLES = new Set(['teacher', 'parent', 'global_user'])
 
 type AuthIntent = 'signin' | 'signup' | 'recovery'
 type PendingCookie = {
@@ -115,11 +115,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (!access.role && intent === 'signup') {
-    if (!requestedRole || !OAUTH_SELF_CLAIM_ROLES.has(requestedRole)) {
+    if (!requestedRole || !SELF_SERVICE_ROLES.has(requestedRole)) {
       return authError(req, 'role_required', pendingCookies)
     }
-    const { data: claimedRole, error: claimError } = await supabase.rpc('claim_initial_oauth_role', {
-      p_requested_role: requestedRole,
+    const { data: claimedRole, error: claimError } = await supabase.rpc('claim_my_initial_role', {
+      p_role: requestedRole,
     })
     if (claimError || claimedRole !== requestedRole) {
       logStage('role_claim_failed', flowId, claimError?.code)
