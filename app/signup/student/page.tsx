@@ -1,11 +1,18 @@
 "use client"
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+
+function safeNext(value: string | null): string | null {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return null
+  return value
+}
 
 export default function StudentSignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = safeNext(searchParams.get('next'))
   const [name, setName] = useState('')
   const [claimCode, setClaimCode] = useState('')
   const [pin, setPin] = useState('')
@@ -47,17 +54,35 @@ export default function StudentSignupPage() {
 
       if (signInError || !signedIn.session) {
         setMessage('Account created. Sign in with your admission number and PIN.')
-        router.replace('/login/student')
+        router.replace(`/login/student${next ? `?next=${encodeURIComponent(next)}` : ''}`)
+        return
+      }
+
+      const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+      if (onboardingError || !onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) {
+        await supabase.auth.signOut()
+        setMessage('Account created, but setup could not be verified safely. Please sign in again.')
+        router.replace(`/login/student${next ? `?next=${encodeURIComponent(next)}` : ''}`)
+        return
+      }
+
+      const state = typeof onboarding.state === 'string' ? onboarding.state : null
+      const destination = typeof onboarding.destination === 'string' ? onboarding.destination : '/student'
+      if (!state || state === 'unknown_role') {
+        await supabase.auth.signOut()
+        setMessage('Account created, but your learner setup is incomplete. Please contact your teacher.')
         return
       }
 
       localStorage.setItem('vs_role', 'student')
       document.cookie = `vibe_role=student; path=/; max-age=${signedIn.session.expires_in ?? 3600}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
-      router.replace('/student')
+      router.replace(state === 'ready' && next ? next : destination)
     } finally {
       setBusy(false)
     }
   }
+
+  const nextQuery = next ? `?next=${encodeURIComponent(next)}` : ''
 
   return <main className="shell"><section className="card">
     <a href="/" className="brand">Vibe<span>School</span></a>
@@ -79,8 +104,8 @@ export default function StudentSignupPage() {
     <input autoCapitalize="characters" value={claimCode} onChange={e=>setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} />
     <label>Choose PIN</label>
     <input type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
-    <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create learner account'}</button>
-    <p className="switch">Already registered? <a href="/login/student">Sign in</a></p>
+    <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : next ? 'Create account and continue' : 'Create learner account'}</button>
+    <p className="switch">Already registered? <a href={`/login/student${nextQuery}`}>Sign in</a></p>
     <p className="help">Need the parent link or learner code? Ask your teacher. VibeSchool never asks a learner to send a password or one-time code over WhatsApp.</p>
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
