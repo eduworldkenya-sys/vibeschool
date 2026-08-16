@@ -5,6 +5,7 @@ DECLARE
   t text;
   forbidden text[] := ARRAY['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'];
   p text;
+  blocked boolean;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'hq_workforce_capability_grants',
@@ -72,6 +73,44 @@ BEGIN
       AND NOT tgisinternal
   ) THEN
     RAISE EXCEPTION 'runtime policy floor guard trigger missing';
+  END IF;
+
+  -- Adversarial proof: with the seeded disabled global policy, direct runtime
+  -- activation must fail closed before any consequential task can run.
+  blocked := false;
+  BEGIN
+    UPDATE public.hq_workforce_engine_contract
+       SET runtime_execution_enabled=true
+     WHERE singleton=true;
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'worker_runtime_global_policy_disabled' THEN
+      RAISE;
+    END IF;
+    blocked := true;
+  END;
+  IF NOT blocked THEN
+    RAISE EXCEPTION 'runtime activation unexpectedly succeeded under disabled global policy';
+  END IF;
+
+  -- Adversarial proof: the final active global policy cannot be removed, because
+  -- policy absence would otherwise become implicit permission in older kernels.
+  blocked := false;
+  BEGIN
+    DELETE FROM public.hq_workforce_runtime_policies
+     WHERE id=(
+       SELECT id FROM public.hq_workforce_runtime_policies
+       WHERE scope_kind='global' AND scope_key='global' AND status='active'
+       ORDER BY created_at
+       LIMIT 1
+     );
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'worker_runtime_global_policy_floor_required' THEN
+      RAISE;
+    END IF;
+    blocked := true;
+  END;
+  IF NOT blocked THEN
+    RAISE EXCEPTION 'final active global runtime policy was removable';
   END IF;
 
   RAISE NOTICE 'PASS: Worker Engine authority/control planes are read-only to service_role and runtime policy absence cannot become implicit permission';
