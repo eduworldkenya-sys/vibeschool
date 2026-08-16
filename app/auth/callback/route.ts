@@ -11,23 +11,25 @@ const ROLE_PREFIXES: Record<string, string[]> = {
   global_user: ['/global'],
 }
 
+type AuthIntent = 'signin' | 'signup' | 'recovery'
 type PendingCookie = {
   name: string
   value: string
   options?: Parameters<NextResponse['cookies']['set']>[2]
 }
-
-type OnboardingState = {
-  state?: unknown
-  destination?: unknown
-}
+type OnboardingState = { state?: unknown; destination?: unknown }
 
 function requestedRole(value: string | null): string | null {
   return value && SELF_SERVICE_ROLES.has(value) ? value : null
 }
 
-function requestedIntent(value: string | null): 'signin' | 'signup' | null {
-  return value === 'signin' || value === 'signup' ? value : null
+function requestedIntent(value: string | null): AuthIntent | null {
+  return value === 'signin' || value === 'signup' || value === 'recovery' ? value : null
+}
+
+function safeFlowId(value: string | null): string {
+  const cleaned = (value ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80)
+  return cleaned || crypto.randomUUID()
 }
 
 function safeNext(value: string | null): string | null {
@@ -67,7 +69,7 @@ export async function GET(req: NextRequest) {
   const next = safeNext(searchParams.get('next'))
   const roleIntent = requestedRole(searchParams.get('role'))
   const intent = requestedIntent(searchParams.get('intent'))
-  const flowId = searchParams.get('flow')?.slice(0, 80) || crypto.randomUUID()
+  const flowId = safeFlowId(searchParams.get('flow'))
   const pendingCookies: PendingCookie[] = []
 
   logStage('provider_returned', flowId, code ? 'code_present' : 'code_missing')
@@ -104,6 +106,11 @@ export async function GET(req: NextRequest) {
     return authError(req, 'session_failed', pendingCookies)
   }
   logStage('session_established', flowId)
+
+  if (intent === 'recovery') {
+    logStage('recovery_session_established', flowId)
+    return redirectWithCookies(req, '/auth/reset-password', pendingCookies)
+  }
 
   let { data: role, error: roleError } = await supabase.rpc('get_my_role')
   if (roleError) {
@@ -142,13 +149,13 @@ export async function GET(req: NextRequest) {
 
   const state = (onboarding as OnboardingState).state
   const destination = (onboarding as OnboardingState).destination
-  if (typeof state !== 'string' || typeof destination !== 'string' || !destination.startsWith('/')) {
+  if (typeof state !== 'string' || typeof destination !== 'string' || !destination.startsWith('/') || destination.startsWith('//')) {
     logStage('onboarding_invalid', flowId)
     return authError(req, 'onboarding_invalid', pendingCookies)
   }
   logStage('onboarding_resolved', flowId, state)
 
   const target = state === 'ready' && next && nextMatchesRole(next, role) ? next : destination
-  logStage('destination_reached', flowId, target)
+  logStage('destination_selected', flowId, target)
   return redirectWithCookies(req, target, pendingCookies)
 }
