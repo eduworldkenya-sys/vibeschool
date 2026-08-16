@@ -16,16 +16,21 @@ const checks = [
   [welcome.includes('href="/login"'), 'public landing exposes generic sign in'],
   [welcome.includes('/signup/teacher'), 'teacher leads have a direct signup path'],
   [welcome.includes('/login/student') && welcome.includes('/login/parent'), 'learner and parent leads preserve role intent'],
-  [teacherSignup.includes("role: 'teacher'"), 'teacher signup creates the teacher role'],
-  [teacherSignup.includes("router.replace('/teacher/onboarding/school')"), 'teacher signup continues into school onboarding'],
-  [parentSignup.includes("role: 'parent'"), 'parent signup creates the parent role'],
-  [parentSignup.includes("router.replace('/parent/students')"), 'parent signup continues into learner connection'],
+
+  // Signup role is claimed through a server-owned RPC; user-editable metadata is not authority.
+  [teacherSignup.includes("claim_my_initial_role") && teacherSignup.includes("p_role: 'teacher'") && !teacherSignup.includes("data: { role: 'teacher'"), 'teacher signup creates the teacher role through the authority boundary'],
+  [teacherSignup.includes("get_my_onboarding_state") && teacherSignup.includes('router.replace(destination)'), 'teacher signup continues through the canonical onboarding resolver'],
+  [parentSignup.includes("claim_my_initial_role") && parentSignup.includes("p_role: 'parent'") && !parentSignup.includes("data: { role: 'parent'"), 'parent signup creates the parent role through the authority boundary'],
+  [parentSignup.includes("get_my_onboarding_state") && parentSignup.includes('router.replace(destination)'), 'parent signup continues through the canonical onboarding resolver'],
+
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
   [studentAccountRoute.includes(".from('student_claim_codes')") && studentAccountRoute.includes(".eq('role', 'student')"), 'learner claim is validated server-side'],
   [studentAccountRoute.includes('parent_linked_at') && studentAccountRoute.includes(".from('parent_student_links')") && studentAccountRoute.includes("code: 'guardian_required'"), 'learner credentials require an established parent or guardian connection'],
   [studentSignup.includes('guardianRequired') && studentSignup.includes('Parent or guardian connects'), 'learner UX explains the guardian-first activation path'],
   [roleLogin.includes("href=\"/signup/student\"") && roleLogin.includes("href=\"/signup/parent\""), 'focused sign in connects new learners and parents to direct signup'],
-  [roleLogin.includes("actualRole !== expectedRole"), 'focused sign in verifies the authenticated role before routing'],
+
+  // The selected login page is presentation/intent only. DB access state + onboarding own routing.
+  [roleLogin.includes("get_my_auth_access_state") && roleLogin.includes("get_my_onboarding_state") && roleLogin.includes('roleCanVisit(actualRole'), 'focused sign in verifies authoritative role and onboarding state before routing'],
   [roleLogin.includes("student: { label: 'Learner', destination: '/student', email: false }"), 'learner sign in uses admission number and PIN'],
   [roleLogin.includes("parent: { label: 'Parent', destination: '/parent', email: true }"), 'parent sign in uses the focused parent path'],
   [welcome.includes("alternates: { canonical: '/' }"), 'public landing declares the root canonical URL'],
