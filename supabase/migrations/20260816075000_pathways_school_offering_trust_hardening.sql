@@ -17,7 +17,7 @@ create or replace function public.pathways_search_public_schools(
   p_pathway_slug text default null,
   p_combination_slug text default null,
   p_limit integer default 30
-+) returns table(
+) returns table(
   school_id uuid,
   school_name text,
   county text,
@@ -33,7 +33,7 @@ create or replace function public.pathways_search_public_schools(
   combination_slug text,
   combination_name text,
   offering_verified_at timestamptz
-+)
+)
 language sql
 stable
 security definer
