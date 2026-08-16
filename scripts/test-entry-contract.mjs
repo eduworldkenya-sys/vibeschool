@@ -9,6 +9,7 @@ const parentSignup = fs.readFileSync('app/signup/parent/page.tsx', 'utf8')
 const studentSignup = fs.readFileSync('app/signup/student/page.tsx', 'utf8')
 const studentAccountRoute = fs.readFileSync('app/api/create-student-account/route.ts', 'utf8')
 const roleLogin = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
+const authCallback = fs.readFileSync('app/auth/callback/route.ts', 'utf8')
 
 const checks = [
   [middleware.includes("loginUrl.pathname = '/login'"), 'protected routes redirect signed-out users to /login'],
@@ -24,13 +25,18 @@ const checks = [
   [studentAccountRoute.includes(".from('student_claim_codes')") && studentAccountRoute.includes(".eq('role', 'student')"), 'learner claim is validated server-side'],
   [studentAccountRoute.includes('parent_linked_at') && studentAccountRoute.includes(".from('parent_student_links')") && studentAccountRoute.includes("code: 'guardian_required'"), 'learner credentials require an established parent or guardian connection'],
   [studentSignup.includes('guardianRequired') && studentSignup.includes('Parent or guardian connects'), 'learner UX explains the guardian-first activation path'],
-  [roleLogin.includes("href=\"/signup/student\"") && roleLogin.includes("href=\"/signup/parent\""), 'focused sign in connects new learners and parents to direct signup'],
+  [roleLogin.includes('/signup/student') && roleLogin.includes('/signup/parent'), 'focused sign in connects new learners and parents to direct signup'],
   [roleLogin.includes("actualRole !== expectedRole"), 'focused sign in verifies the authenticated role before routing'],
   [roleLogin.includes("student: { label: 'Learner', destination: '/student', email: false }"), 'learner sign in uses admission number and PIN'],
   [roleLogin.includes("parent: { label: 'Parent', destination: '/parent', email: true }"), 'parent sign in uses the focused parent path'],
+  [roleLogin.includes("get_my_onboarding_state") && roleLogin.includes("state === 'ready' && next"), 'focused sign in preserves next only after canonical onboarding is ready'],
+  [studentSignup.includes("get_my_onboarding_state") && studentSignup.includes("state === 'ready' && next"), 'learner signup preserves next only after canonical onboarding is ready'],
+  [authCallback.includes("safeNext") && authCallback.includes("ready && next ? next : destination"), 'OAuth callback preserves safe next without bypassing onboarding'],
   [welcome.includes("alternates: { canonical: '/' }"), 'public landing declares the root canonical URL'],
   [sitemap.includes('{ url: SITE_URL,'), 'sitemap includes the canonical root'],
+  [sitemap.includes('`${SITE_URL}/pathways`') && sitemap.includes('`${SITE_URL}/pathways/check`'), 'sitemap includes public Pathways acquisition surfaces'],
   [robots.includes("'/signup/'") && robots.includes("'/teacher/'") && robots.includes("'/student/'"), 'robots keeps auth and private workspaces out of crawl paths'],
+  [robots.includes("'/pathways'") && robots.includes("'/pathways/'"), 'robots allows the public Pathways namespace'],
 ]
 
 let failed = false
