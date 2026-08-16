@@ -14,7 +14,9 @@ export default function ParentSignupPage() {
 
   async function submit(){
     if(busy)return;setMessage('')
-    if(!name.trim()){setMessage('Enter your full name.');return} if(!email.trim()){setMessage('Enter your email address.');return} if(password.length<8){setMessage('Use at least 8 characters for your password.');return}
+    if(!name.trim()){setMessage('Enter your full name.');return}
+    if(!email.trim()){setMessage('Enter your email address.');return}
+    if(password.length<8){setMessage('Use at least 8 characters for your password.');return}
     setBusy(true)
     try{
       const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{role:'parent',full_name:name.trim()}}})
@@ -22,9 +24,9 @@ export default function ParentSignupPage() {
       const {error:profileError}=await supabase.from('profiles').update({full_name:name.trim(),country_code:'KE'}).eq('id',data.user.id)
       if(profileError){setMessage('Your account was created, but profile setup needs another try.');return}
       if(data.session){localStorage.setItem('vs_role','parent');document.cookie=`vibe_role=parent; path=/; max-age=${data.session.expires_in??3600}; samesite=lax${location.protocol==='https:'?'; secure':''}`}
-      // Parent onboarding remains authoritative. Pathways is a public continuation,
-      // so returning there does not bypass the child-link requirement for parent workspace.
-      router.replace(continuationForRole(requestedNext,'parent')||'/parent/students')
+      const next=continuationForRole(requestedNext,'parent')
+      if(next) router.replace(next)
+      else router.replace('/parent/students')
     }finally{setBusy(false)}
   }
 
