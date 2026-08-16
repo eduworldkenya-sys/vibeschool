@@ -42,7 +42,38 @@ BEGIN
   IF has_function_privilege('service_role', 'public.hq_workforce_factory_create_shadow_worker(uuid,uuid,text,text,text,text,text,text,text,jsonb)', 'EXECUTE') THEN
     RAISE EXCEPTION 'service_role can invoke worker factory creation gateway';
   END IF;
+  IF has_function_privilege('service_role', 'public.hq_workforce_guard_engine_contract_activation()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'service_role can execute engine activation trigger function directly';
+  END IF;
+  IF has_function_privilege('service_role', 'public.hq_workforce_guard_runtime_policy_floor()', 'EXECUTE') THEN
+    RAISE EXCEPTION 'service_role can execute runtime policy floor trigger function directly';
+  END IF;
 
-  RAISE NOTICE 'PASS: Worker Engine authority and safety control planes are read-only to service_role except narrow fail-safe revocation gateways';
+  IF NOT EXISTS (
+    SELECT 1 FROM public.hq_workforce_runtime_policies
+    WHERE scope_kind='global' AND scope_key='global' AND status='active'
+  ) THEN
+    RAISE EXCEPTION 'active global runtime policy floor missing';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid='public.hq_workforce_engine_contract'::regclass
+      AND tgname='trg_hq_workforce_guard_engine_contract_activation'
+      AND NOT tgisinternal
+  ) THEN
+    RAISE EXCEPTION 'engine activation guard trigger missing';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgrelid='public.hq_workforce_runtime_policies'::regclass
+      AND tgname='trg_hq_workforce_guard_runtime_policy_floor'
+      AND NOT tgisinternal
+  ) THEN
+    RAISE EXCEPTION 'runtime policy floor guard trigger missing';
+  END IF;
+
+  RAISE NOTICE 'PASS: Worker Engine authority/control planes are read-only to service_role and runtime policy absence cannot become implicit permission';
 END
 $$;
