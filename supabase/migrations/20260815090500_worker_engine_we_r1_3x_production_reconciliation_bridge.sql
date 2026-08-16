@@ -1,7 +1,7 @@
 -- WE-R1.3X production reconciliation bridge.
 -- IMPORTANT: production already records X1 (20260815080000) and X2 (20260815090000)
 -- as applied, but the pre-X legacy objective/plan tables survived because X1/X2 used
--- CREATE TABLE IF NOT EXISTS against incompatible names. This bridge sits after X2 and
+-- conditional table creation against incompatible existing names. This bridge sits after X2 and
 -- before X3 so an --include-all production upgrade converges to the canonical X1/X2
 -- schema before later R1.3X/R1.4 migrations execute.
 --
