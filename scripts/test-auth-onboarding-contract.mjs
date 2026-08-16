@@ -37,12 +37,19 @@ assert.match(migration, /before update on public\.profiles/i)
 
 // The exact active school onboarding signatures require canonical teacher authority.
 const canonicalConnect = migration.match(/create or replace function public\.connect_teacher_to_school\(p_school_id uuid, p_level text default null\)[\s\S]*?\$\$;/i)?.[0] ?? ''
-const directoryConnect = migration.match(/create or replace function public\.connect_teacher_to_directory_school\(p_directory_id uuid, p_level text default null\)[\s\S]*?\$\$;/i)?.[0] ?? ''
+const directoryConnect = migration.match(/create or replace function public\.connect_teacher_to_directory_school\(p_directory_id uuid,p_level text default null\)[\s\S]*?\$\$;/i)?.[0] ?? ''
 for (const fn of [canonicalConnect, directoryConnect]) {
   assert.match(fn, /select public\.get_my_role\(\) into v_role/i)
   assert.match(fn, /v_role is distinct from 'teacher'/i)
   assert.match(fn, /teacher_role_required/i)
 }
+
+// Auth may consume the School Engine reconciliation path, but must never become
+// a competing canonical-school creation authority.
+assert.match(directoryConnect, /public\.school_identity_candidates/i)
+assert.match(directoryConnect, /school_identity_review_required/i)
+assert.doesNotMatch(directoryConnect, /insert\s+into\s+public\.schools\s*\(/i)
+assert.doesNotMatch(directoryConnect, /'schools_directory'\s*,\s*d\.id::text/i)
 
 // Admin approval is explicit and cannot overwrite another established role lane.
 const approveAdmin = migration.match(/create or replace function public\.approve_school_admin_join_request[\s\S]*?\$\$;/i)?.[0] ?? ''
