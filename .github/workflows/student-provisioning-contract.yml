@@ -1,0 +1,26 @@
+name: Student Provisioning Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/api/create-student-account/**'
+      - 'app/signup/student/**'
+      - 'supabase/migrations/**student**'
+      - 'scripts/test-student-provisioning-contract.mjs'
+      - '.github/workflows/student-provisioning-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  student-provisioning-contract:
+    name: Atomic learner provisioning and legacy-role guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/test-student-provisioning-contract.mjs

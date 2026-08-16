@@ -51,8 +51,6 @@ export default function StudentSignupPage() {
         return
       }
 
-      localStorage.setItem('vs_role', 'student')
-      document.cookie = `vibe_role=student; path=/; max-age=${signedIn.session.expires_in ?? 3600}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       router.replace('/student')
     } finally {
       setBusy(false)
