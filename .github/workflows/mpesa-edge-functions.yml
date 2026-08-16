@@ -1,0 +1,32 @@
+name: M-Pesa Edge Function Gate
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/mpesa-stk-push/**'
+      - 'supabase/functions/mpesa-callback/**'
+      - 'supabase/functions/mpesa-payment-status/**'
+      - 'supabase/migrations/*mpesa*'
+      - '.github/workflows/mpesa-edge-functions.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/mpesa-stk-push/**'
+      - 'supabase/functions/mpesa-callback/**'
+      - 'supabase/functions/mpesa-payment-status/**'
+      - 'supabase/migrations/*mpesa*'
+
+jobs:
+  deno-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check M-Pesa Edge Functions
+        run: |
+          deno check supabase/functions/mpesa-stk-push/index.ts
+          deno check supabase/functions/mpesa-callback/index.ts
+          deno check supabase/functions/mpesa-payment-status/index.ts
