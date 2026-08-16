@@ -6,10 +6,10 @@ import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-rout
 const FIRST_ACCESS: Record<string, string> = {
   teacher: '/teacher/onboarding/school',
   parent: '/parent/students',
+  student: '/student',
+  admin: '/admin',
   global_user: '/global',
 }
-
-const OAUTH_SELF_CLAIM_ROLES = new Set(Object.keys(FIRST_ACCESS))
 
 type PendingCookie = {
   name: string
@@ -65,59 +65,42 @@ export async function GET(req: NextRequest) {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
   if (userError || !user) return redirectWithCookies(req, '/login?oauth_error=user_missing', pendingCookies)
 
-  const resolveAccess = async () => {
-    const { data } = await supabase.rpc('get_my_auth_access_state')
-    if (!data || typeof data !== 'object' || Array.isArray(data)) return null
-    return {
-      role: typeof data.role === 'string' ? data.role : null,
-      status: typeof data.account_status === 'string' ? data.account_status : null,
-      anonymized: data.is_anonymized === true,
-    }
-  }
+  const { data: accessState } = await supabase.rpc('get_my_auth_access_state')
+  if (accessState && typeof accessState === 'object' && !Array.isArray(accessState)) {
+    const role = typeof accessState.role === 'string' ? accessState.role : null
+    const status = typeof accessState.account_status === 'string' ? accessState.account_status : null
+    const anonymized = accessState.is_anonymized === true
 
-  let access = await resolveAccess()
-
-  if (access && (access.status === 'restricted' || access.anonymized)) {
-    await supabase.auth.signOut()
-    return redirectWithCookies(req, '/login?auth_error=account_unavailable', pendingCookies)
-  }
-
-  if (!access?.role && intent === 'signup' && requestedRole && OAUTH_SELF_CLAIM_ROLES.has(requestedRole)) {
-    const { data: claimedRole, error: claimError } = await supabase.rpc('claim_initial_oauth_role', {
-      p_requested_role: requestedRole,
-    })
-
-    if (claimError || claimedRole !== requestedRole) {
+    if (status === 'restricted' || anonymized) {
       await supabase.auth.signOut()
-      return redirectWithCookies(req, '/login?auth_error=oauth_onboarding_failed', pendingCookies)
+      return redirectWithCookies(req, '/login?auth_error=account_unavailable', pendingCookies)
     }
 
-    access = await resolveAccess()
-  }
-
-  if (access?.role && AUTH_DASHBOARDS[access.role]) {
-    const role = access.role
-    const { data: onboarding, error: onboardingErr } = await supabase.rpc('get_my_onboarding_state')
-    if (!onboardingErr && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
-      const state = typeof onboarding.state === 'string' ? onboarding.state : null
-      const destination = typeof onboarding.destination === 'string' ? onboarding.destination : null
-      if (destination && state && state !== 'unknown_role') {
-        if (state === 'ready' && next && roleCanVisit(role, next)) {
-          return redirectWithCookies(req, next, pendingCookies)
+    if (role && AUTH_DASHBOARDS[role]) {
+      const { data: onboarding, error: onboardingErr } = await supabase.rpc('get_my_onboarding_state')
+      if (!onboardingErr && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
+        const state = typeof onboarding.state === 'string' ? onboarding.state : null
+        const destination = typeof onboarding.destination === 'string' ? onboarding.destination : null
+        if (destination && state && state !== 'unknown_role') {
+          if (state === 'ready' && next && roleCanVisit(role, next)) {
+            return redirectWithCookies(req, next, pendingCookies)
+          }
+          return redirectWithCookies(req, destination, pendingCookies)
         }
-        return redirectWithCookies(req, destination, pendingCookies)
       }
+      return redirectWithCookies(req, AUTH_DASHBOARDS[role], pendingCookies)
     }
-
-    if (intent === 'signup' && requestedRole === role && FIRST_ACCESS[role]) {
-      return redirectWithCookies(req, FIRST_ACCESS[role], pendingCookies)
-    }
-
-    return redirectWithCookies(req, AUTH_DASHBOARDS[role], pendingCookies)
   }
 
-  // Existing identities without a usable profile fail closed. Admin and student identities
-  // are never self-provisioned from OAuth request parameters; they require their governed flows.
+  // Existing users without a usable profile fail closed. A UI-selected role is never authority.
+  // New OAuth sign-ups may use the validated role only to choose onboarding; server-side onboarding
+  // remains responsible for actually provisioning any privileged state.
+  const identityCreatedAt = Date.parse(user.created_at)
+  const recentIdentity = Number.isFinite(identityCreatedAt) && Date.now() - identityCreatedAt < 5 * 60 * 1000
+  if (intent === 'signup' && recentIdentity && requestedRole) {
+    return redirectWithCookies(req, FIRST_ACCESS[requestedRole], pendingCookies)
+  }
+
   await supabase.auth.signOut()
   return redirectWithCookies(req, '/login?auth_error=profile_incomplete', pendingCookies)
 }
