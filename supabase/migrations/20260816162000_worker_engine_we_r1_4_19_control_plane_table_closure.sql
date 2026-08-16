@@ -3,6 +3,10 @@
 -- state. service_role may read them and invoke governed SECURITY DEFINER entrypoints, but
 -- may not manufacture/modify rows directly.
 
+alter table public.hq_workforce_tool_contracts
+  add column if not exists approved_by uuid,
+  add column if not exists approval_reason text;
+
 revoke insert,update,delete,truncate on table public.hq_workforce_tool_contracts from service_role;
 revoke insert,update,delete,truncate on table public.hq_workforce_task_contracts from service_role;
 revoke insert,update,delete,truncate on table public.hq_workforce_canary_queue_memberships from service_role;
@@ -11,39 +15,27 @@ grant select on table public.hq_workforce_tool_contracts to service_role;
 grant select on table public.hq_workforce_task_contracts to service_role;
 grant select on table public.hq_workforce_canary_queue_memberships to service_role;
 
--- Tool contract approval is an owner decision. This path can create or revise a contract
--- only while runtime is stopped, and it records the authenticated owner as approver.
-create or replace function public.hq_workforce_owner_put_tool_contract(
-  p_tool_key text,
-  p_required_capability_key text,
-  p_operation text,
-  p_resource_type text,
-  p_handler_key text,
-  p_risk_level smallint,
+-- Tool definitions are migration/certification artifacts. Governance may approve or
+-- disable an existing immutable definition, but it cannot rewrite handler, capability,
+-- operation or resource identity through an RPC.
+create or replace function public.hq_workforce_owner_set_tool_contract_status(
+  p_tool_contract_id uuid,
   p_status text,
   p_reason text
-) returns uuid
+) returns jsonb
 language plpgsql
 security definer
 set search_path=public,pg_temp
 as $$
 declare
   ec public.hq_workforce_engine_contract%rowtype;
+  tc public.hq_workforce_tool_contracts%rowtype;
   v_uid uuid;
-  v_id uuid;
 begin
   perform public.hq_assert_owner();
   v_uid:=auth.uid();
   if v_uid is null then raise exception 'tool_contract_change_requires_authenticated_owner'; end if;
-  if p_status not in ('draft','approved','disabled') then raise exception 'tool_contract_status_invalid'; end if;
-  if char_length(btrim(coalesce(p_tool_key,'')))<3
-     or char_length(btrim(coalesce(p_required_capability_key,'')))<3
-     or char_length(btrim(coalesce(p_operation,'')))<1
-     or char_length(btrim(coalesce(p_resource_type,'')))<1
-     or char_length(btrim(coalesce(p_handler_key,'')))<3 then
-    raise exception 'tool_contract_identity_invalid';
-  end if;
-  if p_risk_level not between 0 and 5 then raise exception 'tool_contract_risk_invalid'; end if;
+  if p_status not in ('approved','disabled') then raise exception 'tool_contract_status_invalid'; end if;
   if char_length(btrim(coalesce(p_reason,'')))<3 then raise exception 'tool_contract_reason_required'; end if;
 
   select * into ec from public.hq_workforce_engine_contract where singleton=true for update;
@@ -52,30 +44,33 @@ begin
     raise exception 'tool_contract_change_requires_runtime_off';
   end if;
 
-  insert into public.hq_workforce_tool_contracts(
-    tool_key,required_capability_key,operation,resource_type,handler_key,risk_level,approved_by,status
-  ) values(
-    btrim(p_tool_key),btrim(p_required_capability_key),btrim(p_operation),btrim(p_resource_type),btrim(p_handler_key),
-    p_risk_level,case when p_status='approved' then v_uid::text||':'||btrim(p_reason) else null end,p_status
-  )
-  on conflict(tool_key) do update set
-    required_capability_key=excluded.required_capability_key,
-    operation=excluded.operation,
-    resource_type=excluded.resource_type,
-    handler_key=excluded.handler_key,
-    risk_level=excluded.risk_level,
-    approved_by=excluded.approved_by,
-    status=excluded.status
-  returning id into v_id;
-  return v_id;
+  select * into tc from public.hq_workforce_tool_contracts where id=p_tool_contract_id for update;
+  if not found then raise exception 'tool_contract_not_found'; end if;
+  if tc.status not in ('draft','approved','disabled') then raise exception 'tool_contract_current_status_invalid:%',tc.status; end if;
+
+  update public.hq_workforce_tool_contracts
+     set status=p_status,
+         approved_at=case when p_status='approved' then clock_timestamp() else null end,
+         approved_by=case when p_status='approved' then v_uid else null end,
+         approval_reason=btrim(p_reason)
+   where id=tc.id;
+
+  return jsonb_build_object(
+    'tool_contract_id',tc.id,
+    'tool_key',tc.tool_key,
+    'version',tc.version,
+    'from_status',tc.status,
+    'to_status',p_status,
+    'changed_by',v_uid,
+    'reason',btrim(p_reason)
+  );
 end $$;
 
--- Canary membership is owner-governed and can only be changed while all autonomous
--- execution switches are off. Membership is therefore an explicit production-canary
--- decision, never something a worker/service caller can self-enroll into.
+-- Canary membership is owner-governed and can only be changed while autonomous
+-- execution is off. The exact existing schema uses work_item_id as the primary key and
+-- records admitted_by/admission_reason as immutable admission provenance.
 create or replace function public.hq_workforce_owner_set_canary_membership(
   p_work_item_id uuid,
-  p_queue_key text,
   p_enabled boolean,
   p_reason text
 ) returns jsonb
@@ -88,9 +83,9 @@ begin
   perform public.hq_assert_owner();
   v_uid:=auth.uid();
   if v_uid is null then raise exception 'canary_membership_requires_authenticated_owner'; end if;
-  if p_queue_key<>'worker_engine_internal' then raise exception 'canary_queue_not_allowlisted'; end if;
   if char_length(btrim(coalesce(p_reason,'')))<3 then raise exception 'canary_membership_reason_required'; end if;
   if not exists(select 1 from public.hq_work_items where id=p_work_item_id) then raise exception 'canary_work_item_not_found'; end if;
+
   select * into ec from public.hq_workforce_engine_contract where singleton=true for update;
   if not found then raise exception 'runtime_contract_missing'; end if;
   if ec.runtime_execution_enabled or ec.heartbeat_enabled or ec.factory_enabled then
@@ -98,22 +93,37 @@ begin
   end if;
 
   if coalesce(p_enabled,false) then
-    insert into public.hq_workforce_canary_queue_memberships(work_item_id,queue_key,reason)
-    values(p_work_item_id,p_queue_key,btrim(p_reason)||' [owner:'||v_uid::text||']')
-    on conflict(work_item_id,queue_key) do update set reason=excluded.reason;
+    insert into public.hq_workforce_canary_queue_memberships(
+      work_item_id,queue_key,admitted_by,admission_reason,admitted_at
+    ) values(
+      p_work_item_id,'worker_engine_internal',v_uid::text,btrim(p_reason),clock_timestamp()
+    )
+    on conflict(work_item_id) do update set
+      queue_key='worker_engine_internal',
+      admitted_by=excluded.admitted_by,
+      admission_reason=excluded.admission_reason,
+      admitted_at=clock_timestamp();
   else
-    delete from public.hq_workforce_canary_queue_memberships where work_item_id=p_work_item_id and queue_key=p_queue_key;
+    delete from public.hq_workforce_canary_queue_memberships
+     where work_item_id=p_work_item_id;
   end if;
-  return jsonb_build_object('work_item_id',p_work_item_id,'queue_key',p_queue_key,'enabled',coalesce(p_enabled,false),'changed_by',v_uid);
+
+  return jsonb_build_object(
+    'work_item_id',p_work_item_id,
+    'queue_key','worker_engine_internal',
+    'enabled',coalesce(p_enabled,false),
+    'changed_by',v_uid,
+    'reason',btrim(p_reason)
+  );
 end $$;
 
-revoke all on function public.hq_workforce_owner_put_tool_contract(text,text,text,text,text,smallint,text,text)
+revoke all on function public.hq_workforce_owner_set_tool_contract_status(uuid,text,text)
   from public,anon,service_role;
-grant execute on function public.hq_workforce_owner_put_tool_contract(text,text,text,text,text,smallint,text,text)
+grant execute on function public.hq_workforce_owner_set_tool_contract_status(uuid,text,text)
   to authenticated;
-revoke all on function public.hq_workforce_owner_set_canary_membership(uuid,text,boolean,text)
+revoke all on function public.hq_workforce_owner_set_canary_membership(uuid,boolean,text)
   from public,anon,service_role;
-grant execute on function public.hq_workforce_owner_set_canary_membership(uuid,text,boolean,text)
+grant execute on function public.hq_workforce_owner_set_canary_membership(uuid,boolean,text)
   to authenticated;
 
 -- Structural/non-activation attestation.
