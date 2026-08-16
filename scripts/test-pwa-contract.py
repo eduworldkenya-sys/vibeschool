@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,11 @@ def require(text: str, needle: str, label: str) -> None:
         raise AssertionError(f"{label}: missing {needle!r}")
 
 
+def require_pattern(text: str, pattern: str, label: str) -> None:
+    if re.search(pattern, text, flags=re.MULTILINE) is None:
+        raise AssertionError(f"{label}: missing pattern {pattern!r}")
+
+
 def forbid(text: str, needle: str, label: str) -> None:
     if needle in text:
         raise AssertionError(f"{label}: forbidden {needle!r}")
@@ -24,7 +30,7 @@ def forbid(text: str, needle: str, label: str) -> None:
 def main() -> int:
     manifest = read("app/manifest.ts")
     layout = read("app/layout.tsx")
-    icon_route = read("app/pwa-icons/v2/[variant]/route.tsx")
+    icon_route = read("app/pwa-icons/v3/[variant]/route.tsx")
     apple_icon = read("app/apple-icon.tsx")
     sw = read("public/sw.js")
     offline = read("public/offline.html")
@@ -39,9 +45,9 @@ def main() -> int:
         "display: 'standalone'",
         "background_color: '#070B1F'",
         "theme_color: '#070B1F'",
-        "'/pwa-icons/v2/192'",
-        "'/pwa-icons/v2/512'",
-        "'/pwa-icons/v2/maskable-512'",
+        "'/pwa-icons/v3/192'",
+        "'/pwa-icons/v3/512'",
+        "'/pwa-icons/v3/maskable-512'",
         "type: 'image/png'",
         "purpose: 'maskable'",
         "url: '/student'",
@@ -49,18 +55,39 @@ def main() -> int:
     ]:
         require(manifest, value, "manifest")
 
+    # v3 is the only active manifest identity. The v2 route may remain temporarily
+    # for backward compatibility with already-installed clients, but new metadata
+    # and install surfaces must not advertise it.
+    forbid(manifest, "/pwa-icons/v2/", "manifest")
+    forbid(layout, "/pwa-icons/v2/", "layout")
+    forbid(install, "/pwa-icons/v2/", "install prompt")
     forbid(manifest, "/icons/icon.png?size=", "manifest")
     forbid(manifest, "/icons/icon-192.svg", "manifest")
     forbid(layout, "/icons/icon.png?size=", "layout")
-    require(layout, "'/pwa-icons/v2/192'", "layout")
-    require(layout, "<PwaServiceWorker />", "layout")
-    require(layout, "<PwaInstallPrompt />", "layout")
 
     for value in [
+        "'/pwa-icons/v3/32'",
+        "'/pwa-icons/v3/48'",
+        "'/pwa-icons/v3/192'",
+        "/icons/vibeschool-logo.png",
+    ]:
+        require(layout, value, "layout")
+
+    # These are semantic ownership checks, not formatter/style checks. JSX may be
+    # compacted or pretty-printed without invalidating service-worker/install wiring.
+    require_pattern(layout, r"import\s+PwaServiceWorker\s+from\s+['\"]@/components/pwa/PwaServiceWorker['\"]", "layout service worker import")
+    require_pattern(layout, r"<\s*PwaServiceWorker\s*/\s*>", "layout service worker mount")
+    require_pattern(layout, r"import\s+PwaInstallPrompt\s+from\s+['\"]@/components/pwa/PwaInstallPrompt['\"]", "layout install prompt import")
+    require_pattern(layout, r"<\s*PwaInstallPrompt\s*/\s*>", "layout install prompt mount")
+
+    for value in [
+        "'32': { size: 32, maskable: false }",
+        "'48': { size: 48, maskable: false }",
         "'192': { size: 192, maskable: false }",
         "'512': { size: 512, maskable: false }",
         "'maskable-512': { size: 512, maskable: true }",
         "new ImageResponse",
+        "'/icons/vibeschool-logo.png'",
         "'Cache-Control': 'public, max-age=31536000, immutable'",
         "#070B1F",
     ]:
@@ -69,8 +96,11 @@ def main() -> int:
     require(apple_icon, "width: 180", "Apple touch icon")
     require(apple_icon, "height: 180", "Apple touch icon")
     require(apple_icon, "contentType = 'image/png'", "Apple touch icon")
+    require(apple_icon, "/icons/vibeschool-logo.png", "Apple touch icon")
 
-    require(sw, "vibeschool-v5", "service worker")
+    # Changing the offline shell requires a service-worker generation change so
+    # existing installed clients actually receive the new fallback.
+    require(sw, "vibeschool-v6", "service worker")
     require(sw, "url.pathname.startsWith('/api/')", "service worker")
     require(sw, "url.pathname.startsWith('/auth/')", "service worker")
     require(sw, "url.pathname.startsWith('/pwa-icons/')", "service worker")
@@ -82,11 +112,13 @@ def main() -> int:
     require(manager, "controllerchange", "service worker manager")
     require(install, "beforeinstallprompt", "install prompt")
     require(install, "DISMISS_MS", "install prompt")
+    require(install, "/pwa-icons/v3/192", "install artwork")
     install_lower = install.lower()
     for token in ["iphone", "ipad", "ipod"]:
         require(install_lower, token, "iOS install path")
     require(install, "Add to Home Screen", "iOS install path")
-    require(install, "/pwa-icons/v2/192", "install artwork")
+
+    require(offline, "/icons/vibeschool-logo.png", "offline page")
     require(offline, "Your account data is not stored in the offline cache.", "offline page")
 
     print("PWA CONTRACT PASSED")

@@ -26,9 +26,6 @@ try {
   })
 
   stage('navigate into service-worker control')
-  // A newly activated service worker can abort the first navigation while it
-  // takes control. Retry the controlled navigation rather than treating that
-  // expected lifecycle race as an application failure.
   let controlled = false
   let lastNavigationError
   for (let attempt = 1; attempt <= 3 && !controlled; attempt += 1) {
@@ -57,6 +54,15 @@ try {
   assert(manifest.url?.includes('/manifest.webmanifest'), 'Chromium did not discover the VibeSchool manifest')
   assert(!manifest.errors?.length, `Chromium manifest errors: ${JSON.stringify(manifest.errors)}`)
 
+  if (manifest.data) {
+    const manifestData = JSON.parse(manifest.data)
+    const iconSources = (manifestData.icons || []).map((icon) => icon.src)
+    assert(iconSources.some((src) => src.includes('/pwa-icons/v3/192')), 'manifest does not advertise the v3 192 icon')
+    assert(iconSources.some((src) => src.includes('/pwa-icons/v3/512')), 'manifest does not advertise the v3 512 icon')
+    assert(iconSources.some((src) => src.includes('/pwa-icons/v3/maskable-512')), 'manifest does not advertise the v3 maskable icon')
+    assert(!iconSources.some((src) => src.includes('/pwa-icons/v2/')), 'manifest still advertises legacy v2 icons')
+  }
+
   stage('inspect Chromium installability')
   const installability = await cdp.send('Page.getInstallabilityErrors')
   assert(
@@ -64,11 +70,11 @@ try {
     `Chromium installability errors: ${JSON.stringify(installability.installabilityErrors)}`
   )
 
-  stage('verify versioned PNG launcher assets')
+  stage('verify v3 PNG launcher assets')
   for (const [path, size] of [
-    ['/pwa-icons/v2/192', '192'],
-    ['/pwa-icons/v2/512', '512'],
-    ['/pwa-icons/v2/maskable-512', 'maskable'],
+    ['/pwa-icons/v3/192', '192'],
+    ['/pwa-icons/v3/512', '512'],
+    ['/pwa-icons/v3/maskable-512', 'maskable'],
   ]) {
     const result = await page.evaluate(async (url) => {
       const response = await fetch(url)
@@ -76,19 +82,21 @@ try {
       return {
         ok: response.ok,
         type: response.headers.get('content-type') || '',
+        cacheControl: response.headers.get('cache-control') || '',
         signature: Array.from(bytes.slice(0, 8)),
       }
     }, path)
 
     assert(result.ok, `${size} icon endpoint failed`)
     assert(result.type.includes('image/png'), `${size} icon is not image/png: ${result.type}`)
+    assert(result.cacheControl.includes('immutable'), `${size} icon is not immutable-cache versioned content`)
     assert(
       JSON.stringify(result.signature) === JSON.stringify([137, 80, 78, 71, 13, 10, 26, 10]),
       `${size} icon is not a PNG payload`
     )
   }
 
-  stage('verify offline fallback is precached')
+  stage('verify offline fallback is precached and branded')
   const offlineCache = await page.evaluate(async () => {
     const keys = await caches.keys()
     for (const key of keys) {
@@ -105,7 +113,9 @@ try {
   })
 
   assert(offlineCache, 'offline fallback is not present in Cache Storage')
+  assert(offlineCache.cacheName === 'vibeschool-v6', `unexpected offline cache generation: ${offlineCache.cacheName}`)
   assert(offlineCache.text.includes('You’re offline'), 'cached offline fallback is missing offline message')
+  assert(offlineCache.text.includes('/icons/vibeschool-logo.png'), 'cached offline fallback lost official VibeSchool branding')
   assert(
     offlineCache.text.includes('Your account data is not stored in the offline cache.'),
     'cached offline fallback lost its private-data safety message'

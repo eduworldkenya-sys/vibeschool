@@ -87,7 +87,7 @@ const S: Record<string, CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '48px 20px',
+    padding: '110px 20px 48px',
     overflowX: 'hidden',
   },
   glow: {
@@ -96,6 +96,27 @@ const S: Record<string, CSSProperties> = {
     zIndex: 1,
     pointerEvents: 'none',
     background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(196,149,48,0.08) 0%, transparent 70%)',
+  },
+  publicNav: {
+    position: 'absolute',
+    top: 24,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 4,
+    width: 'min(92vw, 560px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+    flexWrap: 'wrap',
+  },
+  publicNavLink: {
+    color: 'rgba(255,255,255,0.58)',
+    fontFamily: 'var(--font-display), sans-serif',
+    fontSize: 12,
+    fontWeight: 600,
+    textDecoration: 'none',
+    letterSpacing: '0.03em',
   },
   wrap: {
     position: 'relative',
@@ -107,15 +128,22 @@ const S: Record<string, CSSProperties> = {
     alignItems: 'center',
     animation: 'fadeUp 260ms ease-out both',
   },
-  wordmark: {
-    fontFamily: 'var(--font-display), sans-serif',
-    fontWeight: 800,
-    fontSize: 30,
-    color: '#fff',
-    letterSpacing: '-0.5px',
-    marginBottom: 4,
+  brandLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 'min(230px, 72vw)',
+    minHeight: 54,
+    marginBottom: 8,
+    textDecoration: 'none',
   },
-  gold: { color: '#C8A84B' },
+  brandImage: {
+    display: 'block',
+    width: '100%',
+    maxHeight: 72,
+    height: 'auto',
+    objectFit: 'contain',
+  },
   tagline: {
     fontFamily: 'var(--font-mono), monospace',
     fontSize: 9,
@@ -518,9 +546,6 @@ export default function RootPage() {
         const schoolCode = validateResult.school_code
         const internalEmail = `${schoolCode}_${admissionNumber.toLowerCase().replace(/\s/g, '')}@vs.internal`
 
-        // Service-role route — this synthetic email can never receive a
-        // real confirmation email, so account creation happens server-side
-        // via admin.createUser(), which bypasses that requirement.
         const createRes = await fetch('/api/create-student-account', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -544,8 +569,6 @@ export default function RootPage() {
           setError('Account created but linking failed. Please try signing in with your admission number and PIN.')
           return
         }
-        // admin.createUser() never returns a browser session — sign in
-        // explicitly now to actually establish one.
         const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
           email: internalEmail, password: studentPin,
         })
@@ -595,7 +618,10 @@ export default function RootPage() {
       }
       if (role === 'Admin') {
         const waText = encodeURIComponent(
-          `Hello, I just registered as a VibeSchool admin and need approval.\nName: ${fullName}\nEmail: ${email}\nSchool: ${schoolName}`
+          `Hello, I just registered as a VibeSchool admin and need approval.\
+Name: ${fullName}\
+Email: ${email}\
+School: ${schoolName}`
         )
         router.replace(`/admin/pending?name=${encodeURIComponent(fullName)}&email=${encodeURIComponent(email)}&school=${encodeURIComponent(schoolName)}&wa=${waText}`)
         navigated = true
@@ -647,8 +673,16 @@ export default function RootPage() {
       `}</style>
       <div style={S.root}>
         <div style={S.glow} />
+        <nav style={S.publicNav} aria-label="Public navigation">
+          <a href="/" style={S.publicNavLink}>Home</a>
+          <a href="/global" style={S.publicNavLink}>Explore</a>
+          <a href="/about" style={S.publicNavLink}>About</a>
+          <a href="/contact" style={S.publicNavLink}>Contact</a>
+        </nav>
         <div style={S.wrap}>
-          <div style={S.wordmark}>Vibe<span style={S.gold}>School</span></div>
+          <a href="/" style={S.brandLink} aria-label="VibeSchool home">
+            <img src="/icons/vibeschool-logo.png" alt="VibeSchool" style={S.brandImage} />
+          </a>
           <p style={S.tagline}>Freedom · Learn · Explore</p>
           <a href="/global" style={S.exploreLink}>Explore free — no account needed →</a>
           <div style={S.box}>
@@ -811,6 +845,10 @@ export default function RootPage() {
             )}
           </div>
           <p style={S.legal}>
+            <a href="/about" style={{ color: 'rgba(200,168,75,0.4)', textDecoration: 'none' }}>About</a>
+            {' · '}
+            <a href="/contact" style={{ color: 'rgba(200,168,75,0.4)', textDecoration: 'none' }}>Contact</a>
+            <br />
             By continuing you agree to our{' '}
             <a href="/legal/terms" style={{ color: 'rgba(200,168,75,0.4)', textDecoration: 'none' }}>Terms</a>
             {' '}and{' '}

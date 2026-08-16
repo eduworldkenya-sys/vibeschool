@@ -24,7 +24,7 @@ export default function RoleLoginPage() {
   const [message, setMessage] = useState('')
 
   if (!config) {
-    return <main className="shell"><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><a href="/login">Go to sign in</a><style jsx>{styles}</style></section></main>
+    return <main className="shell"><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><a href="/">Go home</a><style jsx>{styles}</style></section></main>
   }
 
   async function submit() {
@@ -62,26 +62,35 @@ export default function RoleLoginPage() {
     if (error) { setMessage('Google sign in could not start.'); setBusy(false) }
   }
 
-  return <main className="shell"><section className="card">
-    <a className="brand" href="/">Vibe<span>School</span></a>
-    <p className="eyebrow">{config.label.toUpperCase()} SIGN IN</p>
-    <h1>Welcome back.</h1>
-    <p className="lead">Go straight to your VibeSchool workspace.</p>
-    {message && <div className="message" role="alert">{message}</div>}
-    <label>{config.email ? 'Email' : 'Admission number'}</label>
-    <input type={config.email ? 'email' : 'text'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} />
-    <label>{config.email ? 'Password' : 'PIN'}</label>
-    <input type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
-    <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : `Sign in as ${config.label}`}</button>
-    {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
-    <p className="switch">Wrong role? <a href="/login">Choose another sign-in</a></p>
-    {role === 'teacher' && <p className="switch">New teacher? <a href="/signup/teacher">Create an account</a></p>}
-    {role === 'parent' && <p className="switch">New parent? <a href="/signup/parent">Create an account</a></p>}
-    {role === 'student' && <p className="switch">New learner with a claim code? <a href="/signup/student">Create learner account</a></p>}
-    <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
-  </section><style jsx>{styles}</style></main>
+  return <main className="shell">
+    <nav className="topnav" aria-label="Public navigation">
+      <a href="/">Home</a>
+      <a href="/global">Explore</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+    <section className="card">
+      <a className="brand" href="/" aria-label="VibeSchool home">
+        <img src="/icons/vibeschool-logo.png" alt="VibeSchool" />
+      </a>
+      <p className="eyebrow">{config.label.toUpperCase()} SIGN IN</p>
+      <h1>Welcome back.</h1>
+      <p className="lead">Go straight to your VibeSchool workspace.</p>
+      {message && <div className="message" role="alert">{message}</div>}
+      <label>{config.email ? 'Email' : 'Admission number'}</label>
+      <input type={config.email ? 'email' : 'text'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} />
+      <label>{config.email ? 'Password' : 'PIN'}</label>
+      <input type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
+      <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : `Sign in as ${config.label}`}</button>
+      {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
+      <p className="switch">Wrong role? <a href="/">Choose another sign-in</a></p>
+      {role === 'teacher' && <p className="switch">New teacher? <a href="/signup/teacher">Create an account</a></p>}
+      {role === 'parent' && <p className="switch">New parent? <a href="/signup/parent">Create an account</a></p>}
+      {role === 'student' && <p className="switch">New learner with a claim code? <a href="/signup/student">Create learner account</a></p>}
+      <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
+    </section><style jsx>{styles}</style></main>
 }
 
 const styles = `
-.shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:28px 16px;font-family:var(--font-jakarta),Arial,sans-serif}.card{width:100%;max-width:420px}.brand{display:block;color:#fff;text-decoration:none;font-family:var(--font-display),Arial,sans-serif;font-size:30px;font-weight:800}.brand span{color:#c8a84b}.eyebrow{color:#c8a84b;font:700 10px var(--font-mono),monospace;letter-spacing:.18em;margin:28px 0 8px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:36px;line-height:1.05;margin:0}.lead{color:rgba(255,255,255,.56);margin:12px 0 22px}.message{background:rgba(255,80,80,.1);color:#ffc7c7;padding:11px;border-radius:9px;margin-bottom:14px;font-size:13px}label{display:block;font-size:12px;color:rgba(255,255,255,.65);margin:14px 0 6px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:13px 14px;font-size:16px}.primary,.secondary{width:100%;border-radius:9px;padding:13px 14px;font-weight:800;margin-top:18px;cursor:pointer}.primary{border:0;background:#c8a84b;color:#05050f}.secondary{margin-top:0;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff}.primary:disabled,.secondary:disabled{opacity:.55;cursor:not-allowed}.or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.3);font-size:11px;margin:16px 0}.or span{height:1px;background:rgba(255,255,255,.12);flex:1}.switch,.legal{font-size:12px;color:rgba(255,255,255,.45);text-align:center;margin-top:18px}.switch a,.legal a{color:#c8a84b}.legal{font-size:11px;margin-top:24px}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:88px 16px 28px;font-family:var(--font-jakarta),Arial,sans-serif;position:relative}.topnav{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;width:min(92vw,560px)}.topnav a{color:rgba(255,255,255,.62);text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.04em}.topnav a:hover,.topnav a:focus-visible{color:#c8a84b}.card{width:100%;max-width:420px}.brand{display:inline-flex;align-items:center;text-decoration:none;max-width:220px}.brand img{display:block;width:100%;height:auto;max-height:64px;object-fit:contain;object-position:left center}.eyebrow{color:#c8a84b;font:700 10px var(--font-mono),monospace;letter-spacing:.18em;margin:28px 0 8px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:36px;line-height:1.05;margin:0}.lead{color:rgba(255,255,255,.56);margin:12px 0 22px}.message{background:rgba(255,80,80,.1);color:#ffc7c7;padding:11px;border-radius:9px;margin-bottom:14px;font-size:13px}label{display:block;font-size:12px;color:rgba(255,255,255,.65);margin:14px 0 6px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:9px;padding:13px 14px;font-size:16px}.primary,.secondary{width:100%;border-radius:9px;padding:13px 14px;font-weight:800;margin-top:18px;cursor:pointer}.primary{border:0;background:#c8a84b;color:#05050f}.secondary{margin-top:0;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff}.primary:disabled,.secondary:disabled{opacity:.55;cursor:not-allowed}.or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.3);font-size:11px;margin:16px 0}.or span{height:1px;background:rgba(255,255,255,.12);flex:1}.switch,.legal{font-size:12px;color:rgba(255,255,255,.45);text-align:center;margin-top:18px}.switch a,.legal a{color:#c8a84b}.legal{font-size:11px;margin-top:24px}@media(max-width:520px){.shell{padding-top:108px}.topnav{top:22px;gap:14px}.brand{max-width:190px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 `

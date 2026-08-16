@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vibeschool-v5'
+const CACHE_NAME = 'vibeschool-v6'
 
 // Only precache a route that is guaranteed to exist and is safe for every
 // anonymous/authenticated user. Private Supabase/app data must never enter
