@@ -18,9 +18,7 @@ export default function ParentSignupPage() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    setNext(safeNext(new URLSearchParams(window.location.search).get('next')))
-  }, [])
+  useEffect(() => { setNext(safeNext(new URLSearchParams(window.location.search).get('next'))) }, [])
 
   async function submit() {
     if (busy) return
@@ -41,7 +39,8 @@ export default function ParentSignupPage() {
         localStorage.setItem('vs_role', 'parent')
         document.cookie = `vibe_role=parent; path=/; max-age=${data.session.expires_in ?? 3600}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
       }
-      router.replace(data.session && next ? next : '/parent/students')
+      if (data.session && next) { router.replace(next); return }
+      router.replace('/parent/students')
     } finally { setBusy(false) }
   }
 
