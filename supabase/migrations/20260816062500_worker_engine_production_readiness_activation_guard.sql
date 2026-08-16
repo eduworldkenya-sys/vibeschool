@@ -19,7 +19,9 @@ begin
     if v_global_policy<>1 then raise exception 'runtime_activation_requires_exactly_one_active_global_policy'; end if;
     if not exists(
       select 1 from public.hq_workforce_capability_authority_grants
-       where status='active' and not_before<=clock_timestamp() and expires_at>clock_timestamp()
+       where status='active'
+         and activated_at is not null and activated_at<=clock_timestamp()
+         and expires_at>clock_timestamp()
     ) then raise exception 'runtime_activation_requires_explicit_capability_authority'; end if;
   end if;
   return new;
