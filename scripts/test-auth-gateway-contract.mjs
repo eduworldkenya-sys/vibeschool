@@ -14,7 +14,7 @@ const callback = read('app/auth/callback/route.ts')
 const reset = read('app/reset-password/page.tsx')
 const routing = read('lib/auth-routing.ts')
 const sw = read('public/sw.js')
-const gatewayMigration = read('supabase/migrations/20260816144500_auth_gateway_authority_hardening.sql')
+const gatewayMigration = read('supabase/migrations/20260816144501_auth_gateway_authority_hardening.sql')
 const reconcileMigration = read('supabase/migrations/20260816154000_auth_onboarding_authority_reconcile.sql')
 const adminMigration = read('supabase/migrations/20260816152000_auth_admin_provisioning_approval.sql')
 
@@ -47,11 +47,9 @@ requireText('password reset', reset, 'await supabase.auth.signOut()')
 requireText('password reset', reset, 'autoComplete="new-password"')
 forbidText('password reset', reset, 'ROLE_BACK')
 
-// Current gateway access-state contract remains available.
 requireText('gateway migration', gatewayMigration, 'create or replace function public.get_my_auth_access_state()')
 requireText('gateway migration', gatewayMigration, 'revoke all on function public.get_my_role() from anon;')
 
-// The later reconciliation migration is the final role-authority contract.
 requireText('reconcile migration', reconcileMigration, 'alter table public.profiles alter column role drop default;')
 requireText('reconcile migration', reconcileMigration, 'create or replace function public.claim_my_initial_role(p_role text)')
 requireText('reconcile migration', reconcileMigration, "p_role not in ('teacher','parent','global_user')")
