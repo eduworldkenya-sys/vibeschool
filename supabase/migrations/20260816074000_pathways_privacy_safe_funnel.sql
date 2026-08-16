@@ -20,8 +20,8 @@ create table public.pathways_funnel_events (
 alter table public.pathways_funnel_events enable row level security;
 revoke all on table public.pathways_funnel_events from public, anon, authenticated;
 grant select, insert, update, delete on table public.pathways_funnel_events to service_role;
--- service-only: public.pathways_funnel_events raw funnel rows are not client-readable or directly client-writable
--- authorization-test: anon/authenticated have no direct table privileges; bounded RPC below is the only product write surface
+-- Access: service-only public.pathways_funnel_events
+-- Authorization-test: public.pathways_funnel_events anon/authenticated have no direct table privileges; bounded RPC below is the only product write surface.
 
 create index pathways_funnel_events_session_idx on public.pathways_funnel_events(anonymous_session_id, occurred_at desc);
 create index pathways_funnel_events_type_idx on public.pathways_funnel_events(event_type, occurred_at desc);
