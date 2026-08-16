@@ -17,6 +17,20 @@ function safeSlug(value: string) {
   return slug || 'vs'
 }
 
+function provisioningError(status: string) {
+  switch (status) {
+    case 'not_found': return { error: 'Claim code not found.', status: 404 }
+    case 'already_claimed': return { error: 'A learner account already exists. Sign in instead.', status: 409 }
+    case 'expired': return { error: 'This claim code has expired. Ask your teacher for a new one.', status: 410 }
+    case 'student_not_found': return { error: 'Learner record not found.', status: 404 }
+    case 'guardian_required': return { error: 'A parent or guardian must connect to this learner before the learner account can be created.', status: 403, code: 'guardian_required' }
+    case 'school_not_found': return { error: 'School assignment not found.', status: 409 }
+    case 'profile_missing': return { error: 'Learner identity setup is incomplete.', status: 409 }
+    case 'profile_role_conflict': return { error: 'This identity is already assigned to another account type.', status: 409 }
+    default: return { error: 'Could not finish learner account setup.', status: 500 }
+  }
+}
+
 export async function POST(req: NextRequest) {
   const adminSupabase = getAdminSupabase()
   let createdUserId: string | null = null
@@ -33,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const { data: claim, error: claimError } = await adminSupabase
       .from('student_claim_codes')
-      .select('id, student_id, claimed, expires_at, role')
+      .select('student_id, claimed, expires_at, role')
       .eq('code', claimCode)
       .eq('role', 'student')
       .maybeSingle()
@@ -53,9 +67,6 @@ export async function POST(req: NextRequest) {
 
     if (studentError || !student || student.deleted_at) return NextResponse.json({ error: 'Learner record not found.' }, { status: 404 })
     if (student.profile_id) return NextResponse.json({ error: 'A learner account already exists. Sign in instead.' }, { status: 409 })
-
-    // Child-data safety gate: a parent/guardian relationship must be established
-    // through the secure parent connection flow before learner credentials exist.
     if (!student.parent_linked_at) {
       return NextResponse.json({
         error: 'A parent or guardian must connect to this learner before the learner account can be created.',
@@ -102,7 +113,7 @@ export async function POST(req: NextRequest) {
       email: internalEmail,
       password,
       email_confirm: true,
-      user_metadata: { role: 'student', full_name: fullName },
+      user_metadata: { full_name: fullName },
     })
 
     if (createError || !created.user) {
@@ -114,34 +125,23 @@ export async function POST(req: NextRequest) {
 
     createdUserId = created.user.id
 
-    const { error: studentUpdateError } = await adminSupabase
-      .from('students')
-      .update({ profile_id: createdUserId })
-      .eq('id', student.id)
-      .is('profile_id', null)
+    const { data: finalized, error: finalizeError } = await adminSupabase.rpc('finalize_student_provisioning', {
+      p_code: claimCode,
+      p_user_id: createdUserId,
+      p_full_name: fullName,
+    })
 
-    if (studentUpdateError) throw studentUpdateError
+    if (finalizeError) throw finalizeError
+    const status = finalized && typeof finalized === 'object' && !Array.isArray(finalized) && typeof finalized.status === 'string'
+      ? finalized.status
+      : null
 
-    const { error: profileError } = await adminSupabase
-      .from('profiles')
-      .update({ role: 'student', school_id: school.id, full_name: fullName, updated_at: new Date().toISOString() })
-      .eq('id', createdUserId)
-
-    if (profileError) throw profileError
-
-    const { error: memberError } = await adminSupabase
-      .from('school_members')
-      .upsert({ school_id: school.id, profile_id: createdUserId, role: 'student' }, { onConflict: 'school_id,profile_id' })
-
-    if (memberError) throw memberError
-
-    const { error: claimUpdateError } = await adminSupabase
-      .from('student_claim_codes')
-      .update({ claimed: true, claimed_at: new Date().toISOString() })
-      .eq('id', claim.id)
-      .eq('claimed', false)
-
-    if (claimUpdateError) throw claimUpdateError
+    if (status !== 'success') {
+      const mapped = provisioningError(status || 'unknown')
+      await adminSupabase.auth.admin.deleteUser(createdUserId)
+      createdUserId = null
+      return NextResponse.json({ error: mapped.error, ...(mapped.code ? { code: mapped.code } : {}) }, { status: mapped.status })
+    }
 
     return NextResponse.json({ user_id: createdUserId, email: internalEmail })
   } catch (e: unknown) {
