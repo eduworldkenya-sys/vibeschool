@@ -1,9 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const migrationPath = 'supabase/migrations/20260816193000_auth_identity_reconciliation.sql'
-const policyMigrationPath = 'supabase/migrations/20260816193100_auth_admin_policy_authority_hardening.sql'
-const functionMigrationPath = 'supabase/migrations/20260816193200_auth_privileged_function_role_resolution.sql'
+const migrationPath = 'supabase/migrations/20260816202000_auth_identity_reconciliation.sql'
+const policyMigrationPath = 'supabase/migrations/20260816202100_auth_admin_policy_authority_hardening.sql'
+const functionMigrationPath = 'supabase/migrations/20260816202200_auth_privileged_function_role_resolution.sql'
 const migration = fs.readFileSync(migrationPath, 'utf8')
 const policyMigration = fs.readFileSync(policyMigrationPath, 'utf8')
 const functionMigration = fs.readFileSync(functionMigrationPath, 'utf8')
@@ -61,9 +61,6 @@ requireText('privileged role resolution', functionMigration, 'select public.get_
 forbidText('privileged role resolution', functionMigration, "where p.id = v_uid and p.role::text in ('teacher','admin')")
 forbidText('privileged role resolution', functionMigration, 'select role into viewer_role from public.profiles')
 
-// Historical scripts that directly rewrite authentication/session code must not
-// reappear at repository root. Unrelated legacy maintenance scripts are outside
-// this auth contract and are handled separately.
 const forbiddenAuthPatchScripts = new Set([
   'signup_fix.py',
   'session_fix.py',
