@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
-"""Prepare an authoritative school artifact for the P0.10 ingestion boundary.
+"""Prepare a deterministic Tier-0 school snapshot for VibeSchool ingestion.
 
-This tool is deliberately OFFLINE and non-authoritative by itself. It never connects
- to Supabase, never promotes a school, and never changes source evidence. It turns a
- locally acquired Tier-0 artifact plus an extracted CSV/JSON/JSONL representation into
- a deterministic package suitable for hq_stage_school_directory_batch().
-
-The original artifact SHA-256 is the snapshot checksum. Every emitted record preserves
- source identifiers as strings (including leading zeroes), retains normalized identity
- fields separately, and receives an explicit stable source_record_id.
+This tool is offline-only. It never connects to Supabase or promotes canonical
+schools. It normalizes a locally acquired authoritative artifact into the
+raw_record contract consumed by the School Engine.
 """
 
 from __future__ import annotations
@@ -24,28 +19,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-PARSER_VERSION = "p0.10-tier0-preparer-v1"
+PARSER_VERSION = "p0.10-tier0-preparer-v2"
 
 ALIASES = {
     "name": ("name", "school_name", "school", "institution_name", "official_name", "institution"),
     "knec_code": ("knec_code", "knec", "knec_school_code", "exam_code"),
     "nemis_uic": ("nemis_uic", "nemis_code", "nemis", "uic", "uic_code"),
     "moe_registration_no": (
-        "moe_registration_no",
-        "moe_registration_number",
-        "moe_code",
-        "ministry_registration_no",
-        "ministry_registration_number",
-        "registration_no",
+        "moe_registration_no", "moe_registration_number", "moe_code",
+        "ministry_registration_no", "ministry_registration_number", "registration_no",
     ),
     "tsc_code": ("tsc_code", "tsc", "tsc_school_code"),
     "region": ("region",),
     "county": ("county",),
     "sub_county": ("sub_county", "subcounty", "sub_county_name"),
-    "type": ("type", "school_type", "institution_type", "ownership", "category"),
+    "school_type": ("school_type", "institution_type"),
+    "ownership_type": ("ownership_type", "ownership"),
+    "accommodation_type": ("accommodation_type", "accommodation", "boarding_status"),
+    "gender_type": ("gender_type", "gender", "sex", "school_gender"),
     "cluster": ("cluster",),
-    "accommodation": ("accommodation", "accommodation_type", "boarding_status"),
-    "gender": ("gender", "sex", "school_gender"),
     "latitude": ("latitude", "lat"),
     "longitude": ("longitude", "lon", "lng"),
 }
@@ -56,6 +48,10 @@ STRONG_ID_FIELDS = (
     ("moe", "moe_registration_no"),
     ("tsc", "tsc_code"),
 )
+
+PUBLIC_PRIVATE = {"public", "private"}
+ACCOMMODATION = {"day", "boarding", "day & boarding", "day and boarding", "mixed day and boarding"}
+GENDER = {"boys", "girls", "mixed", "boy", "girl", "co-ed", "coed"}
 
 
 def die(message: str) -> None:
@@ -99,7 +95,6 @@ def normalized_mapping(row: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in row.items():
         k = canonical_key(str(key))
-        # Keep the first non-empty value if normalized headers collide.
         if k not in result or clean(result[k]) is None:
             result[k] = value
     return result
@@ -111,6 +106,22 @@ def pick(row: dict[str, Any], field: str) -> str | None:
         if value is not None:
             return value
     return None
+
+
+def infer_legacy_type(row: dict[str, Any], normalized: dict[str, str | None]) -> None:
+    """Map a generic legacy `Type` header only when its vocabulary is unambiguous."""
+    generic = clean(row.get("type"))
+    if generic is None:
+        return
+    lowered = generic.casefold()
+    if normalized["ownership_type"] is None and lowered in PUBLIC_PRIVATE:
+        normalized["ownership_type"] = generic
+    elif normalized["accommodation_type"] is None and lowered in ACCOMMODATION:
+        normalized["accommodation_type"] = generic
+    elif normalized["gender_type"] is None and lowered in GENDER:
+        normalized["gender_type"] = generic
+    elif normalized["school_type"] is None:
+        normalized["school_type"] = generic
 
 
 def load_rows(path: Path) -> list[dict[str, Any]]:
@@ -154,6 +165,7 @@ def load_rows(path: Path) -> list[dict[str, Any]]:
 def normalize_record(source_row: dict[str, Any], row_number: int) -> tuple[dict[str, Any], dict[str, Any]]:
     row = normalized_mapping(source_row)
     normalized: dict[str, str | None] = {field: pick(row, field) for field in ALIASES}
+    infer_legacy_type(row, normalized)
 
     name = normalized["name"]
     strong = [(prefix, field, normalized[field]) for prefix, field in STRONG_ID_FIELDS if normalized[field]]
@@ -162,12 +174,9 @@ def normalize_record(source_row: dict[str, Any], row_number: int) -> tuple[dict[
         prefix, _, value = strong[0]
         source_record_id = f"{prefix}:{value}"
     else:
-        # This is deliberately not certifiable for Tier-0 staging, but emitting a
-        # deterministic diagnostic is preferable to silently dropping source evidence.
         basis = canonical_json({"row": row, "row_number": row_number})
         source_record_id = f"missing-strong-id:{sha256_bytes(basis.encode('utf-8'))}"
 
-    # hq_stage_school_directory_batch expects these canonical keys in raw_record.
     emitted: dict[str, Any] = {
         "source_record_id": source_record_id,
         "name": name,
@@ -178,10 +187,11 @@ def normalize_record(source_row: dict[str, Any], row_number: int) -> tuple[dict[
         "region": normalized["region"],
         "county": normalized["county"],
         "sub_county": normalized["sub_county"],
-        "type": normalized["type"],
+        "school_type": normalized["school_type"],
+        "ownership_type": normalized["ownership_type"],
+        "accommodation_type": normalized["accommodation_type"],
+        "gender_type": normalized["gender_type"],
         "cluster": normalized["cluster"],
-        "accommodation": normalized["accommodation"],
-        "gender": normalized["gender"],
         "latitude": normalized["latitude"],
         "longitude": normalized["longitude"],
     }
@@ -201,6 +211,11 @@ def normalize_record(source_row: dict[str, Any], row_number: int) -> tuple[dict[
         diagnostic["issues"].append("missing_name")
     if not strong:
         diagnostic["issues"].append("missing_strong_identifier")
+    if clean(row.get("type")) and not any(
+        normalized[field] == clean(row.get("type"))
+        for field in ("school_type", "ownership_type", "accommodation_type", "gender_type")
+    ):
+        diagnostic["issues"].append("unclassified_legacy_type")
 
     return emitted, diagnostic
 
@@ -216,12 +231,12 @@ def duplicate_groups(records: Iterable[dict[str, Any]], field: str) -> dict[str,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--artifact", required=True, type=Path, help="Original Tier-0 file exactly as acquired")
-    parser.add_argument("--records", required=True, type=Path, help="Extracted CSV/JSON/JSONL school records")
-    parser.add_argument("--source-name", required=True, help="Registered school_directory_source_registry source_name")
-    parser.add_argument("--source-url", required=True, help="Official Tier-0 URL from which the artifact was acquired")
-    parser.add_argument("--source-version", required=True, help="Source publication/version label")
-    parser.add_argument("--retrieved-at", help="UTC ISO-8601 acquisition time; defaults to current UTC")
+    parser.add_argument("--artifact", required=True, type=Path)
+    parser.add_argument("--records", required=True, type=Path)
+    parser.add_argument("--source-name", required=True)
+    parser.add_argument("--source-url", required=True)
+    parser.add_argument("--source-version", required=True)
+    parser.add_argument("--retrieved-at")
     parser.add_argument("--output-dir", required=True, type=Path)
     args = parser.parse_args()
 
@@ -236,30 +251,23 @@ def main() -> int:
     if not rows:
         die("authoritative snapshot extraction is empty")
 
-    prepared: list[dict[str, Any]] = []
-    diagnostics: list[dict[str, Any]] = []
+    prepared, diagnostics = [], []
     for row_number, source_row in enumerate(rows, 1):
         emitted, diagnostic = normalize_record(source_row, row_number)
         prepared.append(emitted)
         diagnostics.append(diagnostic)
 
     duplicate_report = {
-        "source_record_id": duplicate_groups(prepared, "source_record_id"),
-        "knec_code": duplicate_groups(prepared, "knec_code"),
-        "nemis_uic": duplicate_groups(prepared, "nemis_uic"),
-        "moe_registration_no": duplicate_groups(prepared, "moe_registration_no"),
-        "tsc_code": duplicate_groups(prepared, "tsc_code"),
+        field: duplicate_groups(prepared, field)
+        for field in ("source_record_id", "knec_code", "nemis_uic", "moe_registration_no", "tsc_code")
     }
 
     issue_counts = Counter(issue for item in diagnostics for issue in item["issues"])
-    duplicate_record_ids = len(duplicate_report["source_record_id"])
-    if duplicate_record_ids:
-        issue_counts["duplicate_source_record_id"] += duplicate_record_ids
+    if duplicate_report["source_record_id"]:
+        issue_counts["duplicate_source_record_id"] += len(duplicate_report["source_record_id"])
 
     retrieved_at = args.retrieved_at or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     artifact_sha256 = sha256_file(args.artifact)
-
-    # Deterministic package hash excludes retrieval time and filesystem paths.
     package_material = {
         "parser_version": PARSER_VERSION,
         "source_name": args.source_name,
@@ -270,18 +278,20 @@ def main() -> int:
     }
     package_sha256 = sha256_bytes(canonical_json(package_material).encode("utf-8"))
 
+    tier0_safe = (
+        not any(not item["certifiable"] for item in diagnostics)
+        and not any(duplicate_report[field] for field in duplicate_report)
+        and not any("unclassified_legacy_type" in item["issues"] for item in diagnostics)
+    )
+
     manifest = {
-        "contract": "vibeschool.p0.authoritative_school_snapshot.v1",
+        "contract": "vibeschool.p0.authoritative_school_snapshot.v2",
         "parser_version": PARSER_VERSION,
         "source_name": args.source_name,
         "source_url": args.source_url,
         "source_version": args.source_version,
         "retrieved_at": retrieved_at,
-        "artifact": {
-            "filename": args.artifact.name,
-            "sha256": artifact_sha256,
-            "bytes": args.artifact.stat().st_size,
-        },
+        "artifact": {"filename": args.artifact.name, "sha256": artifact_sha256, "bytes": args.artifact.stat().st_size},
         "records": {
             "count": len(prepared),
             "certifiable_count": sum(1 for item in diagnostics if item["certifiable"]),
@@ -294,31 +304,24 @@ def main() -> int:
             "offline_only": True,
             "database_credentials_used": False,
             "canonical_promotion_performed": False,
-            "tier0_staging_safe": not any(not item["certifiable"] for item in diagnostics)
-            and not any(duplicate_report[field] for field in duplicate_report),
+            "tier0_staging_safe": tier0_safe,
         },
     }
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    records_path = args.output_dir / "records.json"
-    manifest_path = args.output_dir / "manifest.json"
-    diagnostics_path = args.output_dir / "diagnostics.json"
-
-    records_path.write_text(json.dumps(prepared, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    diagnostics_path.write_text(json.dumps(diagnostics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (args.output_dir / "records.json").write_text(json.dumps(prepared, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (args.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (args.output_dir / "diagnostics.json").write_text(json.dumps(diagnostics, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(json.dumps({
         "artifact_sha256": artifact_sha256,
         "package_sha256": package_sha256,
         "record_count": len(prepared),
         "certifiable_count": manifest["records"]["certifiable_count"],
-        "tier0_staging_safe": manifest["safety"]["tier0_staging_safe"],
+        "tier0_staging_safe": tier0_safe,
         "output_dir": str(args.output_dir),
     }, sort_keys=True))
-
-    # Fail closed for the Tier-0 handoff. Evidence files still exist for diagnosis.
-    return 0 if manifest["safety"]["tier0_staging_safe"] else 2
+    return 0 if tier0_safe else 2
 
 
 if __name__ == "__main__":
