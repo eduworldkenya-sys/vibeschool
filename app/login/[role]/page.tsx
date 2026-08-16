@@ -13,6 +13,7 @@ const ROLE_CONFIG = {
 } as const
 
 type RoleKey = keyof typeof ROLE_CONFIG
+type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: unknown }
 type OnboardingState = { state?: unknown; destination?: unknown }
 
 const SIGNUP_LINKS: Partial<Record<RoleKey, string>> = {
@@ -47,10 +48,10 @@ export default function RoleLoginPage() {
         router.replace('/auth/error?reason=authority_resolution_failed')
         return
       }
-
-      const actualRole = typeof accessState.role === 'string' ? accessState.role : null
-      const status = typeof accessState.account_status === 'string' ? accessState.account_status : null
-      const anonymized = accessState.is_anonymized === true
+      const access = accessState as AccessState
+      const actualRole = typeof access.role === 'string' ? access.role : null
+      const status = typeof access.account_status === 'string' ? access.account_status : null
+      const anonymized = access.is_anonymized === true
       if (status === 'restricted' || anonymized) {
         await supabase.auth.signOut()
         router.replace('/auth/error?reason=account_unavailable')
@@ -68,8 +69,9 @@ export default function RoleLoginPage() {
         return
       }
 
-      const state = (onboarding as OnboardingState).state
-      const rawDestination = (onboarding as OnboardingState).destination
+      const onboardingState = onboarding as OnboardingState
+      const state = onboardingState.state
+      const rawDestination = onboardingState.destination
       const destination = typeof rawDestination === 'string' ? safeInternalPath(rawDestination) : null
       if (typeof state !== 'string' || !destination || !roleCanVisit(actualRole, destination)) {
         router.replace('/auth/error?reason=onboarding_invalid')
