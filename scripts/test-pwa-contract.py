@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +15,11 @@ def read(path: str) -> str:
 def require(text: str, needle: str, label: str) -> None:
     if needle not in text:
         raise AssertionError(f"{label}: missing {needle!r}")
+
+
+def require_pattern(text: str, pattern: str, label: str) -> None:
+    if re.search(pattern, text, flags=re.MULTILINE) is None:
+        raise AssertionError(f"{label}: missing pattern {pattern!r}")
 
 
 def forbid(text: str, needle: str, label: str) -> None:
@@ -63,11 +69,16 @@ def main() -> int:
         "'/pwa-icons/v3/32'",
         "'/pwa-icons/v3/48'",
         "'/pwa-icons/v3/192'",
-        "<PwaServiceWorker />",
-        "<PwaInstallPrompt />",
         "/icons/vibeschool-logo.png",
     ]:
         require(layout, value, "layout")
+
+    # These are semantic ownership checks, not formatter/style checks. JSX may be
+    # compacted or pretty-printed without invalidating service-worker/install wiring.
+    require_pattern(layout, r"import\s+PwaServiceWorker\s+from\s+['\"]@/components/pwa/PwaServiceWorker['\"]", "layout service worker import")
+    require_pattern(layout, r"<\s*PwaServiceWorker\s*/\s*>", "layout service worker mount")
+    require_pattern(layout, r"import\s+PwaInstallPrompt\s+from\s+['\"]@/components/pwa/PwaInstallPrompt['\"]", "layout install prompt import")
+    require_pattern(layout, r"<\s*PwaInstallPrompt\s*/\s*>", "layout install prompt mount")
 
     for value in [
         "'32': { size: 32, maskable: false }",
