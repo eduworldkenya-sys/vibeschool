@@ -11,34 +11,30 @@ export default function PathwayQuickCheckPage() {
   const [complete,setComplete]=useState(false)
   const [hydrated,setHydrated]=useState(false)
 
-  useEffect(()=>{try{const stored=window.localStorage.getItem(QUICK_CHECK_STORAGE_KEY);if(stored){const parsed=JSON.parse(stored) as {step?:number;answers?:Record<string,number>;complete?:boolean};if(parsed.answers&&typeof parsed.answers==='object')setAnswers(parsed.answers);if(typeof parsed.step==='number')setStep(Math.max(0,Math.min(QUICK_CHECK_QUESTIONS.length-1,parsed.step)));if(parsed.complete===true)setComplete(true)}}catch{}finally{setHydrated(true)}},[])
-  useEffect(()=>{if(!hydrated)return;try{window.localStorage.setItem(QUICK_CHECK_STORAGE_KEY,JSON.stringify({step,answers,complete}))}catch{}},[answers,complete,hydrated,step])
+  useEffect(()=>{try{const stored=localStorage.getItem(QUICK_CHECK_STORAGE_KEY);if(stored){const p=JSON.parse(stored) as {step?:number;answers?:Record<string,number>;complete?:boolean};if(p.answers&&typeof p.answers==='object')setAnswers(p.answers);if(typeof p.step==='number')setStep(Math.max(0,Math.min(QUICK_CHECK_QUESTIONS.length-1,p.step)));if(p.complete===true)setComplete(true)}}catch{}finally{setHydrated(true)}},[])
+  useEffect(()=>{if(!hydrated)return;try{localStorage.setItem(QUICK_CHECK_STORAGE_KEY,JSON.stringify({step,answers,complete}))}catch{}},[answers,complete,hydrated,step])
 
   const scores=useMemo(()=>calculateQuickCheck(answers),[answers])
   const ranking=useMemo(()=>rankQuickCheck(scores),[scores])
-  const leader=ranking[0]
-  const runnerUp=ranking[1]
+  const leader=ranking[0], runnerUp=ranking[1]
   const close=scores[leader]-scores[runnerUp]<=2
 
   function select(index:number){const q=QUICK_CHECK_QUESTIONS[step];setAnswers(v=>({...v,[q.id]:index}));if(step===QUICK_CHECK_QUESTIONS.length-1)setComplete(true);else setStep(v=>v+1)}
-  function reset(){setAnswers({});setStep(0);setComplete(false);try{window.localStorage.removeItem(QUICK_CHECK_STORAGE_KEY)}catch{}}
+  function reset(){setAnswers({});setStep(0);setComplete(false);try{localStorage.removeItem(QUICK_CHECK_STORAGE_KEY);localStorage.removeItem('vs_pathways_save_id_v1')}catch{}}
 
   if(!hydrated)return <main style={S.root}><div style={S.shell}><p style={S.muted}>Loading your free pathway check…</p></div></main>
 
-  if(complete){const primary=QUICK_CHECK_PATHWAYS[leader];const secondary=QUICK_CHECK_PATHWAYS[runnerUp];return <main style={S.root}><div style={S.shell}>
-    <Link href="/pathways" style={S.back}>← Pathways</Link>
-    <div style={S.kicker}>EARLY GUIDANCE · FREE</div>
+  if(complete){const primary=QUICK_CHECK_PATHWAYS[leader],secondary=QUICK_CHECK_PATHWAYS[runnerUp];return <main style={S.root}><div style={S.shell}>
+    <Link href="/pathways" style={S.back}>← Pathways</Link><div style={S.kicker}>EARLY GUIDANCE · FREE</div>
     <h1 style={S.h1}>{close?'Two directions are worth exploring':`${primary.name} is your strongest signal so far`}</h1>
     <p style={S.lead}>This is an early indication from a short interest check, not an official placement decision or a judgment about what you can become.</p>
     <section style={S.resultCard}><div style={S.resultLabel}>{close?'STRONGEST SIGNALS':'STRONGEST DIRECTION'}</div><h2 style={S.resultTitle}>{primary.name}</h2><p style={{...S.body,color:'#d8d8e6'}}>{primary.summary}</p>{close&&<div style={S.secondary}><strong>{secondary.name}</strong><span>{secondary.summary}</span></div>}</section>
     <section style={S.card}><h2 style={S.cardTitle}>Why this result?</h2><p style={S.body}>Your answers produced more interest signals for {primary.name}{close?`, with ${secondary.name} close behind`:''}. Subject preferences, actual learning evidence and career goals can strengthen or change this guidance later.</p></section>
-    <section style={S.card}><h2 style={S.cardTitle}>What should I do next?</h2><div style={S.actions}><Link href="/learn/careers" style={S.primaryAction}>Explore careers</Link><Link href={primary.href} style={S.secondaryAction}>Understand {primary.name}</Link><button type="button" onClick={reset} style={S.textButton}>Retake the quick check</button></div><p style={{...S.small,marginTop:12}}>Your answers stay on this device. Account saving is intentionally disabled until the continuation and learner-identity contract is certified against current authentication.</p></section>
-    <section style={S.trustCard}><strong>Trust note</strong><p style={S.small}>VibeSchool separates this guidance from official placement and verified school-offering facts. Detailed combinations and school claims must be backed by authoritative evidence before they are presented as verified.</p></section>
+    <section style={S.card}><h2 style={S.cardTitle}>What should I do next?</h2><div style={S.actions}><Link href="/pathways/continue" style={S.primaryAction}>Save or continue safely</Link><Link href="/pathways/schools" style={S.secondaryAction}>Explore verified schools</Link><Link href="/learn/careers" style={S.secondaryAction}>Explore careers</Link><Link href={primary.href} style={S.secondaryAction}>Understand {primary.name}</Link><button type="button" onClick={reset} style={S.textButton}>Retake the quick check</button></div><p style={{...S.small,marginTop:12}}>Your answers remain on this device until you explicitly choose to save them to an eligible learner account.</p></section>
+    <section style={S.trustCard}><strong>Trust note</strong><p style={S.small}>VibeSchool separates guidance from official placement and verified school-offering facts. Detailed combinations and school claims are shown as verified only when backed by source evidence.</p></section>
   </div></main>}
 
-  const question=QUICK_CHECK_QUESTIONS[step]
-  const selected=answers[question.id]
-  const pct=Math.round(((step+1)/QUICK_CHECK_QUESTIONS.length)*100)
+  const question=QUICK_CHECK_QUESTIONS[step], selected=answers[question.id], pct=Math.round(((step+1)/QUICK_CHECK_QUESTIONS.length)*100)
   return <main style={S.root}><div style={S.shell}>
     <Link href="/pathways" style={S.back}>← Pathways</Link><div style={S.kicker}>QUICK PATHWAY CHECK</div><div style={S.progressTrack}><div style={{...S.progressFill,width:`${pct}%`}}/></div><div style={S.stepText}>Question {step+1} of {QUICK_CHECK_QUESTIONS.length}</div><h1 style={S.question}>{question.prompt}</h1>
     <div style={S.choiceGrid}>{question.choices.map((choice,index)=><button key={choice.label} type="button" onClick={()=>select(index)} style={{...S.choice,...(selected===index?S.choiceSelected:{})}}><span style={S.choiceTitle}>{choice.label}</span>{choice.hint&&<span style={S.small}>{choice.hint}</span>}</button>)}</div>
