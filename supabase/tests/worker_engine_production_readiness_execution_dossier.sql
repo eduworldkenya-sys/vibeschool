@@ -2,7 +2,7 @@
 begin;
 
 do $$
-declare d text;
+declare d text; b text;
 begin
   if has_table_privilege('authenticated','public.hq_workforce_execution_envelopes','SELECT')
      or has_table_privilege('service_role','public.hq_workforce_execution_envelopes','INSERT')
@@ -14,15 +14,25 @@ begin
     raise exception 'execution_envelope_service_read_missing';
   end if;
   select lower(pg_get_functiondef('public.hq_workforce_get_execution_dossier(uuid)'::regprocedure)) into d;
+  select lower(pg_get_functiondef('public.hq_workforce_get_execution_dossier_base(uuid)'::regprocedure)) into b;
   if position('hq_assert_owner' in d)=0 or position('execution_dossier_authenticated_owner_required' in d)=0 then
     raise exception 'execution_dossier_not_owner_bound';
   end if;
-  if position('completeness' in d)=0 or position('breaker_events' in d)=0 or position('verifications' in d)=0
-     or position('compensations' in d)=0 or position('outcomes' in d)=0 or position('escalations' in d)=0 then
-    raise exception 'execution_dossier_missing_required_lifecycle_evidence';
+  -- The final dossier is intentionally composed: the wrapper adds budget/early-break
+  -- semantics while the locked-down base owns the lifecycle joins. Validate both layers.
+  if position('completeness' in d)=0 or position('budget_events' in d)=0
+     or position('hq_workforce_get_execution_dossier_base' in d)=0 then
+    raise exception 'execution_dossier_wrapper_missing_required_evidence';
   end if;
-  if has_function_privilege('service_role','public.hq_workforce_get_execution_dossier(uuid)','EXECUTE') then
-    raise exception 'service_role_can_read_owner_execution_dossier';
+  if position('breaker_events' in b)=0 or position('verifications' in b)=0
+     or position('compensations' in b)=0 or position('outcomes' in b)=0
+     or position('escalations' in b)=0 or position('capability_usage' in b)=0 then
+    raise exception 'execution_dossier_base_missing_required_lifecycle_evidence';
+  end if;
+  if has_function_privilege('service_role','public.hq_workforce_get_execution_dossier(uuid)','EXECUTE')
+     or has_function_privilege('service_role','public.hq_workforce_get_execution_dossier_base(uuid)','EXECUTE')
+     or has_function_privilege('authenticated','public.hq_workforce_get_execution_dossier_base(uuid)','EXECUTE') then
+    raise exception 'execution_dossier_internal_boundary_too_broad';
   end if;
 end $$;
 
