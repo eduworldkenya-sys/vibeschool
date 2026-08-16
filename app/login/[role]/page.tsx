@@ -5,13 +5,23 @@ import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const ROLE_CONFIG = {
-  teacher: { label: 'Teacher', destination: '/teacher', email: true },
-  parent: { label: 'Parent', destination: '/parent', email: true },
-  student: { label: 'Learner', destination: '/student', email: false },
-  global: { label: 'Global learner', destination: '/global', email: true },
+  teacher: { label: 'Teacher', email: true },
+  parent: { label: 'Parent', email: true },
+  student: { label: 'Learner', email: false },
+  global: { label: 'Global learner', email: true },
 } as const
 
 type RoleKey = keyof typeof ROLE_CONFIG
+
+type OnboardingState = {
+  state?: unknown
+  destination?: unknown
+}
+
+function safeDestination(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null
+  return value
+}
 
 export default function RoleLoginPage() {
   const params = useParams<{ role: string }>()
@@ -37,18 +47,33 @@ export default function RoleLoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Wrong admission number or PIN. Ask your teacher if you need help.'); return }
 
-      const { data: actualRole } = await supabase.rpc('get_my_role')
       const expectedRole = role === 'global' ? 'global_user' : role
-      if (actualRole !== expectedRole) {
+      const { data: actualRole, error: roleError } = await supabase.rpc('get_my_role')
+      if (roleError || actualRole !== expectedRole) {
         await supabase.auth.signOut()
-        setMessage(`This account is not registered as a ${config.label.toLowerCase()}. Choose the correct sign-in.`)
+        setMessage(roleError ? 'We could not verify this account. Please try again.' : `This account is not registered as a ${config.label.toLowerCase()}. Choose the correct sign-in.`)
+        return
+      }
+
+      // One authoritative post-auth resolver for both password and OAuth flows.
+      // Never send a user directly to a dashboard and bypass required onboarding.
+      const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+      const state = onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)
+        ? (onboarding as OnboardingState)
+        : null
+      const destination = safeDestination(state?.destination)
+
+      if (onboardingError || !destination || typeof state?.state !== 'string' || state.state === 'unknown_role') {
+        await supabase.auth.signOut()
+        setMessage('We signed you in but could not safely open your workspace. Please try again.')
         return
       }
 
       const maxAge = data.session?.expires_in ?? 3600
       localStorage.setItem('vs_role', expectedRole)
       document.cookie = `vibe_role=${expectedRole}; path=/; max-age=${maxAge}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`
-      router.replace(config.destination)
+      router.replace(destination)
+      router.refresh()
     } finally {
       setBusy(false)
     }
@@ -56,10 +81,12 @@ export default function RoleLoginPage() {
 
   async function google() {
     if (!config.email || busy) return
+    setMessage('')
     setBusy(true)
     const requestedRole = role === 'global' ? 'global_user' : role
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback?intent=signin&role=${requestedRole}` } })
-    if (error) { setMessage('Google sign in could not start.'); setBusy(false) }
+    const redirectTo = `${window.location.origin}/auth/callback?intent=signin&role=${encodeURIComponent(requestedRole)}`
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+    if (error) { setMessage('Google sign in could not start. Please try again.'); setBusy(false) }
   }
 
   return <main className="shell"><section className="card">

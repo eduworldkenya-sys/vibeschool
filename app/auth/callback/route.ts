@@ -2,30 +2,25 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const DASHBOARDS: Record<string, string> = {
-  teacher: '/teacher',
-  parent: '/parent',
-  student: '/student',
-  admin: '/admin',
-  global_user: '/global',
-}
-
 const FIRST_ACCESS: Record<string, string> = {
   teacher: '/teacher/onboarding/school',
-  parent: '/parent/students',
+  parent: '/parent/connect',
   student: '/student',
-  admin: '/admin',
+  admin: '/admin/onboarding',
   global_user: '/global',
 }
 
 function safeRequestedRole(value: string | null): string | null {
-  return value && Object.prototype.hasOwnProperty.call(DASHBOARDS, value)
-    ? value
-    : null
+  return value && Object.prototype.hasOwnProperty.call(FIRST_ACCESS, value) ? value : null
 }
 
 function safeNext(value: string | null): string | null {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null
+  return value
+}
+
+function safeDestination(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null
   return value
 }
 
@@ -35,61 +30,48 @@ export async function GET(req: NextRequest) {
   const next = safeNext(searchParams.get('next'))
   const requestedRole = safeRequestedRole(searchParams.get('role'))
 
-  if (code) {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
+  if (!code) return NextResponse.redirect(new URL('/login?error=oauth_callback', req.url))
+
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         },
-      }
-    )
+      },
+    }
+  )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+  if (exchangeError) return NextResponse.redirect(new URL('/login?error=oauth_session', req.url))
 
-    if (!error) {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: onboarding, error: onboardingErr } = await supabase.rpc('get_my_onboarding_state')
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) return NextResponse.redirect(new URL('/login?error=oauth_user', req.url))
 
-        if (!onboardingErr && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
-          const state = typeof onboarding.state === 'string' ? onboarding.state : null
-          const destination = typeof onboarding.destination === 'string' ? onboarding.destination : null
+  const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+  if (!onboardingError && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
+    const state = typeof onboarding.state === 'string' ? onboarding.state : null
+    const destination = safeDestination(onboarding.destination)
 
-          // The database resolver is authoritative for onboarding state.
-          // Do not let a requested dashboard bypass required onboarding.
-          if (destination && state && state !== 'unknown_role') {
-            const ready = state === 'ready'
-            const target = ready && next ? next : destination
-            return NextResponse.redirect(new URL(target, req.url))
-          }
-        }
-
-        // Safe fallback for an older/missing resolver state.
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (profile?.role && DASHBOARDS[profile.role]) {
-          return NextResponse.redirect(new URL(DASHBOARDS[profile.role], req.url))
-        }
-
-        // New Google user with no profile yet — use only a validated role
-        // selected before OAuth. Never default an invalid/missing role to teacher.
-        const destination = requestedRole ? FIRST_ACCESS[requestedRole] : '/'
-        return NextResponse.redirect(new URL(destination, req.url))
-      }
+    if (destination && state && state !== 'unknown_role') {
+      // Only a fully onboarded account may honor a caller-provided in-app destination.
+      // Incomplete accounts always go to the canonical resolver destination.
+      const target = state === 'ready' && next ? next : destination
+      return NextResponse.redirect(new URL(target, req.url))
     }
   }
 
-  return NextResponse.redirect(new URL('/', req.url))
+  // A brand-new OAuth identity may legitimately have no profile yet. Only use the
+  // role that was explicitly validated before OAuth; otherwise fail closed.
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+  if (!profile?.role && requestedRole) {
+    return NextResponse.redirect(new URL(FIRST_ACCESS[requestedRole], req.url))
+  }
+
+  await supabase.auth.signOut()
+  return NextResponse.redirect(new URL('/login?error=onboarding_state', req.url))
 }
