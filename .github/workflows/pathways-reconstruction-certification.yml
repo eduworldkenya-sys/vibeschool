@@ -8,6 +8,7 @@ on:
       - 'lib/pathways/**'
       - 'supabase/migrations/*pathways*.sql'
       - 'scripts/test-pathways-auth-boundary.py'
+      - 'scripts/test-pathways-domain-contract.py'
       - '.github/workflows/pathways-*.yml'
       - '.github/actions/production-build-contract/**'
   workflow_dispatch:
@@ -26,6 +27,7 @@ jobs:
         with:
           prebuild_command: |
             python3 scripts/test-pathways-auth-boundary.py
+            python3 scripts/test-pathways-domain-contract.py
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
