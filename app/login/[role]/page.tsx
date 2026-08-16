@@ -92,10 +92,10 @@ export default function RoleLoginPage() {
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : `Sign in as ${config.label}`}</button>
       {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
       <p className="switch">Wrong role? <a href="/">Choose another sign-in</a></p>
-      {role === 'teacher' && <p className="switch">New teacher? <a href={`/signup/teacher${nextQuery}`}>Create an account</a></p>}
-      {role === 'parent' && <p className="switch">New parent? <a href={`/signup/parent${nextQuery}`}>Create an account</a></p>}
-      {role === 'student' && <p className="switch">New learner with a claim code? <a href={`/signup/student${nextQuery}`}>Create learner account</a></p>}
-      {role === 'global' && <p className="switch">New independent learner? <a href={`/global/signup${nextQuery}`}>Create a free account</a></p>}
+      {role === 'teacher' && <p className="switch">New teacher? {nextQuery ? <a href={`/signup/teacher${nextQuery}`}>Create an account</a> : <a href="/signup/teacher">Create an account</a>}</p>}
+      {role === 'parent' && <p className="switch">New parent? {nextQuery ? <a href={`/signup/parent${nextQuery}`}>Create an account</a> : <a href="/signup/parent">Create an account</a>}</p>}
+      {role === 'student' && <p className="switch">New learner with a claim code? {nextQuery ? <a href={`/signup/student${nextQuery}`}>Create learner account</a> : <a href="/signup/student">Create learner account</a>}</p>}
+      {role === 'global' && <p className="switch">New independent learner? {nextQuery ? <a href={`/global/signup${nextQuery}`}>Create a free account</a> : <a href="/global/signup">Create a free account</a>}</p>}
       <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
     </section><style jsx>{styles}</style></main>
 }
