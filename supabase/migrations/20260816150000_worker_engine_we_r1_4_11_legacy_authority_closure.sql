@@ -2,70 +2,50 @@
 -- NON-ACTIVATING: this migration must not enable runtime execution, heartbeat, Factory,
 -- Shadow, autonomy, risk authority, capability authority, or any scheduler.
 --
--- Purpose:
---   1. Close externally callable R1.2/R1.3/R1.3X control-plane paths that can mutate
---      Worker Engine execution, verification, decision, learning, or promotion state
---      outside the WE-R1.4 consequential execution / verification / recovery chain.
---   2. Preserve historical objects for evidence and migration compatibility while
---      removing service_role as business authority for superseded paths.
---   3. Make the production upgrade self-closing: installing WE-R1.4 also retires the
---      obsolete externally invokable authority surfaces instead of leaving two engines.
-
--- ---------------------------------------------------------------------------
--- Canonical rule
--- ---------------------------------------------------------------------------
 -- service_role is transport privilege, not Worker Engine business authority.
--- Consequential autonomous mutation remains reachable only through the WE-R1.4 task
--- path (hq_workforce_tool_gateway_execute -> consequential execution gateway).
+-- Production and clean rebuild contain different historical overloads for some legacy
+-- functions. Retirement is therefore name/oid-driven: every existing overload of each
+-- superseded RPC loses external EXECUTE without assuming one environment's signature.
 
--- Legacy run engine: may create/execute/verify old hq_workforce_runs and mutate work.
-revoke all on function public.hq_workforce_enqueue_unrouted_work() from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_execute_safe_queue() from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_verify_run(uuid,jsonb,jsonb,boolean,text,jsonb,text) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_verify_assignment(uuid,jsonb,jsonb,boolean,text,jsonb,text) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_verify_internal_review(uuid) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_next_recovery(uuid) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_plan_recovery(uuid,text,text,jsonb) from public,anon,authenticated,service_role;
+do $$
+declare r record;
+begin
+  for r in
+    select p.oid::regprocedure::text as signature
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.proname = any(array[
+      'hq_workforce_enqueue_unrouted_work',
+      'hq_workforce_execute_safe_queue',
+      'hq_workforce_verify_run',
+      'hq_workforce_verify_assignment',
+      'hq_workforce_verify_internal_review',
+      'hq_workforce_next_recovery',
+      'hq_workforce_plan_recovery',
+      'hq_workforce_transition_decision',
+      'hq_workforce_record_revision_learning',
+      'hq_workforce_promote_learning',
+      'hq_workforce_promote_learning_candidate',
+      'hq_workforce_prepare_skill_promotion',
+      'hq_workforce_record_skill_benchmark',
+      'hq_workforce_finalize_skill_probation',
+      'hq_workforce_record_positive_outcome',
+      'hq_workforce_record_verified_outcome_memory',
+      'hq_workforce_evaluate_candidate_gaps',
+      'hq_workforce_create_gap_work_items',
+      'hq_workforce_diagnose_gap',
+      'hq_workforce_detect_capacity_gaps',
+      'hq_workforce_detect_context_gaps',
+      'hq_workforce_scheduled_factory_heartbeat',
+      'hq_workforce_runtime_self_certify'
+    ])
+  loop
+    execute format('revoke all on function %s from public,anon,authenticated,service_role',r.signature);
+  end loop;
+end $$;
 
--- Legacy decision authority: owner-gated hq_workforce_decide remains the human path.
-revoke all on function public.hq_workforce_transition_decision(uuid,text,text,uuid) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_record_revision_learning(uuid) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_record_revision_learning(uuid,text,text) from public,anon,authenticated,service_role;
-
--- Legacy learning/promotion truth injection. These routines accept caller-supplied
--- approval, benchmark, execution, outcome, or actor truth and therefore cannot remain
--- externally invokable after WE-R1.4 authority closure.
-revoke all on function public.hq_workforce_promote_learning(uuid,uuid) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_promote_learning_candidate(uuid,uuid) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_prepare_skill_promotion(uuid,text) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_record_skill_benchmark(uuid,boolean,jsonb) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_finalize_skill_probation(uuid,boolean,boolean,jsonb) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_record_positive_outcome(uuid,text,jsonb) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_record_verified_outcome_memory(uuid) from public,anon,authenticated,service_role;
-
--- Legacy gap/workforce orchestration. These remain as historical/internal helpers but
--- cannot be directly driven by service_role as an alternate autonomous control plane.
-revoke all on function public.hq_workforce_evaluate_candidate_gaps() from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_create_gap_work_items() from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_diagnose_gap(uuid) from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_detect_capacity_gaps() from public,anon,authenticated,service_role;
-revoke all on function public.hq_workforce_detect_context_gaps() from public,anon,authenticated,service_role;
-
--- Direct Factory scheduler is superseded by the master-gated scheduler and must not be
--- independently callable. Internal factory helpers already have no service_role EXECUTE.
-revoke all on function public.hq_workforce_scheduled_factory_heartbeat() from public,anon,authenticated,service_role;
-
--- Runtime self-certification is evidence tooling, not authority. Prevent service_role
--- from manufacturing fresh certification rows through the legacy self-certifier.
-revoke all on function public.hq_workforce_runtime_self_certify() from public,anon,authenticated,service_role;
-
--- ---------------------------------------------------------------------------
--- Fail-closed compatibility wrappers
--- ---------------------------------------------------------------------------
--- Keep obsolete RPC names addressable for old callers/migrations, but make their
--- behavior explicitly non-consequential. This prevents accidental re-granting from
--- silently resurrecting the old execution engine.
-
+-- Keep the most historically referenced obsolete entrypoint names addressable but
+-- explicitly fail closed. This protects old callers from silently regaining authority if
+-- a later grant is accidentally broadened.
 create or replace function public.hq_workforce_execute_safe_queue()
 returns integer
 language plpgsql
@@ -95,8 +75,7 @@ language plpgsql
 security definer
 set search_path=public,pg_temp
 as $$
-declare
-  ec public.hq_workforce_engine_contract%rowtype;
+declare ec public.hq_workforce_engine_contract%rowtype;
 begin
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
   if not found then raise exception 'runtime_contract_missing'; end if;
@@ -109,15 +88,12 @@ begin
   raise exception 'direct_factory_scheduler_retired_use_master_scheduled_heartbeat';
 end $$;
 
--- Revoke again after CREATE OR REPLACE so the intended ACL is explicit in this exact
--- migration, independent of prior default privileges.
 revoke all on function public.hq_workforce_execute_safe_queue() from public,anon,authenticated,service_role;
 revoke all on function public.hq_workforce_transition_decision(uuid,text,text,uuid) from public,anon,authenticated,service_role;
 revoke all on function public.hq_workforce_scheduled_factory_heartbeat() from public,anon,authenticated,service_role;
 
--- ---------------------------------------------------------------------------
--- Structural attestation
--- ---------------------------------------------------------------------------
+-- Structural attestation: no surviving overload of a retired authority surface may be
+-- executable by service_role, and installation may not activate anything.
 do $$
 declare
   ec public.hq_workforce_engine_contract%rowtype;
@@ -138,30 +114,22 @@ begin
   end if;
 
   select count(*) into v_active_authority
-  from public.hq_workforce_capability_authority_grants
-  where status='active';
-  if v_active_authority<>0 then
-    raise exception 'WE-R1.4.11 cannot install with active capability authority';
-  end if;
+  from public.hq_workforce_capability_authority_grants where status='active';
+  if v_active_authority<>0 then raise exception 'WE-R1.4.11 cannot install with active capability authority'; end if;
 
   select count(*) into v_bad
-  from pg_proc p
-  join pg_namespace n on n.oid=p.pronamespace
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public'
-    and p.proname in (
-      'hq_workforce_execute_safe_queue',
-      'hq_workforce_enqueue_unrouted_work',
-      'hq_workforce_verify_run',
-      'hq_workforce_verify_assignment',
-      'hq_workforce_transition_decision',
-      'hq_workforce_promote_learning',
-      'hq_workforce_promote_learning_candidate',
-      'hq_workforce_finalize_skill_probation',
-      'hq_workforce_record_skill_benchmark',
-      'hq_workforce_scheduled_factory_heartbeat'
-    )
+    and p.proname = any(array[
+      'hq_workforce_execute_safe_queue','hq_workforce_enqueue_unrouted_work','hq_workforce_verify_run',
+      'hq_workforce_verify_assignment','hq_workforce_verify_internal_review','hq_workforce_next_recovery',
+      'hq_workforce_plan_recovery','hq_workforce_transition_decision','hq_workforce_record_revision_learning',
+      'hq_workforce_promote_learning','hq_workforce_promote_learning_candidate','hq_workforce_prepare_skill_promotion',
+      'hq_workforce_record_skill_benchmark','hq_workforce_finalize_skill_probation','hq_workforce_record_positive_outcome',
+      'hq_workforce_record_verified_outcome_memory','hq_workforce_evaluate_candidate_gaps','hq_workforce_create_gap_work_items',
+      'hq_workforce_diagnose_gap','hq_workforce_detect_capacity_gaps','hq_workforce_detect_context_gaps',
+      'hq_workforce_scheduled_factory_heartbeat','hq_workforce_runtime_self_certify'
+    ])
     and has_function_privilege('service_role',p.oid,'EXECUTE');
-  if v_bad<>0 then
-    raise exception 'WE-R1.4.11 legacy service_role authority closure failed:%',v_bad;
-  end if;
+  if v_bad<>0 then raise exception 'WE-R1.4.11 legacy service_role authority closure failed:%',v_bad; end if;
 end $$;
