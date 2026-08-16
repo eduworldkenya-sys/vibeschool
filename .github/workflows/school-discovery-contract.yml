@@ -8,6 +8,7 @@ on:
       - 'scripts/test-school-discovery-contract.py'
       - 'scripts/prepare-authoritative-school-snapshot.py'
       - 'scripts/test-prepare-authoritative-school-snapshot.py'
+      - 'scripts/test-authoritative-school-runtime-contract.py'
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
@@ -15,6 +16,7 @@ on:
       - 'scripts/test-school-discovery-contract.py'
       - 'scripts/prepare-authoritative-school-snapshot.py'
       - 'scripts/test-prepare-authoritative-school-snapshot.py'
+      - 'scripts/test-authoritative-school-runtime-contract.py'
 
 jobs:
   contract:
@@ -26,3 +28,4 @@ jobs:
           python-version: '3.x'
       - run: python scripts/test-school-discovery-contract.py
       - run: python scripts/test-prepare-authoritative-school-snapshot.py
+      - run: python scripts/test-authoritative-school-runtime-contract.py
