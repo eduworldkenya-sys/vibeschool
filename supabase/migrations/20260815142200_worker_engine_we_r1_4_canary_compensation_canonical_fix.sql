@@ -1,0 +1,182 @@
+-- WE-R1.4.10: preserve the complete R1.4.5 exact-state compensation contract in the
+-- canonical function while adding the bounded priority canary as a narrow operation branch.
+-- NON-ACTIVATING. No authority, runtime, heartbeat, Factory or Shadow state is changed.
+-- access: service-only public.hq_workforce_compensate_consequential_execution
+-- authorization-test: public/anon/authenticated cannot execute canonical compensation.
+
+create or replace function public.hq_workforce_compensate_consequential_execution(
+  p_task_id uuid,
+  p_requested_by text,
+  p_reason text
+) returns jsonb
+language plpgsql
+security definer
+set search_path=public,pg_temp
+as $$
+declare
+  t public.hq_workforce_task_contracts%rowtype;
+  i public.hq_workforce_execution_intents%rowtype;
+  g public.hq_workforce_capability_authority_grants%rowtype;
+  wi public.hq_work_items%rowtype;
+  v_work_item_id uuid;
+  v_observed jsonb;
+  v_comp_id uuid;
+  v_before_action jsonb;
+  v_before_acted_at timestamptz;
+  v_is_priority_canary boolean:=false;
+begin
+  if char_length(btrim(coalesce(p_requested_by,'')))<3 then raise exception 'compensation_requester_required'; end if;
+  if char_length(btrim(coalesce(p_reason,'')))<3 then raise exception 'compensation_reason_required'; end if;
+
+  select * into t from public.hq_workforce_task_contracts where id=p_task_id for update;
+  if not found then raise exception 'compensation_task_not_found'; end if;
+  if t.verification_status<>'failed' then raise exception 'compensation_requires_failed_verification'; end if;
+
+  select * into i from public.hq_workforce_execution_intents where task_id=t.id for update;
+  if not found then raise exception 'compensation_execution_intent_missing'; end if;
+  if i.status<>'committed' then raise exception 'compensation_execution_intent_not_committed'; end if;
+  if i.verification_status<>'failed' then raise exception 'compensation_requires_failed_intent_verification'; end if;
+  if i.authoritative_before_state='{}'::jsonb or i.expected_after_state='{}'::jsonb then raise exception 'compensation_recovery_snapshot_missing'; end if;
+
+  v_is_priority_canary :=
+    t.capability_key='internal.work_queue.prioritize'
+    and t.capability_version=1
+    and t.operation='update_priority'
+    and t.resource_type='hq_work_items'
+    and t.scope_type='platform_internal';
+
+  if v_is_priority_canary then
+    if not (i.authoritative_before_state ? 'priority' and i.expected_after_state ? 'priority') then
+      raise exception 'priority_canary_compensation_state_incomplete';
+    end if;
+  else
+    if not (i.expected_after_state ? 'status' and i.expected_after_state ? 'action_taken'
+            and i.expected_after_state ? 'acted_at' and i.expected_after_state ? 'updated_at') then
+      raise exception 'compensation_authoritative_after_state_incomplete';
+    end if;
+  end if;
+
+  select * into g from public.hq_workforce_capability_authority_grants where id=i.authority_grant_id;
+  if not found then raise exception 'compensation_authority_missing'; end if;
+  if g.capability_key is distinct from i.capability_key
+     or g.capability_version is distinct from i.capability_version
+     or g.operation is distinct from i.operation
+     or g.resource_type is distinct from i.resource_type
+     or g.scope_type is distinct from i.scope_type
+     or g.scope_ref is distinct from i.scope_ref
+     or i.plan_step_id is distinct from t.plan_step_id
+     or i.authority_grant_id is distinct from t.autonomous_authority_grant_id then
+    raise exception 'compensation_authority_lineage_mismatch';
+  end if;
+  if not g.compensation_required then raise exception 'compensation_not_required_by_authority'; end if;
+  if char_length(btrim(coalesce(g.compensation_strategy,'')))<3 then raise exception 'compensation_strategy_missing'; end if;
+
+  if v_is_priority_canary then
+    if g.compensation_strategy<>'restore_exact_pre_execution_priority_if_expected_state_still_matches' then
+      raise exception 'priority_canary_compensation_strategy_mismatch';
+    end if;
+  elsif t.resource_type<>'hq_work_items' or t.operation<>'update' then
+    raise exception 'unsupported_consequential_compensation_contract';
+  end if;
+
+  v_work_item_id:=nullif(i.resource_identity->>'work_item_id','')::uuid;
+  if v_work_item_id is null then raise exception 'compensation_resource_identity_missing'; end if;
+
+  select * into wi from public.hq_work_items where id=v_work_item_id for update;
+  if not found then
+    v_observed:=jsonb_build_object('resource_exists',false);
+    insert into public.hq_workforce_execution_compensations(
+      intent_id,task_id,authority_grant_id,plan_step_id,capability_key,capability_version,
+      requested_by,reason,before_state,expected_current_state,observed_current_state,outcome,evidence
+    ) values(
+      i.id,t.id,i.authority_grant_id,i.plan_step_id,i.capability_key,i.capability_version,
+      btrim(p_requested_by),btrim(p_reason),i.authoritative_before_state,i.expected_after_state,v_observed,
+      'conflict_escalated',jsonb_build_object('cause','resource_missing','mutation_applied',false)
+    ) returning id into v_comp_id;
+    return jsonb_build_object('compensation_id',v_comp_id,'outcome','conflict_escalated','mutation_applied',false);
+  end if;
+
+  if v_is_priority_canary then
+    v_observed:=jsonb_build_object('priority',wi.priority);
+  else
+    v_observed:=jsonb_build_object(
+      'status',wi.status,
+      'action_taken',coalesce(wi.action_taken,'null'::jsonb),
+      'acted_at',case when wi.acted_at is null then null else to_jsonb(wi.acted_at) end,
+      'updated_at',case when wi.updated_at is null then null else to_jsonb(wi.updated_at) end
+    );
+  end if;
+
+  -- Exact compare-and-compensate. Never overwrite a newer human/process decision.
+  -- The legacy path includes resource-version/ABA protection; the priority canary compares
+  -- its complete certified mutable state (priority) because the canary never changes updated_at.
+  if v_observed is distinct from i.expected_after_state then
+    insert into public.hq_workforce_execution_compensations(
+      intent_id,task_id,authority_grant_id,plan_step_id,capability_key,capability_version,
+      requested_by,reason,before_state,expected_current_state,observed_current_state,outcome,evidence
+    ) values(
+      i.id,t.id,i.authority_grant_id,i.plan_step_id,i.capability_key,i.capability_version,
+      btrim(p_requested_by),btrim(p_reason),i.authoritative_before_state,i.expected_after_state,v_observed,
+      'conflict_escalated',jsonb_build_object(
+        'cause',case when v_is_priority_canary then 'current_priority_diverged' else 'current_state_diverged' end,
+        'mutation_applied',false,'aba_safe',not v_is_priority_canary,
+        'certified_state_exact',v_is_priority_canary
+      )
+    ) returning id into v_comp_id;
+    return jsonb_build_object('compensation_id',v_comp_id,'outcome','conflict_escalated','mutation_applied',false);
+  end if;
+
+  if v_is_priority_canary then
+    update public.hq_work_items
+       set priority=i.authoritative_before_state->>'priority'
+     where id=v_work_item_id;
+  else
+    v_before_action:=case
+      when i.authoritative_before_state->'action_taken'='null'::jsonb then null
+      else i.authoritative_before_state->'action_taken'
+    end;
+    v_before_acted_at:=nullif(i.authoritative_before_state->>'acted_at','')::timestamptz;
+
+    update public.hq_work_items
+       set status=i.authoritative_before_state->>'status',
+           action_taken=v_before_action,
+           acted_at=v_before_acted_at,
+           updated_at=clock_timestamp()
+     where id=v_work_item_id;
+  end if;
+
+  update public.hq_workforce_execution_intents
+     set status='compensated',compensated_at=clock_timestamp()
+   where id=i.id and status='committed';
+  if not found then raise exception 'compensation_intent_transition_failed'; end if;
+
+  insert into public.hq_workforce_execution_compensations(
+    intent_id,task_id,authority_grant_id,plan_step_id,capability_key,capability_version,
+    requested_by,reason,before_state,expected_current_state,observed_current_state,outcome,evidence
+  ) values(
+    i.id,t.id,i.authority_grant_id,i.plan_step_id,i.capability_key,i.capability_version,
+    btrim(p_requested_by),btrim(p_reason),i.authoritative_before_state,i.expected_after_state,v_observed,
+    'compensated',jsonb_build_object(
+      'mutation_applied',true,'resource_type',t.resource_type,'resource_identity',i.resource_identity,
+      'exact_state_match',true,'mutation',case when v_is_priority_canary then 'priority_only' else 'legacy_exact_state_restore' end
+    )
+  ) returning id into v_comp_id;
+
+  return jsonb_build_object('compensation_id',v_comp_id,'outcome','compensated','mutation_applied',true);
+end $$;
+
+revoke all on function public.hq_workforce_compensate_consequential_execution(uuid,text,text) from public,anon,authenticated;
+grant execute on function public.hq_workforce_compensate_consequential_execution(uuid,text,text) to service_role;
+
+-- Canonical recovery engineering remains non-activating.
+do $$
+declare ec public.hq_workforce_engine_contract%rowtype; v_active integer;
+begin
+  select * into ec from public.hq_workforce_engine_contract where singleton=true;
+  if not found then raise exception 'WE-R1.4.10 canonical compensation fix requires engine contract'; end if;
+  if coalesce(ec.heartbeat_enabled,false) or coalesce(ec.factory_enabled,false)
+     or coalesce(ec.runtime_execution_enabled,false) or coalesce(ec.runtime_autonomy_level,0)<>0
+     or coalesce(ec.runtime_max_risk,0)<>0 then raise exception 'WE-R1.4.10 canonical compensation fix changed runtime boundary'; end if;
+  select count(*) into v_active from public.hq_workforce_capability_authority_grants where status='active';
+  if v_active<>0 then raise exception 'WE-R1.4.10 canonical compensation fix activated authority'; end if;
+end $$;
