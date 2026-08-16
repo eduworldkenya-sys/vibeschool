@@ -1,0 +1,30 @@
+name: Auth Gateway Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/auth/**'
+      - 'app/login/**'
+      - 'app/reset-password/**'
+      - 'lib/auth-routing.ts'
+      - 'middleware.ts'
+      - 'public/sw.js'
+      - 'supabase/migrations/**auth**'
+      - 'scripts/test-auth-gateway-contract.mjs'
+      - '.github/workflows/auth-gateway-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  auth-gateway-contract:
+    name: Authority, OAuth, recovery and PWA contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/test-auth-gateway-contract.mjs
