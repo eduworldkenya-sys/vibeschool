@@ -3,28 +3,31 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
-const FIRST_ACCESS: Record<string, string> = {
-  teacher: '/teacher/onboarding/school',
-  parent: '/parent/students',
-  global_user: '/global',
-}
+const SELF_SERVICE_ROLES = new Set(['teacher', 'parent', 'global_user'])
 
-const OAUTH_SELF_CLAIM_ROLES = new Set(Object.keys(FIRST_ACCESS))
-
+type AuthIntent = 'signin' | 'signup' | 'recovery'
 type PendingCookie = {
   name: string
   value: string
   options?: Parameters<NextResponse['cookies']['set']>[2]
 }
+type OnboardingState = { state?: unknown; destination?: unknown }
 
 function safeRequestedRole(value: string | null): string | null {
-  return value && Object.prototype.hasOwnProperty.call(AUTH_DASHBOARDS, value)
-    ? value
-    : null
+  return value && Object.prototype.hasOwnProperty.call(AUTH_DASHBOARDS, value) ? value : null
+}
+
+function safeIntent(value: string | null): AuthIntent | null {
+  return value === 'signin' || value === 'signup' || value === 'recovery' ? value : null
+}
+
+function safeFlowId(value: string | null): string {
+  const cleaned = (value ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80)
+  return cleaned || crypto.randomUUID()
 }
 
 function redirectWithCookies(req: NextRequest, target: string, pendingCookies: PendingCookie[]) {
-  const response = NextResponse.redirect(new URL(target, req.url))
+  const response = NextResponse.redirect(new URL(target, req.nextUrl.origin))
   pendingCookies.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
   response.headers.set('Cache-Control', 'private, no-store')
   response.headers.set('Pragma', 'no-cache')
@@ -32,15 +35,26 @@ function redirectWithCookies(req: NextRequest, target: string, pendingCookies: P
   return response
 }
 
+function authError(req: NextRequest, reason: string, pendingCookies: PendingCookie[]) {
+  return redirectWithCookies(req, `/auth/error?reason=${encodeURIComponent(reason)}`, pendingCookies)
+}
+
+function logStage(stage: string, flowId: string, detail?: string) {
+  console.info(JSON.stringify({ scope: 'auth_journey', stage, flow_id: flowId, detail }))
+}
+
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
+  const { searchParams } = req.nextUrl
   const code = searchParams.get('code')
   const next = safeInternalPath(searchParams.get('next'))
   const requestedRole = safeRequestedRole(searchParams.get('role'))
-  const intent = searchParams.get('intent') === 'signup' ? 'signup' : 'signin'
+  const intent = safeIntent(searchParams.get('intent'))
+  const flowId = safeFlowId(searchParams.get('flow'))
   const pendingCookies: PendingCookie[] = []
 
-  if (!code) return redirectWithCookies(req, '/login?oauth_error=missing_code', pendingCookies)
+  logStage('provider_returned', flowId, code ? 'code_present' : 'code_missing')
+  if (!code) return authError(req, 'missing_code', pendingCookies)
+  if (!intent) return authError(req, 'invalid_intent', pendingCookies)
 
   const cookieStore = cookies()
   const supabase = createServerClient(
@@ -60,14 +74,27 @@ export async function GET(req: NextRequest) {
   )
 
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-  if (exchangeError) return redirectWithCookies(req, '/login?oauth_error=exchange_failed', pendingCookies)
+  if (exchangeError) {
+    logStage('code_exchange_failed', flowId, exchangeError.name)
+    return authError(req, 'exchange_failed', pendingCookies)
+  }
+  logStage('code_exchanged', flowId)
 
   const { data: { user }, error: userError } = await supabase.auth.getUser()
-  if (userError || !user) return redirectWithCookies(req, '/login?oauth_error=user_missing', pendingCookies)
+  if (userError || !user) {
+    logStage('session_failed', flowId, userError?.name)
+    return authError(req, 'session_failed', pendingCookies)
+  }
+  logStage('session_established', flowId)
+
+  if (intent === 'recovery') {
+    logStage('recovery_session_established', flowId)
+    return redirectWithCookies(req, '/auth/reset-password', pendingCookies)
+  }
 
   const resolveAccess = async () => {
-    const { data } = await supabase.rpc('get_my_auth_access_state')
-    if (!data || typeof data !== 'object' || Array.isArray(data)) return null
+    const { data, error } = await supabase.rpc('get_my_auth_access_state')
+    if (error || !data || typeof data !== 'object' || Array.isArray(data)) return null
     return {
       role: typeof data.role === 'string' ? data.role : null,
       status: typeof data.account_status === 'string' ? data.account_status : null,
@@ -76,48 +103,63 @@ export async function GET(req: NextRequest) {
   }
 
   let access = await resolveAccess()
-
-  if (access && (access.status === 'restricted' || access.anonymized)) {
-    await supabase.auth.signOut()
-    return redirectWithCookies(req, '/login?auth_error=account_unavailable', pendingCookies)
+  if (!access) {
+    logStage('profile_resolution_failed', flowId)
+    return authError(req, 'profile_resolution_failed', pendingCookies)
   }
 
-  if (!access?.role && intent === 'signup' && requestedRole && OAUTH_SELF_CLAIM_ROLES.has(requestedRole)) {
-    const { data: claimedRole, error: claimError } = await supabase.rpc('claim_initial_oauth_role', {
-      p_requested_role: requestedRole,
-    })
+  if (access.status === 'restricted' || access.anonymized) {
+    await supabase.auth.signOut()
+    logStage('account_unavailable', flowId)
+    return authError(req, 'account_unavailable', pendingCookies)
+  }
 
-    if (claimError || claimedRole !== requestedRole) {
-      await supabase.auth.signOut()
-      return redirectWithCookies(req, '/login?auth_error=oauth_onboarding_failed', pendingCookies)
+  if (!access.role && intent === 'signup') {
+    if (!requestedRole || !SELF_SERVICE_ROLES.has(requestedRole)) {
+      return authError(req, 'role_required', pendingCookies)
     }
-
+    const { data: claimedRole, error: claimError } = await supabase.rpc('claim_my_initial_role', {
+      p_role: requestedRole,
+    })
+    if (claimError || claimedRole !== requestedRole) {
+      logStage('role_claim_failed', flowId, claimError?.code)
+      return authError(req, 'role_claim_failed', pendingCookies)
+    }
     access = await resolveAccess()
   }
 
-  if (access?.role && AUTH_DASHBOARDS[access.role]) {
-    const role = access.role
-    const { data: onboarding, error: onboardingErr } = await supabase.rpc('get_my_onboarding_state')
-    if (!onboardingErr && onboarding && typeof onboarding === 'object' && !Array.isArray(onboarding)) {
-      const state = typeof onboarding.state === 'string' ? onboarding.state : null
-      const destination = typeof onboarding.destination === 'string' ? onboarding.destination : null
-      if (destination && state && state !== 'unknown_role') {
-        if (state === 'ready' && next && roleCanVisit(role, next)) {
-          return redirectWithCookies(req, next, pendingCookies)
-        }
-        return redirectWithCookies(req, destination, pendingCookies)
-      }
-    }
-
-    if (intent === 'signup' && requestedRole === role && FIRST_ACCESS[role]) {
-      return redirectWithCookies(req, FIRST_ACCESS[role], pendingCookies)
-    }
-
-    return redirectWithCookies(req, AUTH_DASHBOARDS[role], pendingCookies)
+  if (!access?.role && intent === 'signin') {
+    await supabase.auth.signOut()
+    logStage('account_unregistered', flowId)
+    return authError(req, 'account_unregistered', pendingCookies)
   }
 
-  // Existing identities without a usable profile fail closed. Admin and student identities
-  // are never self-provisioned from OAuth request parameters; they require their governed flows.
-  await supabase.auth.signOut()
-  return redirectWithCookies(req, '/login?auth_error=profile_incomplete', pendingCookies)
+  const role = access?.role
+  if (!role || !AUTH_DASHBOARDS[role]) {
+    logStage('role_unresolved', flowId)
+    return authError(req, 'role_unresolved', pendingCookies)
+  }
+  logStage('profile_resolved', flowId, role)
+
+  const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+  if (onboardingError || !onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) {
+    logStage('onboarding_resolution_failed', flowId, onboardingError?.code)
+    return authError(req, 'onboarding_resolution_failed', pendingCookies)
+  }
+
+  const state = (onboarding as OnboardingState).state
+  const destination = (onboarding as OnboardingState).destination
+  if (typeof state !== 'string' || typeof destination !== 'string') {
+    return authError(req, 'onboarding_invalid', pendingCookies)
+  }
+  const safeDestination = safeInternalPath(destination)
+  if (!safeDestination || !roleCanVisit(role, safeDestination)) {
+    logStage('onboarding_invalid', flowId)
+    return authError(req, 'onboarding_invalid', pendingCookies)
+  }
+
+  logStage('onboarding_resolved', flowId, state)
+  const target = state === 'ready' && next && roleCanVisit(role, next) ? next : safeDestination
+  logStage('destination_selected', flowId, target)
+  return redirectWithCookies(req, target, pendingCookies)
 }

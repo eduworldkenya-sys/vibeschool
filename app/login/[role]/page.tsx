@@ -13,6 +13,8 @@ const ROLE_CONFIG = {
 } as const
 
 type RoleKey = keyof typeof ROLE_CONFIG
+type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: unknown }
+type OnboardingState = { state?: unknown; destination?: unknown }
 
 const SIGNUP_LINKS: Partial<Record<RoleKey, string>> = {
   teacher: '/signup/teacher', parent: '/signup/parent', student: '/signup/student',
@@ -40,16 +42,45 @@ export default function RoleLoginPage() {
       const email = config.email ? identifier.trim().toLowerCase() : `${identifier.trim().toLowerCase().replace(/\s/g, '')}@vs.internal`
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error || !data.user) { setMessage(config.email ? 'Incorrect email or password.' : 'Wrong admission number or PIN. Ask your teacher if you need help.'); return }
-      const { data: accessState } = await supabase.rpc('get_my_auth_access_state')
-      const actualRole = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && typeof accessState.role === 'string' ? accessState.role : null
-      const status = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && typeof accessState.account_status === 'string' ? accessState.account_status : null
-      const anonymized = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && accessState.is_anonymized === true
-      const expectedRole = role === 'global' ? 'global_user' : role
-      if (status === 'restricted' || anonymized) { await supabase.auth.signOut(); setMessage('This account is currently unavailable. Contact VibeSchool support if you believe this is a mistake.'); return }
-      if (!actualRole || !AUTH_DASHBOARDS[actualRole]) { await supabase.auth.signOut(); setMessage('Your account setup is incomplete. Create an account or contact support.'); return }
-      if (actualRole !== expectedRole) { router.replace(AUTH_DASHBOARDS[actualRole]); return }
+
+      const { data: accessState, error: accessError } = await supabase.rpc('get_my_auth_access_state')
+      if (accessError || !accessState || typeof accessState !== 'object' || Array.isArray(accessState)) {
+        router.replace('/auth/error?reason=authority_resolution_failed')
+        return
+      }
+      const access = accessState as AccessState
+      const actualRole = typeof access.role === 'string' ? access.role : null
+      const status = typeof access.account_status === 'string' ? access.account_status : null
+      const anonymized = access.is_anonymized === true
+      if (status === 'restricted' || anonymized) {
+        await supabase.auth.signOut()
+        router.replace('/auth/error?reason=account_unavailable')
+        return
+      }
+      if (!actualRole || !AUTH_DASHBOARDS[actualRole]) {
+        await supabase.auth.signOut()
+        router.replace('/auth/error?reason=account_unregistered')
+        return
+      }
+
+      const { data: onboarding, error: onboardingError } = await supabase.rpc('get_my_onboarding_state')
+      if (onboardingError || !onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) {
+        router.replace('/auth/error?reason=onboarding_resolution_failed')
+        return
+      }
+
+      const onboardingState = onboarding as OnboardingState
+      const state = onboardingState.state
+      const rawDestination = onboardingState.destination
+      const destination = typeof rawDestination === 'string' ? safeInternalPath(rawDestination) : null
+      if (typeof state !== 'string' || !destination || !roleCanVisit(actualRole, destination)) {
+        router.replace('/auth/error?reason=onboarding_invalid')
+        return
+      }
+
       const requested = safeInternalPath(searchParams.get('redirect'))
-      router.replace(requested && roleCanVisit(actualRole, requested) ? requested : AUTH_DASHBOARDS[actualRole])
+      const target = state === 'ready' && requested && roleCanVisit(actualRole, requested) ? requested : destination
+      router.replace(target)
     } finally { setBusy(false) }
   }
 
@@ -58,8 +89,12 @@ export default function RoleLoginPage() {
     setBusy(true)
     const requestedRole = role === 'global' ? 'global_user' : role
     const next = safeInternalPath(searchParams.get('redirect'))
+    const flow = crypto.randomUUID()
+    console.info(JSON.stringify({ scope: 'auth_journey', stage: 'oauth_started', flow_id: flow, detail: `${requestedRole}_signin` }))
     const callback = new URL('/auth/callback', window.location.origin)
-    callback.searchParams.set('intent', 'signin'); callback.searchParams.set('role', requestedRole)
+    callback.searchParams.set('intent', 'signin')
+    callback.searchParams.set('role', requestedRole)
+    callback.searchParams.set('flow', flow)
     if (next) callback.searchParams.set('next', next)
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: callback.toString() } })
     if (error) { setMessage('Google sign in could not start. Check your connection and try again.'); setBusy(false) }
@@ -78,10 +113,10 @@ export default function RoleLoginPage() {
       <p className="lead">Sign in to continue. Your account automatically opens the workspace you are authorized to use.</p>
       {message && <div className="message" role="alert" aria-live="polite">{message}</div>}
       <div className="field"><label htmlFor="identifier">{config.email ? 'Email address' : 'Admission number'}</label><input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" placeholder={config.email ? 'you@example.com' : 'e.g. ADM001'} value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} /></div>
-      <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/reset-password">Forgot password?</a>}</div><input id="password" type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'Enter your PIN'} value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /></div>
+      <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/auth/forgot-password">Forgot password?</a>}</div><input id="password" type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'Enter your PIN'} value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /></div>
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : 'Sign in'}</button>
       {config.email && <><div className="or"><span/>or continue with<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}><b className="g">G</b> Google</button></>}
-      {signupLink ? <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p> : <p className="switch">New to VibeSchool? <a href="/">Create an account</a></p>}
+      {signupLink ? <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p> : <p className="switch">New to VibeSchool? <a href="/global/signup">Create an account</a></p>}
       <p className="direct-signups"><a href="/signup/student">Learner sign up</a><span>·</span><a href="/signup/parent">Parent sign up</a></p>
     </section>
     <footer className="legal"><a href="/legal/terms">Terms</a><span>·</span><a href="/legal/privacy">Privacy</a><span>·</span><a href="/contact">Contact</a></footer>

@@ -1,12 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { AUTH_DASHBOARDS, requiredRoleForPath, safeInternalPath } from '@/lib/auth-routing'
+import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
-const PUBLIC_AUTH_ROUTES = new Set(['/login', '/reset-password'])
+const PUBLIC_AUTH_ROUTES = new Set(['/login', '/reset-password', '/auth/forgot-password', '/auth/reset-password', '/auth/error'])
+type OnboardingState = { state?: unknown; destination?: unknown }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  if (request.nextUrl.hostname === 'www.vibeschool.co.ke') {
+    const canonical = request.nextUrl.clone()
+    canonical.hostname = 'vibeschool.co.ke'
+    canonical.protocol = 'https:'
+    canonical.port = ''
+    return NextResponse.redirect(canonical, 308)
+  }
 
   if (pathname.startsWith('/hq')) {
     const response = NextResponse.next({ request })
@@ -14,7 +23,6 @@ export async function middleware(request: NextRequest) {
     response.headers.set('Pragma', 'no-cache')
     response.headers.set('Expires', '0')
     if (HQ_PUBLIC_AUTH_ROUTES.has(pathname)) return response
-    // HQ keeps its own isolated owner gate. Never mix the product session with HQ authority.
     return response
   }
 
@@ -54,7 +62,14 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Server-side requests must validate the current identity instead of trusting UI role state.
+  function authError(reason: string) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/error'
+    url.search = ''
+    url.searchParams.set('reason', reason)
+    return redirectWithAuth(url)
+  }
+
   const { data: { user } } = await supabase.auth.getUser()
   const requiredRole = requiredRoleForPath(pathname)
 
@@ -66,48 +81,58 @@ export async function middleware(request: NextRequest) {
     return redirectWithAuth(loginUrl)
   }
 
-  let resolvedRole: string | null = null
-  let accountStatus: string | null = null
-  let isAnonymized = false
+  const needsAuthority = !!user && (requiredRole !== null || pathname === '/' || pathname === '/login')
+  if (needsAuthority) {
+    const [{ data: accessState, error: accessError }, { data: onboarding, error: onboardingError }] = await Promise.all([
+      supabase.rpc('get_my_auth_access_state'),
+      supabase.rpc('get_my_onboarding_state'),
+    ])
 
-  if (user) {
-    const { data: accessState } = await supabase.rpc('get_my_auth_access_state')
-    if (accessState && typeof accessState === 'object' && !Array.isArray(accessState)) {
-      resolvedRole = typeof accessState.role === 'string' ? accessState.role : null
-      accountStatus = typeof accessState.account_status === 'string' ? accessState.account_status : null
-      isAnonymized = accessState.is_anonymized === true
-    } else {
-      const { data: rpcRole } = await supabase.rpc('get_my_role')
-      resolvedRole = typeof rpcRole === 'string' ? rpcRole : null
+    if (accessError || !accessState || typeof accessState !== 'object' || Array.isArray(accessState)) {
+      return authError('authority_resolution_failed')
     }
-  }
 
-  const accessBlocked = !!user && (accountStatus === 'restricted' || isAnonymized)
-  if (accessBlocked && requiredRole) {
-    const blockedUrl = request.nextUrl.clone()
-    blockedUrl.pathname = '/login'
-    blockedUrl.search = ''
-    blockedUrl.searchParams.set('auth_error', 'account_unavailable')
-    return redirectWithAuth(blockedUrl)
-  }
+    const role = typeof accessState.role === 'string' ? accessState.role : null
+    const status = typeof accessState.account_status === 'string' ? accessState.account_status : null
+    const anonymized = accessState.is_anonymized === true
 
-  if (requiredRole && user && resolvedRole !== requiredRole) {
-    const destination = resolvedRole ? AUTH_DASHBOARDS[resolvedRole] : undefined
-    const target = request.nextUrl.clone()
-    target.pathname = destination ?? '/login'
-    target.search = ''
-    if (!destination) target.searchParams.set('auth_error', 'profile_incomplete')
-    return redirectWithAuth(target)
-  }
+    if (status === 'restricted' || anonymized) return authError('account_unavailable')
+    if (!role || !AUTH_DASHBOARDS[role]) return authError('authority_resolution_failed')
+    if (onboardingError || !onboarding || typeof onboarding !== 'object' || Array.isArray(onboarding)) {
+      return authError('onboarding_resolution_failed')
+    }
 
-  if ((pathname === '/' || PUBLIC_AUTH_ROUTES.has(pathname)) && user && !accessBlocked) {
-    const destination = resolvedRole ? AUTH_DASHBOARDS[resolvedRole] : undefined
-    if (destination && pathname !== '/reset-password') {
+    const state = (onboarding as OnboardingState).state
+    const rawDestination = (onboarding as OnboardingState).destination
+    const destination = typeof rawDestination === 'string' ? safeInternalPath(rawDestination) : null
+    if (typeof state !== 'string' || !destination || !roleCanVisit(role, destination)) {
+      return authError('onboarding_invalid')
+    }
+
+    if (state !== 'ready') {
+      const current = `${pathname}${request.nextUrl.search}`
+      if (current !== destination) {
+        const target = request.nextUrl.clone()
+        target.pathname = destination.split('?')[0]
+        target.search = destination.includes('?') ? destination.slice(destination.indexOf('?')) : ''
+        return redirectWithAuth(target)
+      }
+      return supabaseResponse
+    }
+
+    if (requiredRole && requiredRole !== role) {
+      const target = request.nextUrl.clone()
+      target.pathname = AUTH_DASHBOARDS[role]
+      target.search = ''
+      return redirectWithAuth(target)
+    }
+
+    if (pathname === '/' || pathname === '/login') {
       const requested = safeInternalPath(request.nextUrl.searchParams.get('redirect'))
-      const destinationUrl = request.nextUrl.clone()
-      destinationUrl.pathname = requested && requiredRoleForPath(requested) === resolvedRole ? requested : destination
-      destinationUrl.search = ''
-      return redirectWithAuth(destinationUrl)
+      const target = request.nextUrl.clone()
+      target.pathname = requested && roleCanVisit(role, requested) ? requested : destination
+      target.search = ''
+      return redirectWithAuth(target)
     }
   }
 
@@ -121,6 +146,11 @@ export async function middleware(request: NextRequest) {
     const authUrl = request.nextUrl.clone()
     authUrl.pathname = '/'
     return copyAuthState(NextResponse.rewrite(authUrl))
+  }
+
+  if (PUBLIC_AUTH_ROUTES.has(pathname)) {
+    supabaseResponse.headers.set('Cache-Control', 'private, no-store')
+    supabaseResponse.headers.set('Pragma', 'no-cache')
   }
 
   return supabaseResponse
