@@ -42,9 +42,15 @@ do $$ declare oid uuid; v jsonb; begin
   if exists(select 1 from public.hq_workforce_scheduler_events where cycle_key='x7-cycle-detect' and objective_id=oid and stage='planning') then raise exception 'X7 scheduler skipped context boundary'; end if;
 end $$;
 
+-- Scheduler tests require already-reviewed memory as fixture state. The service transport
+-- constructor is intentionally unable to manufacture verified/authoritative truth after
+-- R1.4.13, so create the observation through that constructor and have the database-owner
+-- test harness establish the pre-reviewed fixture explicitly. This does not exercise or
+-- weaken the production review RPC; X2/R1.4 tests cover that boundary separately.
 do $$ declare oid uuid; mid uuid; pid uuid; sid uuid; cid uuid; begin
   select id into oid from public.hq_workforce_objectives where objective_key='test.x7.objective';
-  mid:=public.hq_workforce_add_memory('test.x7.context','fact','{"condition":"scheduler_fixture_ready"}'::jsonb,'{"suite":"x7","source":"acceptance"}'::jsonb,'acceptance','x7',1::numeric,'verified',true);
+  mid:=public.hq_workforce_add_memory('test.x7.context','fact','{"condition":"scheduler_fixture_ready"}'::jsonb,'{"suite":"x7","source":"acceptance"}'::jsonb,'acceptance','x7',1::numeric,'corroborated',false);
+  update public.hq_workforce_memory_records set verification_state='verified',authoritative=true where id=mid;
   perform public.hq_workforce_bind_objective_context(oid,mid,'required','Verified X7 scheduler fixture context.',3600::bigint);
   pid:=public.hq_workforce_create_plan(oid,'test.x7.plan','deterministic-analysis','{"reason":"exercise X7 orchestration"}'::jsonb,'{"required":true}'::jsonb,'{}'::jsonb,'{"suite":"x7","source":"acceptance"}'::jsonb);
   insert into public.hq_workforce_plan_steps(plan_id,step_key,ordinal,purpose,actor_mode,input_contract,expected_output,verification_contract,required_autonomy,required_risk,status) values (pid,'analyze',1,'Analyze verified scheduler fixture','unassigned','{}'::jsonb,'{"recommendation":true}'::jsonb,'{"human_review":true}'::jsonb,0,0,'planned') returning id into sid;
@@ -58,8 +64,9 @@ do $$ declare oid uuid; good_mid uuid; bad_mid uuid; v jsonb; begin
   oid:=public.hq_workforce_create_objective('test.x7.context_fail_closed','acceptance','x7-invalid-context','Prove all critical context remains valid before planning','platform_internal','{}'::jsonb,'[]'::jsonb,'[{"criterion":"all_critical_context_valid"}]'::jsonb,'[{"evidence":"scheduler_events"}]'::jsonb,89::smallint,0::smallint,null::timestamptz,'{"suite":"x7","source":"adversarial"}'::jsonb,null::uuid);
   v:=public.hq_workforce_run_r1_3x_shadow_scheduler('x7-context-detect',10);
   if (select status from public.hq_workforce_objectives where id=oid)<>'context_pending' then raise exception 'X7 adversarial objective did not enter context_pending'; end if;
-  good_mid:=public.hq_workforce_add_memory('test.x7.context.good','fact','{"condition":"usable"}'::jsonb,'{"suite":"x7","source":"adversarial"}'::jsonb,'acceptance','x7',1::numeric,'verified',true);
-  bad_mid:=public.hq_workforce_add_memory('test.x7.context.bad','fact','{"condition":"must_be_fresh"}'::jsonb,'{"suite":"x7","source":"adversarial"}'::jsonb,'acceptance','x7',1::numeric,'verified',true);
+  good_mid:=public.hq_workforce_add_memory('test.x7.context.good','fact','{"condition":"usable"}'::jsonb,'{"suite":"x7","source":"adversarial"}'::jsonb,'acceptance','x7',1::numeric,'corroborated',false);
+  bad_mid:=public.hq_workforce_add_memory('test.x7.context.bad','fact','{"condition":"must_be_fresh"}'::jsonb,'{"suite":"x7","source":"adversarial"}'::jsonb,'acceptance','x7',1::numeric,'corroborated',false);
+  update public.hq_workforce_memory_records set verification_state='verified',authoritative=true where id in (good_mid,bad_mid);
   perform public.hq_workforce_bind_objective_context(oid,good_mid,'required','Usable critical context.',3600::bigint);
   perform public.hq_workforce_bind_objective_context(oid,bad_mid,'policy','Policy context is valid at bind time but must be revalidated before planning.',60::bigint);
   update public.hq_workforce_memory_records set observed_at=clock_timestamp()-interval '120 seconds' where id=bad_mid;
