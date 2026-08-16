@@ -61,15 +61,22 @@ jobs:
       - name: Start disposable local Supabase
         run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
 
-      # Production records X1/X2 as applied while retaining the older incompatible
-      # objective/plan tables. Reconstruct that exact historical boundary first so a
-      # clean-database rebuild can no longer hide upgrade defects.
+      # Production records X1/X2 as applied while retaining an older incompatible
+      # objective table. A clean reset cannot reproduce that ledger/schema split because
+      # X1 creates the canonical shape on an empty database. Build the observed drift
+      # explicitly on top of the X2 boundary, then prove the additive bridge converges it.
       - name: Reproduce partial X1/X2 production boundary
         shell: bash
         run: |
           set -euo pipefail
           supabase db reset --local --no-seed --version 20260815090000
           PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 <<'SQL'
+          alter table public.hq_workforce_objectives add column trace_id uuid;
+          alter table public.hq_workforce_objectives
+            alter column desired_outcome type jsonb
+            using jsonb_build_object('text', desired_outcome);
+          SQL
           LEGACY="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='trace_id')::text")"
           test "$LEGACY" = "true"
           TYPE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select data_type from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='desired_outcome')"
