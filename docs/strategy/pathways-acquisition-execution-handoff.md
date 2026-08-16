@@ -73,7 +73,7 @@ Read `docs/strategy/pathways-p0-baseline-audit-ledger.md` for exact evidence and
 - canonical URL `https://www.vibeschool.co.ke/pathways`
 - multiple entry doors
 - “Answer first. Sign in later.”
-- high-level Kenyan pathway-family orientation
+- high-level pathway-family orientation
 
 ### Quick Check
 - `lib/pathways/quickCheck.ts`
@@ -137,8 +137,8 @@ UI/service:
 - `app/pathways/schools/layout.tsx`
 
 ### SEO/indexing
-- existing `app/sitemap.ts` now contains `/pathways`, `/pathways/check`, `/pathways/schools`;
-- existing `app/robots.ts` explicitly allows the public Pathways namespace;
+- existing `app/sitemap.ts` contains `/pathways`, `/pathways/check`, `/pathways/schools`;
+- existing `app/robots.ts` allows the public Pathways namespace;
 - private continuation is noindex.
 
 ## 6. Critical Account/Safeguarding Constraint
@@ -149,7 +149,8 @@ Current safe behavior:
 - everyone may explore anonymously;
 - established learner identities may explicitly save into their Pathway Passport;
 - parents/teachers cannot overwrite learner-owned adoption;
-- a standalone-family/independent-learner acquisition identity model is a separate safeguarding design gate.
+- a standalone-family/independent-learner acquisition identity model is **not yet invented**;
+- designing that identity is a separate safeguarding design gate.
 
 **Do not solve this by removing guardian/claim-code requirements from the existing school-linked learner account flow. Do not create a duplicate `pathway_users` learner identity.**
 
@@ -178,18 +179,11 @@ Primary business metric: **Activated Pathway Users**, not registrations alone.
 
 ## 8. Current Certification State
 
-The repository migration-security contract passed after the Pathways migrations were introduced.
+Migration security passed on an early implementation head. Entry Architecture initially failed because its static href assertion did not account for safe `?next=` continuation; the implementation was not weakened. The regression contract was expanded to prove direct signup availability and canonical-onboarding dominance, and the subsequent Entry Architecture run passed.
 
-The first Entry Architecture run failed because its old static test expected literal signup hrefs and did not model safe `?next=` continuation. The implementation was not weakened. The regression contract was expanded to prove:
-- direct learner/parent signup remains available;
-- password login preserves safe continuation only after canonical onboarding is `ready`;
-- learner signup follows the same invariant;
-- OAuth callback follows the same invariant;
-- Pathways sitemap/robots rules are present.
+**Exact-head rule:** because the branch continues to move, only workflows on the final candidate head count as certification. Older green runs are diagnostic evidence, not promotion evidence.
 
-The subsequent Entry Architecture run passed.
-
-The current exact-head certification loop must continue through:
+A final candidate head must pass:
 - Supabase Migration Security Contract;
 - Entry Architecture Contract;
 - TBL-011 clean rebuild;
