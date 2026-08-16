@@ -6,13 +6,19 @@ import { supabase } from '@/lib/supabase'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
 const ROLE_CONFIG = {
-  teacher: { label: 'Teacher', email: true },
-  parent: { label: 'Parent', email: true },
-  student: { label: 'Learner', email: false },
-  global: { label: 'Global learner', email: true },
+  teacher: { label: 'Teacher', destination: '/teacher', email: true },
+  parent: { label: 'Parent', destination: '/parent', email: true },
+  student: { label: 'Learner', destination: '/student', email: false },
+  global: { label: 'Global learner', destination: '/global', email: true },
 } as const
 
 type RoleKey = keyof typeof ROLE_CONFIG
+
+const SIGNUP_LINKS: Partial<Record<RoleKey, string>> = {
+  teacher: '/signup/teacher',
+  parent: '/signup/parent',
+  student: '/signup/student',
+}
 
 export default function RoleLoginPage() {
   const params = useParams<{ role: string }>()
@@ -53,6 +59,7 @@ export default function RoleLoginPage() {
         ? accessState.account_status
         : null
       const anonymized = accessState && typeof accessState === 'object' && !Array.isArray(accessState) && accessState.is_anonymized === true
+      const expectedRole = role === 'global' ? 'global_user' : role
 
       if (status === 'restricted' || anonymized) {
         await supabase.auth.signOut()
@@ -61,7 +68,14 @@ export default function RoleLoginPage() {
       }
       if (!actualRole || !AUTH_DASHBOARDS[actualRole]) {
         await supabase.auth.signOut()
-        setMessage('Your account setup is incomplete. Choose Sign Up or contact support.')
+        setMessage('Your account setup is incomplete. Create an account or contact support.')
+        return
+      }
+      // The selected page is only sign-in intent. Database authority decides the real workspace.
+      // Preserve the explicit comparison because it is also part of the entry architecture contract.
+      if (actualRole !== expectedRole) {
+        const destination = AUTH_DASHBOARDS[actualRole]
+        router.replace(destination)
         return
       }
 
@@ -94,6 +108,8 @@ export default function RoleLoginPage() {
     }
   }
 
+  const signupLink = SIGNUP_LINKS[role]
+
   return <main className="shell">
     <nav className="topnav" aria-label="Public navigation">
       <a href="/">Home</a><a href="/global">Explore</a><a href="/about">About</a><a href="/contact">Contact</a>
@@ -106,15 +122,16 @@ export default function RoleLoginPage() {
       {message && <div className="message" role="alert" aria-live="polite">{message}</div>}
       <label htmlFor="identifier">{config.email ? 'Email' : 'Admission number'}</label>
       <input id="identifier" type={config.email ? 'email' : 'text'} autoComplete="username" value={identifier} onChange={e=>setIdentifier(e.target.value)} disabled={busy} />
-      <div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/?forgot=1">Forgot password?</a>}</div>
+      <div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/reset-password">Forgot password?</a>}</div>
       <input id="password" type="password" inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} />
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : 'Sign in'}</button>
       {config.email && <><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button></>}
-      <p className="switch">New to VibeSchool? <a href="/">Create an account</a></p>
+      {signupLink ? <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p> : <p className="switch">New to VibeSchool? <a href="/">Create an account</a></p>}
+      <p className="direct-signups"><a href="/signup/student">Learner sign up</a> · <a href="/signup/parent">Parent sign up</a></p>
       <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a> · <a href="/contact">Contact</a></p>
     </section><style jsx>{styles}</style></main>
 }
 
 const styles = `
-.shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:92px 16px 32px;font-family:var(--font-jakarta),Arial,sans-serif;position:relative}.topnav{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;width:min(92vw,620px)}.topnav a{color:rgba(255,255,255,.78);text-decoration:none;font-size:13px;font-weight:700}.topnav a:hover,.topnav a:focus-visible{color:#c8a84b}.card{width:100%;max-width:460px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:30px;box-sizing:border-box}.brand{display:flex;justify-content:center;text-decoration:none;margin-bottom:20px}.brand img{display:block;width:min(220px,70%);height:auto;max-height:72px;object-fit:contain}.eyebrow{color:#d8ba62;font:800 11px var(--font-mono),monospace;letter-spacing:.15em;margin:0 0 10px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:34px;line-height:1.1;margin:0}.lead{color:rgba(255,255,255,.74);font-size:14px;line-height:1.55;margin:10px 0 24px}.message{background:rgba(255,80,80,.1);border:1px solid rgba(255,130,130,.22);color:#ffd2d2;padding:12px;border-radius:9px;margin-bottom:14px;font-size:13px;line-height:1.45}label{display:block;font-size:13px;color:rgba(255,255,255,.84);margin:15px 0 7px;font-weight:700}.password-label{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.password-label label{margin-bottom:7px}.password-label a{color:#d8ba62;font-size:12px;margin-bottom:7px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.26);border-radius:10px;padding:14px;font-size:16px;outline:none}input:focus-visible{border-color:#d8ba62;box-shadow:0 0 0 3px rgba(216,186,98,.16)}.primary,.secondary{width:100%;border-radius:10px;padding:14px;font-weight:800;margin-top:18px;cursor:pointer;font-size:14px}.primary{border:1px solid #d8ba62;background:#d8ba62;color:#05050f}.secondary{margin-top:0;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff}.primary:focus-visible,.secondary:focus-visible,a:focus-visible{outline:3px solid rgba(216,186,98,.45);outline-offset:2px}.primary:disabled,.secondary:disabled,input:disabled{opacity:.55;cursor:not-allowed}.or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.58);font-size:12px;margin:17px 0}.or span{height:1px;background:rgba(255,255,255,.18);flex:1}.switch,.legal{font-size:13px;color:rgba(255,255,255,.66);text-align:center;margin-top:19px}.switch a,.legal a{color:#d8ba62}.legal{font-size:12px;margin-top:24px}@media(max-width:520px){.shell{padding-top:104px;align-items:start}.topnav{top:20px;gap:15px}.card{padding:24px 18px;border-radius:14px}h1{font-size:30px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:92px 16px 32px;font-family:var(--font-jakarta),Arial,sans-serif;position:relative}.topnav{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;width:min(92vw,620px)}.topnav a{color:rgba(255,255,255,.78);text-decoration:none;font-size:13px;font-weight:700}.topnav a:hover,.topnav a:focus-visible{color:#c8a84b}.card{width:100%;max-width:460px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:30px;box-sizing:border-box}.brand{display:flex;justify-content:center;text-decoration:none;margin-bottom:20px}.brand img{display:block;width:min(220px,70%);height:auto;max-height:72px;object-fit:contain}.eyebrow{color:#d8ba62;font:800 11px var(--font-mono),monospace;letter-spacing:.15em;margin:0 0 10px}h1{font-family:var(--font-display),Arial,sans-serif;font-size:34px;line-height:1.1;margin:0}.lead{color:rgba(255,255,255,.74);font-size:14px;line-height:1.55;margin:10px 0 24px}.message{background:rgba(255,80,80,.1);border:1px solid rgba(255,130,130,.22);color:#ffd2d2;padding:12px;border-radius:9px;margin-bottom:14px;font-size:13px;line-height:1.45}label{display:block;font-size:13px;color:rgba(255,255,255,.84);margin:15px 0 7px;font-weight:700}.password-label{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.password-label label{margin-bottom:7px}.password-label a{color:#d8ba62;font-size:12px;margin-bottom:7px}input{width:100%;box-sizing:border-box;background:#0c0c1d;color:#fff;border:1px solid rgba(255,255,255,.26);border-radius:10px;padding:14px;font-size:16px;outline:none}input:focus-visible{border-color:#d8ba62;box-shadow:0 0 0 3px rgba(216,186,98,.16)}.primary,.secondary{width:100%;border-radius:10px;padding:14px;font-weight:800;margin-top:18px;cursor:pointer;font-size:14px}.primary{border:1px solid #d8ba62;background:#d8ba62;color:#05050f}.secondary{margin-top:0;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff}.primary:focus-visible,.secondary:focus-visible,a:focus-visible{outline:3px solid rgba(216,186,98,.45);outline-offset:2px}.primary:disabled,.secondary:disabled,input:disabled{opacity:.55;cursor:not-allowed}.or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.58);font-size:12px;margin:17px 0}.or span{height:1px;background:rgba(255,255,255,.18);flex:1}.switch,.direct-signups,.legal{font-size:13px;color:rgba(255,255,255,.66);text-align:center;margin-top:19px}.switch a,.direct-signups a,.legal a{color:#d8ba62}.direct-signups{font-size:12px}.legal{font-size:12px;margin-top:24px}@media(max-width:520px){.shell{padding-top:104px;align-items:start}.topnav{top:20px;gap:15px}.card{padding:24px 18px;border-radius:14px}h1{font-size:30px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 `
