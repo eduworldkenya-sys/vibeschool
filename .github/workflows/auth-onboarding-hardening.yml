@@ -23,11 +23,23 @@ permissions:
 jobs:
   auth-contract:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Keep the auth certification build on the same deterministic runtime
+    # contract as the repository-wide production build gate. A security gate
+    # must not disagree with the canonical build gate because of Node, memory,
+    # or build-time public Supabase configuration drift.
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: npm
       - run: npm ci
       - name: Auth authority contract
