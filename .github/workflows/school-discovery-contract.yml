@@ -11,6 +11,7 @@ on:
       - 'scripts/test-authoritative-school-runtime-contract.py'
       - 'scripts/test-school-coverage-control-plane.py'
       - 'scripts/test-school-live-authoritative-adapter.py'
+      - 'scripts/test-school-search-helper-privilege-contract.py'
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
@@ -21,6 +22,7 @@ on:
       - 'scripts/test-authoritative-school-runtime-contract.py'
       - 'scripts/test-school-coverage-control-plane.py'
       - 'scripts/test-school-live-authoritative-adapter.py'
+      - 'scripts/test-school-search-helper-privilege-contract.py'
 
 jobs:
   contract:
@@ -35,3 +37,4 @@ jobs:
       - run: python scripts/test-authoritative-school-runtime-contract.py
       - run: python scripts/test-school-coverage-control-plane.py
       - run: python scripts/test-school-live-authoritative-adapter.py
+      - run: python scripts/test-school-search-helper-privilege-contract.py
