@@ -16,6 +16,6 @@ export function TrackedLink({ href,event,children,external=false,onClick,...rest
     trackPublicEvent(event)
     onClick?.(e)
   }
-  if (external) return <a href={href} onClick={click} {...rest}>{children}</a>
-  return <Link href={href} onClick={click} {...rest}>{children}</Link>
+  if (external) return <a href={href} data-vs-tracked="true" onClick={click} {...rest}>{children}</a>
+  return <Link href={href} data-vs-tracked="true" onClick={click} {...rest}>{children}</Link>
 }
