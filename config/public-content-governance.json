@@ -9,6 +9,7 @@
     {"route":"/contact","owner":"Operations","review_by":"2026-10-31","basis":"Canonical support channels and enquiry routing"},
     {"route":"/careers","owner":"People","review_by":"2026-10-31","basis":"Talent-interest status and genuine vacancies only"},
     {"route":"/institutions","owner":"Partnerships","review_by":"2026-11-30","basis":"Institutional adoption, objections, pilot boundaries and due-diligence model"},
+    {"route":"/evidence","owner":"Evidence","review_by":"2026-09-30","basis":"Published proof, measurement methodology, permission boundary and capability/validation ledger"},
     {"route":"/trust","owner":"Trust","review_by":"2026-10-31","basis":"Plain-language trust principles"},
     {"route":"/trust/child-safety","owner":"Trust","review_by":"2026-10-31","basis":"Safeguarding and learner authority principles"},
     {"route":"/trust/security","owner":"Security","review_by":"2026-10-31","basis":"Security and data-governance architecture"},
