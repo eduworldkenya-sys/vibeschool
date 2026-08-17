@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">VibeSchool mark</title>
+  <desc id="desc">VibeSchool purple V symbol</desc>
+  <g fill="#5b13d6">
+    <path d="M115 126C104 104 122 88 145 101c29 18 62 68 97 126 11 18 21 36 29 52 7 14 13 26 18 34 7 12 14 13 22 2 7-9 14-23 23-42l57-138c8-19 20-34 38-41 15-6 26 5 19 21l-94 222c-15 35-38 56-68 60-34 5-57-12-76-44l-95-227Z"/>
+    <path d="M430 150c8-19 20-31 32-32 11-1 16 9 10 22l-90 207c-15 34-35 55-63 66-10 4-20 6-29 7 20-10 36-27 48-53l92-217Z"/>
+    <circle cx="271" cy="126" r="34"/>
+  </g>
+</svg>

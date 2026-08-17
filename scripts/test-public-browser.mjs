@@ -16,8 +16,6 @@ try {
       const response = await page.goto(base + route, { waitUntil:'domcontentloaded', timeout:30000 })
       if (!response || response.status() >= 400) { fail(`${route} ${viewport.width}px: HTTP ${response?.status() ?? 'none'}`); continue }
 
-      // Some public routes are client-hydrated and briefly render a loading shell.
-      // Certify the stable interactive page, not the transient pre-hydration DOM.
       await page.waitForFunction(
         () => Boolean(document.querySelector('main')) && document.querySelectorAll('h1').length === 1,
         { timeout: 5000 }
@@ -29,6 +27,10 @@ try {
         const links = [...document.querySelectorAll('a')]
         const images = [...document.querySelectorAll('img')]
         const inputs = [...document.querySelectorAll('input,select,textarea')]
+        const header = document.querySelector('header')
+        const headerLogo = document.querySelector('header img[alt="VibeSchool"]')
+        const footerLogo = document.querySelector('footer img[alt="VibeSchool"]')
+        const rect = el => el ? el.getBoundingClientRect() : null
         return {
           overflow: root.scrollWidth - root.clientWidth,
           h1: document.querySelectorAll('h1').length,
@@ -43,6 +45,11 @@ try {
             const id = el.getAttribute('id')
             return !(el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || (id && document.querySelector(`label[for="${CSS.escape(id)}"]`)) || el.closest('label'))
           }).length,
+          headerRect: rect(header),
+          headerLogoRect: rect(headerLogo),
+          footerLogoRect: rect(footerLogo),
+          headerLogoSrc: headerLogo?.getAttribute('src') || '',
+          footerLogoSrc: footerLogo?.getAttribute('src') || '',
         }
       })
       for (const href of result.internalHrefs) internalLinks.add(href.split('#')[0])
@@ -55,6 +62,13 @@ try {
       if (result.placeholderLinks) fail(`${route}: ${result.placeholderLinks} placeholder links`)
       if (result.missingAlt) fail(`${route}: ${result.missingAlt} images without alt`)
       if (result.unlabeledInputs) fail(`${route}: ${result.unlabeledInputs} unlabeled form controls`)
+      if (result.headerRect && result.headerRect.height > 80) fail(`${route} ${viewport.width}px: public header is ${Math.round(result.headerRect.height)}px high; max is 80px`)
+      if (!result.headerLogoRect) fail(`${route}: public header VibeSchool wordmark missing`)
+      else if (result.headerLogoRect.height > 40 || result.headerLogoRect.width > 170) fail(`${route} ${viewport.width}px: header wordmark rendered ${Math.round(result.headerLogoRect.width)}x${Math.round(result.headerLogoRect.height)}; exceeds brand lockup budget`)
+      if (!result.footerLogoRect) fail(`${route}: public footer VibeSchool wordmark missing`)
+      else if (result.footerLogoRect.height > 40 || result.footerLogoRect.width > 180) fail(`${route} ${viewport.width}px: footer wordmark rendered ${Math.round(result.footerLogoRect.width)}x${Math.round(result.footerLogoRect.height)}; exceeds brand lockup budget`)
+      if (result.headerLogoSrc && !result.headerLogoSrc.includes('vibeschool-wordmark.svg')) fail(`${route}: header is not using canonical SVG wordmark`)
+      if (result.footerLogoSrc && !result.footerLogoSrc.includes('vibeschool-wordmark-dark.svg')) fail(`${route}: footer is not using canonical dark SVG wordmark`)
     }
     await context.close()
   }
@@ -133,4 +147,4 @@ if (failures.length) {
   process.exit(1)
 }
 console.log('PUBLIC BROWSER CERTIFICATION: PASS')
-console.log('Responsive layout, semantic landmarks, skip targets, keyboard focus, accessible names, internal links, performance budgets, 404 recovery and Pathways failure states passed.')
+console.log('Responsive layout, light/dark brand lockup geometry, semantic landmarks, skip targets, keyboard focus, accessible names, internal links, performance budgets, 404 recovery and Pathways failure states passed.')

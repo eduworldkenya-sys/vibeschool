@@ -14,7 +14,17 @@ export function PublicFooter() {
     </div></section>
     <div className={styles.footerInner}>
       <div className={styles.footerTop}>
-        <div className={styles.footerBrand}><Image src="/icons/vibeschool-logo.png" alt="VibeSchool" width={460} height={120} className={styles.footerLogo}/><p className={styles.tagline}>Learn today. Understand your direction. Grow with the people and institutions around your education.</p><div className={styles.social}><a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer">TikTok</a><TrackedLink href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">WhatsApp</TrackedLink></div></div>
+        <div className={styles.footerBrand}>
+          <Image
+            src="/brand/vibeschool-wordmark-dark.svg"
+            alt="VibeSchool"
+            width={620}
+            height={160}
+            className={styles.footerLogo}
+          />
+          <p className={styles.tagline}>Learn today. Understand your direction. Grow with the people and institutions around your education.</p>
+          <div className={styles.social}><a href={TIKTOK_URL} target="_blank" rel="noopener noreferrer">TikTok</a><TrackedLink href={WHATSAPP_URL} event="public_contact_whatsapp" external target="_blank" rel="noopener noreferrer">WhatsApp</TrackedLink></div>
+        </div>
         <div><h2 className={styles.columnTitle}>Learn</h2><div className={styles.linkList}><Link href="/global">Learning</Link><Link href="/pathways">Pathways</Link><Link href="/learn/careers">Careers</Link><Link href="/pathways/schools">Find schools</Link></div></div>
         <div><h2 className={styles.columnTitle}>Educators</h2><div className={styles.linkList}><TrackedLink href="/login/global?role=teacher" event="public_auth_signin">Teachers</TrackedLink><TrackedLink href="/login/global?role=admin" event="public_auth_signin">Schools</TrackedLink><Link href="/global">Resources</Link><Link href="/contact">Support</Link></div></div>
         <div><h2 className={styles.columnTitle}>Families</h2><div className={styles.linkList}><TrackedLink href="/login/global?role=parent" event="public_auth_signin">Parents</TrackedLink><Link href="/pathways">Future choices</Link><Link href="/pathways/schools">School discovery</Link><Link href="/contact">Get help</Link></div></div>
