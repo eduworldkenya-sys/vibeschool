@@ -1,7 +1,7 @@
 import { chromium } from 'playwright'
 
 const base = process.env.PUBLIC_TEST_BASE_URL || 'http://127.0.0.1:3000'
-const routes = ['/', '/about', '/contact', '/careers', '/institutions', '/trust', '/trust/child-safety', '/trust/security', '/trust/responsible-ai', '/legal', '/legal/privacy', '/legal/terms', '/legal/aup', '/pathways', '/pathways/check', '/pathways/subjects', '/pathways/schools', '/learn/careers']
+const routes = ['/', '/product', '/about', '/contact', '/careers', '/institutions', '/trust', '/trust/child-safety', '/trust/security', '/trust/responsible-ai', '/legal', '/legal/privacy', '/legal/terms', '/legal/aup', '/pathways', '/pathways/check', '/pathways/subjects', '/pathways/schools', '/learn/careers']
 const viewports = [{width:360,height:800},{width:390,height:844},{width:768,height:1024},{width:1440,height:900}]
 const failures=[]
 const internalLinks=new Set()
