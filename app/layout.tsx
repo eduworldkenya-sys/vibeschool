@@ -5,9 +5,9 @@ import PwaInstallPrompt from '@/components/pwa/PwaInstallPrompt'
 import PwaServiceWorker from '@/components/pwa/PwaServiceWorker'
 import './globals.css'
 
-const jost = Jost({ subsets: ['latin'], weight: ['300','400','600','800'], display: 'swap', variable: '--font-display' })
-const dmMono = DM_Mono({ subsets: ['latin'], weight: ['400'], display: 'swap', variable: '--font-mono' })
-const cormorant = Cormorant_Garamond({ subsets: ['latin'], weight: ['400'], style: ['italic'], display: 'swap', variable: '--font-serif' })
+const jost = Jost({ subsets: ['latin'], weight: ['400','600','800'], display: 'swap', variable: '--font-display' })
+const dmMono = DM_Mono({ subsets: ['latin'], weight: ['400'], display: 'swap', preload:false, variable: '--font-mono' })
+const cormorant = Cormorant_Garamond({ subsets: ['latin'], weight: ['400'], style: ['italic'], display: 'swap', preload:false, variable: '--font-serif' })
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','600','700','800'], display: 'swap', variable: '--font-jakarta' })
 
 const schemaOrg = {
