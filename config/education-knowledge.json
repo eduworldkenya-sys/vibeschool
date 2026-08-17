@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "verified_on": "2026-08-18",
+  "sources": [
+    {
+      "id": "moe-grade10-selection",
+      "authority": "Kenya Ministry of Education",
+      "title": "Grade 10 School & Pathway Selection System — About",
+      "url": "https://selection.education.go.ke/about",
+      "source_type": "official-government-platform",
+      "verified_on": "2026-08-18"
+    },
+    {
+      "id": "kicd-grade10-designs",
+      "authority": "Kenya Institute of Curriculum Development",
+      "title": "Grade Ten Curriculum Designs",
+      "url": "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-ten/",
+      "source_type": "official-curriculum-source",
+      "verified_on": "2026-08-18"
+    },
+    {
+      "id": "kicd-approved-grade10-materials",
+      "authority": "Kenya Institute of Curriculum Development",
+      "title": "Approved CBC Course Materials",
+      "url": "https://kicd.ac.ke/cbc-materials/approved-cbc-course-materials/",
+      "source_type": "official-curriculum-source",
+      "verified_on": "2026-08-18"
+    },
+    {
+      "id": "knec-cba",
+      "authority": "Kenya National Examinations Council",
+      "title": "Competency Based Assessment Portal",
+      "url": "https://cba.knec.ac.ke/",
+      "source_type": "official-assessment-source",
+      "verified_on": "2026-08-18"
+    }
+  ],
+  "articles": [
+    {
+      "slug": "grade-10-in-kenya",
+      "title": "Grade 10 in Kenya: what changes at Senior School?",
+      "description": "A source-backed explanation of Grade 10, Senior School choices, pathways, subject combinations and what official systems do.",
+      "audience": ["learner", "family", "teacher", "school"],
+      "updated_on": "2026-08-18",
+      "sections": [
+        {
+          "heading": "Grade 10 is the start of Senior School",
+          "kind": "fact",
+          "body": "Kenya's official Grade 10 selection platform is designed for Grade 9 learners transitioning to Senior School under Competency-Based Education. The transition includes choices about pathways, subject combinations and Senior Schools.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "The three broad pathways",
+          "kind": "fact",
+          "body": "The Ministry's selection platform groups Senior School choices into STEM, Social Sciences, and Arts & Sports. Learners then explore subject combinations and schools within that wider structure.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "Curriculum designs come from KICD",
+          "kind": "fact",
+          "body": "KICD publishes Grade 10 curriculum designs across areas including applied sciences, arts and sports, foreign languages, humanities, languages, pure sciences, religious education and technical studies.",
+          "source_ids": ["kicd-grade10-designs"]
+        },
+        {
+          "heading": "Selection is not the same as placement",
+          "kind": "boundary",
+          "body": "The Ministry's Grade 10 selection system says it records and submits learner choices; it does not itself handle school placement. Treat a submitted choice as a preference record, not a placement guarantee.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "What a learner should do next",
+          "kind": "guidance",
+          "body": "Start with interests and strengths, inspect the pathway and subject combinations that fit them, then verify which Senior Schools offer those combinations. Keep official selection and school information separate from career guidance or personal recommendations.",
+          "source_ids": ["moe-grade10-selection"]
+        }
+      ]
+    },
+    {
+      "slug": "senior-school-pathways",
+      "title": "Senior School Pathways in Kenya: STEM, Social Sciences, Arts & Sports",
+      "description": "Understand Kenya's Senior School pathway structure and how pathways connect to subject combinations and schools.",
+      "audience": ["learner", "family", "teacher"],
+      "updated_on": "2026-08-18",
+      "sections": [
+        {
+          "heading": "Pathways organise Senior School choices",
+          "kind": "fact",
+          "body": "The Ministry's official selection platform presents STEM, Social Sciences, and Arts & Sports as the three broad Senior School pathways available for exploration during Grade 10 selection.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "A pathway is not one fixed subject list",
+          "kind": "fact",
+          "body": "The official selection platform allows learners to choose subject combinations associated with their pathway rather than treating every learner in a pathway as taking one identical set of subjects.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "Schools differ in what they offer",
+          "kind": "fact",
+          "body": "The Ministry platform supports searching Senior Schools against pathway and subject-combination choices. A learner should therefore verify a school's actual offering instead of assuming every Senior School offers every combination.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "Use curriculum and assessment authorities for different questions",
+          "kind": "boundary",
+          "body": "KICD is the curriculum source for Grade 10 designs, while KNEC operates the competency-based assessment infrastructure. VibeSchool should preserve that distinction when explaining curriculum, assessment and school-selection information.",
+          "source_ids": ["kicd-grade10-designs", "knec-cba"]
+        }
+      ]
+    },
+    {
+      "slug": "grade-10-subject-combinations",
+      "title": "Grade 10 subject combinations in Kenya: how to think about the choice",
+      "description": "A practical, source-backed guide to subject combinations, school availability and the difference between official facts and guidance.",
+      "audience": ["learner", "family", "teacher"],
+      "updated_on": "2026-08-18",
+      "sections": [
+        {
+          "heading": "Subject combinations are part of the official selection journey",
+          "kind": "fact",
+          "body": "The Ministry's Grade 10 selection platform explicitly supports subject-combination selection alongside pathway and Senior School choices.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "Check the curriculum behind a subject",
+          "kind": "guidance",
+          "body": "Before treating a subject name as a career label, inspect the relevant KICD Grade 10 curriculum design. The design is a better source for what learners are expected to study than marketing descriptions or informal lists.",
+          "source_ids": ["kicd-grade10-designs"]
+        },
+        {
+          "heading": "Check whether the school actually offers the combination",
+          "kind": "guidance",
+          "body": "A combination that fits a learner's interests is only actionable if an appropriate Senior School offers it. Use the Ministry's selection system or other current official school-offering evidence before making the school decision.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "Approved textbooks are a separate question",
+          "kind": "boundary",
+          "body": "KICD maintains an approved CBC course-materials surface, including Grade 10 materials. Curriculum inclusion, subject selection and approval of a particular textbook are related but distinct facts and should not be collapsed into one claim.",
+          "source_ids": ["kicd-approved-grade10-materials"]
+        }
+      ]
+    },
+    {
+      "slug": "choosing-a-senior-school",
+      "title": "Choosing a Senior School in Kenya: pathway fit before school name",
+      "description": "A practical guide to checking pathway, subject-combination and school-offering fit before submitting Grade 10 choices.",
+      "audience": ["learner", "family"],
+      "updated_on": "2026-08-18",
+      "sections": [
+        {
+          "heading": "Start from the learning choice, not only the school brand",
+          "kind": "guidance",
+          "body": "Work from the learner's interests and pathway toward a subject combination, then verify Senior Schools that offer it. This reduces the risk of choosing a school first and discovering later that the intended combination is unavailable there.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "Use official school-selection evidence",
+          "kind": "fact",
+          "body": "The Ministry platform includes Senior School search and subject-combination selection as part of the Grade 10 choice process.",
+          "source_ids": ["moe-grade10-selection"]
+        },
+        {
+          "heading": "A selection is still not a placement guarantee",
+          "kind": "boundary",
+          "body": "The official selection platform states that it records learner choices and does not itself handle placements. School preference, selection submission and final placement should therefore remain separate concepts in VibeSchool guidance.",
+          "source_ids": ["moe-grade10-selection"]
+        }
+      ]
+    }
+  ]
+}
