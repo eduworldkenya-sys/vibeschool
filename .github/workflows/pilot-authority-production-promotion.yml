@@ -1,0 +1,288 @@
+name: Pilot Authority Production Promotion
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/pilot-authority-production-promotion.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pilot-authority-production-promotion.yml'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type APPLY_PILOT_AUTHORITY_PRODUCTION'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pilot-authority-production-promotion
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+  EXPECTED_PENDING_VERSION: '20260818013000'
+  EXPECTED_MIGRATION_FILE: supabase/migrations/20260818013000_pilot_identity_domain_semantic_repair.sql
+
+jobs:
+  contract:
+    name: Promotion contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact event commit
+        uses: actions/checkout@v4
+
+      - name: Verify canonical migration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$EXPECTED_MIGRATION_FILE"
+          test "$(find supabase/migrations -maxdepth 1 -type f -name "${EXPECTED_PENDING_VERSION}_*.sql" | wc -l | tr -d ' ')" = "1"
+          grep -F -- '-- Pilot authorization semantic repair.' "$EXPECTED_MIGRATION_FILE"
+          grep -F 'drop policy if exists exam_results_member_read' "$EXPECTED_MIGRATION_FILE"
+          grep -F 'revoke all privileges on table public.exam_results from anon, authenticated' "$EXPECTED_MIGRATION_FILE"
+          grep -F 'revoke all privileges on table public.class_join_requests from anon, authenticated' "$EXPECTED_MIGRATION_FILE"
+          grep -F "raise exception 'broad exam_results member-read bypass remains'" "$EXPECTED_MIGRATION_FILE"
+
+      - name: Verify promotion is fail-closed and production-scoped
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_PROJECT_REF" = 'yauqsxggtuxuykcbrtzf'
+          test "$EXPECTED_PENDING_VERSION" = '20260818013000'
+          test "${EXPECTED_MIGRATION_FILE##*/}" = '20260818013000_pilot_identity_domain_semantic_repair.sql'
+          grep -F 'environment: production-migration-repair' .github/workflows/pilot-authority-production-promotion.yml
+          grep -F 'supabase db push --linked --dry-run --include-all' .github/workflows/pilot-authority-production-promotion.yml
+          grep -F 'supabase db push --linked --include-all' .github/workflows/pilot-authority-production-promotion.yml
+
+  apply:
+    name: Protected exact-version production apply
+    needs: contract
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.confirmation == 'APPLY_PILOT_AUTHORITY_PRODUCTION')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-migration-repair
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test "$SUPABASE_PROJECT_ID" = "$EXPECTED_PROJECT_REF"
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          test -f "$EXPECTED_MIGRATION_FILE"
+          test "$(find supabase/migrations -maxdepth 1 -type f -name "${EXPECTED_PENDING_VERSION}_*.sql" | wc -l | tr -d ' ')" = "1"
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Link exact production project
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Capture remote ledger before apply
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .pilot-authority-promotion
+          supabase migration list --linked 2>&1 | tee .pilot-authority-promotion/migration-list-before.txt
+
+      - name: Determine whether exact migration is pending
+        id: pending
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          text = Path('.pilot-authority-promotion/migration-list-before.txt').read_text(encoding='utf-8', errors='replace')
+          remote = set()
+          for line in text.splitlines():
+              cols = [c.strip().strip('`') for c in line.split('|')]
+              if len(cols) >= 2 and re.fullmatch(r'\d{8,14}', cols[1]):
+                  remote.add(cols[1])
+          target = os.environ['EXPECTED_PENDING_VERSION']
+          output = Path(os.environ['GITHUB_OUTPUT'])
+          with output.open('a', encoding='utf-8') as fh:
+              fh.write(f"needs_apply={'false' if target in remote else 'true'}\n")
+          Path('.pilot-authority-promotion/remote-versions-before.txt').write_text('\n'.join(sorted(remote)) + '\n', encoding='utf-8')
+          print(f'remote_versions={len(remote)} target_present={target in remote}')
+          PY
+
+      - name: Build ledger-aligned one-migration stage
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          import shutil
+          from pathlib import Path
+
+          migration_re = re.compile(r'^(\d{8,14})_.+\.sql$')
+          target = os.environ['EXPECTED_PENDING_VERSION']
+          migrations = Path('supabase/migrations')
+          config = Path('supabase/config.toml')
+          stage = Path('.pilot-authority-promotion-stage')
+          remote = {x.strip() for x in Path('.pilot-authority-promotion/remote-versions-before.txt').read_text().splitlines() if x.strip()}
+          if target in remote:
+              raise SystemExit('target unexpectedly became remote during staging')
+
+          local = {}
+          for path in migrations.glob('*.sql'):
+              match = migration_re.fullmatch(path.name)
+              if not match:
+                  raise SystemExit(f'invalid migration filename: {path.name}')
+              version = match.group(1)
+              if version in local:
+                  raise SystemExit(f'duplicate local migration version: {version}')
+              local[version] = path
+          if target not in local:
+              raise SystemExit('target migration missing locally')
+
+          if stage.exists():
+              shutil.rmtree(stage)
+          stage_migrations = stage / 'supabase' / 'migrations'
+          stage_migrations.mkdir(parents=True)
+          shutil.copy2(config, stage / 'supabase' / 'config.toml')
+
+          staged = set()
+          placeholders = []
+          for version in sorted(remote):
+              source = local.get(version)
+              if source is not None:
+                  shutil.copy2(source, stage_migrations / source.name)
+              else:
+                  placeholder = stage_migrations / f'{version}_production_history_placeholder.sql'
+                  placeholder.write_text('-- Ledger-alignment placeholder for an already-applied production migration. Never executed.\n', encoding='utf-8')
+                  placeholders.append(version)
+              staged.add(version)
+
+          source = local[target]
+          shutil.copy2(source, stage_migrations / source.name)
+          staged.add(target)
+          expected = remote | {target}
+          if staged != expected:
+              raise SystemExit(f'stage mismatch missing={sorted(expected-staged)} extra={sorted(staged-expected)}')
+
+          Path('.pilot-authority-promotion/expected-versions.txt').write_text(target + '\n', encoding='utf-8')
+          Path('.pilot-authority-promotion/stage-summary.txt').write_text(
+              f'remote_versions={len(remote)}\n'
+              f'placeholders={len(placeholders)}\n'
+              f'staged_versions={len(staged)}\n'
+              f'pending_version={target}\n',
+              encoding='utf-8',
+          )
+          print(Path('.pilot-authority-promotion/stage-summary.txt').read_text())
+          PY
+
+      - name: Link ledger-aligned stage to exact production project
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .pilot-authority-promotion-stage
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Dry-run exact production plan
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          cd .pilot-authority-promotion-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.pilot-authority-promotion/db-push-preflight.txt
+
+      - name: Assert dry-run contains exactly the certified migration
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/worker-engine-assert-dry-run-plan.py \
+            --expected .pilot-authority-promotion/expected-versions.txt \
+            --dry-run-output .pilot-authority-promotion/db-push-preflight.txt \
+            --report .pilot-authority-promotion/preflight-assertion.txt
+          grep -F 'status=PASSED' .pilot-authority-promotion/preflight-assertion.txt
+
+      - name: Apply exact certified migration
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          cd .pilot-authority-promotion-stage
+          supabase db push --linked --include-all 2>&1 | tee ../.pilot-authority-promotion/db-push-apply.txt
+
+      - name: Capture remote ledger after apply
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase migration list --linked 2>&1 | tee .pilot-authority-promotion/migration-list-after.txt
+
+      - name: Verify exact ledger transition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          def versions(path):
+              result = set()
+              text = Path(path).read_text(encoding='utf-8', errors='replace')
+              for line in text.splitlines():
+                  cols = [c.strip().strip('`') for c in line.split('|')]
+                  if len(cols) >= 2 and re.fullmatch(r'\d{8,14}', cols[1]):
+                      result.add(cols[1])
+              return result
+
+          before = versions('.pilot-authority-promotion/migration-list-before.txt')
+          after = versions('.pilot-authority-promotion/migration-list-after.txt')
+          target = os.environ['EXPECTED_PENDING_VERSION']
+          if target not in after:
+              raise SystemExit('certified migration is not recorded remotely')
+          expected_after = before if target in before else before | {target}
+          if after != expected_after:
+              raise SystemExit(f'unexpected ledger transition added={sorted(after-expected_after)} removed={sorted(expected_after-after)}')
+          Path('.pilot-authority-promotion/post-apply-ledger-assertion.txt').write_text(
+              f'target={target}\nstatus=PASSED\nremote_before={len(before)}\nremote_after={len(after)}\n',
+              encoding='utf-8',
+          )
+          print(Path('.pilot-authority-promotion/post-apply-ledger-assertion.txt').read_text())
+          PY
+
+      - name: Upload immutable promotion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-authority-production-promotion-${{ github.run_id }}
+          path: .pilot-authority-promotion/
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 90
