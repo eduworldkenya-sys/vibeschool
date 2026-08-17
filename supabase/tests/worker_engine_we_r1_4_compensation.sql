@@ -35,14 +35,26 @@ begin
   if position('mutation_applied' in d)=0 then raise exception 'compensation mutation evidence missing'; end if;
 end $$;
 
--- The gateway must capture recovery truth from the locked database row, not caller JSON.
+-- The canonical gateway is intentionally a durable breaker wrapper in R1.4.16.
+-- Recovery truth therefore lives in the inaccessible inner gateway. Certify the
+-- composed chain instead of incorrectly requiring every invariant in the outer shell.
 do $$
-declare d text;
+declare canonical_d text; inner_d text;
 begin
-  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway(uuid)'::regprocedure)) into d;
-  if position('authoritative_before_state' in d)=0 or position('expected_after_state' in d)=0 then raise exception 'gateway recovery snapshot persistence missing'; end if;
-  if position('for update' in d)=0 then raise exception 'gateway row-lock proof missing'; end if;
-  if position('execution_recovery_snapshot_not_recorded' in d)=0 then raise exception 'gateway snapshot fail-closed assertion missing'; end if;
+  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway(uuid)'::regprocedure)) into canonical_d;
+  if position('hq_workforce_consequential_execution_gateway_r14_approval_bound_internal' in canonical_d)=0 then
+    raise exception 'canonical gateway does not delegate to approval-bound recovery implementation';
+  end if;
+  if to_regprocedure('public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)') is null then
+    raise exception 'approval-bound recovery gateway missing';
+  end if;
+  if has_function_privilege('service_role','public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)','EXECUTE') then
+    raise exception 'approval-bound recovery gateway externally callable';
+  end if;
+  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)'::regprocedure)) into inner_d;
+  if position('authoritative_before_state' in inner_d)=0 or position('expected_after_state' in inner_d)=0 then raise exception 'gateway recovery snapshot persistence missing'; end if;
+  if position('for update' in inner_d)=0 then raise exception 'gateway row-lock proof missing'; end if;
+  if position('execution_recovery_snapshot_not_recorded' in inner_d)=0 then raise exception 'gateway snapshot fail-closed assertion missing'; end if;
 end $$;
 
 -- Recovery evidence is append-only.
