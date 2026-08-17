@@ -15,6 +15,14 @@ try {
     for (const route of routes) {
       const response = await page.goto(base + route, { waitUntil:'domcontentloaded', timeout:30000 })
       if (!response || response.status() >= 400) { fail(`${route} ${viewport.width}px: HTTP ${response?.status() ?? 'none'}`); continue }
+
+      // Some public routes are client-hydrated and briefly render a loading shell.
+      // Certify the stable interactive page, not the transient pre-hydration DOM.
+      await page.waitForFunction(
+        () => Boolean(document.querySelector('main')) && document.querySelectorAll('h1').length === 1,
+        { timeout: 5000 }
+      ).catch(() => {})
+
       const result = await page.evaluate(() => {
         const root = document.documentElement
         const buttons = [...document.querySelectorAll('button')]
