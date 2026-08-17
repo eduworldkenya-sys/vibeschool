@@ -5,24 +5,33 @@ import PwaInstallPrompt from '@/components/pwa/PwaInstallPrompt'
 import PwaServiceWorker from '@/components/pwa/PwaServiceWorker'
 import './globals.css'
 
-const jost = Jost({ subsets: ['latin'], weight: ['300','400','600','800'], display: 'block', variable: '--font-display' })
-const dmMono = DM_Mono({ subsets: ['latin'], weight: ['400'], display: 'block', variable: '--font-mono' })
-const cormorant = Cormorant_Garamond({ subsets: ['latin'], weight: ['400'], style: ['italic'], display: 'block', variable: '--font-serif' })
+const jost = Jost({ subsets: ['latin'], weight: ['400','600','800'], display: 'swap', variable: '--font-display' })
+const dmMono = DM_Mono({ subsets: ['latin'], weight: ['400'], display: 'swap', preload:false, variable: '--font-mono' })
+const cormorant = Cormorant_Garamond({ subsets: ['latin'], weight: ['400'], style: ['italic'], display: 'swap', preload:false, variable: '--font-serif' })
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','600','700','800'], display: 'swap', variable: '--font-jakarta' })
-const schemaOrg = { '@context':'https://schema.org','@type':'EducationalOrganization',name:'VibeSchool',url:'https://www.vibeschool.co.ke',logo:'https://www.vibeschool.co.ke/icons/vibeschool-logo.png',description:'VibeSchool connects curriculum, teaching, learning evidence and the people supporting a learner.',address:{'@type':'PostalAddress',addressCountry:'KE'},areaServed:'Kenya',educationalLevel:['Primary','Secondary','CBC'],availableLanguage:'English' }
+
+const schemaOrg = {
+  '@context':'https://schema.org',
+  '@type':'EducationalOrganization',
+  name:'VibeSchool',
+  url:'https://www.vibeschool.co.ke',
+  logo:'https://www.vibeschool.co.ke/icons/vibeschool-logo.png',
+  description:'VibeSchool connects learning, teaching, evidence, pathways and the people supporting a learner in Kenya.',
+  areaServed:{'@type':'Country',name:'Kenya'},
+  availableLanguage:['English'],
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.vibeschool.co.ke'),
-  title: { default:'VibeSchool — Free CBC & Secondary Ebooks, Past Papers Kenya', template:'%s | VibeSchool' },
-  description:'Free CBC and Secondary school ebooks, past papers and exam materials for Kenyan students. Curriculum-aligned study resources from Grade 1 to Form 4.',
-  keywords:['free CBC ebooks Kenya','KCSE past papers','KCPE past papers','CBC study materials','Kenya secondary school notes','free study materials Kenya'],
-  alternates:{canonical:'https://www.vibeschool.co.ke'},
-  openGraph:{title:'VibeSchool — Learning, teaching and education, connected',description:'VibeSchool connects learning resources, curriculum, teaching, evidence and the people supporting a learner.',url:'https://www.vibeschool.co.ke',siteName:'VibeSchool',locale:'en_KE',type:'website',images:[{url:'/icons/vibeschool-logo.png',alt:'VibeSchool'}]},
-  twitter:{card:'summary_large_image',title:'VibeSchool — Learning, teaching and education, connected',description:'A connected education experience for learners, teachers, parents and schools.',images:['/icons/vibeschool-logo.png']},
+  title: { default:'VibeSchool — Learning, teaching and future direction, connected', template:'%s | VibeSchool' },
+  description:'VibeSchool connects learning, teaching, evidence, Pathways and school discovery around the Kenyan education journey.',
+  keywords:['VibeSchool','Kenya education','CBC learning','CBE Kenya','Senior School pathways Kenya','school discovery Kenya','teacher tools Kenya'],
+  openGraph:{title:'VibeSchool — Learning, teaching and future direction, connected',description:'Explore learning, Pathways, careers and schools while understanding how VibeSchool connects the wider education journey.',url:'https://www.vibeschool.co.ke',siteName:'VibeSchool',locale:'en_KE',type:'website',images:[{url:'/opengraph-image',width:1200,height:630,alt:'VibeSchool — connected education for Kenya'}]},
+  twitter:{card:'summary_large_image',title:'VibeSchool — Learning, teaching and future direction, connected',description:'A connected education experience for learners, teachers, parents, schools and institutions in Kenya.',images:['/opengraph-image']},
   manifest:'/manifest.webmanifest',
   appleWebApp:{capable:true,statusBarStyle:'black-translucent',title:'VibeSchool'},
   icons:{icon:[{url:'/pwa-icons/v3/32',type:'image/png',sizes:'32x32'},{url:'/pwa-icons/v3/48',type:'image/png',sizes:'48x48'},{url:'/pwa-icons/v3/192',type:'image/png',sizes:'192x192'}],shortcut:[{url:'/pwa-icons/v3/48',type:'image/png',sizes:'48x48'}],apple:[{url:'/apple-icon',type:'image/png',sizes:'180x180'}]},
   formatDetection:{telephone:false},
 }
-export const viewport: Viewport = { themeColor:'#070B1F',width:'device-width',initialScale:1,minimumScale:1,viewportFit:'cover' }
+export const viewport: Viewport = { themeColor:'#07111f',width:'device-width',initialScale:1,minimumScale:1,viewportFit:'cover' }
 export default function RootLayout({children}:{children:React.ReactNode}) { return <html lang="en" className={`${jost.variable} ${dmMono.variable} ${cormorant.variable} ${plusJakarta.variable}`}><body><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schemaOrg)}} />{children}<LearnYourWayReaderBridge/><PwaServiceWorker/><PwaInstallPrompt/></body></html> }

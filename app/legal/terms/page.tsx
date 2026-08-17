@@ -1,106 +1,35 @@
-"use client";
-import { useRouter } from 'next/navigation'
-import styles from '../legal.module.css'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { PublicHeader } from '@/components/public/PublicHeader'
+import { PublicFooter } from '@/components/public/PublicFooter'
 
-export default function TermsPage() {
-  const router = useRouter()
+export const metadata: Metadata = { title:'Terms of Service | VibeSchool', description:'The terms that govern access to and use of VibeSchool.' }
 
-  return (
-    <div className={styles.root}>
-      <div className={styles.content}>
-        <button className={styles.back} onClick={() => router.back()}>← Back</button>
-
-        <p className={styles.badge}>Gilowinc Investment · BN-KYCZ73AZ</p>
-        <h1 className={styles.title}>Terms of Service</h1>
-        <p className={styles.meta}>Effective: 27 May 2026 &nbsp;·&nbsp; Last updated: 27 May 2026</p>
-        <div className={styles.divider} />
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>1. About These Terms</p>
-          <p className={styles.body}>These Terms govern your access to and use of <strong>VibeSchool</strong>, a school management platform operated by <strong>Gilowinc Investment</strong> (Registration No. BN-KYCZ73AZ), Nairobi, Kenya. By creating an account or using VibeSchool, you confirm you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you do not agree, you must not use the Platform.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>2. Eligibility</p>
-          <p className={styles.body}>You must be at least <strong>18 years old</strong> to create a User account. Student accounts are <strong>parent-managed</strong>. Schools confirm they are legally constituted educational institutions complying with the Basic Education Act 2013.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>3. Account Security</p>
-          <p className={styles.body}>You are responsible for maintaining the confidentiality of your credentials and all activity under your account. Notify us immediately at <strong>gilowincinvestment@gmail.com</strong> if you suspect unauthorised access. School Administrators must promptly revoke access for any staff member who leaves.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>4. Subscription and Payment</p>
-          <p className={styles.body}>VibeSchool is a paid platform. Fees are communicated at registration and subject to change with 30 days notice. Fees are non-refundable except as required by Kenyan law. We may suspend access if payment is overdue by more than 14 days with prior written notice. All fees are quoted in Kenyan Shillings (KES).</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>5. Acceptable Use</p>
-          <ul className={styles.list}>
-            <li>Do not upload unlawful, harmful, defamatory, or obscene content</li>
-            <li>Do not share Student Data outside the Platform without explicit parental consent</li>
-            <li>Do not impersonate any person or misrepresent your school affiliation</li>
-            <li>Do not attempt unauthorised access to any part of the Platform</li>
-            <li>Do not use automated tools or bots to extract data</li>
-            <li>Do not upload malicious code or disruptive software</li>
-            <li>Do not harass, bully, or intimidate any student, parent, or staff member</li>
-            <li>Do not use Student Data for commercial purposes or advertising</li>
-          </ul>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>6. Student Data and Parental Responsibility</p>
-          <p className={styles.body}>Parents who register student accounts consent to data collection as described in our Privacy Policy. Parents may request deletion of their child data at any time — we process valid requests within 30 days. We do not knowingly allow any person under 18 to create an independent account.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>7. Intellectual Property</p>
-          <p className={styles.body}>All Platform content is the exclusive property of Gilowinc Investment. We grant you a limited, non-exclusive, non-transferable licence to use the Platform for educational management purposes during your Subscription. You retain ownership of all data you upload.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>8. Data Ownership and Portability</p>
-          <p className={styles.body}>Schools own their data. Upon termination we provide a data export within 30 days of written request. After 90 days we may permanently delete School data with advance notice. We will never sell or transfer School or Student Data to any third party for commercial purposes.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>9. Limitation of Liability</p>
-          <p className={styles.body}>To the maximum extent permitted by Kenyan law, Gilowinc Investment shall not be liable for indirect, incidental, or consequential damages. Our total aggregate liability shall not exceed the <strong>total Subscription fees paid by you in the three (3) months immediately preceding</strong> the event giving rise to the claim.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>10. Disclaimers</p>
-          <p className={styles.body}>The Platform is provided "as is" and "as available". We do not warrant uninterrupted or error-free operation. We are not responsible for educational outcomes or decisions made based on Platform data.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>11. Termination</p>
-          <p className={styles.body}>You may terminate your account at any time by contacting us. We may suspend or terminate your account immediately if you breach these Terms, if required by law, or if your account poses a risk to student safety.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>12. Changes to These Terms</p>
-          <p className={styles.body}>We will notify users by email at least 14 days before material changes take effect. Continued use after the effective date constitutes acceptance.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>13. Governing Law and Disputes</p>
-          <p className={styles.body}>These Terms are governed by the laws of Kenya. Disputes shall first be referred to mediation. If mediation fails within 30 days, disputes shall be submitted to the exclusive jurisdiction of the courts of Nairobi, Kenya.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>Contact</p>
-          <div className={styles.contactBox}>
-            <p className={styles.contactLine}>Gilowinc Investment · BN-KYCZ73AZ</p>
-            <p className={styles.contactLine}>Nairobi, Kenya</p>
-            <p className={styles.contactLine}>gilowincinvestment@gmail.com</p>
-            <p className={styles.contactLine}>+254 720 614664 · +254 732 227603</p>
-          </div>
-        </div>
-
-        <p className={styles.footer}>© 2026 Gilowinc Investment · BN-KYCZ73AZ · Nairobi, Kenya</p>
-      </div>
-    </div>
-  )
+export default function TermsPage(){
+  return <div style={{minHeight:'100vh',background:'#f7f7fb',color:'#171720'}}>
+    <PublicHeader product="Terms" />
+    <main id="main-content" style={{width:'min(900px,100%)',margin:'0 auto',padding:'64px 18px 20px'}}>
+      <Link href="/legal" style={{fontSize:13,fontWeight:800,color:'#4f46e5',textDecoration:'none'}}>← Trust & policies</Link>
+      <p style={{margin:'28px 0 0',fontSize:11,fontWeight:850,letterSpacing:'.16em',color:'#725815'}}>VIBESCHOOL TERMS</p>
+      <h1 style={{margin:'10px 0 0',fontSize:'clamp(40px,7vw,64px)',letterSpacing:'-.045em',lineHeight:1.02}}>Terms of Service</h1>
+      <p style={{marginTop:14,fontSize:12,color:'#7a7a89'}}>Effective 27 May 2026 · Last updated 17 August 2026</p>
+      <div style={{margin:'30px 0 44px',padding:22,border:'1px solid #dedfe7',borderRadius:18,background:'#fff',color:'#5d5d6d',lineHeight:1.65,fontSize:14}}>These terms govern use of VibeSchool. VibeSchool is the public-facing service and brand. For legal transparency, the service is operated by Gilowinc Investment in Kenya; company-registration details are not used as consumer-facing branding.</div>
+      <LegalSection n="1" title="What VibeSchool is"><p>VibeSchool is an education platform for learning, teaching, pathways, families and schools. Some areas are publicly explorable; others require an account, an authorised relationship or a school role.</p></LegalSection>
+      <LegalSection n="2" title="Eligibility and learner access"><p>Adults may create accounts where the relevant VibeSchool flow permits it. Learners under 18 may use learner-facing features only through account and authority arrangements VibeSchool permits. Where Kenyan law requires a parent or guardian’s consent to process a child’s personal data, that consent and appropriate age/authority safeguards must be obtained before relying on consent for the processing.</p><p>Schools, parents, guardians and other authorised adults must provide accurate relationship and authority information and must not create or claim access to a learner they are not entitled to manage.</p></LegalSection>
+      <LegalSection n="3" title="Account security"><p>You are responsible for protecting your credentials and for activity you knowingly authorise. Do not share passwords or one-time codes. Use the VibeSchool Contact page promptly if you believe an account has been compromised.</p></LegalSection>
+      <LegalSection n="4" title="Free and paid services"><p>VibeSchool may offer free features and paid features. A price, billing period and material purchase terms should be shown before a user commits to a paid service. We do not treat the entire platform as paid merely because some services may require payment.</p><p>Where a paid service is introduced, refunds, cancellations, suspension and renewal rules are governed by the purchase terms shown for that service and applicable Kenyan law.</p></LegalSection>
+      <LegalSection n="5" title="Acceptable use"><p>You must use VibeSchool lawfully and in a way that respects learners, educators, families, institutions and other users. The <Link href="/legal/aup">Acceptable Use Policy</Link> forms part of these terms.</p></LegalSection>
+      <LegalSection n="6" title="Education guidance and decisions"><p>Learning recommendations, Pathways guidance, progress signals and similar features are intended to support understanding and decision-making. They are not a substitute for official placement decisions, professional advice or the authority of relevant education institutions. Where VibeSchool labels information as verified or authoritative, that label should be supported by appropriate evidence.</p></LegalSection>
+      <LegalSection n="7" title="Content and intellectual property"><p>VibeSchool owns or licenses the software, original branding and content it creates. That does not mean VibeSchool automatically owns every item that appears on the platform.</p><p>Users and institutions retain rights they already hold in content and data they lawfully provide, subject to the permissions reasonably required for VibeSchool to host, process and display that material for the requested service. Third-party and public-source material remains subject to its own rights and licence conditions.</p></LegalSection>
+      <LegalSection n="8" title="School and learner information"><p>Access to school and learner information is governed by authorised roles, relationships, applicable agreements and law. Users must not extract, disclose or repurpose information merely because they can technically view it.</p><p>Privacy rights and data-handling practices are described in the <Link href="/legal/privacy">Privacy Policy</Link>.</p></LegalSection>
+      <LegalSection n="9" title="Availability and changes"><p>We work to keep VibeSchool reliable, but no online service can guarantee uninterrupted operation. Features may change as the platform, curriculum context, security requirements or law changes. Material changes to these terms should be communicated in a reasonable way before they take effect where required.</p></LegalSection>
+      <LegalSection n="10" title="Suspension and termination"><p>Access may be restricted or suspended where necessary to protect users, learners, institutions or the platform; to investigate suspected abuse; to enforce these terms; or to comply with law. Where appropriate, users should receive an explanation and a route to seek review.</p></LegalSection>
+      <LegalSection n="11" title="Liability"><p>To the extent permitted by applicable law, VibeSchool is not responsible for indirect or consequential loss arising solely from reliance on guidance, third-party material, service interruption or unauthorised use outside VibeSchool’s reasonable control. Nothing in these terms excludes rights or liabilities that cannot lawfully be excluded.</p></LegalSection>
+      <LegalSection n="12" title="Governing law"><p>These terms are governed by the laws of Kenya. Disputes should first be raised through VibeSchool support so there is a reasonable opportunity to resolve the issue before formal proceedings, without limiting any right a person has to approach a regulator or court.</p></LegalSection>
+      <LegalSection n="13" title="Contact"><p>Questions about these terms can be sent through the <Link href="/contact">VibeSchool Contact page</Link>.</p></LegalSection>
+    </main>
+    <PublicFooter />
+  </div>
 }
+
+function LegalSection({n,title,children}:{n:string,title:string,children:React.ReactNode}){return <section style={{padding:'0 0 34px',marginBottom:30,borderBottom:'1px solid #e0e1e7'}}><h2 style={{fontSize:24,margin:'0 0 12px'}}>{n}. {title}</h2><div style={{fontSize:15,lineHeight:1.75,color:'#585868'}}>{children}</div></section>}

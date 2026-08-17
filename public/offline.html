@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#070B1F" />
+  <meta name="theme-color" content="#07111f" />
   <title>VibeSchool — Offline</title>
   <style>
-    *,*::before,*::after{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#070B1F;color:#fff}body{min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 18% 18%,rgba(124,60,255,.22),transparent 36%),radial-gradient(circle at 84% 20%,rgba(255,155,47,.16),transparent 32%),radial-gradient(circle at 54% 86%,rgba(242,22,140,.17),transparent 38%),#070B1F}.card{width:min(100%,410px);text-align:center;padding:28px 22px 24px;border:1px solid rgba(255,255,255,.1);border-radius:28px;background:rgba(12,17,49,.78);box-shadow:0 28px 80px rgba(0,0,0,.42)}.logo{display:block;width:min(240px,75%);height:auto;margin:0 auto}h1{margin:22px 0 8px;font-size:23px;letter-spacing:-.03em}p{margin:0;color:rgba(255,255,255,.64);font-size:14px;line-height:1.55}button{width:100%;margin-top:22px;padding:13px 16px;border:0;border-radius:15px;background:linear-gradient(90deg,#7C3CFF,#F2168C 52%,#FF9B2F);color:#fff;font-weight:800;font-size:14px;cursor:pointer}.hint{margin-top:14px;font-size:11px;color:rgba(255,255,255,.42)}
+    *,*::before,*::after{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#07111f;color:#fff}body{min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{width:min(100%,430px);padding:30px 24px;border:1px solid #2b3747;border-radius:22px;background:#0d1929;box-shadow:0 24px 70px rgba(0,0,0,.34)}.logo{display:block;width:min(210px,68%);height:auto;filter:brightness(0) invert(1)}.eyebrow{margin:26px 0 8px;color:#d0b154;font-size:11px;font-weight:800;letter-spacing:.14em}h1{margin:0 0 10px;font-size:30px;line-height:1.08;letter-spacing:-.03em}p{margin:0;color:#c1cad5;font-size:14px;line-height:1.65}button{width:100%;min-height:48px;margin-top:24px;padding:12px 16px;border:0;border-radius:11px;background:#d0b154;color:#07111f;font-weight:850;font-size:14px;cursor:pointer}button:focus-visible{outline:3px solid #fff;outline-offset:3px}.hint{margin-top:14px;font-size:12px;color:#8e9aa8;line-height:1.55}
   </style>
 </head>
 <body>
   <main class="card">
     <img class="logo" src="/icons/vibeschool-logo.png" alt="VibeSchool" />
-    <h1>You’re offline</h1>
-    <p>Reconnect to continue live learning, accounts and private school activity. This page remains available safely while you are offline.</p>
+    <div class="eyebrow">CONNECTION LOST</div>
+    <h1>You’re offline.</h1>
+    <p>Reconnect to use live learning, Pathways data and accounts. Your account data is not stored in the offline cache. VibeSchool does not cache private learner or school records in this shared offline page.</p>
     <button type="button" onclick="location.reload()">Try again</button>
-    <div class="hint">Your account data is not stored in the offline cache.</div>
+    <div class="hint">Some previously visited public VibeSchool information may remain available from the safe public cache.</div>
   </main>
 </body>
 </html>

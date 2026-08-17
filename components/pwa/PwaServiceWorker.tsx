@@ -9,6 +9,11 @@ export default function PwaServiceWorker() {
     if (!('serviceWorker' in navigator)) return
 
     let reloading = false
+    // A first install can claim an already-open public page. Reloading on that
+    // initial controllerchange races accessibility/browser inspection and is not
+    // needed: the page already contains the current application. Only reload when
+    // this tab was controlled before an explicitly accepted worker update.
+    const hadControllerAtMount = Boolean(navigator.serviceWorker.controller)
 
     const register = async () => {
       try {
@@ -33,7 +38,7 @@ export default function PwaServiceWorker() {
     }
 
     const handleControllerChange = () => {
-      if (reloading) return
+      if (!hadControllerAtMount || reloading) return
       reloading = true
       window.location.reload()
     }

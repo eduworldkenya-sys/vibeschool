@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 
 const middleware = fs.readFileSync('middleware.ts', 'utf8')
+const home = fs.readFileSync('app/page.tsx', 'utf8')
 const welcome = fs.readFileSync('app/welcome/page.tsx', 'utf8')
 const sitemap = fs.readFileSync('app/sitemap.ts', 'utf8')
 const robots = fs.readFileSync('app/robots.ts', 'utf8')
@@ -12,8 +13,8 @@ const roleLogin = fs.readFileSync('app/login/[role]/page.tsx', 'utf8')
 
 const checks = [
   [middleware.includes("loginUrl.pathname = '/login'"), 'protected routes redirect signed-out users to /login'],
-  [middleware.includes("welcomeUrl.pathname = '/welcome'"), 'signed-out root renders the public welcome experience'],
-  [welcome.includes('href="/login"'), 'public landing exposes generic sign in'],
+  [!middleware.includes("welcomeUrl.pathname = '/welcome'") && home.includes('<PublicHeader') && home.includes('id="main-content"'), 'signed-out root renders the canonical public homepage directly'],
+  [welcome.includes('href="/login"'), 'legacy public landing exposes generic sign in'],
   [welcome.includes('/signup/teacher'), 'teacher leads have a direct signup path'],
   [welcome.includes('/login/student') && welcome.includes('/login/parent'), 'learner and parent leads preserve role intent'],
 
@@ -33,7 +34,7 @@ const checks = [
   [roleLogin.includes("get_my_auth_access_state") && roleLogin.includes("get_my_onboarding_state") && roleLogin.includes('roleCanVisit(actualRole'), 'focused sign in verifies authoritative role and onboarding state before routing'],
   [roleLogin.includes("student: { label: 'Learner', destination: '/student', email: false }"), 'learner sign in uses admission number and PIN'],
   [roleLogin.includes("parent: { label: 'Parent', destination: '/parent', email: true }"), 'parent sign in uses the focused parent path'],
-  [welcome.includes("alternates: { canonical: '/' }"), 'public landing declares the root canonical URL'],
+  [home.includes("alternates:{canonical:'/'}") || home.includes("alternates: { canonical: '/' }"), 'canonical public homepage declares the root canonical URL'],
   [sitemap.includes('{ url: SITE_URL,'), 'sitemap includes the canonical root'],
   [robots.includes("'/signup/'") && robots.includes("'/teacher/'") && robots.includes("'/student/'"), 'robots keeps auth and private workspaces out of crawl paths'],
 ]

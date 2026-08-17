@@ -3,94 +3,26 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import {
-  QUICK_CHECK_PATHWAYS,
-  QUICK_CHECK_RULE_VERSION,
-  QUICK_CHECK_STORAGE_KEY,
-  calculateQuickCheck,
-  evaluateQuickCheck,
-} from '@/lib/pathways/quickCheck'
+import { PublicHeader } from '@/components/public/PublicHeader'
+import { PublicFooter } from '@/components/public/PublicFooter'
+import { QUICK_CHECK_PATHWAYS, QUICK_CHECK_RULE_VERSION, QUICK_CHECK_STORAGE_KEY, calculateQuickCheck, evaluateQuickCheck } from '@/lib/pathways/quickCheck'
 
 type StoredCheck = { answers?: Record<string, number>; complete?: boolean }
 type AccessState = { role?: unknown; account_status?: unknown; is_anonymized?: unknown }
-
 type Role = 'student' | 'parent' | 'teacher' | 'admin' | 'global_user' | string
 
 export default function PathwaysContinuePage() {
-  const [stored, setStored] = useState<StoredCheck | null>(null)
-  const [signedIn, setSignedIn] = useState<boolean | null>(null)
-  const [role, setRole] = useState<Role | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
+  const [stored,setStored]=useState<StoredCheck|null>(null),[signedIn,setSignedIn]=useState<boolean|null>(null),[role,setRole]=useState<Role|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
+  useEffect(()=>{try{const raw=localStorage.getItem(QUICK_CHECK_STORAGE_KEY);setStored(raw?JSON.parse(raw) as StoredCheck:null)}catch{setStored(null)};void(async()=>{const{data:{user}}=await supabase.auth.getUser();if(!user){setSignedIn(false);return}const{data,error}=await supabase.rpc('get_my_auth_access_state');if(error||!data||typeof data!=='object'||Array.isArray(data)){setSignedIn(true);return}const access=data as AccessState;if(access.account_status==='restricted'||access.is_anonymized===true){setSignedIn(true);return}setRole(typeof access.role==='string'?access.role:null);setSignedIn(true)})()},[])
+  const answers=useMemo(()=>stored?.answers??{},[stored]),scores=useMemo(()=>calculateQuickCheck(answers),[answers]),outcome=useMemo(()=>evaluateQuickCheck(scores),[scores])
+  async function save(kind:'student'|'parent'){if(busy||outcome.status!=='confident')return;setBusy(true);setMessage('');try{const storageKey=kind==='student'?'vs_pathways_save_id_v2':'vs_pathways_parent_draft_id_v1';let idempotencyKey=localStorage.getItem(storageKey);if(!idempotencyKey){idempotencyKey=crypto.randomUUID();localStorage.setItem(storageKey,idempotencyKey)}const pathway=QUICK_CHECK_PATHWAYS[outcome.pathway];const rpc=kind==='student'?'pathways_save_my_quick_check':'pathways_save_parent_draft';const{error}=await supabase.rpc(rpc as never,{p_pathway_slug:pathway.canonicalSlug,p_answers:answers,p_scores:scores,p_rule_version:QUICK_CHECK_RULE_VERSION,p_idempotency_key:idempotencyKey} as never);if(error){setMessage('We could not save this result safely. Your browser copy was not changed.');return}setMessage(kind==='student'?'Saved to your learner Pathway Passport.':'Saved as an adult-owned family planning draft. It did not change any learner Passport.')}finally{setBusy(false)}}
+  return <div className="page"><PublicHeader product="Pathways"/><main id="main-content"><div className="wrap"><Link href="/pathways/check" className="back">← Quick Check</Link><p className="eyebrow">SAVE YOUR DIRECTION</p><h1>Keep your result and continue later.</h1><p className="lead">You only need an account if you want VibeSchool to remember this result. Signing in never grants a new role; VibeSchool resolves your existing authority first.</p>
+  {!stored?.complete&&<section className="card"><strong>No completed Quick Check found</strong><p>Complete the free check first, then return if you want to save the result.</p><Link className="primary" href="/pathways/check">Start Quick Check</Link></section>}
+  {stored?.complete&&outcome.status==='uncertain'&&<section className="card"><strong>There is nothing to save yet</strong><p>Your result is uncertain. Explore more than one direction rather than saving one pathway as if it had clearly won.</p><div className="actions"><Link className="primary" href="/learn/careers">Explore careers</Link><Link href="/pathways">Explore pathways</Link></div></section>}
+  {stored?.complete&&outcome.status==='confident'&&signedIn===false&&<section className="card"><span className="label">YOUR RESULT IS SAFE ON THIS DEVICE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>{QUICK_CHECK_PATHWAYS[outcome.pathway].summary}</p><p>Existing learners can sign in and save to their canonical learner Passport. A new family should start with an adult parent account; Pathways does not manufacture a child identity.</p><div className="actions"><Link className="primary" href="/login/student?redirect=/pathways/continue">Existing learner sign in</Link><Link href="/signup/parent?redirect=/pathways/continue">Create parent account</Link><Link href="/login/parent?redirect=/pathways/continue">Parent sign in</Link></div><small>Signing in never changes your VibeSchool role. The auth gateway resolves authority before returning here.</small></section>}
+  {stored?.complete&&outcome.status==='confident'&&signedIn===true&&role === 'student'&&<section className="card"><span className="label">READY TO SAVE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>This save is bound to your canonical student record, not merely to a login profile.</p><button className="primary button" disabled={busy} onClick={()=>void save('student')}>{busy?'Saving…':'Save to my Pathway Passport'}</button>{message&&<p role="status" className="status">{message}</p>}{message.startsWith('Saved')&&<Link href="/student/pathways">Open my Pathway Passport →</Link>}</section>}
+  {stored?.complete&&outcome.status==='confident'&&signedIn===true&&role === 'parent'&&<section className="card"><span className="label">PARENT PLANNING DRAFT</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>You may preserve this as an adult-owned planning draft. It does not adopt a pathway for a child and does not create a learner account.</p><button className="primary button" disabled={busy} onClick={()=>void save('parent')}>{busy?'Saving…':'Save family planning draft'}</button>{message&&<p role="status" className="status">{message}</p>}{message.startsWith('Saved')&&<Link href="/parent/pathways">Open family Pathways support →</Link>}</section>}
+  {stored?.complete&&outcome.status==='confident'&&signedIn===true&&role !== 'student'&&role !== 'parent'&&<section className="card"><strong>This account cannot own a learner pathway</strong><p>Teacher, admin, global and unresolved accounts cannot write a learner Passport. Your account and role are unchanged.</p><Link href="/pathways">Return to Pathways</Link></section>}
+  <p className="privacy">Pathways cannot change your account role or invent school-offering claims. Learner identity, parent relationships, teacher assignments and verified-school evidence remain controlled by VibeSchool's canonical systems.</p></div></main><PublicFooter/><style jsx>{styles}</style></div>}
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(QUICK_CHECK_STORAGE_KEY)
-      setStored(raw ? JSON.parse(raw) as StoredCheck : null)
-    } catch { setStored(null) }
-
-    void (async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setSignedIn(false); return }
-      const { data, error } = await supabase.rpc('get_my_auth_access_state')
-      if (error || !data || typeof data !== 'object' || Array.isArray(data)) { setSignedIn(true); return }
-      const access = data as AccessState
-      if (access.account_status === 'restricted' || access.is_anonymized === true) { setSignedIn(true); return }
-      setRole(typeof access.role === 'string' ? access.role : null)
-      setSignedIn(true)
-    })()
-  }, [])
-
-  const answers = useMemo(() => stored?.answers ?? {}, [stored])
-  const scores = useMemo(() => calculateQuickCheck(answers), [answers])
-  const outcome = useMemo(() => evaluateQuickCheck(scores), [scores])
-
-  async function save(kind: 'student' | 'parent') {
-    if (busy || outcome.status !== 'confident') return
-    setBusy(true); setMessage('')
-    try {
-      const storageKey = kind === 'student' ? 'vs_pathways_save_id_v2' : 'vs_pathways_parent_draft_id_v1'
-      let idempotencyKey = localStorage.getItem(storageKey)
-      if (!idempotencyKey) {
-        idempotencyKey = crypto.randomUUID()
-        localStorage.setItem(storageKey, idempotencyKey)
-      }
-      const pathway = QUICK_CHECK_PATHWAYS[outcome.pathway]
-      const rpc = kind === 'student' ? 'pathways_save_my_quick_check' : 'pathways_save_parent_draft'
-      const { error } = await supabase.rpc(rpc as never, {
-        p_pathway_slug: pathway.canonicalSlug,
-        p_answers: answers,
-        p_scores: scores,
-        p_rule_version: QUICK_CHECK_RULE_VERSION,
-        p_idempotency_key: idempotencyKey,
-      } as never)
-      if (error) { setMessage('We could not save this result safely. Your browser copy was not changed.'); return }
-      setMessage(kind === 'student' ? 'Saved to your learner Pathway Passport.' : 'Saved as an adult-owned family planning draft. It did not change any learner Passport.')
-    } finally { setBusy(false) }
-  }
-
-  return <main className="page"><div className="wrap">
-    <header className="top"><Link href="/pathways/check">← Quick Check</Link><Link href="/" className="brand">VibeSchool</Link></header>
-    <p className="eyebrow">SAVE YOUR DIRECTION</p>
-    <h1>Keep your result and continue later.</h1>
-    <p className="lead">You only need an account if you want VibeSchool to remember this result. The account does not create authority; VibeSchool resolves your existing role and learner identity first.</p>
-
-    {!stored?.complete && <section className="card"><strong>No completed Quick Check found</strong><p>Complete the free check first, then come back here if you want to save the result.</p><Link className="primary" href="/pathways/check">Start Quick Check</Link></section>}
-
-    {stored?.complete && outcome.status === 'uncertain' && <section className="card"><strong>There is nothing to save yet</strong><p>Your result is still uncertain. Explore more than one direction rather than saving one pathway as if it had clearly won.</p><div className="actions"><Link className="primary" href="/learn/careers">Explore careers</Link><Link href="/pathways">Explore pathways</Link></div></section>}
-
-    {stored?.complete && outcome.status === 'confident' && signedIn === false && <section className="card"><span className="label">YOUR RESULT IS SAFE ON THIS DEVICE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>{QUICK_CHECK_PATHWAYS[outcome.pathway].summary}</p><p>Existing learners can sign in and save to their canonical learner Passport. A completely new family should start with the adult parent account; Pathways does not manufacture a child identity.</p><div className="actions"><Link className="primary" href="/login/student?redirect=/pathways/continue">Existing learner sign in</Link><Link href="/signup/parent?redirect=/pathways/continue">Create parent account</Link><Link href="/login/parent?redirect=/pathways/continue">Parent sign in</Link></div><small>Signing in never changes your VibeSchool role. The hardened auth gateway resolves authority and onboarding before returning here.</small></section>}
-
-    {stored?.complete && outcome.status === 'confident' && signedIn === true && role === 'student' && <section className="card"><span className="label">READY TO SAVE</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>This save is bound to your canonical student record, not merely to a login profile.</p><button className="primary button" disabled={busy} onClick={() => void save('student')}>{busy ? 'Saving…' : 'Save to my Pathway Passport'}</button>{message && <p role="status" className="status">{message}</p>}{message.startsWith('Saved') && <Link href="/student/pathways">Open my Pathway Passport →</Link>}</section>}
-
-    {stored?.complete && outcome.status === 'confident' && signedIn === true && role === 'parent' && <section className="card"><span className="label">PARENT PLANNING DRAFT</span><strong>{QUICK_CHECK_PATHWAYS[outcome.pathway].name}</strong><p>You may preserve this as an adult-owned planning draft. It does not adopt a pathway for a child and does not create a learner account.</p><button className="primary button" disabled={busy} onClick={() => void save('parent')}>{busy ? 'Saving…' : 'Save family planning draft'}</button>{message && <p role="status" className="status">{message}</p>}{message.startsWith('Saved') && <Link href="/parent/pathways">Open family Pathways support →</Link>}</section>}
-
-    {stored?.complete && outcome.status === 'confident' && signedIn === true && role !== 'student' && role !== 'parent' && <section className="card"><strong>This account cannot own a learner pathway</strong><p>Teacher, admin, global and unresolved accounts cannot write a learner Passport. Your existing account and role are unchanged.</p><Link href="/pathways">Return to Pathways</Link></section>}
-
-    <p className="privacy">Pathways cannot change your account role or invent school-offering claims. Learner identity, parent relationships, teacher assignments and verified-school evidence remain controlled by VibeSchool's canonical systems.</p>
-  </div><style jsx>{styles}</style></main>
-}
-
-const styles = `
-.page{min-height:100dvh;background:#f7f7fb;color:#111827;font-family:var(--font-jakarta),Arial,sans-serif}.wrap{max-width:760px;margin:0 auto;padding:22px 18px 64px}.top{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:16px}.top a,.card a{color:#4f46e5;font-weight:800;text-decoration:none}.brand{color:#111827!important}.eyebrow{margin:30px 0 10px;color:#4f46e5;font:900 11px var(--font-mono),monospace;letter-spacing:.15em}h1{font-size:clamp(32px,6vw,50px);line-height:1.06;letter-spacing:-.038em;margin:0 0 16px}.lead,p{color:#5b6475;line-height:1.65}.lead{font-size:16px;max-width:650px}.card{background:#fff;border:1px solid #e1e4eb;border-radius:20px;padding:22px;margin-top:24px;display:grid;gap:10px}.card strong{font-size:24px;line-height:1.2}.card p{margin:0}.card small{color:#7b8290;line-height:1.5}.label{font-size:10px;letter-spacing:.14em;font-weight:900;color:#6d5f20}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.actions a,.button{min-height:48px;display:inline-flex;align-items:center;border:1px solid #dfe2ea;border-radius:13px;background:#fff;color:#252538;padding:11px 14px;font-weight:850;text-decoration:none;cursor:pointer}.actions .primary,.primary.button{border-color:#4f46e5;background:#4f46e5;color:#fff}.primary{width:max-content;min-height:48px;display:inline-flex;align-items:center;border-radius:13px;background:#4f46e5!important;color:#fff!important;padding:11px 14px;text-decoration:none;font-weight:850;border:0}.button:disabled{opacity:.55;cursor:not-allowed}.status{padding:12px;border-radius:12px;background:#f3f4f6;color:#374151!important}.privacy{font-size:12px;margin-top:24px;color:#737b8a}@media(max-width:520px){.wrap{padding:16px 16px 48px}h1{font-size:36px}.actions{display:grid}.actions a,.button,.primary{width:100%;justify-content:center;box-sizing:border-box}.card{padding:18px}}
-`
+const styles=`.page{min-height:100dvh;background:#f7f7fb;color:#111827;font-family:var(--font-jakarta),Arial,sans-serif}.wrap{max-width:760px;margin:0 auto;padding:44px 18px 64px}.back,.card a{color:#4f46e5;font-weight:800;text-decoration:none}.eyebrow{margin:30px 0 10px;color:#4f46e5;font:900 11px var(--font-mono),monospace;letter-spacing:.15em}h1{font-size:clamp(32px,6vw,50px);line-height:1.06;letter-spacing:-.038em;margin:0 0 16px}.lead,p{color:#5b6475;line-height:1.65}.lead{font-size:16px;max-width:650px}.card{background:#fff;border:1px solid #e1e4eb;border-radius:20px;padding:22px;margin-top:24px;display:grid;gap:10px}.card strong{font-size:24px;line-height:1.2}.card p{margin:0}.card small{color:#7b8290;line-height:1.5}.label{font-size:10px;letter-spacing:.14em;font-weight:900;color:#6d5f20}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.actions a,.button{min-height:48px;display:inline-flex;align-items:center;border:1px solid #dfe2ea;border-radius:13px;background:#fff;color:#252538;padding:11px 14px;font-weight:850;text-decoration:none;cursor:pointer}.actions .primary,.primary.button{border-color:#4f46e5;background:#4f46e5;color:#fff}.primary{width:max-content;min-height:48px;display:inline-flex;align-items:center;border-radius:13px;background:#4f46e5!important;color:#fff!important;padding:11px 14px;text-decoration:none;font-weight:850;border:0}.button:disabled{opacity:.55;cursor:not-allowed}.status{padding:12px;border-radius:12px;background:#f3f4f6;color:#374151!important}.privacy{font-size:12px;margin-top:24px;color:#737b8a}@media(max-width:520px){.wrap{padding:30px 16px 48px}h1{font-size:36px}.actions{display:grid}.actions a,.button,.primary{width:100%;justify-content:center;box-sizing:border-box}.card{padding:18px}}`

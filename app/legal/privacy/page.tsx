@@ -1,95 +1,63 @@
-"use client";
-import { useRouter } from 'next/navigation'
-import styles from '../legal.module.css'
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { PublicHeader } from '@/components/public/PublicHeader'
+import { PublicFooter } from '@/components/public/PublicFooter'
 
-export default function PrivacyPage() {
-  const router = useRouter()
-  return (
-    <div className={styles.root}>
-      <div className={styles.content}>
-        <button className={styles.back} onClick={() => router.back()}>← Back</button>
-        <p className={styles.badge}>Gilowinc Investment · BN-KYCZ73AZ</p>
-        <h1 className={styles.title}>Privacy Policy</h1>
-        <p className={styles.meta}>Effective: 27 May 2026 &nbsp;·&nbsp; Last updated: 14 August 2026</p>
-        <div className={styles.divider} />
+export const metadata: Metadata = {
+  title: 'Privacy Policy | VibeSchool',
+  description: 'How VibeSchool collects, uses and protects personal information, including learner information.',
+}
 
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>1. Introduction</p>
-          <p className={styles.body}>Gilowinc Investment operates VibeSchool. We process personal data to provide learning, teaching, parent and school services and we give particular protection to information relating to children. This policy explains what we collect, why we use it, who may access it, and how you can exercise your rights.</p>
-        </div>
+const sections = [
+  ['overview','Overview'],['collect','Information we collect'],['why','Why we use information'],['children','Children and learners'],['sharing','Sharing and access'],['security','Security'],['retention','Retention'],['rights','Your rights'],['transfers','International processing'],['cookies','Cookies and analytics'],['changes','Changes'],['contact','Contact']
+] as const
 
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>2. Data We Collect</p>
-          <p className={styles.body}><strong>Account data:</strong> information such as name, email or service identity, role, country and profile information where a feature requires it.</p>
-          <p className={styles.body}><strong>School and learning data:</strong> school membership, classes, subjects, curriculum activity, attendance, learning evidence, assignments, assessment information and related records.</p>
-          <p className={styles.body}><strong>Learner data:</strong> information connected to a learner record, including identifiers used by a school, class membership, learning activity and progress information.</p>
-          <p className={styles.body}><strong>Service and security data:</strong> authentication events, device or technical information, support requests and security logs needed to operate and protect the service.</p>
-        </div>
+export default function PrivacyPage(){
+  return <div style={{minHeight:'100vh',background:'#f7f7fb',color:'#171720'}}>
+    <PublicHeader product="Privacy" />
+    <main id="main-content" style={{width:'min(1080px,100%)',margin:'0 auto',padding:'64px 18px 20px'}}>
+      <Link href="/legal" style={{fontSize:13,fontWeight:800,color:'#4f46e5',textDecoration:'none'}}>← Trust & policies</Link>
+      <p style={{margin:'28px 0 0',fontSize:11,fontWeight:850,letterSpacing:'.16em',color:'#725815'}}>VIBESCHOOL PRIVACY</p>
+      <h1 style={{margin:'10px 0 0',fontSize:'clamp(40px,7vw,66px)',letterSpacing:'-.045em',lineHeight:1.02}}>Privacy should be understandable.</h1>
+      <p style={{maxWidth:760,margin:'20px 0 0',fontSize:18,lineHeight:1.7,color:'#606071'}}>This policy explains what personal information VibeSchool uses, why it is needed, who may access it and the rights available to users and families.</p>
+      <p style={{marginTop:14,fontSize:12,color:'#7a7a89'}}>Effective 27 May 2026 · Last updated 17 August 2026</p>
 
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>3. Why We Process Data</p>
-          <ul className={styles.list}>
-            <li>Provide and secure VibeSchool accounts and services</li>
-            <li>Connect authorised learners, teachers, parents and schools</li>
-            <li>Support teaching, learning, evidence and school workflows</li>
-            <li>Provide support and investigate technical or security problems</li>
-            <li>Meet applicable legal and regulatory obligations</li>
-          </ul>
-          <p className={styles.body}><strong>VibeSchool does not sell learner personal data or use learner personal data for behavioural advertising.</strong></p>
-        </div>
+      <section aria-label="Privacy at a glance" style={{marginTop:34,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+        {[
+          ['We do not sell personal data','VibeSchool does not sell learner or user personal information.'],
+          ['No behavioural advertising to learners','Learner personal information is not used for behavioural advertising.'],
+          ['Children receive additional protection','Child data requires stronger authority, consent and best-interest safeguards.'],
+          ['You have rights','Applicable access, correction, objection, restriction, deletion and portability rights can be requested.'],
+        ].map(([title,body])=><article key={title} style={{padding:20,border:'1px solid #dfe0e7',borderRadius:18,background:'#fff'}}><strong style={{fontSize:15}}>{title}</strong><p style={{margin:'7px 0 0',fontSize:13,lineHeight:1.55,color:'#666676'}}>{body}</p></article>)}
+      </section>
 
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>4. Children's Data</p>
-          <p className={styles.body}>Children require additional protection. Where Kenyan law requires parent or guardian consent for processing a child's personal data, VibeSchool must obtain and record the required authority before relying on consent for that processing. Access to learner information is limited by the user's authorised relationship and role. We do not permit direct-marketing profiling of children.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>5. Data Storage and International Processing</p>
-          <p className={styles.body}>VibeSchool uses technology service providers, including cloud infrastructure, to operate the platform. Personal data may therefore be processed outside Kenya. Cross-border processing must use a lawful transfer basis and appropriate safeguards required by applicable Kenyan data-protection law. We do not treat ordinary acceptance of this policy as a substitute for a specific consent where the law requires one.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>6. Security</p>
-          <p className={styles.body}>VibeSchool uses technical and organisational controls such as authenticated access, role and relationship checks, database access controls, encryption in transit and audit/security controls where applicable. No online system can guarantee absolute security, so controls are reviewed and strengthened as the platform changes.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>7. Retention and Deletion</p>
-          <p className={styles.body}>We keep personal data only for as long as it is reasonably needed for the purpose for which it was collected, to maintain required educational or transactional records, to resolve disputes, or to meet legal obligations. Retention periods may differ by record type. When data is no longer required, it should be deleted or irreversibly de-identified in accordance with the applicable retention schedule.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>8. Sharing and Access</p>
-          <p className={styles.body}>We do not sell personal data. Information may be available to authorised school users, linked parents or guardians, assigned teachers, service providers that help operate VibeSchool, or public authorities where disclosure is lawfully required. Access is intended to be limited to the minimum relationship and purpose required for the service.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>9. Your Rights</p>
-          <p className={styles.body}>Subject to applicable law, you may request access to personal data about you, correction of inaccurate information, deletion where applicable, restriction or objection to certain processing, data portability where available, or withdrawal of consent where processing relies on consent. A parent or guardian may exercise applicable rights for a child after the relationship and identity are appropriately verified.</p>
-          <p className={styles.body}>Privacy requests can be sent to <strong>gilowincinvestment@gmail.com</strong>. You may also complain to Kenya's Office of the Data Protection Commissioner.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>10. Cookies and Analytics</p>
-          <p className={styles.body}>VibeSchool currently uses essential browser storage and session mechanisms needed for authentication, security and core product operation. Third-party analytics tracking is not loaded by the platform's global application shell at this time. If optional analytics or similar tracking is introduced, this policy and the relevant user controls must be updated before that tracking is enabled.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>11. Changes</p>
-          <p className={styles.body}>We may update this policy when VibeSchool's services, legal obligations or data practices change. The current version and its update date will be published here.</p>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>12. Contact</p>
-          <div className={styles.contactBox}>
-            <p className={styles.contactLine}>Gilowinc Investment · BN-KYCZ73AZ</p>
-            <p className={styles.contactLine}>Nairobi, Kenya</p>
-            <p className={styles.contactLine}>gilowincinvestment@gmail.com</p>
-            <p className={styles.contactLine}>WhatsApp: +254 728 232 157</p>
-          </div>
-        </div>
-        <p className={styles.footer}>© 2026 Gilowinc Investment · BN-KYCZ73AZ · Nairobi, Kenya</p>
+      <div style={{display:'grid',gridTemplateColumns:'minmax(190px,240px) minmax(0,1fr)',gap:42,alignItems:'start',marginTop:54}} className="legal-layout">
+        <nav aria-label="Privacy policy contents" style={{position:'sticky',top:98,padding:'18px',border:'1px solid #e0e1e8',borderRadius:16,background:'#fff'}}>
+          <strong style={{fontSize:12,letterSpacing:'.08em'}}>ON THIS PAGE</strong>
+          <div style={{display:'grid',gap:8,marginTop:12}}>{sections.map(([id,label])=><a key={id} href={`#${id}`} style={{fontSize:13,color:'#575767',textDecoration:'none'}}>{label}</a>)}</div>
+        </nav>
+        <article style={{minWidth:0}}>
+          <Section id="overview" title="1. Overview"><p>VibeSchool provides learning, teaching, parent, pathway and school services. For data-protection purposes, VibeSchool is operated by Gilowinc Investment in Kenya. This operator identification is provided for legal transparency; VibeSchool is the public-facing service and brand.</p><p>We aim to collect only information needed for a defined purpose and to make important uses of personal information clear before collection.</p></Section>
+          <Section id="collect" title="2. Information we collect"><p><strong>Account and profile information:</strong> information such as name, email or service identity, role, country and profile information where a feature requires it.</p><p><strong>School and learning information:</strong> school membership, classes, subjects, curriculum activity, attendance, assignments, assessments, evidence and progress records.</p><p><strong>Learner information:</strong> information connected to a learner record, including school identifiers, class membership, learning activity, progress and pathway activity where used.</p><p><strong>Service and security information:</strong> authentication events, technical information, support requests and security/audit records needed to operate and protect the service.</p></Section>
+          <Section id="why" title="3. Why we use information"><p>We use personal information to provide and secure accounts, connect authorised learners and adults, deliver learning and school workflows, provide support, investigate technical or security issues, and meet applicable legal obligations. Each processing purpose must have an appropriate lawful basis.</p></Section>
+          <Section id="children" title="4. Children and learners"><p>Children require additional protection. Where Kenyan law requires parent or guardian consent for processing a child’s personal data, VibeSchool must obtain and record that authority before relying on consent for the processing. Child-data processing must protect and advance the child’s rights and best interests.</p><p>Access to learner information is intended to be limited by authorised relationship and role. Learner-facing experiences should not turn ordinary acceptance of platform terms into a substitute for consent where specific parental or guardian consent is legally required.</p></Section>
+          <Section id="sharing" title="5. Sharing and access"><p>We do not sell personal data. Information may be made available to authorised school users, linked parents or guardians, assigned educators, service providers that help operate VibeSchool, or public authorities where disclosure is lawfully required. Access should be limited to the minimum relationship and purpose needed.</p></Section>
+          <Section id="security" title="6. Security"><p>VibeSchool uses technical and organisational controls including authenticated access, role and relationship checks, database access controls, encryption in transit and audit/security controls where applicable. No online system can guarantee absolute security, so controls are reviewed as the platform changes.</p></Section>
+          <Section id="retention" title="7. Retention"><p>Personal information is kept only for as long as reasonably necessary for the purpose for which it was collected, to maintain required educational or transactional records, resolve disputes or meet legal obligations. Retention periods may differ by record type. Information that is no longer required should be deleted or irreversibly de-identified according to the applicable retention rules.</p></Section>
+          <Section id="rights" title="8. Your rights"><p>Subject to applicable law, users may request access to personal data about them, correction of inaccurate information, objection or restriction in qualifying circumstances, deletion where applicable, portability where available, or withdrawal of consent where processing relies on consent. Rights relating to a minor may be exercised by a person with appropriate parental authority or guardianship after the relationship and identity are verified.</p></Section>
+          <Section id="transfers" title="9. International processing"><p>VibeSchool uses technology and cloud service providers to operate the platform. Personal information may therefore be processed outside Kenya. Cross-border processing must use an appropriate lawful basis and safeguards required by applicable Kenyan data-protection law.</p></Section>
+          <Section id="cookies" title="10. Cookies and analytics"><p>VibeSchool uses essential browser storage and session mechanisms needed for authentication, security and core product operation. If optional analytics or advertising-related tracking is introduced, the relevant notice and controls must be updated before that tracking is enabled.</p></Section>
+          <Section id="changes" title="11. Changes"><p>We may update this policy when VibeSchool’s services, legal obligations or data practices change. The current version and its update date will be published on this page.</p></Section>
+          <Section id="contact" title="12. Contact"><p>Privacy questions and rights requests can be started through the <Link href="/contact">VibeSchool Contact page</Link>. You may also raise a complaint with Kenya’s Office of the Data Protection Commissioner where applicable.</p></Section>
+          <aside style={{marginTop:38,padding:20,borderRadius:16,background:'#efeff7',fontSize:13,lineHeight:1.65,color:'#555565'}}>Legal transparency note: Kenyan data-protection rules require data subjects to be informed about matters including the identity and contact details of the data controller or processor in relevant circumstances. VibeSchool therefore does not treat removal of all operator identification as a privacy feature; instead, legal operator information is kept limited and non-promotional.</aside>
+        </article>
       </div>
-    </div>
-  )
+      <style>{`@media(max-width:760px){.legal-layout{grid-template-columns:1fr!important}.legal-layout nav{position:static!important}}`}</style>
+    </main>
+    <PublicFooter />
+  </div>
+}
+
+function Section({id,title,children}:{id:string,title:string,children:React.ReactNode}){
+  return <section id={id} style={{scrollMarginTop:100,padding:'0 0 38px',borderBottom:'1px solid #e1e2e8',marginBottom:34}}><h2 style={{margin:'0 0 12px',fontSize:25,letterSpacing:'-.02em'}}>{title}</h2><div style={{color:'#565667',fontSize:15,lineHeight:1.75}}>{children}</div></section>
 }

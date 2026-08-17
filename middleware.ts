@@ -136,12 +136,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (!user && pathname === '/') {
-    const welcomeUrl = request.nextUrl.clone()
-    welcomeUrl.pathname = '/welcome'
-    return copyAuthState(NextResponse.rewrite(welcomeUrl))
-  }
-
+  // Anonymous visitors now receive the canonical public homepage at `/`.
+  // Do not rewrite it to the legacy `/welcome` shell: the public homepage owns
+  // its navigation, accessibility, trust and investor/user communication contract.
   if (!user && pathname === '/login') {
     const authUrl = request.nextUrl.clone()
     authUrl.pathname = '/'

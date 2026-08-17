@@ -1,0 +1,37 @@
+name: Public Trust Experience Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/page.tsx'
+      - 'app/about/**'
+      - 'app/contact/**'
+      - 'app/careers/**'
+      - 'app/institutions/**'
+      - 'app/trust/**'
+      - 'app/legal/**'
+      - 'app/pathways/**'
+      - 'app/learn/careers/**'
+      - 'app/api/public-telemetry/**'
+      - 'components/public/**'
+      - 'lib/publicTelemetry.ts'
+      - 'config/public-content-governance.json'
+      - 'scripts/test-public-trust-contract.py'
+      - 'scripts/test-public-content-governance.py'
+      - 'scripts/test-public-links.py'
+      - '.github/workflows/public-trust-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-trust-contract:
+    name: Public purpose, trust, navigation and governance contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-public-trust-contract.py
+      - run: python3 scripts/test-public-content-governance.py
+      - run: python3 scripts/test-public-links.py
