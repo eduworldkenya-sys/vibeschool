@@ -1,13 +1,21 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
+import { TrackedLink } from '@/components/public/TrackedLink'
 import styles from './home.module.css'
+
+export const metadata: Metadata = {
+  alternates:{canonical:'/'},
+  title:'VibeSchool — Learning, teaching and future direction, connected',
+  description:'VibeSchool connects learning, teaching, evidence, Pathways and the people supporting a learner across the Kenyan education journey.',
+}
 
 const audiences = [
   { title: 'Learners', body: 'Learn, practise, understand your progress and explore what comes next.', href: '/global', action: 'Start learning' },
-  { title: 'Teachers', body: 'Connect curriculum, planning, teaching, assessment and evidence around the work you already do.', href: '/login/teacher', action: 'For teachers' },
-  { title: 'Parents', body: 'Understand the learning journey and support a child with clearer context.', href: '/login/parent', action: 'For parents' },
-  { title: 'Schools', body: 'Bring people, learning activity and school operations into a more connected picture.', href: '/login/admin', action: 'For schools' },
+  { title: 'Teachers', body: 'Connect curriculum, planning, teaching, assessment and evidence around the work you already do.', href: '/login/global?role=teacher', action: 'For teachers' },
+  { title: 'Parents', body: 'Understand the learning journey and support a child with clearer context.', href: '/login/global?role=parent', action: 'For parents' },
+  { title: 'Schools', body: 'Bring people, learning activity and school operations into a more connected picture.', href: '/login/global?role=admin', action: 'For schools' },
 ]
 
 const proof = [
@@ -34,9 +42,9 @@ export default function HomePage() {
           <h1>Learn today. Understand where you’re going tomorrow.</h1>
           <p className={styles.lead}>VibeSchool connects learning, teaching, evidence, pathways and the people supporting a learner — so education feels less fragmented and the next step is easier to understand.</p>
           <div className={styles.actions}>
-            <Link className={styles.primary} href="/global">Start learning</Link>
-            <Link className={styles.secondary} href="/pathways">Explore Pathways</Link>
-            <Link className={styles.textAction} href="/login/teacher">I’m a teacher →</Link>
+            <TrackedLink className={styles.primary} href="/global" event="public_home_start_learning">Start learning</TrackedLink>
+            <TrackedLink className={styles.secondary} href="/pathways" event="public_home_pathways">Explore Pathways</TrackedLink>
+            <TrackedLink className={styles.textAction} href="/login/global?role=teacher" event="public_home_teacher">I’m a teacher →</TrackedLink>
           </div>
           <div className={styles.heroTrust} aria-label="VibeSchool trust signals">
             <span>Explore before login</span><span>Built for Kenya</span><span>Guidance explains its limits</span><span>Mobile-first</span>
@@ -73,15 +81,15 @@ export default function HomePage() {
         <div className={styles.sectionHeading}>
           <p className={styles.eyebrowDark}>SEE THE PRODUCT WITHOUT AN ACCOUNT</p>
           <h2>Understand VibeSchool before you sign in.</h2>
-          <p>Public exploration should show enough real product depth for a learner, parent, school, government visitor or investor to understand what is being built without exposing private user information.</p>
+          <p>Public exploration shows real product depth without exposing private user information. The full cross-role Product Showcase is intentionally being developed as a later package rather than simulated here.</p>
         </div>
         <div className={styles.demoGrid}>
-          <Link href="/pathways" className={styles.demoCard}>
+          <TrackedLink href="/pathways" event="public_home_pathways" className={styles.demoCard}>
             <span className={styles.demoLabel}>PATHWAYS</span><h3>From interests to subjects, careers and schools.</h3><p>Start with a short check, compare directions and see where verified information begins and ends.</p><strong>Explore Pathways →</strong>
-          </Link>
-          <Link href="/global" className={styles.demoCard}>
+          </TrackedLink>
+          <TrackedLink href="/global" event="public_home_start_learning" className={styles.demoCard}>
             <span className={styles.demoLabel}>LEARNING</span><h3>Move from finding content to knowing what to do next.</h3><p>Explore the public learning experience and see how resources fit into the wider learning journey.</p><strong>Explore learning →</strong>
-          </Link>
+          </TrackedLink>
           <Link href="/about" className={styles.demoCard}>
             <span className={styles.demoLabel}>THE SYSTEM</span><h3>See why the pieces are connected.</h3><p>Understand the product model, responsibilities, evidence philosophy and long-term education operating system.</p><strong>How VibeSchool works →</strong>
           </Link>
@@ -95,15 +103,12 @@ export default function HomePage() {
           <p>Trust is not a badge in the footer. It comes from showing what is known, what is guidance, who can access what, and where a person can ask for help.</p>
         </div>
         <div className={styles.trustGrid}>{trust.map(([title, body]) => <article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div>
-        <div className={styles.trustLinks}><Link href="/legal">Trust & policies</Link><Link href="/contact">Contact VibeSchool</Link><Link href="/careers">Careers</Link></div>
+        <div className={styles.trustLinks}><Link href="/trust">Trust Centre</Link><Link href="/contact">Contact VibeSchool</Link><Link href="/careers">Careers</Link></div>
       </section>
 
       <section className={styles.institutionSection}>
-        <div>
-          <p className={styles.eyebrowLight}>FOR SCHOOLS, INSTITUTIONS & PUBLIC-SECTOR PARTNERS</p>
-          <h2>Need the deeper picture?</h2>
-        </div>
-        <div><p>VibeSchool is designed to serve individuals without losing the institutional requirements around curriculum, evidence, access, accountability and school context. If you are evaluating VibeSchool for a school, organisation, government programme or partnership, start with the product and then talk to us about the specific need.</p><div className={styles.actions}><Link className={styles.primaryLight} href="/about">Understand the platform</Link><Link className={styles.secondaryLight} href="/contact">Talk to VibeSchool</Link></div></div>
+        <div><p className={styles.eyebrowLight}>FOR SCHOOLS, INSTITUTIONS & PUBLIC-SECTOR PARTNERS</p><h2>Need the deeper picture?</h2></div>
+        <div><p>VibeSchool is designed to serve individuals without losing the institutional requirements around curriculum, evidence, access, accountability and school context. Institutional visitors can inspect adoption principles, security, child safety and governance without forcing ordinary users through those details first.</p><div className={styles.actions}><Link className={styles.primaryLight} href="/institutions">Institutional due diligence</Link><TrackedLink className={styles.secondaryLight} href="/contact" event="public_institution_contact">Talk to VibeSchool</TrackedLink></div></div>
       </section>
     </main>
     <PublicFooter />
