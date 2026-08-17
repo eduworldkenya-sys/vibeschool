@@ -1,0 +1,27 @@
+name: Public Trust Experience Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/page.tsx'
+      - 'app/about/**'
+      - 'app/contact/**'
+      - 'app/careers/**'
+      - 'app/legal/**'
+      - 'app/pathways/**'
+      - 'components/public/**'
+      - 'scripts/test-public-trust-contract.py'
+      - '.github/workflows/public-trust-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-trust-contract:
+    name: Public purpose, trust, navigation and accessibility contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-public-trust-contract.py
