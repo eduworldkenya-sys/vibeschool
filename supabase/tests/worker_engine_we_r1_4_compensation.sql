@@ -35,26 +35,37 @@ begin
   if position('mutation_applied' in d)=0 then raise exception 'compensation mutation evidence missing'; end if;
 end $$;
 
--- The canonical gateway is intentionally a durable breaker wrapper in R1.4.16.
--- Recovery truth therefore lives in the inaccessible inner gateway. Certify the
--- composed chain instead of incorrectly requiring every invariant in the outer shell.
+-- R1.4 composes three gateway layers: durable breaker wrapper -> approval-bound wrapper ->
+-- recovery-aware implementation. Certify the full chain and prove wrappers are not externally callable.
 do $$
-declare canonical_d text; inner_d text;
+declare canonical_d text; approval_d text; recovery_d text;
 begin
   select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway(uuid)'::regprocedure)) into canonical_d;
   if position('hq_workforce_consequential_execution_gateway_r14_approval_bound_internal' in canonical_d)=0 then
-    raise exception 'canonical gateway does not delegate to approval-bound recovery implementation';
+    raise exception 'canonical gateway does not delegate to approval-bound wrapper';
   end if;
+
   if to_regprocedure('public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)') is null then
-    raise exception 'approval-bound recovery gateway missing';
+    raise exception 'approval-bound gateway wrapper missing';
   end if;
   if has_function_privilege('service_role','public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)','EXECUTE') then
-    raise exception 'approval-bound recovery gateway externally callable';
+    raise exception 'approval-bound gateway wrapper externally callable';
   end if;
-  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)'::regprocedure)) into inner_d;
-  if position('authoritative_before_state' in inner_d)=0 or position('expected_after_state' in inner_d)=0 then raise exception 'gateway recovery snapshot persistence missing'; end if;
-  if position('for update' in inner_d)=0 then raise exception 'gateway row-lock proof missing'; end if;
-  if position('execution_recovery_snapshot_not_recorded' in inner_d)=0 then raise exception 'gateway snapshot fail-closed assertion missing'; end if;
+  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)'::regprocedure)) into approval_d;
+  if position('hq_workforce_consequential_execution_gateway_r14_pre_approval_binding' in approval_d)=0 then
+    raise exception 'approval-bound wrapper does not delegate to recovery implementation';
+  end if;
+
+  if to_regprocedure('public.hq_workforce_consequential_execution_gateway_r14_pre_approval_binding(uuid)') is null then
+    raise exception 'recovery-aware gateway implementation missing';
+  end if;
+  if has_function_privilege('service_role','public.hq_workforce_consequential_execution_gateway_r14_pre_approval_binding(uuid)','EXECUTE') then
+    raise exception 'recovery-aware gateway implementation externally callable';
+  end if;
+  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway_r14_pre_approval_binding(uuid)'::regprocedure)) into recovery_d;
+  if position('authoritative_before_state' in recovery_d)=0 or position('expected_after_state' in recovery_d)=0 then raise exception 'gateway recovery snapshot persistence missing'; end if;
+  if position('for update' in recovery_d)=0 then raise exception 'gateway row-lock proof missing'; end if;
+  if position('execution_recovery_snapshot_not_recorded' in recovery_d)=0 then raise exception 'gateway snapshot fail-closed assertion missing'; end if;
 end $$;
 
 -- Recovery evidence is append-only.
