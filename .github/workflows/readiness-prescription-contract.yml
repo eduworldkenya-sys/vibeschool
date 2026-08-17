@@ -1,0 +1,22 @@
+name: Readiness Prescription Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'components/public/SchoolReadinessAssessment.tsx'
+      - 'scripts/test-readiness-prescription.py'
+      - 'docs/product/VIBESCHOOL-READINESS-PRESCRIPTION.md'
+      - '.github/workflows/readiness-prescription-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  readiness-prescription:
+    name: Browser-local readiness to bounded pilot prescription
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-readiness-prescription.py
