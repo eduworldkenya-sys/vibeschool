@@ -24,8 +24,8 @@ export function PublicHeader({ product }: PublicHeaderProps) {
             <Image
               src="/brand/vibeschool-wordmark.svg"
               alt="VibeSchool"
-              width={920}
-              height={180}
+              width={620}
+              height={160}
               priority
               className={styles.logo}
             />
