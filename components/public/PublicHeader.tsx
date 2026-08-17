@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { TrackedLink } from './TrackedLink'
+import { PublicJourneyTracker } from './PublicJourneyTracker'
 import styles from './PublicShell.module.css'
 
 type PublicHeaderProps = { product?: string }
@@ -14,6 +15,7 @@ const navItems = [
 
 export function PublicHeader({ product }: PublicHeaderProps) {
   return <>
+    <PublicJourneyTracker />
     <a href="#main-content" className={styles.skip}>Skip to content</a>
     <header className={styles.header}>
       <div className={styles.headerInner}>
