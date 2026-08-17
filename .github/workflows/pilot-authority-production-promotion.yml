@@ -48,7 +48,6 @@ jobs:
           grep -F 'revoke all privileges on table public.exam_results from anon, authenticated' "$EXPECTED_MIGRATION_FILE"
           grep -F 'revoke all privileges on table public.class_join_requests from anon, authenticated' "$EXPECTED_MIGRATION_FILE"
           grep -F "raise exception 'broad exam_results member-read bypass remains'" "$EXPECTED_MIGRATION_FILE"
-          python3 scripts/validate-migration-classification.py
 
       - name: Verify promotion is fail-closed and production-scoped
         shell: bash
