@@ -6,6 +6,14 @@ type PublicHeaderProps = {
   product?: string
 }
 
+const navItems = [
+  ['/global', 'Learn'],
+  ['/pathways', 'Pathways'],
+  ['/teacher', 'Teachers'],
+  ['/about', 'About'],
+  ['/contact', 'Contact'],
+] as const
+
 export function PublicHeader({ product }: PublicHeaderProps) {
   return <>
     <a href="#main-content" className={styles.skip}>Skip to content</a>
@@ -18,14 +26,16 @@ export function PublicHeader({ product }: PublicHeaderProps) {
           </span>
         </Link>
         <nav className={styles.nav} aria-label="Public navigation">
-          <Link href="/global">Learn</Link>
-          <Link href="/pathways">Pathways</Link>
-          <Link href="/teacher">Teachers</Link>
-          <Link href="/about">About</Link>
-          <Link href="/contact">Contact</Link>
+          {navItems.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}
           <Link href="/login/global" className={styles.signin}>Sign in</Link>
         </nav>
-        <Link href="/contact" className={styles.mobileMenu} aria-label="Open VibeSchool contact and navigation">Menu</Link>
+        <details className={styles.mobileMenu}>
+          <summary aria-label="Open public navigation">Menu</summary>
+          <nav className={styles.mobilePanel} aria-label="Mobile public navigation">
+            {navItems.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}
+            <Link href="/login/global" className={styles.mobileSignin}>Sign in</Link>
+          </nav>
+        </details>
       </div>
     </header>
   </>
