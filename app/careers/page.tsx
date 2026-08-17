@@ -2,10 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
+import { CareerInterest } from './CareerInterest'
 
 export const metadata: Metadata = {
   title: 'Careers | VibeSchool',
   description: 'Learn about future opportunities to help build VibeSchool for learners, educators, families and schools in Kenya.',
+  alternates:{canonical:'/careers'},
 }
 
 const areas = [
@@ -25,7 +27,7 @@ export default function CareersPage(){
         <p style={{margin:0,fontSize:11,fontWeight:850,letterSpacing:'.16em',color:'#725815'}}>BUILD WITH VIBESCHOOL</p>
         <h1 style={{margin:'12px 0 0',maxWidth:850,fontSize:'clamp(42px,7vw,72px)',lineHeight:1.01,letterSpacing:'-.048em'}}>Help build education infrastructure people can actually use.</h1>
         <p style={{maxWidth:760,margin:'24px 0 0',fontSize:18,lineHeight:1.7,color:'#5f5f70'}}>VibeSchool is being built for learners, teachers, families and institutions. We are not presenting roles as open when they are not. This page exists so exceptional people can understand the mission and know where future opportunities may emerge.</p>
-        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:26}}><Link href="/contact" style={{display:'inline-block',padding:'13px 17px',borderRadius:12,background:'#4f46e5',color:'#fff',textDecoration:'none',fontSize:14,fontWeight:850}}>Express interest</Link><Link href="/about" style={{display:'inline-block',padding:'13px 17px',borderRadius:12,border:'1px solid #d9dae3',background:'#fff',color:'#222230',textDecoration:'none',fontSize:14,fontWeight:850}}>Understand VibeSchool</Link></div>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:26}}><a href="#talent-interest" style={{display:'inline-block',padding:'13px 17px',borderRadius:12,background:'#111827',color:'#fff',textDecoration:'none',fontSize:14,fontWeight:850}}>Express interest</a><Link href="/about" style={{display:'inline-block',padding:'13px 17px',borderRadius:12,border:'1px solid #d9dae3',background:'#fff',color:'#222230',textDecoration:'none',fontSize:14,fontWeight:850}}>Understand VibeSchool</Link></div>
       </section>
 
       <section style={{width:'min(1060px,100%)',margin:'0 auto',padding:'48px 18px'}}>
@@ -40,6 +42,8 @@ export default function CareersPage(){
         <p style={{maxWidth:760,color:'rgba(255,255,255,.7)',fontSize:15,lineHeight:1.7}}>We value people who can reason from evidence, communicate clearly with ordinary users, respect children and data, understand Kenyan educational context, and turn complicated systems into experiences that feel simple.</p>
         <p style={{maxWidth:760,color:'rgba(255,255,255,.7)',fontSize:15,lineHeight:1.7}}>When genuine vacancies open, they should appear here with responsibilities, working arrangement, selection process and compensation information appropriate to the role. Until then, VibeSchool will not manufacture job listings simply to appear larger than it is.</p>
       </section>
+
+      <CareerInterest />
     </main>
     <PublicFooter />
   </div>
