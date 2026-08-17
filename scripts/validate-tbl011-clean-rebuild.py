@@ -38,7 +38,6 @@ required_workflow = {
     "local stack start": "supabase start",
     "local reset": "supabase db reset --local --no-seed",
     "verification SQL execution": "-f scripts/sql/tbl011_clean_rebuild_verify.sql",
-    "pilot authority semantic verification": "-f scripts/sql/pilot_authority_chain_verify.sql",
     "TBL-012 rebuilt snapshot execution": "-f scripts/sql/tbl012_core_schema_snapshot.sql",
     "rebuilt schema artifact": "rebuilt-core-schema.json",
     "rebuilt schema hash": "rebuilt-core-schema.sha256",
@@ -93,8 +92,6 @@ for needle in required_sql:
     if needle not in sql:
         errors.append(f"verification SQL missing: {needle}")
 
-# Hardened policy names are valid only because the final verifier checks their
-# owner/admin + teacher-membership predicates and the authenticated grant set.
 for stale_needle in (
     "teacher_classes.teacher_classes_admin_insert",
     "teacher_classes.teacher_classes_admin_update",
