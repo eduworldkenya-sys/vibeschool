@@ -4,6 +4,7 @@ const base = process.env.PUBLIC_TEST_BASE_URL || 'http://127.0.0.1:3000'
 const routes = ['/', '/about', '/contact', '/careers', '/institutions', '/trust', '/trust/child-safety', '/trust/security', '/trust/responsible-ai', '/legal', '/legal/privacy', '/legal/terms', '/legal/aup', '/pathways', '/pathways/check', '/pathways/subjects', '/pathways/schools', '/learn/careers']
 const viewports = [{width:360,height:800},{width:390,height:844},{width:768,height:1024},{width:1440,height:900}]
 const failures=[]
+const internalLinks=new Set()
 const fail = msg => failures.push(msg)
 
 const browser = await chromium.launch({headless:true})
@@ -26,6 +27,8 @@ try {
           main: Boolean(document.querySelector('main#main-content')),
           unlabeledButtons: buttons.filter(el => !(el.textContent?.trim() || el.getAttribute('aria-label') || el.getAttribute('title'))).length,
           emptyLinks: links.filter(el => !(el.textContent?.trim() || el.getAttribute('aria-label'))).length,
+          placeholderLinks: links.filter(el => ['#','javascript:void(0)'].includes((el.getAttribute('href')||'').trim())).length,
+          internalHrefs: links.map(el=>el.getAttribute('href')).filter(href=>href?.startsWith('/') && !href.startsWith('//')),
           missingAlt: images.filter(el => !el.hasAttribute('alt')).length,
           unlabeledInputs: inputs.filter(el => {
             const id = el.getAttribute('id')
@@ -33,11 +36,13 @@ try {
           }).length,
         }
       })
+      for (const href of result.internalHrefs) internalLinks.add(href.split('#')[0])
       if (result.overflow > 2) fail(`${route} ${viewport.width}px: horizontal overflow ${result.overflow}px`)
       if (!result.main) fail(`${route}: missing main#main-content`)
       if (result.h1 !== 1) fail(`${route}: expected exactly one h1, got ${result.h1}`)
       if (result.unlabeledButtons) fail(`${route}: ${result.unlabeledButtons} unlabeled buttons`)
       if (result.emptyLinks) fail(`${route}: ${result.emptyLinks} links without accessible name`)
+      if (result.placeholderLinks) fail(`${route}: ${result.placeholderLinks} placeholder links`)
       if (result.missingAlt) fail(`${route}: ${result.missingAlt} images without alt`)
       if (result.unlabeledInputs) fail(`${route}: ${result.unlabeledInputs} unlabeled form controls`)
     }
@@ -48,8 +53,9 @@ try {
   const page = await context.newPage()
   await page.goto(base+'/',{waitUntil:'domcontentloaded'})
   await page.keyboard.press('Tab')
-  const firstFocused = await page.evaluate(() => ({text:document.activeElement?.textContent?.trim(),href:document.activeElement?.getAttribute('href')}))
+  const firstFocused = await page.evaluate(() => ({text:document.activeElement?.textContent?.trim(),href:document.activeElement?.getAttribute('href'),outline:getComputedStyle(document.activeElement).outlineStyle}))
   if (firstFocused.href !== '#main-content') fail(`keyboard: first focus is not skip link (${JSON.stringify(firstFocused)})`)
+  if (firstFocused.outline === 'none') fail('keyboard: first focused control has no visible outline')
   await page.keyboard.press('Enter')
   const hash = await page.evaluate(()=>location.hash)
   if (hash !== '#main-content') fail(`keyboard: skip link did not target main content (${hash})`)
@@ -61,9 +67,23 @@ try {
     if (!mobileNavVisible) fail('mobile navigation did not open')
   } else fail('mobile navigation control missing')
 
-  const resourceBytes = await page.evaluate(() => performance.getEntriesByType('resource').reduce((sum,entry)=>sum+(entry.transferSize||0),0))
-  if (resourceBytes > 3_500_000) fail(`homepage transferred ${resourceBytes} bytes; budget is 3.5 MB`)
+  const perf = await page.evaluate(() => ({
+    resourceBytes:performance.getEntriesByType('resource').reduce((sum,entry)=>sum+(entry.transferSize||0),0),
+    resources:performance.getEntriesByType('resource').length,
+    dcl:performance.getEntriesByType('navigation')[0]?.domContentLoadedEventEnd ?? 0,
+  }))
+  if (perf.resourceBytes > 3_500_000) fail(`homepage transferred ${perf.resourceBytes} bytes; budget is 3.5 MB`)
+  if (perf.resources > 90) fail(`homepage requested ${perf.resources} resources; budget is 90`)
+  if (perf.dcl > 7000) fail(`homepage DOMContentLoaded ${Math.round(perf.dcl)}ms; CI budget is 7000ms`)
   await context.close()
+
+  const requestContext = await browser.newContext()
+  for (const href of [...internalLinks].sort()) {
+    if (!href || href.startsWith('/api/') || href.startsWith('/auth/') || href.startsWith('/login') || href.startsWith('/signup') || href.startsWith('/student/') || href.startsWith('/teacher/') || href.startsWith('/parent/') || href.startsWith('/admin/') || href.startsWith('/hq/')) continue
+    const response = await requestContext.request.get(base+href,{maxRedirects:4,timeout:20000})
+    if (response.status() >= 400) fail(`internal link ${href}: HTTP ${response.status()}`)
+  }
+  await requestContext.close()
 
   const errorContext = await browser.newContext({viewport:{width:390,height:844}})
   const errorPage = await errorContext.newPage()
@@ -102,4 +122,4 @@ if (failures.length) {
   process.exit(1)
 }
 console.log('PUBLIC BROWSER CERTIFICATION: PASS')
-console.log('Responsive layout, semantic landmarks, keyboard entry, accessible names, performance budget, 404 recovery and Pathways failure states passed.')
+console.log('Responsive layout, semantic landmarks, keyboard focus, accessible names, internal links, performance budgets, 404 recovery and Pathways failure states passed.')
