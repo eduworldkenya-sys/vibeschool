@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 180" role="img" aria-labelledby="title desc">
+  <title id="title">VibeSchool</title>
+  <desc id="desc">VibeSchool purple mark and wordmark</desc>
+  <g fill="#5B14D6" transform="translate(8 0) scale(.34)">
+    <circle cx="255" cy="105" r="50"/>
+    <path d="M70 115h75l111 237-34 68-42-23z"/>
+    <path d="M442 110h-67L258 352l-36 68 70-30z"/>
+    <path d="M330 115h42l-90 203-34 34z"/>
+  </g>
+  <text x="190" y="118" fill="#171721" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="800" letter-spacing="-3">VibeSchool</text>
+</svg>
