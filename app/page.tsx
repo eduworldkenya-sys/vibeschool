@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 
 const audiences = [
   { title: 'Learners', body: 'Learn, practise, use the learning library, understand your progress and explore the choices ahead.', href: '/global', action: 'Start learning' },
-  { title: 'Teachers', body: 'Move from curriculum and planning to teaching, assessment, evidence and the learner’s next action.', href: '/login/global?role=teacher', action: 'Enter teacher workspace' },
-  { title: 'Parents', body: 'Follow the learning story with clearer progress, context and communication around the child you support.', href: '/login/global?role=parent', action: 'Enter parent space' },
+  { title: 'Teachers', body: 'Move from curriculum and planning to teaching, assessment, evidence and the learner’s next action.', href: '/product', action: 'See the teacher system' },
+  { title: 'Parents', body: 'Follow the learning story with clearer progress, context and communication around the child you support.', href: '/product', action: 'See the parent experience' },
   { title: 'Schools', body: 'Connect academics, people, evidence and school operations without losing sight of the learner.', href: '/institutions', action: 'Explore VibeSchool for schools' },
 ]
 
@@ -43,7 +43,7 @@ export default function HomePage() {
           <p className={styles.lead}>VibeSchool connects planning, teaching, learning, evidence, assessment, progress, parents and future direction — so the education journey works as one continuous system instead of a collection of disconnected tools.</p>
           <div className={styles.actions}>
             <TrackedLink className={styles.primary} href="/global" event="public_home_start_learning">Start learning</TrackedLink>
-            <TrackedLink className={styles.secondary} href="/pathways" event="public_home_pathways">Explore Senior School Pathways</TrackedLink>
+            <Link className={styles.secondary} href="/product">See the product</Link>
             <TrackedLink className={styles.textAction} href="/institutions" event="public_home_institutions">For schools →</TrackedLink>
           </div>
           <div className={styles.heroTrust} aria-label="VibeSchool trust signals">
@@ -81,18 +81,18 @@ export default function HomePage() {
         <div className={styles.sectionHeading}>
           <p className={styles.eyebrowDark}>EXPLORE VIBESCHOOL</p>
           <h2>See the educational model before deciding whether it belongs in your school or family.</h2>
-          <p>Start with public learning and Pathways experiences, then inspect how VibeSchool approaches institutions, evidence, privacy and responsibility.</p>
+          <p>Start with the product map, public learning and Pathways experiences, then inspect how VibeSchool approaches institutions, evidence, privacy and responsibility.</p>
         </div>
         <div className={styles.demoGrid}>
+          <Link href="/product" className={styles.demoCard}>
+            <span className={styles.demoLabel}>PRODUCT</span><h3>See how the system connects across every role.</h3><p>Explore teacher, learner, parent and school capabilities together, and see how the learning chain connects curriculum to the next action.</p><strong>See the product →</strong>
+          </Link>
           <TrackedLink href="/global" event="public_home_start_learning" className={styles.demoCard}>
             <span className={styles.demoLabel}>LEARNING</span><h3>Learning that continues beyond a single resource.</h3><p>Explore curriculum-organised learning and how resources, practice and progress fit into the wider learner journey.</p><strong>Explore learning →</strong>
           </TrackedLink>
           <TrackedLink href="/pathways" event="public_home_pathways" className={styles.demoCard}>
             <span className={styles.demoLabel}>SENIOR SCHOOL PATHWAYS</span><h3>Move from interests to subjects, careers and schools with clearer evidence.</h3><p>Explore pathways and subject choices while seeing where verified information begins, where guidance is used and where uncertainty remains.</p><strong>Explore Pathways →</strong>
           </TrackedLink>
-          <Link href="/institutions" className={styles.demoCard}>
-            <span className={styles.demoLabel}>FOR SCHOOLS</span><h3>See the school without losing sight of the learner.</h3><p>Understand how VibeSchool is designed to connect academics, evidence, people, governance and school context around one learning system.</p><strong>Explore institutional VibeSchool →</strong>
-          </Link>
         </div>
       </section>
 
