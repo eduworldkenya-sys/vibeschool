@@ -6,6 +6,7 @@ on:
     paths:
       - 'app/page.tsx'
       - 'app/product/**'
+      - 'app/teachers/**'
       - 'app/about/**'
       - 'app/contact/**'
       - 'app/careers/**'
@@ -27,6 +28,7 @@ on:
     paths:
       - 'app/page.tsx'
       - 'app/product/**'
+      - 'app/teachers/**'
       - 'app/about/**'
       - 'app/contact/**'
       - 'app/careers/**'
