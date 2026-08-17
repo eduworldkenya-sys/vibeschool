@@ -5,172 +5,21 @@ type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
-function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Assessment integration returned an invalid payload.')
-  }
-  return value as Record<string, unknown>
-}
+function record(value: unknown): Record<string, unknown> { if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Assessment integration returned an invalid payload.'); return value as Record<string, unknown> }
+function text(value: unknown): string | null { return typeof value === 'string' ? value : null }
+function numberOrNull(value: unknown): number | null { if (value === null || value === undefined) return null; const result = typeof value === 'number' ? value : Number(value); return Number.isFinite(result) ? result : null }
 
-function text(value: unknown): string | null {
-  return typeof value === 'string' ? value : null
-}
+export interface GradebookEntry { attemptId:string; studentId:string; studentName:string; classId:string; subjectId:string|null; assessmentId:string; assessmentTitle:string; assessmentType:string; score:number|null; maxScore:number|null; percentage:number|null; releasedAt:string }
+export interface GradebookSummary { entryCount:number; averagePercentage:number|null; highestPercentage:number|null; lowestPercentage:number|null }
+export interface TeacherGradebook { entries:GradebookEntry[]; summary:GradebookSummary }
+export interface AssessmentResultSummary { attemptId:string; assessmentTitle:string; assessmentType:string; score:number|null; maxScore:number|null; percentage:number|null; releasedAt:string; subjectId:string|null; feedback:string|null }
+export interface ParentAssessmentSummary { childName:string; results:AssessmentResultSummary[]; progress:Json[]; interventions:Json[] }
+export interface LearnerAssessmentHub { results:AssessmentResultSummary[]; recommendations:Json[]; timeline:Json[] }
+export interface TeacherAssessmentPulse { awaitingMarking:number; partiallyMarked:number; readyToRelease:number; pendingModeration:number; highPriorityInterventions:number }
 
-function numberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null
-  const result = typeof value === 'number' ? value : Number(value)
-  return Number.isFinite(result) ? result : null
-}
-
-export interface GradebookEntry {
-  attemptId: string
-  studentId: string
-  studentName: string
-  classId: string
-  subjectId: string | null
-  assessmentId: string
-  assessmentTitle: string
-  assessmentType: string
-  score: number | null
-  maxScore: number | null
-  percentage: number | null
-  releasedAt: string
-}
-
-export interface GradebookSummary {
-  entryCount: number
-  averagePercentage: number | null
-  highestPercentage: number | null
-  lowestPercentage: number | null
-}
-
-export interface TeacherGradebook {
-  entries: GradebookEntry[]
-  summary: GradebookSummary
-}
-
-export interface AssessmentResultSummary {
-  attemptId: string
-  assessmentTitle: string
-  assessmentType: string
-  score: number | null
-  maxScore: number | null
-  percentage: number | null
-  releasedAt: string
-  subjectId: string | null
-  feedback: string | null
-}
-
-export interface ParentAssessmentSummary {
-  results: AssessmentResultSummary[]
-  progress: Json[]
-  interventions: Json[]
-}
-
-export interface LearnerAssessmentHub {
-  results: AssessmentResultSummary[]
-  recommendations: Json[]
-  timeline: Json[]
-}
-
-export interface TeacherAssessmentPulse {
-  awaitingMarking: number
-  partiallyMarked: number
-  readyToRelease: number
-  pendingModeration: number
-  highPriorityInterventions: number
-}
-
-export async function propagateReleasedAttempt(attemptId: string): Promise<void> {
-  const { error } = await rpc<Json>('exq_propagate_released_attempt', { p_attempt_id: attemptId })
-  if (error) throw new Error(error.message || 'Released assessment could not be synchronized.')
-}
-
-export async function getTeacherGradebook(filters?: {
-  classId?: string | null
-  subjectId?: string | null
-}): Promise<TeacherGradebook> {
-  const { data, error } = await rpc<Json>('exq_get_teacher_gradebook', {
-    p_class_id: filters?.classId ?? null,
-    p_subject_id: filters?.subjectId ?? null,
-  })
-  if (error) throw new Error(error.message || 'Could not load gradebook.')
-  const payload = record(data)
-  const entries = Array.isArray(payload.entries) ? payload.entries : []
-  const summary = record(payload.summary ?? {})
-  return {
-    entries: entries.map(value => {
-      const item = record(value)
-      return {
-        attemptId: text(item.attempt_id) ?? '',
-        studentId: text(item.student_id) ?? '',
-        studentName: text(item.student_name) ?? 'Learner',
-        classId: text(item.class_id) ?? '',
-        subjectId: text(item.subject_id),
-        assessmentId: text(item.assessment_id) ?? '',
-        assessmentTitle: text(item.assessment_title) ?? 'Assessment',
-        assessmentType: text(item.assessment_type) ?? 'assessment',
-        score: numberOrNull(item.score),
-        maxScore: numberOrNull(item.max_score),
-        percentage: numberOrNull(item.percentage),
-        releasedAt: text(item.released_at) ?? '',
-      }
-    }),
-    summary: {
-      entryCount: numberOrNull(summary.entry_count) ?? 0,
-      averagePercentage: numberOrNull(summary.average_percentage),
-      highestPercentage: numberOrNull(summary.highest_percentage),
-      lowestPercentage: numberOrNull(summary.lowest_percentage),
-    },
-  }
-}
-
-function parseResult(value: unknown): AssessmentResultSummary {
-  const item = record(value)
-  return {
-    attemptId: text(item.attempt_id) ?? '',
-    assessmentTitle: text(item.assessment_title) ?? 'Assessment',
-    assessmentType: text(item.assessment_type) ?? 'assessment',
-    score: numberOrNull(item.score),
-    maxScore: numberOrNull(item.max_score),
-    percentage: numberOrNull(item.percentage),
-    releasedAt: text(item.released_at) ?? '',
-    subjectId: text(item.subject_id),
-    feedback: text(item.teacher_feedback) ?? text(item.feedback),
-  }
-}
-
-export async function getParentAssessmentSummary(studentId: string): Promise<ParentAssessmentSummary> {
-  const { data, error } = await rpc<Json>('exq_get_parent_assessment_summary', { p_student_id: studentId })
-  if (error) throw new Error(error.message || 'Could not load parent assessment summary.')
-  const payload = record(data)
-  return {
-    results: (Array.isArray(payload.results) ? payload.results : []).map(parseResult),
-    progress: (Array.isArray(payload.progress) ? payload.progress : []) as Json[],
-    interventions: (Array.isArray(payload.interventions) ? payload.interventions : []) as Json[],
-  }
-}
-
-export async function getLearnerAssessmentHub(): Promise<LearnerAssessmentHub> {
-  const { data, error } = await rpc<Json>('exq_get_learner_assessment_hub')
-  if (error) throw new Error(error.message || 'Could not load learner assessment hub.')
-  const payload = record(data)
-  return {
-    results: (Array.isArray(payload.results) ? payload.results : []).map(parseResult),
-    recommendations: (Array.isArray(payload.recommendations) ? payload.recommendations : []) as Json[],
-    timeline: (Array.isArray(payload.timeline) ? payload.timeline : []) as Json[],
-  }
-}
-
-export async function getTeacherAssessmentPulse(): Promise<TeacherAssessmentPulse> {
-  const { data, error } = await rpc<Json>('exq_get_teacher_pulse_summary')
-  if (error) throw new Error(error.message || 'Could not load assessment workload.')
-  const payload = record(data)
-  return {
-    awaitingMarking: numberOrNull(payload.awaiting_marking) ?? 0,
-    partiallyMarked: numberOrNull(payload.partially_marked) ?? 0,
-    readyToRelease: numberOrNull(payload.ready_to_release) ?? 0,
-    pendingModeration: numberOrNull(payload.pending_moderation) ?? 0,
-    highPriorityInterventions: numberOrNull(payload.high_priority_interventions) ?? 0,
-  }
-}
+export async function propagateReleasedAttempt(attemptId:string):Promise<void>{const{error}=await rpc<Json>('exq_propagate_released_attempt',{p_attempt_id:attemptId});if(error)throw new Error(error.message||'Released assessment could not be synchronized.')}
+export async function getTeacherGradebook(filters?:{classId?:string|null;subjectId?:string|null}):Promise<TeacherGradebook>{const{data,error}=await rpc<Json>('exq_get_teacher_gradebook',{p_class_id:filters?.classId??null,p_subject_id:filters?.subjectId??null});if(error)throw new Error(error.message||'Could not load gradebook.');const payload=record(data),entries=Array.isArray(payload.entries)?payload.entries:[],summary=record(payload.summary??{});return{entries:entries.map(value=>{const item=record(value);return{attemptId:text(item.attempt_id)??'',studentId:text(item.student_id)??'',studentName:text(item.student_name)??'Learner',classId:text(item.class_id)??'',subjectId:text(item.subject_id),assessmentId:text(item.assessment_id)??'',assessmentTitle:text(item.assessment_title)??'Assessment',assessmentType:text(item.assessment_type)??'assessment',score:numberOrNull(item.score),maxScore:numberOrNull(item.max_score),percentage:numberOrNull(item.percentage),releasedAt:text(item.released_at)??''}}),summary:{entryCount:numberOrNull(summary.entry_count)??0,averagePercentage:numberOrNull(summary.average_percentage),highestPercentage:numberOrNull(summary.highest_percentage),lowestPercentage:numberOrNull(summary.lowest_percentage)}}}
+function parseResult(value:unknown):AssessmentResultSummary{const item=record(value);return{attemptId:text(item.attempt_id)??'',assessmentTitle:text(item.assessment_title)??'Assessment',assessmentType:text(item.assessment_type)??'assessment',score:numberOrNull(item.score),maxScore:numberOrNull(item.max_score),percentage:numberOrNull(item.percentage),releasedAt:text(item.released_at)??'',subjectId:text(item.subject_id),feedback:text(item.teacher_feedback)??text(item.feedback)}}
+export async function getParentAssessmentSummary(studentId:string):Promise<ParentAssessmentSummary>{const{data,error}=await rpc<Json>('exq_get_parent_assessment_summary',{p_student_id:studentId});if(error)throw new Error(error.message||'Could not load parent assessment summary.');const payload=record(data);return{childName:text(payload.child_name)??'Learner',results:(Array.isArray(payload.results)?payload.results:[]).map(parseResult),progress:(Array.isArray(payload.progress)?payload.progress:[]) as Json[],interventions:(Array.isArray(payload.interventions)?payload.interventions:[]) as Json[]}}
+export async function getLearnerAssessmentHub():Promise<LearnerAssessmentHub>{const{data,error}=await rpc<Json>('exq_get_learner_assessment_hub');if(error)throw new Error(error.message||'Could not load learner assessment hub.');const payload=record(data);return{results:(Array.isArray(payload.results)?payload.results:[]).map(parseResult),recommendations:(Array.isArray(payload.recommendations)?payload.recommendations:[]) as Json[],timeline:(Array.isArray(payload.timeline)?payload.timeline:[]) as Json[]}}
+export async function getTeacherAssessmentPulse():Promise<TeacherAssessmentPulse>{const{data,error}=await rpc<Json>('exq_get_teacher_pulse_summary');if(error)throw new Error(error.message||'Could not load assessment workload.');const payload=record(data);return{awaitingMarking:numberOrNull(payload.awaiting_marking)??0,partiallyMarked:numberOrNull(payload.partially_marked)??0,readyToRelease:numberOrNull(payload.ready_to_release)??0,pendingModeration:numberOrNull(payload.pending_moderation)??0,highPriorityInterventions:numberOrNull(payload.high_priority_interventions)??0}}
