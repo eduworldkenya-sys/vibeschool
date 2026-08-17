@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { TrackedLink } from '@/components/public/TrackedLink'
+import { ProductTour } from '@/components/public/ProductTour'
 import styles from './home.module.css'
 
 export const metadata: Metadata = {
@@ -13,8 +14,8 @@ export const metadata: Metadata = {
 
 const audiences = [
   { title: 'Learners', body: 'Learn, practise, use the learning library, understand your progress and explore the choices ahead.', href: '/global', action: 'Start learning' },
-  { title: 'Teachers', body: 'Move from curriculum and planning to teaching, assessment, evidence and the learner’s next action.', href: '/product', action: 'See the teacher system' },
-  { title: 'Parents', body: 'Follow the learning story with clearer progress, context and communication around the child you support.', href: '/product', action: 'See the parent experience' },
+  { title: 'Teachers', body: 'Move from curriculum and planning to teaching, assessment, evidence and the learner’s next action.', href: '/teachers', action: 'See the teacher system' },
+  { title: 'Parents', body: 'Follow the learning story with clearer progress, context and communication around the child you support.', href: '/families', action: 'See the family experience' },
   { title: 'Schools', body: 'Connect academics, people, evidence and school operations without losing sight of the learner.', href: '/institutions', action: 'Explore VibeSchool for schools' },
 ]
 
@@ -23,6 +24,15 @@ const proof = [
   { number: '02', title: 'Learn & practise', body: 'Give learners a curriculum-aware place for resources, practice, assessment and continuing learning.' },
   { number: '03', title: 'Prove & understand', body: 'Turn evidence and assessment into a clearer view of progress, mastery, gaps and what needs attention next.' },
   { number: '04', title: 'Choose what comes next', body: 'Use Pathways, subject combinations, careers and school information with evidence boundaries made visible.' },
+]
+
+const schoolDay = [
+  ['07:30', 'Teacher prepares', 'Today’s curriculum position, scheme and lesson context belong to the same planning journey.'],
+  ['08:00', 'The lesson becomes real', 'Teaching activity and attendance can be connected to what was planned instead of living in separate records.'],
+  ['10:15', 'Learners produce evidence', 'Practice, homework and submissions give the school something more useful than a completion count.'],
+  ['13:00', 'The teacher can respond', 'Assessment and evidence can expose where more explanation, practice or intervention may be needed.'],
+  ['16:00', 'Families get the right context', 'Authorised families can understand relevant progress without entering the teacher’s private workspace.'],
+  ['17:00', 'Leadership sees the learning', 'School visibility can connect curriculum, teaching, participation and learner progress rather than ending at administration.'],
 ]
 
 const trust = [
@@ -43,13 +53,26 @@ export default function HomePage() {
           <p className={styles.lead}>VibeSchool connects planning, teaching, learning, evidence, assessment, progress, parents and future direction — so the education journey works as one continuous system instead of a collection of disconnected tools.</p>
           <div className={styles.actions}>
             <TrackedLink className={styles.primary} href="/global" event="public_home_start_learning">Start learning</TrackedLink>
-            <Link className={styles.secondary} href="/product">See the product</Link>
+            <a className={styles.secondary} href="#product-tour">See VibeSchool work</a>
             <TrackedLink className={styles.textAction} href="/institutions" event="public_home_institutions">For schools →</TrackedLink>
           </div>
           <div className={styles.heroTrust} aria-label="VibeSchool trust signals">
             <span>Built for Kenya</span><span>CBC / CBE aware</span><span>Explore before login</span><span>Mobile-first</span><span>Role-based privacy</span>
           </div>
         </div>
+      </section>
+
+      <div id="product-tour"><ProductTour /></div>
+
+      <section className={styles.daySection} aria-labelledby="school-day-title">
+        <div className={styles.dayIntro}>
+          <p className={styles.eyebrowDark}>A DAY WITH VIBESCHOOL</p>
+          <h2 id="school-day-title">By the end of the school day, everyone should know what matters.</h2>
+          <p>Follow the educational signal through one ordinary day. The value is not six separate modules — it is what becomes possible when the same learning story survives from planning to support.</p>
+        </div>
+        <ol className={styles.dayTimeline}>{schoolDay.map(([time,title,body]) => <li key={time}>
+          <time>{time}</time><div><h3>{title}</h3><p>{body}</p></div>
+        </li>)}</ol>
       </section>
 
       <section className={styles.audienceSection}>
@@ -74,6 +97,17 @@ export default function HomePage() {
         </div>)}</div>
         <div className={styles.systemLine} aria-label="VibeSchool connected education journey">
           <span>Curriculum</span><b>→</b><span>Scheme</span><b>→</b><span>Lesson</span><b>→</b><span>Learning</span><b>→</b><span>Evidence</span><b>→</b><span>Assessment</span><b>→</b><span>Understanding</span><b>→</b><span>Next action</span>
+        </div>
+      </section>
+
+      <section className={styles.readinessSection} aria-labelledby="readiness-title">
+        <div><p className={styles.eyebrowDark}>FOR SCHOOL LEADERS</p><h2 id="readiness-title">How connected is your school today?</h2></div>
+        <div className={styles.readinessQuestions}>
+          <p>Can you tell what curriculum outcomes were actually taught this week?</p>
+          <p>Can a teacher move from learner evidence to the next intervention without rebuilding the story manually?</p>
+          <p>Can families understand relevant progress before the end-of-term report?</p>
+          <p>Can leadership see learning progress without chasing teachers for disconnected paperwork?</p>
+          <div className={styles.actions}><Link className={styles.primary} href="/institutions">See VibeSchool for schools</Link><TrackedLink className={styles.secondary} href="/contact" event="public_institution_contact">Discuss your school</TrackedLink></div>
         </div>
       </section>
 
