@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { TrackedLink } from '@/components/public/TrackedLink'
+import { ProductTour } from '@/components/public/ProductTour'
 import styles from './home.module.css'
 
 export const metadata: Metadata = {
@@ -43,7 +44,7 @@ export default function HomePage() {
           <p className={styles.lead}>VibeSchool connects planning, teaching, learning, evidence, assessment, progress, parents and future direction — so the education journey works as one continuous system instead of a collection of disconnected tools.</p>
           <div className={styles.actions}>
             <TrackedLink className={styles.primary} href="/global" event="public_home_start_learning">Start learning</TrackedLink>
-            <Link className={styles.secondary} href="/product">See the product</Link>
+            <a className={styles.secondary} href="#product-tour">See VibeSchool work</a>
             <TrackedLink className={styles.textAction} href="/institutions" event="public_home_institutions">For schools →</TrackedLink>
           </div>
           <div className={styles.heroTrust} aria-label="VibeSchool trust signals">
@@ -51,6 +52,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <div id="product-tour"><ProductTour /></div>
 
       <section className={styles.audienceSection}>
         <div className={styles.sectionHeading}>
