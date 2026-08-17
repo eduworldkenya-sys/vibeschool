@@ -24,7 +24,8 @@ try {
         return {
           overflow: root.scrollWidth - root.clientWidth,
           h1: document.querySelectorAll('h1').length,
-          main: Boolean(document.querySelector('main#main-content')),
+          main: Boolean(document.querySelector('main')),
+          mainTarget: Boolean(document.getElementById('main-content')),
           unlabeledButtons: buttons.filter(el => !(el.textContent?.trim() || el.getAttribute('aria-label') || el.getAttribute('title'))).length,
           emptyLinks: links.filter(el => !(el.textContent?.trim() || el.getAttribute('aria-label'))).length,
           placeholderLinks: links.filter(el => ['#','javascript:void(0)'].includes((el.getAttribute('href')||'').trim())).length,
@@ -38,7 +39,8 @@ try {
       })
       for (const href of result.internalHrefs) internalLinks.add(href.split('#')[0])
       if (result.overflow > 2) fail(`${route} ${viewport.width}px: horizontal overflow ${result.overflow}px`)
-      if (!result.main) fail(`${route}: missing main#main-content`)
+      if (!result.main) fail(`${route}: missing semantic main landmark`)
+      if (!result.mainTarget) fail(`${route}: missing #main-content skip target`)
       if (result.h1 !== 1) fail(`${route}: expected exactly one h1, got ${result.h1}`)
       if (result.unlabeledButtons) fail(`${route}: ${result.unlabeledButtons} unlabeled buttons`)
       if (result.emptyLinks) fail(`${route}: ${result.emptyLinks} links without accessible name`)
@@ -122,4 +124,4 @@ if (failures.length) {
   process.exit(1)
 }
 console.log('PUBLIC BROWSER CERTIFICATION: PASS')
-console.log('Responsive layout, semantic landmarks, keyboard focus, accessible names, internal links, performance budgets, 404 recovery and Pathways failure states passed.')
+console.log('Responsive layout, semantic landmarks, skip targets, keyboard focus, accessible names, internal links, performance budgets, 404 recovery and Pathways failure states passed.')
