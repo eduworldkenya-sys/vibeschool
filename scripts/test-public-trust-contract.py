@@ -66,7 +66,7 @@ for fragment in ['CONNECTED EDUCATION EXPLORER','WHAT ENTERS','WHAT BECOMES CLEA
     if fragment not in explorer: errors.append(f'connected education explorer missing: {fragment}')
 
 readiness = text('components/public/SchoolReadinessAssessment.tsx')
-for fragment in ['SCHOOL READINESS CHECK','self-assessment, not an external audit or certification','public_readiness_start','public_readiness_complete_early','public_readiness_complete_connected']:
+for fragment in ['SCHOOL READINESS CHECK','self-assessment','planning aid','not an external audit or certification','public_readiness_start','public_readiness_complete_early','public_readiness_complete_connected']:
     if fragment not in readiness: errors.append(f'school readiness assessment missing: {fragment}')
 for forbidden in ['email','phone','student_id','school_id','learner_id']:
     if re.search(rf"['\"]{forbidden}['\"]\s*:", readiness, re.I): errors.append(f'readiness assessment must not collect {forbidden}')
