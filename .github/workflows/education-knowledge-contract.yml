@@ -1,0 +1,24 @@
+name: Education Knowledge Authority Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/kenya-education/**'
+      - 'config/education-knowledge.json'
+      - 'lib/educationKnowledge.ts'
+      - 'scripts/test-education-knowledge.py'
+      - 'docs/product/VIBESCHOOL-EDUCATION-KNOWLEDGE-AUTHORITY.md'
+      - '.github/workflows/education-knowledge-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge-authority:
+    name: Provenance-backed Kenyan education knowledge contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-education-knowledge.py
