@@ -2,14 +2,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from './PublicShell.module.css'
 
-type PublicHeaderProps = {
-  product?: string
-}
+type PublicHeaderProps = { product?: string }
 
 const navItems = [
   ['/global', 'Learn'],
   ['/pathways', 'Pathways'],
-  ['/teacher', 'Teachers'],
   ['/about', 'About'],
   ['/contact', 'Contact'],
 ] as const
