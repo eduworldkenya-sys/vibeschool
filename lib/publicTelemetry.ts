@@ -2,6 +2,7 @@ export type PublicEventName =
   | 'public_home_start_learning'
   | 'public_home_pathways'
   | 'public_home_teacher'
+  | 'public_home_institutions'
   | 'public_pathways_start_check'
   | 'public_pathways_school_discovery'
   | 'public_pathways_careers'

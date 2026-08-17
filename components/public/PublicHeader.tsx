@@ -7,8 +7,10 @@ import styles from './PublicShell.module.css'
 type PublicHeaderProps = { product?: string }
 
 const navItems = [
+  ['/product', 'Product'],
   ['/global', 'Learn'],
   ['/pathways', 'Pathways'],
+  ['/institutions', 'Schools'],
   ['/about', 'About'],
   ['/contact', 'Contact'],
 ] as const

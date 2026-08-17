@@ -2,6 +2,7 @@
   "review_policy_days": 120,
   "entries": [
     {"route":"/","owner":"Product","review_by":"2026-11-30","basis":"Current product positioning and public journeys"},
+    {"route":"/product","owner":"Product","review_by":"2026-11-30","basis":"Current product capabilities, role surfaces and connected learning model"},
     {"route":"/about","owner":"Product","review_by":"2026-11-30","basis":"Mission, audiences and connected education model"},
     {"route":"/contact","owner":"Operations","review_by":"2026-10-31","basis":"Canonical support channels and enquiry routing"},
     {"route":"/careers","owner":"People","review_by":"2026-10-31","basis":"Talent-interest status and genuine vacancies only"},
