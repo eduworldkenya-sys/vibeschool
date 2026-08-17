@@ -10,44 +10,23 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--workflow",
-        default=str(
-            ROOT / ".github/workflows/tbl011-clean-rebuild.yml"
-        ),
-    )
-    parser.add_argument(
-        "--verify-sql",
-        default=str(
-            ROOT / "scripts/sql/tbl011_clean_rebuild_verify.sql"
-        ),
-    )
+    parser.add_argument("--workflow", default=str(ROOT / ".github/workflows/tbl011-clean-rebuild.yml"))
+    parser.add_argument("--verify-sql", default=str(ROOT / "scripts/sql/tbl011_clean_rebuild_verify.sql"))
     return parser.parse_args()
 
 
 ARGS = parse_args()
 WORKFLOW = Path(ARGS.workflow)
 VERIFY_SQL = Path(ARGS.verify_sql)
-
 errors: list[str] = []
 
 if not WORKFLOW.is_file():
     errors.append("workflow missing")
-
 if not VERIFY_SQL.is_file():
     errors.append("verification SQL missing")
 
-workflow = (
-    WORKFLOW.read_text(encoding="utf-8")
-    if WORKFLOW.is_file()
-    else ""
-)
-
-sql = (
-    VERIFY_SQL.read_text(encoding="utf-8")
-    if VERIFY_SQL.is_file()
-    else ""
-)
+workflow = WORKFLOW.read_text(encoding="utf-8") if WORKFLOW.is_file() else ""
+sql = VERIFY_SQL.read_text(encoding="utf-8") if VERIFY_SQL.is_file() else ""
 
 required_workflow = {
     "manual trigger": "workflow_dispatch:",
@@ -58,18 +37,10 @@ required_workflow = {
     "Docker availability": "docker info",
     "local stack start": "supabase start",
     "local reset": "supabase db reset --local --no-seed",
-    "verification SQL execution": (
-        "-f scripts/sql/tbl011_clean_rebuild_verify.sql"
-    ),
-    "TBL-012 rebuilt snapshot execution": (
-        "-f scripts/sql/tbl012_core_schema_snapshot.sql"
-    ),
-    "rebuilt schema artifact": (
-        "rebuilt-core-schema.json"
-    ),
-    "rebuilt schema hash": (
-        "rebuilt-core-schema.sha256"
-    ),
+    "verification SQL execution": "-f scripts/sql/tbl011_clean_rebuild_verify.sql",
+    "TBL-012 rebuilt snapshot execution": "-f scripts/sql/tbl012_core_schema_snapshot.sql",
+    "rebuilt schema artifact": "rebuilt-core-schema.json",
+    "rebuilt schema hash": "rebuilt-core-schema.sha256",
     "local database URL": "127.0.0.1:54322",
     "evidence upload": "actions/upload-artifact@v4",
     "always cleanup": "if: always()",
@@ -95,17 +66,9 @@ for forbidden in (
     if forbidden.lower() in workflow.lower():
         errors.append(f"forbidden production path present: {forbidden}")
 
-reset_commands = re.findall(
-    r"supabase\s+db\s+reset[^\n]*",
-    workflow,
-    flags=re.IGNORECASE,
-)
-
+reset_commands = re.findall(r"supabase\s+db\s+reset[^\n]*", workflow, flags=re.IGNORECASE)
 if len(reset_commands) != 1:
-    errors.append(
-        "expected exactly one db reset command; "
-        f"found {len(reset_commands)}"
-    )
+    errors.append(f"expected exactly one db reset command; found {len(reset_commands)}")
 elif "--local" not in reset_commands[0]:
     errors.append("db reset command is not explicitly local")
 
@@ -116,14 +79,26 @@ required_sql = (
     "school_periods",
     "teachers_manage_own_slots",
     "timetable_slots_student_read",
-    "teacher_classes_admin_insert",
+    "pol_teacher_classes_select",
+    "pol_teacher_classes_insert",
+    "pol_teacher_classes_update",
+    "pol_teacher_classes_delete",
+    "authenticated teacher_classes direct mutation grant survived",
+    "school_members",
     "teaching_occurrences_no_delete",
     "TBL-011 FINAL SCHEMA VERIFICATION PASSED",
 )
-
 for needle in required_sql:
     if needle not in sql:
         errors.append(f"verification SQL missing: {needle}")
+
+for stale_needle in (
+    "teacher_classes.teacher_classes_admin_insert",
+    "teacher_classes.teacher_classes_admin_update",
+    "teacher_classes.teacher_classes_admin_delete",
+):
+    if stale_needle in sql:
+        errors.append(f"stale teacher_classes final-state assumption remains: {stale_needle}")
 
 if "\\set ON_ERROR_STOP on" not in sql:
     errors.append("verification SQL does not fail immediately")
