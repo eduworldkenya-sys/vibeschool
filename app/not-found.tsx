@@ -1,60 +1,21 @@
-"use client";
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { PublicHeader } from '@/components/public/PublicHeader'
+import { PublicFooter } from '@/components/public/PublicFooter'
 
 export default function NotFound() {
-  const router = useRouter()
-
-  return (
-    <div style={{
-      minHeight: '100dvh',
-      background: '#0a0a0f',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '1.5rem',
-      fontFamily: 'var(--font-mono, monospace)',
-      color: '#C8A84B',
-      textAlign: 'center',
-      padding: '2rem',
-    }}>
-      <svg width="48" height="56" viewBox="0 0 72 84" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-        <path d="M36,4 L68,16 L68,52 Q68,76 36,82 Q4,76 4,52 L4,16 Z"
-          fill="none" stroke="#C8A84B" strokeWidth="1.2" strokeLinejoin="round" />
-        <path d="M36,10.76 L63.44,21.32 L63.44,52 Q63.44,72.52 36,77.64 Q8.56,72.52 8.56,52 L8.56,21.32 Z"
-          fill="none" stroke="#C8A84B" strokeWidth="1.2" strokeLinejoin="round" />
-        <line x1="36" y1="10.76" x2="36" y2="77.64" stroke="#C8A84B" strokeWidth="1.2" />
-        <line x1="8.56" y1="44" x2="63.44" y2="44" stroke="#C8A84B" strokeWidth="1.2" />
-        <circle cx="36"    cy="10.76" r="2.4" fill="#C8A84B" />
-        <circle cx="36"    cy="77.64" r="2.4" fill="#C8A84B" />
-        <circle cx="8.56"  cy="44"    r="2.4" fill="#C8A84B" />
-        <circle cx="63.44" cy="44"    r="2.4" fill="#C8A84B" />
-        <rect x="32.5" y="40.5" width="7" height="7" fill="#C8A84B" transform="rotate(45 36 44)" />
-      </svg>
-
-      <p style={{ fontSize: '0.7rem', letterSpacing: '0.3em', color: '#555' }}>ERROR 404</p>
-      <p style={{ fontSize: '1.1rem', letterSpacing: '0.2em', margin: 0 }}>PAGE NOT FOUND</p>
-      <p style={{ fontSize: '0.75rem', color: '#555', letterSpacing: '0.15em', maxWidth: '260px' }}>
-        This page does not exist or has been moved.
-      </p>
-
-      <span
-        role="button"
-        tabIndex={0}
-        onClick={() => router.push('/')}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push('/') }}
-        style={{
-          marginTop: '1rem',
-          fontSize: '0.7rem',
-          letterSpacing: '0.3em',
-          color: '#C8A84B',
-          cursor: 'pointer',
-          borderBottom: '1px solid #C8A84B44',
-          paddingBottom: '2px',
-        }}
-      >
-        RETURN HOME
-      </span>
-    </div>
-  )
+  return <div style={{minHeight:'100dvh',background:'#f8f8f5',color:'#111827',fontFamily:'var(--font-jakarta),Arial,sans-serif'}}>
+    <PublicHeader />
+    <main id="main-content" style={{maxWidth:900,margin:'0 auto',padding:'96px 20px 120px'}}>
+      <p style={{font:'850 11px var(--font-mono),monospace',letterSpacing:'.16em',color:'#725815'}}>404 · PAGE NOT FOUND</p>
+      <h1 style={{fontFamily:'var(--font-display),Arial,sans-serif',fontSize:'clamp(44px,7vw,76px)',lineHeight:1.02,letterSpacing:'-.045em',margin:'14px 0 24px'}}>This page is not where we expected it to be.</h1>
+      <p style={{maxWidth:690,fontSize:18,lineHeight:1.7,color:'#5d6673'}}>The link may be old, incomplete or unavailable. You can return home, explore Pathways, find learning resources or contact VibeSchool if you expected something important to be here.</p>
+      <div style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:30}}>
+        <Link href="/" style={{padding:'13px 18px',borderRadius:10,background:'#111827',color:'#fff',textDecoration:'none',fontWeight:850}}>VibeSchool home</Link>
+        <Link href="/pathways" style={{padding:'13px 18px',borderRadius:10,border:'1px solid #d4d7dc',color:'#222a35',textDecoration:'none',fontWeight:850}}>Explore Pathways</Link>
+        <Link href="/global" style={{padding:'13px 18px',borderRadius:10,border:'1px solid #d4d7dc',color:'#222a35',textDecoration:'none',fontWeight:850}}>Start learning</Link>
+        <Link href="/contact" style={{padding:'13px 18px',borderRadius:10,color:'#725815',textDecoration:'none',fontWeight:850}}>Contact us →</Link>
+      </div>
+    </main>
+    <PublicFooter />
+  </div>
 }
