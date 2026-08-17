@@ -28,6 +28,15 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
+      - name: Verify exact-head checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "$EXPECTED" || { echo "exact-head mismatch: expected=$EXPECTED actual=$ACTUAL" >&2; exit 1; }
+          echo "Certified head: $ACTUAL"
+
       - name: Verify no production credentials or activation mechanism
         shell: bash
         run: |
@@ -61,10 +70,6 @@ jobs:
       - name: Start disposable local Supabase
         run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
 
-      # Production records X1/X2 as applied while retaining an older incompatible
-      # objective table. A clean reset cannot reproduce that ledger/schema split because
-      # X1 creates the canonical shape on an empty database. Build the observed drift
-      # explicitly on top of the X2 boundary, then prove the additive bridge converges it.
       - name: Reproduce partial X1/X2 production boundary
         shell: bash
         run: |
@@ -72,10 +77,6 @@ jobs:
           supabase db reset --local --no-seed --version 20260815090000
           PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
           PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 <<'SQL'
-          -- The legacy production table used JSONB desired_outcome and trace_id. The
-          -- canonical clean-X1 table has a text-only desired_outcome CHECK; remove only
-          -- that canonical constraint before changing the column type so the simulation
-          -- represents a valid historical schema rather than an impossible intermediate.
           do $$
           declare r record;
           begin
