@@ -52,16 +52,37 @@ begin
   end loop;
 end $$;
 
--- Gateway must structurally reserve an intent and enforce a locked target precondition before mutation.
+-- Gateway composition must preserve the R1.4.3 reservation/precondition implementation even
+-- after later authority wrappers are layered in front of the canonical gateway.
 do $$
-declare d text;
+declare
+  d text;
+  next_name text := 'hq_workforce_consequential_execution_gateway';
+  depth integer := 0;
 begin
-  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway(uuid)'::regprocedure)) into d;
-  if position('hq_workforce_reserve_execution_intent' in d)=0 then raise exception 'gateway idempotency reservation missing'; end if;
-  if position('for update' in d)=0 then raise exception 'gateway target lock missing'; end if;
-  if position('work_item_precondition_status_changed' in d)=0 then raise exception 'gateway status precondition missing'; end if;
-  if position('work_item_precondition_version_changed' in d)=0 then raise exception 'gateway version precondition missing'; end if;
-  if position('hq_workforce_commit_execution_intent' in d)=0 then raise exception 'gateway intent commit missing'; end if;
+  loop
+    depth := depth + 1;
+    if depth > 12 then raise exception 'gateway composition depth exceeded'; end if;
+
+    select lower(pg_get_functiondef(p.oid)) into d
+      from pg_proc p
+      join pg_namespace n on n.oid=p.pronamespace
+     where n.nspname='public'
+       and p.proname=next_name
+       and pg_get_function_identity_arguments(p.oid)='p_task_id uuid';
+    if d is null then raise exception 'gateway implementation missing:%',next_name; end if;
+
+    if position('hq_workforce_reserve_execution_intent' in d)>0 then
+      if position('for update' in d)=0 then raise exception 'gateway target lock missing'; end if;
+      if position('work_item_precondition_status_changed' in d)=0 then raise exception 'gateway status precondition missing'; end if;
+      if position('work_item_precondition_version_changed' in d)=0 then raise exception 'gateway version precondition missing'; end if;
+      if position('hq_workforce_commit_execution_intent' in d)=0 then raise exception 'gateway intent commit missing'; end if;
+      exit;
+    end if;
+
+    select (regexp_match(d,'return\s+public\.([a-z0-9_]+)\s*\(p_task_id\)'))[1] into next_name;
+    if next_name is null then raise exception 'gateway idempotency reservation missing'; end if;
+  end loop;
 end $$;
 
 -- Missing intent inputs must fail closed without requiring fixtures.
