@@ -16,10 +16,10 @@ export function PublicFooter() {
       <div className={styles.footerTop}>
         <div className={styles.footerBrand}>
           <Image
-            src="/brand/vibeschool-wordmark.svg"
+            src="/brand/vibeschool-wordmark-dark.svg"
             alt="VibeSchool"
-            width={920}
-            height={180}
+            width={620}
+            height={160}
             className={styles.footerLogo}
           />
           <p className={styles.tagline}>Learn today. Understand your direction. Grow with the people and institutions around your education.</p>
