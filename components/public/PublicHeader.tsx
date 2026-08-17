@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { TrackedLink } from './TrackedLink'
 import styles from './PublicShell.module.css'
 
 type PublicHeaderProps = { product?: string }
@@ -24,13 +25,13 @@ export function PublicHeader({ product }: PublicHeaderProps) {
         </Link>
         <nav className={styles.nav} aria-label="Public navigation">
           {navItems.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}
-          <Link href="/login/global" className={styles.signin}>Sign in</Link>
+          <TrackedLink href="/login/global" event="public_auth_signin" className={styles.signin}>Sign in</TrackedLink>
         </nav>
         <details className={styles.mobileMenu}>
           <summary aria-label="Open public navigation">Menu</summary>
           <nav className={styles.mobilePanel} aria-label="Mobile public navigation">
             {navItems.map(([href,label]) => <Link key={href} href={href}>{label}</Link>)}
-            <Link href="/login/global" className={styles.mobileSignin}>Sign in</Link>
+            <TrackedLink href="/login/global" event="public_auth_signin" className={styles.mobileSignin}>Sign in</TrackedLink>
           </nav>
         </details>
       </div>
