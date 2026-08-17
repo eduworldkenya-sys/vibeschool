@@ -2,114 +2,61 @@
 
 ## Goal
 
-VibeSchool must represent one learner, not three competing student records. Student, parent and teacher experiences are role-specific projections of one learner core.
+VibeSchool represents one learner, with Student, Parent and Teacher experiences as authorized projections of one learner core.
 
 ## Canonical identity
 
-`public.students` is the school learner identity pivot.
+`public.students` is the school learner identity pivot. Canonical identity fields are learner id, school name, admission number, date of birth, gender, class and claimed profile binding. `profiles` owns authentication/account presentation such as avatar; it must not override populated school identity. `child_profiles` is parent/family context only.
 
-Canonical school identity fields used by all authorized projections:
-
-- `students.id`
-- `students.name`
-- `students.admission_number`
-- `students.date_of_birth`
-- `students.gender`
-- `students.class_id`
-- `students.profile_id` when the learner has claimed an account
-
-`profiles` is the authenticated account record. It can supply account presentation such as `avatar_url`, but it must not silently override the school learner identity.
-
-The active unique `students.profile_id` constraint prevents one authenticated student profile from representing multiple active learner rows.
+Application code should resolve canonical identity through `lib/learner/profile-core.ts`. Role pages may enrich the result with authorized domain evidence, but must not invent competing identity precedence.
 
 ## Role projections
 
-### Student — "Me"
+### Student — Me
 
-The student profile combines canonical school identity with learner-owned learning state:
+Student sees canonical identity plus learner-owned learning state: class/school, goals, attendance pulse, mastery, strengths/focus, achievements, journey, Twin evidence and linked support. Restricted care/safety records are not flattened into the student profile.
 
-- class and school
-- admission identity
-- goals and study preferences
-- attendance pulse
-- subject mastery
-- strengths and focus areas
-- achievements
-- learning journey
-- Twin confidence/evidence/next decision
-- linked guardian/support summary
-- account display preferences
+### Teacher — Teach me
 
-The student must not see restricted care/safety records merely because they exist in the parent domain.
+Teacher sees canonical identity plus instructional evidence: results, attendance, assessments, homework/submissions, resources, journey, groups, badges and school interventions. Parent-authored family notes are not school facts.
 
-### Teacher — "Teach me"
+### Parent — Support me
 
-The teacher learner view uses the same `students` row and adds instructional evidence:
+Parent reads canonical school identity and may maintain family context only when the relationship grants profile-edit permission. Parent family data cannot redefine canonical school identity, academic evidence or Twin evidence. Sensitive health/care domains remain in their dedicated parent spaces.
 
-- results
-- attendance
-- assessments
-- homework/submissions
-- resources
-- journey
-- groups
-- badges
-- teacher interventions and school workflows
+## Corrections and authority
 
-Teacher views do not consume parent-authored family notes as school facts.
+Canonical identity corrections are append-only requests. A parent may create a correction request only for a learner to whom they are linked. Parents cannot update/delete submitted requests or write reviewer-owned state. Only an active school admin/owner may review through `review_child_change_request`; approval applies the allowed canonical field and records reviewer evidence atomically.
 
-### Parent — "Support me"
+Reviewable fields are deliberately limited to name, admission number, date of birth and gender. Class/school/profile binding changes are separate enrolment/account workflows and must not be smuggled through profile corrections.
 
-The parent learner profile reads canonical school identity from `students` and separates parent-authored `child_profiles` data as a family layer.
+## Privacy and security boundaries
 
-Family-layer data can enrich the parent's experience but cannot silently redefine:
+- RLS is the final boundary; UI checks are only UX.
+- Parent links are verified at the database boundary for correction creation/read.
+- Student views do not expose parent medical/emergency details by default.
+- Teacher views do not automatically receive family notes or health information.
+- Twin decisions consume authorized learning evidence, not arbitrary family prose.
+- Reviewer fields are never parent-writable.
 
-- learner name
-- admission number
-- date of birth
-- gender
-- class
-- school
-- academic evidence
-- Twin evidence
+## Lifecycle rules
 
-Corrections to canonical identity use `child_change_requests` and school review.
-
-Sensitive domains stay in their dedicated parent spaces (for example Health), rather than being flattened into the general profile.
-
-## Identity precedence
-
-For a claimed student account:
-
-1. `students` controls school learner identity.
-2. class/school are resolved from `students.class_id` -> `classes` -> `schools`.
-3. `profiles` controls the authenticated account and account presentation.
-4. parent `child_profiles` is family context only.
-5. academic/twin state is derived from authoritative learning evidence, not from editable profile prose.
-
-Legacy fallback to `profiles.full_name` is permitted only when the school learner name is absent. New code must not prefer it over a populated `students.name`.
-
-## Privacy boundaries
-
-- Parent links must be checked explicitly and still rely on RLS as the final database boundary.
-- Student views must not expose parent-only medical/emergency details by default.
-- Teacher views must not automatically receive parent family notes or sensitive health information.
-- Twin decisions must use learning evidence and authorized learner data, not arbitrary parent-authored profile text.
-
-## Change authority
-
-- School identity corrections are reviewed school changes.
-- Parent family notes are parent-editable within the linked-child boundary.
-- Student learning goals/preferences are learner-owned where supported by existing Student Home OS authority functions.
-- Academic records remain teacher/school/system authoritative.
+- A claimed account binds through `students.profile_id`; account presentation does not become school identity.
+- Class/school changes follow enrolment workflows and historical academic evidence keeps its own recorded context.
+- Removing/revoking a parent link immediately removes that parent's learner-profile access through RLS-aware queries.
+- Unclaimed learners remain valid school learner records; account-only presentation may be absent.
 
 ## Regression contract
 
-A learner-profile change is incomplete unless all of the following hold:
+A learner-profile change is incomplete unless:
 
-1. Student, parent and teacher resolve the same `students.id` for the learner.
-2. `students.name`, admission, DOB, gender and class do not diverge by role projection.
-3. A parent family-note edit cannot mutate canonical school identity.
-4. Student profile learning state comes from the existing Student Home OS / personalized path / Twin contracts rather than duplicate profile tables.
-5. No non-main Vercel deployment is enabled for the work branch.
-6. TypeScript, ESLint and production build pass before promotion.
+1. Student, parent and teacher resolve the same `students.id`.
+2. Canonical name/admission/DOB/gender/class do not diverge by role.
+3. Family-note edits cannot mutate canonical identity.
+4. A parent cannot create/read a correction for an unlinked learner.
+5. A parent cannot approve/reject, rewrite reviewer metadata, update or delete a submitted correction.
+6. Only an active authorized school admin can review a pending correction.
+7. Student learning state uses existing Home OS/path/Twin evidence contracts rather than duplicate profile tables.
+8. Sensitive care data remains outside general teacher/student projections.
+9. Non-main Vercel deployment remains disabled for feature branches.
+10. TypeScript, ESLint and production build pass before promotion.

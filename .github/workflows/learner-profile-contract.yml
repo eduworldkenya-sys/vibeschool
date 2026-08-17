@@ -1,0 +1,32 @@
+name: Learner Profile Contract Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/student/**'
+      - 'app/parent/child/**'
+      - 'app/teacher/classhub/**'
+      - 'app/admin/students/**'
+      - 'lib/learner/**'
+      - 'lib/student-context.tsx'
+      - 'lib/attendance/**'
+      - 'supabase/migrations/**learner_profile**'
+      - 'supabase/migrations/**child_change_requests**'
+      - 'docs/LEARNER_PROFILE_ARCHITECTURE.md'
+      - 'scripts/test-learner-profile-contract.py'
+      - '.github/workflows/learner-profile-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Learner identity and authority contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Validate learner profile contract
+        run: python3 scripts/test-learner-profile-contract.py
