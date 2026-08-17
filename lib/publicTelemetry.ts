@@ -11,6 +11,17 @@ export type PublicEventName =
   | 'public_institution_contact'
   | 'public_careers_interest'
   | 'public_auth_signin'
+  | 'public_readiness_start'
+  | 'public_readiness_complete_early'
+  | 'public_readiness_complete_fragmented'
+  | 'public_readiness_complete_developing'
+  | 'public_readiness_complete_connected'
+  | 'public_role_learner'
+  | 'public_role_teacher'
+  | 'public_role_family'
+  | 'public_role_school'
+  | 'public_connected_explorer_interaction'
+  | 'public_capability_status_view'
 
 export function trackPublicEvent(event: PublicEventName, path?: string) {
   if (typeof window === 'undefined') return
