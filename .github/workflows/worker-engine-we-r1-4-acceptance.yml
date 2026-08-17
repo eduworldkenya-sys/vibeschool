@@ -2,6 +2,15 @@ name: Worker Engine WE-R1.4 Acceptance Gate
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "we-r1.4-production-closure-20260816-ci-retrigger"
+    paths:
+      - "supabase/migrations/*worker_engine_we_r1_4*.sql"
+      - "supabase/migrations/*worker_engine_we_r1_3x_production_reconciliation*.sql"
+      - "supabase/tests/worker_engine_we_r1_4*.sql"
+      - ".github/workflows/worker-engine-we-r1-4-acceptance.yml"
+      - "docs/WORKER_ENGINE_WE_R1_4*.md"
   pull_request:
     paths:
       - "supabase/migrations/*worker_engine_we_r1_4*.sql"
