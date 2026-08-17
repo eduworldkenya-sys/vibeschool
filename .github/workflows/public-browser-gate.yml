@@ -1,0 +1,90 @@
+name: Public Browser Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/page.tsx'
+      - 'app/about/**'
+      - 'app/contact/**'
+      - 'app/careers/**'
+      - 'app/institutions/**'
+      - 'app/trust/**'
+      - 'app/legal/**'
+      - 'app/pathways/**'
+      - 'app/learn/careers/**'
+      - 'app/not-found.tsx'
+      - 'app/layout.tsx'
+      - 'components/public/**'
+      - 'public/sw.js'
+      - 'public/offline.html'
+      - 'scripts/test-public-browser.mjs'
+      - '.github/workflows/public-browser-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/page.tsx'
+      - 'app/about/**'
+      - 'app/contact/**'
+      - 'app/careers/**'
+      - 'app/institutions/**'
+      - 'app/trust/**'
+      - 'app/legal/**'
+      - 'app/pathways/**'
+      - 'app/learn/careers/**'
+      - 'app/not-found.tsx'
+      - 'app/layout.tsx'
+      - 'components/public/**'
+      - 'public/sw.js'
+      - 'public/offline.html'
+      - 'scripts/test-public-browser.mjs'
+      - '.github/workflows/public-browser-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-browser:
+    name: Mobile, accessibility, resilience and public UX
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Canonical production build
+        uses: ./.github/actions/production-build-contract
+        with:
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Install isolated Chromium runtime
+        run: |
+          rm -rf /tmp/vibeschool-public-browser
+          mkdir -p /tmp/vibeschool-public-browser
+          cd /tmp/vibeschool-public-browser
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/scripts/test-public-browser.mjs" ./test-public-browser.mjs
+      - name: Start production server
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npm run start -- -p 3000 > /tmp/vibeschool-public-server.log 2>&1 &
+          echo $! > /tmp/vibeschool-public-server.pid
+      - name: Wait for server
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/vibeschool-public-server.log
+          exit 1
+      - name: Run public browser certification
+        working-directory: /tmp/vibeschool-public-browser
+        env:
+          PUBLIC_TEST_BASE_URL: http://127.0.0.1:3000
+        run: node test-public-browser.mjs
+      - name: Diagnostics
+        if: failure()
+        run: cat /tmp/vibeschool-public-server.log || true
