@@ -6,6 +6,7 @@ import { PublicFooter } from '@/components/public/PublicFooter'
 export const metadata: Metadata = {
   title: 'Trust & Policies | VibeSchool',
   description: 'Understand how VibeSchool handles privacy, safety, acceptable use and the rules that govern the platform.',
+  alternates:{canonical:'/legal'},
 }
 
 const policies = [
@@ -14,13 +15,19 @@ const policies = [
   { href:'/legal/aup', title:'Acceptable Use', body:'The behaviour expected across VibeSchool and the conduct that can lead to restriction or suspension.' },
 ] as const
 
+const guidance = [
+  { href:'/trust/child-safety', title:'Child safety & safeguarding', body:'Plain-language learner safety, adult authority and safeguarding principles.' },
+  { href:'/trust/security', title:'Security & data governance', body:'How identity, authority, data boundaries and auditability are approached.' },
+  { href:'/trust/responsible-ai', title:'Responsible AI & automation', body:'How AI assistance is separated from evidence, authority and human responsibility.' },
+] as const
+
 export default function LegalHubPage(){
   return <div style={{minHeight:'100vh',background:'#f7f7fb',color:'#15151e'}}>
     <PublicHeader product="Trust" />
     <main id="main-content" style={{width:'min(1040px,100%)',margin:'0 auto',padding:'72px 18px 20px'}}>
       <p style={{margin:0,fontSize:11,fontWeight:850,letterSpacing:'.16em',color:'#725815'}}>TRUST AT VIBESCHOOL</p>
       <h1 style={{margin:'12px 0 0',maxWidth:780,fontSize:'clamp(40px,7vw,68px)',lineHeight:1.02,letterSpacing:'-.045em'}}>Clear rules. Plain language. No hidden surprises.</h1>
-      <p style={{maxWidth:760,margin:'22px 0 0',fontSize:18,lineHeight:1.7,color:'#5f5f70'}}>VibeSchool serves learners, families, educators and institutions. These pages explain how the platform is expected to work, how information is handled and where to go when something needs attention.</p>
+      <p style={{maxWidth:760,margin:'22px 0 0',fontSize:18,lineHeight:1.7,color:'#5f5f70'}}>VibeSchool serves learners, families, educators and institutions. Formal policies and plain-language guidance are kept connected so people can understand both the rule and the reason behind it.</p>
 
       <section aria-labelledby="principles" style={{marginTop:48,padding:'28px',border:'1px solid #dedfe7',borderRadius:22,background:'#fff'}}>
         <h2 id="principles" style={{margin:0,fontSize:26}}>What you should be able to expect</h2>
@@ -34,8 +41,15 @@ export default function LegalHubPage(){
         </div>
       </section>
 
-      <section aria-labelledby="policies" style={{padding:'64px 0 20px'}}>
-        <h2 id="policies" style={{fontSize:32,margin:'0 0 20px'}}>Policies</h2>
+      <section aria-labelledby="guidance" style={{padding:'64px 0 12px'}}>
+        <p style={{margin:0,fontSize:11,fontWeight:850,letterSpacing:'.14em',color:'#725815'}}>PLAIN-LANGUAGE GUIDANCE</p>
+        <h2 id="guidance" style={{fontSize:32,margin:'8px 0 20px'}}>Understand the principles first</h2>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:14}}>{guidance.map(item=><Link key={item.href} href={item.href} style={{display:'grid',gap:9,padding:24,border:'1px solid #dedfe7',borderRadius:20,background:'#fff',color:'#161620',textDecoration:'none'}}><strong style={{fontSize:19}}>{item.title}</strong><span style={{color:'#676777',lineHeight:1.6,fontSize:14}}>{item.body}</span><span style={{color:'#725815',fontSize:13,fontWeight:850}}>Read guidance →</span></Link>)}</div>
+      </section>
+
+      <section aria-labelledby="policies" style={{padding:'52px 0 20px'}}>
+        <p style={{margin:0,fontSize:11,fontWeight:850,letterSpacing:'.14em',color:'#725815'}}>FORMAL DOCUMENTS</p>
+        <h2 id="policies" style={{fontSize:32,margin:'8px 0 20px'}}>Policies</h2>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:14}}>
           {policies.map(policy=><Link key={policy.href} href={policy.href} style={{display:'flex',flexDirection:'column',minHeight:210,padding:24,border:'1px solid #dedfe7',borderRadius:20,background:'#fff',color:'#161620',textDecoration:'none'}}><strong style={{fontSize:21}}>{policy.title}</strong><span style={{marginTop:11,color:'#676777',lineHeight:1.6,fontSize:14}}>{policy.body}</span><span style={{marginTop:'auto',paddingTop:22,color:'#4f46e5',fontSize:13,fontWeight:850}}>Read policy →</span></Link>)}
         </div>
