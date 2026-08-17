@@ -68,7 +68,7 @@ try {
       if (!result.footerLogoRect) fail(`${route}: public footer VibeSchool wordmark missing`)
       else if (result.footerLogoRect.height > 40 || result.footerLogoRect.width > 180) fail(`${route} ${viewport.width}px: footer wordmark rendered ${Math.round(result.footerLogoRect.width)}x${Math.round(result.footerLogoRect.height)}; exceeds brand lockup budget`)
       if (result.headerLogoSrc && !result.headerLogoSrc.includes('vibeschool-wordmark.svg')) fail(`${route}: header is not using canonical SVG wordmark`)
-      if (result.footerLogoSrc && !result.footerLogoSrc.includes('vibeschool-wordmark.svg')) fail(`${route}: footer is not using canonical SVG wordmark`)
+      if (result.footerLogoSrc && !result.footerLogoSrc.includes('vibeschool-wordmark-dark.svg')) fail(`${route}: footer is not using canonical dark SVG wordmark`)
     }
     await context.close()
   }
@@ -147,4 +147,4 @@ if (failures.length) {
   process.exit(1)
 }
 console.log('PUBLIC BROWSER CERTIFICATION: PASS')
-console.log('Responsive layout, brand lockup geometry, semantic landmarks, skip targets, keyboard focus, accessible names, internal links, performance budgets, 404 recovery and Pathways failure states passed.')
+console.log('Responsive layout, light/dark brand lockup geometry, semantic landmarks, skip targets, keyboard focus, accessible names, internal links, performance budgets, 404 recovery and Pathways failure states passed.')
