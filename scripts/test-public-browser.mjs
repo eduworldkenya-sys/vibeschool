@@ -1,0 +1,105 @@
+import { chromium } from 'playwright'
+
+const base = process.env.PUBLIC_TEST_BASE_URL || 'http://127.0.0.1:3000'
+const routes = ['/', '/about', '/contact', '/careers', '/institutions', '/trust', '/trust/child-safety', '/trust/security', '/trust/responsible-ai', '/legal', '/legal/privacy', '/legal/terms', '/legal/aup', '/pathways', '/pathways/check', '/pathways/subjects', '/pathways/schools', '/learn/careers']
+const viewports = [{width:360,height:800},{width:390,height:844},{width:768,height:1024},{width:1440,height:900}]
+const failures=[]
+const fail = msg => failures.push(msg)
+
+const browser = await chromium.launch({headless:true})
+try {
+  for (const viewport of viewports) {
+    const context = await browser.newContext({ viewport })
+    const page = await context.newPage()
+    for (const route of routes) {
+      const response = await page.goto(base + route, { waitUntil:'domcontentloaded', timeout:30000 })
+      if (!response || response.status() >= 400) { fail(`${route} ${viewport.width}px: HTTP ${response?.status() ?? 'none'}`); continue }
+      const result = await page.evaluate(() => {
+        const root = document.documentElement
+        const buttons = [...document.querySelectorAll('button')]
+        const links = [...document.querySelectorAll('a')]
+        const images = [...document.querySelectorAll('img')]
+        const inputs = [...document.querySelectorAll('input,select,textarea')]
+        return {
+          overflow: root.scrollWidth - root.clientWidth,
+          h1: document.querySelectorAll('h1').length,
+          main: Boolean(document.querySelector('main#main-content')),
+          unlabeledButtons: buttons.filter(el => !(el.textContent?.trim() || el.getAttribute('aria-label') || el.getAttribute('title'))).length,
+          emptyLinks: links.filter(el => !(el.textContent?.trim() || el.getAttribute('aria-label'))).length,
+          missingAlt: images.filter(el => !el.hasAttribute('alt')).length,
+          unlabeledInputs: inputs.filter(el => {
+            const id = el.getAttribute('id')
+            return !(el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || (id && document.querySelector(`label[for="${CSS.escape(id)}"]`)) || el.closest('label'))
+          }).length,
+        }
+      })
+      if (result.overflow > 2) fail(`${route} ${viewport.width}px: horizontal overflow ${result.overflow}px`)
+      if (!result.main) fail(`${route}: missing main#main-content`)
+      if (result.h1 !== 1) fail(`${route}: expected exactly one h1, got ${result.h1}`)
+      if (result.unlabeledButtons) fail(`${route}: ${result.unlabeledButtons} unlabeled buttons`)
+      if (result.emptyLinks) fail(`${route}: ${result.emptyLinks} links without accessible name`)
+      if (result.missingAlt) fail(`${route}: ${result.missingAlt} images without alt`)
+      if (result.unlabeledInputs) fail(`${route}: ${result.unlabeledInputs} unlabeled form controls`)
+    }
+    await context.close()
+  }
+
+  const context = await browser.newContext({viewport:{width:390,height:844}})
+  const page = await context.newPage()
+  await page.goto(base+'/',{waitUntil:'domcontentloaded'})
+  await page.keyboard.press('Tab')
+  const firstFocused = await page.evaluate(() => ({text:document.activeElement?.textContent?.trim(),href:document.activeElement?.getAttribute('href')}))
+  if (firstFocused.href !== '#main-content') fail(`keyboard: first focus is not skip link (${JSON.stringify(firstFocused)})`)
+  await page.keyboard.press('Enter')
+  const hash = await page.evaluate(()=>location.hash)
+  if (hash !== '#main-content') fail(`keyboard: skip link did not target main content (${hash})`)
+
+  const menu = page.locator('details summary[aria-label="Open public navigation"]')
+  if (await menu.count()) {
+    await menu.click()
+    const mobileNavVisible = await page.locator('nav[aria-label="Mobile public navigation"]').isVisible()
+    if (!mobileNavVisible) fail('mobile navigation did not open')
+  } else fail('mobile navigation control missing')
+
+  const resourceBytes = await page.evaluate(() => performance.getEntriesByType('resource').reduce((sum,entry)=>sum+(entry.transferSize||0),0))
+  if (resourceBytes > 3_500_000) fail(`homepage transferred ${resourceBytes} bytes; budget is 3.5 MB`)
+  await context.close()
+
+  const errorContext = await browser.newContext({viewport:{width:390,height:844}})
+  const errorPage = await errorContext.newPage()
+  await errorPage.route('**/rest/v1/rpc/pathways_search_public_schools_v2', route => route.abort())
+  await errorPage.goto(base+'/pathways/schools',{waitUntil:'domcontentloaded'})
+  await errorPage.waitForTimeout(800)
+  const errorText = await errorPage.locator('body').innerText()
+  if (!/could not load school information/i.test(errorText)) fail('Pathways schools network-error state is not visible')
+  await errorContext.close()
+
+  const emptyContext = await browser.newContext({viewport:{width:390,height:844}})
+  const emptyPage = await emptyContext.newPage()
+  await emptyPage.route('**/rest/v1/rpc/pathways_search_public_schools_v2', route => route.fulfill({status:200,contentType:'application/json',body:'[]'}))
+  await emptyPage.goto(base+'/pathways/schools',{waitUntil:'domcontentloaded'})
+  const schoolInput = emptyPage.getByPlaceholder('Start typing a school name')
+  await schoolInput.fill('Example Missing School')
+  await emptyPage.getByRole('button',{name:/search schools/i}).click()
+  await emptyPage.waitForTimeout(300)
+  const emptyText = await emptyPage.locator('body').innerText()
+  if (!/No trusted match/i.test(emptyText) || !/Can.t find your school/i.test(emptyText)) fail('Pathways missing-school recovery state is not visible')
+  await emptyContext.close()
+
+  const notFound = await browser.newPage({viewport:{width:390,height:844}})
+  const nf = await notFound.goto(base+'/definitely-not-a-vibeschool-route',{waitUntil:'domcontentloaded'})
+  if (nf?.status() !== 404) fail(`not-found route returned ${nf?.status()}`)
+  const nfText = await notFound.locator('body').innerText()
+  if (!/This page is not where we expected it to be/i.test(nfText) || !/VibeSchool home/i.test(nfText)) fail('404 recovery UX missing')
+  await notFound.close()
+} finally {
+  await browser.close()
+}
+
+if (failures.length) {
+  console.error('PUBLIC BROWSER CERTIFICATION: FAIL')
+  for (const item of failures) console.error(` - ${item}`)
+  process.exit(1)
+}
+console.log('PUBLIC BROWSER CERTIFICATION: PASS')
+console.log('Responsive layout, semantic landmarks, keyboard entry, accessible names, performance budget, 404 recovery and Pathways failure states passed.')
