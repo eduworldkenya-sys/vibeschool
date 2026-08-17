@@ -1,15 +1,16 @@
-const CACHE_NAME = 'vibeschool-v7'
+const CACHE_NAME = 'vibeschool-v6'
+const STATIC_ROUTES = ['/offline.html']
 
 // Only cache surfaces that are safe for every visitor. Authenticated pages,
 // APIs, Pathways data responses and private Supabase traffic remain network-owned.
-const SAFE_PUBLIC_ROUTES = ['/offline.html','/','/about','/contact','/careers','/institutions','/trust','/legal']
-const SAFE_PUBLIC_PATHS = new Set(SAFE_PUBLIC_ROUTES.filter((route) => route !== '/offline.html'))
+const SAFE_PUBLIC_ROUTES = ['/', '/about', '/contact', '/careers', '/institutions', '/trust', '/legal']
+const SAFE_PUBLIC_PATHS = new Set(SAFE_PUBLIC_ROUTES)
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.add('/offline.html')
-      await Promise.allSettled(SAFE_PUBLIC_ROUTES.filter((route) => route !== '/offline.html').map((route) => cache.add(route)))
+      await cache.addAll(STATIC_ROUTES)
+      await Promise.allSettled(SAFE_PUBLIC_ROUTES.map((route) => cache.add(route)))
     })
   )
 })
@@ -28,7 +29,8 @@ self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith(self.location.origin)) return
 
   const url = new URL(event.request.url)
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/_next/webpack-hmr')) return
+  if (url.pathname.startsWith('/auth/')) return
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/webpack-hmr')) return
 
   event.respondWith(
     fetch(event.request)
