@@ -5,8 +5,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [{
       userAgent: '*',
       allow: [
-        '/', '/about', '/contact', '/careers', '/institutions', '/trust/', '/pathways/', '/learn/careers',
-        '/global', '/global/chronicles', '/global/vibes', '/global/read/', '/legal/',
+        '/', '/product', '/teachers', '/learners', '/families', '/about', '/contact', '/careers', '/institutions',
+        '/trust/', '/pathways/', '/learn/careers', '/global', '/global/chronicles', '/global/vibes', '/global/read/', '/legal/',
       ],
       disallow: [
         '/login', '/signup/', '/welcome', '/auth/', '/reset-password', '/api/', '/hq/', '/admin/',
