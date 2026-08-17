@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'app/page.tsx'
+      - 'app/product/**'
       - 'app/about/**'
       - 'app/contact/**'
       - 'app/careers/**'
