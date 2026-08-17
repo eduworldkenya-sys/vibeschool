@@ -36,6 +36,7 @@ jobs:
           ACTUAL="$(git rev-parse HEAD)"
           test "$ACTUAL" = "$EXPECTED" || { echo "exact-head mismatch: expected=$EXPECTED actual=$ACTUAL" >&2; exit 1; }
           echo "Certified head: $ACTUAL"
+          echo "Certification retrigger: composed gateway idempotency contract"
 
       - name: Verify no production credentials or activation mechanism
         shell: bash
