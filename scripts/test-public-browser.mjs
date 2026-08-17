@@ -108,12 +108,13 @@ try {
   if (!/No trusted match/i.test(emptyText) || !/Can.t find your school/i.test(emptyText)) fail('Pathways missing-school recovery state is not visible')
   await emptyContext.close()
 
-  const notFound = await browser.newPage({viewport:{width:390,height:844}})
+  const notFoundContext = await browser.newContext({viewport:{width:390,height:844}})
+  const notFound = await notFoundContext.newPage()
   const nf = await notFound.goto(base+'/definitely-not-a-vibeschool-route',{waitUntil:'domcontentloaded'})
   if (nf?.status() !== 404) fail(`not-found route returned ${nf?.status()}`)
   const nfText = await notFound.locator('body').innerText()
   if (!/This page is not where we expected it to be/i.test(nfText) || !/VibeSchool home/i.test(nfText)) fail('404 recovery UX missing')
-  await notFound.close()
+  await notFoundContext.close()
 } finally {
   await browser.close()
 }
