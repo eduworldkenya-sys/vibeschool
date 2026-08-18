@@ -142,7 +142,7 @@ VibeLearn Read is a primary VibeSchool product surface and a core commercial exp
 
 ### Wave 13 — premium TTS provider decision, non-activating
 - managed TTS evaluation completed without adding credentials, spend or production activation
-- Azure Speech is the preferred Kenya pilot candidate because its current official catalogue explicitly provides `sw-KE` Kiswahili voices and supports long-form/batch synthesis, SSML and pronunciation lexicons
+- Azure Speech is the preferred Kenya pilot candidate because Microsoft's current official voice catalogue explicitly provides `sw-KE` Kiswahili voices (`ZuriNeural` and `RafikiNeural`) and its Speech service supports long-form/batch synthesis, SSML and pronunciation lexicons
 - ElevenLabs v3 remains a quality challenger for listening tests, but accent/native-voice suitability must be measured before Kenya production use
 - Google/OpenAI remain possible English/provider alternatives but are not treated as Kenya-Kiswahili authority without explicit locale evidence
 - provider integration remains gated; browser/device speech stays the production fallback until quality, unit economics, privacy, rights and budget caps are certified
@@ -192,7 +192,7 @@ The first controlled comparison should use the same canonical sample passages ac
 - Wave 11 installs the reader-wide 44px/focus/reduced-motion mobile accessibility baseline.
 - Wave 12 certifies the existing purchase/payment/entitlement/reader bridge in both production truth and repository contracts.
 - Wave 13 records Azure Speech as the preferred Kenya TTS pilot candidate without activating or spending on it.
-- Dedicated `Reader Excellence Contract` workflow is now green on the reader head and guards entitlement-safe offline behavior, annotations, glossary truth, search compatibility, listening continuity, accessibility and commerce return-path invariants.
+- Dedicated `Reader Excellence Contract` workflow is green and guards entitlement-safe offline behavior, annotations, glossary truth, search compatibility, listening continuity, accessibility and commerce return-path invariants.
 - Current exact-head certification still requires all generic long-running gates to settle green before promotion.
 
 ## Promotion boundary
