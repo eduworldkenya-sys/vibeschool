@@ -9,7 +9,11 @@ on:
       - 'supabase/functions/learning-product-stk-push/**'
       - 'supabase/functions/learning-product-mpesa-callback/**'
       - 'scripts/sql/learning_product_commerce_verify.sql'
+      - 'scripts/sql/learning_product_storefront_revenue_verify.sql'
+      - 'scripts/sql/learning_product_catalogue_fixture_verify.sql'
       - 'app/learn/purchase/**'
+      - 'app/global/store/**'
+      - 'app/global/publisher/revenue/**'
       - 'app/read/textbook/[publicationId]/layout.tsx'
       - 'components/read/ReaderPurchaseBar.tsx'
       - '.github/workflows/learning-product-commerce-contract.yml'
@@ -56,6 +60,8 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/learning_product_commerce_verify.sql
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/learning_product_storefront_revenue_verify.sql
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/learning_product_catalogue_fixture_verify.sql
       - name: Destroy disposable Supabase
         if: always()
         shell: bash

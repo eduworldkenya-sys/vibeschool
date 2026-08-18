@@ -92,6 +92,11 @@ export default function GlobalHomePage() {
         </p>
       </section>
 
+      <section onClick={() => router.push('/global/store')} style={{ cursor:'pointer',background:'linear-gradient(135deg,#121827 0%,#14200d 100%)',border:'1px solid rgba(204,255,0,.18)',borderRadius:18,padding:'18px 20px',display:'grid',gridTemplateColumns:'1fr auto',gap:18,alignItems:'center' }}>
+        <div><div style={{ color:'#CCFF00',fontSize:10,fontWeight:900,letterSpacing:'.12em' }}>LEARNING PRODUCTS</div><h2 style={{ color:'#fff',fontSize:20,margin:'6px 0 7px' }}>Sample first. Pay with M-Pesa only when the product earns it.</h2><p style={{ color:'rgba(255,255,255,.48)',fontSize:12.5,lineHeight:1.55,margin:0 }}>Browse rights-cleared textbooks and curriculum products with transparent KES pricing and durable access.</p></div>
+        <div style={{ width:42,height:42,borderRadius:13,display:'grid',placeItems:'center',background:'#CCFF00',color:'#090D16',fontSize:20,fontWeight:950 }}>→</div>
+      </section>
+
       <TrendingRow stories={trendingStories} loading={loading} />
       <FeaturedSection content={featuredContent} loading={loading} />
 
