@@ -17,6 +17,19 @@ drop table if exists public.hq_workforce_skill_candidates cascade;
 drop table if exists public.hq_workforce_factory_recommendations cascade;
 drop table if exists public.hq_workforce_memory cascade;
 
+-- Production has durable Worker Engine worker identities before this historical
+-- competency overlay. A repository-only X2 reset has schema but no worker data, so
+-- recreate one harmless deterministic worker as part of the production-state fixture.
+insert into public.hq_workforce_workers(
+  worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,paid_ai_allowed,
+  competencies,permissions,approval_boundaries,kpis
+)
+select
+  'fixture-lineage-worker','digital','Lineage Fixture Worker','platform_operations',
+  'Disposable identity used only to reproduce historical Worker Engine competency lineage.',
+  'active','deterministic',false,'[]'::jsonb,'[]'::jsonb,'[]'::jsonb,'[]'::jsonb
+where not exists (select 1 from public.hq_workforce_workers);
+
 create table public.hq_workforce_resources (
  id uuid primary key default gen_random_uuid(), resource_key text not null, version integer not null default 1,
  resource_type text not null, display_name text not null, description text, owner_key text,
@@ -47,7 +60,7 @@ create table public.hq_workforce_worker_competencies (
 );
 do $$ declare wk text; begin
  select worker_key into wk from public.hq_workforce_workers order by worker_key limit 1;
- if wk is null then raise exception 'fixture requires one Worker Engine worker'; end if;
+ if wk is null then raise exception 'fixture failed to reproduce Worker Engine worker identity'; end if;
  insert into public.hq_workforce_worker_competencies(worker_key,competency_key,proficiency,reliability,certification_status,evidence,allowed_scope_types,jurisdictions)
  values(wk,'fixture.legacy.competency',.95,.9,'certified','{"mode":"legacy_fixture"}',array['platform_internal','global'],array['global']);
 end $$;
