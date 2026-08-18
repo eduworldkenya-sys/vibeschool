@@ -1,0 +1,20 @@
+name: Teacher Profile Trust Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/profile/**'
+      - 'app/teacher/settings/**'
+      - 'supabase/migrations/**teacher_profile**'
+      - 'scripts/check-teacher-profile-trust-contract.mjs'
+      - '.github/workflows/teacher-profile-trust-contract.yml'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check-teacher-profile-trust-contract.mjs
