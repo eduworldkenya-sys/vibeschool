@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-08-18",
+  "publication_policy": {
+    "default": "withhold",
+    "description": "No school, learner, teacher, family, adoption, outcome or testimonial claim is public by default. Publication requires completed measurement, verification, explicit publication permission and visible limitations.",
+    "allowed_statuses": ["draft", "measured", "verified", "permissioned", "published", "withdrawn"]
+  },
+  "claims": []
+}

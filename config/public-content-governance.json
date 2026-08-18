@@ -6,6 +6,7 @@
     {"route":"/","owner":"Product","review_by":"2026-11-30","basis":"Locked mission/vision, connected learning model, role journeys and public conversion truth"},
     {"route":"/product","owner":"Product","review_by":"2026-11-30","basis":"Current product capabilities, connected learning model and Available/Validation/Planned claim status"},
     {"route":"/sandbox","owner":"Product","review_by":"2026-10-31","basis":"Safe client-only demonstration of connected Plan → Teach → Evidence → Assess → Understand → Next Action product logic; no production learner data or fabricated outcome claims"},
+    {"route":"/evidence","owner":"Evidence","review_by":"2026-09-30","basis":"Fail-closed public evidence manifest, claim-strength ladder, measurement lineage, verification and explicit publication permission"},
     {"route":"/about","owner":"Product","review_by":"2026-11-30","basis":"Locked mission, vision, north-star loop, authority model and audiences"},
     {"route":"/contact","owner":"Operations","review_by":"2026-10-31","basis":"Canonical support channels and enquiry routing"},
     {"route":"/careers","owner":"People","review_by":"2026-10-31","basis":"Talent-interest status and genuine vacancies only"},
