@@ -23,6 +23,7 @@ on:
       - 'public/sw.js'
       - 'public/offline.html'
       - 'scripts/test-public-browser.mjs'
+      - 'scripts/test-public-sandbox.mjs'
       - '.github/workflows/public-browser-gate.yml'
   push:
     branches: [main]
@@ -46,6 +47,7 @@ on:
       - 'public/sw.js'
       - 'public/offline.html'
       - 'scripts/test-public-browser.mjs'
+      - 'scripts/test-public-sandbox.mjs'
       - '.github/workflows/public-browser-gate.yml'
 
 permissions:
@@ -63,7 +65,7 @@ jobs:
         with:
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Install isolated Chromium runtime
+      - name: Install canonical isolated Chromium runtime
         run: |
           rm -rf /tmp/vibeschool-public-browser
           mkdir -p /tmp/vibeschool-public-browser
@@ -72,6 +74,7 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.55.0
           npx playwright install --with-deps chromium
           cp "$GITHUB_WORKSPACE/scripts/test-public-browser.mjs" ./test-public-browser.mjs
+          cp "$GITHUB_WORKSPACE/scripts/test-public-sandbox.mjs" ./test-public-sandbox.mjs
       - name: Start production server
         env:
           NEXT_TELEMETRY_DISABLED: "1"
@@ -93,6 +96,11 @@ jobs:
         env:
           PUBLIC_TEST_BASE_URL: http://127.0.0.1:3000
         run: node test-public-browser.mjs
+      - name: Run sandbox browser certification
+        working-directory: /tmp/vibeschool-public-browser
+        env:
+          PUBLIC_TEST_BASE_URL: http://127.0.0.1:3000
+        run: node test-public-sandbox.mjs
       - name: Diagnostics
         if: failure()
         run: cat /tmp/vibeschool-public-server.log || true
