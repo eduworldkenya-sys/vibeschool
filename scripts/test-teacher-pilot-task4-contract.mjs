@@ -13,8 +13,27 @@ function requireText(condition, message) {
   }
 }
 
+function routeExists(href) {
+  const pathname = href.split('?')[0]
+  if (!pathname.startsWith('/teacher')) return true
+  const relative = pathname.replace(/^\//, '')
+  return fs.existsSync(`${relative}/page.tsx`) || fs.existsSync(relative)
+}
+
 const teacherRoot = read('app/teacher/page.tsx')
 requireText(teacherRoot.includes('/teacher/pulse'), 'teacher root resolves to operational Today/Pulse home')
+
+const teacherLayout = read('app/teacher/layout.tsx')
+const teacherNavHrefs = Array.from(
+  teacherLayout.matchAll(/href:\s*["'](\/teacher\/[^"']+)["']/g),
+  match => match[1],
+)
+requireText(teacherNavHrefs.length >= 20, 'teacher mobile navigation exposes the operating-system destinations')
+for (const href of new Set(teacherNavHrefs)) {
+  requireText(routeExists(href), `teacher navigation destination exists: ${href}`)
+}
+requireText(teacherLayout.includes('BottomNav'), 'teacher layout retains mobile bottom navigation')
+requireText(teacherLayout.includes('OfflineBar'), 'teacher layout exposes network/offline state')
 
 const notifications = read('app/teacher/notifications/page.tsx')
 requireText(notifications.includes('homework_submitted'), 'teacher inbox understands production homework notification type')
@@ -85,6 +104,11 @@ const assessmentStudio = read('app/teacher/assessment/new/page.tsx')
 requireText(assessmentStudio.includes('requestLessonAssessment'), 'lesson assessment uses canonical idempotent assessment authority')
 requireText(assessmentStudio.includes('requestKey:'), 'assessment generation carries retry/idempotency key')
 requireText(assessmentStudio.includes('teacher_review_required'), 'generated assessment remains teacher-reviewed before release')
+
+const teacherError = read('app/teacher/error.tsx')
+requireText(teacherError.includes('reset={reset}'), 'teacher route has recoverable render-error handling')
+requireText(teacherError.includes('homeHref="/teacher/pulse"'), 'teacher route error recovery returns to canonical Today home')
+requireText(fs.existsSync('app/teacher/loading.tsx'), 'teacher route has a global loading state')
 
 if (process.exitCode) {
   console.error('\nTeacher Pilot Task 4 contract FAILED')
