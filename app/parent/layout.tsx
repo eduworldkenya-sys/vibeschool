@@ -1,16 +1,13 @@
 "use client";
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { ParentNavTab } from "@/lib/types";
+import { UserContext } from "@/lib/parent-context";
 import OfflineBar from "@/components/teacher/OfflineBar";
 import VibeLearnShellWrapper from "@/components/student/VibeLearnShellWrapper";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core";
-
-interface UserCtx { fullName: string; initials: string }
-const UserContext = createContext<UserCtx>({ fullName: "", initials: "" });
-const useUser = () => useContext(UserContext);
 
 const NAV_TABS: ParentNavTab[] = [
   { id: "home",      label: "Home",     icon: "🏠", href: "/parent"          },
@@ -160,5 +157,3 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     </UserContext.Provider>
   );
 }
-
-export { useUser };
