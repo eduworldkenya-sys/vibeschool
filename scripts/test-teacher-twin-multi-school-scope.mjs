@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 
-const scopeMigration = 'supabase/migrations/20260818050000_teacher_twin_multi_school_scope.sql'
-const preferenceMigration = 'supabase/migrations/20260818050100_teacher_twin_active_school_preference.sql'
+const scopeMigration = 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+const preferenceMigration = 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
 const switcherPath = 'components/twin/TwinRoleSwitcher.tsx'
 const historical = [
   'supabase/migrations/20260807150121_teacher_twin_authoritative_brain.sql',
