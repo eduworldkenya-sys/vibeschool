@@ -4,6 +4,8 @@
 -- current enrollment, hardens teacher relationship proof, and quarantines
 -- ambiguous reused admission identifiers without guessing learner merges.
 
+-- Access: service-only public.student_provisioning_receipts
+-- Authorization-test: public.student_provisioning_receipts
 create table if not exists public.student_provisioning_receipts (
   actor_id uuid not null references public.profiles(id) on delete cascade,
   operation text not null check (operation in ('teacher_add_student','admin_add_student','parent_create_child')),
@@ -20,6 +22,8 @@ grant all privileges on table public.student_provisioning_receipts to service_ro
 create index if not exists student_provisioning_receipts_student_idx
   on public.student_provisioning_receipts(student_id);
 
+-- Access: service-only public.student_external_identifier_conflicts
+-- Authorization-test: public.student_external_identifier_conflicts
 create table if not exists public.student_external_identifier_conflicts (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
