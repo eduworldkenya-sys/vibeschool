@@ -1,337 +1,177 @@
-"use client";
-export const dynamic = "force-dynamic";
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { formatJoinCode } from '@/lib/schoolCode'
+"use client"
+export const dynamic = "force-dynamic"
 
-const C = {
-  hero:      '#0a1628',
-  emerald:   '#10b981',
-  border:    '#e2e8f0',
-  textMuted: '#64748b',
-  error:     '#ef4444',
-  success:   '#10b981',
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import { getAdminSchoolAuthority } from "@/lib/admin/authority"
+import { formatJoinCode } from "@/lib/schoolCode"
+
+const COUNTIES = ["Baringo","Bomet","Bungoma","Busia","Elgeyo Marakwet","Embu","Garissa","Homa Bay","Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu","Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru","Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua","Nyeri","Samburu","Siaya","Taita Taveta","Tana River","Tharaka Nithi","Trans Nzoia","Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot"]
+const SCHOOL_TYPES = ["private", "public", "mission", "special_needs"]
+const SCHOOL_CATEGORIES = ["primary", "secondary", "ecde", "combined"]
+
+type SchoolRow = {
+  name: string
+  subdomain: string
+  motto: string | null
+  vision: string | null
+  knec_code: string | null
+  nemis_code: string | null
+  moe_registration_no: string | null
+  tsc_code: string | null
+  county: string | null
+  sub_county: string | null
+  ward: string | null
+  phone: string | null
+  postal_address: string | null
+  school_type: string | null
+  school_category: string | null
+  established_year: number | null
+  directory_source: string | null
+  last_verified_at: string | null
 }
 
-const COUNTIES = [
-  'Baringo','Bomet','Bungoma','Busia','Elgeyo Marakwet','Embu','Garissa',
-  'Homa Bay','Isiolo','Kajiado','Kakamega','Kericho','Kiambu','Kilifi',
-  'Kirinyaga','Kisii','Kisumu','Kitui','Kwale','Laikipia','Lamu','Machakos',
-  'Makueni','Mandera','Marsabit','Meru','Migori','Mombasa',"Murang'a",
-  'Nairobi','Nakuru','Nandi','Narok','Nyamira','Nyandarua','Nyeri','Samburu',
-  'Siaya','Taita Taveta','Tana River','Tharaka Nithi','Trans Nzoia','Turkana',
-  'Uasin Gishu','Vihiga','Wajir','West Pokot',
-]
+const fieldStyle = { width: "100%", boxSizing: "border-box" as const, border: "1px solid #cbd5e1", borderRadius: 10, padding: "10px 11px", background: "white", fontSize: 14 }
 
-const SCHOOL_TYPES      = ['private', 'public', 'mission', 'special_needs']
-const SCHOOL_CATEGORIES = ['primary', 'secondary', 'ecde', 'combined']
-
-interface FormData {
-  name:             string
-  motto:            string
-  vision:           string
-  knec_code:        string
-  nemis_code:       string
-  county:           string
-  sub_county:       string
-  ward:             string
-  phone:            string
-  postal_address:   string
-  school_type:      string
-  school_category:  string
-  established_year: string
-}
-
-const EMPTY: FormData = {
-  name: '', motto: '', vision: '', knec_code: '', nemis_code: '',
-  county: '', sub_county: '', ward: '', phone: '', postal_address: '',
-  school_type: 'private', school_category: 'primary', established_year: '',
-}
-
-export default function SchoolProfileSettingsPage() {
+export default function AdminSchoolSettingsPage() {
   const router = useRouter()
+  const [schoolId, setSchoolId] = useState("")
+  const [school, setSchool] = useState<SchoolRow | null>(null)
+  const [form, setForm] = useState({ name: "", motto: "", vision: "", county: "", subCounty: "", ward: "", phone: "", postalAddress: "", schoolType: "private", schoolCategory: "primary", establishedYear: "" })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState("")
 
-  const [form,      setForm]      = useState<FormData>(EMPTY)
-  const [schoolId,  setSchoolId]  = useState<string | null>(null)
-  const [subdomain, setSubdomain] = useState<string>('')
-  const [loading,   setLoading]   = useState(true)
-  const [saving,    setSaving]    = useState(false)
-  const [error,     setError]     = useState<string | null>(null)
-  const [saved,     setSaved]     = useState(false)
-  const [copied,    setCopied]    = useState(false)
+  useEffect(() => { void load() }, [])
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/admin/login'); return }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', user.id)
+  async function load() {
+    setLoading(true)
+    setError("")
+    try {
+      const authority = await getAdminSchoolAuthority()
+      setSchoolId(authority.schoolId)
+      const { data, error: queryError } = await supabase
+        .from("schools")
+        .select("name,subdomain,motto,vision,knec_code,nemis_code,moe_registration_no,tsc_code,county,sub_county,ward,phone,postal_address,school_type,school_category,established_year,directory_source,last_verified_at")
+        .eq("id", authority.schoolId)
         .single()
-
-      if (!profile?.school_id) { setLoading(false); return }
-      setSchoolId(profile.school_id)
-
-      const { data: school, error: schoolErr } = await supabase
-        .from('schools')
-        .select('name, subdomain, motto, vision, knec_code, nemis_code, county, sub_county, ward, phone, postal_address, school_type, school_category, established_year')
-        .eq('id', profile.school_id)
-        .single()
-
-      if (schoolErr || !school) { setLoading(false); return }
-
-      setSubdomain(school.subdomain ?? '')
+      if (queryError) throw queryError
+      const row = data as SchoolRow
+      setSchool(row)
       setForm({
-        name:             school.name             ?? '',
-        motto:            school.motto            ?? '',
-        vision:           school.vision           ?? '',
-        knec_code:        school.knec_code        ?? '',
-        nemis_code:       school.nemis_code       ?? '',
-        county:           school.county           ?? '',
-        sub_county:       school.sub_county       ?? '',
-        ward:             school.ward             ?? '',
-        phone:            school.phone            ?? '',
-        postal_address:   school.postal_address   ?? '',
-        school_type:      school.school_type      ?? 'private',
-        school_category:  school.school_category  ?? 'primary',
-        established_year: school.established_year ? String(school.established_year) : '',
+        name: row.name,
+        motto: row.motto ?? "",
+        vision: row.vision ?? "",
+        county: row.county ?? "",
+        subCounty: row.sub_county ?? "",
+        ward: row.ward ?? "",
+        phone: row.phone ?? "",
+        postalAddress: row.postal_address ?? "",
+        schoolType: row.school_type ?? "private",
+        schoolCategory: row.school_category ?? "primary",
+        establishedYear: row.established_year ? String(row.established_year) : "",
       })
+    } catch (cause) {
+      console.error("Admin school profile load failed", cause)
+      setError(cause instanceof Error ? cause.message : "School profile could not be loaded.")
+    } finally {
       setLoading(false)
     }
-    load()
-  }, [router])
+  }
 
-  function set(key: keyof FormData, value: string) {
-    setForm(f => ({ ...f, [key]: value }))
+  async function save() {
+    if (!schoolId || !form.name.trim() || saving) return
+    setSaving(true)
     setSaved(false)
-  }
-
-  function handleCopy() {
-    const code = formatJoinCode(subdomain)
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  async function handleSave() {
-    if (!schoolId) return
-    if (!form.name.trim()) { setError('School name is required.'); return }
-    setError(null); setSaving(true)
-
-    const payload = {
-      name:             form.name.trim(),
-      motto:            form.motto.trim()          || null,
-      vision:           form.vision.trim()         || null,
-      knec_code:        form.knec_code.trim()      || null,
-      nemis_code:       form.nemis_code.trim()     || null,
-      county:           form.county                || null,
-      sub_county:       form.sub_county.trim()     || null,
-      ward:             form.ward.trim()           || null,
-      phone:            form.phone.trim()          || null,
-      postal_address:   form.postal_address.trim() || null,
-      school_type:      form.school_type           || null,
-      school_category:  form.school_category       || null,
-      established_year: form.established_year ? parseInt(form.established_year) : null,
-      name_normalized:  form.name.trim().toLowerCase().replace(/[^a-z0-9]/g, ''),
-      updated_at:       new Date().toISOString(),
+    setError("")
+    try {
+      const { error: rpcError } = await supabase.rpc(
+        "admin_update_school_profile" as never,
+        {
+          p_school_id: schoolId,
+          p_name: form.name,
+          p_motto: form.motto || null,
+          p_vision: form.vision || null,
+          p_county: form.county || null,
+          p_sub_county: form.subCounty || null,
+          p_ward: form.ward || null,
+          p_phone: form.phone || null,
+          p_postal_address: form.postalAddress || null,
+          p_school_type: form.schoolType,
+          p_school_category: form.schoolCategory,
+          p_established_year: form.establishedYear ? Number(form.establishedYear) : null,
+        } as never
+      )
+      if (rpcError) throw rpcError
+      setSaved(true)
+      await load()
+    } catch (cause) {
+      console.error("Admin school profile save failed", cause)
+      setError(cause instanceof Error ? cause.message : "School profile could not be saved.")
+    } finally {
+      setSaving(false)
     }
-
-    const { error: saveErr } = await supabase
-      .from('schools')
-      .update(payload)
-      .eq('id', schoolId)
-
-    if (saveErr) { setError(saveErr.message); setSaving(false); return }
-    setSaved(true)
-    setSaving(false)
   }
 
-  const inp: React.CSSProperties = {
-    width: '100%', padding: '10px 12px', borderRadius: 10,
-    border: `1.5px solid ${C.border}`, fontSize: 14,
-    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-    background: '#fff', color: '#0f172a',
-  }
-  const lbl: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.textMuted,
-    letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 4,
-  }
-  const section: React.CSSProperties = {
-    background: '#fff', borderRadius: 14, padding: '18px',
-    border: `1px solid ${C.border}`, marginBottom: 14,
-  }
-  const sectionTitle: React.CSSProperties = {
-    fontSize: 10, fontWeight: 800, color: C.textMuted,
-    letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 14,
-  }
-  const row: React.CSSProperties = { marginBottom: 14 }
-
-  if (loading) return (
-    <div style={{ padding: 32, textAlign: 'center', color: C.textMuted, fontSize: 14 }}>
-      Loading…
-    </div>
-  )
+  if (loading) return <div aria-busy="true" style={{ minHeight: 260, borderRadius: 18, background: "#e2e8f0" }} />
 
   return (
-    <div style={{ padding: '16px 16px 100px', maxWidth: 600, margin: '0 auto' }}>
+    <main style={{ maxWidth: 760, margin: "0 auto", display: "grid", gap: 16 }}>
+      <header style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <button aria-label="Back" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontSize: 26, cursor: "pointer" }}>‹</button>
+        <div><h1 style={{ margin: 0, fontSize: 24 }}>School profile</h1><p style={{ color: "#64748b", margin: "4px 0 0" }}>Operational details may be maintained here. Official identity codes remain protected canonical identity.</p></div>
+      </header>
 
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', padding: '0 0 8px' }}>
-          ← Back
-        </button>
-        <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>School Profile</div>
-        <div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>
-          This information appears on SchoolHub and official documents.
-        </div>
-      </div>
+      {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", borderRadius: 12, padding: 12 }}>{error}</div>}
+      {saved && <div role="status" style={{ border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#047857", borderRadius: 12, padding: 12 }}>School profile saved.</div>}
 
-      {/* Error */}
-      {error && (
-        <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', color: C.error, fontSize: 13, marginBottom: 14 }}>
-          {error}
-        </div>
+      {school?.subdomain && (
+        <section style={{ background: "#0a1628", color: "white", borderRadius: 16, padding: 16 }}>
+          <div style={{ color: "#94a3b8", fontSize: 11 }}>SCHOOL JOIN CODE</div>
+          <div style={{ fontFamily: "monospace", fontSize: 24, fontWeight: 850, letterSpacing: 2, marginTop: 4 }}>{formatJoinCode(school.subdomain)}</div>
+          <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 5 }}>Use the existing verified onboarding flow to connect legitimate staff; this code does not grant Admin authority.</div>
+        </section>
       )}
 
-      {/* Saved */}
-      {saved && (
-        <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f0fdf4', color: C.success, fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
-          ✓ School profile saved successfully.
-        </div>
-      )}
+      <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 11 }}>
+        <strong>Official identity</strong>
+        {[
+          ["KNEC code", school?.knec_code],
+          ["NEMIS code", school?.nemis_code],
+          ["MoE registration", school?.moe_registration_no],
+          ["TSC code", school?.tsc_code],
+          ["Directory source", school?.directory_source],
+          ["Last verified", school?.last_verified_at ? new Date(school.last_verified_at).toLocaleString("en-KE") : null],
+        ].map(([label, value]) => <div key={label} style={{ display: "grid", gridTemplateColumns: "150px minmax(0,1fr)", gap: 10, fontSize: 13 }}><span style={{ color: "#64748b" }}>{label}</span><strong>{value || "Not verified"}</strong></div>)}
+        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>Identity/provenance fields are read-only here so ordinary school setup cannot fork the canonical school identity. Corrections follow the verified school-identity review path.</div>
+      </section>
 
-      {/* Join Code */}
-      {subdomain && (
-        <div style={{
-          background: C.hero, borderRadius: 14, padding: '18px',
-          marginBottom: 14, display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', gap: 12,
-        }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 6 }}>
-              School Join Code
-            </div>
-            <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: 4, color: '#fff', fontFamily: 'monospace' }}>
-              {formatJoinCode(subdomain)}
-            </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-              Share with staff to join this school
-            </div>
-          </div>
-          <button
-            onClick={handleCopy}
-            style={{
-              padding: '10px 16px', borderRadius: 10, border: 'none',
-              background: copied ? C.emerald : 'rgba(255,255,255,0.12)',
-              color: '#fff', fontSize: 13, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-              transition: 'background 0.2s',
-            }}
-          >
-            {copied ? '✓ Copied' : 'Copy'}
-          </button>
+      <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 11 }}>
+        <strong>Operational profile</strong>
+        <label>School name<input value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} style={fieldStyle} /></label>
+        <label>Motto<input value={form.motto} onChange={event => setForm(current => ({ ...current, motto: event.target.value }))} style={fieldStyle} /></label>
+        <label>Vision<textarea value={form.vision} onChange={event => setForm(current => ({ ...current, vision: event.target.value }))} rows={3} style={{ ...fieldStyle, resize: "vertical" }} /></label>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 9 }}>
+          <label>Type<select value={form.schoolType} onChange={event => setForm(current => ({ ...current, schoolType: event.target.value }))} style={fieldStyle}>{SCHOOL_TYPES.map(value => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label>
+          <label>Category<select value={form.schoolCategory} onChange={event => setForm(current => ({ ...current, schoolCategory: event.target.value }))} style={fieldStyle}>{SCHOOL_CATEGORIES.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
         </div>
-      )}
+        <label>Established year<input type="number" min="1800" max={new Date().getFullYear()} value={form.establishedYear} onChange={event => setForm(current => ({ ...current, establishedYear: event.target.value }))} style={fieldStyle} /></label>
+      </section>
 
-      {/* Identity */}
-      <div style={section}>
-        <div style={sectionTitle}>Identity</div>
-        <div style={row}>
-          <label style={lbl}>School Name *</label>
-          <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. St. Mary's Academy" />
+      <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 11 }}>
+        <strong>Location & contact</strong>
+        <label>County<select value={form.county} onChange={event => setForm(current => ({ ...current, county: event.target.value }))} style={fieldStyle}><option value="">Choose county</option>{COUNTIES.map(value => <option key={value} value={value}>{value}</option>)}</select></label>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 9 }}>
+          <label>Sub-county<input value={form.subCounty} onChange={event => setForm(current => ({ ...current, subCounty: event.target.value }))} style={fieldStyle} /></label>
+          <label>Ward<input value={form.ward} onChange={event => setForm(current => ({ ...current, ward: event.target.value }))} style={fieldStyle} /></label>
         </div>
-        <div style={row}>
-          <label style={lbl}>Motto</label>
-          <input style={inp} value={form.motto} onChange={e => set('motto', e.target.value)} placeholder="e.g. Excellence in All We Do" />
-        </div>
-        <div style={row}>
-          <label style={lbl}>Vision</label>
-          <input style={inp} value={form.vision} onChange={e => set('vision', e.target.value)} placeholder="e.g. To nurture holistic learners" />
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Type</label>
-            <select style={inp} value={form.school_type} onChange={e => set('school_type', e.target.value)}>
-              {SCHOOL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Category</label>
-            <select style={inp} value={form.school_category} onChange={e => set('school_category', e.target.value)}>
-              {SCHOOL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
+        <label>Phone<input inputMode="tel" value={form.phone} onChange={event => setForm(current => ({ ...current, phone: event.target.value }))} style={fieldStyle} /></label>
+        <label>Postal address<input value={form.postalAddress} onChange={event => setForm(current => ({ ...current, postalAddress: event.target.value }))} style={fieldStyle} /></label>
+      </section>
 
-      {/* Codes */}
-      <div style={section}>
-        <div style={sectionTitle}>Official Codes</div>
-        <div style={row}>
-          <label style={lbl}>KNEC Code</label>
-          <input style={inp} value={form.knec_code} onChange={e => set('knec_code', e.target.value)} placeholder="e.g. 12345" />
-        </div>
-        <div style={row}>
-          <label style={lbl}>NEMIS Code</label>
-          <input style={inp} value={form.nemis_code} onChange={e => set('nemis_code', e.target.value)} placeholder="e.g. 987654321" />
-        </div>
-        <div style={row}>
-          <label style={lbl}>Year Established</label>
-          <input style={inp} type="number" value={form.established_year} onChange={e => set('established_year', e.target.value)} placeholder="e.g. 1998" min={1800} max={new Date().getFullYear()} />
-        </div>
-      </div>
-
-      {/* Location */}
-      <div style={section}>
-        <div style={sectionTitle}>Location</div>
-        <div style={row}>
-          <label style={lbl}>County</label>
-          <select style={inp} value={form.county} onChange={e => set('county', e.target.value)}>
-            <option value="">Select county</option>
-            {COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div style={row}>
-          <label style={lbl}>Sub-County</label>
-          <input style={inp} value={form.sub_county} onChange={e => set('sub_county', e.target.value)} placeholder="e.g. Westlands" />
-        </div>
-        <div style={row}>
-          <label style={lbl}>Ward</label>
-          <input style={inp} value={form.ward} onChange={e => set('ward', e.target.value)} placeholder="e.g. Parklands" />
-        </div>
-      </div>
-
-      {/* Contacts */}
-      <div style={section}>
-        <div style={sectionTitle}>Contacts</div>
-        <div style={row}>
-          <label style={lbl}>Phone</label>
-          <input style={inp} type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="e.g. 0712 345 678" />
-        </div>
-        <div style={row}>
-          <label style={lbl}>Postal Address</label>
-          <input style={inp} value={form.postal_address} onChange={e => set('postal_address', e.target.value)} placeholder="e.g. P.O. Box 1234-00100, Nairobi" />
-        </div>
-      </div>
-
-      {/* Save */}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        style={{
-          width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-          background: saving ? '#9ca3af' : C.hero,
-          color: '#fff', fontSize: 15, fontWeight: 700,
-          cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-        }}
-      >
-        {saving ? 'Saving…' : 'Save School Profile'}
-      </button>
-
-    </div>
+      <button disabled={saving || !form.name.trim()} onClick={() => void save()} style={{ border: 0, borderRadius: 12, padding: 13, background: "#10b981", color: "white", fontWeight: 800, cursor: saving ? "not-allowed" : "pointer" }}>{saving ? "Saving…" : "Save operational profile"}</button>
+    </main>
   )
 }
