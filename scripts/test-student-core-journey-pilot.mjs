@@ -3,15 +3,24 @@ import fs from 'node:fs'
 
 const contextMigrationPath = 'supabase/migrations/20260819020500_student_core_journey_pilot_context.sql'
 const homeworkMigrationPath = 'supabase/migrations/20260819021500_student_homework_retry_integrity.sql'
+const exerciseMigrationPath = 'supabase/migrations/20260819022000_student_exercise_submission_integrity.sql'
 const contextPath = 'lib/student-context.tsx'
 const layoutPath = 'app/student/layout.tsx'
+const exercisePath = 'app/student/exercises/page.tsx'
+const notificationsPath = 'app/student/notifications/page.tsx'
+const navPath = 'components/student/BottomNav.tsx'
 
 const migration = fs.readFileSync(contextMigrationPath, 'utf8')
 const homework = fs.readFileSync(homeworkMigrationPath, 'utf8')
+const exerciseMigration = fs.readFileSync(exerciseMigrationPath, 'utf8')
 const normalized = migration.replace(/\s+/g, ' ').toLowerCase()
 const homeworkNormalized = homework.replace(/\s+/g, ' ').toLowerCase()
+const exerciseNormalized = exerciseMigration.replace(/\s+/g, ' ').toLowerCase()
 const context = fs.readFileSync(contextPath, 'utf8')
 const layout = fs.readFileSync(layoutPath, 'utf8')
+const exercisePage = fs.readFileSync(exercisePath, 'utf8')
+const notifications = fs.readFileSync(notificationsPath, 'utf8')
+const nav = fs.readFileSync(navPath, 'utf8')
 
 function requireText(haystack, needle, label) {
   if (!haystack.includes(needle)) throw new Error(`missing ${label}`)
@@ -40,10 +49,27 @@ requireText(homeworkNormalized, 'h.school_id = sc.school_id', 'homework school b
 requireText(homeworkNormalized, 'cgm.student_id = s.id', 'homework target-group learner boundary')
 requireText(homeworkNormalized, 'revoke all on function public.submit_student_homework(uuid,jsonb,text) from public, anon', 'homework public/anon revocation')
 
+requireText(exerciseNormalized, "v_existing.status = 'submitted'", 'exercise idempotent replay state')
+requireText(exerciseNormalized, "v_submission.status in ('submitted', 'marked')", 'exercise draft lock')
+requireText(exerciseNormalized, "'idempotent_replay', true", 'exercise replay receipt')
+requireText(exerciseNormalized, "raise exception 'exercise_response_required'", 'exercise empty-submit rejection')
+requireText(exerciseNormalized, "e.homework_id is null", 'exercise/homework separation')
+requireText(exerciseNormalized, 'revoke all on function public.student_submit_exercise(uuid,text,text) from public, anon', 'exercise public/anon revocation')
+requireText(exercisePage, 'student_save_exercise_draft', 'exercise draft UI')
+requireText(exercisePage, 'student_submit_exercise', 'exercise submit UI')
+requireText(exercisePage, 'student_sync_task_execution_receipt', 'exercise progress synchronization')
+requireText(exercisePage, 'disabled={locked || busy}', 'exercise post-submit lock')
+
 requireText(context, 'retry:    () => void', 'student identity retry contract')
 requireText(context, 'const [retryNonce, setRetryNonce] = useState(0)', 'student identity retry state')
 requireText(context, 'setRetryNonce(value => value + 1)', 'student identity retry action')
 requireText(layout, 'const { identity, loading, error, retry } = useStudent();', 'student shell retry consumption')
 requireText(layout, 'onClick={retry}', 'real identity retry control')
 
-console.log('PASS: Task 5 student pilot contract covers Kenya day semantics, active learning context, assessment lifecycle, homework replay integrity, and recoverable identity loading')
+requireText(nav, 'label: "Progress"', 'student Progress primary navigation')
+requireText(nav, 'aria-label="Student primary navigation"', 'student navigation accessibility label')
+requireText(notifications, '.select("id, title, body, type, related_id, is_read, created_at")', 'notification destination identity')
+requireText(notifications, 'router.push(notificationTarget(n))', 'actionable student notification navigation')
+requireText(notifications, 'Check my tasks', 'notification empty-state next action')
+
+console.log('PASS: Task 5 student pilot contract covers learner-day semantics, active learning context, assessment lifecycle, homework/exercise retry integrity, actionable notifications, navigation, and recoverable identity loading')
