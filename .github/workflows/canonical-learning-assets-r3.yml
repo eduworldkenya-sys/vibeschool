@@ -14,6 +14,8 @@ on:
       - 'supabase/migrations/20260818142000_canonical_learning_resource_generation_claims.sql'
       - 'supabase/migrations/20260818142100_canonical_learning_resource_candidate_deposit.sql'
       - 'supabase/migrations/20260818142200_canonical_learning_resource_promotion_authority.sql'
+      - 'supabase/migrations/20260818142300_canonical_lesson_resource_version_pin.sql'
+      - 'supabase/migrations/20260818214000_canonical_learning_resource_credit_reservation.sql'
       - 'supabase/functions/generate-canonical-lesson-plan/**'
       - 'scripts/sql/canonical_learning_resource_versions_verify.sql'
       - 'scripts/sql/canonical_learning_resource_promotion_verify.sql'
@@ -69,11 +71,13 @@ jobs:
             exit 1
           fi
 
-      - name: Verify spend ordering and privacy boundary
+      - name: Verify spend ordering, refund and privacy boundary
         run: |
           set -euo pipefail
           file='supabase/functions/generate-canonical-lesson-plan/index.ts'
           grep -q 'cla_claim_learning_resource_gap' "$file"
+          grep -q 'cla_reserve_learning_resource_credit' "$file"
+          grep -q 'cla_refund_learning_resource_credit' "$file"
           grep -q 'cla_complete_learning_resource_claim' "$file"
           grep -q 'cla_fail_learning_resource_claim' "$file"
           grep -q 'status === "hit"' "$file"
@@ -84,14 +88,19 @@ jobs:
           from pathlib import Path
           text = Path('supabase/functions/generate-canonical-lesson-plan/index.ts').read_text()
           claim = text.find('db.rpc("cla_claim_learning_resource_gap"')
-          wallet = text.find('getOrCreateWallet(db, user.id)')
+          reserve = text.find('"cla_reserve_learning_resource_credit"')
           tavily = text.find('https://api.tavily.com/search')
           groq = text.find('https://api.groq.com/openai/v1/chat/completions')
           deposit = text.find('db.rpc("cla_complete_learning_resource_claim"')
-          if min(claim, wallet, tavily, groq, deposit) < 0:
-              raise SystemExit('missing required governed generation stages')
-          if not claim < wallet < tavily < groq < deposit:
-              raise SystemExit('required order is canonical claim -> wallet -> research -> model -> candidate deposit')
+          refund = text.find('"cla_refund_learning_resource_credit"')
+          if min(claim, reserve, tavily, groq, deposit, refund) < 0:
+              raise SystemExit('missing required governed generation/credit stages')
+          if not claim < reserve < tavily < groq < deposit:
+              raise SystemExit('required order is canonical claim -> credit reserve -> research -> model -> candidate deposit')
+          if refund < deposit:
+              raise SystemExit('refund authority must be failure handling after the candidate-deposit path')
+          if 'getOrCreateWallet' in text or 'spendCredit(' in text:
+              raise SystemExit('legacy check-then-spend wallet path must not remain')
           prompt_start = text.find('const prompt = [')
           prompt_end = text.find('].filter(Boolean).join', prompt_start)
           prompt = text[prompt_start:prompt_end]
