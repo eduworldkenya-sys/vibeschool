@@ -1,4 +1,6 @@
 -- Parent Command Center R1: governed parent inbox + fee truth boundary.
+-- authorization-test: public.parent_events
+-- authorization-test: public.finance_parent_payment_claims
 --
 -- This migration deliberately keeps parent event production server-side,
 -- preserves parent-submitted payment evidence separately from authoritative
