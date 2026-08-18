@@ -11,6 +11,7 @@ on:
       - 'app/api/public-telemetry/**'
       - 'lib/publicTelemetry.ts'
       - 'scripts/test-public-sandbox.mjs'
+      - '.github/workflows/public-browser-gate.yml'
       - '.github/workflows/public-sandbox-contract.yml'
   push:
     branches: [main]
@@ -22,53 +23,36 @@ on:
       - 'app/api/public-telemetry/**'
       - 'lib/publicTelemetry.ts'
       - 'scripts/test-public-sandbox.mjs'
+      - '.github/workflows/public-browser-gate.yml'
       - '.github/workflows/public-sandbox-contract.yml'
 
 permissions:
   contents: read
 
 jobs:
-  public-sandbox:
-    name: Safe interactive learning-loop certification
+  public-sandbox-contract:
+    name: Sandbox browser coverage wiring
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Canonical production build
-        uses: ./.github/actions/production-build-contract
-        with:
-          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Install isolated Chromium runtime
+      - name: Validate sandbox journey syntax
+        run: node --check scripts/test-public-sandbox.mjs
+      - name: Verify canonical browser ownership
         run: |
-          rm -rf /tmp/vibeschool-public-sandbox
-          mkdir -p /tmp/vibeschool-public-sandbox
-          cd /tmp/vibeschool-public-sandbox
-          npm init -y >/dev/null 2>&1
-          npm install --no-save --package-lock=false playwright@1.55.0
-          npx playwright install --with-deps chromium
-          cp "$GITHUB_WORKSPACE/scripts/test-public-sandbox.mjs" ./test-public-sandbox.mjs
-      - name: Start production server
-        env:
-          NEXT_TELEMETRY_DISABLED: "1"
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: |
-          npm run start -- -p 3000 > /tmp/vibeschool-public-sandbox-server.log 2>&1 &
-          echo $! > /tmp/vibeschool-public-sandbox-server.pid
-      - name: Wait for server
-        run: |
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:3000/sandbox >/dev/null; then exit 0; fi
-            sleep 2
-          done
-          cat /tmp/vibeschool-public-sandbox-server.log
-          exit 1
-      - name: Run sandbox certification
-        working-directory: /tmp/vibeschool-public-sandbox
-        env:
-          PUBLIC_TEST_BASE_URL: http://127.0.0.1:3000
-        run: node test-public-sandbox.mjs
-      - name: Diagnostics
-        if: failure()
-        run: cat /tmp/vibeschool-public-sandbox-server.log || true
+          python3 - <<'PY'
+          from pathlib import Path
+          workflow = Path('.github/workflows/public-browser-gate.yml').read_text()
+          sandbox_test = Path('scripts/test-public-sandbox.mjs').read_text()
+          required_workflow = [
+              "'scripts/test-public-sandbox.mjs'",
+              'cp "$GITHUB_WORKSPACE/scripts/test-public-sandbox.mjs" ./test-public-sandbox.mjs',
+              'name: Run sandbox browser certification',
+              'run: node test-public-sandbox.mjs',
+          ]
+          for needle in required_workflow:
+              assert needle in workflow, f'canonical public browser gate is not owning sandbox runtime coverage: {needle}'
+          for needle in ['No production learner data', 'Client-only demo state', 'externalDataRequests', 'Reset demo']:
+              assert needle in sandbox_test, f'sandbox browser contract missing invariant: {needle}'
+          print('PUBLIC SANDBOX WIRING CONTRACT: PASS')
+          PY
