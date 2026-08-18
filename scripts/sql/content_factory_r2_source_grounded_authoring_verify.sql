@@ -70,7 +70,9 @@ begin
   end if;
 
   select pg_get_functiondef('public.hq_content_authoring_evidence_packet(uuid)'::regprocedure) into v_def;
-  if v_def not ilike '%status = ''evidence_ready''%'
+  -- pg_get_functiondef preserves the stored PL/pgSQL body rather than normalizing operator
+  -- whitespace, so certify the evidence_ready predicate after whitespace normalization.
+  if regexp_replace(lower(v_def),'[[:space:]]+','','g') not like '%status=''evidence_ready''%'
      or v_def not ilike '%certified_semantic_verifier_v1%'
      or v_def not ilike '%curriculum_semantic_verdicts%'
      or v_def not ilike '%curriculum_semantic_materials%'
