@@ -180,7 +180,7 @@ The first controlled comparison should use the same canonical sample passages ac
 4. Full paid-content offline packages only after a deliberate offline-license/revocation policy is approved and technically certified.
 5. True semantic/embedding search only if measured reader behavior proves the lexical/concept engine insufficient.
 
-## Handover log — 2026-08-18
+## Handover log — 2026-08-18 11:18 EAT
 
 - PR: #229, branch `agent/vibelearn-reader-excellence-20260818`.
 - Reader branch reconciled onto commerce-complete `main` (`39cd68f23fbd92da9c3241791948b4f2ba385e24`) without force-pushing and without production activation.
