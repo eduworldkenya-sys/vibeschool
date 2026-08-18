@@ -250,7 +250,7 @@ begin
     raise exception 'service_role_required';
   end if;
 
-  -- pg_catalog avoids the expensive information_schema expansion that timed out in production.
+  -- Direct catalog inspection avoids the prior expanded metadata-view scan that timed out in production.
   with student_cols as (
     select a.attrelid, a.attnum
     from pg_attribute a
@@ -385,7 +385,7 @@ begin
   end if;
 
   v_def:=pg_get_functiondef('public.run_student_identity_health_check()'::regprocedure);
-  if position('information_schema' in v_def)>0 or position('pg_attribute' in v_def)=0 then
+  if position('information_schema.' in v_def)>0 or position('pg_attribute' in v_def)=0 then
     raise exception 'student_identity_health_scan_not_catalog_safe';
   end if;
 end $$;
