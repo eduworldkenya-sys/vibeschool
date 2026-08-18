@@ -53,3 +53,79 @@ grant select, insert, update, delete on public.vibelearn_saved to authenticated;
 grant select, insert on public.vibelearn_completed to authenticated;
 grant select on public.vibelearn_points to authenticated;
 grant select on public.vibelearn_streaks to authenticated;
+
+-- Preserve the production owner boundary immediately when these restored
+-- prerequisite tables are created. The following migration intentionally
+-- replaces the saved/completed policies with the stronger Student = 1 form.
+create policy vibelearn_saved_owner on public.vibelearn_saved
+for all to authenticated
+using (
+  exists (
+    select 1 from public.students s
+    where s.id = vibelearn_saved.student_id
+      and s.profile_id = (select auth.uid())
+      and s.deleted_at is null
+  )
+)
+with check (
+  exists (
+    select 1 from public.students s
+    where s.id = vibelearn_saved.student_id
+      and s.profile_id = (select auth.uid())
+      and s.deleted_at is null
+  )
+);
+
+create policy vibelearn_completed_read_own on public.vibelearn_completed
+for select to authenticated
+using (
+  exists (
+    select 1 from public.students s
+    where s.id = vibelearn_completed.student_id
+      and s.profile_id = (select auth.uid())
+      and s.deleted_at is null
+  )
+);
+
+create policy vibelearn_completed_write_own on public.vibelearn_completed
+for insert to authenticated
+with check (
+  exists (
+    select 1 from public.students s
+    where s.id = vibelearn_completed.student_id
+      and s.profile_id = (select auth.uid())
+      and s.deleted_at is null
+  )
+);
+
+create policy vibelearn_points_read_own on public.vibelearn_points
+for select to authenticated
+using (
+  exists (
+    select 1 from public.students s
+    where s.id = vibelearn_points.student_id
+      and s.profile_id = (select auth.uid())
+  )
+);
+
+create policy vibelearn_streaks_read_own on public.vibelearn_streaks
+for select to authenticated
+using (
+  exists (
+    select 1 from public.students s
+    where s.id = vibelearn_streaks.student_id
+      and s.profile_id = (select auth.uid())
+  )
+);
+
+-- authorization-test: public.vibelearn_saved
+-- authenticated learner can access only rows whose canonical students.id maps
+-- back to the current auth profile; anon has no table privileges.
+-- authorization-test: public.vibelearn_completed
+-- authenticated learner can read/insert only their canonical learner rows.
+-- authorization-test: public.vibelearn_points
+-- authenticated learner has read-only access to their canonical learner rows;
+-- direct point mutation remains unavailable.
+-- authorization-test: public.vibelearn_streaks
+-- authenticated learner has read-only access to their canonical learner row;
+-- direct streak mutation remains unavailable.
