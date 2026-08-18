@@ -13,15 +13,19 @@ export function ReaderCalmSurface() {
   const [contentsOpen, setContentsOpen] = useState(false);
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [activeReader, setActiveReader] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState("VibeLearn");
 
   useEffect(() => {
     const shell = document.getElementById("vibetextbook-reader-shell");
     if (!shell) return;
 
     const syncActiveReader = () => {
-      const active = Boolean(document.getElementById("reader-active-unit"));
+      const activeUnit = document.getElementById("reader-active-unit");
+      const active = Boolean(activeUnit);
       shell.classList.toggle("reader-calm-active", active);
       setActiveReader(active);
+      const heading = activeUnit?.querySelector("h2")?.textContent?.trim();
+      if (heading) setCurrentTitle(heading);
     };
 
     const syncMode = () => setMode(normalizedMode(shell.dataset.readerMode));
@@ -33,7 +37,12 @@ export function ReaderCalmSurface() {
       syncActiveReader();
       syncMode();
     });
-    observer.observe(shell, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-reader-mode"] });
+    observer.observe(shell, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-reader-mode"],
+    });
 
     function onMode(raw: Event) {
       const event = raw as CustomEvent<{ mode?: ReaderMode }>;
@@ -85,22 +94,22 @@ export function ReaderCalmSurface() {
   return (
     <>
       <style jsx global>{`
-        #vibetextbook-reader-shell.reader-calm-active[data-reader-mode="read"]
-          #vibetextbook-reading-content > div > div:first-child {
+        #vibetextbook-reader-shell.reader-calm-active
+          #vibetextbook-reading-content > div:last-child > div:first-child {
           display: none !important;
         }
 
-        #vibetextbook-reader-shell.reader-calm-active[data-reader-mode="read"]
+        #vibetextbook-reader-shell.reader-calm-active
           #vibetextbook-reading-content main {
           padding-top: 72px !important;
         }
 
-        #vibetextbook-reader-shell.reader-calm-active[data-reader-mode="read"]
+        #vibetextbook-reader-shell.reader-calm-active
           #vibetextbook-reading-content main > :not(#reader-active-unit) {
           display: none !important;
         }
 
-        #vibetextbook-reader-shell.reader-calm-active[data-reader-mode="read"][data-reader-contents="true"]
+        #vibetextbook-reader-shell.reader-calm-active[data-reader-contents="true"]
           #vibetextbook-reading-content main > section:not(#reader-active-unit) {
           display: block !important;
           position: fixed !important;
@@ -256,11 +265,10 @@ export function ReaderCalmSurface() {
         <button type="button" aria-label="Back" onClick={() => window.history.back()}>
           ←
         </button>
-        <div className="reader-calm-title">Content first · tools when needed</div>
+        <div className="reader-calm-title">{currentTitle}</div>
         <button
           type="button"
           aria-expanded={contentsOpen}
-          aria-controls="reader-calm-contents"
           onClick={() => {
             setContentsOpen((current) => !current);
             setModeMenuOpen(false);
