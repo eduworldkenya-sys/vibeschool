@@ -56,6 +56,8 @@ end $$;
 -- after later authority/breaker wrappers are layered in front of the canonical gateway.
 -- Trace the actual public gateway-family call rather than assuming wrappers use RETURN directly:
 -- R1.4.16 intentionally calls an inner gateway through an assignment before returning its result.
+-- PostgreSQL stores identifiers at NAMEDATALEN-1 (63 bytes in the supported build), so normalize
+-- discovered internal wrapper names before looking them up in pg_proc.
 do $$
 declare
   d text;
@@ -87,7 +89,7 @@ begin
       d,
       'public\.(hq_workforce_consequential_execution_gateway[a-z0-9_]*)\s*\(p_task_id\)'
     ) into next_match;
-    next_name := next_match[1];
+    next_name := left(next_match[1],63);
     if next_name is null then raise exception 'gateway idempotency reservation missing'; end if;
   end loop;
 end $$;
