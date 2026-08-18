@@ -5,8 +5,10 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/20260818132500_canonical_student_academic_identity.sql'
+      - 'supabase/migrations/20260818140000_canonical_student_rpc_identity_completion.sql'
       - 'scripts/test-student-identity-contract.mjs'
       - 'docs/security/STUDENT_IDENTITY_CONSOLIDATION_20260818.md'
+      - 'docs/security/STUDENT_IDENTITY_PRODUCTION_HANDOVER_20260818.md'
       - '.github/workflows/student-identity-contract.yml'
   push:
     branches:
@@ -14,8 +16,10 @@ on:
       - 'fix/student-identity-**'
     paths:
       - 'supabase/migrations/20260818132500_canonical_student_academic_identity.sql'
+      - 'supabase/migrations/20260818140000_canonical_student_rpc_identity_completion.sql'
       - 'scripts/test-student-identity-contract.mjs'
       - 'docs/security/STUDENT_IDENTITY_CONSOLIDATION_20260818.md'
+      - 'docs/security/STUDENT_IDENTITY_PRODUCTION_HANDOVER_20260818.md'
       - '.github/workflows/student-identity-contract.yml'
   workflow_dispatch:
 
