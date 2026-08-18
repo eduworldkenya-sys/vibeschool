@@ -16,16 +16,15 @@ create unique index if not exists curriculum_research_jobs_workforce_task_uq
   on public.curriculum_research_jobs(workforce_task_id)
   where workforce_task_id is not null;
 
--- The original L2 tool-contract schema only admitted the reference triage handler.
--- R2 introduces an external network executor contract. The handler is NEVER dispatched
--- through the legacy generic gateway; the service-only claim/complete functions below
--- retain the complete R1.4 consequential authorization chain and keep the domain job
--- running until evidence has actually been gathered and verified/escalated.
+-- The original L2 tool-contract schema admitted only triage; R1.4 later widened the
+-- structural handler allowlist for the bounded priority canary. R2 extends that existing
+-- allowlist by exactly one research adapter. Execution still requires the exact approved
+-- tool contract plus the full R1.4 authority chain below.
 alter table public.hq_workforce_tool_contracts
   drop constraint if exists hq_workforce_tool_contracts_handler_key_check;
 alter table public.hq_workforce_tool_contracts
   add constraint hq_workforce_tool_contracts_handler_key_check
-  check (handler_key in ('work_item.triage_and_own','content.research.external'));
+  check (handler_key in ('work_item.triage_and_own','work_item.prioritize','content.research.external'));
 
 insert into public.hq_workforce_tool_contracts(
   tool_key,version,title,handler_key,required_capability_key,operation,resource_type,
