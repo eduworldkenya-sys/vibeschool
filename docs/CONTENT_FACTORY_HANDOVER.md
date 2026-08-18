@@ -46,8 +46,6 @@ Human authority remains required for factual/editorial approval, rights exceptio
 
 ## Certification
 
-The exact pre-reconciliation Content Factory head `84220b323cc0ce1bd9f2e0041b9013aea27090f1` passed all observed PR checks, including Content Factory Throughput Contract, TBL-011 isolated clean rebuild, Supabase Migration Security Contract, TypeScript/Production Build, CI Production Build, Auth & Onboarding Hardening, and TBL-012.
+The reconciled exact head `6cd7a32e5070538f19fd9a8b4a4306c722fd0007` passed all observed PR checks: Content Factory Throughput Contract, TBL-011 isolated clean rebuild, Supabase Migration Security Contract, TypeScript/Production Build, CI Production Build, Auth & Onboarding Hardening, and TBL-012.
 
-Because `main` subsequently advanced through Worker Engine R1.4, this branch was rebuilt on current main with only the four Content Factory files. The reconciled exact head must pass the same checks before merge.
-
-Production Supabase remains unmodified by this Content Factory wave. After merge, promote only the certified migration through a controlled ledger-aligned production path, then compare orchestration throughput read-only. Do not weaken release checks to reduce blocked counts.
+PR #233 is ready for merge on that certified head. Production Supabase remains unmodified by this Content Factory wave. After merge, promote only migration `20260818114500` through a controlled ledger-aligned production path, then compare orchestration throughput read-only. Do not weaken release checks to reduce blocked counts.
