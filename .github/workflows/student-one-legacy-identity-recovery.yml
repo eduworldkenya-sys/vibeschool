@@ -1,0 +1,21 @@
+name: Student One Legacy Identity Recovery
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/test-student-one-legacy-identity-recovery.mjs'
+      - '.github/workflows/student-one-legacy-identity-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovery-contract:
+    name: Legacy learner recovery contract
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Student = 1 legacy recovery contract
+        run: node scripts/test-student-one-legacy-identity-recovery.mjs
