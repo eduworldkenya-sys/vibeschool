@@ -1,6 +1,10 @@
 -- Content Factory R2.3: source-grounded Authoring Worker.
 -- NON-ACTIVATING. Installs contracts only; does not enable Worker Engine runtime/autonomy,
 -- grant capability authority, deploy an Edge Function, approve a proposal, or publish content.
+-- Migration-contract declarations. Executable coverage lives in
+-- scripts/sql/content_factory_r2_source_grounded_authoring_verify.sql.
+-- access: service-only public.curriculum_authoring_drafts
+-- authorization-test: public.curriculum_authoring_drafts
 
 create table if not exists public.curriculum_authoring_drafts (
   id uuid primary key default gen_random_uuid(),
