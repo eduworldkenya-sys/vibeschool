@@ -160,9 +160,12 @@ export function ReaderCalmSurface() {
           position: fixed;
           z-index: 2147483060;
           top: max(10px, env(safe-area-inset-top));
+          bottom: auto;
           left: 50%;
           transform: translateX(-50%);
           width: min(calc(100vw - 24px), 720px);
+          height: auto;
+          min-height: 0;
           display: grid;
           grid-template-columns: minmax(44px, auto) 1fr auto auto;
           align-items: center;
@@ -268,7 +271,7 @@ export function ReaderCalmSurface() {
         />
       ) : null}
 
-      <div className="reader-calm-toolbar reader-excellence-ui" aria-label="Reader navigation">
+      <div className="reader-calm-toolbar" aria-label="Reader navigation">
         <button type="button" aria-label="Back" onClick={() => window.history.back()}>
           ←
         </button>
