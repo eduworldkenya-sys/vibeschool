@@ -67,7 +67,7 @@ begin
       ('hq_workforce_architecture_components','component_key,component_type,lineage,disposition,canonical,replacement_component_key,rationale,activation_allowed,updated_at',null,'archive_historical_architecture_evidence'),
       ('hq_workforce_calibration','dimension_type,dimension_key,sample_count,mean_predicted,mean_observed,calibration_error,reliability,last_evaluated_at,updated_at',null,'archive_superseded_measurement'),
       ('hq_workforce_skill_candidates','id,candidate_key,detected_gap,proposed_manifest,proposed_tests,benchmark_contract,adversarial_cases,evidence,status,certification_allowed,created_at,updated_at',null,'archive_superseded_factory'),
-      ('hq_workforce_factory_recommendations','id,trace_id,objective_id,diagnosis,evidence,proposed_action,worker_creation_recommended,status,created_at',null,'archive_superseded_factory'),
+      ('hq_workforce_factory_recommendations','id,trace_id,objective_id,diagnosis,evidence,proposed_action,worker_creation_recommended,status,created_at,updated_at',null,'archive_superseded_factory'),
       ('hq_workforce_memory','id,memory_key,version,memory_type,content,provenance,confidence,scope_type,scope_key,data_classifications,jurisdictions,authoritative,valid_from,valid_until,supersedes_id,contradiction_group,retention_until,created_at','public.hq_workforce_memory_records','archive_superseded_memory')
     ) as x(relname,expected_cols,successor,disposition)
   loop
@@ -107,27 +107,41 @@ $converge$;
 
 -- Exact-identifier regexes prevent hq_workforce_memory from matching canonical
 -- hq_workforce_memory_records / hq_workforce_memory_events.
+--
+-- IMPORTANT: pg_proc contains ordinary functions, procedures, aggregates and window
+-- functions. pg_get_functiondef() only reconstructs functions/procedures and errors for
+-- aggregate entries such as array_agg. Do not rely on SQL predicate evaluation order to
+-- protect pg_get_functiondef(). First select only normal-function OIDs, then inspect each
+-- definition procedurally.
 do $functions$
-declare r record;
+declare
+  r record;
+  v_definition text;
 begin
   for r in
     select p.oid,p.proname,pg_get_function_identity_arguments(p.oid) as args
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public'
-      and (
-        pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_capability_edges([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_resources([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_worker_competencies([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_competency_capabilities([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_skill_resources([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_evaluations([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_architecture_components([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_calibration([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_skill_candidates([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_factory_recommendations([^A-Za-z0-9_]|$)'
-        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_memory([^A-Za-z0-9_]|$)'
-      )
+      and p.prokind='f'
   loop
+    v_definition := pg_get_functiondef(r.oid);
+
+    if not (
+      v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_capability_edges([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_resources([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_worker_competencies([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_competency_capabilities([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_skill_resources([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_evaluations([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_architecture_components([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_calibration([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_skill_candidates([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_factory_recommendations([^A-Za-z0-9_]|$)'
+      or v_definition ~ '(^|[^A-Za-z0-9_])hq_workforce_memory([^A-Za-z0-9_]|$)'
+    ) then
+      continue;
+    end if;
+
     insert into worker_engine_legacy_archive.r13x_lineage_manifest(object_name,object_kind,disposition,reason)
     values(r.proname||'('||r.args||')','function','archive_superseded_api','Function bound to superseded production-only WE-R1.3X overlay')
     on conflict (object_name) do nothing;
