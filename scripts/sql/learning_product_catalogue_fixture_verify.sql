@@ -11,7 +11,6 @@ declare
   v_resource uuid;
   v_publication uuid;
   v_product uuid;
-  v_offer uuid;
   v_payload jsonb;
 begin
   select id into v_author from public.profiles order by created_at limit 1;
@@ -24,9 +23,12 @@ begin
   values(v_author,'vibetextbook','Commerce Fixture Textbook','published','{"type":"freemium","freeChapters":1}'::jsonb,3,'Kenya')
   returning id into v_publication;
 
-  insert into public.learning_resources(title,resource_type,source_type,publication_id,status,created_by)
-  values('Commerce Fixture Textbook','publication','publication',v_publication,'published',v_author)
-  returning id into v_resource;
+  insert into public.learning_resources(
+    source_type,publication_id,title,status,created_by,visibility,owner_type,canonical_key
+  ) values(
+    'publication',v_publication,'Commerce Fixture Textbook','active',v_author,'public','creator',
+    'publication:' || v_publication::text
+  ) returning id into v_resource;
 
   insert into public.learning_products(sku,product_type,title,status,owner_type,owner_profile_id,rights_status)
   values('commerce-fixture-textbook','ebook','Commerce Fixture Textbook','draft','creator',v_author,'cleared')
@@ -36,11 +38,13 @@ begin
   values(v_product,v_resource,'primary',1,true);
 
   insert into public.learning_product_offers(product_id,offer_key,pricing_model,amount_kes,status,terms_version)
-  values(v_product,'commerce-fixture-one-time','one_time',250,'active','fixture-v1')
-  returning id into v_offer;
+  values(v_product,'commerce-fixture-one-time','one_time',250,'active','fixture-v1');
 
   select public.commerce_list_storefront(null,null,40) into v_payload;
-  if jsonb_array_length(coalesce(v_payload->'items','[]'::jsonb)) <> 0 then
+  if exists (
+    select 1 from jsonb_array_elements(coalesce(v_payload->'items','[]'::jsonb)) item
+    where item->>'product_id'=v_product::text
+  ) then
     raise exception 'catalogue fixture: draft product leaked into catalogue';
   end if;
 
