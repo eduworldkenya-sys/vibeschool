@@ -34,9 +34,13 @@ begin
     raise exception 'authenticated canonical version privilege boundary incorrect';
   end if;
 
+  -- Final R3.4 authority: service executors may read/deposit candidates, but
+  -- lifecycle/evidence mutation must go through governed SECURITY DEFINER RPCs.
+  -- Direct UPDATE/DELETE would let a service process bypass independent
+  -- verification and platform-owner certification.
   if not has_table_privilege('service_role','public.learning_resource_versions','SELECT')
      or not has_table_privilege('service_role','public.learning_resource_versions','INSERT')
-     or not has_table_privilege('service_role','public.learning_resource_versions','UPDATE')
+     or has_table_privilege('service_role','public.learning_resource_versions','UPDATE')
      or has_table_privilege('service_role','public.learning_resource_versions','DELETE') then
     raise exception 'service_role canonical version privilege boundary incorrect';
   end if;
