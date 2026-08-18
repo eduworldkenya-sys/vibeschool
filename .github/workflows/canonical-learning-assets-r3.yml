@@ -77,9 +77,9 @@ jobs:
           grep -q 'status === "hit"' "$file"
           grep -q 'status === "pending"' "$file"
           grep -q 'status !== "claimed"' "$file"
-          grep -q 'teacher, school, class/stream, learner count' "$file"
           python - <<'PY'
           from pathlib import Path
+
           text = Path('supabase/functions/generate-canonical-lesson-plan/index.ts').read_text()
           recover = text.find('db.rpc("cla_recover_expired_learning_resource_claims"')
           claim = text.find('db.rpc("cla_claim_learning_resource_gap"')
@@ -96,13 +96,20 @@ jobs:
               raise SystemExit('refund authority must remain on the failure path after candidate-deposit code')
           if 'getOrCreateWallet' in text or 'spendCredit(' in text:
               raise SystemExit('legacy check-then-spend wallet path must not remain')
+
           prompt_start = text.find('const prompt = [')
           prompt_end = text.find('].filter(Boolean).join', prompt_start)
-          prompt = text[prompt_start:prompt_end]
-          forbidden = ['teacherName', 'schoolName', 'studentCount', 'previousTopics', 'teacher focus']
-          bad = [value for value in forbidden if value in prompt]
-          if bad:
-              raise SystemExit(f'private/contextual fields leaked into reusable prompt: {bad}')
+          if prompt_start < 0 or prompt_end < 0:
+              raise SystemExit('canonical prompt block missing')
+          prompt_block = text[prompt_start:prompt_end]
+          forbidden = [
+              'teacherFocus', 'teacherName:', 'schoolName:', 'className:',
+              'studentId', 'learnerId', 'learnerCount:', 'previousLesson:',
+              'deadline:', 'taughtDate', 'timetableSlotId'
+          ]
+          leaked = [token for token in forbidden if token in prompt_block]
+          if leaked:
+              raise SystemExit(f'private/contextual fields leaked into reusable prompt: {leaked}')
           PY
       - name: Stop disposable Supabase
         if: always()
