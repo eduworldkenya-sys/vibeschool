@@ -6,7 +6,7 @@ import { knowledgeVerifiedOn, listKnowledgeArticles, listKnowledgeSources } from
 
 export const metadata: Metadata = {
   alternates: { canonical: '/kenya-education' },
-  title: 'Kenya Education Guide | CBE, Grade 10 & Senior School | VibeSchool',
+  title: 'Kenya Education Guide | CBE, Grade 10 & Senior School',
   description: 'Source-backed explanations of Kenya CBE, Grade 10, Senior School pathways, subject combinations and school choices from VibeSchool.',
 }
 

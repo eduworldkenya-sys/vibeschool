@@ -6,7 +6,7 @@ import { SchoolBusinessCaseBuilder } from '@/components/public/SchoolBusinessCas
 
 export const metadata: Metadata={
   alternates:{canonical:'/institutions/business-case'},
-  title:'School Business Case Builder | VibeSchool',
+  title:'School Business Case Builder',
   description:'Turn your school’s own workload assumptions into a bounded VibeSchool pilot business case without invented savings or pricing claims.',
 }
 
