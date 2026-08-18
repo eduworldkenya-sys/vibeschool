@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 
-const migrationPath = 'supabase/migrations/20260818082800_student_twin_date_results_skills.sql'
+const migrationPath = 'supabase/migrations/20260818084507_student_twin_date_results_skills.sql'
 const clientPath = 'lib/student/twinCore.ts'
 const failures = []
 
