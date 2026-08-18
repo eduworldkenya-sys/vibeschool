@@ -5,6 +5,7 @@ import { ReaderStudyViewControls } from "@/components/read/ReaderStudyViewContro
 import { ReadingAnalyticsTracker } from "@/components/read/ReadingAnalyticsTracker";
 import { ReaderExcellenceShell } from "@/components/read/ReaderExcellenceShell";
 import { ReaderContinuityCoordinator } from "@/components/read/ReaderContinuityCoordinator";
+import { ReaderStudyInteractions } from "@/components/read/ReaderStudyInteractions";
 import { ReaderAssessmentLauncher } from "@/components/read/ReaderAssessmentLauncher";
 import { ReaderLearningLauncher } from "@/components/read/ReaderLearningLauncher";
 import { ReaderPurchaseBar } from "@/components/read/ReaderPurchaseBar";
@@ -140,6 +141,7 @@ export default async function TextbookReaderLayout({
       <ReaderExcellenceShell />
       <div id="vibetextbook-reading-content" tabIndex={-1}>
         <ReaderContinuityCoordinator />
+        <ReaderStudyInteractions />
         {children}
       </div>
       <StudyCapturePanel publicationId={params.publicationId} />
