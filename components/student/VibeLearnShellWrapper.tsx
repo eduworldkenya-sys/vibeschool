@@ -94,6 +94,15 @@ function normalizeVibeContentRows(
   })
 }
 
+async function resolveCanonicalStudentId(): Promise<string> {
+  const { data, error } = await supabase.rpc('current_student_id')
+  if (error) throw error
+  if (typeof data !== 'string' || !data) {
+    throw new Error('Canonical learner identity is unavailable.')
+  }
+  return data
+}
+
 const BG      = '#090D16'
 const SURFACE = '#111827'
 const CARD    = '#1a2235'
@@ -445,10 +454,11 @@ function LibraryTab({
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { setItems([]); setLoading(false); return }
+        const studentId = await resolveCanonicalStudentId()
         const { data, error: err } = await supabase
           .from('vibelearn_saved')
           .select('content_id, vibelearn_content(*)')
-          .eq('student_id', user.id)
+          .eq('student_id', studentId)
           .order('saved_at', { ascending: false })
         if (err) throw err
         const contents = (data ?? []).flatMap(row => {
@@ -560,6 +570,7 @@ export default function VibeLearnShellWrapper({
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
         setUserId(user.id)
+        const studentId = await resolveCanonicalStudentId()
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name')
@@ -569,9 +580,11 @@ export default function VibeLearnShellWrapper({
           setUserName(profile.full_name.split(' ')[0])
         }
         const [savedRes, completedRes] = await Promise.all([
-          supabase.from('vibelearn_saved').select('content_id').eq('student_id', user.id),
-          supabase.from('vibelearn_completed').select('content_id').eq('student_id', user.id),
+          supabase.from('vibelearn_saved').select('content_id').eq('student_id', studentId),
+          supabase.from('vibelearn_completed').select('content_id').eq('student_id', studentId),
         ])
+        if (savedRes.error) throw savedRes.error
+        if (completedRes.error) throw completedRes.error
         if (savedRes.data) {
           const s = new Set<string>()
           savedRes.data.forEach(row => {
@@ -616,15 +629,24 @@ export default function VibeLearnShellWrapper({
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      const studentId = await resolveCanonicalStudentId()
       if (savedIds.has(contentId)) {
-        await supabase.from('vibelearn_saved').delete().eq('student_id', user.id).eq('content_id', contentId)
+        const { error } = await supabase
+          .from('vibelearn_saved')
+          .delete()
+          .eq('student_id', studentId)
+          .eq('content_id', contentId)
+        if (error) throw error
         setSavedIds(prev => {
           const next = new Set(prev)
           next.delete(contentId)
           return next
         })
       } else {
-        await supabase.from('vibelearn_saved').insert({ student_id: user.id, content_id: contentId })
+        const { error } = await supabase
+          .from('vibelearn_saved')
+          .insert({ student_id: studentId, content_id: contentId })
+        if (error) throw error
         setSavedIds(prev => {
           const next = new Set(prev)
           next.add(contentId)
@@ -642,9 +664,10 @@ export default function VibeLearnShellWrapper({
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      const studentId = await resolveCanonicalStudentId()
       const { error } = await supabase
         .from('vibelearn_completed')
-        .insert({ student_id: user.id, content_id: contentId })
+        .insert({ student_id: studentId, content_id: contentId })
       if (error) throw error
       setCompletedIds(prev => {
         const next = new Set(prev)
@@ -653,12 +676,12 @@ export default function VibeLearnShellWrapper({
       })
       if (openContent) {
         await awardPoints(
-          user.id,
+          studentId,
           openContent.type === 'ebook' ? 'complete_ebook' : 'complete_epage',
           contentId
         )
       }
-      await updateStreak(user.id)
+      await updateStreak(studentId)
     } catch {
       // Silent
     } finally {
