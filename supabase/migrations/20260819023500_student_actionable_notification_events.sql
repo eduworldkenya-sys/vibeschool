@@ -2,6 +2,27 @@
 -- Notifications are emitted from assignment/result transitions, deduplicated per
 -- learner + event type + source identity, and reopen when feedback/result changes.
 
+-- Production already has notifications with a narrower legacy type check. Widen
+-- that existing contract before any new learner event can be emitted; clean
+-- rebuilds receive the same check from the prerequisite migration immediately
+-- before this file.
+alter table public.notifications drop constraint if exists notifications_type_check;
+alter table public.notifications add constraint notifications_type_check check (
+  type = any (array[
+    'fee_payment'::text,
+    'fee_reminder'::text,
+    'attendance'::text,
+    'announcement'::text,
+    'leave'::text,
+    'general'::text,
+    'homework_submitted'::text,
+    'homework_assigned'::text,
+    'assessment_available'::text,
+    'homework_feedback'::text,
+    'assessment_result'::text
+  ])
+);
+
 create unique index if not exists notifications_active_event_uniq
   on public.notifications(user_id,type,related_id)
   where deleted_at is null and related_id is not null;
