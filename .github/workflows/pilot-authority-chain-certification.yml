@@ -11,6 +11,7 @@ on:
       - 'supabase/migrations/2026081715*.sql'
       - 'supabase/migrations/2026081716*.sql'
       - 'supabase/migrations/20260818001345*.sql'
+      - 'supabase/migrations/20260818002145*.sql'
       - 'supabase/migrations/20260818013000*.sql'
       - 'scripts/sql/pilot_authority_chain_verify.sql'
       - 'scripts/sql/pilot_authority_bypass_verify.sql'
