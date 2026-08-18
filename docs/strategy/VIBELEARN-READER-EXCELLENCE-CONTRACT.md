@@ -34,6 +34,9 @@ VibeLearn Read is a primary VibeSchool product surface and a core commercial exp
 18. Authenticated reader/API responses and paid publication bytes are not service-worker cache candidates by default.
 19. Client-side queued progress is provisional only; the server remains authoritative after reconnect.
 20. A signed-out or different user must never inherit another viewer's pending reader progress.
+21. Reader-owned interactive controls use a practical 44px touch floor and a visible keyboard focus ring.
+22. Checkout UI never manufactures access: paid access exists only after durable server-side entitlement fulfillment.
+23. Premium TTS must remain provider-neutral at the reader-state layer and server-side at the credential layer.
 
 ## Implemented waves
 
@@ -106,7 +109,7 @@ VibeLearn Read is a primary VibeSchool product surface and a core commercial exp
 ### Wave 9 — listening continuity foundation
 - listening position is tied to canonical publication/chapter/block identity instead of fragile audio time alone
 - current spoken passage can be resumed on the same device
-- the continuity identity is provider-independent so a later neural-TTS provider does not redefine reader state
+- continuity identity is provider-independent so a later neural-TTS provider does not redefine reader state
 - browser speech remains explicitly a fallback, not a premium-neural claim
 
 ### Wave 10 — constrained-network progress resilience
@@ -119,6 +122,32 @@ VibeLearn Read is a primary VibeSchool product surface and a core commercial exp
 - entitlement and chapter validity are rechecked server-side before queued progress becomes authoritative
 - UI states when progress is pending or synchronizing instead of silently losing evidence
 
+### Wave 11 — low-end mobile and accessibility baseline
+- canonical reader mounts a cross-cutting accessibility style floor
+- reader-owned button/select/search/text controls use a 44px minimum touch height
+- visible keyboard focus uses a high-contrast 3px reader-accent ring with offset and surface halo
+- ≤380px phone layout reduces chrome pressure without shrinking touch targets
+- reduced-motion preference suppresses reader animations/transitions and smooth scrolling
+- Reader Excellence contract mechanically certifies these invariants
+
+### Wave 12 — reader → purchase → entitlement → continue-reading closure
+- reader purchase bar uses `commerce_get_publication_purchase_context`
+- offer disappears for already-entitled viewers and routes saleable users into the existing Learning Product checkout
+- checkout uses idempotency keys and the dedicated Learning Product M-Pesa STK function
+- settled self-purchases return the learner to `/read/textbook/[publicationId]`
+- production callback persists an idempotent callback event before fulfillment and preserves uncertain states for reconciliation
+- server fulfillment verifies amount/receipt uniqueness before creating an active durable entitlement
+- canonical `can_viewer_read_chapter` consumes that entitlement and cleared product rights; checkout UI never grants access itself
+- repository commerce and Reader Excellence contracts both certify this bridge
+
+### Wave 13 — premium TTS provider decision, non-activating
+- managed TTS evaluation completed without adding credentials, spend or production activation
+- Azure Speech is the preferred Kenya pilot candidate because its current official catalogue explicitly provides `sw-KE` Kiswahili voices and supports long-form/batch synthesis, SSML and pronunciation lexicons
+- ElevenLabs v3 remains a quality challenger for listening tests, but accent/native-voice suitability must be measured before Kenya production use
+- Google/OpenAI remain possible English/provider alternatives but are not treated as Kenya-Kiswahili authority without explicit locale evidence
+- provider integration remains gated; browser/device speech stays the production fallback until quality, unit economics, privacy, rights and budget caps are certified
+- canonical block-based listening continuity is already provider-independent
+
 ## Current offline boundary
 
 VibeSchool does **not** currently claim full paid-content offline reading. Once commercial content bytes are deliberately made available offline, revocation cannot be instantaneous while the device is disconnected. That requires an explicit offline-license/product policy rather than accidental service-worker caching.
@@ -130,11 +159,24 @@ The safe current behavior is:
 - paid reader/API responses are not cached for offline reload;
 - offline paid-content packages remain a separate governed future capability.
 
+## Premium TTS pilot boundary
+
+Do not activate a managed provider merely because it sounds better in one demo. Before production activation, certify:
+- Kenya English and `sw-KE` pronunciation quality on curriculum vocabulary, names and numbers;
+- paragraph and long-chapter latency on constrained mobile networks;
+- character/token cost per learner-hour and monthly budget caps;
+- server-only credentials and provider request logging/privacy boundaries;
+- publication/audio rights and whether generated audio may be cached;
+- fallback behavior when the provider or network is unavailable;
+- no provider-specific position state in the reader.
+
+The first controlled comparison should use the same canonical sample passages across Azure `sw-KE` voices, the best available English candidate and the current device fallback. Provider activation remains separate from reader merge.
+
 ## Remaining program
 
-1. Representative low-end Android and accessibility acceptance: viewport, focus order, screen reader semantics, reduced motion, long chapters, image-heavy chapters and memory pressure.
-2. Reader → purchase → entitlement → continue-reading E2E certification for the first controlled Learning Product.
-3. Premium neural TTS provider evaluation only after quality, unit economics, caching/licensing and privacy are quantified; current listening continuity is already provider-independent.
+1. Real-browser low-end Android acceptance on representative devices/viewports, including screen-reader and long/image-heavy chapter checks; the static accessibility baseline is implemented but physical/device acceptance remains evidence to collect.
+2. Controlled real M-Pesa transaction acceptance for the first saleable Learning Product, using a low-risk fixture/product and verifying callback → entitlement → reader return without changing the architecture.
+3. Premium TTS listening bake-off and unit-economics certification; provider selection is decided for the pilot but activation remains intentionally off.
 4. Full paid-content offline packages only after a deliberate offline-license/revocation policy is approved and technically certified.
 5. True semantic/embedding search only if measured reader behavior proves the lexical/concept engine insufficient.
 
@@ -144,11 +186,15 @@ The safe current behavior is:
 - Reader branch reconciled onto commerce-complete `main` (`39cd68f23fbd92da9c3241791948b4f2ba385e24`) without force-pushing and without production activation.
 - A TypeScript gate failure caused by Unicode-regexp target incompatibility was isolated and corrected with an ES5-safe English/Kiswahili tokenizer.
 - The earlier Learning Product commerce semantic check itself passed; its missing verifier was branch drift and was resolved by reconciling current main rather than weakening the workflow.
-- Production Supabase has remained read-only during this reader phase.
-- Vercel must remain untriggered until the branch is fully certified and intentionally promoted.
-- Wave 10 now queues provisional same-user reading progress during connectivity loss and replays it through canonical server authority after reconnect.
-- Current exact-head certification must pass TypeScript/build, auth, migration-security, clean-rebuild, PWA/public-browser and commerce gates before promotion.
+- Production Supabase remained read-only during reader work; production payment and entitlement functions were inspected but not changed.
+- Vercel has not been intentionally activated from this work and must remain untriggered until the branch is fully certified and intentionally promoted.
+- Wave 10 queues provisional same-user reading progress during connectivity loss and replays it through canonical server authority after reconnect.
+- Wave 11 installs the reader-wide 44px/focus/reduced-motion mobile accessibility baseline.
+- Wave 12 certifies the existing purchase/payment/entitlement/reader bridge in both production truth and repository contracts.
+- Wave 13 records Azure Speech as the preferred Kenya TTS pilot candidate without activating or spending on it.
+- Dedicated `Reader Excellence Contract` workflow is now green on the reader head and guards entitlement-safe offline behavior, annotations, glossary truth, search compatibility, listening continuity, accessibility and commerce return-path invariants.
+- Current exact-head certification still requires all generic long-running gates to settle green before promotion.
 
 ## Promotion boundary
 
-Keep reader work isolated from unrelated curriculum-ingestion or publishing-authority work. Merge only after the exact reader head passes TypeScript/production build, migration/security, clean rebuild, relevant PWA/public-browser, commerce/auth gates and reader-specific acceptance. Production migration application and commercial activation remain separate controlled operations. Vercel activation occurs only after the branch is complete and intentionally promoted.
+Keep reader work isolated from unrelated curriculum-ingestion or publishing-authority work. Merge only after the exact reader head passes TypeScript/production build, migration/security, clean rebuild, relevant PWA/public-browser, commerce/auth gates and Reader Excellence acceptance. Production migration application, real-money acceptance and managed-TTS activation remain separate controlled operations. Vercel activation occurs only after the branch is complete and intentionally promoted.
