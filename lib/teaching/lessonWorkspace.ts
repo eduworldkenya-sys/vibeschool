@@ -33,12 +33,20 @@ export interface LoadLessonWorkspaceInput {
   requestedSchemeId?: string | null
 }
 
+export interface LessonCanonicalSourceIdentity {
+  curriculumId: string
+  subjectId: string
+  grade: string
+  subStrandId: string
+}
+
 export interface LessonWorkspaceBootResult {
   teacherId: string
-  context: Omit<LessonContext, 'grade'>
+  context: LessonContext
   existingPlan: ExistingLessonPlan | null
   source: CurriculumSuggestion | null
   sourceLinked: boolean
+  canonicalIdentity: LessonCanonicalSourceIdentity | null
   occurrence: TeachingOccurrence | null
   occurrenceError: string | null
 }
@@ -58,7 +66,7 @@ async function restorePersistedLessonSource(
     } = await supabase
       .from('scheme_of_work')
       .select(
-        'id, curriculum_id, strand, sub_strand, topic, week, term',
+        'id, curriculum_id, sub_strand_id, strand, sub_strand, topic, week, term',
       )
       .eq('id', existingPlan.scheme_id)
       .single()
@@ -77,7 +85,10 @@ async function restorePersistedLessonSource(
       topic: schemeRow.topic,
       term: schemeRow.term,
       week: schemeRow.week,
-      strandId: existingPlan.strand_id ?? null,
+      strandId:
+        schemeRow.sub_strand_id ??
+        existingPlan.strand_id ??
+        null,
       schemeId: schemeRow.id,
     }
   }
@@ -89,7 +100,7 @@ async function restorePersistedLessonSource(
     } = await supabase
       .from('curriculum')
       .select(
-        'id, strand, sub_strand, topic, week, term',
+        'id, sub_strand_id, strand, sub_strand, topic, week, term',
       )
       .eq('id', existingPlan.curriculum_id)
       .single()
@@ -105,7 +116,10 @@ async function restorePersistedLessonSource(
       topic: curriculumRow.topic,
       term: curriculumRow.term,
       week: curriculumRow.week,
-      strandId: existingPlan.strand_id ?? null,
+      strandId:
+        curriculumRow.sub_strand_id ??
+        existingPlan.strand_id ??
+        null,
       schemeId: null,
     }
   }
@@ -113,11 +127,37 @@ async function restorePersistedLessonSource(
   return null
 }
 
+function buildCanonicalIdentity(
+  source: CurriculumSuggestion | null,
+  subjectId: string,
+  grade: string | null,
+): LessonCanonicalSourceIdentity | null {
+  if (
+    !source?.id ||
+    !source.strandId ||
+    !subjectId ||
+    !grade
+  ) {
+    return null
+  }
+
+  return {
+    curriculumId: source.id,
+    subjectId,
+    grade,
+    subStrandId: source.strandId,
+  }
+}
+
 /**
  * Loads all read-only state required to open one exact Lesson Workspace.
  *
  * The occurrence read is intentionally nonfatal: a temporary lifecycle read
  * failure must not prevent a teacher from opening or editing the lesson plan.
+ *
+ * R3: grade is deliberately preserved. Canonical generation must be able to
+ * carry the exact authoritative curriculum identity from this workspace; it
+ * must never reconstruct that identity from free-text topic/strand labels.
  */
 export async function loadLessonWorkspace({
   timetableSlotId,
@@ -142,7 +182,7 @@ export async function loadLessonWorkspace({
   }
 
   const [
-    loadedContext,
+    context,
     existingPlan,
   ] = await Promise.all([
     loadLessonContext({
@@ -157,15 +197,10 @@ export async function loadLessonWorkspace({
     }),
   ])
 
-  const {
-    grade,
-    ...context
-  } = loadedContext
-
   let source: CurriculumSuggestion | null = null
   let sourceLinked = false
 
-  if (context.schoolId && grade) {
+  if (context.schoolId && context.grade) {
     try {
       source = await resolveLessonSource({
         userId: user.id,
@@ -173,7 +208,7 @@ export async function loadLessonWorkspace({
         classId,
         subjectId,
         subjectName,
-        grade,
+        grade: context.grade,
         requestedSchemeId,
       })
     } catch (sourceError) {
@@ -201,6 +236,12 @@ export async function loadLessonWorkspace({
     }
   }
 
+  const canonicalIdentity = buildCanonicalIdentity(
+    source,
+    subjectId,
+    context.grade,
+  )
+
   let occurrence: TeachingOccurrence | null = null
   let occurrenceError: string | null = null
 
@@ -224,6 +265,7 @@ export async function loadLessonWorkspace({
     existingPlan,
     source,
     sourceLinked,
+    canonicalIdentity,
     occurrence,
     occurrenceError,
   }

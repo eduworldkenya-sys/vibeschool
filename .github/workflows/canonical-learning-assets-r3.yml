@@ -1,0 +1,116 @@
+name: Canonical Learning Assets R3
+
+on:
+  pull_request:
+    paths:
+      - 'lib/content/canonicalLearningAssetIdentity.ts'
+      - 'lib/content/canonicalLearningAssetLookup.ts'
+      - 'lib/teaching/canonicalLessonGeneration.ts'
+      - 'lib/teaching/lessonSource.ts'
+      - 'lib/teaching/lessonWorkspace.ts'
+      - 'supabase/migrations/20260818141000_canonical_learning_resource_versions.sql'
+      - 'supabase/migrations/20260818141500_canonical_learning_resource_version_visibility_hardening.sql'
+      - 'supabase/migrations/20260818141600_canonical_learning_resource_platform_visibility.sql'
+      - 'supabase/migrations/20260818142000_canonical_learning_resource_generation_claims.sql'
+      - 'supabase/migrations/20260818142100_canonical_learning_resource_candidate_deposit.sql'
+      - 'supabase/migrations/20260818142200_canonical_learning_resource_promotion_authority.sql'
+      - 'supabase/migrations/20260818142300_canonical_lesson_resource_version_pin.sql'
+      - 'supabase/migrations/20260818214000_canonical_learning_resource_credit_reservation.sql'
+      - 'supabase/migrations/20260818214100_canonical_learning_resource_credit_recovery.sql'
+      - 'supabase/functions/generate-canonical-lesson-plan/**'
+      - 'scripts/sql/canonical_learning_resource_versions_verify.sql'
+      - 'scripts/sql/canonical_learning_resource_promotion_verify.sql'
+      - 'scripts/test-canonical-learning-asset-identity.sh'
+      - '.github/workflows/canonical-learning-assets-r3.yml'
+  workflow_dispatch:
+
+jobs:
+  canonical-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Start disposable Supabase
+        run: supabase start
+      - name: Verify canonical identity contract
+        run: bash scripts/test-canonical-learning-asset-identity.sh
+      - name: Verify database authority and security contract
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/canonical_learning_resource_versions_verify.sql
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/canonical_learning_resource_promotion_verify.sql
+      - name: Type-check governed canonical lesson generator
+        run: deno check --node-modules-dir=auto supabase/functions/generate-canonical-lesson-plan/index.ts
+      - name: Verify authoritative lesson identity path
+        run: |
+          set -euo pipefail
+          source_file='lib/teaching/lessonSource.ts'
+          workspace_file='lib/teaching/lessonWorkspace.ts'
+          grep -q "sub_strand_id" "$source_file"
+          grep -q "sub_strand_id" "$workspace_file"
+          grep -q "canonicalIdentity" "$workspace_file"
+          grep -q "context: LessonContext" "$workspace_file"
+          if grep -q "const {.*grade.*\.\.\.context" "$workspace_file"; then
+            echo 'Lesson Workspace must not discard grade' >&2
+            exit 1
+          fi
+          if grep -q "strand => strand.name ===" "$source_file"; then
+            echo 'Text strand matching cannot establish canonical identity' >&2
+            exit 1
+          fi
+      - name: Verify spend ordering, crash recovery and privacy boundary
+        run: |
+          set -euo pipefail
+          file='supabase/functions/generate-canonical-lesson-plan/index.ts'
+          grep -q 'cla_recover_expired_learning_resource_claims' "$file"
+          grep -q 'cla_claim_learning_resource_gap' "$file"
+          grep -q 'cla_reserve_learning_resource_credit' "$file"
+          grep -q 'cla_refund_learning_resource_credit' "$file"
+          grep -q 'cla_complete_learning_resource_claim' "$file"
+          grep -q 'cla_fail_learning_resource_claim' "$file"
+          grep -q 'status === "hit"' "$file"
+          grep -q 'status === "pending"' "$file"
+          grep -q 'status !== "claimed"' "$file"
+          python - <<'PY'
+          from pathlib import Path
+
+          text = Path('supabase/functions/generate-canonical-lesson-plan/index.ts').read_text()
+          recover = text.find('db.rpc("cla_recover_expired_learning_resource_claims"')
+          claim = text.find('db.rpc("cla_claim_learning_resource_gap"')
+          reserve = text.find('"cla_reserve_learning_resource_credit"')
+          tavily = text.find('https://api.tavily.com/search')
+          groq = text.find('https://api.groq.com/openai/v1/chat/completions')
+          deposit = text.find('db.rpc("cla_complete_learning_resource_claim"')
+          refund = text.find('"cla_refund_learning_resource_credit"')
+          if min(recover, claim, reserve, tavily, groq, deposit, refund) < 0:
+              raise SystemExit('missing governed generation/credit recovery stages')
+          if not recover < claim < reserve < tavily < groq < deposit:
+              raise SystemExit('required order is recovery -> claim -> credit reserve -> research -> model -> candidate deposit')
+          if refund < deposit:
+              raise SystemExit('refund authority must remain on the failure path after candidate-deposit code')
+          if 'getOrCreateWallet' in text or 'spendCredit(' in text:
+              raise SystemExit('legacy check-then-spend wallet path must not remain')
+
+          prompt_start = text.find('const prompt = [')
+          prompt_end = text.find('].filter(Boolean).join', prompt_start)
+          if prompt_start < 0 or prompt_end < 0:
+              raise SystemExit('canonical prompt block missing')
+          prompt_block = text[prompt_start:prompt_end]
+          forbidden = [
+              'teacherFocus', 'teacherName:', 'schoolName:', 'className:',
+              'studentId', 'learnerId', 'learnerCount:', 'previousLesson:',
+              'deadline:', 'taughtDate', 'timetableSlotId'
+          ]
+          leaked = [token for token in forbidden if token in prompt_block]
+          if leaked:
+              raise SystemExit(f'private/contextual fields leaked into reusable prompt: {leaked}')
+          PY
+      - name: Stop disposable Supabase
+        if: always()
+        run: supabase stop --no-backup

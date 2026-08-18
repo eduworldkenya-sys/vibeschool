@@ -1,6 +1,5 @@
-"use client"
-
 import Link from 'next/link'
+import styles from './login.module.css'
 
 const ROLES = [
   { href: '/login/teacher', title: 'Teacher', body: 'Teaching workspace, classes, lessons and school tools.' },
@@ -11,18 +10,18 @@ const ROLES = [
 
 export default function LoginPage() {
   return (
-    <main className="shell">
-      <section className="panel" aria-labelledby="login-title">
-        <Link className="brand" href="/" aria-label="VibeSchool home">
+    <main className={styles.shell}>
+      <section className={styles.panel} aria-labelledby="login-title">
+        <Link className={styles.brand} href="/" aria-label="VibeSchool home">
           Vibe<span>School</span>
         </Link>
-        <p className="eyebrow">SECURE SIGN-IN</p>
-        <h1 id="login-title">Choose your account</h1>
-        <p className="lead">Select how you use VibeSchool. We will open the correct secure sign-in for your account.</p>
+        <p className={styles.eyebrow}>SECURE SIGN-IN</p>
+        <h1 className={styles.title} id="login-title">Choose your account</h1>
+        <p className={styles.lead}>Select how you use VibeSchool. We will open the correct secure sign-in for your account.</p>
 
-        <div className="roles" aria-label="Choose account type">
+        <div className={styles.roles} aria-label="Choose account type">
           {ROLES.map((role) => (
-            <Link key={role.href} href={role.href} className="role">
+            <Link key={role.href} href={role.href} className={styles.role}>
               <strong>{role.title}</strong>
               <span>{role.body}</span>
               <b aria-hidden="true">→</b>
@@ -30,30 +29,11 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <div className="actions">
+        <div className={styles.actions}>
           <Link href="/auth/forgot-password">Forgot password?</Link>
           <Link href="/">Back to VibeSchool</Link>
         </div>
       </section>
-      <style jsx>{`
-        .shell{min-height:100dvh;background:#05050f;color:#fff;display:grid;place-items:center;padding:24px;font-family:var(--font-jakarta),Arial,sans-serif;box-sizing:border-box}
-        .panel{width:100%;max-width:560px}
-        .brand{display:inline-block;color:#fff;text-decoration:none;font-family:var(--font-display),Georgia,serif;font-size:32px;font-weight:800;letter-spacing:-.02em}
-        .brand span{color:#c8a84b}
-        .eyebrow{margin:34px 0 8px;color:#c8a84b;font-size:11px;font-weight:800;letter-spacing:.16em}
-        h1{margin:0;font-family:var(--font-display),Georgia,serif;font-size:42px;line-height:1.05;letter-spacing:-.03em}
-        .lead{margin:14px 0 24px;color:rgba(255,255,255,.66);font-size:15px;line-height:1.6;max-width:520px}
-        .roles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-        .role{position:relative;display:flex;min-height:120px;flex-direction:column;justify-content:center;gap:7px;padding:18px 44px 18px 18px;border:1px solid rgba(255,255,255,.13);border-radius:14px;background:rgba(255,255,255,.035);color:#fff;text-decoration:none;box-sizing:border-box}
-        .role:hover,.role:focus-visible{border-color:rgba(200,168,75,.72);background:rgba(200,168,75,.08);outline:none}
-        .role strong{font-size:16px}
-        .role span{color:rgba(255,255,255,.58);font-size:12px;line-height:1.45}
-        .role b{position:absolute;right:18px;top:50%;transform:translateY(-50%);color:#c8a84b;font-size:20px}
-        .actions{display:flex;flex-wrap:wrap;gap:16px;margin-top:22px}
-        .actions a{color:#d7bc6a;text-decoration:none;font-size:13px;font-weight:700}
-        .actions a:hover,.actions a:focus-visible{text-decoration:underline}
-        @media(max-width:560px){.shell{place-items:start center;padding:28px 18px}.roles{grid-template-columns:1fr}h1{font-size:36px}.role{min-height:100px}}
-      `}</style>
     </main>
   )
 }
