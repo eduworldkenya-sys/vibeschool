@@ -1,0 +1,23 @@
+name: School Buyer / ROI Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/institutions/business-case/**'
+      - 'components/public/SchoolBusinessCaseBuilder.tsx'
+      - 'scripts/test-school-business-case.py'
+      - 'docs/product/VIBESCHOOL-SCHOOL-BUYER-ROI.md'
+      - '.github/workflows/school-business-case-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  school-business-case:
+    name: Assumption-led school business case contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-school-business-case.py

@@ -12,7 +12,9 @@ for root in roots:
     if path.is_file(): files.append(path)
     elif path.exists(): files.extend(path.rglob('*.tsx'))
 
-allowed_external_hosts={'wa.me','www.tiktok.com'}
+# Hard-coded external links are deny-by-default. These hosts are intentional public
+# authorities/channels used by VibeSchool's public due-diligence surfaces.
+allowed_external_hosts={'wa.me','www.tiktok.com','ppra.go.ke','www.odpc.go.ke'}
 for path in sorted(set(files)):
     content=path.read_text(encoding='utf-8')
     rel=path.relative_to(ROOT)
