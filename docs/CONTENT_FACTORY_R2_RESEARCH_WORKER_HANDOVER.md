@@ -125,9 +125,11 @@ The contract checks:
 
 ### Exact reconciled certification — 2026-08-18
 
-R2 was reconciled onto current `main` at `8565f8b104ef26d6cc23849cb75aea05ac0f3fdf` using the merge tree `9272a15b4cc40ed7050ed47247d04117e0c92ef5`. The branch was 0 commits behind `main` at certification.
+R2 was first reconciled onto `main` at `8565f8b104ef26d6cc23849cb75aea05ac0f3fdf` using merge tree `9272a15b4cc40ed7050ed47247d04117e0c92ef5`; all relevant checks passed. `main` subsequently advanced through Curriculum Authority operator-lane work, so that certification was treated as historical rather than final.
 
-All relevant checks passed on that reconciled code head before this handover-only commit:
+R2 was then reconciled again onto current `main` at `1e78b86338572505820f49c92e1a8d807d13f825` using explicit tree composition of the eight R2 blobs over the current-main tree, producing non-force merge commit `6827524cfca6cac9495bbaad842856b99cb1a245`. At that point the effective branch diff remained exactly eight R2 files and the branch was 0 commits behind `main`.
+
+The previous exact-head cycle had already passed:
 
 - Content Factory R2 Research Worker — PASS
 - TBL-011 Isolated Clean Rebuild — PASS
@@ -141,7 +143,9 @@ All relevant checks passed on that reconciled code head before this handover-onl
 - Authoritative Curriculum Hierarchy Binding Contract — PASS
 - Worker Engine WE-R1.4 Production Recovery disposable certification — PASS
 
-The dedicated R2 test proved both database contracts and the deterministic/no-model executor. TBL-011 rebuilt the full tracked migration history, verified the migration ledger, final timetable/RLS state, Worker Engine authority plane, and rebuilt-production target comparison.
+The final handover/reconciliation head must repeat the triggered checks before merge. No prior green run is treated as permission to merge a later untested head.
+
+The dedicated R2 test proves both database contracts and the deterministic/no-model executor. TBL-011 rebuilds the full tracked migration history, verifies the migration ledger, final timetable/RLS state, Worker Engine authority plane, and rebuilt-production target comparison.
 
 ## Activation boundary
 
@@ -175,6 +179,8 @@ Next worker-stage work should add the certified semantic verifier/evidence packe
 - `1cdef450014a64354e527b840b039aee0b37c6e1` — SQL contract
 - `75d6bd1dbbc0493906154fc90a9ae21ebbc23914` — R2.1 CI contract workflow
 - `edb91bff4714cf3280df18eb272dcc7db3012cbf` — preserve certified Worker Engine handler allowlist while adding research handler
-- `9272a15b4cc40ed7050ed47247d04117e0c92ef5` — reconcile R2 onto current main for exact-head certification
+- `9272a15b4cc40ed7050ed47247d04117e0c92ef5` — first current-main reconciliation and certification
+- `86ff0abfc0acbbb5d82c900ff4feaaf99425c1c0` — forensic/certification handover log
+- `6827524cfca6cac9495bbaad842856b99cb1a245` — second current-main reconciliation after Curriculum Authority operator lane advanced main
 
 This handover records repository certification only. Production promotion/activation remains a separately governed operation.
