@@ -21,11 +21,20 @@ import {
   generateLessonPlan,
 } from '@/lib/teaching/lessonGeneration'
 import {
+  generateCanonicalLessonPlan,
+} from '@/lib/teaching/canonicalLessonGeneration'
+import {
+  pinCanonicalLessonResource,
+} from '@/lib/teaching/canonicalLessonResource'
+import {
   publishLessonToStudents,
   shareLessonToParents,
 } from '@/lib/teaching/lessonDelivery'
 import {
   loadLessonWorkspace,
+} from '@/lib/teaching/lessonWorkspace'
+import type {
+  LessonCanonicalSourceIdentity,
 } from '@/lib/teaching/lessonWorkspace'
 import type {
   LessonContext,
@@ -132,7 +141,7 @@ function coveredErrorMessage(code: MarkCoveredErrorCode): string {
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type Student = LessonContextStudent
-type Ctx = Omit<LessonContext, 'grade'>
+type Ctx = LessonContext
 
 interface Props {
   slot:               TimetableSlot
@@ -225,9 +234,10 @@ export default function LessonPlanModal({
   const [focus,    setFocus]    = useState('')
   const [suggestion,      setSuggestion]      = useState<CurriculumSuggestion | null>(null)
   const [suggestionLinked,  setSuggestionLinked]  = useState(false)
+  const [canonicalIdentity, setCanonicalIdentity] = useState<LessonCanonicalSourceIdentity | null>(null)
   const [ctx,      setCtx]      = useState<Ctx>({
     teacherName: '', schoolName: '', schoolId: '',
-    studentCount: 0, previousTopics: [], students: [],
+    studentCount: 0, previousTopics: [], students: [], grade: null,
   })
 
   // G4: ref mirrors state so async actions always read current value
@@ -677,6 +687,7 @@ export default function LessonPlanModal({
       try {
         planSchemeIdRef.current = null
         setSuggestionLinked(false)
+        setCanonicalIdentity(null)
         setLessonResources([])
         setLessonResourcesError(null)
 
@@ -701,6 +712,7 @@ export default function LessonPlanModal({
         setCtx(loaded.context)
         setSuggestion(loaded.source)
         setSuggestionLinked(loaded.sourceLinked)
+        setCanonicalIdentity(loaded.canonicalIdentity)
         setTeachingOccurrence(loaded.occurrence)
         setCompleteError(loaded.occurrenceError)
 
@@ -872,6 +884,14 @@ export default function LessonPlanModal({
 
   async function generate() {
     if (topic.trim() === '') { setError('Please enter a topic first.'); return }
+
+    if (suggestionLinked && !canonicalIdentity) {
+      setError(
+        'This curriculum source is missing a stable curriculum or sub-strand ID. Canonical generation is blocked until the source is repaired.',
+      )
+      return
+    }
+
     // G1
     const token = await getToken()
     if (token == null) return
@@ -884,34 +904,80 @@ export default function LessonPlanModal({
       const { data: { user } } = await supabase.auth.getUser()
       if (user == null) return
 
-      const generation = await generateLessonPlan({
-        accessToken: token,
-        teacherName: ctx.teacherName,
-        schoolName: ctx.schoolName,
-        subject: slot.subject,
-        className: slot.class,
-        studentCount: ctx.studentCount,
-        duration: calcDuration(slot.start, slot.end),
-        topic: topic.trim(),
-        focus: focus.trim() || undefined,
-        previousTopics: ctx.previousTopics,
-        curriculumStrand:
-          suggestionLinked
-            ? suggestion?.strand
-            : undefined,
-        curriculumSubStrand:
-          suggestionLinked
-            ? suggestion?.subStrand
-            : undefined,
-      })
+      let parsed: LessonPlanSections
+      let canonicalResource: {
+        resourceId: string
+        resourceVersionId: string
+      } | null = null
 
-      if (!generation.ok) {
-        setError(generation.message)
-        setPhase('form')
-        return
+      if (suggestionLinked && canonicalIdentity) {
+        const generation = await generateCanonicalLessonPlan(
+          token,
+          {
+            ...canonicalIdentity,
+            subjectName: slot.subject,
+            // The authoritative curriculum topic informs the reusable payload.
+            // A teacher-edited topic label remains contextual to this lesson.
+            topicTitle: suggestion?.topic ?? topic.trim(),
+            curriculumStrand: suggestion?.strand,
+            curriculumSubStrand: suggestion?.subStrand,
+            duration: calcDuration(slot.start, slot.end),
+            languageCode: 'en',
+          },
+        )
+
+        if (!generation.ok) {
+          setError(generation.message)
+          setPhase('form')
+          return
+        }
+
+        if (!generation.resourceVersionId) {
+          throw new Error(
+            'LessonPlanModal: canonical generation returned no exact resource version.',
+          )
+        }
+
+        canonicalResource = {
+          resourceId: generation.resourceId,
+          resourceVersionId: generation.resourceVersionId,
+        }
+
+        // Teacher focus is contextual/private. Apply it only to the local
+        // lesson-plan copy after canonical retrieval/generation; never send it
+        // into the reusable family or candidate payload.
+        parsed = focus.trim()
+          ? {
+              ...generation.sections,
+              differentiation: `${generation.sections.differentiation}\n\nTeacher focus: ${focus.trim()}`,
+            }
+          : generation.sections
+      } else {
+        // A custom free-text topic has no authoritative curriculum identity.
+        // Preserve the existing contextual generator but never promote its
+        // output into the canonical reusable inventory.
+        const generation = await generateLessonPlan({
+          accessToken: token,
+          teacherName: ctx.teacherName,
+          schoolName: ctx.schoolName,
+          subject: slot.subject,
+          className: slot.class,
+          studentCount: ctx.studentCount,
+          duration: calcDuration(slot.start, slot.end),
+          topic: topic.trim(),
+          focus: focus.trim() || undefined,
+          previousTopics: ctx.previousTopics,
+        })
+
+        if (!generation.ok) {
+          setError(generation.message)
+          setPhase('form')
+          return
+        }
+
+        parsed = generation.sections
       }
 
-      const parsed = generation.sections
       setSections(parsed)
 
       // Fix 14C: week_start / day_of_week / taught_date come from the exact
@@ -961,7 +1027,7 @@ export default function LessonPlanModal({
           const { data: schemeRow, error: schemeError } = await supabase
             .from('scheme_of_work')
             .select(
-              'id, curriculum_id, teacher_id, school_id, class_id, subject_id',
+              'id, curriculum_id, sub_strand_id, teacher_id, school_id, class_id, subject_id',
             )
             .eq('id', schemeId)
             .single()
@@ -980,9 +1046,25 @@ export default function LessonPlanModal({
             )
           }
 
-          // The persisted scheme row is authoritative for its curriculum link.
-          // A stale client suggestion must never write a conflicting identity.
+          // The persisted scheme row is authoritative for its curriculum and
+          // sub-strand identity. A stale client suggestion must never write a
+          // conflicting identity.
           curriculumId = schemeRow.curriculum_id ?? curriculumId
+          strandId = schemeRow.sub_strand_id ?? strandId
+        }
+
+        if (
+          canonicalResource &&
+          (
+            !curriculumId ||
+            !strandId ||
+            curriculumId !== canonicalIdentity?.curriculumId ||
+            strandId !== canonicalIdentity?.subStrandId
+          )
+        ) {
+          throw new Error(
+            'LessonPlanModal: canonical source identity changed before save. Please reopen the lesson and try again.',
+          )
         }
       }
 
@@ -1019,6 +1101,14 @@ export default function LessonPlanModal({
 
       if (currentId == null) {
         setPlanId(savedPlan.id)
+      }
+
+      if (canonicalResource) {
+        await pinCanonicalLessonResource({
+          lessonPlanId: savedPlan.id,
+          resourceId: canonicalResource.resourceId,
+          resourceVersionId: canonicalResource.resourceVersionId,
+        })
       }
 
       if (savedPlan.scheme_id) {
@@ -1474,11 +1564,17 @@ export default function LessonPlanModal({
                   }}
                 />
               </div>
+              {suggestionLinked && !canonicalIdentity && (
+                <p style={{ fontSize: 11, color: '#b45309', marginBottom: 12 }}>
+                  This curriculum item is missing stable canonical IDs. Generation will remain blocked until the source is repaired.
+                </p>
+              )}
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
-              <button onClick={generate} disabled={isbusy} style={{
+              <button onClick={generate} disabled={isbusy || (suggestionLinked && !canonicalIdentity)} style={{
                 width: '100%', padding: '14px', borderRadius: 12, border: 'none',
                 background: C.accent, color: '#fff', fontSize: 15, fontWeight: 800,
-                cursor: isbusy ? 'not-allowed' : 'pointer', opacity: isbusy ? 0.7 : 1,
+                cursor: isbusy || (suggestionLinked && !canonicalIdentity) ? 'not-allowed' : 'pointer',
+                opacity: isbusy || (suggestionLinked && !canonicalIdentity) ? 0.7 : 1,
                 display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: 8, fontFamily: 'inherit',
               }}>
