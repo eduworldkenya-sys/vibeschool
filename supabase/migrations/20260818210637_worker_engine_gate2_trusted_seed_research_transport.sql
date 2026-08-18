@@ -82,7 +82,7 @@ language plpgsql
 security definer
 set search_path=public,pg_temp
 as $$
-declare s public.hq_content_factory_r2_canary_sessions%rowtype;
+declare s record;
 begin
   if session_user<>'postgres' then raise exception 'gate2_operator_postgres_required'; end if;
   select * into s from public.hq_content_factory_r2_canary_sessions where id=p_session_id for update;
