@@ -9,6 +9,7 @@ on:
       - 'lib/twin/**'
       - 'supabase/migrations/**'
       - 'scripts/test-school-admin-task7-contract.mjs'
+      - 'scripts/test-school-admin-route-contract.mjs'
       - '.github/workflows/school-admin-task7.yml'
   workflow_dispatch:
 
@@ -25,3 +26,5 @@ jobs:
           node-version: 20
       - name: School Admin Task 7 contract
         run: node scripts/test-school-admin-task7-contract.mjs
+      - name: School Admin dead-route contract
+        run: node scripts/test-school-admin-route-contract.mjs
