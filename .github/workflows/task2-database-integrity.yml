@@ -7,6 +7,9 @@ on:
       - "supabase/migrations/**"
       - "supabase/config.toml"
       - "scripts/sql/task2_database_integrity_verify.sql"
+      - "scripts/task2_extract_application_db_contracts.py"
+      - "lib/database.types.ts"
+      - "lib/supabase.ts"
       - ".github/workflows/task2-database-integrity.yml"
 
 concurrency:
@@ -122,20 +125,68 @@ jobs:
             -f scripts/sql/task2_database_integrity_verify.sql \
             2>&1 | tee .task2-artifacts/database-contract-rerun.log
 
+      - name: Inventory literal application database contracts
+        shell: bash
+        run: python3 scripts/task2_extract_application_db_contracts.py
+
+      - name: Verify application relations and RPCs exist in reconstruction
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres@127.0.0.1:54322/postgres'
+          missing=0
+          while IFS= read -r relation; do
+            [ -n "$relation" ] || continue
+            exists="$(PGPASSWORD=postgres psql "$DB" -Atqc "select to_regclass('public.${relation}') is not null")"
+            if [ "$exists" != "t" ]; then
+              echo "Missing application relation: public.${relation}" >&2
+              missing=1
+            fi
+          done < .task2-artifacts/application-contracts/relations.txt
+          while IFS= read -r rpc; do
+            [ -n "$rpc" ] || continue
+            exists="$(PGPASSWORD=postgres psql "$DB" -Atqc "select exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='${rpc}')")"
+            if [ "$exists" != "t" ]; then
+              echo "Missing application RPC: public.${rpc}" >&2
+              missing=1
+            fi
+          done < .task2-artifacts/application-contracts/rpcs.txt
+          test "$missing" -eq 0
+
+      - name: Generate TypeScript database contract from clean reconstruction
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase gen types typescript --local > .task2-artifacts/database.types.generated.ts
+          test -s .task2-artifacts/database.types.generated.ts
+
       - name: Capture schema/security evidence
         shell: bash
         run: |
           set -euo pipefail
-          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -AtF $'\t' -c \
+          DB='postgresql://postgres@127.0.0.1:54322/postgres'
+          PGPASSWORD=postgres psql "$DB" -AtF $'\t' -c \
             "select c.relname,c.relrowsecurity,c.relforcerowsecurity from pg_class c where c.relnamespace='public'::regnamespace and c.relkind in ('r','p') order by c.relname" \
             > .task2-artifacts/public-table-rls.tsv
-          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -AtF $'\t' -c \
+          PGPASSWORD=postgres psql "$DB" -AtF $'\t' -c \
             "select schemaname,tablename,policyname,roles,cmd,coalesce(qual,''),coalesce(with_check,'') from pg_policies where schemaname='public' order by tablename,policyname" \
             > .task2-artifacts/public-policies.tsv
-          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -AtF $'\t' -c \
+          PGPASSWORD=postgres psql "$DB" -AtF $'\t' -c \
             "select n.nspname,p.proname,pg_get_function_identity_arguments(p.oid),p.prosecdef,coalesce(array_to_string(p.proconfig,','),'') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' order by p.proname,pg_get_function_identity_arguments(p.oid)" \
             > .task2-artifacts/public-functions.tsv
-          sha256sum .task2-artifacts/* > .task2-artifacts/evidence.sha256
+          PGPASSWORD=postgres psql "$DB" -AtF $'\t' -c \
+            "select table_name,column_name,udt_name,is_nullable,coalesce(column_default,'') from information_schema.columns where table_schema='public' order by table_name,ordinal_position" \
+            > .task2-artifacts/public-columns.tsv
+          PGPASSWORD=postgres psql "$DB" -AtF $'\t' -c \
+            "select conrelid::regclass::text,conname,contype,pg_get_constraintdef(oid,true),convalidated from pg_constraint where connamespace='public'::regnamespace order by conrelid::regclass::text,conname" \
+            > .task2-artifacts/public-constraints.tsv
+          PGPASSWORD=postgres psql "$DB" -AtF $'\t' -c \
+            "select schemaname,tablename,indexname,indexdef from pg_indexes where schemaname='public' order by tablename,indexname" \
+            > .task2-artifacts/public-indexes.tsv
+          PGPASSWORD=postgres psql "$DB" -AtF $'\t' -c \
+            "select event_object_table,trigger_name,event_manipulation,action_timing,action_statement from information_schema.triggers where trigger_schema='public' order by event_object_table,trigger_name,event_manipulation" \
+            > .task2-artifacts/public-triggers.tsv
+          sha256sum .task2-artifacts/* .task2-artifacts/application-contracts/* > .task2-artifacts/evidence.sha256
 
       - name: Upload reconstruction evidence
         if: always()
