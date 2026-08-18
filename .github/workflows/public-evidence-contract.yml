@@ -1,0 +1,39 @@
+name: Public Evidence Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/evidence/**'
+      - 'app/sitemap.ts'
+      - 'components/public/PublicFooter.tsx'
+      - 'config/public-evidence.json'
+      - 'config/public-content-governance.json'
+      - 'lib/publicEvidence.ts'
+      - 'docs/product/VIBESCHOOL-EVIDENCE-ENGINE.md'
+      - 'scripts/test-public-evidence.py'
+      - '.github/workflows/public-evidence-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/evidence/**'
+      - 'app/sitemap.ts'
+      - 'components/public/PublicFooter.tsx'
+      - 'config/public-evidence.json'
+      - 'config/public-content-governance.json'
+      - 'lib/publicEvidence.ts'
+      - 'docs/product/VIBESCHOOL-EVIDENCE-ENGINE.md'
+      - 'scripts/test-public-evidence.py'
+      - '.github/workflows/public-evidence-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-contract:
+    name: Evidence publication fail-closed contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-public-evidence.py
