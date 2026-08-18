@@ -98,9 +98,10 @@ def main() -> int:
     require(apple_icon, "contentType = 'image/png'", "Apple touch icon")
     require(apple_icon, "/icons/vibeschool-logo.png", "Apple touch icon")
 
-    # Changing the offline shell requires a service-worker generation change so
-    # existing installed clients actually receive the new fallback.
-    require(sw, "vibeschool-v6", "service worker")
+    # Changing the offline shell or safe public precache set requires a service-worker
+    # generation change so existing installed clients actually receive the new fallback.
+    require(sw, "vibeschool-v7", "service worker")
+    require(sw, "'/sandbox'", "service worker safe public sandbox")
     require(sw, "url.pathname.startsWith('/api/')", "service worker")
     require(sw, "url.pathname.startsWith('/auth/')", "service worker")
     require(sw, "url.pathname.startsWith('/pwa-icons/')", "service worker")

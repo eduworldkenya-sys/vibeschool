@@ -1,0 +1,74 @@
+name: Public Real-Product Sandbox
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/sandbox/**'
+      - 'components/public/PublicProductSandbox.tsx'
+      - 'components/public/PublicProductSandbox.module.css'
+      - 'components/public/PublicHeader.tsx'
+      - 'app/api/public-telemetry/**'
+      - 'lib/publicTelemetry.ts'
+      - 'scripts/test-public-sandbox.mjs'
+      - '.github/workflows/public-sandbox-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/sandbox/**'
+      - 'components/public/PublicProductSandbox.tsx'
+      - 'components/public/PublicProductSandbox.module.css'
+      - 'components/public/PublicHeader.tsx'
+      - 'app/api/public-telemetry/**'
+      - 'lib/publicTelemetry.ts'
+      - 'scripts/test-public-sandbox.mjs'
+      - '.github/workflows/public-sandbox-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  public-sandbox:
+    name: Safe interactive learning-loop certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Canonical production build
+        uses: ./.github/actions/production-build-contract
+        with:
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Install isolated Chromium runtime
+        run: |
+          rm -rf /tmp/vibeschool-public-sandbox
+          mkdir -p /tmp/vibeschool-public-sandbox
+          cd /tmp/vibeschool-public-sandbox
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/scripts/test-public-sandbox.mjs" ./test-public-sandbox.mjs
+      - name: Start production server
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npm run start -- -p 3000 > /tmp/vibeschool-public-sandbox-server.log 2>&1 &
+          echo $! > /tmp/vibeschool-public-sandbox-server.pid
+      - name: Wait for server
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/sandbox >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/vibeschool-public-sandbox-server.log
+          exit 1
+      - name: Run sandbox certification
+        working-directory: /tmp/vibeschool-public-sandbox
+        env:
+          PUBLIC_TEST_BASE_URL: http://127.0.0.1:3000
+        run: node test-public-sandbox.mjs
+      - name: Diagnostics
+        if: failure()
+        run: cat /tmp/vibeschool-public-sandbox-server.log || true

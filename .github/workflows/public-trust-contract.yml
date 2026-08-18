@@ -6,6 +6,7 @@ on:
     paths:
       - 'app/page.tsx'
       - 'app/product/**'
+      - 'app/sandbox/**'
       - 'app/about/**'
       - 'app/contact/**'
       - 'app/careers/**'

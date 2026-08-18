@@ -1,0 +1,169 @@
+.sandbox{
+  --ink:#17231f;
+  --muted:#607069;
+  --line:#dce5df;
+  --paper:#f7faf8;
+  --accent:#176a4a;
+  --accent-soft:#eaf4ef;
+  --deep:#10251d;
+  color:var(--ink);
+  background:#fff;
+}
+.hero{
+  max-width:1180px;
+  margin:0 auto;
+  padding:72px 24px 40px;
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(260px,.7fr);
+  gap:32px;
+  align-items:end;
+}
+.hero h1{font-size:clamp(2.35rem,6vw,5rem);line-height:.98;letter-spacing:-.055em;margin:12px 0 22px;max-width:900px}
+.hero>div>p:not(.eyebrow){font-size:clamp(1.05rem,2vw,1.3rem);line-height:1.65;color:var(--muted);max-width:780px}
+.eyebrow{font-size:.76rem!important;font-weight:800;letter-spacing:.16em;color:var(--accent)!important;margin:0;text-transform:uppercase}
+.hero aside{background:var(--deep);color:#fff;padding:26px;border-radius:24px;box-shadow:0 18px 55px rgba(15,37,29,.16)}
+.hero aside strong{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase}
+.hero aside p{line-height:1.6;color:#d8e5df}
+.hero aside a{color:#fff;font-weight:750;text-underline-offset:4px}
+.heroBadges{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.heroBadges span{border:1px solid var(--line);border-radius:999px;padding:8px 11px;font-size:.78rem;font-weight:700;background:var(--paper)}
+
+.workspace{
+  max-width:1180px;
+  margin:0 auto 48px;
+  border:1px solid var(--line);
+  border-radius:28px;
+  overflow:hidden;
+  box-shadow:0 22px 70px rgba(18,40,31,.08);
+  background:#fff;
+}
+.stageNav{display:grid;grid-template-columns:repeat(6,1fr);background:var(--paper);border-bottom:1px solid var(--line)}
+.stageNav button{
+  appearance:none;border:0;border-right:1px solid var(--line);background:transparent;padding:16px 12px;min-height:70px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer;color:var(--muted);font:inherit;text-align:left
+}
+.stageNav button:last-child{border-right:0}
+.stageNav button:hover,.stageNav button:focus-visible{background:#fff;color:var(--ink)}
+.stageNav button:focus-visible,.controls button:focus-visible,.roleButtons button:focus-visible,.stageHeader button:focus-visible{outline:3px solid rgba(23,106,74,.28);outline-offset:-3px}
+.stageNav small{font-weight:800;font-size:.7rem;letter-spacing:.08em}
+.stageNav span{font-weight:760;font-size:.9rem}
+.stageNav .activeStage{background:#fff;color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+
+.stageHeader{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 24px;border-bottom:1px solid var(--line)}
+.stageHeader p{font-size:.72rem;letter-spacing:.15em;font-weight:800;color:var(--accent);margin:0 0 4px}
+.stageHeader strong{font-size:.92rem}
+.stageHeader button{border:1px solid var(--line);background:#fff;border-radius:999px;min-height:42px;padding:0 14px;font:inherit;font-weight:700;cursor:pointer;color:var(--muted)}
+
+.stageGrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,.55fr);gap:0;min-height:520px}
+.primaryCard{padding:34px;min-width:0}
+.primaryCard h2{font-size:clamp(1.6rem,3vw,2.6rem);letter-spacing:-.035em;line-height:1.08;margin:9px 0 26px;max-width:760px}
+.cardEyebrow{font-size:.74rem;letter-spacing:.13em;font-weight:850;color:var(--accent);margin:0}
+.signalCard{background:var(--paper);border-left:1px solid var(--line);padding:34px;display:flex;flex-direction:column;justify-content:center}
+.signalCard>span{font-size:.72rem;letter-spacing:.13em;font-weight:850;color:var(--accent);text-transform:uppercase}
+.signalCard h3{font-size:1.4rem;line-height:1.25;margin:10px 0 12px}
+.signalCard p{color:var(--muted);line-height:1.6;margin:0 0 14px}
+.bigNumber{font-size:3rem;line-height:1;margin:14px 0 8px;letter-spacing:-.05em}
+
+.planList{margin:0;display:grid;gap:12px}
+.planList div{display:grid;grid-template-columns:155px 1fr;gap:18px;padding:14px 0;border-bottom:1px solid var(--line)}
+.planList dt{font-size:.78rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.planList dd{margin:0;font-weight:700;line-height:1.5}
+.criteriaBlock{margin-top:24px;background:var(--accent-soft);padding:20px;border-radius:18px}
+.criteriaBlock strong{display:block;margin-bottom:10px}
+.criteriaBlock ol{padding-left:20px;margin:0;display:grid;gap:8px;color:#29483b;line-height:1.5}
+.boundary{font-size:.8rem!important;color:var(--muted)!important;line-height:1.55!important;margin:18px 0 0!important}
+
+.learnerRows{display:grid;gap:12px}
+.learnerRow{display:grid;grid-template-columns:minmax(160px,1fr) auto auto;gap:14px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:15px 16px}
+.learnerRow>div{display:flex;flex-direction:column;gap:3px}
+.learnerRow>div span{font-size:.75rem;color:var(--muted)}
+.learnerRow label{display:flex;align-items:center;gap:7px;font-weight:700;font-size:.86rem;min-height:40px}
+.learnerRow input,.evidenceMatrix input{width:19px;height:19px;accent-color:var(--accent)}
+
+.evidenceMatrix{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.evidenceMatrix section{border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:12px}
+.matrixHeading{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.matrixHeading span{font-size:.72rem;color:var(--muted);text-align:right}
+.evidenceMatrix label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;line-height:1.35}
+.evidenceMatrix label span{display:grid;gap:3px;font-size:.82rem;color:var(--muted)}
+.evidenceMatrix label b{color:var(--ink);font-size:.76rem;text-transform:uppercase;letter-spacing:.05em}
+.dimmedLearner{opacity:.55;background:var(--paper)}
+
+.assessmentList{display:grid;gap:12px}
+.assessmentList>div{border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;grid-template-columns:110px minmax(180px,.8fr) minmax(240px,1.2fr) auto;align-items:center;gap:14px}
+.assessmentList>div>span{font-weight:800}
+.assessmentList>div>strong{color:var(--accent)}
+.assessmentList p{margin:0;color:var(--muted);line-height:1.5}
+.assessmentList small{color:var(--muted);text-align:right}
+
+.criterionBars{display:grid;gap:22px}
+.criterionBars>div>div{display:flex;justify-content:space-between;gap:14px;margin-bottom:8px}
+.criterionBars span{font-size:.82rem;color:var(--muted)}
+.criterionBars progress{width:100%;height:14px;accent-color:var(--accent)}
+.gapCallout{margin-top:30px;border:1px solid var(--line);border-radius:18px;padding:20px;background:var(--paper)}
+.gapCallout span,.nextAction span{display:block;font-size:.72rem;font-weight:850;letter-spacing:.11em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.gapCallout strong,.nextAction strong{font-size:1.15rem;line-height:1.4}
+.gapCallout p,.nextAction p{color:var(--muted);line-height:1.6;margin:10px 0 0}
+
+.nextAction{background:var(--accent-soft);border-radius:20px;padding:24px}
+.loop{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:24px}
+.loop span{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:8px;text-align:center;font-size:.73rem;font-weight:750;color:var(--muted)}
+.loop .loopActive{background:var(--deep);color:#fff;border-color:var(--deep)}
+
+.controls{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:14px 18px;background:var(--paper)}
+.controls button{border:1px solid var(--line);border-radius:999px;background:#fff;min-height:44px;padding:0 18px;font:inherit;font-weight:760;cursor:pointer;color:var(--ink)}
+.controls button:disabled{opacity:.38;cursor:not-allowed}
+.controls span{font-size:.82rem;color:var(--muted);font-weight:700}
+
+.roleSection{max-width:1180px;margin:0 auto 48px;padding:40px 24px;background:var(--deep);color:#fff;border-radius:28px}
+.roleIntro{display:grid;grid-template-columns:.7fr 1.3fr;gap:24px;align-items:end}
+.roleIntro h2{font-size:clamp(1.6rem,3vw,2.7rem);line-height:1.08;letter-spacing:-.035em;margin:0}
+.roleSection .eyebrow{color:#9ed7bd!important}
+.roleButtons{display:flex;flex-wrap:wrap;gap:8px;margin:28px 0 16px}
+.roleButtons button{border:1px solid rgba(255,255,255,.22);background:transparent;color:#fff;border-radius:999px;min-height:44px;padding:0 16px;font:inherit;font-weight:720;cursor:pointer}
+.roleButtons .activeRole{background:#fff;color:var(--deep)}
+.roleCard{background:#fff;color:var(--ink);border-radius:20px;padding:24px;min-height:190px}
+.roleCard>span{font-size:.72rem;text-transform:uppercase;letter-spacing:.11em;font-weight:850;color:var(--accent)}
+.roleCard h3{font-size:1.45rem;margin:8px 0 10px}
+.roleCard p{line-height:1.65;color:var(--muted);margin:0 0 12px}
+.roleCard small{color:var(--muted)}
+
+.truthStrip{max-width:1180px;margin:0 auto;padding:0 24px 72px;display:grid;grid-template-columns:220px 1fr;gap:22px}
+.truthStrip strong{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.truthStrip p{margin:0;color:var(--muted);line-height:1.65}
+
+@media(max-width:900px){
+  .hero,.stageGrid,.roleIntro{grid-template-columns:1fr}
+  .hero{padding-top:48px}
+  .stageGrid{min-height:0}
+  .signalCard{border-left:0;border-top:1px solid var(--line)}
+  .stageNav{grid-template-columns:repeat(3,1fr)}
+  .stageNav button:nth-child(3){border-right:0}
+  .stageNav button:nth-child(-n+3){border-bottom:1px solid var(--line)}
+  .evidenceMatrix{grid-template-columns:1fr}
+  .assessmentList>div{grid-template-columns:1fr}
+  .assessmentList small{text-align:left}
+  .roleSection{border-radius:0}
+  .truthStrip{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .hero{padding:38px 16px 28px}
+  .hero h1{font-size:2.7rem}
+  .workspace{margin:0 12px 36px;border-radius:20px}
+  .stageNav{grid-template-columns:repeat(2,1fr)}
+  .stageNav button:nth-child(3){border-right:1px solid var(--line)}
+  .stageNav button:nth-child(even){border-right:0}
+  .stageNav button:nth-child(-n+4){border-bottom:1px solid var(--line)}
+  .stageHeader{padding:14px 16px}
+  .stageHeader strong{font-size:.82rem}
+  .primaryCard,.signalCard{padding:22px 18px}
+  .learnerRow{grid-template-columns:1fr 1fr}
+  .learnerRow>div{grid-column:1/-1}
+  .planList div{grid-template-columns:1fr;gap:5px}
+  .loop{grid-template-columns:repeat(2,1fr)}
+  .roleSection{margin-bottom:36px;padding:32px 16px}
+  .truthStrip{padding:0 16px 52px}
+}
+@media(prefers-reduced-motion:reduce){
+  .sandbox *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
