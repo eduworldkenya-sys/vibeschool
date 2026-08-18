@@ -63,7 +63,8 @@ requireText('components/teacher/TwinDrawer.tsx', 'resolveTeacherTwinQuery', 'Tea
 requireText('components/teacher/TwinDrawer.tsx', '<TwinRoleSwitcher currentRole="teacher" />', 'Teacher Twin must expose authorized multi-role switching')
 requireText('lib/teacher/twin.ts', "rpc<Json>('teacher_get_twin_brain')", 'Teacher adapter must consume the production Teacher brain RPC')
 requireText('lib/teacher/twin.ts', 'getTwinAuthorityContext', 'Teacher adapter must derive authority through the shared Twin core')
-requireText('lib/teacher/twin.ts', "selectTwinRoleBinding(authority, 'teacher')", 'Teacher brain must be bound to an authorized teacher scope')
+requireText('lib/teacher/twin.ts', "selectTwinRoleBinding(authority, 'teacher', schoolId)", 'Teacher brain must validate the server-selected active school against relationship authority')
+forbidText('lib/teacher/twin.ts', "selectTwinRoleBinding(authority, 'teacher')", 'Teacher adapter must not reject or guess a multi-school Teacher before server active-school resolution')
 
 requireText('components/parent/TwinDrawer.tsx', 'getTwinAuthorityContext', 'Parent Twin must derive roles from the shared core')
 requireText('components/parent/TwinDrawer.tsx', 'requireTwinRole(authority, "parent")', 'Parent Twin must require an active relationship-derived Parent role')
@@ -84,6 +85,10 @@ forbidText('components/hq/TwinDrawer.tsx', 'TwinRoleSwitcher', 'HQ isolation mus
 requireText('lib/twin/hq-brain.ts', 'hqSupabase as supabase', 'HQ brain data reads must use the isolated HQ Supabase client')
 forbidText('lib/twin/hq-brain.ts', 'import { supabase } from "@/lib/supabase";', 'HQ brain must not use the normal application Supabase client')
 
+requireText('components/teacher/SmartInsightSlides.tsx', 'getTwinAuthorityContext', 'Teacher insights must derive authority through the shared Twin core')
+requireText('components/teacher/SmartInsightSlides.tsx', "from('teacher_profiles').select('school_id')", 'Teacher insights may read the stored active-school preference only as a scope hint')
+requireText('components/teacher/SmartInsightSlides.tsx', "selectTwinRoleBinding(authority, 'teacher', teacherProfileRes.data?.school_id ?? undefined)", 'Teacher insight active school must be verified against Teacher membership')
+forbidText('components/teacher/SmartInsightSlides.tsx', "from('school_members').select('school_id')", 'Teacher insights must not arbitrarily choose a first school membership')
 requireText('components/teacher/SmartInsightSlides.tsx', "from('teacher_classes')", 'Teacher insight scope must start from canonical teacher assignments')
 requireText('components/teacher/SmartInsightSlides.tsx', "from('student_classes')", 'Teacher insight learner scope must use current enrollment')
 requireText('components/teacher/SmartInsightSlides.tsx', 'Missing data is not positive or negative evidence.', 'Teacher insight must preserve the evidence boundary instead of invented facts')
