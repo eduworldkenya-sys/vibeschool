@@ -51,34 +51,39 @@ begin
   end loop;
 end $$;
 
--- Raw payment/callback and order-event evidence is not client-readable.
+-- Raw publishing inventory, payment callbacks and audit events are company-side
+-- truth. Browser roles consume allowlisted storefront projections instead.
 do $$
+declare
+  v_table text;
+  v_role text;
 begin
-  if has_table_privilege('anon','public.commerce_payment_callback_events','SELECT')
-     or has_table_privilege('authenticated','public.commerce_payment_callback_events','SELECT') then
-    raise exception 'commerce contract: callback evidence exposed to client roles';
-  end if;
-  if has_table_privilege('anon','public.learning_product_order_events','SELECT')
-     or has_table_privilege('authenticated','public.learning_product_order_events','SELECT') then
-    raise exception 'commerce contract: order audit events exposed to client roles';
-  end if;
-end $$;
+  foreach v_table in array array[
+    'learning_products','learning_product_items','learning_product_curriculum_links',
+    'learning_product_offers','learning_product_order_events','commerce_payment_callback_events'
+  ] loop
+    foreach v_role in array array['anon','authenticated'] loop
+      if has_table_privilege(v_role, format('public.%I',v_table), 'SELECT') then
+        raise exception 'commerce contract: % unexpectedly has raw SELECT on %', v_role, v_table;
+      end if;
+    end loop;
+  end loop;
 
--- Public catalogue reads are deliberate; private commercial state is self-scoped.
-do $$
-begin
-  if not has_table_privilege('anon','public.learning_products','SELECT') then
-    raise exception 'commerce contract: public catalogue not readable';
-  end if;
   if has_table_privilege('anon','public.learning_product_orders','SELECT') then
     raise exception 'commerce contract: anonymous order reads granted';
   end if;
   if not has_table_privilege('authenticated','public.learning_product_orders','SELECT') then
     raise exception 'commerce contract: authenticated self-order read unavailable';
   end if;
+  if not has_table_privilege('authenticated','public.learning_product_entitlements','SELECT') then
+    raise exception 'commerce contract: authenticated entitlement read unavailable';
+  end if;
+  if not has_table_privilege('authenticated','public.commerce_payment_attempts','SELECT') then
+    raise exception 'commerce contract: authenticated self-payment read unavailable';
+  end if;
 end $$;
 
--- Security-definer RPCs have fixed search_path and least-privilege EXECUTE.
+-- Security-sensitive RPCs have fixed search_path and least-privilege EXECUTE.
 do $$
 declare
   v_signature text;
@@ -95,7 +100,8 @@ begin
     'public.claim_commerce_payment_attempt(uuid)',
     'public.attach_commerce_mpesa_request(uuid,text,text,jsonb)',
     'public.process_commerce_payment_callback_event(uuid)',
-    'public.commerce_get_publication_purchase_context(uuid)'
+    'public.commerce_get_publication_purchase_context(uuid)',
+    'public.commerce_sync_order_from_payment_attempt()'
   ] loop
     v_oid := to_regprocedure(v_signature);
     if v_oid is null then raise exception 'commerce contract: missing function %', v_signature; end if;
@@ -117,6 +123,10 @@ begin
   if not has_function_privilege('service_role','public.commerce_fulfill_learning_product_order(uuid,text,text,numeric)','EXECUTE') then
     raise exception 'commerce contract: service fulfillment unavailable';
   end if;
+  if not has_function_privilege('anon','public.commerce_get_publication_purchase_context(uuid)','EXECUTE')
+     or not has_function_privilege('authenticated','public.commerce_get_publication_purchase_context(uuid)','EXECUTE') then
+    raise exception 'commerce contract: storefront projection unavailable';
+  end if;
 end $$;
 
 -- Rights clearance is a mechanical saleability invariant.
@@ -131,8 +141,12 @@ begin
   end;
 end $$;
 
--- Payment/order relationship validators must be installed.
+-- Payment/order relationship, retry and duplicate-charge guards must be installed.
 do $$
+declare
+  v_order_fn text;
+  v_sync_fn text;
+  v_storefront_fn text;
 begin
   if not exists (
     select 1 from pg_trigger t
@@ -148,6 +162,35 @@ begin
     where n.nspname='public' and c.relname='commerce_payment_attempts'
       and t.tgname='commerce_validate_payment_attempt_contract' and not t.tgisinternal
   ) then raise exception 'commerce contract: payment validator trigger missing'; end if;
+  if not exists (
+    select 1 from pg_trigger t
+    join pg_class c on c.oid=t.tgrelid
+    join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and c.relname='commerce_payment_attempts'
+      and t.tgname='commerce_sync_order_from_payment_attempt' and not t.tgisinternal
+  ) then raise exception 'commerce contract: failed-payment order-release trigger missing'; end if;
+
+  select pg_get_functiondef('public.commerce_create_learning_product_order(uuid,text,uuid)'::regprocedure) into v_order_fn;
+  if v_order_fn not like '%pg_advisory_xact_lock%'
+     or v_order_fn not like '%learning_product_entitlements%'
+     or v_order_fn not like '%payment_reconciliation_required%'
+     or v_order_fn not like '%pending_payment%' then
+    raise exception 'commerce contract: order boundary lacks duplicate-charge serialization/entitlement/reconciliation guard';
+  end if;
+
+  select pg_get_functiondef('public.commerce_sync_order_from_payment_attempt()'::regprocedure) into v_sync_fn;
+  if v_sync_fn not like '%failed%'
+     or v_sync_fn not like '%cancelled%'
+     or v_sync_fn not like '%expired%'
+     or v_sync_fn not like '%reconciliation_required%' then
+    raise exception 'commerce contract: payment terminal-state synchronization incomplete';
+  end if;
+
+  select pg_get_functiondef('public.commerce_get_publication_purchase_context(uuid)'::regprocedure) into v_storefront_fn;
+  if v_storefront_fn not like '%pricing_model = ''one_time''%'
+     or v_storefront_fn not like '%rights_status = ''cleared''%' then
+    raise exception 'commerce contract: storefront advertises unsupported or uncleared products';
+  end if;
 end $$;
 
 -- Paid content cannot fall through legacy public chapter/block policies.
