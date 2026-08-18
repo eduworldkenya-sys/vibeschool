@@ -1,0 +1,27 @@
+name: Teacher Pilot Task 4
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/**'
+      - 'components/teacher/**'
+      - 'lib/teaching/**'
+      - 'lib/timetable/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-teacher-pilot-task4-contract.mjs'
+      - '.github/workflows/teacher-pilot-task4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  teacher-pilot-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Teacher Pilot Task 4 contract
+        run: node scripts/test-teacher-pilot-task4-contract.mjs
