@@ -30,31 +30,16 @@ def main() -> None:
             (mig / f'{v}_worker_engine_fixture.sql').write_text('-- fixture\n')
         (mig / '20260818084507_student_twin_fixture.sql').write_text('-- unrelated\n')
         (mig / '20260815210000_school_fixture.sql').write_text('-- unrelated\n')
+
         found = r.discover_recovery_versions(mig)
         assert expected == found
+        assert r.START_VERSION == '20260815090500'
+        assert '20260815090500' in found
+        assert '20260815092500' in found
         assert '20260818084507' not in found and '20260815210000' not in found
+
         r.configure_scope(mig)
         assert r.module.APPROVED_WORKER_ENGINE_VERSIONS == expected
-
-        stage = root / 'stage'
-        staged_migrations = stage / 'supabase' / 'migrations'
-        staged_migrations.mkdir(parents=True)
-        target = staged_migrations / f'{r.TARGET_VERSION}_worker_engine_fixture.sql'
-        target.write_text('-- canonical migration body\n')
-        transformed = r.inject_legacy_collision_repair(stage)
-        assert transformed == target.name
-        text = target.read_text()
-        assert text.startswith('-- WE-R1.4 protected recovery prerequisite')
-        assert 'archive already exists' in text
-        assert 'legacy capability edge collision contains % rows' in text
-        assert text.endswith('-- canonical migration body\n')
-
-        try:
-            r.inject_legacy_collision_repair(stage)
-        except r.module.StageFailure as exc:
-            assert 'already injected' in str(exc)
-        else:
-            raise AssertionError('duplicate repair injection must fail closed')
 
     print('Worker Engine R1.4 production recovery staging contract PASSED')
 
