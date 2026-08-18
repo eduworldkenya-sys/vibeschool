@@ -2,138 +2,129 @@
 
 Date: 2026-08-18
 Branch: `feature/canonical-learning-assets-r3-20260818`
-Current reconciliation base main: `e30a5d91bced3c5b5d3a83486aee8c3ab8ed97b4`
-Production Supabase: unchanged
-Vercel: intentionally untouched
+PR: `#252`
+Exact reconciliation base main: `532e31e4bde5a0733fad7c0deeaca410374c24e8`
+Reconciliation commit: `2ec0ec96636eb8ecdd4d217a54469a7693f0de8a`
+Production Supabase: unchanged pending exact-head certification
+Vercel: no direct action; non-main Git deployments remain disabled by repository config
 
 ## Mission
 
 `curriculum need -> deterministic family identity -> certified lookup -> reuse hit OR unique governed content-gap claim -> research/generate -> independent verification -> certify immutable version -> adopt/pin delivery`
 
-This applies to lesson plans, notes, homework, quizzes, exercises, revision, worksheets, assessments, worked examples, projects/practicals, remedial/enrichment resources, marking schemes, rubrics and reusable content blocks.
+This architecture applies to lesson plans, notes, homework, quizzes, exercises, revision, worksheets, assessments, worked examples, projects/practicals, remedial/enrichment resources, marking schemes, rubrics and reusable content blocks.
 
 ## Architectural authority
 
-1. `learning_resources` is the canonical reusable family/root authority. Do not create `canonical_learning_assets`.
-2. `learning_resource_versions` is the exact immutable reusable-content version authority.
-3. `teaching_resource_links` remains the generic bridge from reusable resources to contextual teaching/delivery and receives an exact version pin.
-4. Existing unified `assessment_definitions` / `assessment_items` remain assessment/question authority.
-5. Teacher/school/class/learner/date/deadline state is contextual and must not enter global canonical identity or reusable candidate payloads.
+1. `learning_resources` is the canonical reusable family/root authority. Do not create another canonical-content root.
+2. `learning_resource_versions` is the immutable exact-version authority.
+3. `teaching_resource_links` remains the bridge from reusable inventory to contextual teaching/delivery and carries the exact version pin.
+4. Existing unified assessment authorities remain the question/assessment authority.
+5. Teacher, school, class, learner, deadline and private teaching context must never enter global canonical identity or reusable candidate payloads.
 6. Only independently certified versions are reusable across unrelated teachers/schools.
-7. Model/search spend is permitted only after the canonical single-flight gate returns `claimed`.
+7. Search/model spend is permitted only after the canonical single-flight gate returns `claimed`.
 
-## Current branch lineage
+## Exact-current-main reconciliation
 
-The earlier R3 history had fallen 12 commits behind while main advanced through Content Factory R2.3. The branch was rebuilt from exact current main `e30a5d91...` using only the intended R3 blobs.
+The previous R3 branch had drifted far behind a rapidly advancing `main`. A whole-tree reparent was explicitly rejected because it could delete newer certified Student=1, Worker Engine and auth work.
 
-Reconciliation commit:
+The final reconciliation method is deterministic and lossless:
 
-`b81628e9803b4dd6b66a01c0451c7d4883f3f59b`
+`current main tree -> overlay exactly the 22 intended R3 paths -> new single-parent commit`
 
-Immediately after reconciliation the branch compared as 0 commits behind main and 1 commit ahead.
+Before rebuilding, the three pre-existing application seams modified by R3 were compared across the old R3 merge base and current `main`:
 
-## Completed R3.1/R3.2 authority
+- `components/teacher/LessonPlanModal.tsx`
+- `lib/teaching/lessonSource.ts`
+- `lib/teaching/lessonWorkspace.ts`
 
-- `lib/content/canonicalLearningAssetIdentity.ts` — deterministic curriculum-addressable family identity.
-- `lib/content/canonicalLearningAssetLookup.ts` — pure certified lookup-before-generation gate.
-- `supabase/migrations/20260818141000_canonical_learning_resource_versions.sql` — additive root/version schema, RLS/grants, immutability, exact delivery pin and certified lookup RPC.
-- `supabase/migrations/20260818141500_canonical_learning_resource_version_visibility_hardening.sql` — hides non-certified payloads from normal authenticated clients.
-- `supabase/migrations/20260818141600_canonical_learning_resource_platform_visibility.sql` — integrates certified platform resources into existing learning-resource visibility authority.
-- `supabase/migrations/20260818142000_canonical_learning_resource_generation_claims.sql` — atomic `hit|pending|claimed` single-flight claim authority with expiry/recovery.
-- `supabase/migrations/20260818142100_canonical_learning_resource_candidate_deposit.sql` — candidate deposit, PostgreSQL SHA-256, and candidate/verified pending suppression.
-- `scripts/test-canonical-learning-asset-identity.sh` — identity convergence/privacy contract.
-- `scripts/sql/canonical_learning_resource_versions_verify.sql` — adversarial database contract.
-- `docs/CANONICAL_LEARNING_ASSETS_R3_1_AUTHORITY_MAP.md` — production/repository authority reconciliation.
-- `docs/CANONICAL_LEARNING_ASSETS_R3_2_SCHEMA_DESIGN.md` — finalized schema/security design.
+None had changed on `main` during the intervening commits. The other 19 R3 paths are additive. Immediately after reconciliation, GitHub compared the branch as `0 behind / 1 ahead` of `532e31e4...`, with exactly the intended 22 paths and no unrelated deletion or modification.
 
-## R3.3 governed generation boundary added
+## Completed reusable-content authority
 
-New repository-only components:
+- deterministic curriculum-addressable family identity;
+- certified lookup before any generation;
+- immutable `learning_resource_versions` lineage;
+- authenticated clients can read certified versions only;
+- candidate/verified/rejected/retired payloads remain hidden from normal browser access;
+- platform visibility extends the existing `fn_learning_resource_visible()` authority rather than bypassing it;
+- atomic single-flight `hit | pending | claimed` generation ownership with expiry/recovery;
+- PostgreSQL-computed candidate SHA-256;
+- one inflight candidate/verified version suppresses duplicate generation;
+- exact reusable version pin on contextual lesson delivery.
 
-- `supabase/functions/generate-canonical-lesson-plan/index.ts`
-- `lib/teaching/canonicalLessonGeneration.ts`
-- `.github/workflows/canonical-learning-assets-r3.yml`
+## Governed promotion authority
 
-The canonical lesson generator requires stable UUID-backed curriculum identity:
+Generated output cannot certify itself.
 
-- `curriculumId`
-- `subjectId`
-- `grade`
-- `subStrandId`
+The final authority chain is:
 
-Free-text topic/strand labels may enrich research and pedagogy but cannot establish identity.
+`candidate -> service verification -> platform-owner certification -> reusable certified version`
 
-Execution order is now encoded as:
+Service workers may verify or reject candidate content. Direct service-role lifecycle UPDATE is revoked by the promotion authority. Only the authenticated platform-owner lane may certify or retire a version. Certified content cannot be deleted and its payload/evidence cannot be edited; retirement preserves immutable history.
 
-`JWT -> authoritative identity validation -> cla_claim_learning_resource_gap -> hit/pending/claimed`
+## Application wiring completed
 
-For `hit`:
+The former application gap is closed.
 
-`certified version -> immediate response -> zero research -> zero model -> zero new Vibe Credit spend`
+Lesson Workspace now preserves `grade` and carries stable persisted curriculum/sub-strand identity. Scheme/national curriculum resolution no longer manufactures canonical identity from strand-name text equality.
 
-For `pending`:
+Authoritative lesson generation now follows:
 
-`existing active claim/candidate/verified version -> 202 pending -> zero duplicate spend`
+`Lesson Workspace source -> curriculumId + subjectId + grade + subStrandId -> canonical generator -> hit/pending/claimed -> contextual teacher lesson -> exact resource-version pin`
 
-For `claimed` only:
+If an authoritative curriculum source is linked but any required stable UUID identity is missing, canonical generation fails closed. It does not fall back to fuzzy title/topic matching.
 
-`wallet check -> Tavily enrichment -> context-free Groq generation -> PostgreSQL candidate deposit -> one credit spend`
+Custom free-text topics remain supported through the contextual lesson generator but are deliberately excluded from shared canonical inventory.
 
-The reusable prompt explicitly excludes teacher name, school, class/stream, learner count, previous lessons, deadlines and teacher focus.
+Teacher focus remains private/local: it may customize the teacher's contextual lesson copy after canonical retrieval/generation but is not sent into the reusable family identity or candidate prompt.
 
-A generated candidate is returned to the requesting teacher for immediate contextual use but is not globally reusable until certification.
+## Economic behavior
+
+For the same authoritative curriculum need:
+
+- `hit` -> certified database reuse -> zero new research/model generation;
+- `pending` -> another request/candidate already owns the gap -> zero duplicate spend;
+- `claimed` -> exactly one request may proceed to wallet check, Tavily enrichment, model generation and candidate deposit.
+
+The generator orders the costly stages after the canonical claim gate.
 
 ## Security posture
 
-- Platform canonical roots use `created_by = null`, `owner_type = platform`.
-- Certified versions cannot be deleted.
-- Certified payload/evidence cannot be edited.
-- Retired versions preserve payload/evidence immutably.
-- Candidate/unverified payloads are hidden from normal browser access.
-- `anon` has no canonical-version access.
-- Service role does not receive version DELETE.
-- Candidate SHA-256 is computed inside PostgreSQL.
-- Generation/search cannot self-certify output.
-- The canonical generator uses the service-role database boundary only after validating the caller JWT.
+- platform roots use `created_by = null`, `owner_type = platform`;
+- no teacher gains global creator-management authority by requesting a gap;
+- `anon` has no canonical-version payload access;
+- authenticated browser access is certified-only;
+- service role has no version DELETE and no direct promotion UPDATE under the final authority;
+- SHA-256 integrity is database-computed;
+- reusable prompts exclude teacher name, school, class/stream, learner count, previous lessons, deadlines and teacher focus;
+- generation/search cannot self-certify output;
+- exact-version pins prevent contextual teaching records from silently drifting to a later canonical version.
 
-## Confirmed application gap still fail-closed
+## Certification contract
 
-Current `lib/teaching/lessonWorkspace.ts` explicitly removes `grade` before returning workspace context.
+The repository workflow `.github/workflows/canonical-learning-assets-r3.yml` proves on a disposable Supabase instance:
 
-Current `components/teacher/LessonPlanModal.tsx` passes only strand/sub-strand names into the legacy generator. It does not yet pass `curriculumId`, `subjectId`, `grade`, and `subStrandId` into the canonical generator.
-
-This caller must be patched before the canonical generator replaces the legacy lesson-plan path. Do not resolve this gap with title/topic/strand fuzzy matching.
-
-The safe next wiring is:
-
-`Lesson Workspace authoritative source -> preserve grade -> stable curriculum/sub-strand IDs -> generateCanonicalLessonPlan -> hit/pending/candidate -> save contextual teacher occurrence -> exact learning_resource_version pin`
-
-Scheme rows with no authoritative `curriculum_id` or no resolvable stable curriculum/sub-strand identity must fail closed for canonical generation.
-
-## Certification state
-
-Repository CI contract is now defined to prove:
-
-- clean disposable Supabase migration execution;
-- deterministic family identity tests;
-- adversarial RLS/immutability/version/claim SQL contract;
-- Deno type-check of canonical generator;
+- migration-chain execution;
+- deterministic identity convergence/privacy;
+- RLS/grant/version/claim immutability contracts;
+- promotion-authority adversarial contract;
+- Deno type-check of `generate-canonical-lesson-plan`;
+- authoritative lesson identity path;
 - claim-before-wallet/research/model/deposit ordering;
 - reusable-prompt privacy boundary.
 
-These checks have not yet been observed green on the new exact-head commit. Therefore R3 is not merge-certified yet.
+Exact-head certification must be observed green before production commissioning and merge. If `main` advances after certification, reconcile again and rerun certification rather than merging a stale head.
 
-## Production boundary
+## Production commissioning boundary
 
-Production Supabase remains unchanged. The live project was inspected read-only and still has the pre-R3 `fn_learning_resource_visible()` authority while R3 tables/RPCs remain absent, as expected.
-
-No R3 migration or Edge Function has been deployed to production.
+Production currently remains pre-R3. After exact-head repository certification succeeds, apply the R3 migrations in timestamp order, deploy `generate-canonical-lesson-plan` with JWT verification, run postflight privilege/RLS/version-pin/single-flight checks and Supabase security/performance advisors, then merge only if production and repository evidence remain clean.
 
 ## Non-negotiables
 
-- Production Supabase stays unchanged until exact-head database certification passes.
-- No Vercel action until application work is complete and intentionally promoted.
-- No title/free-text matching masquerading as canonical curriculum identity.
-- No automatic certification of generated or legacy content.
-- No parallel canonical root/question bank.
-- Keep this handover updated after every reconciliation/certification/promotion step.
+- no fuzzy text matching masquerading as authoritative curriculum identity;
+- no automatic certification of generated or legacy content;
+- no parallel canonical root/question bank;
+- preserve all newer `main` work during every reconciliation;
+- no direct Vercel deployment during branch certification;
+- keep this handover synchronized with reconciliation, certification, production commissioning and final merge state.
