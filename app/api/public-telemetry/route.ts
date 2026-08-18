@@ -8,6 +8,7 @@ const ALLOWED_EVENTS = new Set([
   'public_readiness_complete_connected','public_role_learner','public_role_teacher','public_role_family','public_role_school',
   'public_connected_explorer_interaction','public_capability_status_view',
   'public_sandbox_open','public_sandbox_progress','public_sandbox_role','public_sandbox_complete',
+  'public_sandbox_breadth','public_sandbox_signup','public_sandbox_pilot','public_sandbox_product',
 ])
 
 const PUBLIC_PATH = /^\/(?:$|product(?:\/|$)|sandbox(?:\/|$)|teachers(?:\/|$)|learners(?:\/|$)|families(?:\/|$)|about(?:\/|$)|contact(?:\/|$)|careers(?:\/|$)|institutions(?:\/|$)|trust(?:\/|$)|legal(?:\/|$)|pathways(?:\/|$)|learn\/careers(?:\/|$)|global(?:\/|$))/
