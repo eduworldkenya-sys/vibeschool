@@ -8,11 +8,14 @@ const reply = (body: unknown, status = 200) =>
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? ""
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? ""
+const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY") ?? ""
 const MODEL_KEY = Deno.env.get("CONTENT_SEMANTIC_VERIFIER_MODEL") ?? "llama-3.3-70b-versatile"
 
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
+
+type RetrievalMethod = "direct_https" | "tavily_extract"
 
 type Claim = {
   decision: "allow"
@@ -28,8 +31,9 @@ type Claim = {
   source_url: string
   source_title: string | null
   source_type: string
-  source_content_hash: string
-  evidence_excerpt: string
+  material_id: string
+  material_sha256: string
+  retrieval_method: RetrievalMethod
 }
 
 type ModelVerdict = {
@@ -37,6 +41,11 @@ type ModelVerdict = {
   confidence: number
   evidence_excerpt: string
   rationale: string
+}
+
+type RetrievedMaterial = {
+  method: RetrievalMethod
+  text: string
 }
 
 function compactWhitespace(value: string) {
@@ -50,7 +59,108 @@ function exactEvidenceSubstring(candidate: string, source: string) {
   return needle.length >= 8 && haystack.includes(needle)
 }
 
-function parseVerdict(raw: string, sourceExcerpt: string): ModelVerdict {
+function isPrivateIpv4(hostname: string) {
+  const parts = hostname.split(".").map((part) => Number(part))
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false
+  const [a, b] = parts
+  return a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a === 0
+}
+
+function assertSafeSourceUrl(raw: string) {
+  const url = new URL(raw)
+  if (url.protocol !== "https:") throw new Error("semantic_verifier_https_source_required")
+  const host = url.hostname.toLocaleLowerCase()
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host === "::1" || host.endsWith(".local") || isPrivateIpv4(host)) {
+    throw new Error("semantic_verifier_private_source_denied")
+  }
+  return url
+}
+
+function htmlToText(html: string) {
+  return compactWhitespace(
+    html
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'"),
+  )
+}
+
+async function directHttpsExtract(rawUrl: string): Promise<string> {
+  let current = assertSafeSourceUrl(rawUrl)
+  for (let redirect = 0; redirect <= 3; redirect += 1) {
+    const response = await fetch(current.toString(), {
+      method: "GET",
+      redirect: "manual",
+      headers: {
+        "Accept": "text/html,text/plain;q=0.9,*/*;q=0.2",
+        "User-Agent": "VibeSchool-Content-Semantic-Verifier/1.0",
+      },
+    })
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location")
+      if (!location || redirect === 3) throw new Error("semantic_verifier_redirect_denied")
+      current = assertSafeSourceUrl(new URL(location, current).toString())
+      continue
+    }
+    if (!response.ok) throw new Error(`semantic_verifier_source_fetch_failed:${response.status}`)
+    const contentType = (response.headers.get("content-type") ?? "").toLocaleLowerCase()
+    if (!contentType.includes("text/html") && !contentType.includes("text/plain") && !contentType.includes("application/xhtml+xml")) {
+      throw new Error("semantic_verifier_direct_content_type_unsupported")
+    }
+    const raw = await response.text()
+    if (raw.length > 500_000) throw new Error("semantic_verifier_source_material_too_large")
+    const text = contentType.includes("html") || contentType.includes("xhtml") ? htmlToText(raw) : compactWhitespace(raw)
+    if (text.length < 32) throw new Error("semantic_verifier_source_material_too_short")
+    return text.slice(0, 12_000)
+  }
+  throw new Error("semantic_verifier_source_fetch_unreachable")
+}
+
+async function tavilyExtract(rawUrl: string): Promise<string> {
+  if (!TAVILY_API_KEY) throw new Error("semantic_verifier_tavily_key_missing")
+  const url = assertSafeSourceUrl(rawUrl)
+  const response = await fetch("https://api.tavily.com/extract", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${TAVILY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ urls: [url.toString()], extract_depth: "advanced", format: "text" }),
+  })
+  const payload = await response.json().catch(() => ({})) as {
+    results?: Array<{ url?: string; raw_content?: string }>
+  }
+  if (!response.ok) throw new Error(`semantic_verifier_tavily_extract_failed:${response.status}`)
+  const exact = Array.isArray(payload.results)
+    ? payload.results.find((item) => item.url === url.toString()) ?? payload.results[0]
+    : undefined
+  const text = compactWhitespace(typeof exact?.raw_content === "string" ? exact.raw_content : "")
+  if (text.length < 32) throw new Error("semantic_verifier_tavily_material_too_short")
+  return text.slice(0, 12_000)
+}
+
+async function retrieveSourceMaterial(rawUrl: string): Promise<RetrievedMaterial> {
+  try {
+    return { method: "direct_https", text: await directHttpsExtract(rawUrl) }
+  } catch (directError) {
+    if (!TAVILY_API_KEY) throw directError
+    return { method: "tavily_extract", text: await tavilyExtract(rawUrl) }
+  }
+}
+
+function parseVerdict(raw: string, sourceMaterial: string): ModelVerdict {
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
@@ -79,8 +189,8 @@ function parseVerdict(raw: string, sourceExcerpt: string): ModelVerdict {
     throw new Error("semantic_verifier_decisive_confidence_below_threshold")
   }
   if (verdict === "supported" || verdict === "refuted") {
-    if (!exactEvidenceSubstring(evidenceExcerpt, sourceExcerpt)) {
-      throw new Error("semantic_verifier_excerpt_not_grounded_in_source")
+    if (!exactEvidenceSubstring(evidenceExcerpt, sourceMaterial)) {
+      throw new Error("semantic_verifier_excerpt_not_grounded_in_material")
     }
   }
   return {
@@ -91,14 +201,14 @@ function parseVerdict(raw: string, sourceExcerpt: string): ModelVerdict {
   }
 }
 
-async function verifySemantics(claim: Claim): Promise<{ verdict: ModelVerdict; raw: Record<string, unknown> }> {
+async function verifySemantics(claim: Claim, sourceMaterial: string): Promise<{ verdict: ModelVerdict; raw: Record<string, unknown> }> {
   const system = [
     "You are VibeSchool's evidence-classification verifier.",
-    "Judge ONLY whether the supplied SOURCE EXCERPT supports or refutes the supplied CLAIM.",
-    "Do not use outside knowledge. Do not repair, extend, or infer beyond the excerpt.",
+    "Judge ONLY whether the supplied SOURCE MATERIAL supports or refutes the supplied CLAIM.",
+    "Do not use outside knowledge. Do not repair, extend, or infer beyond the supplied material.",
     "Return exactly one JSON object with keys verdict, confidence, evidence_excerpt, rationale.",
     "verdict must be supported, refuted, or insufficient.",
-    "For supported/refuted, confidence must be at least 0.85 and evidence_excerpt must be copied verbatim from SOURCE EXCERPT.",
+    "For supported/refuted, confidence must be at least 0.85 and evidence_excerpt must be copied verbatim from SOURCE MATERIAL.",
     "If evidence is ambiguous, partial, missing context, or confidence would be below 0.85, use insufficient.",
     "For insufficient, evidence_excerpt may be empty.",
   ].join(" ")
@@ -108,7 +218,8 @@ async function verifySemantics(claim: Claim): Promise<{ verdict: ModelVerdict; r
     `SOURCE TYPE: ${claim.source_type}`,
     `SOURCE TITLE: ${claim.source_title ?? "unknown"}`,
     `SOURCE URL: ${claim.source_url}`,
-    `SOURCE EXCERPT:\n${claim.evidence_excerpt}`,
+    `MATERIAL SHA256: ${claim.material_sha256}`,
+    `SOURCE MATERIAL:\n${sourceMaterial}`,
   ].join("\n\n")
 
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -120,7 +231,7 @@ async function verifySemantics(claim: Claim): Promise<{ verdict: ModelVerdict; r
     body: JSON.stringify({
       model: claim.model_key,
       temperature: 0,
-      max_tokens: Math.max(200, Math.min(2000, Number(claim.token_budget || 1200))),
+      max_tokens: Math.max(200, Math.min(2000, Number(claim.token_budget || 4000))),
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: system },
@@ -136,7 +247,7 @@ async function verifySemantics(claim: Claim): Promise<{ verdict: ModelVerdict; r
   const first = choices[0] as { message?: { content?: unknown } } | undefined
   const content = typeof first?.message?.content === "string" ? first.message.content : ""
   if (!content) throw new Error("semantic_verifier_empty_model_output")
-  const verdict = parseVerdict(content, claim.evidence_excerpt)
+  const verdict = parseVerdict(content, sourceMaterial)
 
   return {
     verdict,
@@ -144,6 +255,10 @@ async function verifySemantics(claim: Claim): Promise<{ verdict: ModelVerdict; r
       verifier_version: "certified_semantic_verifier_v1",
       provider: "groq",
       model: claim.model_key,
+      source_id: claim.source_id,
+      material_id: claim.material_id,
+      material_sha256: claim.material_sha256,
+      retrieval_method: claim.retrieval_method,
       verdict: verdict.verdict,
       confidence: verdict.confidence,
       evidence_excerpt: verdict.evidence_excerpt,
@@ -170,23 +285,35 @@ Deno.serve(async (req: Request) => {
   }
   if (!body.taskId || !body.sourceId) return reply({ error: "taskId_and_sourceId_required" }, 400)
 
+  const { data: source, error: sourceError } = await db
+    .from("curriculum_intelligence_sources")
+    .select("id,url")
+    .eq("id", body.sourceId)
+    .maybeSingle()
+  if (sourceError) return reply({ error: `semantic_verifier_source_lookup_failed:${sourceError.message}` }, 500)
+  if (!source?.url) return reply({ error: "semantic_verifier_source_not_found" }, 404)
+
   let claim: Claim | null = null
   try {
+    const material = await retrieveSourceMaterial(source.url)
     const { data, error } = await db.rpc("hq_content_semantic_verifier_claim", {
       p_task_id: body.taskId,
       p_source_id: body.sourceId,
+      p_retrieval_method: material.method,
+      p_material_text: material.text,
       p_model_key: body.modelKey || MODEL_KEY,
-      p_token_budget: Math.max(200, Math.min(4000, Number(body.tokenBudget || 1200))),
+      p_token_budget: Math.max(500, Math.min(6000, Number(body.tokenBudget || 4000))),
     })
     if (error) throw new Error(`semantic_verifier_claim_failed:${error.message}`)
     claim = data as Claim
     if (!claim || claim.decision !== "allow") throw new Error("semantic_verifier_claim_not_authorized")
 
-    const model = await verifySemantics(claim)
+    const model = await verifySemantics(claim, material.text)
 
     const { data: completion, error: completionError } = await db.rpc("hq_content_semantic_verifier_complete", {
       p_task_id: claim.task_id,
       p_source_id: claim.source_id,
+      p_material_id: claim.material_id,
       p_model_invocation_id: claim.model_invocation_id,
       p_verdict: model.verdict.verdict,
       p_confidence: model.verdict.confidence,
