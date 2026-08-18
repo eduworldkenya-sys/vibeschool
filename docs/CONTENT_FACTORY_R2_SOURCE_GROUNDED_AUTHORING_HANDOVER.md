@@ -20,7 +20,7 @@ R2.3 branch:
 
 `agent/content-factory-r2-source-grounded-authoring-20260818`
 
-The branch was created directly from that merge commit. During R2.3 certification, main advanced and the branch was reconciled with current main `8b8f1ffc38a9f13a5c83e6ac29bac59d6dd64a51` through merge commit `cafa586cdae60672fe7a18506ebcc2ac0f69fba2` before the final certification cycle.
+The branch was created directly from that merge commit. During certification, main advanced twice. R2.3 was first reconciled with Worker Engine lineage main `8b8f1ffc38a9f13a5c83e6ac29bac59d6dd64a51`, then—after the first full reconciled suite went green—main advanced again through Content Engine Gate 1 to `c88fa34f430c7fffa37429cbf07cdf604ed706db`. The branch was explicitly reconciled onto that newer main as commit `07956471f0a04d1db8baba0c84dd1425093d4551` using current main's tree plus exactly the five R2.3 blobs. Only certification on the resulting post-handover head counts for promotion.
 
 ## Existing editorial system found
 
@@ -144,7 +144,7 @@ The first PR #248 certification cycle on head `37faaf8ad1cfc6399d7b1e21d8ac028e1
 1. **Migration-security metadata omission.** `curriculum_authoring_drafts` already enabled RLS and explicitly revoked public/anon/authenticated/service-role privileges before granting only `SELECT, INSERT` to `service_role`, but the migration omitted the repository validator's auditable `access: service-only` and `authorization-test` declarations. Those declarations were added without widening any grant or adding a permissive policy.
 2. **Whitespace-sensitive verifier assertion.** The disposable Supabase successfully applied the migration chain, then the adversarial SQL verifier failed while inspecting `hq_content_authoring_evidence_packet`. The function itself contained the required `status='evidence_ready'` material-bound evidence logic; the verifier expected a whitespace-normalized spelling that `pg_get_functiondef` did not guarantee. The test now normalizes whitespace before testing that predicate while retaining all semantic-verifier/material/contradiction/source-minimum assertions.
 
-The repaired pre-reconciliation head was `ad7c7b6cc261c47fcd69311f0168dabffc35a985`. Its fresh migration-security gate passed before the branch was reconciled with current main. Because reconciliation and this handover update changed the branch head, only checks on the final post-handover head count for promotion.
+The repaired pre-reconciliation head was `ad7c7b6cc261c47fcd69311f0168dabffc35a985`; its dedicated disposable contract and migration-security gate passed. A later reconciled head `2df3382ad9701ddfc117a895e00648a74dc9ee5c` then passed the complete R2.3/repository certification suite against main `8b8f1ffc...`. Before merge, main advanced to `c88fa34f...`, so that green head was deliberately not merged. It was reconciled again as `07956471...`, and the handover was updated before the new exact-head certification cycle.
 
 ## Production boundary
 
