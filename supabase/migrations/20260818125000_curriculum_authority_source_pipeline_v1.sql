@@ -5,6 +5,18 @@ begin;
 -- National curriculum content authority is deliberately separated from school pacing.
 -- public.cbc_strands is the existing unpaced CBC hierarchy surface.
 -- public.curriculum remains an operational/pacing surface and is never populated here.
+-- access: service-only public.curriculum_authority_sources
+-- authorization-test: public.curriculum_authority_sources
+-- access: service-only public.curriculum_authority_artifacts
+-- authorization-test: public.curriculum_authority_artifacts
+-- access: service-only public.curriculum_authority_snapshots
+-- authorization-test: public.curriculum_authority_snapshots
+-- access: service-only public.curriculum_authority_observations
+-- authorization-test: public.curriculum_authority_observations
+-- access: service-only public.curriculum_authority_reconciliation
+-- authorization-test: public.curriculum_authority_reconciliation
+-- access: service-only public.curriculum_authority_promotions
+-- authorization-test: public.curriculum_authority_promotions
 
 create or replace function public.curriculum_authority_normalize_text(p_text text)
 returns text
