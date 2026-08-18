@@ -1,6 +1,11 @@
 -- Task 2: recover production-only identity/profile dependencies into repository truth.
--- authorization-test: public.audit_logs, public.admin_profiles, public.parent_profiles,
---                     public.student_profiles, public.teacher_profiles
+-- authorization-test: public.relationship_types
+-- authorization-test: public.gender_types
+-- authorization-test: public.audit_logs
+-- authorization-test: public.admin_profiles
+-- authorization-test: public.parent_profiles
+-- authorization-test: public.student_profiles
+-- authorization-test: public.teacher_profiles
 --
 -- Blank reconstruction proved these contracts were absent even though production and
 -- application/security functions depend on them. This forward migration is ordered as:
@@ -164,8 +169,6 @@ begin
 end;
 $$;
 
--- Canonical trigger reconstruction. fn_set_updated_at() and fn_audit_log() are
--- already part of the replayed repository chain; audit_logs above closes their hidden sink.
 drop trigger if exists trg_admin_profiles_updated_at on public.admin_profiles;
 create trigger trg_admin_profiles_updated_at before update on public.admin_profiles
 for each row execute function public.fn_set_updated_at();
@@ -210,7 +213,6 @@ alter table public.parent_profiles enable row level security;
 alter table public.student_profiles enable row level security;
 alter table public.teacher_profiles enable row level security;
 
--- Catalogue lookups are authenticated-only. No anonymous table privilege is needed.
 drop policy if exists relationship_types_read on public.relationship_types;
 create policy relationship_types_read on public.relationship_types for select to authenticated
 using (true);
@@ -218,14 +220,10 @@ drop policy if exists gender_types_read on public.gender_types;
 create policy gender_types_read on public.gender_types for select to authenticated
 using (true);
 
--- Audit history is owner-readable; normal clients never insert/update/delete audit rows.
 drop policy if exists audit_logs_hq_owner_read on public.audit_logs;
 create policy audit_logs_hq_owner_read on public.audit_logs for select to authenticated
 using (public.is_platform_owner());
 
--- Role profiles: authenticated users can see/update their own row, with school admins
--- able to manage same-school domain profiles. Parent/teacher access to student profiles
--- resolves the canonical students.id instead of comparing profile/auth UUIDs to student_id.
 drop policy if exists task2_admin_profiles_select on public.admin_profiles;
 create policy task2_admin_profiles_select on public.admin_profiles for select to authenticated
 using (
@@ -348,8 +346,6 @@ using (exists (
     and sm.role=any(array['owner'::public.member_role,'admin'::public.member_role])
 ));
 
--- Remove any legacy policies by their production-era names so the reconstructed source
--- of truth has one explicit policy set rather than overlapping permissive policies.
 drop policy if exists pol_admin_profiles_delete on public.admin_profiles;
 drop policy if exists pol_admin_profiles_insert on public.admin_profiles;
 drop policy if exists pol_admin_profiles_select on public.admin_profiles;
