@@ -127,7 +127,6 @@ export default function TeacherProfilePage() {
 
   // Repository-generated Supabase types currently lag several production profile columns.
   // Keep that temporary escape hatch local to this page; auth and storage remain strongly typed.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any;
 
   useEffect(() => { void load(); }, []);
