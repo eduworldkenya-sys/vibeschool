@@ -1,7 +1,7 @@
 // lib/twin/hq-brain.ts
 // HQ Twin brain — platform admin intelligence layer
 
-import { supabase } from "@/lib/supabase";
+import { hqSupabase as supabase } from "@/lib/hq/supabase";
 import { fuzzyMatch } from "@/lib/twin/fuzzy";
 import { HQ_TWIN_REGISTRY as TWIN_REGISTRY } from "@/lib/twin/hq-registry";
 import { TwinReply, TwinRegistryEntry } from "@/lib/types";

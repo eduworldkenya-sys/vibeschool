@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import OfflineBar from "@/components/teacher/OfflineBar"
+import { getTwinAuthorityContext, selectTwinRoleBinding } from "@/lib/twin/core"
 
 const C = {
   hero:    "#0a1628",
@@ -192,38 +193,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   async function loadProfile(user: { id: string }) {
     try {
-      const { data: p, error: pError } = await supabase
-        .from("profiles")
-        .select("full_name, school_id, role")
-        .eq("id", user.id)
-        .single()
+      const authority = await getTwinAuthorityContext()
+      if (authority.userId !== user.id) throw new Error("Admin session identity changed during authority resolution.")
+      const binding = selectTwinRoleBinding(authority, "admin")
+      const schoolId = binding.schoolId
+      if (!schoolId) throw new Error("Admin layout has no authorized school scope.")
+
+      const [{ data: p, error: pError }, { data: school, error: schoolError }] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+        supabase.from("schools").select("name, logo_url").eq("id", schoolId).single(),
+      ])
 
       if (pError || !p) { router.push("/admin/login"); return }
-      if (p.role !== "admin") { router.push("/admin/login"); return }
-
-      let schoolName = "VibeSchool Admin"
-      let logoUrl: string | null = null
-
-      if (p.school_id) {
-        const { data: school } = await supabase
-          .from("schools")
-          .select("name, logo_url")
-          .eq("id", p.school_id)
-          .single()
-        if (school) {
-          schoolName = school.name ?? "VibeSchool Admin"
-          logoUrl = school.logo_url ?? null
-        }
-      }
+      if (schoolError || !school) throw new Error(schoolError?.message || "Admin school could not be resolved.")
 
       setProfile({
-        name:       p.full_name ?? "Principal",
-        schoolName,
-        schoolId:   p.school_id ?? "",
-        logoUrl,
+        name: p.full_name ?? "Principal",
+        schoolName: school.name ?? "VibeSchool Admin",
+        schoolId,
+        logoUrl: school.logo_url ?? null,
       })
-    } catch (err) { console.error("AdminLayout error:", err)
-
+    } catch (err) {
+      console.error("AdminLayout authority error:", err)
+      router.push("/admin/login")
     } finally {
       setLoading(false)
     }
