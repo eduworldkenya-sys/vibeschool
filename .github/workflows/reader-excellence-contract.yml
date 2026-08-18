@@ -9,6 +9,7 @@ on:
       - 'public/sw.js'
       - 'supabase/migrations/*reader*'
       - 'scripts/test-reader-excellence-contract.py'
+      - 'scripts/test-reader-calm-android-toolbar.py'
       - 'docs/strategy/VIBELEARN-READER-EXCELLENCE-CONTRACT.md'
       - '.github/workflows/reader-excellence-contract.yml'
   push:
@@ -21,6 +22,7 @@ on:
       - 'public/sw.js'
       - 'supabase/migrations/*reader*'
       - 'scripts/test-reader-excellence-contract.py'
+      - 'scripts/test-reader-calm-android-toolbar.py'
       - 'docs/strategy/VIBELEARN-READER-EXCELLENCE-CONTRACT.md'
       - '.github/workflows/reader-excellence-contract.yml'
 
@@ -36,4 +38,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Run reader excellence regression contract
-        run: python3 scripts/test-reader-excellence-contract.py
+        run: |
+          python3 scripts/test-reader-excellence-contract.py
+          python3 scripts/test-reader-calm-android-toolbar.py
