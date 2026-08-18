@@ -12,6 +12,12 @@ type PendingCookie = {
   options?: Parameters<NextResponse['cookies']['set']>[2]
 }
 type OnboardingState = { state?: unknown; destination?: unknown }
+type AccessState = {
+  role: string | null
+  status: string | null
+  anonymized: boolean
+  reasonCode: string | null
+}
 
 function safeRequestedRole(value: string | null): string | null {
   return value && Object.prototype.hasOwnProperty.call(AUTH_DASHBOARDS, value) ? value : null
@@ -41,6 +47,19 @@ function authError(req: NextRequest, reason: string, pendingCookies: PendingCook
 
 function logStage(stage: string, flowId: string, detail?: string) {
   console.info(JSON.stringify({ scope: 'auth_journey', stage, flow_id: flowId, detail }))
+}
+
+function accessFailureReason(access: AccessState): string | null {
+  if (access.reasonCode === 'PROFILE_MISSING') return 'profile_missing'
+  if (access.reasonCode === 'ADMIN_MEMBERSHIP_MISSING') return 'admin_membership_missing'
+  if (access.reasonCode === 'AMBIGUOUS_LEARNER_IDENTITY') return 'identity_conflict'
+  if (
+    access.anonymized ||
+    access.reasonCode === 'ACCOUNT_ANONYMIZED' ||
+    access.reasonCode === 'ACCOUNT_NOT_ACTIVE' ||
+    (access.status !== null && access.status !== 'active')
+  ) return 'account_unavailable'
+  return null
 }
 
 export async function GET(req: NextRequest) {
@@ -92,13 +111,14 @@ export async function GET(req: NextRequest) {
     return redirectWithCookies(req, '/auth/reset-password', pendingCookies)
   }
 
-  const resolveAccess = async () => {
+  const resolveAccess = async (): Promise<AccessState | null> => {
     const { data, error } = await supabase.rpc('get_my_auth_access_state')
     if (error || !data || typeof data !== 'object' || Array.isArray(data)) return null
     return {
       role: typeof data.role === 'string' ? data.role : null,
       status: typeof data.account_status === 'string' ? data.account_status : null,
       anonymized: data.is_anonymized === true,
+      reasonCode: typeof data.reason_code === 'string' ? data.reason_code : null,
     }
   }
 
@@ -108,13 +128,20 @@ export async function GET(req: NextRequest) {
     return authError(req, 'profile_resolution_failed', pendingCookies)
   }
 
-  if (access.status === 'restricted' || access.anonymized) {
-    await supabase.auth.signOut()
-    logStage('account_unavailable', flowId)
-    return authError(req, 'account_unavailable', pendingCookies)
+  const initialFailure = accessFailureReason(access)
+  if (initialFailure) {
+    if (initialFailure === 'account_unavailable') await supabase.auth.signOut()
+    logStage(initialFailure, flowId, access.reasonCode ?? undefined)
+    return authError(req, initialFailure, pendingCookies)
   }
 
   if (!access.role && intent === 'signup') {
+    // A new self-service role may only be claimed from the explicit role-unclaimed state.
+    // Missing profiles, authority conflicts, or unknown states never enter role claiming.
+    if (access.reasonCode !== 'ROLE_UNCLAIMED') {
+      logStage('authority_resolution_failed', flowId, access.reasonCode ?? undefined)
+      return authError(req, 'authority_resolution_failed', pendingCookies)
+    }
     if (!requestedRole || !SELF_SERVICE_ROLES.has(requestedRole)) {
       return authError(req, 'role_required', pendingCookies)
     }
@@ -124,17 +151,27 @@ export async function GET(req: NextRequest) {
       return authError(req, 'role_claim_failed', pendingCookies)
     }
     access = await resolveAccess()
+    if (!access) return authError(req, 'profile_resolution_failed', pendingCookies)
+    const postClaimFailure = accessFailureReason(access)
+    if (postClaimFailure) {
+      logStage(postClaimFailure, flowId, access.reasonCode ?? undefined)
+      return authError(req, postClaimFailure, pendingCookies)
+    }
   }
 
-  if (!access?.role && intent === 'signin') {
+  if (!access.role && intent === 'signin') {
+    if (access.reasonCode !== 'ROLE_UNCLAIMED') {
+      logStage('authority_resolution_failed', flowId, access.reasonCode ?? undefined)
+      return authError(req, 'authority_resolution_failed', pendingCookies)
+    }
     await supabase.auth.signOut()
     logStage('account_unregistered', flowId)
     return authError(req, 'account_unregistered', pendingCookies)
   }
 
-  const role = access?.role
+  const role = access.role
   if (!role || !AUTH_DASHBOARDS[role]) {
-    logStage('role_unresolved', flowId)
+    logStage('role_unresolved', flowId, access.reasonCode ?? undefined)
     return authError(req, 'role_unresolved', pendingCookies)
   }
   logStage('profile_resolved', flowId, role)
