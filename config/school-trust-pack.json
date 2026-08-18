@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-08-18",
+  "statuses": ["Available", "Validation", "Planned"],
+  "items": [
+    {"area":"Public/private separation","status":"Available","evidence":"Public product and readiness surfaces are designed separately from authenticated learner, family, teacher and school records; public readiness inputs remain browser-local and these public surfaces do not require production learner records."},
+    {"area":"Role and relationship authorization","status":"Validation","evidence":"Production authorization now uses canonical teacher_classes for teacher/class authority across the certified pilot chain, with class-group management also bound to current teacher membership and current learner enrollment. Twenty previously safe legacy class-teacher assignments were reconciled into canonical authority. Thirteen stale legacy teacher_id values (owner, parent or no same-school membership) no longer confer teacher-specific authority. One current-teacher class remains on a bounded compatibility fallback because its class record has no subject identity and teacher_classes currently requires subject_id. VibeSchool still does not represent the complete learner → teacher → family → school matrix as universally end-to-end certified."},
+    {"area":"Teacher assignment authority","status":"Available","evidence":"Production teacher assignment authority is rooted in teacher_classes, whose authenticated mutation path is restricted to authorized school administration and requires a current same-school teacher membership for the assigned teacher. Standalone classes.teacher_id is no longer accepted as an independent teacher-authority source by live RLS policies."},
+    {"area":"Child-data privacy policy","status":"Available","evidence":"The published Privacy Policy states stronger safeguards for children, purpose-limited access, data-subject rights and no sale of personal data."},
+    {"area":"Retention & deletion approach","status":"Validation","evidence":"The public Privacy Policy defines purpose-based retention and deletion/de-identification when data is no longer required; record-by-record operational retention schedules still require deployment-specific validation."},
+    {"area":"AI / automation boundaries","status":"Available","evidence":"Public trust policy keeps consequential educational and authority decisions evidence-aware and appropriately human-led rather than presenting automation as unrestricted authority."},
+    {"area":"Incident / concern route","status":"Available","evidence":"Public Trust and Contact surfaces provide a route for security, privacy, learner-safety and account concerns without asking people to publish credentials or sensitive learner data."},
+    {"area":"Data migration","status":"Validation","evidence":"Migration is scoped from the buyer's actual source data, identifiers and relationships; VibeSchool does not claim a universal one-click migration for every school system."},
+    {"area":"Offline / low-bandwidth coverage","status":"Validation","evidence":"PWA and public browser certification exist, but workflow-specific offline completeness and field conditions must be tested for the deployment a school intends to depend on."},
+    {"area":"Institutional pricing / SLA","status":"Planned","evidence":"Public institutional price and contractual SLA are deliberately not invented before value, support capacity and deployment commitments are formally established."}
+  ]
+}
