@@ -74,6 +74,18 @@ The deterministic Twin and Teacher multi-school contracts now require:
 - Teacher Smart Insights to use the governed active-school preference + membership validation;
 - no arbitrary `school_members ... first/limit(1)` school choice in Teacher Insights.
 
+### 4. Student multi-enrollment authority preservation
+
+Problem found: the shared Twin Core emitted one Student binding per current enrollment, but the dedupe key was learner + school. Multiple legitimate current class/resource rows in the same school could therefore collapse to one binding and silently lose authorized class IDs.
+
+Resolution:
+
+- current Student enrollments are grouped by school before bindings are created;
+- all current class IDs in that school are preserved in `resourceIds`;
+- evidence records `class_ids` plus `current_enrollment_count`;
+- multiple Student school scopes remain separate and the Student portal continues to fail closed until an explicit active-school UX exists;
+- within one authorized school, the portal may still choose the latest current class for display while the authority graph retains the complete authorized resource set.
+
 ## Cross-functional operating doctrine
 
 ### CTO / Security
@@ -128,9 +140,9 @@ Future AI is an optional skill layer for tasks such as alternate explanations, a
 
 ## Remaining program sequence
 
-1. Reconcile PR #221 onto current `main` and certify the exact merged-content candidate without promoting it.
-2. Run/verify deterministic Twin, Teacher multi-school, portal authority, migration security, TypeScript and production-build checks at the reconciled exact head.
-3. Review multi-school scope UX for School Admin and multi-enrollment Student/Parent cases; current behavior is deliberately fail-closed where no explicit selector exists.
+1. Certify the latest exact PR #221 head after every authority/runtime change; do not reuse green evidence from an older head.
+2. Run/verify deterministic Twin, Teacher multi-school, portal authority, migration security, isolated clean rebuild, TypeScript and production-build checks at that exact head.
+3. Review explicit active-scope UX for School Admin and multi-school Student/Parent identities; current behavior is deliberately fail-closed where no selector exists.
 4. Validate the two pending Teacher Twin migrations in an isolated/rebuild environment, including RPC overload/grant/RLS behavior.
 5. Only after all gates are green: promote the two certified migrations and application code in a controlled sequence that avoids a migration/app race.
 6. Keep PR draft until production promotion evidence exists; then merge intentionally to trigger the single planned production deployment.
