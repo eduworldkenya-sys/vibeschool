@@ -1,4 +1,4 @@
--- Canonical Learning Assets R3.4 promotion-authority adversarial contract.
+-- Canonical Learning Assets R3.4/R3.6 promotion and economic authority contract.
 \set ON_ERROR_STOP on
 begin;
 
@@ -50,6 +50,51 @@ begin
      or has_function_privilege('service_role','public.cla_retire_learning_resource_version(uuid,jsonb)','EXECUTE')
      or not has_function_privilege('authenticated','public.cla_retire_learning_resource_version(uuid,jsonb)','EXECUTE') then
     raise exception 'retirement execute boundary incorrect';
+  end if;
+
+  if has_function_privilege('anon','public.cla_reserve_learning_resource_credit(uuid,integer)','EXECUTE')
+     or has_function_privilege('authenticated','public.cla_reserve_learning_resource_credit(uuid,integer)','EXECUTE')
+     or not has_function_privilege('service_role','public.cla_reserve_learning_resource_credit(uuid,integer)','EXECUTE') then
+    raise exception 'credit reservation execute boundary incorrect';
+  end if;
+
+  if has_function_privilege('anon','public.cla_refund_learning_resource_credit(uuid,text)','EXECUTE')
+     or has_function_privilege('authenticated','public.cla_refund_learning_resource_credit(uuid,text)','EXECUTE')
+     or not has_function_privilege('service_role','public.cla_refund_learning_resource_credit(uuid,text)','EXECUTE') then
+    raise exception 'credit refund execute boundary incorrect';
+  end if;
+
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public'
+      and table_name='learning_resource_generation_claims'
+      and column_name='credit_reserved'
+  ) or not exists (
+    select 1 from information_schema.columns
+    where table_schema='public'
+      and table_name='learning_resource_generation_claims'
+      and column_name='credit_refunded_at'
+  ) then
+    raise exception 'claim-bound credit reservation columns missing';
+  end if;
+
+  select pg_get_functiondef('public.cla_reserve_learning_resource_credit(uuid,integer)'::regprocedure)
+  into v_def;
+  if v_def not ilike '%for update%'
+     or v_def not ilike '%vibe_credits%'
+     or v_def not ilike '%credit_reserved%'
+     or v_def not ilike '%balance < p_amount%'
+     or v_def not ilike '%total_spent = total_spent + p_amount%' then
+    raise exception 'credit reservation does not atomically lock claim/wallet and spend';
+  end if;
+
+  select pg_get_functiondef('public.cla_refund_learning_resource_credit(uuid,text)'::regprocedure)
+  into v_def;
+  if v_def not ilike '%credit_refunded_at is not null%'
+     or v_def not ilike '%status = ''completed''%'
+     or v_def not ilike '%total_spent = greatest(0, total_spent - v_claim.credit_reserved)%'
+     or v_def not ilike '%credit_refunded_at = now()%' then
+    raise exception 'credit refund is not idempotent or completion-safe';
   end if;
 
   select pg_get_functiondef('public.cla_verify_learning_resource_candidate(uuid,text,jsonb,text)'::regprocedure)
