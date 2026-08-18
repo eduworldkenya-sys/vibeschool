@@ -10,6 +10,7 @@ const middleware = fs.readFileSync('middleware.ts', 'utf8')
 const routing = fs.readFileSync('lib/auth-routing.ts', 'utf8')
 const recovery = fs.readFileSync('app/auth/error/RecoveryActions.tsx', 'utf8')
 const errorPage = fs.readFileSync('app/auth/error/page.tsx', 'utf8')
+const teacherProfile = fs.readFileSync('app/teacher/profile/page.tsx', 'utf8')
 
 const journey = repair.match(/create or replace function public\.get_my_auth_journey_state\(\)[\s\S]*?\n\$\$;/i)?.[0] ?? ''
 assert.ok(journey)
@@ -26,7 +27,7 @@ for (const wrapper of ['get_my_onboarding_state','get_my_auth_access_state','get
 
 // Profile authority is denied at the grant layer, not only by downstream routing.
 // Historical profile shapes are not identical, so the migration must intersect a
-// fixed presentation-field allowlist with columns that actually exist at rebuild time.
+// fixed self-editable allowlist with columns that actually exist at rebuild time.
 assert.match(profileGrants,/revoke all on table public\.profiles from anon/i)
 assert.match(profileGrants,/revoke update on table public\.profiles from authenticated/i)
 assert.match(profileGrants,/pg_catalog\.pg_attribute/i)
@@ -37,11 +38,23 @@ assert.match(profileGrants,/profiles_editable_column_allowlist_resolved_empty/i)
 
 const allowlist = profileGrants.match(/a\.attname = any \(array\[([\s\S]*?)\]::text\[\]\)/i)?.[1] ?? ''
 assert.ok(allowlist, 'profile editable allowlist must be explicit')
-for (const field of ['full_name','phone','avatar_url','bio','updated_at']) {
+for (const field of [
+  'full_name','first_name','last_name','phone','date_of_birth','gender','country_code',
+  'county','sub_county','address','emergency_contact_name','emergency_contact_phone',
+  'emergency_contact_relation','notification_prefs','avatar_url','bio','onboarded_chronicles'
+]) {
   assert.match(allowlist, new RegExp(`['\"]${field}['\"]`, 'i'), `missing editable field ${field}`)
 }
-for (const field of ['role','school_id','account_status','is_anonymized','created_by','deleted_at']) {
-  assert.ok(!new RegExp(`['\"]${field}['\"]`, 'i').test(allowlist), `authority field ${field} must not be client-updatable`)
+for (const field of ['role','school_id','account_status','is_anonymized','created_by','deleted_at','updated_at']) {
+  assert.ok(!new RegExp(`['\"]${field}['\"]`, 'i').test(allowlist), `authority/provenance field ${field} must not be client-updatable`)
+}
+
+// Do not make the grant so narrow that the real Teacher Profile save silently regresses.
+const teacherProfileUpdate = teacherProfile.match(/from\(["']profiles["']\)\.update\(\{([\s\S]*?)\}\)\.eq\(["']id["']/i)?.[1] ?? ''
+assert.ok(teacherProfileUpdate, 'teacher profile update contract not found')
+for (const field of ['first_name','last_name','full_name','phone','date_of_birth','gender','county','sub_county','address','emergency_contact_name','emergency_contact_phone','emergency_contact_relation']) {
+  assert.match(teacherProfileUpdate, new RegExp(`\\b${field}\\s*:`, 'i'), `teacher profile no longer writes ${field}`)
+  assert.match(allowlist, new RegExp(`['\"]${field}['\"]`, 'i'), `profile grant would block Teacher Profile field ${field}`)
 }
 
 // Role claim is one-time, self-service allowlisted, identity-bound and non-admin.
