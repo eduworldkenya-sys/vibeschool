@@ -20,7 +20,7 @@ R2.3 branch:
 
 `agent/content-factory-r2-source-grounded-authoring-20260818`
 
-The branch was created directly from that merge commit.
+The branch was created directly from that merge commit. During R2.3 certification, main advanced and the branch was reconciled with current main `8b8f1ffc38a9f13a5c83e6ac29bac59d6dd64a51` through merge commit `cafa586cdae60672fe7a18506ebcc2ac0f69fba2` before the final certification cycle.
 
 ## Existing editorial system found
 
@@ -137,17 +137,30 @@ The dedicated adversarial contract proves:
 - Deno type-checks the executor;
 - static executor checks reject hidden research integrations.
 
+### Certification repair log
+
+The first PR #248 certification cycle on head `37faaf8ad1cfc6399d7b1e21d8ac028e1facde3b` exposed two fail-closed defects and neither was bypassed:
+
+1. **Migration-security metadata omission.** `curriculum_authoring_drafts` already enabled RLS and explicitly revoked public/anon/authenticated/service-role privileges before granting only `SELECT, INSERT` to `service_role`, but the migration omitted the repository validator's auditable `access: service-only` and `authorization-test` declarations. Those declarations were added without widening any grant or adding a permissive policy.
+2. **Whitespace-sensitive verifier assertion.** The disposable Supabase successfully applied the migration chain, then the adversarial SQL verifier failed while inspecting `hq_content_authoring_evidence_packet`. The function itself contained the required `status='evidence_ready'` material-bound evidence logic; the verifier expected a whitespace-normalized spelling that `pg_get_functiondef` did not guarantee. The test now normalizes whitespace before testing that predicate while retaining all semantic-verifier/material/contradiction/source-minimum assertions.
+
+The repaired pre-reconciliation head was `ad7c7b6cc261c47fcd69311f0168dabffc35a985`. Its fresh migration-security gate passed before the branch was reconciled with current main. Because reconciliation and this handover update changed the branch head, only checks on the final post-handover head count for promotion.
+
 ## Production boundary
 
 Production was not mutated by R2.3 development.
 
-The latest read-only production verification before this stage still showed Worker Engine production recovery stopping at `20260818111900`, with `public.hq_workforce_capability_authority_grants` absent. Therefore R2.1/R2.2/R2.3 production promotion and worker activation remain blocked behind the protected Worker Engine recovery path.
+A fresh read-only verification during this certification pass showed the production migration ledger currently reaches `20260818140000` (`canonical_student_rpc_identity_completion`). `public.hq_workforce_capability_authority_grants` now exists, correcting the stale earlier handover observation that the relation was absent. It currently has zero rows and zero active grants.
 
-No R2.3 migration, Edge Function, model authority, or authoring worker has been activated in production.
+The Worker Engine production contract remains fail-closed: `runtime_execution_enabled=false`, `runtime_autonomy_level=0`, `runtime_max_risk=0`, shadow runtime/scheduler disabled, and `shadow_global_stop=true`.
+
+`public.curriculum_authoring_drafts` is still absent from production. No R2.3 migration, Edge Function, model authority, authoring worker, or R2.3 capability grant has been activated in production.
+
+Repository certification therefore remains separate from later protected Supabase commissioning.
 
 ## Vercel
 
-No direct Vercel tool/deployment is part of R2.3 branch work. Keep the branch isolated until exact-current-main repository certification is green.
+No direct Vercel tool/deployment is part of R2.3 branch work. Keep the branch isolated until exact-current-main repository certification is green. R2.3 itself does not require a Vercel deployment to certify its database/Edge-worker contracts.
 
 ## Next after R2.3
 
