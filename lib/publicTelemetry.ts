@@ -26,6 +26,10 @@ export type PublicEventName =
   | 'public_sandbox_progress'
   | 'public_sandbox_role'
   | 'public_sandbox_complete'
+  | 'public_sandbox_breadth'
+  | 'public_sandbox_signup'
+  | 'public_sandbox_pilot'
+  | 'public_sandbox_product'
 
 export function trackPublicEvent(event: PublicEventName, path?: string) {
   if (typeof window === 'undefined') return

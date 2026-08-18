@@ -76,14 +76,25 @@ try {
   await page.getByRole('button', { name: 'Family', exact: true }).click()
   await page.getByRole('heading', { name: 'How is my child doing, where is the difficulty, and what happens next?', exact: true }).waitFor({ state: 'visible' })
   const familyText = await page.locator('main').innerText()
-  if (!familyText.includes('How is my child doing, where is the difficulty, and what happens next?')) fail('family role lens missing')
   if (!familyText.includes('2 of 3 demonstration criteria')) fail('family lens does not reflect the same evidence state')
 
   await page.getByRole('button', { name: 'School leader', exact: true }).click()
   await page.getByRole('heading', { name: 'What educational signal should leadership act on?', exact: true }).waitFor({ state: 'visible' })
   const leaderText = await page.locator('main').innerText()
-  if (!leaderText.includes('What educational signal should leadership act on?')) fail('school leader lens missing')
   if (!leaderText.includes('curriculum → teaching → participation → evidence → response')) fail('leadership causality chain missing')
+
+  await page.getByRole('heading', { name: /The sandbox is one learning journey/ }).waitFor({ state: 'visible' })
+  for (const breadthLabel of ['Curriculum & teaching','Learning & content','Assessment & progress','Families','Senior School Pathways','School operations','Trust & governance','Publishing ecosystem']) {
+    if (!(await page.getByRole('link', { name: new RegExp(breadthLabel) }).count())) fail(`breadth path missing: ${breadthLabel}`)
+  }
+
+  await page.getByRole('heading', { name: 'You have seen the logic. Choose how you want to enter VibeSchool.', exact: true }).waitFor({ state: 'visible' })
+  for (const conversionLabel of ['Create account or sign in','Plan a school pilot','Explore product status']) {
+    if (!(await page.getByRole('link', { name: new RegExp(conversionLabel) }).count())) fail(`conversion path missing: ${conversionLabel}`)
+  }
+
+  const telemetryResponse = await page.request.post(base + '/api/public-telemetry', { data: { event: 'public_sandbox_pilot', path: '/sandbox' } })
+  if (telemetryResponse.status() !== 204) fail(`sandbox conversion telemetry rejected: ${telemetryResponse.status()}`)
 
   await page.getByRole('button', { name: 'Reset demo', exact: true }).click()
   await moveToStage('02 Teach', 'Record what actually happened in the lesson.')
@@ -117,4 +128,4 @@ if (failures.length) {
 }
 
 console.log('PUBLIC SANDBOX CERTIFICATION: PASS')
-console.log('No-login demo state, evidence-bound inference, role-scoped views, next-action causality, mobile layout and no production-data requests passed.')
+console.log('No-login demo state, evidence-bound inference, role-scoped views, breadth, conversion paths, telemetry, mobile layout and no production-data requests passed.')
