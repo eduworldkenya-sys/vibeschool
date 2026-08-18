@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/20260818141500_student_one_downstream_authorization_hardening.sql'
+      - 'supabase/migrations/20260818141600_student_one_downstream_retargeting_closure.sql'
       - 'scripts/test-student-one-downstream-contract.mjs'
       - 'docs/security/STUDENT_ONE_DOWNSTREAM_CHAIN_CERTIFICATION_20260818.md'
       - '.github/workflows/student-one-downstream-contract.yml'
@@ -14,6 +15,7 @@ on:
       - 'cert/student-one-downstream-chain-**'
     paths:
       - 'supabase/migrations/20260818141500_student_one_downstream_authorization_hardening.sql'
+      - 'supabase/migrations/20260818141600_student_one_downstream_retargeting_closure.sql'
       - 'scripts/test-student-one-downstream-contract.mjs'
       - 'docs/security/STUDENT_ONE_DOWNSTREAM_CHAIN_CERTIFICATION_20260818.md'
       - '.github/workflows/student-one-downstream-contract.yml'
