@@ -55,6 +55,8 @@ type Publication = {
 type PaymentState =
   | "idle"
   | "starting"
+  | "created"
+  | "submitting"
   | "awaiting_customer"
   | "settled"
   | "failed"
@@ -74,11 +76,13 @@ function newIdempotencyKey(): string {
 function paymentMessage(state: PaymentState): string {
   switch (state) {
     case "starting":
+    case "created":
+    case "submitting":
       return "Preparing your secure M-Pesa request…";
     case "awaiting_customer":
       return "Check your phone and enter your M-Pesa PIN.";
     case "settled":
-      return "Payment confirmed. Unlocking your learning product…";
+      return "Payment confirmed. The selected learner now has access.";
     case "cancelled":
       return "The M-Pesa request was cancelled.";
     case "expired":
@@ -96,6 +100,7 @@ export default function LearningProductPurchasePage() {
   const params = useParams();
   const router = useRouter();
   const publicationId = typeof params.publicationId === "string" ? params.publicationId : "";
+  const returnPath = `/learn/purchase/${publicationId}`;
   const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -167,6 +172,13 @@ export default function LearningProductPurchasePage() {
   const selectedOffer = context?.offers.find(item => item.id === selectedOfferId) ?? null;
   const selectedBeneficiaryStudentId = beneficiary === "self" ? null : beneficiary;
 
+  const handleSettlement = useCallback(async () => {
+    await loadContext();
+    if (selectedBeneficiaryStudentId === null) {
+      window.setTimeout(() => router.replace(`/read/textbook/${publicationId}`), 650);
+    }
+  }, [loadContext, publicationId, router, selectedBeneficiaryStudentId]);
+
   const beginPolling = useCallback((id: string) => {
     stopPolling();
     pollTimer.current = setInterval(async () => {
@@ -185,11 +197,10 @@ export default function LearningProductPurchasePage() {
         stopPolling();
       }
       if (state === "settled") {
-        await loadContext();
-        window.setTimeout(() => router.replace(`/read/textbook/${publicationId}`), 650);
+        await handleSettlement();
       }
     }, 1800);
-  }, [loadContext, publicationId, router, stopPolling, supabase]);
+  }, [handleSettlement, stopPolling, supabase]);
 
   async function startPayment() {
     if (!selectedOffer || paymentState === "starting" || paymentState === "awaiting_customer") return;
@@ -230,8 +241,7 @@ export default function LearningProductPurchasePage() {
     setPaymentState(state === "submitting" ? "awaiting_customer" : state);
     if (id && state !== "settled") beginPolling(id);
     if (state === "settled" || data.fulfilled) {
-      await loadContext();
-      router.replace(`/read/textbook/${publicationId}`);
+      await handleSettlement();
     }
   }
 
@@ -272,7 +282,7 @@ export default function LearningProductPurchasePage() {
     );
   }
 
-  const activePayment = paymentState === "starting" || paymentState === "awaiting_customer";
+  const activePayment = ["starting", "created", "submitting", "awaiting_customer"].includes(paymentState);
   const retryable = ["failed", "cancelled", "expired"].includes(paymentState);
 
   return (
@@ -298,8 +308,8 @@ export default function LearningProductPurchasePage() {
               <div style={{ marginTop: 18 }}>
                 <p style={{ color: MUTED, lineHeight: 1.55 }}>Sign in first. This makes sure the entitlement is attached to the correct learner or family account.</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <button onClick={() => router.push("/login/parent")} style={{ border: 0, borderRadius: 12, padding: 13, background: ACCENT, color: BG, fontWeight: 900 }}>Parent sign in</button>
-                  <button onClick={() => router.push("/login/student")} style={{ borderRadius: 12, padding: 13, background: CARD, color: TEXT, border: `1px solid ${BORDER}`, fontWeight: 850 }}>Learner sign in</button>
+                  <button onClick={() => router.push(`/login/parent?redirect=${encodeURIComponent(returnPath)}`)} style={{ border: 0, borderRadius: 12, padding: 13, background: ACCENT, color: BG, fontWeight: 900 }}>Parent sign in</button>
+                  <button onClick={() => router.push(`/login/student?redirect=${encodeURIComponent(returnPath)}`)} style={{ borderRadius: 12, padding: 13, background: CARD, color: TEXT, border: `1px solid ${BORDER}`, fontWeight: 850 }}>Learner sign in</button>
                 </div>
               </div>
             ) : (
@@ -342,6 +352,9 @@ export default function LearningProductPurchasePage() {
                     <div style={{ fontWeight: 850 }}>{paymentMessage(paymentState) || error}</div>
                     {error && paymentMessage(paymentState) !== error && <div style={{ color: MUTED, fontSize: 12, marginTop: 5 }}>{error}</div>}
                     {attemptId && <div style={{ color: MUTED, fontSize: 10, marginTop: 7 }}>Payment reference: {attemptId.slice(0, 8)}</div>}
+                    {paymentState === "settled" && selectedBeneficiaryStudentId !== null && (
+                      <div style={{ color: MUTED, fontSize: 12, marginTop: 7 }}>The learner can now open this product from their VibeLearn account.</div>
+                    )}
                   </div>
                 )}
 
