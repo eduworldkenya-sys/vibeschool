@@ -6,8 +6,7 @@
 -- Curriculum Intelligence screen already depend on it.
 --
 -- Access: owner-read public.curriculum_intelligence_sources
--- Authorization-test: authenticated platform owners may SELECT through RLS; anon is denied;
--- authenticated clients cannot INSERT/UPDATE/DELETE; service_role owns machine writes.
+-- Authorization-test: public.curriculum_intelligence_sources authenticated platform owners may SELECT through RLS; anon denied; authenticated writes denied; service_role owns machine writes.
 
 create table if not exists public.curriculum_intelligence_sources (
   id uuid primary key default gen_random_uuid(),
