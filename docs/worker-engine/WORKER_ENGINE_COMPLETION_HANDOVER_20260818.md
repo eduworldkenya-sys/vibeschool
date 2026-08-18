@@ -6,7 +6,9 @@
 
 PR: #232
 
-Baseline: current main `39cd68f23fbd92da9c3241791948b4f2ba385e24`.
+Original completion baseline: `39cd68f23fbd92da9c3241791948b4f2ba385e24`.
+
+Current-main reconciliation: PR #234 merged `main` at `bd5084560bef6d0dbadd0c9d6d5418e7f4a19196` into this branch before final certification, producing merge commit `5049e26cb9a94533facee8c033556679cf16fd50`. This preserves the already-promoted deterministic Twin Core while forcing Worker Engine certification against the combined current system.
 
 ## Completed in this line
 
@@ -22,6 +24,8 @@ Baseline: current main `39cd68f23fbd92da9c3241791948b4f2ba385e24`.
    - owner attention surface with P0/P1/P2 classification;
    - machine-readable fail-closed controlled-canary readiness scorecard;
    - operator runbook.
+7. Repaired the WE-R1.4.3 composition regression test so it traces the actual layered gateway chain and normalizes PostgreSQL's 63-byte stored identifiers without weakening the reservation, row-lock, precondition or commit assertions.
+8. Reconciled the completed line with the newer deterministic Twin Core main head before final merge consideration.
 
 ## Production posture
 
@@ -41,6 +45,7 @@ Production schema promotion is a distinct release action. A controlled canary is
 
 When all PR #232 exact-head gates are green:
 
+- verify `main` has not moved again; if it has, reconcile and re-certify;
 - mark the PR ready/merge only as an intentional completed-work promotion;
 - verify production migration ledger before any Supabase apply;
 - apply only the certified Worker Engine reconciliation/closure set through a protected promotion path;
