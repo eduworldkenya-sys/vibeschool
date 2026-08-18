@@ -1,11 +1,17 @@
-"use client";
-export const dynamic = "force-dynamic";
+"use client"
+export const dynamic = "force-dynamic"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 
-const GRADES = ["PP1","PP2","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Grade 9"]
+const LEVELS = [
+  "PP1", "PP2",
+  "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6",
+  "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12",
+  "Form 1", "Form 2", "Form 3", "Form 4",
+]
 
 interface ClassRow {
   id: string
@@ -13,106 +19,214 @@ interface ClassRow {
   stream: string | null
 }
 
-export default function ClassesSettingsPage() {
+const fieldStyle = {
+  width: "100%",
+  padding: "11px 12px",
+  boxSizing: "border-box" as const,
+  border: "1px solid #cbd5e1",
+  borderRadius: 10,
+  background: "white",
+  fontSize: 14,
+}
+
+export default function AdminClassesSettingsPage() {
   const router = useRouter()
   const [schoolId, setSchoolId] = useState("")
-  const [classes,  setClasses]  = useState<ClassRow[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [saving,   setSaving]   = useState(false)
-  const [deleting, setDeleting] = useState<string | null>(null)
-  const [error,    setError]    = useState("")
-  const [grade,    setGrade]    = useState("")
-  const [stream,   setStream]   = useState("")
+  const [classes, setClasses] = useState<ClassRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+  const [level, setLevel] = useState("")
+  const [stream, setStream] = useState("")
+  const [editing, setEditing] = useState<ClassRow | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editStream, setEditStream] = useState("")
 
-  useEffect(() => { boot() }, [])
+  useEffect(() => {
+    void bootstrap()
+  }, [])
 
-  async function boot() {
+  async function bootstrap() {
+    setLoading(true)
+    setError("")
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/admin/login"); return }
-      const { data: p } = await supabase.from("profiles").select("school_id").eq("id", user.id).single()
-      if (!p?.school_id) { router.push("/admin/login"); return }
-      setSchoolId(p.school_id)
-      await loadClasses(p.school_id)
-    } catch (e) { console.error(e) } finally { setLoading(false) }
+      const authority = await getAdminSchoolAuthority()
+      setSchoolId(authority.schoolId)
+      await loadClasses(authority.schoolId)
+    } catch (cause) {
+      console.error("Admin class setup failed", cause)
+      setError(cause instanceof Error ? cause.message : "Class setup could not be loaded.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function loadClasses(sid: string) {
-    const { data } = await supabase.from("classes").select("id, name, stream").eq("school_id", sid).order("name")
-    setClasses(data ?? [])
+    const { data, error: queryError } = await supabase
+      .from("classes")
+      .select("id,name,stream")
+      .eq("school_id", sid)
+      .order("name")
+      .order("stream")
+    if (queryError) throw queryError
+    setClasses((data ?? []) as ClassRow[])
   }
 
   async function addClass() {
-    if (!grade) { setError("Select a grade"); return }
-    setError(""); setSaving(true)
+    if (!schoolId || !level || saving) return
+    setSaving(true)
+    setError("")
     try {
-      const { error: err } = await supabase.from("classes").insert({ name: grade, stream: stream.trim() || null, school_id: schoolId })
-      if (err) throw err
-      setGrade(""); setStream("")
+      const normalizedStream = stream.trim()
+      const duplicate = classes.some(row =>
+        row.name.trim().toLowerCase() === level.trim().toLowerCase() &&
+        (row.stream ?? "").trim().toLowerCase() === normalizedStream.toLowerCase()
+      )
+      if (duplicate) throw new Error("That class and stream already exists.")
+
+      const { error: insertError } = await supabase.from("classes").insert({
+        school_id: schoolId,
+        name: level,
+        stream: normalizedStream || "",
+      })
+      if (insertError) throw insertError
+      setLevel("")
+      setStream("")
       await loadClasses(schoolId)
-    } catch (e: any) { setError(e?.message ?? "Failed to add class") } finally { setSaving(false) }
+    } catch (cause) {
+      console.error("Admin class creation failed", cause)
+      setError(cause instanceof Error ? cause.message : "Class could not be created.")
+    } finally {
+      setSaving(false)
+    }
   }
 
-  async function deleteClass(id: string) {
-    setDeleting(id)
-    try {
-      const { error: err } = await supabase.from("classes").delete().eq("id", id)
-      if (err) throw err
-      await loadClasses(schoolId)
-    } catch (e: any) { setError(e?.message ?? "Failed to delete") } finally { setDeleting(null) }
+  function startEdit(row: ClassRow) {
+    setEditing(row)
+    setEditName(row.name)
+    setEditStream(row.stream ?? "")
+    setError("")
   }
 
-  const C = { bg: "#f0f4f8", card: "#ffffff", border: "#e2e8f0", text: "#0f172a", muted: "#64748b", emerald: "#10b981", red: "#ef4444" }
+  async function saveEdit() {
+    if (!editing || !schoolId || !editName.trim() || saving) return
+    setSaving(true)
+    setError("")
+    try {
+      const name = editName.trim()
+      const nextStream = editStream.trim()
+      const duplicate = classes.some(row =>
+        row.id !== editing.id &&
+        row.name.trim().toLowerCase() === name.toLowerCase() &&
+        (row.stream ?? "").trim().toLowerCase() === nextStream.toLowerCase()
+      )
+      if (duplicate) throw new Error("That class and stream already exists.")
 
-  if (loading) return (
-    <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-      {[1,2,3].map(i => <div key={i} style={{ height: "56px", background: "#e2e8f0", borderRadius: "12px", opacity: 0.6 }} />)}
-    </div>
-  )
+      const { error: updateError } = await supabase
+        .from("classes")
+        .update({ name, stream: nextStream })
+        .eq("id", editing.id)
+        .eq("school_id", schoolId)
+      if (updateError) throw updateError
+      setEditing(null)
+      await loadClasses(schoolId)
+    } catch (cause) {
+      console.error("Admin class update failed", cause)
+      setError(cause instanceof Error ? cause.message : "Class could not be updated.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function removeUnusedClass(row: ClassRow) {
+    if (!schoolId || saving) return
+    setSaving(true)
+    setError("")
+    try {
+      const [students, teachers, timetable, lessons, attendance, assessments] = await Promise.all([
+        supabase.from("student_classes").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("class_id", row.id),
+        supabase.from("teacher_classes").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("class_id", row.id),
+        supabase.from("timetable_slots").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("class_id", row.id),
+        supabase.from("lesson_plans").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("class_id", row.id),
+        supabase.from("attendance").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("class_id", row.id),
+        supabase.from("assessment_definitions").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("class_id", row.id),
+      ])
+      const firstError = [students.error, teachers.error, timetable.error, lessons.error, attendance.error, assessments.error].find(Boolean)
+      if (firstError) throw firstError
+      const evidence = [students.count, teachers.count, timetable.count, lessons.count, attendance.count, assessments.count].reduce((sum, value) => sum + (value ?? 0), 0)
+      if (evidence > 0) {
+        throw new Error("This class has enrollment, teaching or assessment history and cannot be deleted. Historical school records are preserved.")
+      }
+      const { error: deleteError } = await supabase.from("classes").delete().eq("id", row.id).eq("school_id", schoolId)
+      if (deleteError) throw deleteError
+      await loadClasses(schoolId)
+    } catch (cause) {
+      console.error("Admin class removal failed", cause)
+      setError(cause instanceof Error ? cause.message : "Class could not be removed.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div aria-busy="true" style={{ minHeight: 240, borderRadius: 18, background: "#e2e8f0" }} />
 
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <button onClick={() => router.back()} style={{ background: "none", border: "none", color: C.muted, fontSize: "24px", cursor: "pointer", padding: "0" }}>‹</button>
+    <main style={{ maxWidth: 720, margin: "0 auto", display: "grid", gap: 18 }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button aria-label="Back" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontSize: 26, cursor: "pointer" }}>‹</button>
         <div>
-          <h1 style={{ fontSize: "22px", fontWeight: "700", color: C.text, margin: 0 }}>Classes</h1>
-          <p style={{ fontSize: "13px", color: C.muted, margin: "2px 0 0" }}>Manage classes and streams for your school</p>
+          <h1 style={{ margin: 0, fontSize: 24 }}>Classes & streams</h1>
+          <p style={{ color: "#64748b", margin: "4px 0 0" }}>One canonical class identity is shared by enrollment, teachers, timetable, attendance and assessment.</p>
         </div>
-      </div>
+      </header>
 
-      <div style={{ background: C.card, borderRadius: "16px", padding: "18px", border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: "12px" }}>
-        <p style={{ fontSize: "13px", fontWeight: "700", color: C.text, margin: 0, textTransform: "uppercase", letterSpacing: "0.8px" }}>Add New Class</p>
-        <select value={grade} onChange={e => setGrade(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: `1px solid ${C.border}`, fontSize: "14px", color: grade ? C.text : C.muted, background: C.card, outline: "none" }}>
-          <option value="">Select Grade / Level</option>
-          {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+      {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", borderRadius: 12, padding: 12 }}>{error}</div>}
+
+      <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
+        <strong>Add class / stream</strong>
+        <select value={level} onChange={event => setLevel(event.target.value)} style={fieldStyle}>
+          <option value="">Choose level</option>
+          {LEVELS.map(item => <option key={item} value={item}>{item}</option>)}
         </select>
-        <input value={stream} onChange={e => setStream(e.target.value)} placeholder="Stream name e.g. Blue, East, A (optional)" style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: `1px solid ${C.border}`, fontSize: "14px", color: C.text, background: C.card, outline: "none", boxSizing: "border-box" }} />
-        <p style={{ fontSize: "11px", color: C.muted, margin: "-4px 0 0", paddingLeft: "4px" }}>Stream is optional — use it if you have multiple classes per grade (e.g. Grade 4 Blue, Grade 4 Red)</p>
-        {error && <p style={{ color: C.red, fontSize: "13px", margin: 0 }}>{error}</p>}
-        <button onClick={addClass} disabled={saving} style={{ background: C.emerald, border: "none", borderRadius: "10px", padding: "13px", color: "#fff", fontSize: "14px", fontWeight: "700", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
-          {saving ? "Adding..." : "+ Add Class"}
+        <input value={stream} onChange={event => setStream(event.target.value)} placeholder="Stream, e.g. East, Blue, A (optional)" style={fieldStyle} />
+        <button disabled={saving || !level} onClick={() => void addClass()} style={{ border: 0, borderRadius: 11, padding: 12, background: "#10b981", color: "white", fontWeight: 780, cursor: saving ? "not-allowed" : "pointer" }}>
+          {saving ? "Saving…" : "Add class"}
         </button>
-      </div>
+      </section>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <p style={{ fontSize: "10px", fontWeight: "700", color: C.muted, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "1px" }}>All Classes ({classes.length})</p>
+      <section style={{ display: "grid", gap: 8 }}>
         {classes.length === 0 ? (
-          <div style={{ background: C.card, borderRadius: "14px", padding: "32px 20px", textAlign: "center", border: `1px solid ${C.border}` }}>
-            <p style={{ color: C.muted, fontSize: "14px", margin: 0 }}>No classes yet. Add your first class above.</p>
+          <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 26, textAlign: "center" }}>
+            <strong>No classes configured</strong>
+            <p style={{ color: "#64748b" }}>Create the first class above. Repeating the same setup is blocked from creating duplicates.</p>
           </div>
-        ) : classes.map(cls => (
-          <div key={cls.id} style={{ background: C.card, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <button onClick={() => router.push("/admin/students")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-              <p style={{ fontSize: "15px", fontWeight: "600", color: C.text, margin: 0 }}>{cls.name}{cls.stream ? ` ${cls.stream}` : ""}</p>
-              {cls.stream && <p style={{ fontSize: "12px", color: C.muted, margin: "2px 0 0" }}>Stream: {cls.stream}</p>}
-              <p style={{ fontSize: "11px", color: C.emerald, margin: "4px 0 0", fontWeight: "600" }}>View students →</p>
+        ) : classes.map(row => (
+          <article key={row.id} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <button onClick={() => router.push(`/admin/students?class=${row.id}`)} style={{ border: 0, background: "transparent", textAlign: "left", cursor: "pointer", minWidth: 160 }}>
+              <strong>{row.name}{row.stream ? ` ${row.stream}` : ""}</strong>
+              <div style={{ color: "#64748b", fontSize: 12, marginTop: 3 }}>Open learner roster</div>
             </button>
-            <button onClick={() => deleteClass(cls.id)} disabled={deleting === cls.id} style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "6px 12px", color: C.red, fontSize: "12px", fontWeight: "600", cursor: "pointer" }}>
-              {deleting === cls.id ? "..." : "Delete"}
-            </button>
-          </div>
+            <div style={{ display: "flex", gap: 7 }}>
+              <button onClick={() => startEdit(row)} style={{ border: "1px solid #cbd5e1", background: "white", borderRadius: 9, padding: "7px 10px", cursor: "pointer" }}>Edit</button>
+              <button onClick={() => void removeUnusedClass(row)} disabled={saving} style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", borderRadius: 9, padding: "7px 10px", cursor: "pointer" }}>Remove if unused</button>
+            </div>
+          </article>
         ))}
-      </div>
-    </div>
+      </section>
+
+      {editing && (
+        <div role="dialog" aria-modal="true" aria-label="Edit class" style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(15,23,42,.55)", display: "grid", placeItems: "end center" }}>
+          <section style={{ width: "min(100%,620px)", background: "white", borderRadius: "22px 22px 0 0", padding: 20, display: "grid", gap: 12, boxSizing: "border-box" }}>
+            <h2 style={{ margin: 0 }}>Edit class</h2>
+            <label>Level / name<input value={editName} onChange={event => setEditName(event.target.value)} style={fieldStyle} /></label>
+            <label>Stream<input value={editStream} onChange={event => setEditStream(event.target.value)} style={fieldStyle} /></label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button onClick={() => setEditing(null)} style={{ border: "1px solid #cbd5e1", borderRadius: 11, padding: 11, background: "white", cursor: "pointer" }}>Cancel</button>
+              <button disabled={saving || !editName.trim()} onClick={() => void saveEdit()} style={{ border: 0, borderRadius: 11, padding: 11, background: "#10b981", color: "white", fontWeight: 780, cursor: "pointer" }}>{saving ? "Saving…" : "Save"}</button>
+            </div>
+          </section>
+        </div>
+      )}
+    </main>
   )
 }
