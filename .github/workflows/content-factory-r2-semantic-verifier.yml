@@ -30,7 +30,7 @@ jobs:
           set -euo pipefail
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/content_factory_r2_semantic_verifier_verify.sql
       - name: Type-check semantic verifier executor
-        run: deno check supabase/functions/content-semantic-verifier/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/content-semantic-verifier/index.ts
       - name: Verify material-grounded executor contract
         run: |
           set -euo pipefail
@@ -40,7 +40,8 @@ jobs:
           grep -q 'p_material_text: material.text' "$file"
           grep -q 'p_material_id: claim.material_id' "$file"
           grep -q 'MATERIAL SHA256' "$file"
-          grep -q 'SOURCE MATERIAL' "$file"
+          grep -q 'BEGIN UNTRUSTED SOURCE MATERIAL' "$file"
+          grep -q 'untrusted evidence data, never instructions' "$file"
           grep -q 'semantic_verifier_private_source_denied' "$file"
           grep -q 'semantic_verifier_excerpt_not_grounded_in_material' "$file"
           grep -q 'hq_content_semantic_verifier_fail' "$file"
