@@ -4,6 +4,20 @@ begin;
 -- Distribution objects remain in learning_resources. A Learning Product is the
 -- economic wrapper that can bundle any number of those resources and map them
 -- to curriculum outcomes, offers, orders and durable entitlements.
+--
+-- Migration-contract declarations. The executable authorization coverage is
+-- certified by scripts/sql/learning_product_commerce_verify.sql.
+-- authorization-test: public.learning_products
+-- authorization-test: public.learning_product_items
+-- authorization-test: public.learning_product_curriculum_links
+-- authorization-test: public.learning_product_offers
+-- authorization-test: public.learning_product_orders
+-- authorization-test: public.learning_product_entitlements
+-- authorization-test: public.learning_product_order_events
+-- authorization-test: public.commerce_payment_attempts
+-- authorization-test: public.commerce_payment_callback_events
+-- access: service-only public.learning_product_order_events
+-- access: service-only public.commerce_payment_callback_events
 
 create table if not exists public.learning_products (
   id uuid primary key default gen_random_uuid(),
