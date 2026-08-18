@@ -1,0 +1,28 @@
+name: Curriculum Authority Operator Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/hq/curriculum-authority/**'
+      - 'components/hq/HQShell.tsx'
+      - 'supabase/functions/curriculum-authority-intake/**'
+      - 'supabase/migrations/*curriculum_authority_operator_intake*'
+      - 'scripts/test-curriculum-authority-operator.mjs'
+      - '.github/workflows/curriculum-authority-operator-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  operator-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Certify authority operator boundary
+        run: node scripts/test-curriculum-authority-operator.mjs
