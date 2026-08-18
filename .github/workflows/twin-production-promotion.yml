@@ -5,16 +5,16 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/twin-production-promotion.yml'
-      - 'supabase/migrations/20260818050000_teacher_twin_multi_school_scope.sql'
-      - 'supabase/migrations/20260818050100_teacher_twin_active_school_preference.sql'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
       - 'scripts/test-twin-production-promotion-contract.mjs'
       - 'scripts/twin-production-promotion-stage.py'
   push:
     branches: [main]
     paths:
       - '.github/workflows/twin-production-promotion.yml'
-      - 'supabase/migrations/20260818050000_teacher_twin_multi_school_scope.sql'
-      - 'supabase/migrations/20260818050100_teacher_twin_active_school_preference.sql'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
       - 'scripts/test-twin-production-promotion-contract.mjs'
       - 'scripts/twin-production-promotion-stage.py'
   workflow_dispatch:
@@ -33,7 +33,7 @@ concurrency:
 
 env:
   EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
-  EXPECTED_PENDING_VERSIONS: '20260818050000 20260818050100'
+  EXPECTED_PENDING_VERSIONS: '20260818050300 20260818050400'
 
 jobs:
   contract:
