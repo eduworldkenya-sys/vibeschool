@@ -7,6 +7,7 @@ PRIVACY = ROOT / "supabase/migrations/20260819021500_parent_core_journey_privacy
 COMMUNICATION = ROOT / "supabase/migrations/20260819021600_parent_communication_revocation_closure.sql"
 CLAIM = ROOT / "supabase/migrations/20260819021700_parent_claim_authority_closure.sql"
 CANONICAL_CREATION = ROOT / "supabase/migrations/20260819021800_parent_canonical_student_creation_closure.sql"
+NOTIFICATION_NAV = ROOT / "supabase/migrations/20260819021900_parent_notification_navigation_closure.sql"
 LEARN = ROOT / "app/parent/learn/page.tsx"
 LINK = ROOT / "app/parent/link-child/page.tsx"
 CONNECT_ALIAS = ROOT / "app/parent/connect-child/page.tsx"
@@ -33,6 +34,7 @@ privacy = read(PRIVACY)
 communication = read(COMMUNICATION)
 claim = read(CLAIM)
 canonical_creation = read(CANONICAL_CREATION)
+notification_nav = read(NOTIFICATION_NAV)
 learn = read(LEARN)
 link = read(LINK)
 connect_alias = read(CONNECT_ALIAS)
@@ -74,6 +76,12 @@ require(canonical_creation, "revoke all on function public.create_child_for_pare
 require(canonical_creation, "grant execute on function public.create_child_for_parent(text,date,uuid) to service_role", "service-only legacy recovery boundary")
 require(create_child, "redirect('/parent/link-child')", "retired self-create route")
 forbid(create_child, "create_child_for_parent", "browser canonical learner creation")
+
+# Child-scoped events must not navigate to dead routes or sibling-ambiguous views.
+require(notification_nav, "private.parent_event_normalize_action_href", "notification action normalizer")
+require(notification_nav, "action_href like '/parent/report-cards%'", "dead report-card route repair")
+require(notification_nav, "action_href like '/parent/learn?studentId=%'", "ambiguous learning route repair")
+require(notification_nav, "'/parent/child/' || new.student_id::text", "deterministic child destination")
 
 # Mobile child switching must fail closed before every asynchronous request.
 require(learn, "const requestVersion = useRef(0)", "request generation guard")
