@@ -49,7 +49,7 @@ begin
     select x.school_id
     from public.school_members x
     where x.profile_id=v_pub.author_id
-    order by x.created_at desc nulls last, x.school_id
+    order by x.school_id
     limit 1
   ) sm on true
   left join public.teacher_profiles tp on tp.profile_id=v_pub.author_id
