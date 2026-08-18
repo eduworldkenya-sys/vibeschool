@@ -57,7 +57,8 @@ require(learn, "No cached child data has been shown", "fail-closed network copy"
 forbid(learn, "cache.current", "cross-child result cache")
 forbid(learn, "new Map<string, CachedData>", "legacy cross-child cache")
 
-# Empty-state linking action must never become a dead route.
-require(connect_alias, "redirect('/parent/connect')", "connect-child compatibility route")
+# Empty-state linking action must enter the verified claim flow, never a generic
+# communications page or a guessed student-id route.
+require(connect_alias, "redirect('/parent/link-child')", "verified child-link compatibility route")
 
 print("Parent Core Journey Contract: PASS")
