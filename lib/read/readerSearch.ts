@@ -44,7 +44,11 @@ function queryTerms(value: string): string[] {
 
   const seen = new Set<string>();
   const terms: string[] = [];
-  for (const token of normalized.split(/[^\p{L}\p{N}]+/u)) {
+  // Reader content is currently English/Kiswahili. Both use the Latin alphabet,
+  // and normalizeSearchText strips combining marks, so an ES5-compatible ASCII
+  // token boundary preserves current search semantics without requiring Unicode
+  // property escapes or the `u` regexp flag.
+  for (const token of normalized.split(/[^a-z0-9]+/)) {
     if (token.length < 2 || seen.has(token)) continue;
     seen.add(token);
     terms.push(token);
