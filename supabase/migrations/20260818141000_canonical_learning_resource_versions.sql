@@ -219,7 +219,7 @@ begin
        and new.payload = old.payload
        and new.content_sha256 = old.content_sha256
        and new.provenance = old.provenance
-       and new.rights_status = old.rights_status
+       and new.rights_status = old.rightights_status
        and new.certification_policy_version is not distinct from old.certification_policy_version
        and new.certification_evidence = old.certification_evidence
        and new.created_by is not distinct from old.created_by
@@ -259,8 +259,9 @@ execute function public.cla_guard_resource_version_mutation();
 alter table public.learning_resource_versions enable row level security;
 
 revoke all on table public.learning_resource_versions from anon, authenticated;
+revoke delete on table public.learning_resource_versions from service_role;
+grant select, insert, update on table public.learning_resource_versions to service_role;
 grant select on table public.learning_resource_versions to authenticated;
-grant all on table public.learning_resource_versions to service_role;
 
 drop policy if exists learning_resource_versions_read_visible_parent
   on public.learning_resource_versions;
