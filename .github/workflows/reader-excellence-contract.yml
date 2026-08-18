@@ -1,0 +1,39 @@
+name: Reader Excellence Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/read/textbook/**'
+      - 'components/read/**'
+      - 'lib/read/**'
+      - 'public/sw.js'
+      - 'supabase/migrations/*reader*'
+      - 'scripts/test-reader-excellence-contract.py'
+      - 'docs/strategy/VIBELEARN-READER-EXCELLENCE-CONTRACT.md'
+      - '.github/workflows/reader-excellence-contract.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/read/textbook/**'
+      - 'components/read/**'
+      - 'lib/read/**'
+      - 'public/sw.js'
+      - 'supabase/migrations/*reader*'
+      - 'scripts/test-reader-excellence-contract.py'
+      - 'docs/strategy/VIBELEARN-READER-EXCELLENCE-CONTRACT.md'
+      - '.github/workflows/reader-excellence-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reader-excellence:
+    name: Reader product and entitlement boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run reader excellence regression contract
+        run: python3 scripts/test-reader-excellence-contract.py
