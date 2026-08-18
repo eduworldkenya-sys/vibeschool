@@ -3,6 +3,8 @@
 -- CI exposed that production contains curriculum_research_jobs + its queue RPCs but a clean
 -- repository rebuild does not. This migration captures that existing production contract so
 -- future migrations can be reproduced from source control. It is non-activating and service-only.
+-- Access: service-only public.curriculum_research_jobs
+-- Authorization-test: public.curriculum_research_jobs service_role only; anon/authenticated denied by explicit grants + RLS/no policies.
 
 create table if not exists public.curriculum_research_jobs (
   id uuid primary key default gen_random_uuid(),
