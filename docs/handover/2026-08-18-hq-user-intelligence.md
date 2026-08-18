@@ -57,3 +57,6 @@ The repository contains event kernels, but VibeSchool does not yet have certifie
 - Because the new frontend depends on additive RPCs, commission and verify those RPCs in production immediately before the final merge. This prevents the application from deploying against a missing database contract.
 - Use the final merge as the application promotion point; do not make additional deployment-triggering code commits afterward unless a verified defect requires it.
 - No direct Vercel action is part of this work; normal deployment may occur only through the repository's existing main-branch integration after final merge.
+
+## Finalization
+This file is the final handover state for PR #271. No further documentation-only commits should be made before certification; any later change must correspond to a verified defect.
