@@ -28,7 +28,6 @@ create table if not exists worker_engine_legacy_archive.r13x_lineage_manifest (
 );
 revoke all on table worker_engine_legacy_archive.r13x_lineage_manifest from public, anon, authenticated, service_role;
 
--- Fail closed before touching any historical object.
 do $guard$
 declare ec public.hq_workforce_engine_contract%rowtype;
 begin
@@ -47,16 +46,11 @@ begin
 end
 $guard$;
 
--- Exact fingerprints for the superseded production-only R1.3X overlay.
--- Canonical/absent relations are left untouched. Any third shape aborts recovery.
 do $converge$
 declare
   r record;
   v_cols text;
   v_rows bigint;
-  v_expected text;
-  v_successor text;
-  v_disposition text;
 begin
   for r in
     select * from (values
@@ -81,7 +75,6 @@ begin
     from information_schema.columns
     where table_schema='public' and table_name=r.relname;
 
-    -- Known canonical successors may already exist on a repaired/replayed database.
     if r.relname='hq_workforce_capability_edges' and v_cols='id,from_capability_id,to_capability_id,relation_type,condition_contract,priority,enabled,created_at,updated_at' then continue; end if;
     if r.relname='hq_workforce_resources' and position('resource_kind' in coalesce(v_cols,''))>0 and position('cost_per_unit' in coalesce(v_cols,''))>0 then continue; end if;
     if r.relname='hq_workforce_worker_competencies' and position('scope_types' in coalesce(v_cols,''))>0 and position('sample_count' in coalesce(v_cols,''))>0 then continue; end if;
@@ -109,9 +102,8 @@ begin
 end
 $converge$;
 
--- Quarantine public functions that explicitly bind the superseded overlay. This is
--- systematic rather than a hand-maintained patch list. Canonical X3+ migrations are
--- then free to recreate/replace the public API surface against canonical relations.
+-- Exact-identifier regexes prevent hq_workforce_memory from matching canonical
+-- hq_workforce_memory_records / hq_workforce_memory_events.
 do $functions$
 declare r record;
 begin
@@ -120,17 +112,17 @@ begin
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public'
       and (
-        pg_get_functiondef(p.oid) ilike '%hq_workforce_capability_edges%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_resources%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_worker_competencies%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_competency_capabilities%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_skill_resources%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_evaluations%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_architecture_components%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_calibration%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_skill_candidates%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_factory_recommendations%'
-        or pg_get_functiondef(p.oid) ilike '%hq_workforce_memory%'
+        pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_capability_edges([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_resources([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_worker_competencies([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_competency_capabilities([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_skill_resources([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_evaluations([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_architecture_components([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_calibration([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_skill_candidates([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_factory_recommendations([^A-Za-z0-9_]|$)'
+        or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_memory([^A-Za-z0-9_]|$)'
       )
   loop
     insert into worker_engine_legacy_archive.r13x_lineage_manifest(object_name,object_kind,disposition,reason)
