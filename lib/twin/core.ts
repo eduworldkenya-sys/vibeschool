@@ -83,12 +83,25 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
         evidence: { student_id: studentId, current_enrollment_count: 0 },
       })
     } else {
+      const bySchool = new Map<string, typeof rows>()
       for (const enrollment of rows) {
+        const key = enrollment.school_id ?? 'unscoped'
+        bySchool.set(key, [...(bySchool.get(key) ?? []), enrollment])
+      }
+
+      for (const [schoolKey, schoolEnrollments] of Array.from(bySchool.entries())) {
+        const classIds = unique(schoolEnrollments.map(enrollment => enrollment.class_id))
+        const schoolId = schoolKey === 'unscoped' ? null : schoolKey
         bindings.push({
-          role: 'student', scopeType: 'learner', scopeId: studentId, schoolId: enrollment.school_id,
+          role: 'student', scopeType: 'learner', scopeId: studentId, schoolId,
           relationship: 'current_student_enrollment',
-          resourceIds: unique([studentId, enrollment.class_id]),
-          evidence: { student_id: studentId, class_id: enrollment.class_id, school_id: enrollment.school_id },
+          resourceIds: unique([studentId, ...classIds]),
+          evidence: {
+            student_id: studentId,
+            class_ids: classIds,
+            school_id: schoolId,
+            current_enrollment_count: schoolEnrollments.length,
+          },
         })
       }
     }
