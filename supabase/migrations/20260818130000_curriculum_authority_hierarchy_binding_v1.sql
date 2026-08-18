@@ -38,6 +38,22 @@ alter table public.curriculum_authority_hierarchy_bindings enable row level secu
 revoke all on table public.curriculum_authority_hierarchy_bindings from public,anon,authenticated;
 grant all on table public.curriculum_authority_hierarchy_bindings to service_role;
 
+create or replace function public.curriculum_authority_hierarchy_binding_immutable()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  raise exception 'curriculum_authority_hierarchy_binding_immutable';
+end
+$$;
+
+drop trigger if exists curriculum_authority_hierarchy_binding_immutable_trigger
+  on public.curriculum_authority_hierarchy_bindings;
+create trigger curriculum_authority_hierarchy_binding_immutable_trigger
+before update or delete on public.curriculum_authority_hierarchy_bindings
+for each row execute function public.curriculum_authority_hierarchy_binding_immutable();
+
 create or replace function public.curriculum_authority_bind_hierarchy(p_snapshot_id uuid)
 returns jsonb
 language plpgsql
@@ -179,6 +195,8 @@ begin
     join public.curriculum_authority_artifacts a on a.id=hb.artifact_id
     where hb.snapshot_id=new.snapshot_id
       and hb.sub_strand_id=new.target_sub_strand_id
+      and hb.source_id=s.source_id
+      and a.source_id=hb.source_id
       and hb.snapshot_sha256=s.snapshot_sha256
       and hb.artifact_sha256=a.content_sha256
   ) then
