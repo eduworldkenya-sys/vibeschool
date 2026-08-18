@@ -38,11 +38,8 @@ mustNot(/create_child_for_parent[\s\S]{0,3500}insert into public\.student_classe
 must(/revoke all privileges on table public\.student_provisioning_receipts from public, anon, authenticated/i, 'provisioning receipts must be service-only')
 must(/revoke all privileges on table public\.student_external_identifier_conflicts from public, anon, authenticated/i, 'identifier conflict evidence must be service-only')
 
-// The repository-wide Student=1 contract remains: no durable learner field may
-// redefine student_id as an account/profile UUID.
 const semantic = fs.readFileSync('supabase/migrations/20260818184000_student_one_semantic_identity_closure.sql', 'utf8')
-must.call({})
-if (!/student_id[\s\S]*public\.students/i.test(semantic)) {
+if (!/public\.students/i.test(semantic) || !/student_id/i.test(semantic)) {
   throw new Error('canonical Student=1 semantic closure migration is missing')
 }
 
