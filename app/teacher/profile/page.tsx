@@ -189,8 +189,8 @@ export default function TeacherProfilePage() {
 
     const rows = (assignmentRes.data ?? []) as AssignmentRow[];
     if (rows.length) {
-      const classIds = [...new Set(rows.map((row) => row.class_id))];
-      const subjectIds = [...new Set(rows.map((row) => row.subject_id))];
+      const classIds = Array.from(new Set(rows.map((row) => row.class_id)));
+      const subjectIds = Array.from(new Set(rows.map((row) => row.subject_id)));
       const [classesRes, subjectsRes] = await Promise.all([
         db.from("classes").select("id,name,stream").in("id", classIds),
         db.from("subjects").select("id,name").in("id", subjectIds),
