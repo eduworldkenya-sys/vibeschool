@@ -23,109 +23,103 @@ export interface LoadLessonContextInput {
 }
 
 /**
- * Loads the teacher, school, class and learner context needed to prepare one
- * lesson.
- *
- * This function is read-only. It does not resolve curriculum sources and does
- * not create or update lesson plans.
+ * Loads the exact teacher → school → class → subject → learner context for one
+ * lesson. The teaching assignment is the school authority; neither a stale
+ * profile school pointer nor students.class_id may decide lesson identity.
  */
 export async function loadLessonContext({
   userId,
   classId,
   subjectId,
 }: LoadLessonContextInput): Promise<LessonContext> {
-  const { data: profile, error: profileError } =
-    await supabase
+  const [profileResult, assignmentResult, classResult] = await Promise.all([
+    supabase
       .from('profiles')
-      .select('full_name, school_id')
+      .select('full_name')
       .eq('id', userId)
-      .single()
-
-  if (profileError) {
-    throw profileError
-  }
-
-  const schoolId = profile.school_id ?? null
-
-  const [
-    schoolResult,
-    studentResult,
-    previousResult,
-    classResult,
-  ] = await Promise.all([
-    schoolId
-      ? supabase
-          .from('schools')
-          .select('name')
-          .eq('id', schoolId)
-          .single()
-      : Promise.resolve({
-          data: null,
-          error: null,
-        }),
+      .single(),
     supabase
-      .from('students')
-      .select('id, name, profile_id')
-      .eq('class_id', classId),
-    supabase
-      .from('lesson_plans')
-      .select('topic')
+      .from('teacher_classes')
+      .select('school_id,class_id,subject_id')
       .eq('teacher_id', userId)
       .eq('class_id', classId)
       .eq('subject_id', subjectId)
-      .not('topic', 'is', null)
-      .order('created_at', {
-        ascending: false,
-      })
-      .limit(5),
+      .maybeSingle(),
     supabase
       .from('classes')
-      .select('name')
+      .select('name,stream,school_id')
       .eq('id', classId)
       .single(),
   ])
 
-  if (schoolResult.error) {
-    throw schoolResult.error
+  if (profileResult.error) throw profileResult.error
+  if (assignmentResult.error) throw assignmentResult.error
+  if (classResult.error) throw classResult.error
+  if (!assignmentResult.data?.school_id) {
+    throw new Error('lesson_context_assignment_not_authorized')
   }
 
-  if (studentResult.error) {
-    throw studentResult.error
+  const schoolId = assignmentResult.data.school_id
+  if (classResult.data.school_id !== schoolId) {
+    throw new Error('lesson_context_class_school_mismatch')
   }
 
-  if (previousResult.error) {
-    throw previousResult.error
+  const [schoolResult, enrollmentResult, previousResult] = await Promise.all([
+    supabase
+      .from('schools')
+      .select('name')
+      .eq('id', schoolId)
+      .single(),
+    supabase
+      .from('student_classes')
+      .select('student_id,students(id,name,profile_id,deleted_at)')
+      .eq('school_id', schoolId)
+      .eq('class_id', classId)
+      .eq('is_current', true),
+    supabase
+      .from('lesson_plans')
+      .select('topic')
+      .eq('teacher_id', userId)
+      .eq('school_id', schoolId)
+      .eq('class_id', classId)
+      .eq('subject_id', subjectId)
+      .not('topic', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ])
+
+  if (schoolResult.error) throw schoolResult.error
+  if (enrollmentResult.error) throw enrollmentResult.error
+  if (previousResult.error) throw previousResult.error
+
+  const students: LessonContextStudent[] = []
+  const seen = new Set<string>()
+  for (const row of enrollmentResult.data ?? []) {
+    const learner = (row as any).students
+    if (!learner || learner.deleted_at || seen.has(learner.id)) continue
+    seen.add(learner.id)
+    students.push({
+      id: learner.id,
+      name: learner.name,
+      profile_id: learner.profile_id ?? null,
+    })
   }
+  students.sort((a, b) => a.name.localeCompare(b.name))
 
-  if (classResult.error) {
-    throw classResult.error
-  }
-
-  const students =
-    (studentResult.data ?? []) as LessonContextStudent[]
-
-  const previousTopics = (
-    previousResult.data ?? []
-  )
+  const previousTopics = (previousResult.data ?? [])
     .map(row => row.topic)
     .filter(
       (topic): topic is string =>
-        typeof topic === 'string' &&
-        topic.trim().length > 0,
+        typeof topic === 'string' && topic.trim().length > 0,
     )
 
   return {
-    teacherName:
-      profile.full_name ?? 'Teacher',
-    schoolName:
-      schoolResult.data?.name ?? 'the school',
-    schoolId:
-      schoolId ?? '',
-    studentCount:
-      students.length,
+    teacherName: profileResult.data.full_name ?? 'Teacher',
+    schoolName: schoolResult.data?.name ?? 'the school',
+    schoolId,
+    studentCount: students.length,
     previousTopics,
     students,
-    grade:
-      classResult.data?.name ?? null,
+    grade: classResult.data?.name ?? null,
   }
 }
