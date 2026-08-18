@@ -13,15 +13,15 @@ import { T } from './ui/TwinHeader'
 import { routeTwinCore, type TwinCoreRouteResult } from '@/lib/student/twinCore'
 import {
   answerAdaptivePracticeQuestion,
-  askLearnerTwin,
   generateAdaptivePracticeQuestion,
   getAdaptiveTeachingTurn,
   getLearnerTwinState,
   type AdaptivePracticeQuestion,
   type AdaptiveTeachingTurn,
-  type LearnerTwinChatMessage,
   type LearnerTwinState,
 } from '@/lib/student/twin'
+
+const DETERMINISTIC_HELP = 'I work from your VibeSchool records and rules without generative AI. Try: “What should I do now?”, “What is my timetable?”, “Do I have homework?”, “What should I revise?”, “What is my weakest skill?”, “What do you remember about me?”, “Search …”, or “Save privately …”.'
 
 export default function VibeTwin({ isOpen, onClose, userName, learnerState }: VibeTwinProps) {
   const router = useRouter()
@@ -168,11 +168,6 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     const q = query.trim()
     if (!q || !acquireProcessing()) return
 
-    const history: LearnerTwinChatMessage[] = messages.slice(-8).map(message => ({
-      role: message.role === 'user' ? 'user' : 'assistant',
-      content: message.text,
-    }))
-
     addMessage('user', q)
     setInput('')
     setTwinState('processing')
@@ -180,7 +175,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     try {
       const core = await routeTwinCore(q)
       setCoreResult(core.handled ? core : null)
-      if (core.handled && !core.requiresAi) {
+      if (core.handled) {
         finish(core.reply || 'Done.', false)
         return
       }
@@ -189,11 +184,13 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
         const turn = await getAdaptiveTeachingTurn(practiceQuestion.outcomeId, coachStage, q)
         setCoachTurn(turn)
         setCoachStage(turn.nextStage)
+        finish(turn.prompt, false)
+        return
       }
-      const response = await askLearnerTwin({ firstName: userName, messages: [...history, { role: 'user', content: q }] })
-      finish(response, true)
+
+      finish(DETERMINISTIC_HELP, false)
     } catch {
-      finish('Twin Core is still available for your tasks, revision, memory, search and saved learning space. Open-ended AI conversation is temporarily limited.')
+      finish('Twin is still available without AI for your tasks, timetable, revision, memory, search, saved learning space and guided practice. Try one of those actions again.', false)
     }
   }
 
@@ -229,9 +226,9 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
       onAnswer={(index) => void submitAdaptiveAnswer(index)}
       onCoach={() => void requestCoaching()}
       onHint={() => setHintIndex(value => practiceQuestion ? Math.min(practiceQuestion.hints.length, value + 1) : value)}
-      onExplainAnotherWay={() => void handleQuery(practiceQuestion ? `Explain ${practiceQuestion.outcomeText} another way. Do not give away the answer to the current question.` : 'Explain my current learning focus another way.')}
-      onEasier={() => void handleQuery(practiceQuestion ? `Make this easier. Teach the prerequisite or a smaller step for ${practiceQuestion.outcomeText}, then ask me one question.` : 'Make my current learning task easier and guide me one step at a time.')}
-      onHarder={() => void handleQuery(practiceQuestion ? `Challenge me with a harder transfer question about ${practiceQuestion.outcomeText}.` : 'Give me a harder challenge based on what I have already shown I can do.')}
+      onExplainAnotherWay={() => void handleQuery(practiceQuestion ? `Help me understand ${practiceQuestion.outcomeText} another way without giving away the answer.` : 'What should I learn next?')}
+      onEasier={() => void handleQuery(practiceQuestion ? `I need a smaller step for ${practiceQuestion.outcomeText}.` : 'What should I do now?')}
+      onHarder={() => void handleQuery(practiceQuestion ? `Give me the next challenge for ${practiceQuestion.outcomeText}.` : 'What should I do now?')}
       onEndPractice={() => {
         const focus = practiceQuestion?.outcomeText ?? 'this learning focus'
         const summary = `We paused ${focus}. I’ll keep only the learning evidence already recorded. You can resume later without starting from zero.`

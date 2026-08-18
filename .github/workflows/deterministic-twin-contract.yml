@@ -1,0 +1,78 @@
+name: Deterministic Twin Contract
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+      - 'twin/**'
+    paths:
+      - 'components/student/VibeTwin/**'
+      - 'components/teacher/TwinDrawer.tsx'
+      - 'components/teacher/SmartInsightSlides.tsx'
+      - 'components/parent/TwinDrawer.tsx'
+      - 'components/admin/TwinDrawer.tsx'
+      - 'components/hq/TwinDrawer.tsx'
+      - 'components/twin/**'
+      - 'lib/twin/**'
+      - 'lib/teacher/twin.ts'
+      - 'lib/student/twinCore.ts'
+      - 'lib/student-context.tsx'
+      - 'app/student/layout.tsx'
+      - 'app/parent/layout.tsx'
+      - 'app/teacher/layout.tsx'
+      - 'app/admin/page.tsx'
+      - 'app/admin/layout.tsx'
+      - 'app/hq/layout.tsx'
+      - 'scripts/test-deterministic-twin-contract.mjs'
+      - 'scripts/test-twin-portal-authority.mjs'
+      - 'docs/TWIN_CONSTITUTION_V1.md'
+      - 'vercel.json'
+      - '.github/workflows/deterministic-twin-contract.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'components/student/VibeTwin/**'
+      - 'components/teacher/TwinDrawer.tsx'
+      - 'components/teacher/SmartInsightSlides.tsx'
+      - 'components/parent/TwinDrawer.tsx'
+      - 'components/admin/TwinDrawer.tsx'
+      - 'components/hq/TwinDrawer.tsx'
+      - 'components/twin/**'
+      - 'lib/twin/**'
+      - 'lib/teacher/twin.ts'
+      - 'lib/student/twinCore.ts'
+      - 'lib/student-context.tsx'
+      - 'app/student/layout.tsx'
+      - 'app/parent/layout.tsx'
+      - 'app/teacher/layout.tsx'
+      - 'app/admin/page.tsx'
+      - 'app/admin/layout.tsx'
+      - 'app/hq/layout.tsx'
+      - 'scripts/test-deterministic-twin-contract.mjs'
+      - 'scripts/test-twin-portal-authority.mjs'
+      - 'docs/TWIN_CONSTITUTION_V1.md'
+      - 'vercel.json'
+      - '.github/workflows/deterministic-twin-contract.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deterministic-twin-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Twin zero-AI + multi-role authority invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Enforce deterministic Twin boundary
+        run: node scripts/test-deterministic-twin-contract.mjs
+      - name: Enforce portal authority boundaries
+        run: node scripts/test-twin-portal-authority.mjs

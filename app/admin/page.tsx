@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import AdminTwinDrawer from "@/components/admin/TwinDrawer"
 import ClassroomLearningHealth from "@/components/admin/ClassroomLearningHealth"
+import { getTwinAuthorityContext, selectTwinRoleBinding } from "@/lib/twin/core"
 
 const C = {
   hero:      "#0a1628",
@@ -79,20 +80,19 @@ export default function AdminHub() {
 
   async function boot() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+      const authority = await getTwinAuthorityContext()
+      const binding = selectTwinRoleBinding(authority, "admin")
+      const schoolId = binding.schoolId
+      if (!schoolId) throw new Error("Admin portal has no authorized school scope.")
 
-      const { data: p, error: pError } = await supabase
-        .from("profiles")
-        .select(`full_name, school_id, schools ( name, logo_url )`)
-        .eq("id", user.id)
-        .single()
+      const [{ data: profile, error: profileError }, { data: school, error: schoolError }] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", authority.userId).single(),
+        supabase.from("schools").select("name, logo_url").eq("id", schoolId).single(),
+      ])
+      if (profileError || !profile) throw new Error(profileError?.message || "Admin profile could not be resolved.")
+      if (schoolError || !school) throw new Error(schoolError?.message || "Admin school could not be resolved.")
 
-      if (!p) { setLoading(false); return }
-
-      const schoolData = Array.isArray(p.schools) ? p.schools[0] : p.schools
-
-      await loadDash(p.school_id ?? "", p.full_name ?? "Principal", schoolData)
+      await loadDash(schoolId, profile.full_name ?? "Principal", school)
     } catch (err) {
       console.error("Admin boot error:", err)
     } finally {

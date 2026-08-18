@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core"
 
 export interface StudentIdentity {
   profileId:   string
@@ -45,50 +46,72 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
 
     async function resolve() {
       try {
-        // 1. Auth
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { router.replace("/?role=student"); return }
+        // Twin/portal role authority is relationship-derived. profiles.role is not
+        // an authorization root, which allows one identity to hold multiple roles.
+        const authority = await getTwinAuthorityContext()
+        const studentBindings = requireTwinRole(authority, "student")
+        if (studentBindings.length > 1) {
+          throw new Error("Multiple current learner school scopes are attached to this account. Choose or reconcile the active enrollment before continuing.")
+        }
+        const binding = studentBindings[0]
+        const userId = authority.userId
 
-        // 2. Profile is the authenticated account record, not the school learner authority.
         const { data: profile, error: profileErr } = await supabase
           .from("profiles")
-          .select("full_name, role")
-          .eq("id", user.id)
+          .select("full_name")
+          .eq("id", userId)
           .single()
 
         if (profileErr || !profile) { router.replace("/?role=student"); return }
-        if (profile.role !== "student") { router.replace("/?role=student"); return }
 
-        // 3. Student row is the canonical school learner identity chain pivot.
         const { data: student, error: studentErr } = await supabase
           .from("students")
           .select("id, name, admission_number, class_id")
-          .eq("profile_id", user.id)
-          .single()
+          .eq("profile_id", userId)
+          .is("deleted_at", null)
+          .maybeSingle()
 
-        if (studentErr || !student) {
+        if (studentErr) throw new Error(studentErr.message || "Learner identity could not be resolved.")
+        if (!student) {
           router.replace("/student/claim")
           return
         }
+        if (student.id !== binding.scopeId) throw new Error("Learner identity does not match the authorized Student Twin scope.")
 
-        // 4. Class — null safe
-        let className  = ""
-        let schoolId: string | null = null
+        let classId: string | null = null
+        let schoolId: string | null = binding.schoolId
 
-        if (student.class_id) {
+        if (schoolId) {
+          const { data: enrollment, error: enrollmentErr } = await supabase
+            .from("student_classes")
+            .select("class_id, school_id")
+            .eq("student_id", student.id)
+            .eq("school_id", schoolId)
+            .eq("is_current", true)
+            .order("joined_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (enrollmentErr) throw new Error(enrollmentErr.message || "Current learner enrollment could not be resolved.")
+          classId = enrollment?.class_id ?? null
+          schoolId = enrollment?.school_id ?? schoolId
+        } else {
+          // Legacy fallback only when there is no current canonical enrollment yet.
+          classId = student.class_id ?? null
+        }
+
+        let className = ""
+        if (classId) {
           const { data: cls } = await supabase
             .from("classes")
             .select("name, stream, school_id")
-            .eq("id", student.class_id)
+            .eq("id", classId)
             .single()
-
           if (cls) {
             className = cls.name + (cls.stream ? " " + cls.stream : "")
-            schoolId  = cls.school_id ?? null
+            schoolId = schoolId ?? cls.school_id ?? null
           }
         }
 
-        // 5. School — null safe
         let schoolName = ""
         if (schoolId) {
           const { data: school } = await supabase
@@ -99,15 +122,13 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
           schoolName = school?.name ?? ""
         }
 
-        // School-controlled learner name wins. profiles.full_name remains a safe fallback
-        // for legacy rows while the identity data is reconciled.
         const fullName  = student.name?.trim() || profile.full_name?.trim() || "Student"
         const firstName = fullName.split(/\s+/)[0] || "Student"
 
         setIdentity({
-          profileId:   user.id,
+          profileId:   userId,
           studentId:   student.id,
-          classId:     student.class_id ?? null,
+          classId,
           schoolId,
           name:        fullName,
           firstName,
@@ -116,14 +137,15 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
           schoolName,
         })
       } catch (e) {
-        setError("Could not load your profile. Please try again.")
+        const message = e instanceof Error ? e.message : "Could not load your student identity. Please try again."
+        setError(message)
         console.error("StudentProvider resolve error:", e)
       } finally {
         setLoading(false)
       }
     }
 
-    resolve()
+    void resolve()
   }, [router])
 
   return (
