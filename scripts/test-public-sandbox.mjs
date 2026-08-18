@@ -3,8 +3,11 @@ import { chromium } from 'playwright'
 const base = process.env.PUBLIC_TEST_BASE_URL || 'http://127.0.0.1:3000'
 const failures = []
 const fail = (message) => failures.push(message)
+const launchOptions = process.env.PLAYWRIGHT_BROWSER_CHANNEL
+  ? { headless: true, channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL }
+  : { headless: true }
 
-const browser = await chromium.launch({ headless: true })
+const browser = await chromium.launch(launchOptions)
 try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const page = await context.newPage()
