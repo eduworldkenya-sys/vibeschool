@@ -130,7 +130,7 @@ async function restorePersistedLessonSource(
 function buildCanonicalIdentity(
   source: CurriculumSuggestion | null,
   subjectId: string,
-  grade: string,
+  grade: string | null,
 ): LessonCanonicalSourceIdentity | null {
   if (
     !source?.id ||
