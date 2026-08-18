@@ -107,6 +107,12 @@ require(child_homework, '.from("students")', "homework deep-link RLS authority g
 require(child_homework, '.from("homework")', "homework teacher-assignment source")
 require(child_homework, '.from("homework_submissions")', "homework learner-status source")
 require(child_homework, "No cached data from another learner has been shown", "homework fail-closed network state")
+require(child_homework, "const requestVersion = useRef(0)", "homework request generation guard")
+require(child_homework, "const version = ++requestVersion.current", "homework request version allocation")
+require(child_homework, "version !== requestVersion.current", "homework stale response rejection")
+require(child_homework, "setChildName(\"\")", "homework child-name clearing")
+require(child_homework, "setItems([])", "homework sibling-data clearing")
+require(child_homework, "requestVersion.current += 1", "homework unmount invalidation")
 
 # Empty-state linking action must enter the verified claim flow, never a generic
 # communications page or a guessed student-id route.
