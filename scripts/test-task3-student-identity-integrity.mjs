@@ -2,6 +2,7 @@ import fs from 'node:fs'
 
 const migration = fs.readFileSync('supabase/migrations/20260819010000_task3_student_identity_provisioning_integrity.sql', 'utf8')
 const boundary = fs.readFileSync('supabase/migrations/20260819011000_task3_student_teacher_boundary_semantic_closure.sql', 'utf8')
+const recovery = fs.readFileSync('supabase/migrations/20260819013000_task3_historical_unenrolled_student_reconciliation.sql', 'utf8')
 
 function expect(text, pattern, message) {
   if (!pattern.test(text)) throw new Error(message)
@@ -17,11 +18,9 @@ expect(migration,/student_external_identifier_conflicts/i,'missing ambiguous ext
 expect(migration,/Reused admission identifiers are conflicts, not automatic learner merge evidence/i,'historical identifier policy must forbid guessed merges')
 expect(migration,/students_one_current_enrollment_uidx[\s\S]*on public\.student_classes\(student_id\)[\s\S]*where is_current=true/i,'missing one-current-enrollment invariant')
 expect(migration,/class_join_requests_one_pending_uidx[\s\S]*where status='pending'/i,'missing pending join request deduplication')
-
 expect(migration,/create or replace function public\.is_teacher_of_student[\s\S]*join public\.school_members sm[\s\S]*sm\.role='teacher'/i,'teacher-student predicate must require live teacher membership')
 expect(migration,/tc\.teacher_id=auth\.uid\(\)/i,'teacher-student predicate must bind caller')
 expect(migration,/sc\.is_current=true/i,'teacher-student predicate must require current enrollment')
-
 expect(migration,/create or replace function public\.teacher_add_student[\s\S]*pg_advisory_xact_lock/i,'teacher provisioning must serialize retries')
 expect(migration,/teacher_add_student[\s\S]*student_provisioning_receipts/i,'teacher provisioning must persist retry receipt')
 expect(migration,/admission_identifier_required_for_retry_safe_provisioning/i,'teacher/admin roster creation must reject identity-weak provisioning')
@@ -50,6 +49,15 @@ expect(boundary,/homework_submissions_teacher[\s\S]*is_teacher_of_student/i,'hom
 expect(boundary,/psl_teacher_read[\s\S]*is_teacher_of_student/i,'parent-student teacher read must require canonical learner authority')
 expect(boundary,/claim_codes_teacher[\s\S]*is_teacher_of_student/i,'claim code teacher path must require canonical learner authority')
 expect(boundary,/mastery_teacher_read[\s\S]*is_teacher_of_student/i,'mastery teacher read must require canonical learner authority')
+
+expect(recovery,/student_enrollment_recovery_cases/i,'missing safe quarantine for unprovable unenrolled learners')
+expect(recovery,/p\.id=s\.created_by[\s\S]*p\.role='parent'/i,'parent relationship repair must use authenticated creation provenance')
+expect(recovery,/insert into public\.parent_student_links/i,'deterministic parent relationship repair is missing')
+expect(recovery,/not exists\(select 1 from public\.student_learning_events/i,'quarantine must not swallow learners with learning history')
+expect(recovery,/not exists\(select 1 from public\.attendance/i,'quarantine must not swallow learners with attendance history')
+expect(recovery,/not exists\(select 1 from public\.exam_results/i,'quarantine must not swallow learners with results history')
+reject(recovery,/delete from public\.students/i,'historical reconciliation must never delete learners')
+reject(recovery,/lower\([^\n]*name/i,'historical reconciliation must not use name similarity')
 
 const semantic = fs.readFileSync('supabase/migrations/20260818184000_student_one_semantic_identity_closure.sql','utf8')
 if (!/public\.students/i.test(semantic) || !/student_id/i.test(semantic)) throw new Error('canonical Student=1 semantic closure migration is missing')
