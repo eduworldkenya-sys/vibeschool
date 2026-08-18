@@ -64,6 +64,13 @@ function Skeleton({ h = 56, radius = 12 }: { h?: number; radius?: number }) {
   )
 }
 
+async function resolveCanonicalStudentId(): Promise<string> {
+  const { data, error } = await supabase.rpc('current_student_id')
+  if (error) throw error
+  if (typeof data !== 'string' || !data) throw new Error('Canonical learner identity is unavailable.')
+  return data
+}
+
 export default function VibeProgress() {
   const [stats, setStats]     = useState<Stats>({
     total: 0, ebooks: 0, epages: 0,
@@ -77,27 +84,27 @@ export default function VibeProgress() {
     setLoading(true)
     setError(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); return }
+      const studentId = await resolveCanonicalStudentId()
 
       const [completedRes, pointsRes, streakRes] = await Promise.all([
         supabase
           .from('vibelearn_completed')
           .select('content_id, vibelearn_content(type)')
-          .eq('student_id', user.id),
+          .eq('student_id', studentId),
         supabase
           .from('vibelearn_points')
           .select('points')
-          .eq('student_id', user.id),
+          .eq('student_id', studentId),
         supabase
           .from('vibelearn_streaks')
           .select('current_streak, longest_streak')
-          .eq('student_id', user.id)
+          .eq('student_id', studentId)
           .maybeSingle(),
       ])
 
       if (completedRes.error) throw completedRes.error
       if (pointsRes.error) throw pointsRes.error
+      if (streakRes.error) throw streakRes.error
 
       const next: Stats = {
         total: 0, ebooks: 0, epages: 0,
@@ -160,7 +167,6 @@ export default function VibeProgress() {
 
   return (
     <div style={{ background: CARD, borderRadius: 16, padding: '20px', marginBottom: 4 }}>
-      {/* Level + streak row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div>
           <div style={{ fontSize: 10, color: MUTED, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
@@ -178,7 +184,6 @@ export default function VibeProgress() {
         </div>
       </div>
 
-      {/* XP bar */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 11, color: MUTED }}>{stats.points} Vibe pts</span>
@@ -195,7 +200,6 @@ export default function VibeProgress() {
         </div>
       </div>
 
-      {/* Stats row */}
       <div style={{ display: 'flex', gap: 0 }}>
         {([
           { label: 'Vibed Out', val: stats.total,         color: ACCENT  },

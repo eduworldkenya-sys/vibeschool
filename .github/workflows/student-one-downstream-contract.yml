@@ -1,0 +1,45 @@
+name: Student One Downstream Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260818125323_student_one_downstream_authorization_hardening.sql'
+      - 'supabase/migrations/20260818125338_student_one_downstream_retargeting_closure.sql'
+      - 'supabase/migrations/20260818130039_student_one_homework_policy_dedup.sql'
+      - 'supabase/migrations/20260818130509_student_one_vibelearn_identity_authority.sql'
+      - 'components/student/VibeLearnShellWrapper.tsx'
+      - 'components/student/VibeProgress.tsx'
+      - 'lib/vibelearn-points.ts'
+      - 'scripts/test-student-one-downstream-contract.mjs'
+      - 'docs/security/STUDENT_ONE_DOWNSTREAM_CHAIN_CERTIFICATION_20260818.md'
+      - '.github/workflows/student-one-downstream-contract.yml'
+  push:
+    branches:
+      - main
+      - 'cert/student-one-downstream-chain-**'
+    paths:
+      - 'supabase/migrations/20260818125323_student_one_downstream_authorization_hardening.sql'
+      - 'supabase/migrations/20260818125338_student_one_downstream_retargeting_closure.sql'
+      - 'supabase/migrations/20260818130039_student_one_homework_policy_dedup.sql'
+      - 'supabase/migrations/20260818130509_student_one_vibelearn_identity_authority.sql'
+      - 'components/student/VibeLearnShellWrapper.tsx'
+      - 'components/student/VibeProgress.tsx'
+      - 'lib/vibelearn-points.ts'
+      - 'scripts/test-student-one-downstream-contract.mjs'
+      - 'docs/security/STUDENT_ONE_DOWNSTREAM_CHAIN_CERTIFICATION_20260818.md'
+      - '.github/workflows/student-one-downstream-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Canonical learner downstream identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce downstream Student = 1 contract
+        run: node scripts/test-student-one-downstream-contract.mjs
