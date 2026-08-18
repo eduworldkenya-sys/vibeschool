@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { hqSupabase } from "@/lib/hq/supabase"
 import HQTwinDrawer from "@/components/hq/TwinDrawer"
 import { HQPage, HQPanel, HQ_THEME as C, hqButtonStyle } from "@/components/hq/HQShell"
 import { clearAllHQOfflineData, isHQOnline, readHQCache, saveHQCache } from "@/lib/hq/offline"
@@ -12,7 +12,7 @@ type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
 type Control = { product_key:string; policy_key:string; desired_value:Json; observed_value:Json; state:string; verified_at?:string|null; last_error?:string|null }
 type Report = Record<string, any>
 type CommandCache={report:Report|null;controls:Control[];health:Report|null;actionableDecisions:number}
-const sb = supabase as any
+const sb = hqSupabase as any
 const labelize=(s:string)=>s.replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())
 const fmt=(n:unknown)=>typeof n==="number"?new Intl.NumberFormat("en-KE").format(n):String(n??"—")
 const num=(v:unknown)=>typeof v==="number"?v:Number(v??0)||0
@@ -28,7 +28,7 @@ export default function HQCommandCenter(){
  useEffect(()=>{if(!isHQOnline())applyCache();void refresh()},[applyCache,refresh]);const q=report?.executive_questions??{};const headline=report?.executive_dashboard?.headline??report?.executive_dashboard?.headline_metrics??{};const finance=report?.finance??{};const certs=(health?.runtime_certifications??[])as Report[];const passing=certs.filter(c=>c.result==="pass").length;const controlsByProduct=useMemo(()=>[...controls].sort((a,b)=>a.product_key.localeCompare(b.product_key)),[controls]);const daily=Array.isArray(report?.company_period?.daily)?report.company_period.daily:[];const dauTrend=daily.map((d:Report)=>num(d?.metrics?.dau));const wau=num(headline.wau);const mau=num(headline.mau);const dau=num(headline.dau??daily.at?.(-1)?.metrics?.dau);const incidents=num(headline.open_incidents);const findings=num(headline.open_findings);const work=num(headline.open_work);const metricItems=[{label:"DAU",value:dau,tone:C.green},{label:"WAU",value:wau,tone:C.blue},{label:"MAU",value:mau,tone:C.violet},{label:"Decisions",value:actionableDecisions,tone:C.amber}]
  async function confirmPolicy(){if(!pending||!reason.trim())return;if(!isHQOnline()){setError("Reconnect before changing product authority.");return}const next=pending.desired_value!==true;const id=`${pending.product_key}:${pending.policy_key}`;setBusy(id);try{const{error}=await sb.rpc("hq_set_product_policy",{p_product_key:pending.product_key,p_policy_key:pending.policy_key,p_value:next,p_reason:reason.trim()});if(error)throw error;setPending(null);setReason("");await refresh()}catch(e){setError(e instanceof Error?e.message:"Policy change failed.")}finally{setBusy("")}}
  async function runCycle(){if(!isHQOnline()){setError("Reconnect before running the operating cycle.");return}setBusy("cycle");try{const{error}=await sb.rpc("hq_run_operating_cycle");if(error)throw error;await refresh()}catch(e){setError(e instanceof Error?e.message:"Operating cycle failed.")}finally{setBusy("")}}
- async function signOut(){clearAllHQOfflineData();await supabase.auth.signOut();router.replace("/hq/login")}
+ async function signOut(){clearAllHQOfflineData();await hqSupabase.auth.signOut({scope:"local"});router.replace("/hq/login")}
  if(loading&&!report)return <main className="hq-page" style={{display:"grid",placeItems:"center"}}>Loading live HQ…</main>
  return <><HQPage title="Founder Command Center" description="Observe · detect · explain · prioritize · decide · verify" actions={<><button onClick={()=>router.push("/hq/decisions")} style={{...hqButtonStyle,color:actionableDecisions?C.amber:C.green}}>Decisions{actionableDecisions?` · ${actionableDecisions}`:""}</button><button onClick={()=>void refresh()} style={hqButtonStyle}>Refresh</button><button onClick={()=>void runCycle()} disabled={busy==="cycle"} style={hqButtonStyle}>{busy==="cycle"?"Running…":"Run cycle"}</button><button onClick={()=>setTwinOpen(true)} style={hqButtonStyle}>HQ Twin</button><button onClick={()=>void signOut()} style={{...hqButtonStyle,color:C.red}}>Sign out</button></>}>
  {cachedAt&&<div style={{marginBottom:12,fontSize:10.5,color:C.amber}}>Last-known snapshot from {new Date(cachedAt).toLocaleString("en-KE")}</div>}{error&&<div role="alert" style={{marginBottom:14,padding:12,borderRadius:11,border:"1px solid rgba(251,113,133,.3)",background:"rgba(251,113,133,.08)",color:"#fecdd3",fontSize:12}}>{error}</div>}
