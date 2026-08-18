@@ -1,1728 +1,737 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
-import { C } from '@/components/teacher/ui'
 
-function toJson(value: unknown): Json {
-  return JSON.parse(JSON.stringify(value)) as Json
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertCircle,
+  BookOpen,
+  BriefcaseBusiness,
+  Camera,
+  Check,
+  ChevronRight,
+  GraduationCap,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  MapPin,
+  Phone,
+  School,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import type { Json } from "@/lib/database.types";
+
+type Tab = "overview" | "personal" | "professional" | "credentials" | "preferences";
+
+type ProfileRecord = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  county: string | null;
+  sub_county: string | null;
+  address: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relation: string | null;
+  school_id: string | null;
+  avatar_url: string | null;
+};
+
+type TeacherProfileRecord = {
+  profile_id: string;
+  tsc_number: string | null;
+  employment_type: string | null;
+  job_title: string | null;
+  department: string | null;
+  date_joined: string | null;
+  bio: string | null;
+  teaching_philosophy: string | null;
+  teaching_style: string | null;
+  classroom_management: string | null;
+  learning_support: string | null;
+  assessment_approach: string | null;
+  qualifications: Json | null;
+  professional_development: Json | null;
+};
+
+type AssignmentRow = {
+  class_id: string;
+  subject_id: string;
+};
+
+type Assignment = {
+  className: string;
+  subjectName: string;
+};
+
+type Qualification = {
+  qualification: string;
+  institution: string;
+  year: string;
+  specialization: string;
+};
+
+type ProfessionalDevelopment = {
+  title: string;
+  provider: string;
+  year: string;
+};
+
+const TABS: Array<{ id: Tab; label: string; icon: typeof UserRound }> = [
+  { id: "overview", label: "Overview", icon: UserRound },
+  { id: "personal", label: "Personal", icon: Phone },
+  { id: "professional", label: "Professional", icon: BriefcaseBusiness },
+  { id: "credentials", label: "Credentials", icon: GraduationCap },
+  { id: "preferences", label: "Teaching preferences", icon: BookOpen },
+];
+
+const emptyProfile: ProfileRecord = {
+  id: "",
+  email: "",
+  full_name: "",
+  first_name: "",
+  last_name: "",
+  phone: "",
+  date_of_birth: "",
+  gender: "",
+  county: "",
+  sub_county: "",
+  address: "",
+  emergency_contact_name: "",
+  emergency_contact_phone: "",
+  emergency_contact_relation: "",
+  school_id: null,
+  avatar_url: "",
+};
+
+const emptyTeacher: TeacherProfileRecord = {
+  profile_id: "",
+  tsc_number: "",
+  employment_type: "",
+  job_title: "",
+  department: "",
+  date_joined: "",
+  bio: "",
+  teaching_philosophy: "",
+  teaching_style: "",
+  classroom_management: "",
+  learning_support: "",
+  assessment_approach: "",
+  qualifications: [],
+  professional_development: [],
+};
+
+function asText(value: string | null | undefined) {
+  return value ?? "";
 }
 
-const SECTIONS = [
-  'Personal Information',
-  'Professional Info',
-  'Qualifications',
-  'Professional Development',
-  'Teaching Style & Twin',
-  'Attendance & Leave',
-  'Performance & Appraisal',
-  'Messages',
-  'Documents',
-  'Finance Reference',
-]
-
-interface ProfileForm {
-  full_name:     string
-  phone:         string
-  date_of_birth: string
-  country_code:  string
-  gender:        string
-  bio:           string
-  avatar_url:    string
+function qualificationList(value: Json | null): Qualification[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, Json | undefined> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    .map((item) => ({
+      qualification: typeof item.qualification === "string" ? item.qualification : "",
+      institution: typeof item.institution === "string" ? item.institution : "",
+      year: typeof item.year === "string" ? item.year : typeof item.year === "number" ? String(item.year) : "",
+      specialization: typeof item.specialization === "string" ? item.specialization : "",
+    }));
 }
 
-interface TeacherForm {
-  tsc_number:      string
-  employment_type: string
-  nationality:     string
-  designation:     string
-}
-
-interface SubjectOption { id: string; name: string }
-interface ClassOption   { id: string; name: string; stream: string | null }
-
-function Skeleton({ h = 44 }: { h?: number }) {
-  return (
-    <div style={{
-      height: h, borderRadius: 10,
-      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.4s infinite',
-    }} />
-  )
-}
-
-function ComingSoon({ title, sub }: { title: string; sub: string }) {
-  return (
-    <div>
-      <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{title}</h2>
-        <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{sub}</p>
-        <div style={{ marginTop: 16, height: 1, background: `linear-gradient(to right, ${C.accentLight}, ${C.border})` }} />
-      </div>
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '48px 24px', borderRadius: 16,
-        border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center',
-      }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: 12, background: C.accentLight,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, marginBottom: 16,
-        }}>🚧</div>
-        <p style={{ fontSize: 15, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Coming soon</p>
-        <p style={{ fontSize: 13, color: C.textMuted, marginTop: 6, maxWidth: 260 }}>
-          This section will be available when the {title} module is built.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function SectionHeader({ title, sub }: { title: string; sub: string }) {
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{title}</h2>
-      <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>{sub}</p>
-      <div style={{ marginTop: 16, height: 1, background: `linear-gradient(to right, ${C.accentLight}, ${C.border})` }} />
-    </div>
-  )
-}
-
-function ErrorBox({ msg }: { msg: string }) {
-  return (
-    <div style={{
-      padding: '10px 14px', borderRadius: 10, background: '#fef2f2',
-      border: '1px solid #fecaca', color: C.error, fontSize: 13, marginBottom: 20,
-    }}>
-      {msg}
-    </div>
-  )
-}
-
-function AvatarUpload({
-  userId, avatarUrl, onUploaded,
-}: {
-  userId: string
-  avatarUrl: string
-  onUploaded: (url: string) => void
-}) {
-  const [uploading,   setUploading]   = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.type.startsWith('image/')) { setUploadError('Please select an image file.'); return }
-    if (file.size > 2 * 1024 * 1024)    { setUploadError('Image must be under 2MB.');      return }
-
-    setUploading(true)
-    setUploadError(null)
-
-    const ext  = file.name.split('.').pop()
-    const path = `avatars/${userId}.${ext}`
-
-    const { error: uploadErr } = await supabase.storage
-      .from('avatars')
-      .upload(path, file, { upsert: true })
-
-    if (uploadErr) {
-      setUploading(false)
-      setUploadError('Upload failed: ' + uploadErr.message)
-      return
-    }
-
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-    onUploaded(urlData.publicUrl)
-    setUploading(false)
-  }
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
-      <div style={{
-        width: 72, height: 72, borderRadius: '50%',
-        background: C.accentLight, border: `2px solid ${C.accent}`,
-        overflow: 'hidden', flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28,
-      }}>
-        {avatarUrl
-          ? <img src={avatarUrl} alt="Profile photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : '👤'
-        }
-      </div>
-      <div>
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          style={{
-            padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-            background: C.accentLight, color: C.accent,
-            border: `1px solid ${C.accent}`, cursor: uploading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {uploading ? 'Uploading...' : avatarUrl ? 'Change Photo' : 'Upload Photo'}
-        </button>
-        <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>JPG or PNG, max 2MB</p>
-        {uploadError && <p style={{ fontSize: 11, color: C.error, marginTop: 2 }}>{uploadError}</p>}
-        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
-      </div>
-    </div>
-  )
+function developmentList(value: Json | null): ProfessionalDevelopment[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, Json | undefined> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    .map((item) => ({
+      title: typeof item.title === "string" ? item.title : "",
+      provider: typeof item.provider === "string" ? item.provider : "",
+      year: typeof item.year === "string" ? item.year : typeof item.year === "number" ? String(item.year) : "",
+    }));
 }
 
 export default function TeacherProfilePage() {
-  const [activeSection, setActiveSection] = useState(0)
-  return (
-    <div style={{ background: C.bg, minHeight: '100%' }}>
-      <style>{`
-        @keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
-        @media (min-width: 768px) {
-          #profile-sidebar { display: block !important; }
-          #profile-grid    { grid-template-columns: repeat(2, 1fr) !important; }
-          #proinfo-grid    { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-      `}</style>
-
-      <div style={{
-        overflowX: 'auto', display: 'flex', gap: 8,
-        padding: '12px 16px', borderBottom: `1px solid ${C.border}`,
-        scrollbarWidth: 'none',
-      }}>
-        {SECTIONS.map((s, i) => (
-          <button key={s} onClick={() => setActiveSection(i)} style={{
-            flexShrink: 0, padding: '6px 14px', borderRadius: 99,
-            fontSize: 12, fontWeight: activeSection === i ? 600 : 400,
-            color: activeSection === i ? C.accent : C.textMuted,
-            background: activeSection === i ? C.accentLight : 'transparent',
-            border: `1px solid ${activeSection === i ? C.accent : C.border}`,
-            whiteSpace: 'nowrap', cursor: 'pointer',
-          }}>
-            {s}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ display: 'flex' }}>
-        <aside id="profile-sidebar" style={{
-          width: 220, flexShrink: 0, borderRight: `1px solid ${C.border}`,
-          padding: 16, position: 'sticky', top: 0,
-          height: 'calc(100vh - 57px)', overflowY: 'auto', display: 'none',
-        }}>
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {SECTIONS.map((s, i) => (
-              <button key={s} onClick={() => setActiveSection(i)} style={{
-                width: '100%', textAlign: 'left', padding: '10px 12px',
-                borderRadius: 8, fontSize: 13,
-                fontWeight: activeSection === i ? 600 : 400,
-                color: activeSection === i ? C.accent : C.textMuted,
-                background: activeSection === i ? C.accentLight : 'transparent',
-                border: `1px solid ${activeSection === i ? C.accent : 'transparent'}`,
-                cursor: 'pointer',
-              }}>
-                <span style={{ color: C.border, fontSize: 11, marginRight: 8 }}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                {s}
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        <div style={{ flex: 1, padding: 20, minWidth: 0, maxWidth: 720 }}>
-          <ProfileSection index={activeSection} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ProfileSection({ index }: { index: number }) {
-  const sections = [
-    <PersonalInfoSection    key="Personal Information" />,
-    <ProfessionalInfoSection key="Professional Info" />,
-    <QualificationsSection key="Qualifications" />,
-    <ProfessionalDevSection key="Professional Development" />,
-    <TeachingStyleSection key="Teaching Style & Twin" />,
-    <AttendanceLeaveSection key="Attendance & Leave" />,
-    <PerformanceAppraisalSection key="Performance & Appraisal" />,
-    <MessagesSection key="Messages" />,
-    <DocumentsSection key="Documents" />,
-    <FinanceReferenceSection key="Finance Reference" />,
-  ]
-  return sections[index] ?? null
-}
-
-// ─── Shared load hook ─────────────────────────────────────────────────────────
-
-function useTeacherData() {
-  const [userId,   setUserId]   = useState<string | null>(null)
-  const [schoolId, setSchoolId] = useState<string | null>(null)
-  const [profile,  setProfile]  = useState<ProfileForm>({
-    full_name: '', phone: '', date_of_birth: '', country_code: 'KE',
-    gender: '', bio: '', avatar_url: '',
-  })
-  const [teacher, setTeacher] = useState<TeacherForm>({
-    tsc_number: '', employment_type: '', nationality: 'Kenyan', designation: '',
-  })
-  const [loading,   setLoading]   = useState(true)
-  const [pageError, setPageError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [profile, setProfile] = useState<ProfileRecord>(emptyProfile);
+  const [teacher, setTeacher] = useState<TeacherProfileRecord>(emptyTeacher);
+  const [schoolName, setSchoolName] = useState("Not assigned");
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [qualifications, setQualifications] = useState<Qualification[]>([]);
+  const [development, setDevelopment] = useState<ProfessionalDevelopment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const { data: authData, error: authError } = await supabase.auth.getUser()
-        if (authError || !authData.user) {
-          setPageError('Could not load your session. Please refresh.')
-          setLoading(false)
-          return
-        }
+    void loadProfile();
+  }, []);
 
-        const uid = authData.user.id
-        setUserId(uid)
+  async function loadProfile() {
+    setLoading(true);
+    setNotice(null);
 
-        const [profileRes, teacherRes] = await Promise.all([
-          supabase.from('profiles').select(
-            'full_name,phone,date_of_birth,country_code,gender,bio,avatar_url,school_id'
-          ).eq('id', uid).single(),
-          supabase.from('teacher_profiles').select(
-            'tsc_number,employment_type,nationality,designation,school_id'
-          ).eq('profile_id', uid).maybeSingle(),
-        ])
-
-        if (profileRes.error) {
-          setPageError('Failed to load your profile. Please refresh.')
-          setLoading(false)
-          return
-        }
-
-        const sid =
-          profileRes.data?.school_id  ??
-          teacherRes.data?.school_id  ??
-          null
-        setSchoolId(sid)
-
-        const p = profileRes.data
-        const t = teacherRes.data
-
-        setProfile({
-          full_name:     p?.full_name     ?? '',
-          phone:         p?.phone         ?? '',
-          date_of_birth: p?.date_of_birth ?? '',
-          country_code:  p?.country_code  ?? 'KE',
-          gender:        p?.gender        ?? '',
-          bio:           p?.bio           ?? '',
-          avatar_url:    p?.avatar_url    ?? '',
-        })
-        setTeacher({
-          tsc_number:      t?.tsc_number      ?? '',
-          employment_type: t?.employment_type ?? '',
-          nationality:     t?.nationality     ?? 'Kenyan',
-          designation:     t?.designation     ?? '',
-        })
-      } catch {
-        setPageError('Unexpected error. Please refresh.')
-      } finally {
-        setLoading(false)
-      }
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      setNotice({ kind: "error", text: "Your session could not be verified. Please sign in again." });
+      setLoading(false);
+      return;
     }
-    load()
-  }, [])
 
-  return { userId, schoolId, profile, setProfile, teacher, setTeacher, loading, pageError }
-}
-
-// ─── Personal Info ────────────────────────────────────────────────────────────
-
-function PersonalInfoSection() {
-  const { userId, schoolId, profile, setProfile, teacher, setTeacher, loading, pageError } = useTeacherData()
-  const router = useRouter()
-  const [subjects,           setSubjects]           = useState<SubjectOption[]>([])
-  const [classes,            setClasses]            = useState<ClassOption[]>([])
-  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([])
-  const [selectedClassId,    setSelectedClassId]    = useState<string>('')
-  const [saving,    setSaving]    = useState(false)
-  const [saved,     setSaved]     = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (!userId || !schoolId) return
-    async function loadExtras() {
-      try {
-        const [subjectsRes, classesRes, tcRes] = await Promise.all([
-          supabase.from('subjects').select('id,name')
-            .or(`school_id.eq.${schoolId},school_id.is.null`)
-            .order('name'),
-          supabase.from('classes').select('id,name,stream')
-            .eq('school_id', schoolId!)
-            .order('name'),
-          supabase.from('teacher_classes').select('class_id,subject_id')
-            .eq('teacher_id', userId!),
-        ])
-        setSubjects(subjectsRes.data ?? [])
-        setClasses(classesRes.data ?? [])
-        const tcRows = tcRes.data ?? []
-        const subIds = Array.from(
-          new Set(tcRows.map((r: { subject_id: string }) => r.subject_id).filter(Boolean))
-        ) as string[]
-        setSelectedSubjectIds(subIds)
-        setSelectedClassId(tcRows[0]?.class_id ?? '')
-      } catch {
-        // non-critical, don't block the form
-      }
-    }
-    loadExtras()
-  }, [userId, schoolId])
-
-  function normalisePhone(raw: string): string {
-    const v = raw.trim().replace(/\s/g, '')
-    if ((v.startsWith('07') || v.startsWith('01')) && v.length === 10) return '+254' + v.slice(1)
-    if (v.startsWith('254') && !v.startsWith('+')) return '+' + v
-    return v
-  }
-
-  function validate(): string | null {
-    if (!profile.full_name.trim()) return 'Full name is required.'
-    if (profile.date_of_birth && new Date(profile.date_of_birth) >= new Date())
-      return 'Date of birth must be in the past.'
-    return null
-  }
-
-  async function handleSave() {
-    if (!userId) return
-    const normalisedPhone = normalisePhone(profile.phone)
-    const err = validate()
-    if (err) { setSaveError(err); return }
-
-    setSaving(true)
-    setSaveError(null)
-
-    // upsert so new profiles are created if row missing
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      id:            userId,
-      full_name:     profile.full_name.trim(),
-      phone:         normalisedPhone        || null,
-      date_of_birth: profile.date_of_birth  || null,
-      country_code:  profile.country_code   || null,
-      gender:        profile.gender         || null,
-      bio:           profile.bio            || null,
-      avatar_url:    profile.avatar_url     || null,
-    }, { onConflict: 'id' })
+    const userId = authData.user.id;
+    const [{ data: profileData, error: profileError }, { data: teacherData, error: teacherError }, { data: assignmentData, error: assignmentError }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id,email,full_name,first_name,last_name,phone,date_of_birth,gender,county,sub_county,address,emergency_contact_name,emergency_contact_phone,emergency_contact_relation,school_id,avatar_url")
+          .eq("id", userId)
+          .single(),
+        supabase
+          .from("teacher_profiles")
+          .select("profile_id,tsc_number,employment_type,job_title,department,date_joined,bio,teaching_philosophy,teaching_style,classroom_management,learning_support,assessment_approach,qualifications,professional_development")
+          .eq("profile_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("teacher_classes")
+          .select("class_id,subject_id")
+          .eq("teacher_id", userId),
+      ]);
 
     if (profileError) {
-      setSaving(false)
-      setSaveError('Failed to save profile. ' + profileError.message)
-      return
+      setNotice({ kind: "error", text: "We could not load your teacher profile. Please try again." });
+      setLoading(false);
+      return;
     }
 
-    const { error: teacherError } = await supabase.from('teacher_profiles').upsert({
-      profile_id:      userId,
-      school_id:       schoolId,
-      tsc_number:      teacher.tsc_number      || null,
-      employment_type: teacher.employment_type || null,
-      nationality:     teacher.nationality     || null,
-    }, { onConflict: 'profile_id' })
-
-    if (teacherError) {
-      setSaving(false)
-      setSaveError('Saved profile but failed to update teacher details. ' + teacherError.message)
-      return
+    if (teacherError || assignmentError) {
+      setNotice({ kind: "error", text: "Some professional information could not be loaded. Please refresh the page." });
     }
 
-    if (schoolId && selectedClassId && selectedSubjectIds.length > 0) {
-      const rows = selectedSubjectIds.map((subId) => ({
-        teacher_id: userId, class_id: selectedClassId,
-        subject_id: subId,  school_id: schoolId, is_class_teacher: false,
-      }))
+    const nextProfile: ProfileRecord = { ...emptyProfile, ...(profileData as ProfileRecord) };
+    const nextTeacher: TeacherProfileRecord = { ...emptyTeacher, profile_id: userId, ...((teacherData ?? {}) as Partial<TeacherProfileRecord>) };
 
-      const { error: assignError } = await supabase
-        .from('teacher_classes')
-        .upsert(rows, { onConflict: 'teacher_id,class_id,subject_id' })
+    setProfile(nextProfile);
+    setTeacher(nextTeacher);
+    setQualifications(qualificationList(nextTeacher.qualifications));
+    setDevelopment(developmentList(nextTeacher.professional_development));
 
-      if (assignError) {
-        setSaving(false)
-        setSaveError('Saved profile but failed to update class assignments.')
-        return
-      }
+    if (nextProfile.school_id) {
+      const { data: school } = await supabase.from("schools").select("name").eq("id", nextProfile.school_id).maybeSingle();
+      setSchoolName(school?.name ?? "School assigned");
     }
 
-    setSaving(false)
-    setSaved(true)
-    setProfile(p => ({ ...p, phone: normalisedPhone }))
-    if (savedTimer.current) clearTimeout(savedTimer.current)
-    savedTimer.current = setTimeout(() => setSaved(false), 2500)
-  }
-
-  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
-
-  const inp: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', background: C.bg,
-    border: `1px solid ${C.border}`, borderRadius: 10,
-    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
-  }
-  const lbl: React.CSSProperties = {
-    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
-    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
-  }
-
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3,4,5,6].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  return (
-    <div>
-      <SectionHeader title="Personal Information" sub="Your basic details — visible across VibeSchool" />
-
-      {userId && (
-        <AvatarUpload
-          userId={userId}
-          avatarUrl={profile.avatar_url}
-          onUploaded={url => setProfile(p => ({ ...p, avatar_url: url }))}
-        />
-      )}
-
-      {saveError && <ErrorBox msg={saveError} />}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} id="profile-grid">
-
-        <div>
-          <label htmlFor="full_name" style={lbl}>Full Name *</label>
-          <input id="full_name" style={inp} value={profile.full_name}
-            onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))}
-            placeholder="e.g. Janet Chebet" />
-        </div>
-
-        <div>
-          <label htmlFor="phone" style={lbl}>Phone</label>
-          <input id="phone" style={inp} value={profile.phone}
-            onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
-            placeholder="e.g. 0712 345 678" />
-        </div>
-
-        <div>
-          <label htmlFor="date_of_birth" style={lbl}>Date of Birth</label>
-          <input id="date_of_birth" style={inp} type="date"
-            value={profile.date_of_birth}
-            max={new Date().toISOString().split('T')[0]}
-            onChange={e => setProfile(p => ({ ...p, date_of_birth: e.target.value }))} />
-        </div>
-
-        <div>
-          <label htmlFor="gender" style={lbl}>Gender</label>
-          <select id="gender" style={inp} value={profile.gender}
-            onChange={e => setProfile(p => ({ ...p, gender: e.target.value }))}>
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="prefer_not_to_say">Prefer not to say</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="nationality" style={lbl}>Nationality</label>
-          <input id="nationality" style={inp} value={teacher.nationality}
-            onChange={e => setTeacher(t => ({ ...t, nationality: e.target.value }))}
-            placeholder="e.g. Kenyan" />
-        </div>
-
-        <div>
-          <label htmlFor="country_code" style={lbl}>Country</label>
-          <select id="country_code" style={inp} value={profile.country_code}
-            onChange={e => setProfile(p => ({ ...p, country_code: e.target.value }))}>
-            <option value="KE">Kenya</option>
-            <option value="UG">Uganda</option>
-            <option value="TZ">Tanzania</option>
-            <option value="RW">Rwanda</option>
-            <option value="ET">Ethiopia</option>
-            <option value="NG">Nigeria</option>
-            <option value="GH">Ghana</option>
-            <option value="ZA">South Africa</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
-
-        <div style={{ gridColumn: '1 / -1' }}>
-          <label htmlFor="bio" style={lbl}>Bio</label>
-          <textarea id="bio" style={{ ...inp, minHeight: 80, resize: 'vertical' }}
-            value={profile.bio}
-            onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
-            placeholder="A short bio about yourself..." />
-        </div>
-
-        <div>
-          <label htmlFor="tsc_number" style={lbl}>TSC Number</label>
-          <input id="tsc_number" style={inp} value={teacher.tsc_number}
-            onChange={e => setTeacher(t => ({ ...t, tsc_number: e.target.value }))}
-            placeholder="e.g. TSC-0041-8821" />
-        </div>
-
-
-
-        <div>
-          <label htmlFor="class_select" style={lbl}>My Class</label>
-          <select id="class_select" style={inp} value={selectedClassId}
-            onChange={e => setSelectedClassId(e.target.value)}>
-            <option value="">Select your class</option>
-            {classes.map((cl) => (
-              <option key={cl.id} value={cl.id}>
-                {cl.name}{cl.stream ? ' · ' + cl.stream : ''}
-              </option>
-            ))}
-          </select>
-          {!schoolId && (
-            <div style={{ marginTop: 8 }}>
-              <p style={{ fontSize: 11, color: C.warning, margin: '0 0 8px' }}>No school linked yet.</p>
-              <button
-                onClick={() => router.push('/teacher/onboarding/school')}
-                style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                🏫 Link School
-              </button>
-            </div>
-          )}
-          {schoolId && classes.length === 0 && <p style={{ fontSize: 11, color: C.warning, marginTop: 4 }}>No classes found. Ask your admin to add classes.</p>}
-        </div>
-
-        <div style={{ gridColumn: '1 / -1' }}>
-          <label style={lbl}>Subjects Taught</label>
-          {!schoolId ? (
-            <p style={{ fontSize: 12, color: C.warning }}>No school linked. Subjects will appear once your school is set up.</p>
-          ) : subjects.length === 0 ? (
-            <p style={{ fontSize: 12, color: C.warning }}>No subjects found. Ask your admin to add subjects.</p>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 14px', border: `1px solid ${C.border}`, borderRadius: 10, background: C.bg }}>
-              {subjects.map((s) => {
-                const checked = selectedSubjectIds.includes(s.id)
-                return (
-                  <label key={s.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13,
-                    color: checked ? C.accent : C.textPrimary, fontWeight: checked ? 600 : 400,
-                    padding: '4px 10px', borderRadius: 99,
-                    background: checked ? C.accentLight : C.surface,
-                    border: `1px solid ${checked ? C.accent : C.border}`, transition: 'all 0.15s',
-                  }}>
-                    <input type="checkbox" checked={checked}
-                      onChange={() => setSelectedSubjectIds(prev =>
-                        checked ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                      )}
-                      style={{ width: 14, height: 14, accentColor: C.accent, cursor: 'pointer' }} />
-                    {s.name}
-                  </label>
-                )
-              })}
-            </div>
-          )}
-          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Select all subjects you teach</p>
-        </div>
-
-      </div>
-
-      <button onClick={handleSave} disabled={saving} style={{
-        marginTop: 28, padding: '12px 28px', borderRadius: 12,
-        background: saved ? C.accentLight : C.accent,
-        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
-        border: `1px solid ${saved ? C.accent : 'transparent'}`,
-        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
-      }}>
-        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Profile'}
-      </button>
-    </div>
-  )
-}
-
-// ─── Professional Info ────────────────────────────────────────────────────────
-
-function ProfessionalInfoSection() {
-  const { userId, schoolId, teacher, setTeacher, loading, pageError } = useTeacherData()
-  const [saving,    setSaving]    = useState(false)
-  const [saved,     setSaved]     = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  function validate(): string | null {
-    if (!teacher.designation.trim())     return 'Designation is required.'
-    if (!teacher.employment_type.trim()) return 'Employment type is required.'
-    return null
-  }
-
-  async function handleSave() {
-    if (!userId) return
-    const err = validate()
-    if (err) { setSaveError(err); return }
-
-    setSaving(true)
-    setSaveError(null)
-
-    const { error } = await supabase.from('teacher_profiles').upsert({
-      profile_id:      userId,
-      school_id:       schoolId,
-      designation:     teacher.designation     || null,
-      employment_type: teacher.employment_type || null,
-      tsc_number:      teacher.tsc_number      || null,
-      nationality:     teacher.nationality     || null,
-    }, { onConflict: 'profile_id' })
-
-    if (error) {
-      setSaving(false)
-      setSaveError('Failed to save. ' + error.message)
-      return
+    const rows = (assignmentData ?? []) as AssignmentRow[];
+    if (rows.length) {
+      const classIds = Array.from(new Set(rows.map((row) => row.class_id)));
+      const subjectIds = Array.from(new Set(rows.map((row) => row.subject_id)));
+      const [{ data: classes }, { data: subjects }] = await Promise.all([
+        supabase.from("classes").select("id,name,stream").in("id", classIds),
+        supabase.from("subjects").select("id,name").in("id", subjectIds),
+      ]);
+      const classMap = new Map((classes ?? []).map((row) => [row.id, `${row.name}${row.stream ? ` · ${row.stream}` : ""}`]));
+      const subjectMap = new Map((subjects ?? []).map((row) => [row.id, row.name]));
+      setAssignments(
+        rows.map((row) => ({
+          className: classMap.get(row.class_id) ?? "Assigned class",
+          subjectName: subjectMap.get(row.subject_id) ?? "Assigned subject",
+        }))
+      );
+    } else {
+      setAssignments([]);
     }
 
-    setSaving(false)
-    setSaved(true)
-    if (savedTimer.current) clearTimeout(savedTimer.current)
-    savedTimer.current = setTimeout(() => setSaved(false), 2500)
+    setLoading(false);
   }
 
-  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
-
-  const inp: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', background: C.bg,
-    border: `1px solid ${C.border}`, borderRadius: 10,
-    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
-  }
-  const lbl: React.CSSProperties = {
-    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
-    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
-  }
-
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3,4].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  return (
-    <div>
-      <SectionHeader title="Professional Information" sub="Your role, designation, and employment details" />
-
-      {saveError && <ErrorBox msg={saveError} />}
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} id="proinfo-grid">
-
-        <div>
-          <label htmlFor="designation" style={lbl}>Designation *</label>
-          <select id="designation" style={inp} value={teacher.designation}
-            onChange={e => setTeacher(t => ({ ...t, designation: e.target.value }))}>
-            <option value="">Select designation</option>
-            <option value="class_teacher">Class Teacher</option>
-            <option value="subject_teacher">Subject Teacher</option>
-            <option value="head_teacher">Head Teacher</option>
-            <option value="deputy_head">Deputy Head Teacher</option>
-            <option value="senior_teacher">Senior Teacher</option>
-            <option value="special_needs">Special Needs Teacher</option>
-            <option value="intern">Teaching Intern</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="pro_employment_type" style={lbl}>Employment Type *</label>
-          <select id="pro_employment_type" style={inp} value={teacher.employment_type}
-            onChange={e => setTeacher(t => ({ ...t, employment_type: e.target.value }))}>
-            <option value="">Select type</option>
-            <option value="government">Government (TSC)</option>
-            <option value="private">Private</option>
-            <option value="volunteer">Volunteer</option>
-            <option value="trainee">Trainee</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="pro_tsc_number" style={lbl}>TSC Number</label>
-          <input id="pro_tsc_number" style={inp} value={teacher.tsc_number}
-            onChange={e => setTeacher(t => ({ ...t, tsc_number: e.target.value }))}
-            placeholder="e.g. TSC-0041-8821" />
-          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
-            Required for government-employed teachers
-          </p>
-        </div>
-
-        <div>
-          <label htmlFor="pro_nationality" style={lbl}>Nationality</label>
-          <input id="pro_nationality" style={inp} value={teacher.nationality}
-            onChange={e => setTeacher(t => ({ ...t, nationality: e.target.value }))}
-            placeholder="e.g. Kenyan" />
-        </div>
-
-      </div>
-
-      {!schoolId && (
-        <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: C.warning, fontSize: 13 }}>
-          No school linked to your account. Some fields may not save correctly. Contact your admin.
-        </div>
-      )}
-
-      <button onClick={handleSave} disabled={saving} style={{
-        marginTop: 28, padding: '12px 28px', borderRadius: 12,
-        background: saved ? C.accentLight : C.accent,
-        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
-        border: `1px solid ${saved ? C.accent : 'transparent'}`,
-        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
-      }}>
-        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Professional Info'}
-      </button>
-    </div>
-  )
-}
-
-// ─── Qualifications ───────────────────────────────────────────────────────────
-
-interface Qualification {
-  id:         string
-  level:      string
-  field:      string
-  institution: string
-  year:       string
-}
-
-function QualificationsSection() {
-  const { userId, schoolId, loading, pageError } = useTeacherData()
-  const [quals,     setQuals]     = useState<Qualification[]>([])
-  const [saving,    setSaving]    = useState(false)
-  const [saved,     setSaved]     = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (!userId) return
-    async function loadQuals() {
-      const { data } = await supabase
-        .from('teacher_profiles')
-        .select('qualifications')
-        .eq('profile_id', userId!)
-        .single()
-      if (Array.isArray(data?.qualifications)) {
-        setQuals(data.qualifications as unknown as Qualification[])
-      }
-    }
-    loadQuals()
-  }, [userId])
-
-  function addRow() {
-    setQuals(q => [...q, { id: Date.now().toString(), level: '', field: '', institution: '', year: '' }])
-  }
-
-  function updateRow(id: string, key: keyof Qualification, value: string) {
-    setQuals(q => q.map(r => r.id === id ? { ...r, [key]: value } : r))
-  }
-
-  function removeRow(id: string) {
-    setQuals(q => q.filter(r => r.id !== id))
-  }
-
-  function validate(): string | null {
-    for (const q of quals) {
-      if (!q.level.trim())       return 'All entries need a qualification level.'
-      if (!q.institution.trim()) return 'All entries need an institution name.'
-      if (!q.year.trim())        return 'All entries need a year.'
-      if (!/^\d{4}$/.test(q.year.trim())) return 'Year must be 4 digits e.g. 2018.'
-    }
-    return null
-  }
-
-  async function handleSave() {
-    if (!userId) return
-    const err = validate()
-    if (err) { setSaveError(err); return }
-
-    setSaving(true)
-    setSaveError(null)
-
-    const { error } = await supabase.from('teacher_profiles').upsert({
-      profile_id:     userId,
-      school_id:      schoolId,
-      qualifications: toJson(quals),
-    }, { onConflict: 'profile_id' })
-
-    if (error) {
-      setSaving(false)
-      setSaveError('Failed to save. ' + error.message)
-      return
-    }
-
-    setSaving(false)
-    setSaved(true)
-    if (savedTimer.current) clearTimeout(savedTimer.current)
-    savedTimer.current = setTimeout(() => setSaved(false), 2500)
-  }
-
-  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
-
-  const inp: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', background: C.bg,
-    border: `1px solid ${C.border}`, borderRadius: 10,
-    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
-  }
-  const lbl: React.CSSProperties = {
-    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
-    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
-  }
-
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  return (
-    <div>
-      <SectionHeader title="Qualifications" sub="Your academic qualifications and certificates" />
-
-      {saveError && <ErrorBox msg={saveError} />}
-
-      {quals.length === 0 && (
-        <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>
-          No qualifications added yet. Click below to add one.
-        </p>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {quals.map((q, idx) => (
-          <div key={q.id} style={{
-            padding: 16, borderRadius: 12, border: `1px solid ${C.border}`,
-            background: C.surface, position: 'relative',
-          }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Qualification {idx + 1}
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={lbl}>Level</label>
-                <select style={inp} value={q.level} onChange={e => updateRow(q.id, 'level', e.target.value)}>
-                  <option value="">Select level</option>
-                  <option value="certificate">Certificate</option>
-                  <option value="diploma">Diploma</option>
-                  <option value="degree">Bachelor's Degree</option>
-                  <option value="pgde">PGDE</option>
-                  <option value="masters">Master's Degree</option>
-                  <option value="phd">PhD</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={lbl}>Field of Study</label>
-                <input style={inp} value={q.field}
-                  onChange={e => updateRow(q.id, 'field', e.target.value)}
-                  placeholder="e.g. Education, Mathematics" />
-              </div>
-              <div>
-                <label style={lbl}>Institution</label>
-                <input style={inp} value={q.institution}
-                  onChange={e => updateRow(q.id, 'institution', e.target.value)}
-                  placeholder="e.g. University of Nairobi" />
-              </div>
-              <div>
-                <label style={lbl}>Year Completed</label>
-                <input style={inp} value={q.year}
-                  onChange={e => updateRow(q.id, 'year', e.target.value)}
-                  placeholder="e.g. 2018" maxLength={4} />
-              </div>
-            </div>
-
-            <button onClick={() => removeRow(q.id)} style={{
-              position: 'absolute', top: 12, right: 12,
-              background: '#fef2f2', border: '1px solid #fecaca',
-              color: C.error, borderRadius: 8, padding: '4px 10px',
-              fontSize: 12, cursor: 'pointer', fontWeight: 600,
-            }}>
-              Remove
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <button onClick={addRow} style={{
-        marginTop: 16, padding: '10px 20px', borderRadius: 10,
-        background: C.surface, border: `1px dashed ${C.accent}`,
-        color: C.accent, fontWeight: 600, fontSize: 13,
-        cursor: 'pointer', width: '100%',
-      }}>
-        + Add Qualification
-      </button>
-
-      <button onClick={handleSave} disabled={saving} style={{
-        marginTop: 12, padding: '12px 28px', borderRadius: 12,
-        background: saved ? C.accentLight : C.accent,
-        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
-        border: `1px solid ${saved ? C.accent : 'transparent'}`,
-        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
-      }}>
-        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Qualifications'}
-      </button>
-    </div>
-  )
-}
-
-// ─── Professional Development ─────────────────────────────────────────────────
-
-interface PDEntry {
-  id:          string
-  name:        string
-  provider:    string
-  date:        string
-  hours:       string
-  certificate: boolean
-}
-
-function ProfessionalDevSection() {
-  const { userId, schoolId, loading, pageError } = useTeacherData()
-  const [entries,   setEntries]   = useState<PDEntry[]>([])
-  const [saving,    setSaving]    = useState(false)
-  const [saved,     setSaved]     = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (!userId) return
-    async function load() {
-      const { data } = await supabase
-        .from('teacher_profiles')
-        .select('professional_dev')
-        .eq('profile_id', userId!)
-        .single()
-      if (Array.isArray(data?.professional_dev)) {
-        setEntries(data.professional_dev as unknown as PDEntry[])
-      }
-    }
-    load()
-  }, [userId])
-
-  function addRow() {
-    setEntries(e => [...e, { id: Date.now().toString(), name: '', provider: '', date: '', hours: '', certificate: false }])
-  }
-
-  function updateRow(id: string, key: keyof PDEntry, value: string | boolean) {
-    setEntries(e => e.map(r => r.id === id ? { ...r, [key]: value } : r))
-  }
-
-  function removeRow(id: string) {
-    setEntries(e => e.filter(r => r.id !== id))
-  }
-
-  function validate(): string | null {
-    for (const e of entries) {
-      if (!e.name.trim())     return 'All entries need a training name.'
-      if (!e.provider.trim()) return 'All entries need a provider.'
-      if (!e.date.trim())     return 'All entries need a date.'
-      if (e.hours && isNaN(Number(e.hours))) return 'Hours must be a number.'
-    }
-    return null
-  }
-
-  async function handleSave() {
-    if (!userId) return
-    const err = validate()
-    if (err) { setSaveError(err); return }
-
-    setSaving(true)
-    setSaveError(null)
-
-    const { error } = await supabase.from('teacher_profiles').upsert({
-      profile_id:       userId,
-      school_id:        schoolId,
-      professional_dev: toJson(entries),
-    }, { onConflict: 'profile_id' })
-
-    if (error) {
-      setSaving(false)
-      setSaveError('Failed to save. ' + error.message)
-      return
-    }
-
-    setSaving(false)
-    setSaved(true)
-    if (savedTimer.current) clearTimeout(savedTimer.current)
-    savedTimer.current = setTimeout(() => setSaved(false), 2500)
-  }
-
-  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
-
-  const inp: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', background: C.bg,
-    border: `1px solid ${C.border}`, borderRadius: 10,
-    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
-  }
-  const lbl: React.CSSProperties = {
-    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
-    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
-  }
-
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  return (
-    <div>
-      <SectionHeader title="Professional Development" sub="Training, workshops, and PD hours attended" />
-
-      {saveError && <ErrorBox msg={saveError} />}
-
-      {entries.length === 0 && (
-        <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>
-          No training records added yet. Click below to add one.
-        </p>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {entries.map((e, idx) => (
-          <div key={e.id} style={{
-            padding: 16, borderRadius: 12, border: `1px solid ${C.border}`,
-            background: C.surface, position: 'relative',
-          }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Training {idx + 1}
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={lbl}>Training / Workshop Name</label>
-                <input style={inp} value={e.name}
-                  onChange={ev => updateRow(e.id, 'name', ev.target.value)}
-                  placeholder="e.g. CBC Implementation Workshop" />
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={lbl}>Provider / Organiser</label>
-                <input style={inp} value={e.provider}
-                  onChange={ev => updateRow(e.id, 'provider', ev.target.value)}
-                  placeholder="e.g. Kenya Institute of Curriculum Development" />
-              </div>
-              <div>
-                <label style={lbl}>Date Attended</label>
-                <input style={inp} type="date" value={e.date}
-                  max={new Date().toISOString().split('T')[0]}
-                  onChange={ev => updateRow(e.id, 'date', ev.target.value)} />
-              </div>
-              <div>
-                <label style={lbl}>Hours / CPD Points</label>
-                <input style={inp} value={e.hours}
-                  onChange={ev => updateRow(e.id, 'hours', ev.target.value)}
-                  placeholder="e.g. 8" />
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  cursor: 'pointer', fontSize: 13, color: C.textPrimary,
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={e.certificate}
-                    onChange={ev => updateRow(e.id, 'certificate', ev.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: C.accent, cursor: 'pointer' }}
-                  />
-                  Certificate received
-                </label>
-              </div>
-            </div>
-
-            <button onClick={() => removeRow(e.id)} style={{
-              position: 'absolute', top: 12, right: 12,
-              background: '#fef2f2', border: '1px solid #fecaca',
-              color: C.error, borderRadius: 8, padding: '4px 10px',
-              fontSize: 12, cursor: 'pointer', fontWeight: 600,
-            }}>
-              Remove
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <button onClick={addRow} style={{
-        marginTop: 16, padding: '10px 20px', borderRadius: 10,
-        background: C.surface, border: `1px dashed ${C.accent}`,
-        color: C.accent, fontWeight: 600, fontSize: 13,
-        cursor: 'pointer', width: '100%',
-      }}>
-        + Add Training Record
-      </button>
-
-      <button onClick={handleSave} disabled={saving} style={{
-        marginTop: 12, padding: '12px 28px', borderRadius: 12,
-        background: saved ? C.accentLight : C.accent,
-        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
-        border: `1px solid ${saved ? C.accent : 'transparent'}`,
-        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
-      }}>
-        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save PD Records'}
-      </button>
-    </div>
-  )
-}
-
-// ─── Teaching Style & Twin ────────────────────────────────────────────────────
-
-const CBC_ACTIVITIES = [
-  'Project-Based Learning',
-  'Group Discussions',
-  'Role Play',
-  'Field Trips',
-  'Story Telling',
-  'Experiments',
-  'Art & Craft',
-  'Music & Movement',
-  'Digital Learning',
-  'Peer Teaching',
-]
-
-interface TeachingStyleForm {
-  teaching_style: string
-  approach:       string
-  activities:     string[]
-  twin_notes:     string
-}
-
-function TeachingStyleSection() {
-  const { userId, schoolId, loading, pageError } = useTeacherData()
-  const [form,      setForm]      = useState<TeachingStyleForm>({
-    teaching_style: '', approach: '', activities: [], twin_notes: '',
-  })
-  const [saving,    setSaving]    = useState(false)
-  const [saved,     setSaved]     = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (!userId) return
-    async function load() {
-      const { data } = await supabase
-        .from('teacher_profiles')
-        .select('teaching_style,twin_notes')
-        .eq('profile_id', userId!)
-        .single()
-      if (!data) return
-      try {
-        const parsed = data.teaching_style ? JSON.parse(data.teaching_style) : {}
-        setForm({
-          teaching_style: parsed.teaching_style ?? '',
-          approach:       parsed.approach       ?? '',
-          activities:     parsed.activities     ?? [],
-          twin_notes:     data.twin_notes       ?? '',
-        })
-      } catch {
-        setForm(f => ({ ...f, twin_notes: data.twin_notes ?? '' }))
-      }
-    }
-    load()
-  }, [userId])
-
-  function toggleActivity(a: string) {
-    setForm(f => ({
-      ...f,
-      activities: f.activities.includes(a)
-        ? f.activities.filter(x => x !== a)
-        : [...f.activities, a],
-    }))
-  }
-
-  async function handleSave() {
-    if (!userId) return
-    setSaving(true)
-    setSaveError(null)
-
-    const stylePayload = JSON.stringify({
-      teaching_style: form.teaching_style,
-      approach:       form.approach,
-      activities:     form.activities,
-    })
-
-    const { error } = await supabase.from('teacher_profiles').upsert({
-      profile_id:     userId,
-      school_id:      schoolId,
-      teaching_style: stylePayload,
-    }, { onConflict: 'profile_id' })
-
-    if (error) {
-      setSaving(false)
-      setSaveError('Failed to save. ' + error.message)
-      return
-    }
-
-    setSaving(false)
-    setSaved(true)
-    if (savedTimer.current) clearTimeout(savedTimer.current)
-    savedTimer.current = setTimeout(() => setSaved(false), 2500)
-  }
-
-  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
-
-  const inp: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', background: C.bg,
-    border: `1px solid ${C.border}`, borderRadius: 10,
-    padding: '10px 14px', color: C.textPrimary, fontSize: 14, outline: 'none',
-  }
-  const lbl: React.CSSProperties = {
-    fontSize: 11, color: C.textMuted, textTransform: 'uppercase',
-    letterSpacing: 1, marginBottom: 6, display: 'block', fontWeight: 600,
-  }
-
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  return (
-    <div>
-      <SectionHeader title="Teaching Style & Twin" sub="Your preferences and Twin observations" />
-
-      {saveError && <ErrorBox msg={saveError} />}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-        <div>
-          <label htmlFor="teaching_style" style={lbl}>Teaching Style</label>
-          <select id="teaching_style" style={inp} value={form.teaching_style}
-            onChange={e => setForm(f => ({ ...f, teaching_style: e.target.value }))}>
-            <option value="">Select your style</option>
-            <option value="visual">Visual — diagrams, charts, demonstrations</option>
-            <option value="auditory">Auditory — discussions, lectures, audio</option>
-            <option value="kinesthetic">Kinesthetic — hands-on, movement, experiments</option>
-            <option value="mixed">Mixed — combination of styles</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="approach" style={lbl}>Classroom Approach</label>
-          <select id="approach" style={inp} value={form.approach}
-            onChange={e => setForm(f => ({ ...f, approach: e.target.value }))}>
-            <option value="">Select approach</option>
-            <option value="teacher_led">Teacher-Led</option>
-            <option value="learner_centred">Learner-Centred</option>
-            <option value="collaborative">Collaborative</option>
-            <option value="inquiry_based">Inquiry-Based</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={lbl}>Favourite CBC Learning Activities</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {CBC_ACTIVITIES.map(a => {
-              const checked = form.activities.includes(a)
-              return (
-                <button
-                  key={a}
-                  onClick={() => toggleActivity(a)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 99, fontSize: 13,
-                    fontWeight: checked ? 600 : 400,
-                    color: checked ? C.accent : C.textMuted,
-                    background: checked ? C.accentLight : C.surface,
-                    border: `1px solid ${checked ? C.accent : C.border}`,
-                    cursor: 'pointer', transition: 'all 0.15s',
-                  }}
-                >
-                  {a}
-                </button>
-              )
-            })}
-          </div>
-          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>
-            Select all that apply
-          </p>
-        </div>
-
-        <div style={{
-          padding: 16, borderRadius: 12,
-          border: `1px solid ${C.border}`,
-          background: C.surface,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 18 }}>🤖</span>
-            <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, margin: 0 }}>
-              Twin Observations
-            </p>
-            <span style={{
-              fontSize: 10, fontWeight: 600, color: C.accent,
-              background: C.accentLight, padding: '2px 8px', borderRadius: 99,
-              border: `1px solid ${C.accent}`,
-            }}>
-              AI Generated
-            </span>
-          </div>
-          {form.twin_notes ? (
-            <p style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.6, margin: 0 }}>
-              {form.twin_notes}
-            </p>
-          ) : (
-            <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
-              No Twin observations yet. Twin will add notes as it learns your teaching patterns.
-            </p>
-          )}
-        </div>
-
-      </div>
-
-      <button onClick={handleSave} disabled={saving} style={{
-        marginTop: 28, padding: '12px 28px', borderRadius: 12,
-        background: saved ? C.accentLight : C.accent,
-        color: saved ? C.accent : C.bg, fontWeight: 700, fontSize: 14,
-        border: `1px solid ${saved ? C.accent : 'transparent'}`,
-        cursor: saving ? 'not-allowed' : 'pointer', transition: 'all 0.2s', width: '100%',
-      }}>
-        {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Teaching Style'}
-      </button>
-    </div>
-  )
-}
-
-// ─── Attendance & Leave ───────────────────────────────────────────────────────
-
-function AttendanceLeaveSection() {
-  const { userId, loading, pageError } = useTeacherData()
-  const [leaveBalance, setLeaveBalance] = useState<number | null>(null)
-  const [loadingLeave, setLoadingLeave] = useState(true)
-
-  useEffect(() => {
-    if (!userId) return
-    async function load() {
-      const { data } = await supabase
-        .from('teacher_profiles')
-        .select('leave_balance')
-        .eq('profile_id', userId!)
-        .single()
-      setLeaveBalance(data?.leave_balance ?? null)
-      setLoadingLeave(false)
-    }
-    load()
-  }, [userId])
-
-  if (loading || loadingLeave) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  return (
-    <div>
-      <SectionHeader title="Attendance & Leave" sub="Your leave balance and attendance overview" />
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={{ padding: 20, borderRadius: 12, background: C.accentLight, border: `1px solid ${C.accent}`, textAlign: 'center' }}>
-          <p style={{ fontSize: 32, fontWeight: 800, color: C.accent, margin: 0 }}>
-            {leaveBalance ?? '—'}
-          </p>
-          <p style={{ fontSize: 12, color: C.accent, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Leave Days Remaining
-          </p>
-        </div>
-        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
-          <p style={{ fontSize: 32, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
-          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Days Attended
-          </p>
-        </div>
-      </div>
-
-      <div style={{
-        padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`,
-        background: C.surface, textAlign: 'center',
-      }}>
-        <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
-          Full attendance history and leave requests will be available in the Attendance module.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Performance & Appraisal ──────────────────────────────────────────────────
-
-function PerformanceAppraisalSection() {
-  const { userId, loading, pageError } = useTeacherData()
-  const [appraisal, setAppraisal] = useState<{ score: number | null; notes: string }>({ score: null, notes: '' })
-  const [loadingData, setLoadingData] = useState(true)
-
-  useEffect(() => {
-    if (!userId) return
-    async function load() {
-      const { data } = await supabase
-        .from('teacher_profiles')
-        .select('appraisal_score,appraisal_notes')
-        .eq('profile_id', userId!)
-        .single()
-      setAppraisal({
-        score: data?.appraisal_score ?? null,
-        notes: data?.appraisal_notes ?? '',
+  const completion = useMemo(() => {
+    const checks = [
+      profile.first_name,
+      profile.last_name,
+      profile.phone,
+      profile.avatar_url,
+      teacher.tsc_number,
+      teacher.job_title,
+      teacher.department,
+      teacher.bio,
+      teacher.teaching_philosophy,
+      qualifications.length > 0 ? "yes" : "",
+    ];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  }, [profile, teacher, qualifications]);
+
+  const displayName =
+    profile.full_name?.trim() ||
+    [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() ||
+    "Teacher";
+
+  async function saveProfile() {
+    if (!profile.id) return;
+    setSaving(true);
+    setNotice(null);
+
+    const fullName = [profile.first_name?.trim(), profile.last_name?.trim()].filter(Boolean).join(" ").trim() || profile.full_name?.trim() || "Teacher";
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        first_name: asText(profile.first_name).trim() || null,
+        last_name: asText(profile.last_name).trim() || null,
+        full_name: fullName,
+        phone: asText(profile.phone).trim() || null,
+        date_of_birth: profile.date_of_birth || null,
+        gender: profile.gender || null,
+        county: asText(profile.county).trim() || null,
+        sub_county: asText(profile.sub_county).trim() || null,
+        address: asText(profile.address).trim() || null,
+        emergency_contact_name: asText(profile.emergency_contact_name).trim() || null,
+        emergency_contact_phone: asText(profile.emergency_contact_phone).trim() || null,
+        emergency_contact_relation: asText(profile.emergency_contact_relation).trim() || null,
       })
-      setLoadingData(false)
-    }
-    load()
-  }, [userId])
+      .eq("id", profile.id);
 
-  if (loading || loadingData) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  const score = appraisal.score
-  const scoreColor = score === null ? C.textMuted : score >= 80 ? C.accent : score >= 60 ? C.warning : C.error
-
-  return (
-    <div>
-      <SectionHeader title="Performance & Appraisal" sub="TSC appraisal cycle and performance signals" />
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
-          <p style={{ fontSize: 40, fontWeight: 800, color: scoreColor, margin: 0 }}>
-            {score !== null ? score + '%' : '—'}
-          </p>
-          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-            Appraisal Score
-          </p>
-        </div>
-        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
-          <p style={{ fontSize: 32, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
-          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-            TSC Cycle
-          </p>
-        </div>
-      </div>
-
-      {appraisal.notes ? (
-        <div style={{ padding: 16, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, marginBottom: 16 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Appraisal Notes
-          </p>
-          <p style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.6, margin: 0 }}>
-            {appraisal.notes}
-          </p>
-        </div>
-      ) : null}
-
-      <div style={{ padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center' }}>
-        <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
-          Appraisal scores and TSC cycle details are managed by your school admin.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Messages ─────────────────────────────────────────────────────────────────
-
-function MessagesSection() {
-  const { loading, pageError } = useTeacherData()
-
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
-  return (
-    <div>
-      <SectionHeader title="Messages" sub="Communication via VibeConnect" />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>💬</div>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Parent Messages</p>
-            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Message parents directly via VibeConnect</p>
-          </div>
-        </div>
-
-        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📢</div>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, margin: 0 }}>Announcements</p>
-            <p style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Send class-wide announcements to parents</p>
-          </div>
-        </div>
-
-        <div style={{ padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center', marginTop: 8 }}>
-          <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
-            Full messaging will be available when VibeConnect module launches.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Documents ────────────────────────────────────────────────────────────────
-
-interface TeacherDocument {
-  id:         string
-  name:       string
-  url:        string
-  uploaded_at: string
-}
-
-function DocumentsSection() {
-  const { userId, loading, pageError } = useTeacherData()
-  const [docs,        setDocs]        = useState<TeacherDocument[]>([])
-  const [uploading,   setUploading]   = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const [saving,      setSaving]      = useState(false)
-  const [saved,       setSaved]       = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (!userId) return
-    async function load() {
-      const { data } = await supabase
-        .from('teacher_profiles')
-        .select('documents')
-        .eq('profile_id', userId!)
-        .single()
-      if (Array.isArray(data?.documents)) {
-        setDocs(data.documents as unknown as TeacherDocument[])
-      }
-    }
-    load()
-  }, [userId])
-
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !userId) return
-    if (file.size > 5 * 1024 * 1024) { setUploadError('File must be under 5MB.'); return }
-
-    setUploading(true)
-    setUploadError(null)
-
-    const path = `documents/${userId}/${Date.now()}_${file.name}`
-    const { error: uploadErr } = await supabase.storage
-      .from('teacher-docs')
-      .upload(path, file, { upsert: false })
-
-    if (uploadErr) {
-      setUploading(false)
-      setUploadError('Upload failed: ' + uploadErr.message)
-      return
+    if (profileError) {
+      setSaving(false);
+      setNotice({ kind: "error", text: "Your personal details could not be saved. No school-controlled data was changed." });
+      return;
     }
 
-    const { data: urlData } = supabase.storage.from('teacher-docs').getPublicUrl(path)
+    const { error: teacherError } = await supabase.from("teacher_profiles").upsert({
+      profile_id: profile.id,
+      tsc_number: asText(teacher.tsc_number).trim() || null,
+      employment_type: asText(teacher.employment_type).trim() || null,
+      job_title: asText(teacher.job_title).trim() || null,
+      department: asText(teacher.department).trim() || null,
+      date_joined: teacher.date_joined || null,
+      bio: asText(teacher.bio).trim() || null,
+      teaching_philosophy: asText(teacher.teaching_philosophy).trim() || null,
+      teaching_style: asText(teacher.teaching_style).trim() || null,
+      classroom_management: asText(teacher.classroom_management).trim() || null,
+      learning_support: asText(teacher.learning_support).trim() || null,
+      assessment_approach: asText(teacher.assessment_approach).trim() || null,
+      qualifications: qualifications as unknown as Json,
+      professional_development: development as unknown as Json,
+      updated_at: new Date().toISOString(),
+    });
 
-    const newDoc: TeacherDocument = {
-      id:          Date.now().toString(),
-      name:        file.name,
-      url:         urlData.publicUrl,
-      uploaded_at: new Date().toISOString(),
+    setSaving(false);
+    if (teacherError) {
+      setNotice({ kind: "error", text: "Personal details were saved, but professional details could not be updated." });
+      return;
     }
 
-    const updatedDocs = [...docs, newDoc]
-    setDocs(updatedDocs)
-    setUploading(false)
-
-    setSaving(true)
-    const { error } = await supabase.from('teacher_profiles').upsert({
-      profile_id: userId,
-      documents:  toJson(updatedDocs),
-    }, { onConflict: 'profile_id' })
-
-    setSaving(false)
-    if (error) { setUploadError('Uploaded but failed to save record. ' + error.message); return }
-
-    setSaved(true)
-    if (savedTimer.current) clearTimeout(savedTimer.current)
-    savedTimer.current = setTimeout(() => setSaved(false), 2500)
+    setProfile((current) => ({ ...current, full_name: fullName }));
+    setNotice({ kind: "success", text: "Profile saved. Your school and teaching assignments remain managed by your school." });
   }
 
-  async function removeDoc(id: string) {
-    if (!userId) return
-    const updatedDocs = docs.filter(d => d.id !== id)
-    setDocs(updatedDocs)
-    await supabase.from('teacher_profiles').upsert({
-      profile_id: userId,
-      documents:  toJson(updatedDocs),
-    }, { onConflict: 'profile_id' })
+  async function uploadAvatar(file: File) {
+    if (!profile.id) return;
+    const accepted = ["image/jpeg", "image/png", "image/webp"];
+    if (!accepted.includes(file.type)) {
+      setNotice({ kind: "error", text: "Use a JPEG, PNG, or WebP image." });
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setNotice({ kind: "error", text: "Profile photo must be 3 MB or smaller." });
+      return;
+    }
+
+    setUploading(true);
+    setNotice(null);
+    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const objectPath = `${profile.id}/profile.${extension}`;
+
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(objectPath, file, {
+      upsert: true,
+      cacheControl: "3600",
+      contentType: file.type,
+    });
+
+    if (uploadError) {
+      setUploading(false);
+      setNotice({ kind: "error", text: "Profile photo upload failed. Please try again." });
+      return;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(objectPath);
+    const avatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+    const { error: updateError } = await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", profile.id);
+
+    setUploading(false);
+    if (updateError) {
+      setNotice({ kind: "error", text: "The photo uploaded, but your profile could not be updated with it." });
+      return;
+    }
+
+    setProfile((current) => ({ ...current, avatar_url: avatarUrl }));
+    setNotice({ kind: "success", text: "Profile photo updated." });
   }
 
-  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current) }, [])
-
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2,3].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
+  if (loading) {
+    return (
+      <main className="profile-shell">
+        <div className="profile-loading" aria-live="polite">
+          <Loader2 size={22} className="spin" />
+          <span>Loading your professional profile…</span>
+        </div>
+        <Styles />
+      </main>
+    );
+  }
 
   return (
-    <div>
-      <SectionHeader title="Documents" sub="Upload and track your required documents" />
+    <main className="profile-shell">
+      <div className="profile-wrap">
+        <header className="profile-header">
+          <div>
+            <p className="eyebrow">Teacher profile</p>
+            <h1>Your professional identity</h1>
+            <p className="header-copy">
+              Keep your personal, professional and teaching information accurate. School membership and class assignments are authoritative school records.
+            </p>
+          </div>
+          <button className="primary-button" onClick={() => void saveProfile()} disabled={saving}>
+            {saving ? <Loader2 size={16} className="spin" /> : <Check size={16} />}
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </header>
 
-      {uploadError && <ErrorBox msg={uploadError} />}
+        {notice && (
+          <div className={`notice ${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"} aria-live="polite">
+            {notice.kind === "error" ? <AlertCircle size={18} /> : <Check size={18} />}
+            <span>{notice.text}</span>
+          </div>
+        )}
 
-      {docs.length === 0 ? (
-        <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>
-          No documents uploaded yet.
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-          {docs.map(d => (
-            <div key={d.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '12px 16px', borderRadius: 10,
-              background: C.surface, border: `1px solid ${C.border}`,
-            }}>
-              <span style={{ fontSize: 20 }}>📄</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</p>
-                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
-                  {new Date(d.uploaded_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
+        <section className="identity-card">
+          <button className="avatar-button" onClick={() => fileInput.current?.click()} aria-label="Change profile photo" disabled={uploading}>
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt="" />
+            ) : (
+              <span>{displayName.slice(0, 1).toUpperCase()}</span>
+            )}
+            <span className="camera-badge">{uploading ? <Loader2 size={14} className="spin" /> : <Camera size={14} />}</span>
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            hidden
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void uploadAvatar(file);
+              event.currentTarget.value = "";
+            }}
+          />
+          <div className="identity-main">
+            <div className="identity-heading">
+              <div>
+                <h2>{displayName}</h2>
+                <p>{teacher.job_title || "Teacher"}{teacher.department ? ` · ${teacher.department}` : ""}</p>
               </div>
-              <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.accent, fontWeight: 600, textDecoration: 'none' }}>View</a>
-              <button onClick={() => removeDoc(d.id)} style={{
-                background: '#fef2f2', border: '1px solid #fecaca',
-                color: C.error, borderRadius: 8, padding: '4px 10px',
-                fontSize: 12, cursor: 'pointer', fontWeight: 600,
-              }}>Remove</button>
+              <span className="verified-chip"><ShieldCheck size={14} /> Teacher account</span>
+            </div>
+            <div className="identity-meta">
+              <span><School size={15} /> {schoolName}</span>
+              <span><Mail size={15} /> {profile.email || "Email unavailable"}</span>
+              {teacher.tsc_number && <span><BriefcaseBusiness size={15} /> TSC {teacher.tsc_number}</span>}
+            </div>
+            <div className="completion-row">
+              <div>
+                <strong>{completion}% complete</strong>
+                <span>Complete profiles make school administration and professional records easier to trust.</span>
+              </div>
+              <div className="progress-track" aria-label={`Profile ${completion}% complete`}>
+                <span style={{ width: `${completion}%` }} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <nav className="tabs" aria-label="Teacher profile sections">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button key={tab.id} className={activeTab === tab.id ? "active" : ""} onClick={() => setActiveTab(tab.id)}>
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {activeTab === "overview" && (
+          <div className="content-grid">
+            <section className="panel span-2">
+              <PanelHeading title="Professional snapshot" subtitle="A concise view of the identity your school and VibeSchool use." />
+              <div className="snapshot-grid">
+                <InfoItem icon={BriefcaseBusiness} label="Role" value={teacher.job_title || "Not added"} />
+                <InfoItem icon={School} label="School" value={schoolName} />
+                <InfoItem icon={GraduationCap} label="TSC number" value={teacher.tsc_number || "Not added"} />
+                <InfoItem icon={BookOpen} label="Department" value={teacher.department || "Not added"} />
+                <InfoItem icon={Phone} label="Phone" value={profile.phone || "Not added"} />
+                <InfoItem icon={MapPin} label="County" value={profile.county || "Not added"} />
+              </div>
+            </section>
+
+            <section className="panel span-2">
+              <PanelHeading
+                title="Teaching assignments"
+                subtitle="These are school-controlled records. Teachers can view them here but cannot rewrite school assignments from their profile."
+              />
+              <div className="managed-banner">
+                <LockKeyhole size={18} />
+                <div><strong>Managed by your school</strong><span>Ask a school administrator to correct a class, subject or school assignment.</span></div>
+              </div>
+              {assignments.length ? (
+                <div className="assignment-grid">
+                  {assignments.map((assignment, index) => (
+                    <div className="assignment-card" key={`${assignment.className}-${assignment.subjectName}-${index}`}>
+                      <div className="assignment-icon"><BookOpen size={18} /></div>
+                      <div><strong>{assignment.subjectName}</strong><span>{assignment.className}</span></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <School size={22} />
+                  <div><strong>No teaching assignment found</strong><span>Your school administrator can assign your classes and subjects.</span></div>
+                </div>
+              )}
+            </section>
+
+            <section className="panel">
+              <PanelHeading title="About" subtitle="A professional introduction." />
+              <p className="bio-copy">{teacher.bio || "Add a short professional bio so your profile has useful context."}</p>
+              <button className="text-button" onClick={() => setActiveTab("professional")}>Edit professional details <ChevronRight size={15} /></button>
+            </section>
+
+            <section className="panel">
+              <PanelHeading title="Credentials" subtitle="Qualifications and recent professional learning." />
+              <div className="metric-row"><span>Qualifications</span><strong>{qualifications.length}</strong></div>
+              <div className="metric-row"><span>Professional development</span><strong>{development.length}</strong></div>
+              <button className="text-button" onClick={() => setActiveTab("credentials")}>Manage credentials <ChevronRight size={15} /></button>
+            </section>
+          </div>
+        )}
+
+        {activeTab === "personal" && (
+          <section className="panel form-panel">
+            <PanelHeading title="Personal & contact details" subtitle="Information you can keep current yourself. Your login email is shown but managed through account security." />
+            <div className="form-grid">
+              <Field label="First name"><input value={asText(profile.first_name)} onChange={(e) => setProfile({ ...profile, first_name: e.target.value })} /></Field>
+              <Field label="Last name"><input value={asText(profile.last_name)} onChange={(e) => setProfile({ ...profile, last_name: e.target.value })} /></Field>
+              <Field label="Login email" hint="Managed by account security"><input value={asText(profile.email)} disabled /></Field>
+              <Field label="Phone"><input type="tel" value={asText(profile.phone)} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></Field>
+              <Field label="Date of birth"><input type="date" value={asText(profile.date_of_birth)} onChange={(e) => setProfile({ ...profile, date_of_birth: e.target.value })} /></Field>
+              <Field label="Gender"><select value={asText(profile.gender)} onChange={(e) => setProfile({ ...profile, gender: e.target.value })}><option value="">Prefer not to specify</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></Field>
+              <Field label="County"><input value={asText(profile.county)} onChange={(e) => setProfile({ ...profile, county: e.target.value })} /></Field>
+              <Field label="Sub-county"><input value={asText(profile.sub_county)} onChange={(e) => setProfile({ ...profile, sub_county: e.target.value })} /></Field>
+              <Field label="Address" className="span-2"><textarea rows={3} value={asText(profile.address)} onChange={(e) => setProfile({ ...profile, address: e.target.value })} /></Field>
+            </div>
+            <div className="subsection-heading"><h3>Emergency contact</h3><p>Used only when your school needs an emergency contact record.</p></div>
+            <div className="form-grid">
+              <Field label="Contact name"><input value={asText(profile.emergency_contact_name)} onChange={(e) => setProfile({ ...profile, emergency_contact_name: e.target.value })} /></Field>
+              <Field label="Relationship"><input value={asText(profile.emergency_contact_relation)} onChange={(e) => setProfile({ ...profile, emergency_contact_relation: e.target.value })} /></Field>
+              <Field label="Contact phone"><input type="tel" value={asText(profile.emergency_contact_phone)} onChange={(e) => setProfile({ ...profile, emergency_contact_phone: e.target.value })} /></Field>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "professional" && (
+          <section className="panel form-panel">
+            <PanelHeading title="Professional information" subtitle="Maintain your own professional identity. School assignment remains controlled by your administrator." />
+            <div className="form-grid">
+              <Field label="TSC number"><input value={asText(teacher.tsc_number)} onChange={(e) => setTeacher({ ...teacher, tsc_number: e.target.value })} /></Field>
+              <Field label="Job title / designation"><input value={asText(teacher.job_title)} onChange={(e) => setTeacher({ ...teacher, job_title: e.target.value })} placeholder="e.g. Mathematics Teacher" /></Field>
+              <Field label="Department"><input value={asText(teacher.department)} onChange={(e) => setTeacher({ ...teacher, department: e.target.value })} /></Field>
+              <Field label="Employment type"><select value={asText(teacher.employment_type)} onChange={(e) => setTeacher({ ...teacher, employment_type: e.target.value })}><option value="">Select type</option><option value="permanent">Permanent</option><option value="contract">Contract</option><option value="intern">Intern</option><option value="part_time">Part-time</option></select></Field>
+              <Field label="Date joined"><input type="date" value={asText(teacher.date_joined)} onChange={(e) => setTeacher({ ...teacher, date_joined: e.target.value })} /></Field>
+              <Field label="Professional bio" className="span-2"><textarea rows={5} maxLength={600} value={asText(teacher.bio)} onChange={(e) => setTeacher({ ...teacher, bio: e.target.value })} placeholder="A concise summary of your teaching experience and focus." /><span className="counter">{asText(teacher.bio).length}/600</span></Field>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "credentials" && (
+          <div className="content-grid">
+            <EditableList
+              title="Qualifications"
+              subtitle="Record your core academic and professional qualifications."
+              items={qualifications}
+              addLabel="Add qualification"
+              onAdd={() => setQualifications([...qualifications, { qualification: "", institution: "", year: "", specialization: "" }])}
+              onRemove={(index) => setQualifications(qualifications.filter((_, i) => i !== index))}
+              renderItem={(item, index) => (
+                <div className="form-grid compact">
+                  <Field label="Qualification"><input value={item.qualification} onChange={(e) => updateQualification(index, "qualification", e.target.value)} /></Field>
+                  <Field label="Institution"><input value={item.institution} onChange={(e) => updateQualification(index, "institution", e.target.value)} /></Field>
+                  <Field label="Year"><input inputMode="numeric" value={item.year} onChange={(e) => updateQualification(index, "year", e.target.value)} /></Field>
+                  <Field label="Specialization"><input value={item.specialization} onChange={(e) => updateQualification(index, "specialization", e.target.value)} /></Field>
+                </div>
+              )}
+            />
+            <EditableList
+              title="Professional development"
+              subtitle="Track workshops, certifications and structured teacher development."
+              items={development}
+              addLabel="Add development"
+              onAdd={() => setDevelopment([...development, { title: "", provider: "", year: "" }])}
+              onRemove={(index) => setDevelopment(development.filter((_, i) => i !== index))}
+              renderItem={(item, index) => (
+                <div className="form-grid compact">
+                  <Field label="Programme / course"><input value={item.title} onChange={(e) => updateDevelopment(index, "title", e.target.value)} /></Field>
+                  <Field label="Provider"><input value={item.provider} onChange={(e) => updateDevelopment(index, "provider", e.target.value)} /></Field>
+                  <Field label="Year"><input inputMode="numeric" value={item.year} onChange={(e) => updateDevelopment(index, "year", e.target.value)} /></Field>
+                </div>
+              )}
+            />
+          </div>
+        )}
+
+        {activeTab === "preferences" && (
+          <section className="panel form-panel">
+            <PanelHeading title="Teaching preferences" subtitle="Give VibeSchool useful professional context without pretending these preferences are school policy." />
+            <div className="form-stack">
+              <Field label="Teaching philosophy" hint="What principles guide your teaching?"><textarea rows={4} value={asText(teacher.teaching_philosophy)} onChange={(e) => setTeacher({ ...teacher, teaching_philosophy: e.target.value })} /></Field>
+              <Field label="Teaching style" hint="How do you usually explain, model and facilitate learning?"><textarea rows={4} value={asText(teacher.teaching_style)} onChange={(e) => setTeacher({ ...teacher, teaching_style: e.target.value })} /></Field>
+              <Field label="Classroom management" hint="Approaches you prefer for routines, behaviour and participation."><textarea rows={4} value={asText(teacher.classroom_management)} onChange={(e) => setTeacher({ ...teacher, classroom_management: e.target.value })} /></Field>
+              <Field label="Learning support" hint="How you support learners who need more scaffolding or extension."><textarea rows={4} value={asText(teacher.learning_support)} onChange={(e) => setTeacher({ ...teacher, learning_support: e.target.value })} /></Field>
+              <Field label="Assessment approach" hint="Your preferred balance of formative checks, feedback and assessment."><textarea rows={4} value={asText(teacher.assessment_approach)} onChange={(e) => setTeacher({ ...teacher, assessment_approach: e.target.value })} /></Field>
+            </div>
+          </section>
+        )}
+
+        {activeTab !== "overview" && (
+          <div className="sticky-save">
+            <div><strong>Save profile changes</strong><span>Only teacher-owned profile fields are updated here.</span></div>
+            <button className="primary-button" onClick={() => void saveProfile()} disabled={saving}>{saving ? <Loader2 size={16} className="spin" /> : <Check size={16} />}{saving ? "Saving…" : "Save changes"}</button>
+          </div>
+        )}
+      </div>
+      <Styles />
+    </main>
+  );
+
+  function updateQualification(index: number, key: keyof Qualification, value: string) {
+    setQualifications((current) => current.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
+  }
+
+  function updateDevelopment(index: number, key: keyof ProfessionalDevelopment, value: string) {
+    setDevelopment((current) => current.map((item, i) => (i === index ? { ...item, [key]: value } : item)));
+  }
+}
+
+function PanelHeading({ title, subtitle }: { title: string; subtitle: string }) {
+  return <div className="panel-heading"><h2>{title}</h2><p>{subtitle}</p></div>;
+}
+
+function InfoItem({ icon: Icon, label, value }: { icon: typeof UserRound; label: string; value: string }) {
+  return <div className="info-item"><div className="info-icon"><Icon size={17} /></div><div><span>{label}</span><strong>{value}</strong></div></div>;
+}
+
+function Field({ label, hint, className = "", children }: { label: string; hint?: string; className?: string; children: React.ReactNode }) {
+  return <label className={`field ${className}`}><span className="field-label">{label}</span>{hint && <span className="field-hint">{hint}</span>}{children}</label>;
+}
+
+function EditableList<T>({
+  title,
+  subtitle,
+  items,
+  addLabel,
+  onAdd,
+  onRemove,
+  renderItem,
+}: {
+  title: string;
+  subtitle: string;
+  items: T[];
+  addLabel: string;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  renderItem: (item: T, index: number) => React.ReactNode;
+}) {
+  return (
+    <section className="panel span-2">
+      <div className="list-heading"><PanelHeading title={title} subtitle={subtitle} /><button className="secondary-button" onClick={onAdd}>+ {addLabel}</button></div>
+      {!items.length ? (
+        <div className="empty-state"><GraduationCap size={22} /><div><strong>No records added yet</strong><span>Add a record when you are ready.</span></div></div>
+      ) : (
+        <div className="editable-list">
+          {items.map((item, index) => (
+            <div className="editable-item" key={index}>
+              <div className="editable-number">{index + 1}</div>
+              <div className="editable-body">{renderItem(item, index)}</div>
+              <button className="remove-button" onClick={() => onRemove(index)} aria-label={`Remove ${title.toLowerCase()} record ${index + 1}`}>Remove</button>
             </div>
           ))}
         </div>
       )}
-
-      <button onClick={() => fileRef.current?.click()} disabled={uploading || saving} style={{
-        padding: '10px 20px', borderRadius: 10, width: '100%',
-        background: C.surface, border: `1px dashed ${C.accent}`,
-        color: C.accent, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-      }}>
-        {uploading ? 'Uploading...' : saving ? 'Saving...' : saved ? '✓ Saved' : '+ Upload Document'}
-      </button>
-      <p style={{ fontSize: 11, color: C.textMuted, marginTop: 6 }}>PDF, JPG, PNG — max 5MB</p>
-      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={handleFile} />
-    </div>
-  )
+    </section>
+  );
 }
 
-// ─── Finance Reference ────────────────────────────────────────────────────────
-
-function FinanceReferenceSection() {
-  const { userId, loading, pageError } = useTeacherData()
-  const [financeRef,   setFinanceRef]   = useState<string>('')
-  const [loadingData,  setLoadingData]  = useState(true)
-
-  useEffect(() => {
-    if (!userId) return
-    async function load() {
-      const { data } = await supabase
-        .from('teacher_profiles')
-        .select('finance_ref')
-        .eq('profile_id', userId!)
-        .single()
-      setFinanceRef(data?.finance_ref ?? '')
-      setLoadingData(false)
-    }
-    load()
-  }, [userId])
-
-  if (loading || loadingData) return <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1,2].map(i => <Skeleton key={i} />)}</div>
-  if (pageError) return <ErrorBox msg={pageError} />
-
+function Styles() {
   return (
-    <div>
-      <SectionHeader title="Finance Reference" sub="Payroll reference — managed by your school admin" />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ padding: 20, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}` }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Payroll Reference Number
-          </p>
-          <p style={{ fontSize: 22, fontWeight: 800, color: C.textPrimary, margin: 0 }}>
-            {financeRef || '—'}
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ padding: 16, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
-            <p style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
-            <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Bank Name</p>
-          </div>
-          <div style={{ padding: 16, borderRadius: 12, background: C.surface, border: `1px solid ${C.border}`, textAlign: 'center' }}>
-            <p style={{ fontSize: 20, fontWeight: 800, color: C.textPrimary, margin: 0 }}>—</p>
-            <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Account Number</p>
-          </div>
-        </div>
-
-        <div style={{ padding: 16, borderRadius: 12, border: `1.5px dashed ${C.border}`, background: C.surface, textAlign: 'center' }}>
-          <p style={{ fontSize: 13, color: C.textMuted, margin: 0 }}>
-            Finance details are managed by your school admin in the Finance module. Contact your admin to update payroll information.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+    <style jsx global>{`
+      .profile-shell{min-height:100%;background:#f5f7fa;color:#17233c;padding:24px 16px 96px}
+      .profile-wrap{max-width:1100px;margin:0 auto}
+      .profile-header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:22px}
+      .eyebrow{margin:0 0 5px;color:#0a5bd3;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+      .profile-header h1{margin:0;font-size:30px;line-height:1.15;color:#0b1b36;letter-spacing:-.03em}
+      .header-copy{max-width:700px;margin:9px 0 0;color:#667085;font-size:14px;line-height:1.6}
+      .primary-button,.secondary-button,.text-button,.remove-button{font:inherit;cursor:pointer}
+      .primary-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;background:#0a5bd3;color:white;font-weight:700;font-size:13px;padding:11px 16px;box-shadow:0 1px 2px rgba(16,24,40,.08)}
+      .primary-button:disabled{opacity:.6;cursor:not-allowed}
+      .secondary-button{border:1px solid #d0d5dd;background:white;color:#344054;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:700;white-space:nowrap}
+      .notice{display:flex;align-items:flex-start;gap:9px;border-radius:10px;padding:11px 13px;margin-bottom:16px;font-size:13px}
+      .notice.success{background:#ecfdf3;border:1px solid #abefc6;color:#067647}.notice.error{background:#fef3f2;border:1px solid #fecdca;color:#b42318}
+      .identity-card{display:flex;gap:20px;background:white;border:1px solid #e4e7ec;border-radius:16px;padding:22px;margin-bottom:16px;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+      .avatar-button{position:relative;width:90px;height:90px;flex:0 0 90px;padding:0;border:0;border-radius:50%;background:#eaf2ff;color:#0a5bd3;overflow:visible;cursor:pointer}
+      .avatar-button>img,.avatar-button>span:first-child{width:90px;height:90px;border-radius:50%;display:flex;align-items:center;justify-content:center;object-fit:cover;font-size:32px;font-weight:800;border:3px solid white;box-shadow:0 0 0 1px #d0d5dd}
+      .camera-badge{position:absolute;right:-1px;bottom:2px;width:29px!important;height:29px!important;border-radius:50%!important;background:#0b1b36!important;color:white!important;display:flex!important;align-items:center;justify-content:center;border:3px solid white!important;box-shadow:none!important}
+      .identity-main{flex:1;min-width:0}.identity-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+      .identity-heading h2{margin:0;font-size:23px;color:#0b1b36}.identity-heading p{margin:4px 0 0;color:#667085;font-size:13px}
+      .verified-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:99px;background:#ecfdf3;color:#067647;font-size:11px;font-weight:700;white-space:nowrap}
+      .identity-meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px;color:#475467;font-size:12px}.identity-meta span{display:inline-flex;align-items:center;gap:6px}
+      .completion-row{display:grid;grid-template-columns:minmax(180px,300px) 1fr;gap:18px;align-items:center;margin-top:17px;padding-top:15px;border-top:1px solid #eaecf0}
+      .completion-row strong,.completion-row span{display:block}.completion-row strong{font-size:12px;color:#344054}.completion-row div>span{font-size:11px;color:#98a2b3;margin-top:2px;line-height:1.4}
+      .progress-track{height:7px;background:#eaecf0;border-radius:99px;overflow:hidden}.progress-track span{height:100%;background:#0a5bd3;border-radius:99px}
+      .tabs{display:flex;gap:5px;overflow:auto;padding:4px;background:#eef2f6;border-radius:12px;margin-bottom:16px}
+      .tabs button{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:#667085;border-radius:9px;padding:9px 12px;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer}
+      .tabs button.active{background:white;color:#0a5bd3;box-shadow:0 1px 2px rgba(16,24,40,.08)}
+      .content-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.span-2{grid-column:span 2}
+      .panel{background:white;border:1px solid #e4e7ec;border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,.025)}
+      .panel-heading{margin-bottom:18px}.panel-heading h2{margin:0;color:#0b1b36;font-size:16px}.panel-heading p{margin:5px 0 0;color:#667085;font-size:12px;line-height:1.5}
+      .snapshot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+      .info-item{display:flex;gap:10px;align-items:center;padding:12px;border:1px solid #eaecf0;border-radius:10px;background:#fcfcfd;min-width:0}
+      .info-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#eaf2ff;color:#0a5bd3;border-radius:8px;flex:0 0 34px}
+      .info-item span,.info-item strong{display:block}.info-item span{color:#98a2b3;font-size:10px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}.info-item strong{margin-top:3px;color:#344054;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .managed-banner{display:flex;gap:10px;background:#f9fafb;border:1px solid #eaecf0;border-radius:10px;padding:12px;color:#475467;margin-bottom:14px}
+      .managed-banner strong,.managed-banner span{display:block}.managed-banner strong{font-size:12px}.managed-banner span{font-size:11px;color:#667085;margin-top:2px;line-height:1.4}
+      .assignment-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.assignment-card{display:flex;gap:10px;align-items:center;border:1px solid #eaecf0;border-radius:10px;padding:11px}
+      .assignment-icon{width:34px;height:34px;background:#f4f0ff;color:#6941c6;border-radius:8px;display:flex;align-items:center;justify-content:center}
+      .assignment-card strong,.assignment-card span{display:block}.assignment-card strong{font-size:12px;color:#344054}.assignment-card span{font-size:11px;color:#667085;margin-top:2px}
+      .empty-state{display:flex;align-items:center;justify-content:center;gap:12px;border:1px dashed #d0d5dd;border-radius:10px;padding:22px;color:#98a2b3;background:#fcfcfd}
+      .empty-state strong,.empty-state span{display:block}.empty-state strong{font-size:12px;color:#475467}.empty-state span{font-size:11px;margin-top:3px}
+      .bio-copy{color:#475467;font-size:13px;line-height:1.7;min-height:45px}.text-button{display:inline-flex;align-items:center;gap:3px;border:0;background:transparent;color:#0a5bd3;padding:6px 0 0;font-size:12px;font-weight:700}
+      .metric-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f2f4f7;color:#667085;font-size:12px}.metric-row strong{color:#344054}
+      .form-panel{padding:24px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form-grid.compact{gap:12px}.form-stack{display:grid;gap:16px}
+      .field{display:flex;flex-direction:column;gap:6px;min-width:0}.field-label{font-size:12px;font-weight:700;color:#344054}.field-hint{font-size:11px;color:#98a2b3;margin-top:-2px}
+      .field input,.field select,.field textarea{width:100%;box-sizing:border-box;border:1px solid #d0d5dd;border-radius:9px;background:white;color:#101828;padding:10px 11px;font:inherit;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s}
+      .field textarea{resize:vertical;line-height:1.5}.field input:focus,.field select:focus,.field textarea:focus{border-color:#84adff;box-shadow:0 0 0 3px #eef4ff}.field input:disabled{background:#f9fafb;color:#667085}
+      .counter{font-size:10px;color:#98a2b3;align-self:flex-end}.subsection-heading{margin:26px 0 14px;padding-top:20px;border-top:1px solid #eaecf0}.subsection-heading h3{font-size:14px;margin:0;color:#344054}.subsection-heading p{font-size:11px;color:#667085;margin:4px 0 0}
+      .list-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.editable-list{display:grid;gap:12px}.editable-item{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;border:1px solid #eaecf0;border-radius:11px;padding:14px;background:#fcfcfd}
+      .editable-number{width:28px;height:28px;border-radius:7px;background:#eaf2ff;color:#0a5bd3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}.editable-body{min-width:0}
+      .remove-button{border:0;background:transparent;color:#b42318;font-size:11px;font-weight:700;padding:7px}.sticky-save{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:16px;background:#0b1b36;color:white;border-radius:12px;padding:13px 15px;box-shadow:0 8px 24px rgba(16,24,40,.12)}
+      .sticky-save strong,.sticky-save span{display:block}.sticky-save strong{font-size:12px}.sticky-save span{font-size:10px;color:#b8c4d6;margin-top:2px}.sticky-save .primary-button{background:white;color:#0a5bd3}
+      .profile-loading{min-height:420px;display:flex;align-items:center;justify-content:center;gap:10px;color:#667085;font-size:13px}.spin{animation:profile-spin 1s linear infinite}@keyframes profile-spin{to{transform:rotate(360deg)}}
+      @media(max-width:760px){.profile-shell{padding:18px 12px 86px}.profile-header{display:block}.profile-header h1{font-size:25px}.profile-header>.primary-button{width:100%;margin-top:16px}.identity-card{align-items:flex-start;padding:16px}.avatar-button,.avatar-button>img,.avatar-button>span:first-child{width:68px;height:68px}.avatar-button{flex-basis:68px}.identity-heading{display:block}.verified-chip{margin-top:8px}.identity-meta{display:grid;gap:7px}.completion-row{grid-template-columns:1fr;gap:9px}.content-grid,.form-grid,.snapshot-grid,.assignment-grid{grid-template-columns:1fr}.span-2{grid-column:span 1}.panel{padding:16px}.form-panel{padding:18px}.editable-item{grid-template-columns:28px 1fr}.remove-button{grid-column:2;justify-self:start;padding:0}.list-heading{display:block}.list-heading .secondary-button{margin:-8px 0 14px}.sticky-save{position:sticky;bottom:10px}.sticky-save>div{display:none}}
+      @media(max-width:480px){.identity-card{gap:12px}.identity-heading h2{font-size:19px}.tabs{margin-left:-2px;margin-right:-2px}.tabs button{padding:8px 10px}.sticky-save .primary-button{width:100%}}
+      @media(prefers-reduced-motion:reduce){.spin{animation:none}}
+    `}</style>
+  );
 }
