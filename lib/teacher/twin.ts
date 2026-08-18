@@ -125,14 +125,22 @@ function parseMemory(value: unknown): TeacherTwinMemoryClaim[] {
 
 export async function getTeacherTwinState(): Promise<TeacherTwinState> {
   const authority = await getTwinAuthorityContext()
-  const binding = selectTwinRoleBinding(authority, 'teacher')
 
+  // The server-side compatibility RPC owns active-school selection. On the
+  // multi-school contract it accepts only an authorized stored preference or a
+  // single unambiguous Teacher membership. The client then validates the
+  // returned school against the shared relationship-derived authority context.
+  // This order avoids rejecting a valid multi-school Teacher before the server
+  // has resolved the active school, while remaining backward-compatible during
+  // the migration/deployment boundary.
   const { data, error } = await rpc<Json>('teacher_get_twin_brain')
   if (error) throw new Error(error.message || 'Your Teacher Twin state could not be loaded.')
 
   const state = record(data)
   const schoolId = text(state.school_id) ?? ''
-  if (!schoolId || schoolId !== binding.schoolId) {
+  if (!schoolId) throw new Error('Teacher Twin brain returned no school scope.')
+  const binding = selectTwinRoleBinding(authority, 'teacher', schoolId)
+  if (binding.schoolId !== schoolId) {
     throw new Error('Teacher Twin brain returned a school outside the selected authority binding.')
   }
 
