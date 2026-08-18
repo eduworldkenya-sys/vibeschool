@@ -1,0 +1,289 @@
+name: Content Engine Gate 1 Production Parity
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/content-engine-gate1-production-parity.yml"
+      - "scripts/content-engine-build-gate1-ledger-aligned-stage.py"
+      - "scripts/test-content-engine-build-gate1-ledger-aligned-stage.py"
+      - "supabase/migrations/20260818114500_content_factory_throughput_closure.sql"
+      - "supabase/migrations/20260818130850_curriculum_intelligence_sources_repository_parity.sql"
+      - "supabase/migrations/20260818130900_curriculum_research_queue_repository_parity.sql"
+      - "supabase/migrations/20260818131000_content_factory_r2_research_worker_bridge.sql"
+      - "supabase/migrations/20260818131100_content_factory_r2_research_evidence_trust_hardening.sql"
+      - "supabase/migrations/20260818131200_content_factory_r2_semantic_verifier.sql"
+      - "supabase/migrations/20260818131210_content_factory_r2_semantic_material_binding.sql"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/content-engine-gate1-production-parity.yml"
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type APPLY_CONTENT_ENGINE_GATE1_PRODUCTION to apply only the certified Gate 1 schema set
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: content-engine-gate1-production-parity
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Content Engine Gate 1 promotion contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact ref
+        uses: actions/checkout@v4
+
+      - name: Lock exact seven-version production scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/test-content-engine-build-gate1-ledger-aligned-stage.py
+          cat > /tmp/content-engine-gate1-certified.txt <<'EOF'
+          20260818114500
+          20260818130850
+          20260818130900
+          20260818131000
+          20260818131100
+          20260818131200
+          20260818131210
+          EOF
+          test "$(wc -l < /tmp/content-engine-gate1-certified.txt)" = "7"
+          while read -r version; do
+            file="$(find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" -print -quit)"
+            test -n "$file"
+          done < /tmp/content-engine-gate1-certified.txt
+          grep -Fq 'environment: production-migration-repair' .github/workflows/content-engine-gate1-production-parity.yml
+          grep -Fq 'APPLY_CONTENT_ENGINE_GATE1_PRODUCTION' .github/workflows/content-engine-gate1-production-parity.yml
+
+      - name: Assert promotion remains non-activating
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Eq "runtime_execution_enabled[[:space:]]*=[[:space:]]*true|heartbeat_enabled[[:space:]]*=[[:space:]]*true|factory_enabled[[:space:]]*=[[:space:]]*true|shadow_enabled[[:space:]]*=[[:space:]]*true|shadow_scheduler_enabled[[:space:]]*=[[:space:]]*true" \
+            supabase/migrations/20260818114500_content_factory_throughput_closure.sql \
+            supabase/migrations/20260818130850_curriculum_intelligence_sources_repository_parity.sql \
+            supabase/migrations/20260818130900_curriculum_research_queue_repository_parity.sql \
+            supabase/migrations/20260818131000_content_factory_r2_research_worker_bridge.sql \
+            supabase/migrations/20260818131100_content_factory_r2_research_evidence_trust_hardening.sql \
+            supabase/migrations/20260818131200_content_factory_r2_semantic_verifier.sql \
+            supabase/migrations/20260818131210_content_factory_r2_semantic_material_binding.sql
+
+  apply:
+    name: Protected Content Engine Gate 1 production parity
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production-migration-repair
+
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+
+    steps:
+      - name: Require authorized production trigger and main ref
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            test "$CONFIRMATION" = "APPLY_CONTENT_ENGINE_GATE1_PRODUCTION"
+          else
+            test "$GITHUB_EVENT_NAME" = "push"
+          fi
+
+      - name: Checkout exact main head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize immutable evidence and certified set
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .content-engine-gate1-promotion
+          cat > .content-engine-gate1-promotion/certified-versions.txt <<'EOF'
+          20260818114500
+          20260818130850
+          20260818130900
+          20260818131000
+          20260818131100
+          20260818131200
+          20260818131210
+          EOF
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "actor=${{ github.actor }}"
+            echo "event=${{ github.event_name }}"
+            echo "ref=${{ github.ref }}"
+            echo "sha=${{ github.sha }}"
+            echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo "mission=CONTENT_ENGINE_GATE1_PRODUCTION_PARITY"
+            echo "runtime_activation=false"
+            echo "factory_activation=false"
+            echo "shadow_activation=false"
+            echo "autonomous_activation=false"
+            echo "model_capability_activation=false"
+            echo "publication_authority_activation=false"
+          } > .content-engine-gate1-promotion/context.txt
+
+      - name: Re-run promotion contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/test-content-engine-build-gate1-ledger-aligned-stage.py
+          python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+          python3 scripts/test-worker-engine-assert-dry-run-plan.py
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Link exact production project
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Capture pre-apply migration ledger
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          supabase migration list --linked 2>&1 | tee .content-engine-gate1-promotion/migration-list-before.txt
+
+      - name: Build exact live-ledger-aligned Content Engine stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/tbl013-live-ledger-audit.py \
+            --migrations-dir supabase/migrations \
+            --ledger .content-engine-gate1-promotion/migration-list-before.txt \
+            --report .content-engine-gate1-promotion/tbl013-report-before.json \
+            --plan .content-engine-gate1-promotion/tbl013-plan-before.md \
+            --project-ref "$EXPECTED_PROJECT_REF"
+          python3 scripts/content-engine-build-gate1-ledger-aligned-stage.py \
+            --report .content-engine-gate1-promotion/tbl013-report-before.json \
+            --migrations-dir supabase/migrations \
+            --config supabase/config.toml \
+            --stage-dir .content-engine-gate1-stage \
+            --manifest .content-engine-gate1-promotion/staging-manifest.json \
+            --expected-versions .content-engine-gate1-promotion/actual-pending-versions.txt
+          diff -u .content-engine-gate1-promotion/certified-versions.txt .content-engine-gate1-promotion/actual-pending-versions.txt
+
+      - name: Link ephemeral stage to production
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd .content-engine-gate1-stage
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Dry-run exact production plan
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          cd .content-engine-gate1-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.content-engine-gate1-promotion/db-push-preflight.txt
+
+      - name: Require dry-run to contain all and only certified migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/worker-engine-assert-dry-run-plan.py \
+            --expected .content-engine-gate1-promotion/certified-versions.txt \
+            --dry-run-output .content-engine-gate1-promotion/db-push-preflight.txt \
+            --report .content-engine-gate1-promotion/preflight-assertion.txt
+          grep -F 'status=PASSED' .content-engine-gate1-promotion/preflight-assertion.txt
+
+      - name: Apply exact certified Content Engine Gate 1 schema
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          cd .content-engine-gate1-stage
+          supabase db push --linked --include-all 2>&1 | tee ../.content-engine-gate1-promotion/db-push-apply.txt
+
+      - name: Capture and verify post-apply migration ledger
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase migration list --linked 2>&1 | tee .content-engine-gate1-promotion/migration-list-after.txt
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          expected=[x.strip() for x in Path('.content-engine-gate1-promotion/certified-versions.txt').read_text().splitlines() if x.strip()]
+          text=Path('.content-engine-gate1-promotion/migration-list-after.txt').read_text()
+          remote=set()
+          for line in text.splitlines():
+              cols=[c.strip().strip('`') for c in line.split('|')]
+              if len(cols)>=2 and re.fullmatch(r'\d{8,14}',cols[1]):
+                  remote.add(cols[1])
+          missing=[v for v in expected if v not in remote]
+          report=[
+              f'expected_count={len(expected)}',
+              f'remote_present_count={sum(v in remote for v in expected)}',
+              f'missing_expected={missing}',
+              'status='+('PASSED' if not missing and len(expected)==7 else 'FAILED'),
+          ]
+          Path('.content-engine-gate1-promotion/post-apply-ledger-assertion.txt').write_text('\n'.join(report)+'\n')
+          print('\n'.join(report))
+          if missing or len(expected)!=7:
+              raise SystemExit(1)
+          PY
+
+      - name: Require zero pending Gate 1 work after apply
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          cd .content-engine-gate1-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.content-engine-gate1-promotion/db-push-postflight-dry-run.txt
+          cd ..
+          while read -r version; do
+            ! grep -Fq "$version" .content-engine-gate1-promotion/db-push-postflight-dry-run.txt
+          done < .content-engine-gate1-promotion/certified-versions.txt
+
+      - name: Seal non-activation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'runtime_activation=false' .content-engine-gate1-promotion/context.txt
+          grep -F 'factory_activation=false' .content-engine-gate1-promotion/context.txt
+          grep -F 'shadow_activation=false' .content-engine-gate1-promotion/context.txt
+          grep -F 'autonomous_activation=false' .content-engine-gate1-promotion/context.txt
+          grep -F 'model_capability_activation=false' .content-engine-gate1-promotion/context.txt
+          grep -F 'publication_authority_activation=false' .content-engine-gate1-promotion/context.txt
+          grep -F 'status=PASSED' .content-engine-gate1-promotion/preflight-assertion.txt
+          grep -F 'status=PASSED' .content-engine-gate1-promotion/post-apply-ledger-assertion.txt
+          sha256sum .content-engine-gate1-promotion/* > .content-engine-gate1-promotion/evidence.sha256
+
+      - name: Upload immutable production-parity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: content-engine-gate1-production-parity-${{ github.run_id }}
+          path: .content-engine-gate1-promotion/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 90
