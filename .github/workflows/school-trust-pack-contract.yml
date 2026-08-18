@@ -1,0 +1,24 @@
+name: School Trust Pack Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/trust/schools/**'
+      - 'components/public/TrustPackActions.tsx'
+      - 'config/school-trust-pack.json'
+      - 'scripts/test-school-trust-pack.py'
+      - 'docs/product/VIBESCHOOL-SCHOOL-TRUST-PACK.md'
+      - '.github/workflows/school-trust-pack-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  school-trust-pack:
+    name: Procurement-grade trust truthfulness contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/test-school-trust-pack.py
