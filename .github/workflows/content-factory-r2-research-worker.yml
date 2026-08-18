@@ -1,0 +1,46 @@
+name: Content Factory R2 Research Worker
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260818130850_curriculum_intelligence_sources_repository_parity.sql'
+      - 'supabase/migrations/20260818130900_curriculum_research_queue_repository_parity.sql'
+      - 'supabase/migrations/20260818131000_content_factory_r2_research_worker_bridge.sql'
+      - 'supabase/migrations/20260818131100_content_factory_r2_research_evidence_trust_hardening.sql'
+      - 'supabase/functions/content-research-worker/**'
+      - 'scripts/sql/content_factory_r2_research_worker_verify.sql'
+      - 'docs/CONTENT_FACTORY_R2_RESEARCH_WORKER_HANDOVER.md'
+      - '.github/workflows/content-factory-r2-research-worker.yml'
+  workflow_dispatch:
+
+jobs:
+  disposable-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start disposable Supabase
+        run: supabase start
+      - name: Verify R2 Research Worker database contracts
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/content_factory_r2_research_worker_verify.sql
+      - name: Verify deterministic-first research executor
+        run: |
+          set -euo pipefail
+          file='supabase/functions/content-research-worker/index.ts'
+          grep -q 'hq_content_research_claim' "$file"
+          grep -q 'hq_content_research_complete' "$file"
+          grep -q 'hq_content_research_fail' "$file"
+          grep -q 'supports_claim: null' "$file"
+          grep -q 'no_model_call: true' "$file"
+          if grep -Eqi 'GROQ_API_KEY|OPENAI_API_KEY|ANTHROPIC_API_KEY|/chat/completions' "$file"; then
+            echo 'Research discovery executor must remain deterministic/no-model in R2.1' >&2
+            exit 1
+          fi
+      - name: Stop disposable Supabase
+        if: always()
+        run: supabase stop --no-backup
