@@ -1,5 +1,7 @@
 -- Teacher Profile trust/privacy closure.
 -- Keeps professional identity, audience visibility and verification authority separate.
+-- authorization-test: public.teacher_profile_privacy
+-- authorization-test: public.teacher_profile_verifications
 
 create table if not exists public.teacher_profile_privacy (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
