@@ -5,7 +5,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 PRIVACY = ROOT / "supabase/migrations/20260819021500_parent_core_journey_privacy_closure.sql"
 COMMUNICATION = ROOT / "supabase/migrations/20260819021600_parent_communication_revocation_closure.sql"
+CLAIM = ROOT / "supabase/migrations/20260819021700_parent_claim_authority_closure.sql"
 LEARN = ROOT / "app/parent/learn/page.tsx"
+LINK = ROOT / "app/parent/link-child/page.tsx"
 CONNECT_ALIAS = ROOT / "app/parent/connect-child/page.tsx"
 
 
@@ -27,7 +29,9 @@ def forbid(text: str, needle: str, label: str) -> None:
 
 privacy = read(PRIVACY)
 communication = read(COMMUNICATION)
+claim = read(CLAIM)
 learn = read(LEARN)
+link = read(LINK)
 connect_alias = read(CONNECT_ALIAS)
 
 # Canonical parent -> student relationship and revocation semantics.
@@ -46,6 +50,17 @@ require(communication, "public.is_parent_of_student(parent_events.student_id)", 
 require(communication, "private.vc_child_scope_authorized", "VibeConnect child-scope guard")
 require(communication, "active parent relationship required", "thread creation revocation guard")
 require(communication, 'drop policy if exists "thread members can insert messages"', "message-send reauthorization")
+
+# A school-issued parent claim proves relationship only; it must not fabricate
+# pickup or primary-guardian authority and it must stay bound to auth.uid().
+require(claim, "auth.uid() <> p_user_id", "claim authenticated-account binding")
+require(claim, "and role = 'parent'", "role-specific parent claim")
+require(claim, "if v_code_row.claimed then return 'already_claimed'", "one-time claim")
+require(claim, "false,\n      false,\n      true,\n      'full'", "no primary/pickup authority grant")
+require(claim, "return case when v_existing_link_id is null then 'success' else 'already_linked' end", "duplicate relationship recovery")
+require(link, "one-time", "truthful claim-code copy")
+require(link, "does not automatically grant pickup authority", "minimum-authority explanation")
+forbid(link, "same code can be used by the parent and the student", "false reusable-code promise")
 
 # Mobile child switching must fail closed before every asynchronous request.
 require(learn, "const requestVersion = useRef(0)", "request generation guard")
