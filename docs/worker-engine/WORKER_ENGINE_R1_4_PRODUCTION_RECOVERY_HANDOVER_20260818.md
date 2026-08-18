@@ -1,45 +1,109 @@
 # Worker Engine R1.4 production recovery handover — 2026-08-18
 
-## Incident
+## Executive decision
 
-The first protected WE-R1.4 production promotion legitimately applied `20260818111900_worker_engine_we_r1_3x_production_reconciliation_bridge.sql`, then failed closed before `20260818112000_worker_engine_we_r1_4_11_legacy_authority_closure.sql`.
+The recovery is no longer treated as a sequence of isolated migration defects. Direct production inspection established a dual-generation Worker Engine lineage: an earlier production-only WE-R1.3X generation and a later repository-canonical WE-R1.3X generation reused several public relation/function names with different semantics.
 
-Read-only production inspection showed the closure failure was caused by historical partial-production drift: the repository's later R1.3X planning/capability foundations had never been applied. Missing objects included `hq_workforce_capabilities`, `hq_workforce_skill_capabilities`, `hq_workforce_plans`, `hq_workforce_plan_steps`, `hq_workforce_plan_step_capabilities`, `hq_workforce_task_contracts`, and `hq_workforce_capability_authority_grants`.
+The approved solution is one historical-lineage convergence boundary, followed by the canonical repository chain and then R1.4 closure. The previous one-off capability-edge patch is retired.
 
-No migration ledger entry was fabricated and no raw production DDL was used. `20260818111900` remains legitimate production history.
+## Genesis
 
-## Second production recovery finding
+Production records an early WE-R1.3X series that is absent from current repository migration source history:
 
-Protected recovery run #7 passed its disposable lineage certification but failed during `Apply certified recovery only` on the first historical backfill migration, `20260815091000_worker_engine_we_r1_3x_capability_competency_graph.sql`.
+- `20260815053502_worker_engine_we_r1_3x_capability_fabric_foundation`
+- `20260815053548_worker_engine_we_r1_3x_planning_intelligence`
+- `20260815053608_worker_engine_we_r1_3x_learning_memory`
+- `20260815053706_worker_engine_we_r1_3x_legacy_reconciliation`
+- `20260815053724_worker_engine_we_r1_3x_control_room_intelligence`
+- `20260815053732_worker_engine_we_r1_3x_retire_legacy_entrypoint`
+- `20260815053812_worker_engine_we_r1_3x_composition_planner`
+- `20260815053834_worker_engine_we_r1_3x_objective_semantics_hardening`
+- `20260815053857_worker_engine_we_r1_3x_planning_quality`
+- `20260815053922_worker_engine_we_r1_3x_measurement_certification`
+- `20260815053936_worker_engine_we_r1_3x_certification_semantics`
+- `20260815054004_worker_engine_we_r1_3x_shadow_capability_bootstrap`
 
-The concrete error was that `from_capability_id` did not exist on `public.hq_workforce_capability_edges`.
+Later repository-canonical WE-R1.3X begins with X1/X2 at `20260815080000` / `20260815090000` and X3+ at `20260815091000`. Several later migrations used `CREATE TABLE IF NOT EXISTS`, so a same-name object from the earlier generation could survive without being semantically compatible.
 
-Direct read-only inspection established the reason: production already contains an older table with the same relation name but a different semantic model. Its columns are `id`, `from_skill_manifest_id`, `to_skill_manifest_id`, `relation_type`, `input_mapping`, `output_mapping`, `condition_contract`, `priority`, `enabled`, `created_at`, and `updated_at`. The table contains zero rows. Its indexes also occupy the names `hq_workforce_capability_edges_from_idx` and `hq_workforce_capability_edges_to_idx`.
+`20260818111900_worker_engine_we_r1_3x_production_reconciliation_bridge` already solved this class of problem for legacy objectives/plans. Protected R1.4 recovery later proved the drift extended beyond objective/planning state.
 
-The later R1.3X capability migration uses `CREATE TABLE IF NOT EXISTS public.hq_workforce_capability_edges (...)`. Because the legacy table already exists, creation is skipped and the migration then fails when it attempts to index canonical columns that are absent.
+## Production fingerprints discovered
 
-This is a historical relation-name collision, not a Supabase outage, authorization failure, or migration-ledger defect.
+The early generation still owns these superseded public objects:
 
-## Acceptance gap
+- `hq_workforce_capability_edges`: legacy skill-manifest edges (`from_skill_manifest_id`, `to_skill_manifest_id`), 0 rows. Canonical X3 requires capability IDs.
+- `hq_workforce_resources`: legacy resource contract (`resource_type`, `trust_tier`, `cost_profile`, `latency_profile`, etc.), 2 rows. Canonical X4 requires `resource_kind`, `cost_per_unit`, `latency_class`, `interface_contract`, etc.
+- `hq_workforce_worker_competencies`: legacy scope/capacity contract, 13 certified rows. Canonical X3 uses `scope_types` and `sample_count`.
+- `hq_workforce_collaborations`: legacy trace/authority-snapshot contract, 0 rows. Canonical X6 uses objective/plan-step identity and forbids authority transfer.
+- historical mapping/evidence tables: `hq_workforce_competency_capabilities` (5 rows), `hq_workforce_skill_resources` (7 rows), `hq_workforce_evaluations`, `hq_workforce_architecture_components` (17 rows), `hq_workforce_calibration`, `hq_workforce_skill_candidates`, `hq_workforce_factory_recommendations`, and `hq_workforce_memory`.
 
-The original WE-R1.4 acceptance workflow reproduced the partial X1/X2 production boundary and certified the `20260818111900` bridge, but then reset to a clean full-chain database before exercising `20260818112000`. It therefore never tested the exact partial-production lineage that failed in production.
+The old resource table is referenced by historical `hq_workforce_skill_resources` and `hq_workforce_evaluations`, proving that archiving only the first failing relation would leave a split lineage.
 
-The first recovery workflow then reproduced the missing-foundation lineage, but did not reproduce the legacy `hq_workforce_capability_edges` name collision. The second recovery repair closes that acceptance gap by creating the exact observed zero-row legacy shape in the disposable database before historical backfill.
+Production also contains legacy functions bound to these superseded relations. Examples include resource discovery, capability-gap diagnosis, R1.3X metrics, intelligence snapshot and resource/competency resolution functions.
 
-## Recovery rule
+## Convergence architecture
 
-Recovery is a late backfill of the repository's actual Worker Engine migration versions, not synthetic replacement schema and not ledger repair.
+Two real repository migrations now represent the repair; no staged SQL injection and no fabricated ledger history are used.
 
-The bounded recovery source set is every migration whose filename contains `worker_engine` and whose version is between `20260815091000` and `20260818113000`, inclusive. The live ledger removes versions already present; in the observed production state `20260818111900` is parity and therefore is not re-applied. Unrelated school, Twin, reader, commerce, and production-only migrations are outside the approved set.
+### `20260815090500_worker_engine_we_r1_3x_historical_lineage_convergence.sql`
 
-A single explicit recovery transform is now authorized inside the staged copy of pending version `20260815091000`: if and only if the existing `hq_workforce_capability_edges` relation exactly matches the observed legacy skill-manifest shape and contains zero rows, it is renamed to `hq_workforce_skill_capability_edges_legacy`, its schema-global index names are freed, RLS remains enabled, and anon/authenticated/public grants are revoked. The canonical repository migration then runs under its original version and creates the real capability graph.
+Runs after X2 and before canonical X3.
 
-The repair fails closed if the relation has rows, has any unexpected column shape, is partially canonical, or the archive name already exists. No synthetic migration version is added to the ledger and the original repository migration remains the authoritative canonical schema definition.
+It:
 
-The recovery acceptance job reproduces both observed production drifts, applies the existing `20260818111900` bridge, applies the exact legacy-collision reconciliation, then executes every missing repository Worker Engine migration in canonical version order on that same disposable database. It requires the canonical and archived relations to coexist, zero active capability-authority grants, the production-closure adversarial suite, and the fail-closed engine state to pass.
+1. requires engine state heartbeat OFF / Factory OFF / runtime OFF / autonomy L0 / risk 0 / Shadow OFF / scheduler OFF / global stop ON;
+2. fingerprints every known superseded table by exact ordered column set;
+3. treats already-canonical or absent objects as no-op;
+4. fails closed on any unknown third schema generation;
+5. requires all historically zero-row relations to remain zero-row;
+6. moves the complete superseded overlay into private `worker_engine_legacy_archive` rather than dropping data;
+7. records every archived object in `worker_engine_legacy_archive.r13x_lineage_manifest`;
+8. quarantines public functions whose definitions bind the superseded overlay;
+9. revokes public/anon/authenticated/service access to the archive.
+
+### `20260815092500_worker_engine_we_r1_3x_historical_lineage_data_bridge.sql`
+
+Runs after canonical X3 and X4 exist.
+
+It deterministically preserves only semantics with a one-to-one mapping:
+
+- legacy worker competencies → canonical worker competencies, preserving IDs, proficiency, reliability, certification, evidence, scope and timestamps; legacy capacity evidence is retained inside provenance/evidence;
+- legacy resources → canonical Resource Registry, preserving IDs, keys, versions, scope, classification, risk/autonomy, health, enabled/shadow state and full legacy metadata. No synthetic reliability value is invented.
+
+Ambiguous historical mappings are *not* auto-promoted. `competency -> skill` and `skill -> resource` are not equivalent to canonical `capability -> competency` / `capability -> resource`; those records remain immutable archive evidence until a separately certified semantic mapping exists.
+
+## Disposable-production proof
+
+`scripts/sql/worker_engine_r13x_legacy_production_fixture.sql` now reconstructs the superseded production overlay, including populated resource/competency evidence and a legacy public function. The protected recovery CI then:
+
+1. resets to repository state at X2;
+2. reproduces objective drift plus the full production-only R1.3X overlay;
+3. applies the legitimate `20260818111900` objective/plan bridge;
+4. late-backfills the real repository migrations beginning at `20260815090500`;
+5. requires canonical ontology tables and archived lineage to coexist;
+6. proves deterministic preservation of resource and worker-competency evidence;
+7. proves ambiguous mappings remain archived;
+8. proves the legacy public function is quarantined;
+9. runs the complete R1.4 production-closure adversarial suite;
+10. reasserts fail-closed engine state.
 
 ## Production mutation boundary
 
-Only `.github/workflows/worker-engine-we-r1-4-production-recovery.yml` may perform this recovery. Its apply job is protected by `production-migration-repair`, links only project `yauqsxggtuxuykcbrtzf`, builds a ledger-aligned ephemeral stage, requires an exact dry-run match, applies the certified pending set, verifies every version in the post-apply ledger, and requires zero remaining staged work.
+Only `.github/workflows/worker-engine-we-r1-4-production-recovery.yml` may apply the convergence/recovery to production. Its production job remains protected by `production-migration-repair`, targets only Supabase project `yauqsxggtuxuykcbrtzf`, requires exact ledger-aligned dry-run equivalence, applies the certified pending versions, verifies every ledger entry afterward, and requires zero pending recovery.
 
-This recovery does **not** activate Worker Engine execution. Heartbeat, Factory, runtime execution, Shadow, Shadow scheduler and autonomous operation remain outside scope. The target state remains autonomy L0, maximum risk 0, and global stop ON.
+Development of this convergence occurs only on `fix/worker-engine-r1-3x-lineage-convergence`. No production DDL is authorized from the development branch.
+
+## Runtime boundary
+
+Recovery does not activate the Worker Engine. Until post-recovery verification succeeds, the required production state is:
+
+- heartbeat OFF;
+- Factory OFF;
+- runtime execution OFF;
+- autonomy L0;
+- maximum risk 0;
+- Shadow OFF;
+- Shadow scheduler OFF;
+- global stop ON.
+
+Only after the canonical R1.4 ledger and schema are proven may the operational sequence continue: Global Shadow Trial → bounded `internal.work_queue.prioritize` canary → one Content Factory remediation job → operational certification → evidence-based autonomy expansion.
