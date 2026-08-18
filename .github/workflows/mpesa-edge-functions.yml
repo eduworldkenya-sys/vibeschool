@@ -6,7 +6,10 @@ on:
       - 'supabase/functions/mpesa-stk-push/**'
       - 'supabase/functions/mpesa-callback/**'
       - 'supabase/functions/mpesa-payment-status/**'
+      - 'supabase/functions/learning-product-stk-push/**'
+      - 'supabase/functions/learning-product-mpesa-callback/**'
       - 'supabase/migrations/*mpesa*'
+      - 'supabase/migrations/*learning_product*'
       - '.github/workflows/mpesa-edge-functions.yml'
   push:
     branches:
@@ -15,7 +18,10 @@ on:
       - 'supabase/functions/mpesa-stk-push/**'
       - 'supabase/functions/mpesa-callback/**'
       - 'supabase/functions/mpesa-payment-status/**'
+      - 'supabase/functions/learning-product-stk-push/**'
+      - 'supabase/functions/learning-product-mpesa-callback/**'
       - 'supabase/migrations/*mpesa*'
+      - 'supabase/migrations/*learning_product*'
 
 jobs:
   deno-check:
@@ -30,3 +36,5 @@ jobs:
           deno check supabase/functions/mpesa-stk-push/index.ts
           deno check supabase/functions/mpesa-callback/index.ts
           deno check supabase/functions/mpesa-payment-status/index.ts
+          deno check supabase/functions/learning-product-stk-push/index.ts
+          deno check supabase/functions/learning-product-mpesa-callback/index.ts
