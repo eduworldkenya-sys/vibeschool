@@ -5,8 +5,8 @@ const migrationsDir = 'supabase/migrations'
 const workflowPath = '.github/workflows/twin-production-promotion.yml'
 const targets = [
   {
-    version: '20260818050000',
-    file: 'supabase/migrations/20260818050000_teacher_twin_multi_school_scope.sql',
+    version: '20260818050300',
+    file: 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql',
     invariants: [
       'primary key (teacher_id, school_id)',
       'unique (teacher_id, school_id, claim_key)',
@@ -15,8 +15,8 @@ const targets = [
     ],
   },
   {
-    version: '20260818050100',
-    file: 'supabase/migrations/20260818050100_teacher_twin_active_school_preference.sql',
+    version: '20260818050400',
+    file: 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql',
     invariants: [
       'teacher_set_active_twin_school(p_school_id uuid)',
       'update public.teacher_profiles tp',
@@ -64,7 +64,7 @@ for (const invariant of [
   'supabase db push --linked --include-all',
   "test \"$GITHUB_REF\" = 'refs/heads/main'",
   "EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf",
-  "EXPECTED_PENDING_VERSIONS: '20260818050000 20260818050100'",
+  "EXPECTED_PENDING_VERSIONS: '20260818050300 20260818050400'",
 ]) {
   if (!workflow.includes(invariant)) {
     fail(`${workflowPath}: missing production-boundary invariant ${JSON.stringify(invariant)}`)
@@ -72,8 +72,8 @@ for (const invariant of [
 }
 
 const expectedNames = new Map([
-  ['20260818050000', path.basename(targets[0].file)],
-  ['20260818050100', path.basename(targets[1].file)],
+  ['20260818050300', path.basename(targets[0].file)],
+  ['20260818050400', path.basename(targets[1].file)],
 ])
 for (const [version, expectedName] of expectedNames) {
   const matches = migrationFiles.filter(name => name.startsWith(`${version}_`))
@@ -89,5 +89,5 @@ if (failures.length) {
 }
 
 console.log('Twin Production Promotion Contract: PASS')
-console.log('Expected exact versions: 20260818050000 20260818050100')
+console.log('Expected exact versions: 20260818050300 20260818050400')
 console.log('Production apply remains main-only and protected-environment scoped.')
