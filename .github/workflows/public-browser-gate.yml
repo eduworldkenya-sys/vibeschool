@@ -52,6 +52,10 @@ on:
       - 'scripts/test-public-sandbox.mjs'
       - '.github/workflows/public-browser-gate.yml'
 
+concurrency:
+  group: public-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
