@@ -3,6 +3,10 @@
 -- surfaces, but were absent from the clean migration chain. Reconstruct them
 -- explicitly instead of depending on hidden production-only schema.
 
+-- Access: authenticated-read/public.gender_types; service-role full; anon none
+-- Authorization-test: public.gender_types
+-- Access: authenticated-read/public.relationship_types; service-role full; anon none
+-- Authorization-test: public.relationship_types
 -- Access: authenticated-self/public.student_profiles; service-role full; anon none
 -- Authorization-test: public.student_profiles
 -- Access: authenticated-self/public.parent_profiles; service-role full; anon none
@@ -19,6 +23,14 @@ insert into public.gender_types(code,label) values
   ('other','Other')
 on conflict(code) do update set label=excluded.label;
 
+alter table public.gender_types enable row level security;
+revoke all privileges on table public.gender_types from public,anon,authenticated;
+grant select on table public.gender_types to authenticated;
+grant all privileges on table public.gender_types to service_role;
+drop policy if exists gender_types_authenticated_read on public.gender_types;
+create policy gender_types_authenticated_read on public.gender_types
+for select to authenticated using(true);
+
 create table if not exists public.relationship_types (
   code text primary key,
   label text not null
@@ -31,6 +43,14 @@ insert into public.relationship_types(code,label) values
   ('other','Other'),
   ('parent','Parent')
 on conflict(code) do update set label=excluded.label;
+
+alter table public.relationship_types enable row level security;
+revoke all privileges on table public.relationship_types from public,anon,authenticated;
+grant select on table public.relationship_types to authenticated;
+grant all privileges on table public.relationship_types to service_role;
+drop policy if exists relationship_types_authenticated_read on public.relationship_types;
+create policy relationship_types_authenticated_read on public.relationship_types
+for select to authenticated using(true);
 
 create table if not exists public.student_profiles (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
