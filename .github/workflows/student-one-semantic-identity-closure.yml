@@ -1,0 +1,33 @@
+name: Student One Semantic Identity Closure
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260818184000_student_one_semantic_identity_closure.sql'
+      - 'scripts/test-student-one-semantic-identity-closure.mjs'
+      - 'docs/security/STUDENT_ONE_SEMANTIC_IDENTITY_CLOSURE_20260818.md'
+      - '.github/workflows/student-one-semantic-identity-closure.yml'
+  push:
+    branches:
+      - main
+      - 'cert/student-one-content-learning-events-**'
+    paths:
+      - 'supabase/migrations/20260818184000_student_one_semantic_identity_closure.sql'
+      - 'scripts/test-student-one-semantic-identity-closure.mjs'
+      - 'docs/security/STUDENT_ONE_SEMANTIC_IDENTITY_CLOSURE_20260818.md'
+      - '.github/workflows/student-one-semantic-identity-closure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Canonical learner state vs account telemetry
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce semantic identity closure
+        run: node scripts/test-student-one-semantic-identity-closure.mjs
