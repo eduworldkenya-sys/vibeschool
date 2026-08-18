@@ -136,15 +136,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Anonymous visitors now receive the canonical public homepage at `/`.
-  // Do not rewrite it to the legacy `/welcome` shell: the public homepage owns
-  // its navigation, accessibility, trust and investor/user communication contract.
-  if (!user && pathname === '/login') {
-    const authUrl = request.nextUrl.clone()
-    authUrl.pathname = '/'
-    return copyAuthState(NextResponse.rewrite(authUrl))
-  }
-
+  // Anonymous /login must render the dedicated role chooser. Never rewrite it
+  // to the public homepage: auth recovery and protected-route redirects depend
+  // on /login being a real, stable route.
   if (PUBLIC_AUTH_ROUTES.has(pathname)) {
     supabaseResponse.headers.set('Cache-Control', 'private, no-store')
     supabaseResponse.headers.set('Pragma', 'no-cache')
