@@ -1,0 +1,162 @@
+name: Twin Production Promotion
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/twin-production-promotion.yml'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
+      - 'scripts/test-twin-production-promotion-contract.mjs'
+      - 'scripts/twin-production-promotion-stage.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/twin-production-promotion.yml'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
+      - 'scripts/test-twin-production-promotion-contract.mjs'
+      - 'scripts/twin-production-promotion-stage.py'
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type APPLY_TWIN_PRODUCTION'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: twin-production-promotion
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+  EXPECTED_PENDING_VERSIONS: '20260818050300 20260818050400'
+
+jobs:
+  contract:
+    name: Twin production promotion contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact event commit
+        uses: actions/checkout@v4
+
+      - name: Verify exact migration and production boundary contract
+        run: node scripts/test-twin-production-promotion-contract.mjs
+
+  apply:
+    name: Protected exact-version Twin production apply
+    needs: contract
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.confirmation == 'APPLY_TWIN_PRODUCTION')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-migration-repair
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test "$SUPABASE_PROJECT_ID" = "$EXPECTED_PROJECT_REF"
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          node scripts/test-twin-production-promotion-contract.mjs
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Link exact production project
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Capture remote ledger before apply
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .twin-production-promotion
+          supabase migration list --linked 2>&1 | tee .twin-production-promotion/migration-list-before.txt
+
+      - name: Build exact ledger-aligned Twin stage
+        id: pending
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/twin-production-promotion-stage.py prepare
+
+      - name: Link ledger-aligned stage to exact production project
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .twin-production-promotion-stage
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+
+      - name: Dry-run exact Twin production plan
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          cd .twin-production-promotion-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.twin-production-promotion/db-push-preflight.txt
+
+      - name: Assert dry-run contains exactly the two certified Twin migrations
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/worker-engine-assert-dry-run-plan.py \
+            --expected .twin-production-promotion/expected-versions.txt \
+            --dry-run-output .twin-production-promotion/db-push-preflight.txt \
+            --report .twin-production-promotion/preflight-assertion.txt
+          grep -F 'status=PASSED' .twin-production-promotion/preflight-assertion.txt
+
+      - name: Apply exact certified Twin migrations
+        if: steps.pending.outputs.needs_apply == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          cd .twin-production-promotion-stage
+          supabase db push --linked --include-all 2>&1 | tee ../.twin-production-promotion/db-push-apply.txt
+
+      - name: Capture remote ledger after apply
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase migration list --linked 2>&1 | tee .twin-production-promotion/migration-list-after.txt
+
+      - name: Verify exact Twin ledger transition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/twin-production-promotion-stage.py verify
+
+      - name: Upload immutable Twin promotion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twin-production-promotion-${{ github.run_id }}
+          path: .twin-production-promotion/
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 90

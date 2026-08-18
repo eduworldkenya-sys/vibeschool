@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
 import OfflineBar from "@/components/teacher/OfflineBar";
+import { getTwinAuthorityContext, selectTwinRoleBinding } from "@/lib/twin/core";
 
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
@@ -524,34 +525,56 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     async function fetchProfile() {
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) { router.replace("/?role=teacher"); return; }
+      try {
+        const authority = await getTwinAuthorityContext();
+        const userId = authority.userId;
 
-      const { data: profileData, error: profileErr } = await supabase.from("profiles").select("full_name, school_id, role").eq("id", user.id).single();
-      if (profileErr || !profileData || profileData.role !== "teacher") { router.replace("/?role=teacher"); return; }
-      localStorage.setItem(`vs_role_${user.id}`, JSON.stringify({ role: 'teacher', t: Date.now() }));
-      const name = profileData.full_name ?? "";
-      setFullName(name);
-      const parts = name.trim().split(" ").filter(Boolean);
-      setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+        const { data: profileData, error: profileErr } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", userId)
+          .single();
+        if (profileErr || !profileData) { router.replace("/?role=teacher"); return; }
 
-      const [memberRes, teacherRes] = await Promise.all([
-        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
-      ]);
-      const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding")
-      const hasSchool = !!(memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id)
-      if (!teacherRes.data?.profile_id && !isOnboardingPath && hasSchool) { router.replace("/teacher/onboarding/school"); return; }
-      const schoolId = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileData.school_id ?? null;
-      if (schoolId) {
-        const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle();
-        setSchool(schoolData?.name ?? "");
+        const name = profileData.full_name ?? "";
+        setFullName(name);
+        const parts = name.trim().split(" ").filter(Boolean);
+        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+
+        const { data: teacherData, error: teacherErr } = await supabase
+          .from("teacher_profiles")
+          .select("school_id, profile_id")
+          .eq("profile_id", userId)
+          .maybeSingle();
+        if (teacherErr) throw new Error(teacherErr.message || "Teacher profile could not be resolved.");
+
+        const binding = selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined);
+        const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding");
+        const schoolId = binding.schoolId;
+        if (!teacherData?.profile_id && !isOnboardingPath && schoolId) {
+          router.replace("/teacher/onboarding/school");
+          return;
+        }
+
+        if (schoolId) {
+          const { data: schoolData, error: schoolErr } = await supabase
+            .from("schools")
+            .select("name")
+            .eq("id", schoolId)
+            .maybeSingle();
+          if (schoolErr) throw new Error(schoolErr.message || "Teacher school could not be resolved.");
+          setSchool(schoolData?.name ?? "");
+        }
+
+        teacherIdRef.current = userId;
+        refreshCredits();
+        setAuthReady(true);
+      } catch (error) {
+        console.error("Teacher portal authority resolution failed:", error);
+        router.replace("/?role=teacher");
       }
-      teacherIdRef.current = user.id;
-      refreshCredits();
-      setAuthReady(true);
     }
-    fetchProfile();
+    void fetchProfile();
   }, [refreshCredits, router]);
 
   if (!authReady) return <div style={{ minHeight: "100vh", background: "#f8fafc" }} />;

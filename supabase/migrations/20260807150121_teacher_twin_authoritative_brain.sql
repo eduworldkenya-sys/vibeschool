@@ -1,0 +1,4 @@
+-- Recovered production migration history.
+-- The authoritative Teacher Twin contract was introduced in production at this ledger version.
+-- The complete replayable final contract is consolidated in 20260807152114_teacher_twin_context_integrity_fix.sql
+-- so fresh environments end in the exact live state without creating a fifth migration version.

@@ -2,6 +2,7 @@
 'use client'
 
 import type { TwinMode } from '../types'
+import TwinRoleSwitcher from '@/components/twin/TwinRoleSwitcher'
 
 // Design tokens — single source for this component tree
 export const T = {
@@ -32,10 +33,11 @@ export default function TwinHeader({ mode, onMode, onClose }: TwinHeaderProps) {
       display:        'flex',
       alignItems:     'center',
       justifyContent: 'space-between',
-      padding:        '16px 20px',
+      gap:            8,
+      padding:        '12px 14px',
       borderBottom:   `1px solid ${T.border}`,
       flexShrink:     0,
-      height:         60,
+      minHeight:      60,
     }}>
       <button
         onClick={onClose}
@@ -44,30 +46,36 @@ export default function TwinHeader({ mode, onMode, onClose }: TwinHeaderProps) {
           background:   'rgba(255,255,255,0.05)',
           border:       'none',
           color:        T.text,
-          padding:      '8px 14px',
+          padding:      '8px 11px',
           borderRadius: 10,
           cursor:       'pointer',
-          fontSize:     13,
+          fontSize:     12,
           fontWeight:   600,
+          flexShrink:   0,
         }}
       >
         ← Back
       </button>
 
-      <span style={{
-        color:         T.accent,
-        fontWeight:    800,
-        fontSize:      13,
-        letterSpacing: '0.1em',
-      }}>
-        ✦ VIBE TWIN
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+        <span style={{
+          color:         T.accent,
+          fontWeight:    800,
+          fontSize:      12,
+          letterSpacing: '0.08em',
+          whiteSpace:    'nowrap',
+        }}>
+          ✦ VIBE TWIN
+        </span>
+        <TwinRoleSwitcher currentRole="student" />
+      </div>
 
       <div style={{
         display:      'flex',
         background:   'rgba(255,255,255,0.05)',
         borderRadius: 10,
         padding:      3,
+        flexShrink:   0,
       }}
         role="group"
         aria-label="Input mode"
@@ -79,7 +87,7 @@ export default function TwinHeader({ mode, onMode, onClose }: TwinHeaderProps) {
             aria-pressed={mode === m}
             aria-label={m === 'text' ? 'Text mode' : 'Audio mode'}
             style={{
-              padding:       '5px 10px',
+              padding:       '5px 8px',
               borderRadius:  8,
               border:        'none',
               background:    mode === m ? T.accent : 'transparent',
