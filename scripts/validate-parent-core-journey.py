@@ -9,6 +9,7 @@ CLAIM = ROOT / "supabase/migrations/20260819021700_parent_claim_authority_closur
 CANONICAL_CREATION = ROOT / "supabase/migrations/20260819021800_parent_canonical_student_creation_closure.sql"
 NOTIFICATION_NAV = ROOT / "supabase/migrations/20260819021900_parent_notification_navigation_closure.sql"
 LEARN = ROOT / "app/parent/learn/page.tsx"
+ASSESSMENTS = ROOT / "app/parent/assessments/page.tsx"
 CHILD_HUB = ROOT / "app/parent/child/[id]/page.tsx"
 CHILD_HOMEWORK = ROOT / "app/parent/child/[id]/homework/page.tsx"
 LINK = ROOT / "app/parent/link-child/page.tsx"
@@ -38,6 +39,7 @@ claim = read(CLAIM)
 canonical_creation = read(CANONICAL_CREATION)
 notification_nav = read(NOTIFICATION_NAV)
 learn = read(LEARN)
+assessments = read(ASSESSMENTS)
 child_hub = read(CHILD_HUB)
 child_homework = read(CHILD_HOMEWORK)
 link = read(LINK)
@@ -96,6 +98,17 @@ require(learn, '.eq("status", "published")', "published progress filter")
 require(learn, "No cached child data has been shown", "fail-closed network copy")
 forbid(learn, "cache.current", "cross-child result cache")
 forbid(learn, "new Map<string, CachedData>", "legacy cross-child cache")
+
+# Assessments must clear one child's rendered evidence before resolving another
+# browser-supplied child ID, and the deep-link must be re-authorized by RLS.
+require(assessments, "setStudentId(null)", "assessment child-id clearing")
+require(assessments, "setStudentName('Learner')", "assessment learner-name clearing")
+require(assessments, "setSummary(null)", "assessment sibling-summary clearing")
+require(assessments, "setLoading(true)", "assessment child-switch loading gate")
+require(assessments, ".from('students')", "assessment deep-link RLS authority gate")
+require(assessments, "This learner is not linked to your active parent account.", "assessment unauthorized-child fail-closed state")
+require(assessments, "router.push(`/parent/child/${studentId}`)", "assessment valid return navigation")
+forbid(assessments, "/parent/report-cards", "retired report-card route")
 
 # The canonical child hub must have real core actions rather than pilot dead ends.
 require(child_hub, "`/parent/child/${child.id}/homework`", "child-scoped homework navigation")
