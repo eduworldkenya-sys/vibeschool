@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 
 const base = fs.readFileSync('supabase/migrations/20260819013800_auth_canonical_journey_state.sql', 'utf8')
 const repair = fs.readFileSync('supabase/migrations/20260819014900_auth_student_uuid_resolution_repair.sql', 'utf8')
+const profileGrants = fs.readFileSync('supabase/migrations/20260819020500_auth_profile_authority_grants.sql', 'utf8')
+const roleClaim = fs.readFileSync('supabase/migrations/20260819021200_auth_claim_role_production_reconcile.sql', 'utf8')
 const callback = fs.readFileSync('app/auth/callback/route.ts', 'utf8')
 const middleware = fs.readFileSync('middleware.ts', 'utf8')
 const routing = fs.readFileSync('lib/auth-routing.ts', 'utf8')
@@ -21,6 +23,26 @@ assert.doesNotMatch(repair,/min\s*\(\s*s\.id\s*\)/i)
 assert.match(repair,/order by s\.id limit 1/i)
 assert.match(base,/get_my_auth_journey_state/i)
 for (const wrapper of ['get_my_onboarding_state','get_my_auth_access_state','get_my_role']) assert.match(base,new RegExp(`create or replace function public\\.${wrapper}\\([\\s\\S]*?get_my_auth_journey_state`,'i'))
+
+// Profile authority is denied at the grant layer, not only by downstream routing.
+assert.match(profileGrants,/revoke all on table public\.profiles from anon/i)
+assert.match(profileGrants,/revoke update on table public\.profiles from authenticated/i)
+assert.match(profileGrants,/grant update\s*\([\s\S]*full_name[\s\S]*notification_prefs[\s\S]*\) on table public\.profiles to authenticated/i)
+for (const field of ['role','school_id','account_status','is_anonymized']) {
+  const grantBody = profileGrants.match(/grant update\s*\(([\s\S]*?)\) on table public\.profiles to authenticated/i)?.[1] ?? ''
+  assert.ok(!new RegExp(`\\b${field}\\b`,'i').test(grantBody), `authority field ${field} must not be client-updatable`)
+}
+
+// Role claim is one-time, self-service allowlisted, identity-bound and non-admin.
+assert.match(roleClaim,/create or replace function public\.claim_my_initial_role\(p_role text\)/i)
+assert.match(roleClaim,/security definer/i)
+assert.match(roleClaim,/set search_path = public, auth, pg_temp/i)
+assert.match(roleClaim,/p_role not in \('teacher','parent','global_user'\)/i)
+assert.doesNotMatch(roleClaim,/p_role not in \([^)]*admin/i)
+assert.match(roleClaim,/role is null/i)
+assert.match(roleClaim,/revoke all on function public\.claim_my_initial_role\(text\) from public, anon/i)
+assert.match(roleClaim,/grant execute on function public\.claim_my_initial_role\(text\) to authenticated/i)
+assert.match(roleClaim,/guard_profile_authority_fields/i)
 
 // Callback has exactly one authority path: the database resolver. No table-based fallback.
 assert.doesNotMatch(callback,/resolveOnboardingFallback/)
@@ -58,4 +80,4 @@ assert.match(errorPage,/onboarding_resolution_failed/)
 assert.match(errorPage,/admin_membership_missing/)
 assert.match(errorPage,/identity_conflict/)
 
-console.log('Task 1 canonical auth state-machine and recovery contract: PASS')
+console.log('Task 1 canonical auth state-machine, authority and recovery contract: PASS')
