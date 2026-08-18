@@ -1,0 +1,152 @@
+name: Task 2 Database Reconstruction Integrity
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - "scripts/sql/task2_database_integrity_verify.sql"
+      - ".github/workflows/task2-database-integrity.yml"
+
+concurrency:
+  group: task2-database-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    name: Zero-to-current database reconstruction
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Inventory and validate migration filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .task2-artifacts
+          python3 - <<'PY'
+          from collections import defaultdict
+          from pathlib import Path
+          import json, re
+
+          files = sorted(Path('supabase/migrations').glob('*.sql'))
+          versions = defaultdict(list)
+          bad = []
+          for path in files:
+              m = re.match(r'^(\d+)_', path.name)
+              if not m:
+                  bad.append(path.name)
+                  continue
+              versions[m.group(1)].append(path.name)
+          duplicates = {v:n for v,n in versions.items() if len(n) > 1}
+          report = {
+              'migration_count': len(files),
+              'first': files[0].name if files else None,
+              'last': files[-1].name if files else None,
+              'invalid_filenames': bad,
+              'duplicate_versions': duplicates,
+          }
+          Path('.task2-artifacts/repository-migration-inventory.json').write_text(
+              json.dumps(report, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(json.dumps(report, indent=2, sort_keys=True))
+          if bad:
+              raise SystemExit(f'invalid migration filenames: {bad}')
+          if duplicates:
+              raise SystemExit(f'duplicate migration versions: {duplicates}')
+          PY
+
+      - name: Verify Docker
+        run: docker info > .task2-artifacts/docker-info.txt
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Disable seed for schema-only reconstruction
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then
+            mv supabase/seed.sql .task2-artifacts/seed.sql.disabled
+          fi
+
+      - name: Start disposable local Supabase
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor \
+            2>&1 | tee .task2-artifacts/supabase-start.log
+
+      - name: Rebuild from zero
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db reset --local --no-seed \
+            2>&1 | tee .task2-artifacts/db-reset.log
+
+      - name: Verify repository and local migration ledgers agree
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')"
+          ACTUAL="$(PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -Atqc 'select count(*) from supabase_migrations.schema_migrations')"
+          printf 'expected=%s\nactual=%s\n' "$EXPECTED" "$ACTUAL" | tee .task2-artifacts/ledger-count.txt
+          test "$ACTUAL" = "$EXPECTED"
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -P pager=off -c \
+            'select version,name from supabase_migrations.schema_migrations order by version' \
+            > .task2-artifacts/local-migration-ledger.txt
+
+      - name: Verify broad reconstructed database contract
+        shell: bash
+        run: |
+          set -o pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
+            -f scripts/sql/task2_database_integrity_verify.sql \
+            2>&1 | tee .task2-artifacts/database-contract.log
+
+      - name: Verify rerunnable read-only certification
+        shell: bash
+        run: |
+          set -o pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
+            -f scripts/sql/task2_database_integrity_verify.sql \
+            2>&1 | tee .task2-artifacts/database-contract-rerun.log
+
+      - name: Capture schema/security evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -AtF $'\t' -c \
+            "select c.relname,c.relrowsecurity,c.relforcerowsecurity from pg_class c where c.relnamespace='public'::regnamespace and c.relkind in ('r','p') order by c.relname" \
+            > .task2-artifacts/public-table-rls.tsv
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -AtF $'\t' -c \
+            "select schemaname,tablename,policyname,roles,cmd,coalesce(qual,''),coalesce(with_check,'') from pg_policies where schemaname='public' order by tablename,policyname" \
+            > .task2-artifacts/public-policies.tsv
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -AtF $'\t' -c \
+            "select n.nspname,p.proname,pg_get_function_identity_arguments(p.oid),p.prosecdef,coalesce(array_to_string(p.proconfig,','),'') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' order by p.proname,pg_get_function_identity_arguments(p.oid)" \
+            > .task2-artifacts/public-functions.tsv
+          sha256sum .task2-artifacts/* > .task2-artifacts/evidence.sha256
+
+      - name: Upload reconstruction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-database-integrity-${{ github.run_id }}
+          path: .task2-artifacts/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Destroy disposable database
+        if: always()
+        run: supabase stop --no-backup > /dev/null 2>&1 || true
