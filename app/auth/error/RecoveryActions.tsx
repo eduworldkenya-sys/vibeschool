@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 
 export default function RecoveryActions() {
   const [changingAccount, setChangingAccount] = useState(false)
@@ -20,7 +21,7 @@ export default function RecoveryActions() {
     }
   }
 
-  const buttonBase: React.CSSProperties = {
+  const buttonBase: CSSProperties = {
     minHeight: 48,
     padding: '12px 16px',
     borderRadius: 9,
