@@ -1,4 +1,5 @@
 -- Task 2: recover the production-only notifications relation into repository truth.
+-- authorization-test: public.notifications
 --
 -- Production already contains public.notifications and live data. A blank repository
 -- rebuild did not, while the student application directly depends on this contract.
