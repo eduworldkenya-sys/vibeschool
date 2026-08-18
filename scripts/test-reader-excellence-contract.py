@@ -35,7 +35,6 @@ def main() -> int:
     anchor_migration = read("supabase/migrations/20260818071500_reader_durable_annotation_anchors.sql")
     glossary_migration = read("supabase/migrations/20260818075500_reader_governed_bilingual_glossary.sql")
 
-    # One canonical reader, explicit modes and product-core controls.
     for value in [
         "<ReaderExcellenceShell />",
         "<ReaderListenContinuity publicationId={params.publicationId} />",
@@ -47,7 +46,6 @@ def main() -> int:
     ]:
         require(layout, value, "reader layout")
 
-    # Reading comfort and low-end/mobile accessibility basics.
     for value in [
         "Paper",
         "Light",
@@ -60,8 +58,6 @@ def main() -> int:
     ]:
         require(shell, value, "reader comfort")
 
-    # Progress may queue offline, but only provisional state is local. Reconnect
-    # must go back through canonical server authority and sign-out clears it.
     for value in [
         "vibeschool.reader.pending-progress.v1",
         "viewerId",
@@ -75,8 +71,6 @@ def main() -> int:
     ]:
         require(continuity, value, "reader reconnect")
 
-    # The service worker must remain public-shell-only. Reader/API/auth data is
-    # network-owned; paid bytes must never become accidentally durable cache.
     for value in [
         "SAFE_PUBLIC_ROUTES",
         "url.pathname.startsWith('/api/')",
@@ -88,12 +82,11 @@ def main() -> int:
     forbid(sw, "url.pathname.startsWith('/read')", "service worker reader cache")
     forbid(sw, "supabase", "service worker Supabase cache")
 
-    # Durable study identity and truthful cross-browser compatibility.
     for value in [
         "data-reader-block-id",
         "startOffset",
         "endOffset",
-        "Cross-block",
+        "startBlock !== endBlock",
     ]:
         require(study, value, "study anchors")
     for value in [
@@ -107,7 +100,6 @@ def main() -> int:
     for value in ["block_id", "start_offset", "end_offset", "anchor_version"]:
         require(anchor_migration, value, "annotation migration")
 
-    # Definitions are source-governed and entitlement-aware, never fabricated.
     for value in [
         "get_reader_term_explanation",
         "no_verified_definition",
@@ -120,7 +112,6 @@ def main() -> int:
     for value in ["Explain EN / SW", "No verified definition", "source_label"]:
         require(explainer, value, "reader explainer")
 
-    # Search remains entitled/local and compatible with this repository's target.
     require(search, "if (!chapter.can_read) continue", "entitled search")
     require(search, "matchKind", "strong search")
     require(search, "normalized.split(/[^a-z0-9]+/)", "target-safe tokenizer")
@@ -128,7 +119,6 @@ def main() -> int:
     forbid(search, "/u)", "target-safe tokenizer")
     require(page, 'aria-label="Search this textbook"', "search accessibility")
 
-    # Listening state is canonical-content based, not vendor/audio-file based.
     for value in ["publicationId", "chapterId", "blockId", "localStorage"]:
         require(listen, value, "listen continuity")
 
