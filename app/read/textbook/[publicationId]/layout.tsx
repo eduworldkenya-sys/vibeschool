@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { StudyCapturePanel } from "@/components/read/StudyCapturePanel";
 import { ReadingAnalyticsTracker } from "@/components/read/ReadingAnalyticsTracker";
+import { ReaderAccessibilityStyles } from "@/components/read/ReaderAccessibilityStyles";
 import { ReaderExcellenceShell } from "@/components/read/ReaderExcellenceShell";
 import { ReaderListenContinuity } from "@/components/read/ReaderListenContinuity";
 import { ReaderContinuityCoordinator } from "@/components/read/ReaderContinuityCoordinator";
@@ -85,6 +86,7 @@ export default async function TextbookReaderLayout({ children, params }: { child
   return (
     <div id="vibetextbook-reader-shell" data-reader-mode="read">
       {bookSchema ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(bookSchema) }} /> : null}
+      <ReaderAccessibilityStyles />
       <ReadingAnalyticsTracker />
       <ReaderExcellenceShell />
       <ReaderListenContinuity publicationId={params.publicationId} />
