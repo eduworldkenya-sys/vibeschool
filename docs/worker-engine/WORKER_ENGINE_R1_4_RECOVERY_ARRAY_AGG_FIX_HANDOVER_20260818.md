@@ -1,69 +1,86 @@
-# Worker Engine R1.4 recovery catalog-scan repair handover — 2026-08-18
+# Worker Engine R1.4 production-recovery lineage repair handover — 2026-08-18
 
-## Scope
+## Decision
 
-This handover records the post-merge repair required after PR #246 (`fix(worker-engine): converge historical R1.3X production lineage`) merged as `8b8f1ffc38a9f13a5c83e6ac29bac59d6dd64a51`.
+PR #246 merged successfully, but production recovery remains fail-closed. The first disposable recovery rehearsal failed with `"array_agg" is an aggregate function` while replaying `20260815090500` out of historical order. Investigation of the live Supabase ledger showed that this was a rehearsal-design symptom, not permission to edit or replay the already-applied migration.
 
-No production mutation is authorized by this branch. Vercel is out of scope. Worker Engine activation is out of scope.
+Production was not mutated by the failed workflow. Vercel was not used.
 
-## Failure observed
+## Live production facts
 
-The exact PR #246 head passed the normal Worker Engine, migration-security, clean-rebuild and production-build gates, but the dedicated `Worker Engine WE-R1.4 Production Recovery` rehearsal failed in its disposable database during `Late-backfill canonical Worker Engine lineage`.
+Read-only production verification established:
 
-Failure:
+- `20260815090500`, `15091000`, `15092000`, `15092500`, `15093000`, `15094000`, `15095000`, `15121500`, `15123000`, `15130200`, and `18111900` are applied;
+- `20260815130100` is applied under the production identity `create_open_schools_kenya_kibera_batch1`;
+- repository history uses the same version for `worker_engine_we_r1_4_compensation`;
+- `hq_workforce_execution_intents.authoritative_before_state` is absent;
+- `hq_workforce_execution_intents.expected_after_state` is absent;
+- `hq_workforce_execution_compensations` is absent;
+- the later exact-state capture function/trigger and compensation RPC from `15130200` exist;
+- Worker Engine remains heartbeat OFF, Factory OFF, runtime OFF, autonomy L0, maximum risk 0, Shadow OFF, Shadow scheduler OFF, global stop ON.
 
-```text
-20260815090500_worker_engine_we_r1_3x_historical_lineage_convergence.sql:137:
-ERROR: "array_agg" is an aggregate function
-CONTEXT: PL/pgSQL function inline_code_block line 4 at FOR over SELECT rows
-```
+## True genesis
 
-The protected production job was skipped, so production was not mutated.
+The blocking defect is migration semantic identity collision, not simply catalog scanning.
 
-## Root cause
+A version-only migration audit classified every shared timestamp as parity. That is insufficient for VibeSchool's production history: `20260815130100` proves that equal versions can represent different migrations. As a result the repository compensation foundation can be silently considered applied even though its schema mutations never reached production.
 
-`pg_proc` contains multiple routine kinds, including normal functions, procedures, aggregates and window functions. The lineage quarantine query called `pg_get_functiondef(p.oid)` while scanning the complete `public` namespace. PostgreSQL therefore attempted to reconstruct the definition of an aggregate such as `array_agg`, which `pg_get_functiondef()` does not support.
+Applied migration history is immutable. The repository's historical `15130100` file must not be renamed, edited for production replay, or marked as newly applied.
 
-A simple boolean predicate beside the definition call is not considered a sufficient safety boundary because SQL expression evaluation order is optimizer-controlled. The repair therefore separates candidate selection from definition inspection.
+## Forward-only repair
 
-## Repair
+New migration:
 
-Branch: `fix/worker-engine-r14-production-recovery-array-agg`
+`20260818111950_worker_engine_we_r1_4_compensation_lineage_collision_repair.sql`
 
-Changed migration:
+It is intentionally ordered after the already-applied `18111900` reconciliation bridge and before the pending `18112000+` closure chain.
 
-`supabase/migrations/20260815090500_worker_engine_we_r1_3x_historical_lineage_convergence.sql`
+The migration:
 
-The function quarantine now:
+1. asserts the Worker Engine is fully fail-closed;
+2. validates any pre-existing recovery columns have the expected `jsonb` type;
+3. restores the two missing authoritative recovery-state columns;
+4. creates the canonical compensation evidence table, indexes, RLS and grants;
+5. restores the immutable compensation trigger/function;
+6. requires the later `15130200` exact-state capture function, trigger and compensation RPC to already exist;
+7. deliberately does not replace those newer function bodies with the collided `15130100` implementation;
+8. reasserts the runtime safety state after repair.
 
-1. selects only `public.pg_proc` entries with `prokind='f'`;
-2. iterates those ordinary-function OIDs in PL/pgSQL;
-3. calls `pg_get_functiondef()` only after the catalog-kind boundary has been established;
-4. applies the existing exact-identifier dependency regexes to the reconstructed definition;
-5. quarantines only matching legacy functions;
-6. preserves all existing fail-closed table fingerprints, archival behavior, grants and runtime-off invariants.
+## Collision-aware staging
 
-No production data mapping, ontology, Worker Engine authority, activation state or migration ordering changed.
+`worker-engine-build-ledger-aligned-stage.py` now supports explicit identity placeholders. The R1.4 recovery builder declares `20260815130100` as a known shared-version/non-equivalent identity and stages an inert production-history placeholder for that timestamp rather than copying repository SQL into the ledger-aligned view.
 
-## Verification contract
+The missing semantics are carried only by `20260818111950`. This prevents timestamp equality from being reported as semantic equivalence.
 
-The existing `.github/workflows/worker-engine-we-r1-4-production-recovery.yml` is the authoritative regression proof because changing the convergence migration triggers it on pull requests. It must reconstruct the historical production overlay in a disposable Supabase database, apply the canonical recovery chain, verify archived and canonical evidence, run the R1.4 production-closure adversarial suite, and retain the engine in the fail-closed state.
+## Corrected recovery rehearsal
 
-Promotion is forbidden until that exact-head workflow and the ordinary repository certification gates are green.
+The dedicated production-recovery workflow no longer replays already-applied R1.3X migrations out of order.
 
-## Production boundary
+Its disposable database now:
 
-After merge, the protected recovery workflow may proceed only if its disposable certification succeeds. The production job remains guarded by the `production-migration-repair` environment, exact project reference, linked migration ledger, exact dry-run plan, post-apply ledger verification and zero-pending postflight.
+1. rebuilds through the already-applied `20260818111900` bridge boundary;
+2. removes exactly the compensation foundation pieces known to be missing in production, reproducing the observed `15130100` semantic collision state while leaving `15130200` exact-state objects present;
+3. applies `20260818111950`;
+4. applies the `18112000..18113000` Worker Engine closure chain;
+5. verifies the compensation table, recovery columns, immutable trigger and exact-state APIs;
+6. runs the production-closure adversarial suite;
+7. proves runtime remains L0/risk-0/OFF with global stop ON.
 
-Expected engine state remains:
+## Production promotion boundary
 
-- heartbeat OFF;
-- Factory OFF;
-- runtime execution OFF;
-- autonomy L0;
-- maximum risk 0;
-- Shadow OFF;
-- Shadow scheduler OFF;
-- global stop ON.
+Production remains protected by the `production-migration-repair` GitHub environment, exact project-ref verification, linked-ledger capture, collision-aware staged view, exact dry-run assertion, apply evidence, post-apply ledger verification and zero-pending postflight.
 
-Only after production recovery and verification may the programme advance to Shadow Trial, bounded canary, and Content Factory remediation.
+The preflight must explicitly prove:
+
+- already-applied `15090500` is not pending;
+- collided `15130100` is not pending or replayed;
+- already-applied `18111900` is not pending;
+- forward repair `18111950` is pending;
+- closure `18112000` and `18113000` are pending;
+- the manifest records the `create_open_schools_kenya_kibera_batch1` collision provenance.
+
+No Shadow Trial or canary may start until production recovery completes and live postconditions are verified.
+
+## Next sequence
+
+Exact-head certification → make repair PR ready → merge once → protected production recovery → verify Supabase compensation foundation and ledger → Shadow Trial → bounded canary → Content Factory remediation.
