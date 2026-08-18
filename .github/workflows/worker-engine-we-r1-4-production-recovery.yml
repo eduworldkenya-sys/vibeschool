@@ -1,3 +1,4 @@
+# Operational retrigger: 2026-08-18 controlled R1.4 production recovery
 name: Worker Engine WE-R1.4 Production Recovery
 
 on:
