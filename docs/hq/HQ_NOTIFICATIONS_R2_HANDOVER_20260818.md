@@ -45,7 +45,8 @@ R2 turns the notification layer into an executive signal center rather than anot
 - Routine lesson-plan, homework and draft-publication events remain in `platform_events` but no longer page HQ.
 - Signups aggregate into one daily notification fingerprint.
 - Content Factory blockers aggregate into one active signal.
-- Repeated active signals increment `occurrence_count` and refresh `last_seen_at` instead of creating unbounded duplicate rows.
+- Repeated active signals only advance `occurrence_count` and `last_seen_at` when aggregate evidence changes.
+- An unchanged periodic scan cannot re-open an acknowledged urgent signal.
 - Owner acknowledgement is distinct from resolution.
 - Resolved signals may recur later as a fresh active notification if the underlying condition returns.
 
@@ -99,7 +100,7 @@ The migration declares the repository security contract explicitly as service-on
 
 A dedicated `supabase/tests/hq_notification_signal_center_r2_contract.sql` verifies the notification schema, orchestration-ledger presence, client-role isolation and governed notification RPC boundary.
 
-## Production preflight evidence
+## Production preflight and promotion evidence
 
 A rollback-only production SQL test compiled the core R2 schema/functions and executed the signal generator without persistence. It returned two aggregate signal groups against current production truth: Content Factory blockers and content-health signals.
 
@@ -117,17 +118,31 @@ At audit time, production had:
 
 The counts above are evidence from the audit window, not permanent expected values.
 
+Controlled production promotion then surfaced a second historical RPC-lineage mismatch that a clean database cannot reproduce: production's legacy `hq_acknowledge_notification(uuid)` returned `void`, while R2 intentionally returns `boolean` so the client can distinguish a successful acknowledgement from a missing/resolved signal. PostgreSQL correctly rejected a return-type change through `CREATE OR REPLACE`; the R2 transaction rolled back without partial activation.
+
+That production truth is now permanently represented by `20260818214495_hq_notification_acknowledge_contract_boundary.sql`, which drops only the legacy acknowledgement signature immediately before R2 recreates the owner-gated boolean RPC. This follows the same ordered compatibility pattern used for `hq_list_notifications(integer)` and removes reliance on undocumented production history.
+
+Production migrations successfully recorded before the transactional R2 retry boundary were:
+- `hq_notification_signal_center_r2_reader_contract_boundary`
+- `hq_security_events_signal_compatibility`
+- `hq_notification_optional_source_compatibility`
+- `content_engine_orchestration_runs_repository_parity`
+
+The R2 activation migration itself remained unapplied after the return-type rejection and must only be retried after exact-head certification includes the new acknowledgement boundary.
+
 ## Certification defects caught before promotion
 
-The certification loop prevented several issues from reaching production:
+The certification/promotion loop prevented several issues from reaching an uncontrolled release:
 
 - unchanged periodic scans could originally inflate occurrence counts or re-open acknowledged urgent signals; corrected so evidence changes drive recurrence
-- PostgreSQL cannot replace a table-shaped RPC when its return contract changes; an ordered drop/recreate boundary was added
+- PostgreSQL cannot replace a table-shaped RPC when its return contract changes; an ordered list-reader drop/recreate boundary was added
+- production's legacy acknowledgement RPC returned `void`; a second explicit drop/recreate return-contract boundary was added before boolean R2 acknowledgement
 - resolved critical history could crowd active lower-severity signals out of the RPC result window; active signals now rank before history
 - production-only source names were reconciled to canonical repository truth or compatibility projections
 - `content_engine_orchestration_runs` missing repository lineage was recovered instead of bypassing clean-rebuild certification
 - the new service-only table was made explicit to the migration-security contract
 - the existing Curriculum Authority navigation compatibility contract was preserved while mounting the founder signal surface
+- a concurrent `/login` production-build regression entered `main` while the PR was being certified; it was identified as base-branch drift rather than misattributed to HQ R2, and current main subsequently repaired it before final merge certification
 
 ## Security contract
 
@@ -137,7 +152,7 @@ R2 does not expose raw security-event metadata or payment phone/provider payload
 
 ## Merge / deployment rule
 
-Apply the tracked migrations to production only after every required exact-head check passes. Vercel must not be intentionally triggered before the branch is complete. Before merge, verify production migration presence, cron uniqueness, RPC grants, owner read/ack/resolve, deduplication behavior and active-signal counts. Merge only the exact certified head.
+Apply the tracked migrations to production only after every required exact-head check passes against current main. Vercel must not be intentionally triggered before the branch is complete. Before merge, verify production migration presence, cron uniqueness, RPC grants, owner read/ack/resolve, deduplication behavior and active-signal counts. Merge only the exact certified head/base combination.
 
 ## Research basis
 
