@@ -9,13 +9,21 @@ const POINT_VALUES: Record<string, number> = {
   daily_streak:     25,
 }
 
+async function resolveCanonicalStudentId(): Promise<string> {
+  const { data, error } = await supabase.rpc('current_student_id')
+  if (error) throw error
+  if (typeof data !== 'string' || !data) throw new Error('Canonical learner identity is unavailable.')
+  return data
+}
+
 export async function awardPoints(
-  studentId: string,
+  _studentId: string,
   action: keyof typeof POINT_VALUES,
   contentId?: string
 ): Promise<void> {
   const points = POINT_VALUES[action]
   if (!points) return
+  const studentId = await resolveCanonicalStudentId()
   await supabase.from('vibelearn_points').insert({
     student_id: studentId,
     action,
@@ -24,7 +32,8 @@ export async function awardPoints(
   })
 }
 
-export async function updateStreak(studentId: string): Promise<void> {
+export async function updateStreak(_studentId: string): Promise<void> {
+  const studentId = await resolveCanonicalStudentId()
   const today = nairobiDateStr()
 
   const { data } = await supabase
