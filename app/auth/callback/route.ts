@@ -155,8 +155,8 @@ export async function GET(req: NextRequest) {
 
     if (role === 'teacher') {
       const [{ count: schoolCount, error: schoolError }, { count: classCount, error: classError }] = await Promise.all([
-        supabase.from('school_members').select('profile_id', { count: 'exact', head: true }).eq('profile_id', user.id),
-        supabase.from('teacher_classes').select('teacher_id', { count: 'exact', head: true }).eq('teacher_id', user.id).eq('is_active', true),
+        supabase.from('school_members').select('profile_id', { count: 'exact', head: true }).eq('profile_id', user.id).eq('role', 'teacher'),
+        supabase.from('teacher_classes').select('teacher_id', { count: 'exact', head: true }).eq('teacher_id', user.id),
       ])
       if (schoolError || classError) return null
       if (!schoolCount) return { state: 'needs_school', destination: '/teacher/onboarding/school' }
