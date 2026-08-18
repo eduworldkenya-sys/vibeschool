@@ -15,10 +15,6 @@ export function createSupabaseClient() {
 }
 
 type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
-type LiveSchemaCompatClient = TypedBrowserClient & {
-  from(relation: string): any
-  rpc(fn: string, args?: Record<string, unknown>): any
-}
 
 // Safe singleton — only created once on client side
 let client: TypedBrowserClient | null = null
@@ -30,9 +26,9 @@ export function getSupabaseClient() {
   return client
 }
 
-// Keep generated typing for known schema while allowing newly deployed tables/RPCs
-// to compile until database.types.ts is regenerated from the live project.
-export const supabase = getSupabaseClient() as LiveSchemaCompatClient
+// Repository database.types.ts is now required to describe every application
+// table/RPC contract. Do not widen this client to arbitrary string relations.
+export const supabase = getSupabaseClient()
 
 export async function getTeacherProfile(userId: string) {
   const sb = getSupabaseClient()

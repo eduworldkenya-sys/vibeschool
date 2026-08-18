@@ -7,6 +7,7 @@ on:
       - "supabase/migrations/**"
       - "supabase/config.toml"
       - "scripts/sql/task2_database_integrity_verify.sql"
+      - "scripts/sql/task2_database_failure_injection.sql"
       - "scripts/task2_extract_application_db_contracts.py"
       - "lib/database.types.ts"
       - "lib/supabase.ts"
@@ -124,6 +125,14 @@ jobs:
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
             -f scripts/sql/task2_database_integrity_verify.sql \
             2>&1 | tee .task2-artifacts/database-contract-rerun.log
+
+      - name: Run local failure injection
+        shell: bash
+        run: |
+          set -o pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
+            -f scripts/sql/task2_database_failure_injection.sql \
+            2>&1 | tee .task2-artifacts/failure-injection.log
 
       - name: Inventory literal application database contracts
         shell: bash
