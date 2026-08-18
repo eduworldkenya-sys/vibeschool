@@ -13,8 +13,8 @@ on:
       - 'supabase/migrations/20260807150508_teacher_twin_student_signal_bridge.sql'
       - 'supabase/migrations/20260807151514_teacher_twin_operational_context_completion.sql'
       - 'supabase/migrations/20260807152114_teacher_twin_context_integrity_fix.sql'
-      - 'supabase/migrations/20260818050000_teacher_twin_multi_school_scope.sql'
-      - 'supabase/migrations/20260818050100_teacher_twin_active_school_preference.sql'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
       - 'scripts/test-teacher-twin-multi-school-scope.mjs'
       - '.github/workflows/teacher-twin-multi-school-contract.yml'
   pull_request:
@@ -27,8 +27,8 @@ on:
       - 'supabase/migrations/20260807150508_teacher_twin_student_signal_bridge.sql'
       - 'supabase/migrations/20260807151514_teacher_twin_operational_context_completion.sql'
       - 'supabase/migrations/20260807152114_teacher_twin_context_integrity_fix.sql'
-      - 'supabase/migrations/20260818050000_teacher_twin_multi_school_scope.sql'
-      - 'supabase/migrations/20260818050100_teacher_twin_active_school_preference.sql'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
       - 'scripts/test-teacher-twin-multi-school-scope.mjs'
       - '.github/workflows/teacher-twin-multi-school-contract.yml'
   workflow_dispatch:
