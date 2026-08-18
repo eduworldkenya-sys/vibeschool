@@ -55,6 +55,15 @@ R2 turns the notification layer into an executive signal center rather than anot
 
 The generator and `hq_upsert_notification()` are revoked from `public`, `anon` and `authenticated`; only `service_role` can invoke them directly. Database triggers/cron execute in trusted server-side contexts.
 
+## Founder surfaces — where notifications appear
+
+R2 has two complementary owner surfaces rather than hiding the system behind a database or a single page:
+
+1. **Persistent HQ alert control** — `HQNotificationCenter` is mounted in the sticky `HQNavigation`, so the owner sees the unread/urgent state from every protected HQ page. Opening it reveals the fast triage drawer without leaving the current workflow.
+2. **Full Signal Center workspace** — `/hq/notifications` is the durable executive inbox for Active, Act now, Action required, Important, Digest, Resolved and All views. It includes search, summary metrics, acknowledgement, resolution, source context, recurrence counts and routed actions.
+
+This is intentionally a two-speed experience: the navigation control answers “does anything need me now?”, while the dedicated workspace answers “what happened, what still needs action, and what was already resolved?”.
+
 ## UI changes
 
 `HQNotificationCenter` becomes `HQ Signal Center` and adds:
@@ -67,6 +76,28 @@ The generator and `hq_upsert_notification()` are revoked from `public`, `anon` a
 - automatic one-minute refresh while HQ is mounted
 - error state instead of silently failing
 - action labels that route to the relevant HQ surface
+- persistent mounting in the protected HQ top navigation
+- a dedicated `/hq/notifications` executive workspace with search and resolved history
+
+## Content Engine repository-parity closure
+
+Exact clean-rebuild certification exposed a pre-existing production/repository drift: `run_connected_content_engine()` and production both depended on `public.content_engine_orchestration_runs`, but GitHub did not contain the historical `CREATE TABLE` lineage needed to reconstruct it on a blank database.
+
+R2 closes that disaster-recovery gap with `20260818214490_content_engine_orchestration_runs_repository_parity.sql`. The migration reproduces the production contract idempotently:
+
+- canonical UUID run identity
+- publication foreign key with cascade delete
+- governed trigger types: scheduled/manual/post_release/recovery
+- governed run states: running/completed/blocked/failed
+- JSON stage/blocker evidence
+- start/completion timestamps
+- RLS enabled
+- raw client access revoked
+- service-role infrastructure access retained
+
+The migration declares the repository security contract explicitly as service-only and includes an authorization-test marker. No parallel orchestration database was introduced.
+
+A dedicated `supabase/tests/hq_notification_signal_center_r2_contract.sql` verifies the notification schema, orchestration-ledger presence, client-role isolation and governed notification RPC boundary.
 
 ## Production preflight evidence
 
@@ -86,6 +117,18 @@ At audit time, production had:
 
 The counts above are evidence from the audit window, not permanent expected values.
 
+## Certification defects caught before promotion
+
+The certification loop prevented several issues from reaching production:
+
+- unchanged periodic scans could originally inflate occurrence counts or re-open acknowledged urgent signals; corrected so evidence changes drive recurrence
+- PostgreSQL cannot replace a table-shaped RPC when its return contract changes; an ordered drop/recreate boundary was added
+- resolved critical history could crowd active lower-severity signals out of the RPC result window; active signals now rank before history
+- production-only source names were reconciled to canonical repository truth or compatibility projections
+- `content_engine_orchestration_runs` missing repository lineage was recovered instead of bypassing clean-rebuild certification
+- the new service-only table was made explicit to the migration-security contract
+- the existing Curriculum Authority navigation compatibility contract was preserved while mounting the founder signal surface
+
 ## Security contract
 
 All exposed notification reads/mutations continue to require `hq_assert_owner()`.
@@ -94,8 +137,8 @@ R2 does not expose raw security-event metadata or payment phone/provider payload
 
 ## Merge / deployment rule
 
-The migration is repository-tracked and should be applied to production only after exact-head checks pass. Vercel should not be intentionally triggered before the branch is complete. After merge, verify production migration presence, cron uniqueness, RPC grants, owner read/ack/resolve, and active-signal counts.
+Apply the tracked migrations to production only after every required exact-head check passes. Vercel must not be intentionally triggered before the branch is complete. Before merge, verify production migration presence, cron uniqueness, RPC grants, owner read/ack/resolve, deduplication behavior and active-signal counts. Merge only the exact certified head.
 
 ## Research basis
 
-The design follows established SRE alerting guidance: alert on meaningful/user-impacting symptoms, make alerts actionable, and optimize signal-to-noise to avoid alert fatigue. Routine telemetry belongs in dashboards/digests rather than interruptive alerts.
+The design follows established SRE and notification-design guidance: alert on meaningful/user-impacting symptoms, make alerts actionable, optimize signal-to-noise to avoid alert fatigue, make high-value information glanceable, deduplicate repeated events, and reserve interruption for conditions whose urgency justifies it. Routine telemetry belongs in dashboards/digests rather than interruptive alerts.
