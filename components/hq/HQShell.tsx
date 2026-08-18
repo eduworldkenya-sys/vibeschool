@@ -9,16 +9,18 @@ export const HQ_THEME = {
   bg: "#06101d", panel: "#0b1728", panelSoft: "#0e1d31", border: "rgba(148,163,184,.13)", text: "#f8fafc", muted: "#7f93ad", green: "#22c55e", blue: "#3b82f6", amber: "#f59e0b", red: "#ef4444", violet: "#8b5cf6", cyan: "#06b6d4",
 } as const
 
-const navGroups = [
+type NavItem = readonly [string,string,string]
+type NavGroup = {label:string;items:readonly NavItem[]}
+const navGroups: readonly NavGroup[] = [
   {label:"Executive",items:[["Overview","/hq","⌂"],["Live Operations","/hq/intelligence","◈"],["Analytics","/hq/analytics","⌁"],["Alerts & Insights","/hq/notifications","◉"]]},
   {label:"Manage",items:[["Schools","/hq/schools","⌂"],["Users & Growth","/hq/users","◎"],["Teachers","/hq/workforce","♙"],["Learning Intelligence","/hq/analytics","▥"],["Content Factory","/hq/curriculum-intelligence/engine","▣"]]},
   {label:"Operations",items:[["Finance & Payments","/hq/billing","$"],["Platform Health","/hq/security","◇"],["Worker Engine","/hq/workforce","⚙"],["Decisions","/hq/decisions","✓"],["Curriculum Authority","/hq/curriculum-authority","A"]]},
   {label:"More",items:[["Publishing","/hq/content","▤"],["Studio","/hq/studio","✦"],["Settings","/hq/security","⚙"]]},
-] as const
+]
 
-const mobileLinks = [
+const mobileLinks: readonly NavItem[] = [
   ["Home","/hq","⌂"], ["Insights","/hq/analytics","⌁"], ["Live","/hq/intelligence","⌁"], ["Alerts","/hq/notifications","!"], ["More","/hq/decisions","≡"],
-] as const
+]
 
 function isActive(pathname:string,href:string){return href==="/hq"?pathname===href:pathname===href||pathname.startsWith(`${href}/`)}
 
