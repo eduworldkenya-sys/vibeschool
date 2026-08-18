@@ -36,7 +36,7 @@ function GeneralLearnerVibeLearn() {
         const brief = await getVibeLearnWorkstation();
         if (cancelled) return;
         setWorkspace(brief);
-        const subjectIds = brief.subjects.map(subject => subject.subjectId).filter(Boolean);
+        const subjectIds = brief.subjects.map(subject => subject.id).filter(Boolean);
         if (subjectIds.length === 0) {
           setResources([]);
           return;
@@ -62,7 +62,7 @@ function GeneralLearnerVibeLearn() {
   }, []);
 
   const subjectById = useMemo(
-    () => new Map((workspace?.subjects ?? []).map(subject => [subject.subjectId, subject.subjectName])),
+    () => new Map((workspace?.subjects ?? []).map(subject => [subject.id, subject.name])),
     [workspace],
   );
 
