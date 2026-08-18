@@ -7,9 +7,9 @@ revoke all on table public.profiles from anon;
 revoke update on table public.profiles from authenticated;
 
 -- The repository has accumulated profile-shape drift across historical environments.
--- Grant only the intersection of the explicit presentation-field allowlist and columns
+-- Grant only the intersection of the explicit self-editable field allowlist and columns
 -- that actually exist in the reconstructed schema. This keeps clean rebuilds reproducible
--- without ever widening client authority to role/school/lifecycle/provenance fields.
+-- without widening client authority to role/school/lifecycle/provenance fields.
 do $do$
 declare
   v_columns text;
@@ -22,15 +22,22 @@ begin
     and not a.attisdropped
     and a.attname = any (array[
       'full_name',
+      'first_name',
+      'last_name',
       'phone',
       'date_of_birth',
+      'gender',
       'country_code',
+      'county',
+      'sub_county',
+      'address',
+      'emergency_contact_name',
+      'emergency_contact_phone',
+      'emergency_contact_relation',
       'notification_prefs',
       'avatar_url',
       'bio',
-      'gender',
-      'onboarded_chronicles',
-      'updated_at'
+      'onboarded_chronicles'
     ]::text[]);
 
   if v_columns is null then
@@ -42,8 +49,8 @@ end
 $do$;
 
 -- Keep the existing own-row RLS condition as a second boundary for the editable
--- columns. Authority-bearing fields remain writable only through privileged,
--- purpose-built server/RPC paths.
+-- columns. Authority-bearing and audit/provenance fields remain writable only through
+-- privileged, purpose-built server/RPC paths.
 
 comment on table public.profiles is
   'Private identity profile. Client UPDATE is column-limited; role, school, lifecycle and provenance authority fields are privileged-only.';
