@@ -44,7 +44,15 @@ The Worker Engine model invocation records `material_id`, `material_sha256` and 
 
 ### 5. Source fetching now has a network boundary
 
-The executor requires HTTPS, rejects localhost/private IPv4/link-local/local hostnames, revalidates redirects, bounds extraction size, and supports only text-like direct content. Unsupported direct content may fall back to Tavily extraction when configured.
+The executor requires HTTPS, rejects URL credentials, localhost/private IPv4/link-local/local hostnames and literal IPv6-style hosts, revalidates redirects, bounds extraction size, and supports only text-like direct content. Unsupported direct content may fall back to Tavily extraction when configured.
+
+### 6. Retrieved pages are untrusted data, not model instructions
+
+A source page can contain adversarial prompt text. The verifier therefore labels retrieved material as untrusted evidence, explicitly instructs the model to ignore role changes, commands, tool requests, hidden prompts and output-format requests inside it, and wraps the material in explicit untrusted-source delimiters. Even if that model boundary were bypassed, a decisive verdict still cannot change evidence state unless PostgreSQL proves the quoted excerpt occurs in the immutable material bound to that exact authorized task/model invocation.
+
+### 7. Certification must resolve Edge runtime transitive types reproducibly
+
+The first dedicated Deno gate failed before checking the executor because Supabase's Edge runtime type package references an npm dependency that Deno does not auto-install by default. The workflow now enables Deno's automatic node-module resolution for the type-check. This is CI dependency resolution only; it does not weaken or alter executor runtime authority.
 
 ## Database contracts
 
@@ -70,11 +78,12 @@ Lifecycle:
 4. Call `hq_content_semantic_verifier_claim(...)` with the retrieved material.
 5. PostgreSQL computes/stores the material hash and obtains Worker Engine model authorization.
 6. Call the configured Groq model only after the governed claim succeeds.
-7. Parse strict structured JSON.
-8. Locally reject ungrounded decisive excerpts as an early guard.
-9. Call `hq_content_semantic_verifier_complete(...)` with the exact material ID.
-10. PostgreSQL independently rechecks task/model/material binding and quoted evidence grounding before writing the immutable verdict and updating trusted evidence status.
-11. On failure, finalize/release the model reservation and follow Worker Engine retry/dead-letter semantics.
+7. Treat all retrieved page text as untrusted evidence rather than instructions.
+8. Parse strict structured JSON.
+9. Locally reject ungrounded decisive excerpts as an early guard.
+10. Call `hq_content_semantic_verifier_complete(...)` with the exact material ID.
+11. PostgreSQL independently rechecks task/model/material binding and quoted evidence grounding before writing the immutable verdict and updating trusted evidence status.
+12. On failure, finalize/release the model reservation and follow Worker Engine retry/dead-letter semantics.
 
 The model is a classifier, not evidence authority. PostgreSQL remains the evidence-state authority.
 
@@ -97,7 +106,8 @@ The dedicated contract verifies:
 - installation leaves runtime disabled, autonomy L0, max risk 0 and zero active capability-authority grants;
 - the executor calls material-bound claim -> model verification -> material-bound completion in that order;
 - the executor no longer references `claim.evidence_excerpt` as source proof;
-- Deno type-checks the Edge executor.
+- retrieved source text is explicitly bounded as untrusted model input;
+- Deno type-checks the Edge executor with reproducible transitive npm dependency resolution.
 
 ## Production boundary — read-only verification 2026-08-18
 
