@@ -1,0 +1,33 @@
+name: Student One Content Learning Identity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260818181500_student_one_content_learning_identity.sql'
+      - 'scripts/test-student-one-content-learning-identity.mjs'
+      - 'docs/security/STUDENT_ONE_CONTENT_LEARNING_IDENTITY_20260818.md'
+      - '.github/workflows/student-one-content-learning-identity.yml'
+  push:
+    branches:
+      - main
+      - 'cert/student-one-content-learning-events-**'
+    paths:
+      - 'supabase/migrations/20260818181500_student_one_content_learning_identity.sql'
+      - 'scripts/test-student-one-content-learning-identity.mjs'
+      - 'docs/security/STUDENT_ONE_CONTENT_LEARNING_IDENTITY_20260818.md'
+      - '.github/workflows/student-one-content-learning-identity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Account provenance vs canonical learner evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Student = 1 content-learning contract
+        run: node scripts/test-student-one-content-learning-identity.mjs
