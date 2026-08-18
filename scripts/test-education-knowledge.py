@@ -31,4 +31,8 @@ article_page=(root/'app/kenya-education/[slug]/page.tsx').read_text()
 assert 'Fact, guidance and boundary are different content types.' in hub
 assert 'getKnowledgeSources(section.source_ids)' in article_page
 assert 'Official-source fact' in article_page and 'Practical guidance' in article_page and 'Important boundary' in article_page
+assert "title: 'Kenya Education Guide | CBE, Grade 10 & Senior School'" in hub
+assert "title: 'Kenya Education Guide | CBE, Grade 10 & Senior School | VibeSchool'" not in hub
+assert 'title:article.title' in article_page
+assert '`${article.title} | VibeSchool`' not in article_page
 print(f"Education Knowledge Contract: PASS ({len(articles)} articles, {len(sources)} official sources)")
