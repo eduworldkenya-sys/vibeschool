@@ -83,8 +83,9 @@ export default function TwinRoleSwitcher({
   function switchRole(nextRole: TwinRole) {
     if (nextRole === currentRole) return
     window.speechSynthesis?.cancel()
-    // Navigation grants nothing. The destination resolves authority again from
-    // server/RLS-backed relationships and remounts all role-local Twin state.
+    // Role switching remains navigation, never browser-side authorization.
+    // Destination loaders derive authority again from server/RLS-backed relationships
+    // and remount all role-local Twin state.
     window.location.assign(ROLE_ROUTE[nextRole])
   }
 
