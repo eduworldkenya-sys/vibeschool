@@ -6,6 +6,7 @@ const repair = fs.readFileSync('supabase/migrations/20260819014900_auth_student_
 const profileGrants = fs.readFileSync('supabase/migrations/20260819020500_auth_profile_authority_grants.sql', 'utf8')
 const roleClaim = fs.readFileSync('supabase/migrations/20260819021200_auth_claim_role_production_reconcile.sql', 'utf8')
 const callback = fs.readFileSync('app/auth/callback/route.ts', 'utf8')
+const logout = fs.readFileSync('app/auth/logout/route.ts', 'utf8')
 const middleware = fs.readFileSync('middleware.ts', 'utf8')
 const routing = fs.readFileSync('lib/auth-routing.ts', 'utf8')
 const recovery = fs.readFileSync('app/auth/error/RecoveryActions.tsx', 'utf8')
@@ -103,5 +104,13 @@ assert.match(recovery,/CSSProperties/)
 assert.match(errorPage,/onboarding_resolution_failed/)
 assert.match(errorPage,/admin_membership_missing/)
 assert.match(errorPage,/identity_conflict/)
+
+// Recovery logout must affect only the current session and must not report a failed
+// Supabase sign-out as success.
+assert.match(logout,/signOut\(\{\s*scope:\s*['"]local['"]\s*\}\)/)
+assert.doesNotMatch(logout,/await supabase\.auth\.signOut\(\)\s*\n\s*const response = NextResponse\.json\(\{ ok: true \}\)/)
+assert.match(logout,/if \(error\)[\s\S]*status:\s*503/)
+assert.match(logout,/catch[\s\S]*status:\s*503/)
+assert.match(logout,/Cache-Control['"],\s*['"]private, no-store/)
 
 console.log('Task 1 canonical auth state-machine, authority and recovery contract: PASS')
