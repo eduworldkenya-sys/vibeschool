@@ -33,7 +33,7 @@ as $$
 declare
   v_claim public.learning_resource_generation_claims%rowtype;
   v_wallet public.vibe_credits%rowtype;
-  v_inserted boolean := false;
+  v_inserted_count integer := 0;
   v_new_balance integer;
 begin
   if p_amount <> 1 then
@@ -73,9 +73,9 @@ begin
   )
   on conflict (teacher_id) do nothing;
 
-  get diagnostics v_inserted = row_count;
+  get diagnostics v_inserted_count = row_count;
 
-  if v_inserted then
+  if v_inserted_count = 1 then
     insert into public.vibe_credit_transactions(
       teacher_id, type, feature, amount, balance_after, notes
     ) values (
@@ -165,8 +165,6 @@ begin
     return jsonb_build_object('refunded', false, 'reason', 'nothing_to_refund');
   end if;
 
-  -- A completed claim has already deposited the candidate that consumed the
-  -- external generation spend. Its credit is therefore committed.
   if v_claim.status = 'completed' then
     return jsonb_build_object('refunded', false, 'reason', 'claim_completed');
   end if;
