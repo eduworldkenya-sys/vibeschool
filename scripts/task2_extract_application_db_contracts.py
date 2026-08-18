@@ -4,7 +4,8 @@
 This intentionally does not try to infer dynamic relation names. It provides a
 stable lower bound that the clean-rebuild gate can prove exists in the reconstructed
 database. Dynamic/non-literal database access remains covered by generated types and
-purpose-built contract tests.
+purpose-built contract tests. Supabase Storage `.storage.from("bucket")` calls are
+excluded because bucket names are not PostgreSQL relations.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ from pathlib import Path
 
 SCAN_ROOTS = ("app", "components", "hooks", "lib")
 EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
-FROM_RE = re.compile(r"\.from\(\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\1\s*\)")
+FROM_RE = re.compile(r"(?<!\.storage)\.from\(\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\1\s*\)")
 RPC_RE = re.compile(r"\.rpc\(\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\1(?:\s*[,\)])")
 
 
