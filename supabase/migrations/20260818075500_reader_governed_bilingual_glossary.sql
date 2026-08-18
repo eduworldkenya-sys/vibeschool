@@ -3,6 +3,8 @@ begin;
 -- Reader glossary authority: explanations are editorial/source-governed content,
 -- never generated ad hoc by the reader. Direct table access stays closed; readers
 -- use the entitlement-aware lookup RPC only.
+-- access: service-only public.vibe_reader_glossary_terms
+-- authorization-test: public.vibe_reader_glossary_terms direct anon/authenticated access is revoked; reader access is only through entitlement-aware get_reader_term_explanation.
 
 create table if not exists public.vibe_reader_glossary_terms (
   id uuid primary key default gen_random_uuid(),
