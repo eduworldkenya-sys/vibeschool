@@ -31,9 +31,7 @@ export interface TwinPrivateItem {
   updatedAt: string
 }
 
-export async function routeTwinCore(input: string): Promise<TwinCoreRouteResult> {
-  const { data, error } = await rpc<Json>('student_twin_core_route', { p_input: input })
-  if (error) throw new Error(error.message || 'Twin Core could not route that request.')
+function parseRouteResult(data: Json | null): TwinCoreRouteResult {
   const row = record(data)
   return {
     handled: row.handled === true,
@@ -42,6 +40,21 @@ export async function routeTwinCore(input: string): Promise<TwinCoreRouteResult>
     payload: record(row.payload),
     requiresAi: row.requires_ai === true,
   }
+}
+
+export async function routeTwinCore(input: string): Promise<TwinCoreRouteResult> {
+  // Small deterministic facts are checked before the wider legacy router.
+  // If the forward migration has not reached an environment yet, the existing
+  // Twin remains available instead of turning a missing helper into an outage.
+  const { data: factData, error: factError } = await rpc<Json>('student_twin_date_results_route', { p_input: input })
+  if (!factError) {
+    const factRoute = parseRouteResult(factData)
+    if (factRoute.handled) return factRoute
+  }
+
+  const { data, error } = await rpc<Json>('student_twin_core_route', { p_input: input })
+  if (error) throw new Error(error.message || 'Twin Core could not route that request.')
+  return parseRouteResult(data)
 }
 
 export async function saveTwinPrivateItem(input: {
