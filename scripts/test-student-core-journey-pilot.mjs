@@ -7,6 +7,7 @@ const exerciseMigrationPath = 'supabase/migrations/20260819022000_student_exerci
 const releaseMigrationPath = 'supabase/migrations/20260819022500_student_pilot_content_release_reconciliation.sql'
 const resumeMigrationPath = 'supabase/migrations/20260819022700_student_vibelearn_resume_grade_scope.sql'
 const assessmentMigrationPath = 'supabase/migrations/20260819023000_assessment_item_grounding_rpc_reconciliation.sql'
+const notificationPrerequisitePath = 'supabase/migrations/20260819023400_restore_notifications_prerequisite.sql'
 const notificationMigrationPath = 'supabase/migrations/20260819023500_student_actionable_notification_events.sql'
 const contextPath = 'lib/student-context.tsx'
 const layoutPath = 'app/student/layout.tsx'
@@ -22,6 +23,7 @@ const exerciseMigration = normalize(fs.readFileSync(exerciseMigrationPath, 'utf8
 const releaseMigration = normalize(fs.readFileSync(releaseMigrationPath, 'utf8'))
 const resumeMigration = normalize(fs.readFileSync(resumeMigrationPath, 'utf8'))
 const assessmentMigration = normalize(fs.readFileSync(assessmentMigrationPath, 'utf8'))
+const notificationPrerequisite = normalize(fs.readFileSync(notificationPrerequisitePath, 'utf8'))
 const notificationMigration = normalize(fs.readFileSync(notificationMigrationPath, 'utf8'))
 const normalized = normalize(migration)
 const context = fs.readFileSync(contextPath, 'utf8')
@@ -76,6 +78,7 @@ requireText(resumeMigration, 'revoke all on function public.student_get_vibelear
 
 requireText(vibeLearnLayout, 'const isForm4 = classKey === "form4"', 'Form 4 exam-mode boundary')
 requireText(vibeLearnLayout, 'return isForm4 ? children : <GeneralLearnerVibeLearn />;', 'non-Form learner workstation boundary')
+requireText(vibeLearnLayout, 'brief.subjects.map(subject => subject.id)', 'canonical workstation subject identity')
 requireText(vibeLearnLayout, '.in("subject_id", subjectIds)', 'canonical class-subject resource scope')
 requireText(vibeLearnLayout, '.eq("status", "live")', 'live-resource-only discovery')
 requireText(vibeLearnLayout, 'Learn what belongs to your class.', 'non-Form learner-mode UX')
@@ -84,6 +87,15 @@ requireText(assessmentMigration, "p_source_exercise_ref ? 'source_block_id'", 'a
 requireText(assessmentMigration, 'source_resource_id,source_exercise_ref,source_block_id,question_type,prompt', 'assessment source-block persistence')
 requireText(assessmentMigration, "raise exception 'source_block_not_found'", 'invalid assessment grounding rejection')
 
+requireText(notificationPrerequisite, 'create table if not exists public.notifications', 'reproducible notifications prerequisite')
+requireText(notificationPrerequisite, 'alter table public.notifications enable row level security', 'notification RLS reconstruction')
+requireText(notificationPrerequisite, 'using (user_id = auth.uid())', 'notification owner read boundary')
+requireText(notificationPrerequisite, 'with check (user_id = auth.uid())', 'notification owner update boundary')
+requireText(notificationPrerequisite, 'revoke all on table public.notifications from public, anon', 'notification anonymous table denial')
+requireText(notificationPrerequisite, "'homework_assigned'::text", 'notification prerequisite task-event vocabulary')
+requireText(notificationPrerequisite, "'assessment_result'::text", 'notification prerequisite result vocabulary')
+
+requireText(notificationMigration, 'alter table public.notifications drop constraint if exists notifications_type_check', 'production notification vocabulary transition')
 requireText(notificationMigration, 'notifications_active_event_uniq', 'notification deduplication index')
 requireText(notificationMigration, "'homework_assigned'", 'homework assignment notification')
 requireText(notificationMigration, "'assessment_available'", 'assessment availability notification')
@@ -103,4 +115,4 @@ requireText(notifications, '.select("id, title, body, type, related_id, is_read,
 requireText(notifications, 'router.push(notificationTarget(n))', 'actionable student notification navigation')
 requireText(notifications, 'Check my tasks', 'notification empty-state next action')
 
-console.log('PASS: Task 5 student pilot contract covers learner-day semantics, grade-safe VibeLearn, release reconciliation, grounded assessments, homework/exercise retry integrity, authoritative notifications, navigation, and recoverable identity loading')
+console.log('PASS: Task 5 student pilot contract covers learner-day semantics, grade-safe VibeLearn, release reconciliation, grounded assessments, homework/exercise retry integrity, reproducible authoritative notifications, navigation, and recoverable identity loading')
