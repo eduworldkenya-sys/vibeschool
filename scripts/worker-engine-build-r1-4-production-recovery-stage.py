@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Build the ledger-aligned Worker Engine R1.4 production recovery stage.
 
-Production contains a superseded R1.3X generation whose migration source files are no
-longer in repository history. The canonical repair is now represented by two real,
-repository-tracked convergence migrations (150905 and 150925), so the protected
-recovery stage contains no synthetic SQL injection and no fabricated ledger version.
+Production contains historical migration identities that cannot be inferred from version
+set membership alone. In particular, version 20260815130100 is recorded in production
+as create_open_schools_kenya_kibera_batch1 while repository history uses that version
+for the R1.4 compensation foundation. Applied production history is immutable.
+
+The recovery therefore treats the collided version as historical parity only and
+requires a forward-only replacement migration before the R1.4 closure chain.
 """
 from __future__ import annotations
 
@@ -20,18 +23,20 @@ spec.loader.exec_module(module)
 START_VERSION = "20260815090500"
 END_VERSION = "20260818113000"
 PARITY_BRIDGE = "20260818111900"
+COMPENSATION_COLLISION_VERSION = "20260815130100"
+COMPENSATION_REPAIR_VERSION = "20260818111950"
 REQUIRED_FOUNDATIONS = {
-    "20260815090500",  # historical production-only R1.3X lineage quarantine
-    "20260815091000",  # capability + competency graph
-    "20260815092000",  # resource registry/resolver
-    "20260815092500",  # deterministic historical evidence preservation
-    "20260815093000",  # planning graph
-    "20260815094000",  # plan simulation/selection
-    "20260815095000",  # competency routing/collaboration
-    "20260815121500",  # R1.4 capability authority
-    "20260815123000",  # consequential execution gateway
+    "20260815090500",
+    "20260815091000",
+    "20260815092000",
+    "20260815092500",
+    "20260815093000",
+    "20260815094000",
+    "20260815095000",
+    "20260815121500",
+    "20260815123000",
 }
-REQUIRED_CLOSURE = {"20260818112000", "20260818113000"}
+REQUIRED_CLOSURE = {COMPENSATION_REPAIR_VERSION, "20260818112000", "20260818113000"}
 
 
 def discover_recovery_versions(migrations_dir: Path) -> set[str]:
@@ -43,7 +48,7 @@ def discover_recovery_versions(migrations_dir: Path) -> set[str]:
             continue
         if START_VERSION <= version <= END_VERSION and "worker_engine" in name:
             versions.add(version)
-    missing = (REQUIRED_FOUNDATIONS | REQUIRED_CLOSURE | {PARITY_BRIDGE}) - versions
+    missing = (REQUIRED_FOUNDATIONS | REQUIRED_CLOSURE | {PARITY_BRIDGE, COMPENSATION_COLLISION_VERSION}) - versions
     if missing:
         raise RuntimeError(f"recovery source chain incomplete: missing {sorted(missing)}")
     return versions
@@ -52,6 +57,16 @@ def discover_recovery_versions(migrations_dir: Path) -> set[str]:
 def configure_scope(migrations_dir: Path = Path("supabase/migrations")) -> set[str]:
     versions = discover_recovery_versions(migrations_dir)
     module.APPROVED_WORKER_ENGINE_VERSIONS = versions
+    # The production ledger owns this timestamp with a different migration identity.
+    # Stage an inert version placeholder instead of pretending the repository migration
+    # is semantically equivalent. The missing semantics are restored at 18111950.
+    module.VERSION_PLACEHOLDER_OVERRIDES = {
+        COMPENSATION_COLLISION_VERSION: (
+            "production identity=create_open_schools_kenya_kibera_batch1; "
+            "repository identity=worker_engine_we_r1_4_compensation; "
+            f"forward replacement={COMPENSATION_REPAIR_VERSION}"
+        )
+    }
     return versions
 
 
