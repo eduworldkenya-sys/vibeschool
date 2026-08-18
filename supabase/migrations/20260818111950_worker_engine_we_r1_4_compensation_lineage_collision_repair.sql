@@ -8,7 +8,7 @@
 --
 -- NON-ACTIVATING: runtime, heartbeat, Factory, Shadow and autonomous execution remain OFF.
 -- access: service-only public.hq_workforce_execution_compensations
--- authorization-test: public/anon/authenticated denied; service_role read-only.
+-- authorization-test: public.hq_workforce_execution_compensations denies public/anon/authenticated direct access and service_role is read-only.
 
 do $guard$
 declare ec public.hq_workforce_engine_contract%rowtype;
