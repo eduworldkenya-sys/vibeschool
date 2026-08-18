@@ -24,6 +24,8 @@ def forbid(text: str, needle: str, label: str) -> None:
 def main() -> int:
     layout = read("app/read/textbook/[publicationId]/layout.tsx")
     page = read("app/read/textbook/[publicationId]/page.tsx")
+    purchase_page = read("app/learn/purchase/[publicationId]/page.tsx")
+    purchase_bar = read("components/read/ReaderPurchaseBar.tsx")
     accessibility = read("components/read/ReaderAccessibilityStyles.tsx")
     shell = read("components/read/ReaderExcellenceShell.tsx")
     continuity = read("components/read/ReaderContinuityCoordinator.tsx")
@@ -35,6 +37,8 @@ def main() -> int:
     sw = read("public/sw.js")
     anchor_migration = read("supabase/migrations/20260818071500_reader_durable_annotation_anchors.sql")
     glossary_migration = read("supabase/migrations/20260818075500_reader_governed_bilingual_glossary.sql")
+    commerce_migration = read("supabase/migrations/20260818043000_learning_product_commerce_spine_v1.sql")
+    commerce_verify = read("scripts/sql/learning_product_commerce_verify.sql")
 
     for value in [
         "<ReaderAccessibilityStyles />",
@@ -45,6 +49,7 @@ def main() -> int:
         "<ReaderTermExplainer />",
         "<ReaderAnnotationManager />",
         "<ReaderModeController />",
+        "<ReaderPurchaseBar publicationId={params.publicationId} />",
     ]:
         require(layout, value, "reader layout")
 
@@ -133,6 +138,39 @@ def main() -> int:
 
     for value in ["publicationId", "chapterId", "blockId", "localStorage"]:
         require(listen, value, "listen continuity")
+
+    # Reader → checkout → durable entitlement → reader return must remain one
+    # commercial loop. Payment UI cannot manufacture access itself.
+    for value in [
+        "commerce_get_publication_purchase_context",
+        "context.already_entitled",
+        "`/learn/purchase/${publicationId}`",
+        "Unlock with M-Pesa",
+    ]:
+        require(purchase_bar, value, "reader purchase handoff")
+    for value in [
+        'supabase.functions.invoke("learning-product-stk-push"',
+        'state === "settled"',
+        "handleSettlement",
+        "router.replace(`/read/textbook/${publicationId}`)",
+        "newIdempotencyKey",
+        "reconciliation_required",
+    ]:
+        require(purchase_page, value, "purchase return path")
+    for value in [
+        "commerce_fulfill_learning_product_order",
+        "learning_product_entitlements",
+        "entitlement_granted",
+        "amount_mismatch",
+        "duplicate_provider_receipt",
+    ]:
+        require(commerce_migration, value, "durable commerce entitlement")
+    for value in [
+        "learning_product_entitlements",
+        "can_viewer_read_chapter",
+        "commerce_fulfill_learning_product_order",
+    ]:
+        require(commerce_verify, value, "commerce verification")
 
     print("READER EXCELLENCE CONTRACT PASSED")
     return 0
